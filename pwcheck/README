@@ -16,8 +16,16 @@ you wish to use pwcheck with Cyrus imapd:
 	chmod 700 /var/pwcheck
 
 * Configure your applications to use "pwcheck_method: pwcheck". For 
-  example, if you are using this with the Cyrus IMAP server, put this
-  line in /usr/lib/sasl/Cyrus.conf.
+  example, if you are using this with the Cyrus IMAP server, you can
+  put in the imapd.conf the following line:
+
+	sasl_pwcheck_method: pwcheck
+ 
+  or for an application that doesn't overload its configuration file,
+  you could put the following line in its configuration file located
+  in /usr/lib/sasl (e.g. /usr/lib/<app_name>.conf): 
+
+  	pwcheck_method: pwcheck
 
 * Upon system startup, arrange for the daemon $prefix/sbin/pwcheck
 to be run as root in the background.

@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.9 1998/11/17 19:29:52 rob Exp $
+ * $Id: kerberos4.c,v 1.10 1998/11/18 22:34:37 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -738,7 +738,7 @@ static int c_continue_step (void *conn_context,
 
     text->state=1;
 
-    return SASL_OK;
+    return SASL_CONTINUE;
   }
 
   if (text->state==1)
@@ -784,7 +784,7 @@ static int c_continue_step (void *conn_context,
     *clientoutlen=ticket.length;
 
     text->state=2;
-    return SASL_OK;
+    return SASL_CONTINUE;
   }
 
   /* challenge #2 */

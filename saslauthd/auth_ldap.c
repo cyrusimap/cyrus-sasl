@@ -31,7 +31,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_ldap.c,v 1.5 2002/05/08 16:53:30 rjs3 Exp $"
+#ident "$Id: auth_ldap.c,v 1.6 2002/05/08 20:03:00 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -183,13 +183,13 @@ static int auth_ldap_configure()
 
 	rc = auth_ldap_config_init(SASLAUTHD_CONF_FILE);
 	if (rc != AUTH_LDAP_OK) {
-		syslog(LOG_INFO, "Cannot open configuration file", myname);
+		syslog(LOG_INFO, "Cannot open configuration file");
 		return AUTH_LDAP_FAIL;
 	}
 
 	lak = malloc( sizeof(LAK) );
 	if (lak == NULL) {
-		syslog(LOG_INFO, "Cannot allocate memory", myname);
+		syslog(LOG_INFO, "Cannot allocate memory");
 		return AUTH_LDAP_FAIL;
 	}
 

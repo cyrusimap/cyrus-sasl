@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.89 2004/07/06 14:06:03 rjs3 Exp $
+ * $Id: gssapi.c,v 1.90 2004/07/06 21:55:47 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.89 2004/07/06 14:06:03 rjs3 Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.90 2004/07/06 21:55:47 rjs3 Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -1016,8 +1016,14 @@ gssapi_server_mech_step(void *conn_context,
 					    GSS_C_QOP_DEFAULT,
 					    (OM_uint32) oparams->maxoutbuf,
 					    &max_input);
-	    
-	    oparams->maxoutbuf = max_input;
+
+	    if(max_input > oparams->maxoutbuf) {
+		/* Heimdal appears to get this wrong */
+		oparams->maxoutbuf -= (max_input - oparams->maxoutbuf);
+	    } else {
+		/* This code is actually correct */
+		oparams->maxoutbuf = max_input;
+	    }    
 	}
 	
 	gss_release_buffer(&min_stat, output_token);
@@ -1461,8 +1467,14 @@ static int gssapi_client_mech_step(void *conn_context,
                                             GSS_C_QOP_DEFAULT,
                                             (OM_uint32) oparams->maxoutbuf,
                                             &max_input);
-                                                                                
-            oparams->maxoutbuf = max_input;
+
+	    if(max_input > oparams->maxoutbuf) {
+		/* Heimdal appears to get this wrong */
+		oparams->maxoutbuf -= (max_input - oparams->maxoutbuf);
+	    } else {
+		/* This code is actually correct */
+		oparams->maxoutbuf = max_input;
+	    }
 	}
 	
 	gss_release_buffer(&min_stat, output_token);

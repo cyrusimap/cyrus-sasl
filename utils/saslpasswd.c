@@ -44,11 +44,6 @@ static const char build_ident[] = "$Build: saslpasswd " PACKAGE "-" VERSION " $"
 
 const char *progname = NULL;
 
-#ifndef WIN32
-/*doesn't seem to be used anywhere*/
-extern int _sasl_debug;
-#endif /*WIN32*/
-
 void read_password(const char *prompt,
 		   int flag_pipe,
 		   char ** password,
@@ -159,10 +154,6 @@ main(int argc, char *argv[])
   int result;
   sasl_conn_t *conn;
   char *user_domain = NULL;
-
-#ifndef WIN32
-  _sasl_debug=1;
-#endif /*WIN32*/
 
   if (! argv[0])
     progname = "saslpasswd";

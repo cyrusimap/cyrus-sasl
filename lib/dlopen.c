@@ -24,7 +24,9 @@ SOFTWARE.
 ******************************************************************/
 
 #include <config.h>
+#ifndef __hpux
 #include <dlfcn.h>
+#endif /* !__hpux */
 #include <stdlib.h>
 #include <limits.h>
 #include <sys/param.h>
@@ -52,6 +54,60 @@ SOFTWARE.
 #if NAME_MAX < 8
 #  define NAME_MAX 8
 #endif
+
+#ifdef __hpux
+#include <dl.h>
+
+typedef shl_t dll_handle;
+typedef void * dll_func;
+
+dll_handle
+dlopen(char *fname, int mode)
+{
+    shl_t h = shl_load(fname, BIND_DEFERRED, 0L);
+    shl_t *hp = NULL;
+    
+    if (h) {
+	hp = (shl_t *)malloc(sizeof (shl_t));
+	if (!hp) {
+	    shl_unload(h);
+	} else {
+	    *hp = h;
+	}
+    }
+
+    return (dll_handle)hp;
+}
+
+int
+dlclose(dll_handle h)
+{
+    shl_t hp = *((shl_t *)h);
+    if (hp != NULL) free(hp);
+    return shl_unload(h);
+}
+
+dll_func
+dlsym(dll_handle h, char *n)
+{
+    dll_func handle;
+    
+    if (shl_findsym ((shl_t *)h, n, TYPE_PROCEDURE, &handle))
+	return NULL;
+    
+    return (dll_func)handle;
+}
+
+char *dlerror()
+{
+    return "Generic shared library error";
+}
+
+#define SO_SUFFIX	".sl"
+#else /* __hpux */
+#define SO_SUFFIX	".so"
+#endif /* __hpux */
+
 
 /* gets the list of mechanisms */
 int _sasl_get_mech_list(const char *entryname,
@@ -126,7 +182,7 @@ int _sasl_get_mech_list(const char *entryname,
 
 	if (length + pos>=PATH_MAX) continue; /* too big */
 
-	if (strcmp(dir->d_name + (length - 3), ".so")) continue;
+	if (strcmp(dir->d_name + (length - 3), SO_SUFFIX)) continue;
 	{
 	  char name[PATH_MAX];
 	  int flag;
@@ -140,12 +196,12 @@ int _sasl_get_mech_list(const char *entryname,
 	  VL(("entry is = [%s]\n",tmp));
 
 	  /* Ask the application if we should use this file or not */
-	  result = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(verifyfile_cb->context,
-								tmp);	  
+	  result = ((sasl_verifyfile_t *)(verifyfile_cb->proc))
+	     (verifyfile_cb->context, tmp);
 	  /* returns continue if this file is to be skipped */
-	  if (result==SASL_CONTINUE) continue; 
+	  if (result == SASL_CONTINUE) continue; 
 	  
-	  if (result!=SASL_OK) return result;
+	  if (result != SASL_OK) return result;
 	  
 #ifdef RTLD_NOW
 	  flag = RTLD_NOW;

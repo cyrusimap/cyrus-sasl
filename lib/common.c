@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.82 2002/08/02 17:32:49 rjs3 Exp $
+ * $Id: common.c,v 1.83 2002/09/12 20:24:30 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -283,6 +283,10 @@ int sasl_decode(sasl_conn_t *conn,
     } else {
         result = conn->oparams.decode(conn->context, input, inputlen,
                                       output, outputlen);
+
+	/* NULL an empty buffer (for misbehaved applications) */
+	if (*outputlen == 0) *output = NULL;
+
         RETURN(conn, result);
     }
 

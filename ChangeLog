@@ -1,3 +1,6 @@
+2002-09-12  Ken Murchison <ken@oceana.com>
+	* lib/common.c: NULL outbuf if we get no output from sasl_decode()
+
 2002-09-11  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/mysql.c: Actually loop through the potential servers
 	  properly (Seow Kok Heng <kokheng@jhs.com.sg>)

@@ -1,3 +1,12 @@
+New in 2.1.7
+------------
+* Add SASL_AUTHUSER as a parameter to sasl_getprop
+* Allow applications to require proxy-capable mechanisms (SASL_NEED_PROXY)
+* Performance improvements in our treatment of /dev/random
+* Removal of buggy DIGEST-MD5 reauth support.
+* Documentation fixes
+* Assorted other minor bugfixes.
+
 New in 2.1.6
 ------------
 * Security fix for the CRAM-MD5 plugin to check the full length of the

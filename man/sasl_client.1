@@ -1,0 +1,138 @@
+.\" Hey Emacs! This file is -*- nroff -*- source.
+.\"
+.\" This manpage is Copyright (C) 1992 Drew Eckhardt;
+.\"                               1993 Michael Haardt, Ian Jackson.
+.\"
+.\" Permission is granted to make and distribute verbatim copies of this
+.\" manual provided the copyright notice and this permission notice are
+.\" preserved on all copies.
+.\"
+.\" Permission is granted to copy and distribute modified versions of this
+.\" manual under the conditions for verbatim copying, provided that the
+.\" entire resulting derived work is distributed under the terms of a
+.\" permission notice identical to this one
+.\" 
+.\" Formatted or processed versions of this manual, if unaccompanied by
+.\" the source, must acknowledge the copyright and authors of this work.
+.\"
+.\"
+.TH sasl_client_* "27 November 1998" SASL "SASL man pages"
+.SH NAME
+sasl_client_init\, sasl_client_new\, sasl_client_start\, sasl_client_step \- SASL client authentication functions.
+
+
+.SH SYNOPSIS
+.nf
+.B #include <sasl.h>
+.sp
+.BI "int sasl_client_init(const  sasl_callback_t " *callbacks ");"
+
+.sp
+.BI "int sasl_client_new(const char " *service ", "
+.BI "			 const char " *serverFQDN ", "
+.BI "			 const sasl_callback_t " *prompt_supp,const ", "
+.BI "			 int " secflags ", "
+.BI "			 sasl_conn_t ** " pconn ");"
+
+.sp
+.BI "int sasl_client_start(sasl_conn_t * " conn ", "
+.BI "		      const char * " mechlist ", "
+.BI "		      sasl_secret_t * " secret ", "
+.BI "		      sasl_interact_t ** " prompt_need ", "
+.BI "		      char ** " clientout ", "
+.BI "		      unsigned * " clientoutlen ", "
+.BI "		      const char ** " mech ");"
+
+.sp
+.BI "int sasl_client_step(sasl_conn_t " *conn ", "
+.BI "		     const char " *serverin ", "
+.BI "		     unsigned " serverinlen ", "
+.BI "		     sasl_interact_t ** " prompt_need ", "
+.BI "		     char ** " clientout ", "
+.BI "		     unsigned * " clientoutlen ");"
+		    
+.fi
+.SH DESCRIPTION
+
+SASL (simple authentication security layer) is an abstract way to connect to various servers that understand SASL (such as IMAP, ACAP, LDAP, HTTP, SMTP) without any necessary knowledge of the underlying security mechanisms. These are the SASL client authentication functions.
+.PP
+
+.B sasl_client_init()
+initializes SASL. It must be called before any calls to sasl_client_start. This call initializes all SASL client drivers (e.g. authentication mechanisms). These are searched for in the enviornment variable SASL_PATH directory, or the default directory XXX if none is specified. The 
+.I callbacks
+parameter specifies the base callbacks for all client connections.
+.PP
+
+.B sasl_client_new()
+creates a new SASL context. This context will be used for all SASL calls for one connection. It handles both authentication and integrity/encyption layers after authentication if used.
+.PP
+.I service
+is the registered name of the service using SASL (e.g. "imap").
+.I serverFQDN
+is the fully qualified domain name of the server (e.g. "serverhost.cmu.edu").
+.I prompt_supp
+is a list of client interactions supported. It may also include a sasl_getopt_t context & call. If this parameter is NULL this tells SASL that the client supports obtaining username and user password throught the SASL_INTERACT mechanism only.
+.I secflags
+XXX security flags (see above)
+.I pconn
+is the conection contect. If the passed value is NULL it is allocated for by the library. This structure will be used for all future SASL calls for this connection.
+.PP
+
+.B sasl_client_start()
+selects a mechanism for authentication and starts the authentication session. The mechlist is the list of mechanisms the client might like to use. The mechanisms in the list are not necessarily supported by the client or even valid. SASL determines which of these to use based upon the security preferences specified earlier. The list of mechanisms is typically a list of mechanisms the server supports acquired from a capability request.
+
+If SASL_INTERACT is returned... XXX
+
+.I mechlist
+is a list of mechanisms the server has available. Punctuation if ignored.
+.I secret
+is the secret from a previous session. This parameter is optional. If SASL_INTERACT is returned 
+.I prompt_need
+is filled in with a list of prompts needed to continue. On sucess
+.I clientout
+is created. It is the initial client response to send to the server. This is allocated for by the library and it is the job of the client to send it over the network to the server. Also protocal specific encoding (such as base64 encoding) necessary needs to be done by the client. On sucess
+.I mech
+contains the name of the chosen SASL mechanism.
+
+.PP
+.SH "RETURN VALUE"
+
+All calls return an integer which corresponds to the following codes. SASL_OK indicates sucess and SASL_INTERACT indicates the client needs to do something. All others indicate errors and should either be handled or the authentication session should be quit.
+
+
+.SH ERRORS
+.TP 0.8i
+.B SASL_OK
+Success
+.TP 0.8i
+.B SASL_INTERACT
+user interaction needed to fill in prompt_need list
+.TP 0.8i
+.B SASL_NOMEM
+Not enough memory
+.TP 0.8i
+.B SASL_BADVERS
+Mechanism version mismatch
+.TP 0.8i
+.B SASL_BADPARAM
+error in config file
+.TP 0.8i
+.B SASL_NOMECH
+no mechanism available or meet requested properties
+.TP 0.8i
+.B SASL_NOMEM
+not enough memory to complete operation
+.TP 0.8i
+.B SASL_BADPROT
+server protocol incorrect/cancelled
+.TP 0.8i
+.B SASL_BADSERV
+server failed mutual authentication
+
+
+.SH "CONFORMING TO"
+RFC 2222
+.SH "SEE ALSO"
+.BR other sasl stuff
+.BR 
+.BR 

@@ -4,8 +4,11 @@
 	  canon_user call.
 
 2002-05-13  Ken Murchison <ken@oceana.com>
-	* plugins/plugin_common.c: NULL the results of the _plug_get_*()
-	  functions before we get started
+	* plugins/plugin_common.c: set the return code to SASL_FAIL, and
+	  NULL the results of the _plug_get_*() functions before we get
+	  started
+	* plugins/digestmd5.c, otp.c, plain.c, srp.c: check for NULL or
+	  empty authzid from callback
 
 2002-05-09  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/configure.in: --with-ldap now takes a path

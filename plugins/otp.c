@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.20 2002/05/01 17:19:13 ken3 Exp $
+ * $Id: otp.c,v 1.21 2002/05/13 15:43:17 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -76,7 +76,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: otp.c,v 1.20 2002/05/01 17:19:13 ken3 Exp $";
+static const char plugin_id[] = "$Id: otp.c,v 1.21 2002/05/13 15:43:17 ken3 Exp $";
 
 #define OTP_SEQUENCE_MAX	9999
 #define OTP_SEQUENCE_DEFAULT	499
@@ -1425,7 +1425,7 @@ static int otp_client_mech_step1(client_context_t *text,
 				 unsigned *clientoutlen,
 				 sasl_out_params_t *oparams)
 {
-    const char *user, *authid;
+    const char *user = NULL, *authid = NULL;
     int user_result = SASL_OK;
     int auth_result = SASL_OK;
     int pass_result = SASL_OK;
@@ -1451,10 +1451,8 @@ static int otp_client_mech_step1(client_context_t *text,
     if (oparams->user == NULL) {
 	user_result = _plug_get_userid(params->utils, &user, prompt_need);
 	
-	/* Fallback to authid */
-	if ((user_result != SASL_OK) && (user_result != SASL_INTERACT)) {
-	    user = authid;
-	}
+	if ((user_result != SASL_OK) && (user_result != SASL_INTERACT))
+	    return user_result;
     }
     
     /* try to get the secret pass-phrase if we don't have a chalprompt */
@@ -1496,11 +1494,18 @@ static int otp_client_mech_step1(client_context_t *text,
 	return SASL_INTERACT;
     }
     
-    result = params->canon_user(params->utils->conn, user, 0,
-				SASL_CU_AUTHZID, oparams);
-    if (result != SASL_OK) return result;
-    result = params->canon_user(params->utils->conn, authid, 0,
-				SASL_CU_AUTHID, oparams);
+    if (!user || !*user) {
+	result = params->canon_user(params->utils->conn, authid, 0,
+				    SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
+    }
+    else {
+	result = params->canon_user(params->utils->conn, user, 0,
+				    SASL_CU_AUTHZID, oparams);
+	if (result != SASL_OK) return result;
+
+	result = params->canon_user(params->utils->conn, authid, 0,
+				    SASL_CU_AUTHID, oparams);
+    }
     if (result != SASL_OK) return result;
     
     /* send authorized id NUL authentication id */

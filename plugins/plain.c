@@ -1,7 +1,7 @@
 /* Plain SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: plain.c,v 1.55 2002/04/30 17:45:33 ken3 Exp $
+ * $Id: plain.c,v 1.56 2002/05/13 15:43:17 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -62,7 +62,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: plain.c,v 1.55 2002/04/30 17:45:33 ken3 Exp $";
+static const char plugin_id[] = "$Id: plain.c,v 1.56 2002/05/13 15:43:17 ken3 Exp $";
 
 /*****************************  Server Section  *****************************/
 
@@ -276,7 +276,7 @@ static int plain_client_mech_step(void *conn_context,
 				  sasl_out_params_t *oparams)
 {
     client_context_t *text = (client_context_t *) conn_context;
-    const char *user, *authid;
+    const char *user = NULL, *authid = NULL;
     sasl_secret_t *password = NULL;
     unsigned int free_password = 0; /* set if we need to free password */
     int user_result = SASL_OK;
@@ -307,10 +307,8 @@ static int plain_client_mech_step(void *conn_context,
     if (oparams->user == NULL) {
 	user_result = _plug_get_userid(params->utils, &user, prompt_need);
 	
-	/* Fallback to authid */
-	if ((user_result != SASL_OK) && (user_result != SASL_INTERACT)) {
-	    user = authid;
-	}
+	if ((user_result != SASL_OK) && (user_result != SASL_INTERACT))
+	    return user_result;
     }
     
     /* try to get the password */
@@ -353,13 +351,19 @@ static int plain_client_mech_step(void *conn_context,
 	PARAMERROR(params->utils);
 	return SASL_BADPARAM;
     }
-    
-    result = params->canon_user(params->utils->conn, user, 0,
-				SASL_CU_AUTHZID, oparams);
-    if (result != SASL_OK) goto cleanup;
-    
-    result = params->canon_user(params->utils->conn, authid, 0,
-				SASL_CU_AUTHID, oparams);
+
+    if (!user || !*user) {
+	result = params->canon_user(params->utils->conn, authid, 0,
+				    SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
+    }
+    else {
+	result = params->canon_user(params->utils->conn, user, 0,
+				    SASL_CU_AUTHZID, oparams);
+	if (result != SASL_OK) goto cleanup;
+	
+	result = params->canon_user(params->utils->conn, authid, 0,
+				    SASL_CU_AUTHID, oparams);
+    }
     if (result != SASL_OK) goto cleanup;
     
     /* send authorized id NUL authentication id NUL password */

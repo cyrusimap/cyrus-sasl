@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.40 2002/05/02 22:05:12 ken3 Exp $
+ * $Id: srp.c,v 1.41 2002/05/13 15:43:17 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -75,7 +75,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: srp.c,v 1.40 2002/05/02 22:05:12 ken3 Exp $";
+static const char plugin_id[] = "$Id: srp.c,v 1.41 2002/05/13 15:43:17 ken3 Exp $";
 
 /* Size of diffie-hellman secrets a and b */
 #define BITSFORab 64
@@ -3051,7 +3051,7 @@ srp_client_mech_step1(context_t *text,
 		      unsigned *clientoutlen,
 		      sasl_out_params_t *oparams)
 {
-    const char *authid, *userid;
+    const char *authid = NULL, *userid = NULL;
     int auth_result = SASL_OK;
     int pass_result = SASL_OK;
     int user_result = SASL_OK;
@@ -3120,11 +3120,18 @@ srp_client_mech_step1(context_t *text,
 	return SASL_INTERACT;
     }
     
-    result = params->canon_user(params->utils->conn, authid, 0,
-				SASL_CU_AUTHID, oparams);
-    if (result != SASL_OK) return result;
-    result = params->canon_user(params->utils->conn, userid, 0,
-				SASL_CU_AUTHZID, oparams);
+    if (!userid || !*userid) {
+	result = params->canon_user(params->utils->conn, authid, 0,
+				    SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
+    }
+    else {
+	result = params->canon_user(params->utils->conn, authid, 0,
+				    SASL_CU_AUTHID, oparams);
+	if (result != SASL_OK) return result;
+
+	result = params->canon_user(params->utils->conn, userid, 0,
+				    SASL_CU_AUTHZID, oparams);
+    }
     if (result != SASL_OK) return result;
     
     /* Send out:

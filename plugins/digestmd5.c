@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.132 2002/05/07 15:28:56 ken3 Exp $
+ * $Id: digestmd5.c,v 1.133 2002/05/13 15:43:16 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -103,7 +103,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.132 2002/05/07 15:28:56 ken3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.133 2002/05/13 15:43:16 ken3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -3053,7 +3053,7 @@ digestmd5_client_mech_step1(client_context_t *ctext,
 			    sasl_out_params_t *oparams)
 {
     context_t *text = (context_t *) ctext;
-    const char *authid, *userid;
+    const char *authid = NULL, *userid = NULL;
     int user_result = SASL_OK;
     int auth_result = SASL_OK;
     int pass_result = SASL_OK;
@@ -3075,10 +3075,8 @@ digestmd5_client_mech_step1(client_context_t *ctext,
     if (oparams->user == NULL) {
 	user_result = _plug_get_userid(params->utils, &userid, prompt_need);
 	
-	/* Steal it from the authid */
-	if ((user_result != SASL_OK) && (user_result != SASL_INTERACT)) {
-	    userid = authid;
-	}
+	if ((user_result != SASL_OK) && (user_result != SASL_INTERACT))
+	    return user_result;
     }
     
     /* try to get the password */
@@ -3115,12 +3113,18 @@ digestmd5_client_mech_step1(client_context_t *ctext,
 	return SASL_INTERACT;
     }
     
-    result = params->canon_user(params->utils->conn,
-				authid, 0, SASL_CU_AUTHID, oparams);
-    if (result != SASL_OK) return result;
+    if (!userid || !*userid) {
+	result = params->canon_user(params->utils->conn, authid, 0,
+				    SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
+    }
+    else {
+	result = params->canon_user(params->utils->conn,
+				    authid, 0, SASL_CU_AUTHID, oparams);
+	if (result != SASL_OK) return result;
     
-    result = params->canon_user(params->utils->conn,
-				userid, 0, SASL_CU_AUTHZID, oparams);
+	result = params->canon_user(params->utils->conn,
+				    userid, 0, SASL_CU_AUTHZID, oparams);
+    }
     if (result != SASL_OK) return result;
 
     if (!strcmp(oparams->authid, text->global->authid)) {
@@ -3189,7 +3193,7 @@ digestmd5_client_mech_step2(client_context_t *ctext,
     int maxbuf_count = 0;
     bool IsUTF8 = FALSE;
     int result = SASL_FAIL;
-    const char *authid, *userid;
+    const char *authid = NULL, *userid = NULL;
     int user_result = SASL_OK;
     int auth_result = SASL_OK;
     int pass_result = SASL_OK;
@@ -3392,10 +3396,8 @@ digestmd5_client_mech_step2(client_context_t *ctext,
     if (oparams->user == NULL) {
 	user_result = _plug_get_userid(params->utils, &userid, prompt_need);
 	
-	/* Steal it from the authid */
-	if ((user_result != SASL_OK) && (user_result != SASL_INTERACT)) {
-	    userid = authid;
-	}
+	if ((user_result != SASL_OK) && (user_result != SASL_INTERACT))
+	    return user_result;
     }
     
     /* try to get the password */
@@ -3491,14 +3493,19 @@ digestmd5_client_mech_step2(client_context_t *ctext,
     }
     
     if (oparams->authid == NULL) {
-	result = params->canon_user(params->utils->conn,
-				    authid, 0, SASL_CU_AUTHID, oparams);
-	if (result != SASL_OK) goto FreeAllocatedMem;
-    }
-    
-    if (oparams->user == NULL) {
-	result = params->canon_user(params->utils->conn,
-				    userid, 0, SASL_CU_AUTHZID, oparams);
+	if (!userid || !*userid) {
+	    result = params->canon_user(params->utils->conn, authid, 0,
+					SASL_CU_AUTHID | SASL_CU_AUTHZID,
+					oparams);
+	}
+	else {
+	    result = params->canon_user(params->utils->conn,
+					authid, 0, SASL_CU_AUTHID, oparams);
+	    if (result != SASL_OK) goto FreeAllocatedMem;
+
+	    result = params->canon_user(params->utils->conn,
+					userid, 0, SASL_CU_AUTHZID, oparams);
+	}
 	if (result != SASL_OK) goto FreeAllocatedMem;
     }
     

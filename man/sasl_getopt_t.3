@@ -68,9 +68,11 @@ is a string representing the option. A common option that all server
 applications should handle is \"pwcheck_method\" which represents the
 method for checking plaintext passwords. See the administrators guide
 for a full description of this option.
-
 .PP
-
+Memory management of options supplied by the getopt callback should be
+done by the application, however, any requested option must remain available
+until sasl_done is called.
+.PP
 .SH "RETURN VALUE"
 
 SASL callback functions should return SASL return codes. See sasl.h for a complete list. SASL_OK indicates success.

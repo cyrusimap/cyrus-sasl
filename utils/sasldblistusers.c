@@ -1,5 +1,5 @@
 /* sasldblistusers.c -- list users in sasldb
- * $Id: sasldblistusers.c,v 1.19 2003/08/18 15:47:31 rjs3 Exp $
+ * $Id: sasldblistusers.c,v 1.20 2003/08/29 15:45:17 rjs3 Exp $
  * Rob Siemborski
  * Tim Martin
  */
@@ -48,8 +48,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
 #include <sasl.h>
 #include "../sasldb/sasldb.h"
+
+#ifdef WIN32
+#include <saslutil.h>
+__declspec(dllimport) char *optarg;
+__declspec(dllimport) int optind;
+__declspec(dllimport) int getsubopt(char **optionp, char * const *tokens, char **valuep);
+#endif
 
 /* Cheating to make the utils work out right */
 LIBSASL_VAR const sasl_utils_t *sasl_global_utils;
@@ -110,6 +121,7 @@ int listusers(sasl_conn_t *conn)
 }
 
 char *sasldb_path = SASL_DB_PATH;
+const char *progname = NULL;
 
 int good_getopt(void *context __attribute__((unused)), 
 		const char *plugin_name __attribute__((unused)), 
@@ -134,14 +146,62 @@ static struct sasl_callback goodsasl_cb[] = {
 
 int main(int argc, char **argv)
 {
+    int c;
     int result;
     sasl_conn_t *conn;
-    if (argc > 1)
-	sasldb_path = argv[1];
+    int bad_option = 0;
+    int display_usage = 0;
 
+    if (! argv[0])
+       progname = "sasldblistusers2";
+    else {
+       progname = strrchr(argv[0], HIER_DELIMITER);
+       if (progname)
+           progname++;
+       else
+           progname = argv[0];
+    }
+
+    /* A single parameter not starting with "-" denotes sasldb to use */
+    if ((argc == 2) && argv[1][0] != '-') {
+	sasldb_path = argv[1];
+	goto START_WORK;
+    }
+
+    while ((c = getopt(argc, argv, "f:h?")) != EOF) {
+       switch (c) {
+         case 'f':
+	   sasldb_path = optarg;
+	   break;
+         case 'h':
+           bad_option = 0;
+            display_usage = 1;
+           break;
+         default:
+           bad_option = 1;
+            display_usage = 1;
+            break;
+       }
+    }
+
+    if (optind != argc)
+       display_usage = 1;
+
+    if (display_usage) {
+       (void)fprintf(stderr,
+           "%s: usage: %s [[-f] sasldb]\n"
+           "\t-f sasldb\tuse given file as sasldb\n",
+           progname, progname);
+       if (bad_option) {
+           fprintf(stderr, "Unrecognized command line option\n");
+       }
+       return 1;
+    }
+ 
+START_WORK:
     result = sasl_server_init(goodsasl_cb, "sasldblistusers");
     if(result != SASL_OK) {
-	fprintf(stderr, "Couldn't init server\n");
+	fprintf(stderr, "Couldn't initialize server API\n");
 	return 1;
     }
     

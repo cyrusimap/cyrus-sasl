@@ -340,4 +340,8 @@ struct sockaddr_storage {
 # endif
 #endif
 
+#ifndef HIER_DELIMITER
+#define HIER_DELIMITER '/'
+#endif
+
 #endif /* CONFIG_H */

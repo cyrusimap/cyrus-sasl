@@ -1,3 +1,10 @@
+2003-08-28  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* include/md5.h, lib/md5.c: Misc cleanup
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+	* utils/sasldblistusers.c: UI Cleanup, Win32 support
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+	* acconfig.h: add HIER_DELIMITER
+
 2003-08-27  Ken Murchison <ken@oceana.com>
 	* plugins/digestmd5.c: handle OpenSSL 0.9.7+ w/o old DES support
 

@@ -52,6 +52,11 @@
 /* Our version */
 #define VERSION "2.1.15"
 
+/* Visual Studio supports prototypes */
+#define PROTOTYPES     1
+
+typedef unsigned char   *caddr_t;
+
 /* Registry key that contains the locations of the plugins */
 #define SASL_ROOT_KEY "SOFTWARE\\Carnegie Mellon\\Project Cyrus\\SASL Library"
 #define SASL_KEY_V1 SASL_ROOT_KEY "\\Available Plugins"
@@ -153,5 +158,9 @@ struct sockaddr_storage {
 #endif
 
 #include <time.h>
+
+typedef int ssize_t;
+
+#define HIER_DELIMITER '\\'
 
 #endif /* CONFIG_H */

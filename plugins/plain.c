@@ -1,10 +1,10 @@
 /* Plain SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: plain.c,v 1.59 2002/11/22 17:33:36 leg Exp $
+ * $Id: plain.c,v 1.60 2003/02/13 19:56:04 rjs3 Exp $
  */
 /* 
- * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,7 +57,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: plain.c,v 1.59 2002/11/22 17:33:36 leg Exp $";
+static const char plugin_id[] = "$Id: plain.c,v 1.60 2003/02/13 19:56:04 rjs3 Exp $";
 
 /*****************************  Server Section  *****************************/
 

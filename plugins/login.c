@@ -2,10 +2,10 @@
  * Rob Siemborski (SASLv2 Conversion)
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.24 2002/11/24 21:11:14 ken3 Exp $
+ * $Id: login.c,v 1.25 2003/02/13 19:56:04 rjs3 Exp $
  */
 /* 
- * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,7 +54,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: login.c,v 1.24 2002/11/24 21:11:14 ken3 Exp $";
+static const char plugin_id[] = "$Id: login.c,v 1.25 2003/02/13 19:56:04 rjs3 Exp $";
 
 /*****************************  Server Section  *****************************/
 

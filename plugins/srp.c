@@ -1,10 +1,10 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.45 2002/12/05 22:33:25 rjs3 Exp $
+ * $Id: srp.c,v 1.46 2003/02/13 19:56:05 rjs3 Exp $
  */
 /* 
- * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -73,7 +73,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: srp.c,v 1.45 2002/12/05 22:33:25 rjs3 Exp $";
+static const char plugin_id[] = "$Id: srp.c,v 1.46 2003/02/13 19:56:05 rjs3 Exp $";
 
 /* Size of diffie-hellman secrets a and b */
 #define BITSFORab 64

@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.5 2003/01/21 17:46:46 ken3 Exp $
+ * $Id: ntlm.c,v 1.6 2003/02/13 19:56:04 rjs3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -8,7 +8,7 @@
  *   http://www.ubiqx.org/cifs/rfc-draft/draft-leach-cifs-v1-spec-02.html
  */
 /* 
- * Copyright (c) 2002 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,7 +62,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.5 2003/01/21 17:46:46 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.6 2003/02/13 19:56:04 rjs3 Exp $";
 
 #define NTLM_SIGNATURE		"NTLMSSP"
 

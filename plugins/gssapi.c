@@ -1,10 +1,10 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.70 2002/09/19 18:37:10 rjs3 Exp $
+ * $Id: gssapi.c,v 1.71 2003/02/13 19:56:04 rjs3 Exp $
  */
 /* 
- * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -87,7 +87,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.70 2002/09/19 18:37:10 rjs3 Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.71 2003/02/13 19:56:04 rjs3 Exp $";
 
 #ifndef HAVE_GSS_C_NT_HOSTBASED_SERVICE
 extern gss_OID gss_nt_service_name;

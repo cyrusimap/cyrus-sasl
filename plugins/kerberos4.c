@@ -1,10 +1,10 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.93 2003/02/03 17:09:10 rjs3 Exp $
+ * $Id: kerberos4.c,v 1.94 2003/02/13 19:56:04 rjs3 Exp $
  */
 /* 
- * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -115,7 +115,7 @@ extern int gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: kerberos4.c,v 1.93 2003/02/03 17:09:10 rjs3 Exp $";
+static const char plugin_id[] = "$Id: kerberos4.c,v 1.94 2003/02/13 19:56:04 rjs3 Exp $";
 
 #ifndef KEYFILE
 #define KEYFILE "/etc/srvtab";

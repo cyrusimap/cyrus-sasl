@@ -1,10 +1,10 @@
 /* CRAM-MD5 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: cram.c,v 1.77 2003/02/12 19:57:42 leg Exp $
+ * $Id: cram.c,v 1.78 2003/02/13 19:56:03 rjs3 Exp $
  */
 /* 
- * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -66,7 +66,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: cram.c,v 1.77 2003/02/12 19:57:42 leg Exp $";
+static const char plugin_id[] = "$Id: cram.c,v 1.78 2003/02/13 19:56:03 rjs3 Exp $";
 
 /* convert a string of 8bit chars to it's representation in hex
  * using lowercase letters

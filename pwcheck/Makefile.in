@@ -12,7 +12,7 @@
 
 # Makefile.am for the pwcheck daemon
 # Larry Greenfield
-# $Id: Makefile.in,v 1.1 1999/10/01 20:41:53 leg Exp $
+# $Id: Makefile.in,v 1.2 1999/10/10 02:07:26 leg Exp $
 #
 #         Copyright 1999 by Carnegie Mellon University
 #
@@ -151,7 +151,7 @@ DIST_COMMON =  README Makefile.am Makefile.in
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
-TAR = gtar
+TAR = tar
 GZIP = --best
 SOURCES = pwcheck.c
 OBJECTS = pwcheck.o

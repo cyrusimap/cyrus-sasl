@@ -4,6 +4,9 @@ configure script first.
 
 Read doc/sysadmin.html to learn how to configure SASL.
 
+If you are upgrading, be sure to read the Upgrading section of the
+README file.
+
 Note that the library looks for plugins in /usr/lib/sasl, but installs
 them into ${prefix}/lib/sasl, where ${prefix} is usually something
 like /usr/local.  This is intentional - we want the plugins installed
@@ -63,7 +66,6 @@ At this time, there are no installers available.  To install by hand:
   copy saslCRAM\Release\*.dll c:\sasl-plugins
   copy saslKERBEROSV4\Release\*.dll c:\sasl-plugins
   copy saslPLAIN\Release\*.dll c:\sasl-plugins
-  copy saslSCRAM\Release\*.dll c:\sasl-plugins
 * Update the registry with these locations.  Example registry settings
     are in the file: 
   sasl\win32\cmu-sasl.reg

@@ -255,14 +255,21 @@ AC_ARG_ENABLE(digest, [  --enable-digest         enable DIGEST-MD5 authenticatio
   digest=$enableval,
   digest=yes)
 
+AC_CHECK_LIB(des, des_pcbc_encrypt, des=yes, des=no)
+
+if test "$des" != no; then
+  AC_DEFINE(WITH_DES)
+fi
+
 if test "$digest" != no; then
-  dnl In order to compile digest, we need libdes.
+  dnl In order to compile digest, we should look for need libdes.
   if test -d $digest; then
     CPPFLAGS="$CPPFLAGS -I$digest/include"
     LDFLAGS="$LDFLAGS -L$digest/lib"
   fi
-  AC_CHECK_LIB(des, des_pcbc_encrypt,:,
-	       AC_WARN(Disabling DIGEST-MD5); digest=no)
+  if test "$des" = no; then
+    AC_WARN(No DES support for DIGEST-MD5)
+  fi
 fi
 
 AC_MSG_CHECKING(DIGEST-MD5)
@@ -285,11 +292,12 @@ if test "$krb4" != no; then
      CPPFLAGS="$CPPFLAGS -I$krb4/include"
      LDFLAGS="$LDFLAGS -L$krb4/lib"
   fi
-  AC_CHECK_LIB(des, des_pcbc_encrypt,
-	AC_CHECK_LIB(krb, krb_mk_priv,:,
-		     AC_WARN(Disabling KERBEROS_V4); krb4=no,
-		     -ldes)
-  , AC_WARN(Disabling KERBEROS_V4); krb4=no)
+
+  if test "$des" != no; then
+    AC_CHECK_LIB(krb, krb_mk_priv,:,
+                 AC_WARN(No Kerberos V4 found); krb4=no,
+		 -ldes)
+  fi
 fi
 
 AC_MSG_CHECKING(KERBEROS_V4)

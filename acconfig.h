@@ -48,6 +48,9 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 /* Do we have rc4 available? */
 #undef WITH_RC4
 
+/* do we have des available? */
+#undef WITH_DES
+
 /* Do we have kerberos for plaintext password checking? */
 #undef HAVE_KRB
 

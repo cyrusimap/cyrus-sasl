@@ -1,3 +1,11 @@
+1999-09-20  Gregory M. Diskin  <diskin+@andrew.cmu.edu>
+
+	* win32/saslgssapi: Added control files for win32 gssapi plugin build
+
+1999-09-20  Gregory M. Diskin  <diskin+@andrew.cmu.edu>
+
+	* win32/utils/saslpwd: Added control files for win32 read-pw utility
+
 1999-09-21  Larry Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/cram.c (server_continue_step): made some return code

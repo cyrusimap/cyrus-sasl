@@ -1,6 +1,8 @@
 2003-05-21  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/ipc_unix.c: Accept File Descriptor Locking
-	  Fixes (found by Leena Heino <Leena.Heino@uta.fi>
+	  Fixes (found by Leena Heino <Leena.Heino@uta.fi>)
+	* saslauthd/cache.c: Similar fixes
+	  (Jeremy Rumpf <jrumpf@heavyload.net>)
 
 2003-05-15  Rob Siemborski <rjs3@andrew.cmu.edu>	
 	* configure.in: Actually listen to --disable-java

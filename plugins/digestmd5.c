@@ -3449,13 +3449,6 @@ c_continue_step(void *conn_context,
     /* here's where we'd attempt fast reauth if possible */
     /* if we can, then goto text->state=3!!! */
 
-    *clientout = params->utils->malloc(1);	/* text->malloc(1); */
-    if (!*clientout) {
-	return SASL_NOMEM;
-    }
-    **clientout = '\0';
-    *clientoutlen = 0;
-
     text->state = 2;
     return SASL_CONTINUE;
   }

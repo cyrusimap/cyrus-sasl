@@ -1,3 +1,20 @@
+2002-08-16  Ken Murchison <ken@oceana.com>
+	* plugins/digestmd5.c: Set clientout to null if we're not sending
+	  anything (Claus Assmann <ca+sasl@sendmail.org>)
+
+2002-08-08  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* plugins/login.c: Set clientout to null if we're not sending
+	  anything (Claus Assmann <ca+sasl@sendmail.org>)
+
+2002-08-05  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* plugins/digestmd5.c: Fix some memory leaks (Howard Chu
+	  <hyc@highlandsun.com>)
+
+2002-07-18  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* plugins/cram.c: Fix a security problem in the verification of
+	  the digest string. (Andrew Jones <arjones@simultan.dyndns.org>)
+	* Ready for 1.5.28
+
 2002-07-16  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* plugins/cram.c, plugins/digestmd5.c: Small 64bit platform fixes
 	  (Carsten Hoeger <choeger@suse.de>)

@@ -1,6 +1,8 @@
 2003-10-04  Ken Murchison <ken@oceana.com>
 	* plugins/sql.c: only do a txn when we have a property to fetch;
-	  _pgsql_open() cleanup/fixes
+	  _pgsql_open() cleanup/fixes; more intelligient sql_usessl parsing;
+	  require sql_select option
+	* doc/options.html: reorganized SQL option descriptions
 
 2003-10-03  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* sasldb/allockey.c, sasldb/sasldb.h, utils/sasldblistusers.c:

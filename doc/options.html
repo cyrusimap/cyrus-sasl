@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Options for Cyrus SASL</title>
-<!-- $Id: options.html,v 1.23 2003/09/29 17:19:50 ken3 Exp $ -->
+<!-- $Id: options.html,v 1.24 2003/10/04 17:02:48 ken3 Exp $ -->
 </HEAD>
 <BODY>
 <h1>Options for Cyrus SASL</h1>
@@ -97,6 +97,58 @@ cached for a fast reauth.  A value of 0 will disable reauth.</TD>
 <TD>sasldb_path</TD><TD>sasldb plugin</TD>
 <TD>Path to sasldb file</TD><TD><tt>/etc/sasldb2</tt> (system dependant)</TD>
 <TR>
+<TD>sql_engine</TD><TD>SQL plugin</TD>
+<TD>Name of SQL engine to use (possible values: 'mysql', 'pgsql').</TD>
+<TD><tt>mysql</tt></TD>
+</TR>
+<TR>
+<TD>sql_hostnames</TD><TD>SQL plugin</TD>
+<TD>Comma separated list of SQL servers (in host[:port] format).</TD>
+<TD><i>none</i> (engine dependent)</TD>
+</TR>
+<TR>
+<TD>sql_user</TD><TD>SQL plugin</TD>
+<TD>Username to use for authentication to the SQL server.</TD>
+<TD><i>none</i> (engine dependent)</TD>
+</TR>
+<TR>
+<TD>sql_passwd</TD><TD>SQL plugin</TD>
+<TD>Password to use for authentication to the SQL server.</TD>
+<TD><i>none</i> (engine dependent)</TD>
+</TR>
+<TR>
+<TD>sql_database</TD><TD>SQL plugin</TD>
+<TD>Name of the database which contains the auxiliary properties.</TD>
+<TD><i>none</i> (engine dependent)</TD>
+</TR>
+<TR>
+<TD>sql_select</TD><TD>SQL plugin</TD>
+<TD>SELECT statement to use for fetching properties.  This option is
+<b>required</b> in order to use the SQL plugin.</TD>
+<TD><i>none</i></TD>
+</TR>
+<TR>
+<TD>sql_insert</TD><TD>SQL plugin</TD>
+<TD>INSERT statement to use for creating properties.</TD>
+<TD><i>none</i></TD>
+</TR>
+<TR>
+<TD>sql_update</TD><TD>SQL plugin</TD>
+<TD>UPDATE statement to use for modifying properties.</TD>
+<TD><i>none</i></TD>
+</TR>
+<TR>
+<TD>sql_delete</TD><TD>SQL plugin</TD>
+<TD>DELETE statement to use for removing properties.</TD>
+<TD><i>none</i></TD>
+</TR>
+<TR>
+<TD>sql_usessl</TD><TD>SQL plugin</TD>
+<TD>When set to 'yes', 'on', '1' or 'true', a secure connection will
+be made to the SQL server.</TD>
+<TD><tt>no</tt></TD>
+</TR>
+<TR>
 <TD>srp_mda</TD><TD>SRP</TD>
 <TD>Message digest algorithm for SRP calculations
 (possible values: 'md5', 'sha1', 'rmd160')</TD><TD><tt>sha1</tt></TD>
@@ -107,56 +159,60 @@ dependant)</TD>
 </TR>
 </TABLE>
 
-<h2>SQL auxprop options</h2>
+<h2>Notes on SQL auxprop options</h2>
 
-<DL compact>
-<DT>sql_engine <DD>database engine to use - currently <tt>mysql</tt>
-(default) or <tt>pgsql</tt>
-<DT>sql_user <DD>username to login as to the SQL server
-<DT>sql_passwd <DD> password to use
-<DT>sql_hostnames <DD> comma separated host[:port] list
-<DT>sql_database <DD>database to connect to
-<DT>sql_select <DD> SELECT statement to use
-<DT>sql_insert <DD> INSERT statement to use
-<DT>sql_update <DD> UPDATE statement to use
-<DT>sql_delete <DD> DELETE statement to use
-<DT>sql_usessl <DD>if set, the plugin will make a secured connection to
-the server
-</DL>
+<p>The <tt>sql_insert</tt>, <tt>sql_update</tt> and
+<tt>sql_delete</tt> options are optional and are only needed if you
+wish to allow the SASL library (e.g., saslpasswd2) and plugins (e.g.,
+OTP) to write properties to the SQL server.  If used, all 3
+statements MUST be provided so that properties can be added, changed
+and deleted.
 
 <p>The SQL statements provided in the <tt>sql_select</tt>,
 <tt>sql_insert</tt>, <tt>sql_update</tt> and <tt>sql_delete</tt>
-options are parsed for the 3 place holders <tt>%u</tt>, <tt>%r</tt>, and
-<tt>%p</tt> which are replaced the with username, realm, and name of
-the property requested respectively.  Similarly, for INSERT and UPDATE
-statements, the additional placeholder <tt>%v</tt> is replaced with
-the value of the property requested.
+options can contain arguments which will be substituted with the
+appropriate values.  The valid arguments are:
 
-<p>The INSERT, UPDATE and DELETE statements are optional and are only
-needed if you wish to allow the SASL library (e.g., saslpasswd2) and
-plugins (e.g., OTP) to write properties to the backend storage.  If
-used, all 3 statements MUST be provided so that properties can be
-added, changed and deleted.
+<DL compact>
+<DT><tt>%u</tt> <DD>Username whose properties are being fetched/stored.
 
-<p>Examples:
+<DT><tt>%p</tt> <DD>Name of the property being fetched/stored.  This could
+     technically be anything, but SASL authentication will try
+     userPassword and cmusaslsecretMECHNAME (where MECHNAME is the
+     name of a SASL mechanism).
+
+<DT><tt>%r</tt> <DD>Realm to which the user belongs.  This could be the
+     kerbros realm, the FQDN of the computer the SASL application is
+     running on or whatever is after the @ on a username.  (read the
+     realm documentation).
+
+<DT><tt>%v</tt> <DD>Value of the property being stored (INSERT or
+     UPDATE only!). This could technically be anything depending on
+     the property itself, but is generally a userPassword.
+</DL>
+
+<font color=red>NOTE: DO NOT put quotes around the entire SQL
+statement, but each individual argument MUST be quoted.</font>
+
+
+<h3>Examples:</h3>
 
 <pre>
-    sql_select: SELECT %p FROM user_table WHERE username = '%u' and realm = '%r'
+     <tt>sql_select: SELECT %p FROM user_table WHERE username = '%u' and realm = '%r'</tt>
 </pre>
 
-   would send the following statement to SQL for user "bovik" and
-   the default realm for the machine "madoka.surf.org.uk":
+     would send the following statement to SQL for user "bovik" and
+     the default realm for the machine "madoka.surf.org.uk":
 
 <pre>
-     SELECT userPassword FROM user_table WHERE username = 'bovik' and
-     realm = 'madoka.surf.org.uk'
+     <tt>SELECT userPassword FROM user_table WHERE username = 'bovik' and
+     realm = 'madoka.surf.org.uk';</tt>
 
 
 </pre>
 
 <pre>
-    sql_insert: INSERT INTO user_table (username, realm, '%p')
-    VALUES ('%u', '%r', '%v')
+     <tt>sql_insert: INSERT INTO user_table (username, realm, '%p') VALUES ('%u', '%r', '%v')</tt>
 
 </pre>
 
@@ -164,35 +220,17 @@ added, changed and deleted.
    realm "madoka.surf.org.uk" with userPassword "wert":
 
 <pre>
-     INSERT INTO user_table (username, realm, userPassword) VALUES
-     ('bovik', 'madoka.surf.org.uk', 'wert');
+     <tt>INSERT INTO user_table (username, realm, userPassword) VALUES
+     ('bovik', 'madoka.surf.org.uk', 'wert');</tt>
+
 
 </pre>
 
-<font color=red>DO NOT put quotes around the statement but do around
-the arguments %r, %u, etc.</font>
-
-<DL compact>
-<DT><tt>%u</tt> <DD>the username the user logged in as.
-
-<DT><tt>%p</tt> <DD>the name of the property requested.  This could
-     technically be anything, but SASL authentication will try
-     userPassword and cmusaslsecretMECHNAME (where MECHNAME is the
-     name of a mechanism).
-
-<DT><tt>%r</tt> <DD>the realm that the user is in.  This could be the
-     kerbros realm, the FQDN of the computer the SASL application is
-     running on or whatever is after the @ on a username.  (read the
-     realm documentation).
-
-<DT><tt>%v</tt> <DD>the value of the property requested. This could
-     technically be anything depending on the property itself, but is
-     generally a userPassword for an INSERT or UPDATE statement.
-</DL>
-
-<p>All substitutions do not have to be used. For instance, 
-"<tt>select password from auth where username = '%u'</tt>" is a
-valid value for "<tt>sql_select</tt>".
+<p>Note that all substitutions do not have to be used. For instance,
+<pre>
+     <tt>SELECT password FROM auth WHERE username = '%u'</tt>
+</pre>
+is a valid value for <tt>sql_select</tt>.
 
 <hr>
 Back to the <A href=index.html>index</a>

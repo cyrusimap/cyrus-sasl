@@ -5,7 +5,7 @@
 ** Ken Murchison
 **   based on the original work of Simon Loader and Patrick Welche
 **
-** $Id: sql.c,v 1.16 2003/10/04 15:35:02 ken3 Exp $
+** $Id: sql.c,v 1.17 2003/10/04 17:02:49 ken3 Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -504,9 +504,8 @@ static char *sql_create_statement(const char *statement, const char *prop,
 }
 
 /* sql_get_settings
-**
-**  Get the auxprop settings and put them in 
-** The global context array
+ *
+ * Get the auxprop settings and put them in the global context array
 */
 static void sql_get_settings(const sasl_utils_t *utils, void *glob_context)
 {
@@ -567,7 +566,7 @@ static void sql_get_settings(const sasl_utils_t *utils, void *glob_context)
 	/* backwards compatibility */
 	r = utils->getopt(utils->getopt_context,"SQL", "sql_statement",
 			  &settings->sql_select, NULL);
-	if (r || !settings->sql_select ) {
+	if (r || !settings->sql_select) {
 	    settings->sql_select = SQL_BLANK_STRING;
 	}
     }
@@ -1011,6 +1010,11 @@ int sql_auxprop_plug_init(const sasl_utils_t *utils,
     sql_get_settings(utils, settings);
     
     if (!settings->sql_engine->name) return SASL_NOMECH;
+
+    if (!sql_exists(settings->sql_select)) {
+	utils->log(NULL, SASL_LOG_ERR, "sql_select option missing");
+	return SASL_NOMECH;
+    }
 
     utils->log(NULL, SASL_LOG_DEBUG,
 	       "sql auxprop plugin using %s engine\n",

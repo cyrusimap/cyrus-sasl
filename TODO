@@ -3,7 +3,8 @@ Library
 ) Work with our GSSAPI libs
 ) Better/FASTER random numbers (init time is pretty miserable)
 ) Test suite
-) Add dbm to pwcheck_method
+) Add db support to pwcheck_method
+) use file callback on secrets db? (annoying!)
 ) Does shadow password stuff work? (maybe pwcheck?)
 ) configure stuff: static libs, snprintf, etc.
 ) Use libltdl?

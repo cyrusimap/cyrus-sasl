@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.15 2001/12/04 02:07:02 rjs3 Exp $
+ * $Id: testsuite.c,v 1.16 2002/01/09 22:01:38 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -132,6 +132,22 @@ const char *corrupt_types[] = {
     "CORRUPT_SIZE"
 };
 
+/* callbacks we support */
+static sasl_callback_t client_callbacks[] = {
+  {
+#ifdef SASL_CB_GETREALM
+    SASL_CB_GETREALM, NULL, NULL
+  }, {
+#endif
+    SASL_CB_USER, NULL, NULL
+  }, {
+    SASL_CB_AUTHNAME, NULL, NULL
+  }, {
+    SASL_CB_PASS, NULL, NULL    
+  }, {
+    SASL_CB_LIST_END, NULL, NULL
+  }
+};
 
 typedef void *foreach_t(char *mech, void *rock);
 
@@ -527,7 +543,7 @@ void test_init(void)
 
 void test_listmech(void)
 {
-    sasl_conn_t *saslconn;
+    sasl_conn_t *saslconn, *cconn;
     int result;
     const char *str = NULL;
     unsigned int plen;
@@ -546,18 +562,39 @@ void test_listmech(void)
     /*    printf("List mech without library initialized: %s\n",sasl_errstring(result,NULL,NULL));*/
     if (result == SASL_OK) fatal("Failed sasl_listmech() with NULL saslconn");
 
-
-
-
     if (sasl_server_init(emptysasl_cb,"TestSuite")!=SASL_OK)
 	fatal("can't sasl_server_init");
+    if (sasl_client_init(client_callbacks)!=SASL_OK)
+	fatal("can't sasl_client_init");
 
     if (sasl_server_new("rcmd", myhostname,
 			NULL, NULL, NULL, NULL, 0, 
-			&saslconn) != SASL_OK) {
+			&saslconn) != SASL_OK)
 	fatal("can't sasl_server_new");
-    }
 
+    /* client new connection */
+    if (sasl_client_new("rcmd",
+			myhostname,
+			NULL, NULL, NULL,
+			0,
+			&cconn)!= SASL_OK)
+	fatal("sasl_client_new() failure");
+
+    /* try client side */
+    result = sasl_listmech(cconn,
+			   NULL,
+			   " [",
+			   ",",
+			   "]",
+			   &str,
+			   NULL,
+			   NULL);
+    if(result == SASL_OK) {
+	printf("Client mechlist:\n%s\n", str);
+    } else {
+	printf("%s:%s",sasl_errstring(result, NULL, NULL), sasl_errdetail(cconn));
+	fatal("client side sasl_listmech failed");
+    }
 
     /* Test with really long user */
 
@@ -656,6 +693,7 @@ void test_listmech(void)
 
     /* Call sasl done then make sure listmech doesn't work anymore */
     sasl_dispose(&saslconn);
+    sasl_dispose(&cconn);
     sasl_done();
 
     result = sasl_listmech(saslconn,
@@ -854,23 +892,6 @@ void test_props(void)
     if(ctx != NULL)
 	fatal("ctx not null after prop_dispose");
 }
-
-/* callbacks we support */
-static sasl_callback_t client_callbacks[] = {
-  {
-#ifdef SASL_CB_GETREALM
-    SASL_CB_GETREALM, NULL, NULL
-  }, {
-#endif
-    SASL_CB_USER, NULL, NULL
-  }, {
-    SASL_CB_AUTHNAME, NULL, NULL
-  }, {
-    SASL_CB_PASS, NULL, NULL    
-  }, {
-    SASL_CB_LIST_END, NULL, NULL
-  }
-};
 
 void interaction (int id, const char *prompt,
 		  const char **tresult, unsigned int *tlen)

@@ -91,7 +91,7 @@ external_client_step(void *conn_context __attribute__((unused)),
       return SASL_BADPARAM;
     user = (*prompt_need)[0].result;
     *clientoutlen = strlen(user);
-    sasl_FREE(*prompt_need);
+    params->utils->free(*prompt_need);
     *prompt_need = NULL;
   } else {
     /* We need to get the user. */

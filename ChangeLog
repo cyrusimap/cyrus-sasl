@@ -1,5 +1,13 @@
 1999-02-11  Rob Earhart  <rob+@andrew.cmu.edu>
 
+	* plugins/anonymous.c (client_plugins): added required prompts
+ 	(SASL_DB_USER), commented a little.
+	(c_continue_step): changed from getprop for username to callback
+
+	* include/saslplug.h: made required_prompts a const long ptr
+
+	* lib/common.c (_sasl_getcallback): added SASL_CB_LIST_END check
+
 	* lib/saslint.h (_sasl_getcallback): added prototype
 
 	* lib/common.c (_sasl_getcallback): made non-static

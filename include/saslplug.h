@@ -208,7 +208,7 @@ typedef struct sasl_client_plug {
     int security_flags;
 
     /* required prompt ids, NULL = user/pass only */
-    long *required_prompts;
+    const long *required_prompts;
     
     /* global state for mechanism */
     void *glob_context;

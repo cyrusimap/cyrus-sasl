@@ -596,6 +596,9 @@ _sasl_getcallback(sasl_conn_t * conn,
 
   /* Some callbacks are always provided by the library */
   switch (callbackid) {
+  case SASL_CB_LIST_END:
+    /* Nothing ever gets to provide this */
+    return SASL_FAIL;
   case SASL_CB_GETOPT:
     *pproc = &_sasl_conn_getopt;
     *pcontext = conn;

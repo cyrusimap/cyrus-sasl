@@ -35,7 +35,7 @@
 
 #ifndef WIN32
 #include <sys/cdefs.h>
-#endif //WIN32
+#endif /* WIN32 */
 #if defined(LIBC_SCCS) && !defined(lint)
 #if 0
 static char sccsid[] = "@(#)getsubopt.c	8.1 (Berkeley) 6/4/93";
@@ -46,13 +46,13 @@ __RCSID("$NetBSD: getsubopt.c,v 1.4 1998/02/03 18:44:15 perry Exp $");
 
 #include <stdlib.h>
 #include <string.h>
-#ifndef WIN32
+#ifndef HAVE_UNISTD_H
 #include <unistd.h>
-#endif //WIN32
+#endif /* HAVE_UNISTD_H */
 #ifdef WIN32
 #include "sasl.h"
 LIBSASL_API int getsubopt(char **optionp, char * const *tokens, char **valuep);
-#endif //WIN32
+#endif /* WIN32 */
 /*
  * The SVID interface to getsubopt provides no way of figuring out which
  * part of the suboptions list wasn't matched.  This makes error messages

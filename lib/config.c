@@ -1,5 +1,6 @@
 /* SASL Config file API
  * Tim Martin (originally in Cyrus distribution)
+ * $Id: config.c,v 1.7 1999/10/01 20:16:47 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -40,7 +41,7 @@ SOFTWARE.
 #include <ctype.h>
 #ifndef WIN32
 #include <syslog.h>
-#endif //WIN32
+#endif /* WIN32 */
 
 struct configlist {
     char *key;

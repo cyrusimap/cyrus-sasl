@@ -594,4 +594,4 @@ const char *prompt;
 
 
 
-#endif //WIN32
+#endif /* WIN32 */

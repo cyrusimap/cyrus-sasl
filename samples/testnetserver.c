@@ -19,9 +19,6 @@ int uselayer=0;
 
 extern int errno;
 
-extern int _sasl_debug;
-
-
 static void quit(void)
 {
   close(s);
@@ -466,8 +463,6 @@ int main(int argc, char **argv)
   char c;
   extern char *optarg;
   
-  _sasl_debug=-1;
-
   /* initialize sasl */
   result=sasl_server_init(NULL,"CMU_testserver");
   if (result!=SASL_OK)

@@ -146,8 +146,6 @@ int main(int argc, char **argv)
   unsigned clientinlen, serveroutlen;
   const char *errstr;
 
-  extern int _sasl_debug;
-
   int   Verbose   = 0;
   int   External  = 0;
   char *Service   = TEST_SERVICE;
@@ -159,7 +157,6 @@ int main(int argc, char **argv)
     if (argv[arg][0] == '-') {
       switch(argv[arg][1]) {
       case 'd':
-        _sasl_debug = 1;
         break;
       case 'v':
         Verbose = 1;

@@ -196,15 +196,12 @@ int main(int argc, char **argv)
   char *Service   = TEST_SERVICE;
   char *RemoteHost = hostname;
 
-  extern int _sasl_debug;
-
   int arg;
 
   for (arg=1; arg<argc; arg++) {
     if (argv[arg][0] == '-') {
       switch(argv[arg][1]) {
       case 'd':
-        _sasl_debug = 1;
         break;
       case 'v':
         Verbose = 1;

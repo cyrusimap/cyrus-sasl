@@ -2209,36 +2209,42 @@ static int c_continue_step (void *conn_context,
 	      while (1)
 		{
 		  prev_xxx = xxx;
-		  xxx = strchr (xxx, ',');
-		  if (xxx == NULL)
-		    break;
 
-		  xxx[0] = '\0';
-		  xxx++;
+		  xxx = strchr (xxx, ',');
+
+		  if (xxx!=NULL)
+		  {
+		      xxx[0] = '\0';
+		      xxx++;
+		  }
 
 		  if (strcmp (prev_xxx, "auth-conf") == 0)
 		    {
-		      VL (("Server supports privacy layer\n"));
+		      printf (("Server supports privacy layer\n"));
 		      protection |= DIGEST_PRIVACY;
 
 		    }
 		  else if (strcmp (prev_xxx, "auth-int") == 0)
 		    {
-		      VL (("Server supports integrity layer\n"));
+		      printf (("Server supports integrity layer\n"));
 		      protection |= DIGEST_INTEGRITY;
 
 		    }
 		  else if (strcmp (prev_xxx, "auth") == 0)
 		    {
-		      VL (("Server supports no layer\n"));
+		      printf (("Server supports no layer\n"));
 		      protection |= DIGEST_NOLAYER;
 
 		    }
 		  else
 		    {
 		      VL (("Server supports unknown layer\n"));
-		    };
-		};
+		    }
+
+		  if (xxx == NULL)
+		    break;
+
+		}
 
 	      if (protection == 0)
 		{

@@ -1,3 +1,6 @@
+2004-02-24  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* acinclude.m4: move to config/libtool.m4
+
 2004-02-23  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/NTMakefile: Enable DO_SRP_SETPASS on windows
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)

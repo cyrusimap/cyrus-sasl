@@ -290,6 +290,8 @@ struct sockaddr_storage {
 
 #ifndef HAVE_SYSEXITS_H
 #include "exits.h"
+#else
+#include "sysexits.h"
 #endif
 
 #ifndef	NI_WITHSCOPEID

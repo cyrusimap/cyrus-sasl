@@ -5,10 +5,12 @@ import java.io.*;
 public class SaslInputStream extends InputStream
 {
     static final boolean DoEncrypt = true;
-    private static int BUFFERSIZE=4096;
+    private static int BUFFERSIZE = 16384;
+
+    // if bufferend < bufferstart, we've wrapped around
     private byte[] buffer=new byte[BUFFERSIZE];
-    private int bufferstart=0;
-    private int bufferend=0;
+    private int bufferstart = 0;
+    private int bufferend = 0;
     private int size = 0;
 
     private GenericCommon conn;
@@ -17,55 +19,33 @@ public class SaslInputStream extends InputStream
     
     public SaslInputStream(InputStream in, GenericCommon conn)
     {
+	System.err.println("DEBUG constructing SaslInputStream");
 	this.in = in;
-	this.conn=conn;
+	this.conn = conn;
     }
 
-    private int buffersize()
-    {
-	return size;
-    }
-    
     public synchronized int available() throws IOException
     {
 	int ina = in.available();
 	if (ina > 1) ina = 1;
 	
-	return buffersize() + ina;
+	return size + ina;
     }
     
-    private int contains_char(char ch)
-    {
-	if (bufferend>=bufferstart) {
-	    for (int lup=bufferstart;lup<bufferend;lup++)
-		if (buffer[lup]==ch)
-		    return lup-bufferstart;
-	} else {
-	    for (int lup=bufferend;lup<BUFFERSIZE;lup++)
-		if (buffer[lup]==ch)
-		    return BUFFERSIZE-lup;
-	    for (int lup=0;lup<bufferstart;lup++)
-		if (buffer[lup]==ch)
-		    return BUFFERSIZE-bufferstart+lup;
-	}
-	
-	return -1;
-    }
-
     private void buffer_add(byte[] str,int len) throws IOException
     {
-	if (str==null)
+	if (str == null) {
+	    // nothing to add
 	    return;
+	}
 	
-	byte[] b=str;
+	byte[] b = str;
 	
 	/* xxx this can be optimized */
 	for (int lup=0;lup<len;lup++) {
 	    buffer[bufferend]=b[lup];
-	    bufferend++;
-	    if (bufferend==BUFFERSIZE)
-		bufferend=0;
-	    
+	    bufferend = (bufferend + 1) % BUFFERSIZE;
+
 	    size++;
 	    if (size >= BUFFERSIZE) {
 		throw new IOException();
@@ -77,14 +57,14 @@ public class SaslInputStream extends InputStream
     {
 	buffer_add(str,str.length);
     }
-    
+
     private void readsome() throws IOException
-    {    
+    {
 	int len=in.available();
 	
-	if (len == 0) return;
-	
-	if (len > BUFFERSIZE)
+	System.err.println("DEBUG in readsome(), avail " + len);
+
+	if (len > BUFFERSIZE || len == 0)
 	    len = BUFFERSIZE;
 	
 	byte[]tmp=new byte[len];
@@ -97,7 +77,6 @@ public class SaslInputStream extends InputStream
 		buffer_add(tmp, len);
 	    }
 	}
-	
     }
 
     public synchronized void close() throws IOException
@@ -107,7 +86,7 @@ public class SaslInputStream extends InputStream
 
     public synchronized void reset() throws IOException
     {
-	return;
+	throw new IOException();
     }
 
     public synchronized void mark(int readlimit)
@@ -125,17 +104,21 @@ public class SaslInputStream extends InputStream
     {
 	int ret;
 	
-	if (buffersize()==0)
+	System.err.println("DEBUG in read(), size " + size);
+	if (size == 0) {
 	    readsome();
+	}
 	
-	if (size == 0) return -1;
+	if (size == 0) {
+	    System.err.println("DEBUG read() returning -1");
+	    return -1;
+	}
 	
-	ret=buffer[bufferstart];
-	bufferstart++;
-	if (bufferstart==BUFFERSIZE)
-	    bufferstart=0;
-	
+	ret = buffer[bufferstart];
+	bufferstart = (bufferstart + 1) % BUFFERSIZE;
 	size--;
+
+	System.err.println("DEBUG read() returning " + ret);
 	return ret;
     }
 
@@ -148,37 +131,61 @@ public class SaslInputStream extends InputStream
 				 int off,
 				 int len) throws IOException 
     {
-	for (int lup=off;lup<len;lup++) {
-	    int c = read();
-	    
-	    if (c == -1) return lup-off;
-	    
-	    b[lup]= (byte) c;
+	System.err.println("DEBUG in read(b, off, len), size " + size);
+	if (off < 0 || len < 0) {
+	    throw new IndexOutOfBoundsException();
 	}
-	
-	return len-off;
+	if (len == 0) {
+	    return 0;
+	}
+
+	// block only if we need to
+	if (size == 0) {
+	    readsome();
+	    if (size == 0) {
+		System.err.println("DEBUG read(b, off, len) returning -1");
+		return -1;
+	    }
+	}
+
+	int l;
+	for (l = off; l < len + off; l++) {
+	    if (bufferstart == bufferend) break;
+
+	    b[l] = buffer[bufferstart];
+	    bufferstart = (bufferstart + 1) % BUFFERSIZE;
+	    size--;
+	}
+
+	System.err.println("DEBG read() returning " + (l - off));
+	return l - off;
     }
     
     public synchronized long skip(long n) throws IOException
     {
 	if (n<=0) return 0;
-	
-	if ( buffersize()<n)
-	    readsome();
-	
-	int skipped=0;
-	
-	while (bufferstart!=bufferend) {
-	    bufferstart++;
-	    if (bufferstart==BUFFERSIZE)
-		bufferstart=0;
+
+	long toskip = n;
+	while (toskip > 0) {
+	    if (size == 0) {
+		readsome();
+		if (size == 0) {
+		    return n - toskip;
+		}
+	    }
 	    
-	    skipped++;
-	    if (skipped==n)
-		return n;
+	    if (toskip > size) {
+		toskip -= size;
+		bufferstart = bufferend = size = 0;
+	    } else {
+		// we've got all the data we need to skip
+		size -= toskip;
+		bufferstart = (int) ((bufferstart + toskip) % BUFFERSIZE);
+	    }
 	}
 	
-	return skipped;    
+	// skipped the full amount
+	return n;
     }
 }
 

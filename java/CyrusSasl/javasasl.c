@@ -321,15 +321,14 @@ static int callall_callbacks(JNIEnv *env, jobject obj,
     
     /* set up for java callback */
     cls = (*env)->GetObjectClass(env, obj);
-    mid = (*env)->GetMethodID(env, cls, "do_callbacks",
-				  "(IIII)V");
+    mid = (*env)->GetMethodID(env, cls, "do_callbacks", "(IIII)V");
     if (mid == 0) {
 	VL(("Can't find do_callbacks callback!!!\n"));
 	return SASL_FAIL;
     }
 
     /* do the callback */
-    (*env)->CallObjectMethod(env, obj, mid,calluid,callaid,callpass,callrealm);
+    (*env)->CallVoidMethod(env, obj, mid,calluid,callaid,callpass,callrealm);
 
     return SASL_OK;
 }
@@ -525,7 +524,7 @@ static int setcomplete(JNIEnv *env, jobject obj)
     }
 
     /* do the callback */
-    (*env)->CallObjectMethod(env, obj, mid, 5);
+    (*env)->CallVoidMethod(env, obj, mid, 5);
 
     return SASL_OK;
 }

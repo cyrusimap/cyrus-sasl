@@ -1184,13 +1184,15 @@ init_rc4(void *v,
 }
 
 static int
-dec_rc4(context_t *text,
+dec_rc4(void *v,
 	const char *input,
 	unsigned inputlen,
 	unsigned char digest[16],
 	char *output,
 	unsigned *outputlen)
 {
+    context_t *text = (context_t *) v;
+
   /* decrypt the text part */
   rc4_decrypt(text->rc4_dec_context, input, output, inputlen-10);
 
@@ -1204,13 +1206,15 @@ dec_rc4(context_t *text,
 }
 
 static int
-enc_rc4(context_t *text,
+enc_rc4(void *v,
 	const char *input,
 	unsigned inputlen,
 	unsigned char digest[16],
 	char *output,
 	unsigned *outputlen)
 {
+  context_t *text = (context_t *) v;
+
   /* pad is zero */
   *outputlen = inputlen+10;
 

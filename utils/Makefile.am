@@ -50,6 +50,8 @@ EXTRA_PROGRAMS = saslpasswd2 sasldblistusers2 testsuite testsuitestatic smtptest
 
 noinst_PROGRAMS = dbconverter-2
 
+EXTRA_DIST = NTMakefile
+
 if NO_SASL_DB_MANS
 man_MANS = 
 else

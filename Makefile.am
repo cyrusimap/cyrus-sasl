@@ -69,7 +69,7 @@ INSTALLOSX =
 endif
 
 SUBDIRS=include sasldb plugins lib utils doc man $(PWC) $(SAM) $(JAV) $(SAD)
-EXTRA_DIST=config cmulocal win32 mac dlcompat-20010505
+EXTRA_DIST=config cmulocal win32 mac dlcompat-20010505 NTMakefile
 
 dist-hook:
 	@find $(distdir) -exec chmod o+w {} ';'

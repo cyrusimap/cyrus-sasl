@@ -55,6 +55,8 @@ md5global.h: makemd5
 	-rm -f md5global.h
 	./makemd5 md5global.h
 
+EXTRA_DIST = NTMakefile
+
 if MACOSX
 framedir = /Library/Frameworks/SASL2.framework
 frameheaderdir = $(framedir)/Versions/A/Headers

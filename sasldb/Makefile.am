@@ -1,6 +1,6 @@
 # Makefile.am for the SASLdb library
 # Rob Siemborski
-# $Id: Makefile.am,v 1.24 2004/03/09 16:54:20 rjs3 Exp $
+# $Id: Makefile.am,v 1.25 2004/03/10 15:44:56 rjs3 Exp $
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,8 @@ INCLUDES=-I$(top_srcdir)/include -I$(top_builddir)/include @SASL_DB_INC@
 
 extra_common_sources = db_none.c db_ndbm.c db_gdbm.c db_berkeley.c
 
+EXTRA_DIST = NTMakefile
+
 noinst_LTLIBRARIES = libsasldb.la
 noinst_LIBRARIES = libsasldb.a
 
@@ -64,4 +66,5 @@ EXTRA_libsasldb_a_SOURCES =
 
 libsasldb.a: libsasldb.la $(LOCAL_SASL_DB_BACKEND_STATIC)
 	$(AR) cru .libs/$@ $(LOCAL_SASL_DB_BACKEND_STATIC)
+
 

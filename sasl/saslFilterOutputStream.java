@@ -5,19 +5,19 @@ import java.io.*;
 public class saslFilterOutputStream
 {
   private static int MAXBUFFERSIZE=1000;
-  private saslClientConn conn;
+  private ClientConn conn;
   OutputStream out;
     
   private byte[] buffer=new byte[MAXBUFFERSIZE];
   private int buffersize=0;
 
-  public saslFilterOutputStream(OutputStream out, saslClientConn conn)
+  public saslFilterOutputStream(OutputStream out, ClientConn conn)
   {
     this.conn=conn;
     this.out=out;
   }
 
-  public void add_sasl(saslClientConn conn) throws IOException
+  public void add_sasl(ClientConn conn) throws IOException
   {
     flush();
     this.conn=conn;
@@ -62,7 +62,7 @@ public class saslFilterOutputStream
       if (conn==null)
 	out.write( b);
       else
-	out.write( conn.encode(str) );
+	out.write( conn.encode(str.getBytes()) );
       out.flush();
     }
   }
@@ -76,7 +76,7 @@ public class saslFilterOutputStream
     if (conn==null)
       out.write(buffer,0,buffersize);
     else
-      out.write( conn.encode(str) );
+      out.write( conn.encode(str.getBytes()) );
     out.flush();
     buffersize=0;
   }

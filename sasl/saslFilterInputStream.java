@@ -9,18 +9,18 @@ public class saslFilterInputStream extends FilterInputStream
   private int bufferstart=0;
   private int bufferend=0;
 
-  private saslClientConn conn;
+  private ClientConn conn;
 
   public InputStream in;
     
-  public saslFilterInputStream(InputStream in, saslClientConn conn)
+  public saslFilterInputStream(InputStream in, ClientConn conn)
   {
     super(in);
     this.in = in;
     this.conn=conn;
   }
 
-  public void add_sasl(saslClientConn conn)
+  public void add_sasl(ClientConn conn)
   {
     this.conn=conn;
   }
@@ -87,12 +87,14 @@ public class saslFilterInputStream extends FilterInputStream
 
     int len=in.read(tmp,0,1000);
 
+    /* xxx is tmp.length right? */
+
     if (len>0)
     {
       if (conn==null)
 	buffer_add(tmp,len);
       else
-	buffer_add( conn.decode(tmp,len) );
+	buffer_add( conn.decode(tmp) );
     }
 
   }

@@ -1,5 +1,14 @@
+New in 1.5.0
+------------
+* Lots of bug fixes
+* A few API changes (watch especially sasl_get_prop() and sasl_set_prop()!)
+* Digest authentication works
+* Configuration file
+* Some more documentation (doc/programming)
+* Code cleanup
+
 New in 1.4.1
-----------------------------------------
+------------
 * Tested kerberos4, cram, plain, and anonymous fairly extensively
 * Many bugs fixed
 * Created sample programs
@@ -7,24 +16,24 @@ New in 1.4.1
 * Prototype credential API
 
 New in 1.3b1
-----------------------------------------
+------------
 * Added saslpasswd for setting sasl passwords
 * Added sfsasl for people using sfio
 * Lots of bug fixes
 
 New in 1.2b3
-----------------------------------------
+------------
 * Slightly better documentation, easier compilation
 * Plain now understands authorization and callbacks
 
 New in 1.2b2
-----------------------------------------
+------------
 * Win32 support
 * Fixes to anonymous, kerberos mechs
 * Some signed lengths in the API changed to unsigned
 
 New in 1.2b1
-----------------------------------------
+------------
 * Lots of bug fixes
 * GSSAPI
 * Cleaner getopt interface

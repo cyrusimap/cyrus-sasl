@@ -1,3 +1,7 @@
+2002-01-23  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* utils/dbconverter-2.c (main): More intelligent default paths
+	* acconfig.h: #ifndef's for _GNU_SOURCE (Assar <assar@permabit.com>)
+
 2002-01-22  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* lib/common.c: Complete definition of sasl_global_listmech
 	  (from Love <lha@stacken.kth.se>)

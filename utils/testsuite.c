@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.28 2002/09/19 18:43:36 rjs3 Exp $
+ * $Id: testsuite.c,v 1.29 2002/12/02 20:48:10 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -74,6 +74,7 @@
 #endif
 #include <time.h>
 #include <string.h>
+#include <ctype.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <sys/socket.h>
@@ -225,6 +226,7 @@ typedef struct tosend_s {
 typedef struct mem_info 
 {
     void *addr;
+    size_t size;
     struct mem_info *next;
 } mem_info_t;
 
@@ -249,6 +251,7 @@ void *test_malloc(size_t size)
 	if(!new_data) return out;
 
 	new_data->addr = out;
+	new_data->size = size;
 	new_data->next = head;
 	head = new_data;
     }
@@ -267,14 +270,12 @@ void *test_realloc(void *ptr, size_t size)
 	fprintf(stderr, "  %X = realloc(%X,%d)\n",
 		(unsigned)out, (unsigned)ptr, size);
 
-    /* don't need to update the mem info structure */
-    if(out == ptr) return out;
-
     prev = &head; cur = head;
     
     while(cur) {
 	if(cur->addr == ptr) {
 	    cur->addr = out;
+	    cur->size = size;
 	    return out;
 	}
 	
@@ -290,6 +291,7 @@ void *test_realloc(void *ptr, size_t size)
 	if(!cur) return out;
 
 	cur->addr = out;
+	cur->size = size;
 	cur->next = head;
 	head = cur;
     }
@@ -313,6 +315,7 @@ void *test_calloc(size_t nmemb, size_t size)
 	if(!new_data) return out;
 
 	new_data->addr = out;
+	new_data->size = size;
 	new_data->next = head;
 	head = new_data;
     }
@@ -356,6 +359,8 @@ int mem_stat()
 {
 #ifndef WITH_DMALLOC
     mem_info_t *cur;
+    size_t n;
+    unsigned char *data;
 
     if(!head) {
 	fprintf(stderr, "  All memory accounted for!\n");
@@ -364,7 +369,17 @@ int mem_stat()
     
     fprintf(stderr, "  Currently Still Allocated:\n");
     for(cur = head; cur; cur = cur->next) {
-	fprintf(stderr, "    %X\n", (unsigned)cur->addr);
+	fprintf(stderr, "    %X\t", (unsigned)cur->addr);
+	for(data = (unsigned char *) cur->addr,
+		n = 0; n < (cur->size > 12 ? 12 : cur->size); n++) {
+	    if (isprint((int) data[n]))
+		fprintf(stderr, "'%c' ", (char) data[n]);
+	    else
+		fprintf(stderr, "%02X ", data[n] & 0xff);
+	}
+	if (n < cur->size)
+	    fprintf(stderr, "...");
+	fprintf(stderr, "\n");
     }
     return SASL_FAIL;
 #else

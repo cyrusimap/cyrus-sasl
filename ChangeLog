@@ -1,3 +1,7 @@
+2001-07-27
+
+	* include/sasl.h: updated comments of sasl_client_new
+
 2001-07-24  Rob Siemborski <rjs3+@andrew.cmu.edu>
 
 	* backport of auth_krb5.c from SASLv2

@@ -3,7 +3,7 @@
 ** SQL Auxprop plugin
 **   based on the original work of Simon Loader and Patrick Welche
 **
-** $Id: sql.c,v 1.8 2003/09/19 19:58:45 mnigrosh Exp $
+** $Id: sql.c,v 1.9 2003/09/22 17:33:40 mnigrosh Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -348,7 +348,7 @@ static const sql_engine_t sql_engines[] = {
 };
 
 /*
-**  Sql_create_statemnet
+**  Sql_create_statement
 **   uses select line and allocate memory to replace
 **  Parts with the strings provided.
 **   %<char> =  no change
@@ -375,18 +375,20 @@ static char *sql_create_statement(sasl_server_params_t *sparams,
   int numpercents=0;
   int biggest;
   int i;
-  
+  const char *select;
+
   /* calculate memory needed for creating the complete query string. */
   ulen = strlen(user);
   rlen = strlen(realm);
   plen = strlen(prop);
   ilen = sql_len(insertvalue);
-  
-  
+
+  select = strcat(select_line, ";");
+
   /* what if we have multiple %foo occurrences in the input query?*/
-  for(i=0; i<strlen(select_line); i++)
+  for(i=0; i<strlen(select); i++)
     {
-      if(select_line[i]=='%')
+      if(select[i]=='%')
 	{
 	  numpercents++;
 	}
@@ -395,8 +397,8 @@ static char *sql_create_statement(sasl_server_params_t *sparams,
   /*find the biggest of ulen, rlen, plen, ilen*/
   biggest = sql_max(sql_max(ulen, rlen),sql_max(plen, ilen));
 
-  /* don't forget the trailing 0x0 */
-  filtersize = strlen(select_line) + (numpercents*biggest)+1;
+  /* plus one for the semicolon...and don't forget the trailing 0x0 */
+  filtersize = strlen(select) + (numpercents*biggest)+1;
   
   /* ok, now try to allocate a chunk of that size */
   buf = (char *) sparams->utils->malloc(filtersize);
@@ -408,7 +410,7 @@ static char *sql_create_statement(sasl_server_params_t *sparams,
     }
   
   buf_ptr = buf;
-  line_ptr = select_line;
+  line_ptr = select;
     
   /* replace the strings */
   while ( (ptr = strchr(line_ptr, '%')) ) 
@@ -455,7 +457,7 @@ static char *sql_create_statement(sasl_server_params_t *sparams,
       ptr++;
       line_ptr = ptr;
     }
-
+  
   memcpy(buf_ptr, line_ptr, strlen(line_ptr)+1);
   
   return(buf);

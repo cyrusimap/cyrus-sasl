@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.38 2002/01/09 23:40:33 rjs3 Exp $
+ * $Id: saslint.h,v 1.39 2002/01/10 22:13:46 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -417,6 +417,7 @@ int external_server_init(const sasl_utils_t *utils,
 extern sasl_server_plug_t external_server_mech;
 
 /* Mech Listing Functions */
+int _sasl_build_mechlist(void);
 int _sasl_server_listmech(sasl_conn_t *conn,
 			  const char *user,
 			  const char *prefix,

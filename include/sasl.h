@@ -884,13 +884,17 @@ LIBSASL_API int sasl_server_new(const char *service,
 				unsigned flags,
 				sasl_conn_t **pconn);
 
+/* Return an array of NUL-terminated strings, terminated by a NULL pointer,
+ * which lists all possible mechanisms that the library can supply
+ *
+ * Returns NULL on failure. */
+LIBSASL_API const char ** sasl_global_listmech();
+
 /* This returns a list of mechanisms in a NUL-terminated string
  *  conn          -- the connection to list mechanisms for (either client
- *                   or server), or NULL, which indicates that the library
- *                   should list all available plugins, unconstrained by
- *                   any requirements.
+ *                   or server)
  *  user          -- restricts mechanisms to those available to that user
- *                   (may be NULL, not used for client or 'all' case)
+ *                   (may be NULL, not used for client case)
  *  prefix        -- appended to beginning of result
  *  sep           -- appended between mechanisms
  *  suffix        -- appended to end of result

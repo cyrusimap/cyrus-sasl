@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.74 2002/01/10 05:36:43 rjs3 Exp $
+ * $Id: common.c,v 1.75 2002/01/10 22:13:46 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -71,6 +71,9 @@
 #endif
 
 static const char build_ident[] = "$Build: libsasl " PACKAGE "-" VERSION " $";
+
+/* Should be a null-terminated array that lists the available mechanisms */
+static const char **global_mech_list = NULL;
 
 void *free_mutex = NULL;
 
@@ -301,6 +304,9 @@ void sasl_done(void)
   free_mutex = NULL;
 
   _sasl_free_utils(&sasl_global_utils);
+
+  sasl_FREE(global_mech_list);
+  global_mech_list = NULL;
 
   /* in case of another init/done */
   _sasl_server_cleanup_hook = NULL;
@@ -1593,34 +1599,11 @@ int _sasl_ipfromstring(const char *addr,
     return SASL_OK;
 }
 
-static unsigned mech_names_len(sasl_string_list_t *mechlist, int extra)
+int _sasl_build_mechlist(void) 
 {
-  sasl_string_list_t *listptr;
-  unsigned result = 0;
-
-  for (listptr = mechlist;
-       listptr;
-       listptr = listptr->next)
-    result += strlen(listptr->d) + extra;
-
-  return result;
-}
-
-/* FIXME: This leaks its result.  It sucks, but shouldn't need to be called
- * often. */
-static int _sasl_listmech_both(const char *prefix, const char *sep,
-			       const char *suffix, const char **result,
-			       unsigned *plen, unsigned *pcount) 
-{
-    char *glob_mechlist_buf = NULL;
-    unsigned glob_mechlist_buf_len = 0;
-    const char *mysep;
-    int flag;
-
-    sasl_string_list_t *clist, *slist, *olist = NULL;
+    int count = 0;
+    sasl_string_list_t *clist = NULL, *slist = NULL, *olist = NULL;
     sasl_string_list_t *p, *q, **last, *p_next;
-    size_t resultlen;
-    int ret;
 
     clist = _sasl_client_mechs();
     slist = _sasl_server_mechs();
@@ -1657,59 +1640,37 @@ static int _sasl_listmech_both(const char *prefix, const char *sep,
     }
 
     if(!olist) {
-	return SASL_NOMECH;
+	printf ("no olist");
+	return SASL_FAIL;
+    }
+
+    for (p = olist; p; p = p->next) count++;
+    
+    if(global_mech_list) {
+	sasl_FREE(global_mech_list);
+	global_mech_list = NULL;
     }
     
-    if (sep) {
-	mysep = sep;
-    } else {
-	mysep = " ";
-    }
-
-    resultlen = (prefix ? strlen(prefix) : 0)
-	+ mech_names_len(olist, strlen(mysep))
-	+ (suffix ? strlen(suffix) : 0)
-	+ 1;
-    ret = _buf_alloc(&glob_mechlist_buf,
-		     &glob_mechlist_buf_len, resultlen);
-    if(ret != SASL_OK) return ret;
-
-    if(pcount != NULL) *pcount = 0;
-
-    if (prefix)
-	strcpy (glob_mechlist_buf,prefix);
-    else
-	*(glob_mechlist_buf) = '\0';
-
-    flag = 0;
-    /* make list */
+    global_mech_list = sasl_ALLOC((count + 1) * sizeof(char *));
+    if(!global_mech_list) return SASL_NOMEM;
+    
+    memset(global_mech_list, 0, (count + 1) * sizeof(char *));
+    
+    count = 0;
     for (p = olist; p; p = p_next) {
 	p_next = p->next;
 
-	if (pcount != NULL)
-	    (*pcount)++;
-	
-	/* print seperator */
-	if (flag) {
-	    strcat(glob_mechlist_buf, mysep);
-	} else {
-	    flag = 1;
-	}
+	global_mech_list[count++] = p->d;
 
-	/* now print the mechanism name */
-	strcat(glob_mechlist_buf, p->d);
     	sasl_FREE(p);
     }
 
-    if (suffix)
-      strcat(glob_mechlist_buf,suffix);
-
-    if (plen!=NULL)
-	*plen=strlen(glob_mechlist_buf);
-    
-    *result = glob_mechlist_buf;    
-
     return SASL_OK;
+}
+
+const char ** sasl_global_listmech() 
+{
+    return global_mech_list;
 }
 
 int sasl_listmech(sasl_conn_t *conn,
@@ -1722,8 +1683,7 @@ int sasl_listmech(sasl_conn_t *conn,
 		  int *pcount)
 {
     if(!conn) {
-	RETURN(conn, _sasl_listmech_both(prefix, sep, suffix,
-					 result, plen, pcount));
+	return SASL_BADPARAM;
     } else if(conn->type == SASL_CONN_SERVER) {
 	RETURN(conn, _sasl_server_listmech(conn, user, prefix, sep, suffix,
 					   result, plen, pcount));

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.39 2002/01/09 23:40:33 rjs3 Exp $
+ * $Id: client.c,v 1.40 2002/01/10 22:13:45 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -214,7 +214,10 @@ int sasl_client_init(const sasl_callback_t *callbacks)
 			       _sasl_find_getpath_callback(callbacks),
 			       _sasl_find_verifyfile_callback(callbacks));
   
-  _sasl_client_active = 1;
+  if (ret == SASL_OK) {
+      _sasl_client_active = 1;
+      ret = _sasl_build_mechlist();
+  }
 
   return ret;
 }
@@ -737,8 +740,10 @@ sasl_string_list_t *_sasl_client_mechs(void)
       
       next->d = listptr->plug->mech_name;
 
-      if(!retval) retval = next;
-      else {
+      if(!retval) {
+	  next->next = NULL;
+	  retval = next;
+      } else {
 	  next->next = retval;
 	  retval = next;
       }

@@ -1,5 +1,5 @@
 /* dbconverter-2.c -- convert libsasl v1 sasldb's to SASLv2 format
- * $Id: dbconverter-2.c,v 1.2 2001/12/04 02:07:01 rjs3 Exp $
+ * $Id: dbconverter-2.c,v 1.3 2002/01/21 19:35:03 rjs3 Exp $
  * Rob Siemborski
  * based on SASLv1 sasldblistusers
  */
@@ -349,7 +349,10 @@ int listusers(const char *path, listcb_t *cb)
 
 #else 
 
-int listusers(const char *path, listcb_t *cb)
+/* ARGSUSED */
+
+int listusers(const char *path __attribute__((unused)),
+	      listcb_t *cb __attribute__((unused)))
 {
     fprintf(stderr,"Unsupported DB format");
     exit(1);

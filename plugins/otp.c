@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.6 2002/01/05 05:09:33 ken3 Exp $
+ * $Id: otp.c,v 1.7 2002/01/09 21:59:01 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -381,7 +381,7 @@ static sasl_server_plug_t otp_server_plugins[] =
   {
     "OTP",
     0,
-    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
+    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS | SASL_SEC_FORWARD_SECRECY,
     SASL_FEAT_WANT_CLIENT_FIRST,
     NULL,
     &otp_server_mech_new,
@@ -1031,7 +1031,7 @@ static sasl_client_plug_t otp_client_plugins[] =
   {
     "OTP",
     0,
-    SASL_SEC_NOANONYMOUS,
+    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS | SASL_SEC_FORWARD_SECRECY,
     SASL_FEAT_WANT_CLIENT_FIRST,
     NULL,
     NULL,

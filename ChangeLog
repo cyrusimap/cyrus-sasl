@@ -1,3 +1,6 @@
+2002-01-09  Ken Murchison <ken@oceana.com>
+	* plugins/otp.c: fixed security_flags
+
 2002-01-09  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* lib/common.c (sasl_decode): Removed maxoutbuf check
 	* man/sasl_setprop.3: Minor clarifications

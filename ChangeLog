@@ -1,3 +1,7 @@
+2002-07-05  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/lak.c: Better handling of downed ldap servers
+	  (Igor Brezac <igor@ipass.net>)
+
 2002-07-03  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* man/sasl_user_exists.3: fix sasl_idle reference
 

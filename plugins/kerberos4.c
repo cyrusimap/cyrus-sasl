@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.61 2000/04/19 16:18:48 leg Exp $
+ * $Id: kerberos4.c,v 1.62 2000/08/23 19:13:55 leg Exp $
  */
 /* 
  * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -61,6 +61,8 @@
 #include <sasl.h>
 #include <saslutil.h>
 #include <saslplug.h>
+
+#include <errno.h>
 
 #ifdef WIN32
 /* This must be after sasl.h, saslutil.h */
@@ -857,6 +859,10 @@ int sasl_server_plug_init(sasl_utils_t *utils,
     const char *ret;
     unsigned int rl;
     
+    if (maxversion < KERBEROS_VERSION) {
+	return SASL_BADVERS;
+    }
+
     utils->getopt(utils->getopt_context, "KERBEROS_V4", "srvtab", &ret, &rl);
 
     if (ret == NULL) {
@@ -867,22 +873,16 @@ int sasl_server_plug_init(sasl_utils_t *utils,
     strcpy(srvtab, ret);
 
     /* fail if we can't open the srvtab file */
-    if (access(srvtab, R_OK) != 0)
-    {
+    if (access(srvtab, R_OK) != 0) {
+	utils->log(NULL, SASL_LOG_ERR, "KERBEROS_V4", SASL_FAIL, errno,
+		   "can't access srvtab file %s: %m", srvtab);
 	utils->free(srvtab);
 	return SASL_FAIL;
     }
 
-    if (maxversion<KERBEROS_VERSION)
-    {
-	utils->free(srvtab);
-	return SASL_BADVERS;
-    }
-
-    *pluglist=plugins;
-
-    *plugcount=1;  
-    *out_version=KERBEROS_VERSION;
+    *pluglist = plugins;
+    *plugcount = 1;
+    *out_version = KERBEROS_VERSION;
     
     return SASL_OK;
 }

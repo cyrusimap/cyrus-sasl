@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.32 2002/07/24 18:17:13 leg Exp $ -->
+<!-- $Id: sysadmin.html,v 1.33 2002/07/24 19:19:19 leg Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -82,7 +82,7 @@ harder for users to authenticate.
 <p>A single site might support multiple different realms.  This can
 confuse applications that weren't written in anticipation of this;
 make sure your application can support it before adding users from
-different realms into sasldb with <tt>saslpasswd</tt>.
+different realms into sasldb with <tt>saslpasswd2</tt>.
 
 <p>The Kerberos mechanisms treat the SASL realm as the Kerberos
 realm.  Thus, the realm for Kerberos mechanisms defaults to the
@@ -108,45 +108,44 @@ password to the server, and the server then determines whether that is
 an allowable triple.
 
 <p>The principal concern for system administrators is how the
-authentication and password are verified.  The Cyrus SASL library is
-flexible in this regard:
+authentication identifier and password are verified.  The Cyrus SASL
+library is flexible in this regard:
 
 <DL>
-<dt><i>auxprop</i><dd> checks passwords agains the <tt>userPassword</tt>
-  attribute
-  supplied by an auxiliary property plugin.  For example, SASL ships
-  with a sasldb auxiliary property plugin, that can be used to 
-  authenticate against the passwords stored in <tt>/etc/sasldb2</tt>.
-  Since other mechanisms also use this method of checking their
-  passwords, using this method will allow SASL to provide a uniform password
-  database to a large number of mechanisms.
+<dt><i>auxprop</i> 
+<dd> checks passwords agains the <tt>userPassword</tt> attribute
+supplied by an auxiliary property plugin.  For example, SASL ships
+with a sasldb auxiliary property plugin, that can be used to
+authenticate against the passwords stored in <tt>/etc/sasldb2</tt>.
+Since other mechanisms also use this database for passwords, using
+this method will allow SASL to provide a uniform password database to
+a large number of mechanisms.
 
-<dt><i>saslauthd</i><dd> contacts the saslauthd daemon to to check
-  passwords using a variety of mechanisms.  You can compile support
-  for saslauthd using the --with-saslauthd configure option.  More
-  information can be found in saslauthd(8).  Once you configure
-  saslauthd, there is a testsaslauthd program that can be built
-  with <tt>make testsaslauthd</tt> in the saslauthd directory, that
-  can check to ensure that the saslauthd daemon is installed and
-  running properly.<p> 
+<dt><i>saslauthd</i>
+
+<dd> contacts the <tt>saslauthd</tt> daemon to to check passwords
+using a variety of mechanisms.  More information can be found in
+<tt>saslauthd(8)</tt>.  Once you configure <tt>saslauthd</tt>, there
+is a <tt>testsaslauthd</tt> program that can be built with <tt>make
+testsaslauthd</tt> in the <tt>saslauthd</tt> subdirectory of the
+source that can be used to check that <tt>saslauthd</tt> daemon is
+installed and running properly.<p>
 
 <dt><i>pwcheck</i><dd> checks passwords with the use of a separate,
-  helper daemon.  This feature is for backwards-compatibility only,
-  and new installations should use saslauthd.<p>
+  helper daemon.  This feature is for backwards-compatibility
+  only. New installations should use saslauthd.<p>
 
-<dt><i>write your own</i><dd> Last, but not least, the most flexible
-  method of authentication for PLAIN is to write your own.  If you do
-  so, any application that calls the "<tt>sasl_checkpass()</tt>"
-  routine or uses PLAIN will invoke your code.  The easiest place to
-  modify the plaintext authentication routines is to modify the
-  routine "<tt>_sasl_checkpass()</tt>" in the file
-  <tt>lib/server.c</tt> to support a new method, and to add that
-  method to <tt>lib/checkpw.c</tt>.  Be sure to add a prototype in
-  <tt>lib/saslint.h</tt>!<p>
-  It is important to note however that
-  currently the more flexible/preferred method is to create a new saslauthd
-  mechanism.<p>
-</dl>
+<dt><i>write your own</i>
+<dd> Last, but not least, the most flexible method of authentication
+for PLAIN is to write your own.  If you do so, any application that
+calls the "<tt>sasl_checkpass()</tt>" routine or uses PLAIN will
+invoke your code.  The easiest place to modify the plaintext
+authentication routines is to modify the routine
+"<tt>_sasl_checkpass()</tt>" in the file <tt>lib/server.c</tt> to
+support a new method, and to add that method to
+<tt>lib/checkpw.c</tt>.  Be sure to add a prototype in
+<tt>lib/saslint.h</tt>!<p> The more flexible and preferred method of
+adding a routine is to create a new saslauthd mechanism.<p> </dl>
 
 <p>The LOGIN mechanism (not to be confused with IMAP4's LOGIN command)
 is an undocumented, unsupported mechanism.  It's included in the Cyrus
@@ -181,18 +180,18 @@ it's own way of storing authentication secrets.  Currently, no
 application is known to do this.
 
 <p>The principle problem for a system administrator is to make sure that
-sasldb is properly protected; only the servers that need to read it to
+sasldb is properly protected. Only the servers that need to read it to
 verify passwords should be able to.  If there are any normal shell
 users on the system, they must not be able to read it.
 
 <p>This point is important, so we will repeat it: <b>sasldb stores the
-plaintext versions of all of its passwords, if it is compromised so
+plaintext versions of all of its passwords. If it is compromised so
 are all of the passwords that it stores</b>.
 
 <p>Managing password changes is outside the scope of the library.
 However, system administrators should probably make a way of letting
 user's change their passwords available to users.  The
-"<tt>saslpasswd</tt>" utility is provided to change the secrets in
+"<tt>saslpasswd2</tt>" utility is provided to change the secrets in
 sasldb.  It does not affect PAM, <tt>/etc/passwd</tt>, or any other
 standard system library; it only affects secrets stored in sasldb.
 
@@ -255,6 +254,19 @@ but this is modifiable by the "opiekeys" option.
 <p>A SASL server application must be able to read and write the
 opiekeys file.
 
+<h2>Auxiliary Properties</h2>
+
+xxx
+
+<p>libsasl2 introduces the concept of auxprops
+
+<p>auxprops are used to store passwords but applications can request
+arbitrary data through them
+
+<p>currently only 'userPassword' and 'cmusaslsecretMECHNAME' are used
+
+<p>
+
 <h2>How to set configuration options</h2>
 
 The Cyrus SASL library comes with a built-in configuration file
@@ -286,10 +298,9 @@ configuration file, <tt>/etc/imapd.conf</tt>, by prepending all SASL
 options with "<tt>sasl_</tt>": the SASL option "pwcheck_method" is set
 by changing "sasl_pwcheck_method" in <tt>/etc/imapd.conf</tt>.
 
-<p>
-Check your application's documentation for more information.
-
 <h2>Compiling and installing the library</h2>
+
+xxx this should move to install.html
 
 <h3>what configure options to use?</h3>
 
@@ -349,12 +360,17 @@ sasldb is completely incompatible.
 <dt><b>Q:</b> I'm having performance problems on each authentication, there is
 a noticeable slowdown when sasl initilizes, what can I do?
 <dd>
-<p><b>A:</b>SASL reads from /dev/random as part of its initilization,
-you can define DEV_RANDOM to be /dev/urandom instead in config.h,
-which offers less secure random numbers but is less likely to
-block. Except for the OTP and SRP mechanisms, the shipped mechanisms
-use random numbers only to generate nonces, so this is safe if you
-aren't using those mechanisms.
+<p><b>A:</b>libsasl reads from <tt>/dev/random</tt> as part of its
+initialization. <tt>/dev/random</tt> is a "secure" source of entropy,
+and will block your application until a sufficient amount of
+randomness has been collected to meet libsasl's needs.</p>
+
+<p>To improve performance, you can change DEV_RANDOM in
+<tt>config.h</tt> to be <tt>/dev/urandom</tt> and recompile
+libsasl. <tt>/dev/urandom</tt> offers less secure random numbers but
+should return immediately. The included mechanisms, besides OTP and
+SRP, use random numbers only to generate nonces, so using
+<tt>/dev/urandom</tt> is safe if you aren't using OTP or SRP.
 
 <p>
 <dt><b>Q:</b> I've converted the sasldb database to the new format. 
@@ -380,7 +396,7 @@ support it.  Don't enable it unless you know you need it.
 passwords?
 <dd>
 <p><b>A:</b> Use the "saslauthd" daemon and setting "pwcheck_method"
-to "saslauthd".  You'll have to run <tt>configure</tt> with the <tt>--with-saslauthd</tt> option.
+to "saslauthd".
 
 <p>
 <dt><b>Q:</b> I want to use Berkeley DB, but it's installed in
@@ -394,6 +410,18 @@ env CPPFLAGS="-I/usr/local/BerkeleyDB.3.1/include" \
   LDFLAGS="-L/usr/local/BerkeleyDB.3.1/lib -R/usr/local/BerkeleyDB.3.1/lib" \
   ./configure --with-dblib=berkeley 
 </pre>
+
+<p>
+<dt><b>Q:</b> It's not working and won't tell me why! Help!
+<dd>
+<p><b>A:</b> Check syslog output (usually stored in
+<tt>/var/log</tt>) for more information. You might want to change your
+syslog configuration (usually <tt>/etc/syslogd.conf</tt>) to log
+"debug.*" to a file while debugging a problem.</p>
+
+<p>The developers make heavy use of <tt>strace</tt> or <tt>truss</tt>
+when debugging a problem that isn't outputting any useful
+information.</p>
 
 <p>
 <dt><b>Q:</b> Is there a mailing list to discuss the Cyrus SASL

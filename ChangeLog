@@ -1,3 +1,6 @@
+2002-07-03  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* man/sasl_user_exists.3: fix sasl_idle reference
+
 2002-07-02  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/auxprop.c: Can now select multiple auxprop plugins
 	* doc/options.html: updated for above

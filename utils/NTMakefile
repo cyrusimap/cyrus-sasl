@@ -1,10 +1,11 @@
 !INCLUDE ..\win32\common.mak
 
-sasl_apps=saslpasswd2.exe sasldblistusers2.exe
-sasl_out=saslpasswd2.pdb sasldblistusers2.pdb
+sasl_apps=saslpasswd2.exe sasldblistusers2.exe testsuite.exe
+sasl_out=saslpasswd2.pdb sasldblistusers2.pdb testsuite.pdb
 
 saslpwd_objs = saslpasswd.obj
 sasldblistusers_objs = sasldblistusers.obj
+testsuite_objs = testsuite.obj
 
 all_objs = $(saslpwd_objs) $(sasldblistusers_objs)
 all_out = $(sasl_apps) $(sasl_out)
@@ -66,6 +67,10 @@ saslpasswd2.exe: $(saslpwd_objs)
 
 sasldblistusers2.exe: $(sasldblistusers_objs)
 	$(LINK32) @<< $(LINK32_FLAGS) $(SASL_DB_LIB) /pdb:"sasldblistusers2.pdb" /out:"sasldblistusers2.exe" $(sasldblistusers_objs)
+<<
+
+testsuite.exe: $(testsuite_objs)
+	$(LINK32) @<< $(LINK32_FLAGS) $(SASL_DB_LIB) /pdb:"testsuite.pdb" /out:"testsuite.exe" $(testsuite_objs)
 <<
 
 CLEAN :

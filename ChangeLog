@@ -10,6 +10,8 @@
 	* man/sasl_setprop.3: Minor clarifications
 	* plugins/digestmd5.c, plugins/gssapi.c, plugins/kerberos4.c:
 	  Assorted security layer fixes (maxoutbuf setting, mech_ssf setting)
+	* lib/common.c, lib/client.c, lib/server.c, lib/saslint.h:
+	  Allowed client-side sasl_listmech calls.
 
 2002-01-05  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 

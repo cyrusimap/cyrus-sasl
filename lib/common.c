@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.71 2002/01/09 20:22:48 rjs3 Exp $
+ * $Id: common.c,v 1.72 2002/01/09 22:04:02 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -454,6 +454,9 @@ void _sasl_conn_dispose(sasl_conn_t *conn) {
 
   if(conn->decode_buf)
       sasl_FREE(conn->decode_buf);
+
+  if(conn->mechlist_buf)
+      sasl_FREE(conn->mechlist_buf);
 
   if(conn->service)
       sasl_FREE(conn->service);
@@ -1568,4 +1571,26 @@ int _sasl_ipfromstring(const char *addr,
     freeaddrinfo(ai);
 
     return SASL_OK;
+}
+
+int sasl_listmech(sasl_conn_t *conn,
+		  const char *user,
+		  const char *prefix,
+		  const char *sep,
+		  const char *suffix,
+		  const char **result,
+		  unsigned *plen,
+		  int *pcount)
+{
+    if(!conn) {
+	PARAMERROR(conn);
+    } else if(conn->type == SASL_CONN_SERVER) {
+	RETURN(conn, _sasl_server_listmech(conn, user, prefix, sep, suffix,
+					   result, plen, pcount));
+    } else if (conn->type == SASL_CONN_CLIENT) {
+	RETURN(conn, _sasl_client_listmech(conn, prefix, sep, suffix,
+					   result, plen, pcount));
+    }
+    
+    PARAMERROR(conn);
 }

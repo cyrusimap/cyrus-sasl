@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.92 2001/12/13 17:07:57 rjs3 Exp $
+ * $Id: server.c,v 1.93 2002/01/09 22:04:03 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -237,9 +237,6 @@ static void server_dispose(sasl_conn_t *pconn)
 
   if (s_conn->sparams->propctx)
       prop_dispose(&s_conn->sparams->propctx);
-
-  if (s_conn->mechlist_buf)
-      sasl_FREE(s_conn->mechlist_buf);
 
   if (s_conn->user_realm)
       sasl_FREE(s_conn->user_realm);
@@ -1333,16 +1330,15 @@ static unsigned mech_names_len()
 /*
  * The default behavior is to seperate with spaces if sep==NULL
  */
-int sasl_listmech(sasl_conn_t *conn,
-		  const char *user __attribute__((unused)),
-		  const char *prefix,
-		  const char *sep,
-		  const char *suffix,
-		  const char **result,
-		  unsigned *plen,
-		  int *pcount)
+int _sasl_server_listmech(sasl_conn_t *conn,
+			  const char *user __attribute__((unused)),
+			  const char *prefix,
+			  const char *sep,
+			  const char *suffix,
+			  const char **result,
+			  unsigned *plen,
+			  int *pcount)
 {
-  sasl_server_conn_t *s_conn = (sasl_server_conn_t *)conn;
   int lup;
   mechanism_t *listptr;
   int ret;
@@ -1353,6 +1349,7 @@ int sasl_listmech(sasl_conn_t *conn,
   /* if there hasn't been a sasl_sever_init() fail */
   if (_sasl_server_active==0) return SASL_NOTINIT;
   if (!conn) return SASL_BADPARAM;
+  if (conn->type != SASL_CONN_SERVER) PARAMERROR(conn);
   
   if (! result)
       PARAMERROR(conn);
@@ -1376,14 +1373,14 @@ int sasl_listmech(sasl_conn_t *conn,
 	    + mech_names_len()
             + (suffix ? strlen(suffix) : 0)
 	    + 1;
-  ret = _buf_alloc(&s_conn->mechlist_buf,
-		   &s_conn->mechlist_buf_len, resultlen);
+  ret = _buf_alloc(&conn->mechlist_buf,
+		   &conn->mechlist_buf_len, resultlen);
   if(ret != SASL_OK) MEMERROR(conn);
 
   if (prefix)
-    strcpy (s_conn->mechlist_buf,prefix);
+    strcpy (conn->mechlist_buf,prefix);
   else
-    *(s_conn->mechlist_buf) = '\0';
+    *(conn->mechlist_buf) = '\0';
 
   listptr = mechlist->mech_list;  
    
@@ -1397,25 +1394,25 @@ int sasl_listmech(sasl_conn_t *conn,
 
 	  /* print seperator */
 	  if (flag) {
-	      strcat(s_conn->mechlist_buf, mysep);
+	      strcat(conn->mechlist_buf, mysep);
 	  } else {
 	      flag = 1;
 	  }
 
 	  /* now print the mechanism name */
-	  strcat(s_conn->mechlist_buf, listptr->plug->mech_name);
+	  strcat(conn->mechlist_buf, listptr->plug->mech_name);
       }
 
       listptr = listptr->next;
   }
 
   if (suffix)
-      strcat(s_conn->mechlist_buf,suffix);
+      strcat(conn->mechlist_buf,suffix);
 
   if (plen!=NULL)
-      *plen=strlen(s_conn->mechlist_buf);
+      *plen=strlen(conn->mechlist_buf);
 
-  *result = s_conn->mechlist_buf;
+  *result = conn->mechlist_buf;
 
   return SASL_OK;
   
@@ -1672,7 +1669,6 @@ int sasl_checkapop(sasl_conn_t *conn,
     sasl_FREE(user);
 
     if(result != SASL_OK) RETURN(conn, result);
-printf("past canonicalization\n");
 
     /* Do APOP verification */
     result = _sasl_auxprop_verify_apop(conn, conn->oparams.authid,

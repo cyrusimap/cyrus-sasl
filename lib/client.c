@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.37 2001/12/06 22:27:27 rjs3 Exp $
+ * $Id: client.c,v 1.38 2002/01/09 22:04:02 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -60,6 +60,8 @@ static cmech_list_t *cmechlist; /* global var which holds the list */
 
 static sasl_global_callbacks_t global_callbacks;
 
+static int _sasl_client_active = 0;
+
 static int init_mechlist()
 {
   cmechlist->mutex = sasl_MUTEX_ALLOC();
@@ -98,6 +100,8 @@ static void client_done(void) {
   sasl_FREE(cmechlist);
 
   cmechlist = NULL;
+
+  _sasl_client_active = 0;
 }
 
 int sasl_client_add_plugin(const char *plugname,
@@ -210,6 +214,8 @@ int sasl_client_init(const sasl_callback_t *callbacks)
 			       _sasl_find_getpath_callback(callbacks),
 			       _sasl_find_verifyfile_callback(callbacks));
   
+  _sasl_client_active = 1;
+
   return ret;
 }
 
@@ -584,4 +590,126 @@ int sasl_client_step(sasl_conn_t *conn,
   RETURN(conn,result);
 }
 
+/* returns the length of all the mechanisms
+ * added up 
+ */
 
+static unsigned mech_names_len()
+{
+  cmechanism_t *listptr;
+  unsigned result = 0;
+
+  for (listptr = cmechlist->mech_list;
+       listptr;
+       listptr = listptr->next)
+    result += strlen(listptr->plug->mech_name);
+
+  return result;
+}
+
+
+int _sasl_client_listmech(sasl_conn_t *conn,
+			  const char *prefix,
+			  const char *sep,
+			  const char *suffix,
+			  const char **result,
+			  unsigned *plen,
+			  int *pcount)
+{
+    cmechanism_t *m=NULL;
+    sasl_ssf_t minssf = 0;
+    int ret;
+    int resultlen;
+    int flag;
+    const char *mysep;
+
+    if(_sasl_client_active == 0) return SASL_NOTINIT;
+    if (!conn) return SASL_BADPARAM;
+    if(conn->type != SASL_CONN_CLIENT) PARAMERROR(conn);
+    
+    if (! result)
+	PARAMERROR(conn);
+    
+    if (plen != NULL)
+	*plen = 0;
+    if (pcount != NULL)
+	*pcount = 0;
+
+    if (sep) {
+	mysep = sep;
+    } else {
+	mysep = " ";
+    }
+
+    if(conn->props.min_ssf < conn->external.ssf) {
+	minssf = 0;
+    } else {
+	minssf = conn->props.min_ssf - conn->external.ssf;
+    }
+
+    if (! cmechlist || cmechlist->mech_length <= 0)
+	INTERROR(conn, SASL_NOMECH);
+
+    resultlen = (prefix ? strlen(prefix) : 0)
+	+ (strlen(mysep) * (cmechlist->mech_length - 1))
+	+ mech_names_len()
+	+ (suffix ? strlen(suffix) : 0)
+	+ 1;
+    ret = _buf_alloc(&conn->mechlist_buf,
+		     &conn->mechlist_buf_len, resultlen);
+    if(ret != SASL_OK) MEMERROR(conn);
+
+    if (prefix)
+	strcpy (conn->mechlist_buf,prefix);
+    else
+	*(conn->mechlist_buf) = '\0';
+
+    flag = 0;
+    for (m = cmechlist->mech_list; m != NULL; m = m->next) {
+	    /* do we have the prompts for it? */
+	    if (!have_prompts(conn, m->plug))
+		continue;
+
+	    /* is it strong enough? */
+	    if (minssf > m->plug->max_ssf)
+		continue;
+
+	    /* does it meet our security properties? */
+	    if (((conn->props.security_flags ^ m->plug->security_flags)
+		 & conn->props.security_flags) != 0) {
+		continue;
+	    }
+
+	    /* Can we meet it's features? */
+	    if ((m->plug->features & SASL_FEAT_NEEDSERVERFQDN)
+		&& !conn->serverFQDN) {
+		continue;
+	    }
+
+	    /* Okay, we like it, add it to the list! */
+
+	    if (pcount != NULL)
+		(*pcount)++;
+
+	    /* print seperator */
+	    if (flag) {
+		strcat(conn->mechlist_buf, mysep);
+	    } else {
+		flag = 1;
+	    }
+	    
+	    /* now print the mechanism name */
+	    strcat(conn->mechlist_buf, m->plug->mech_name);
+    }
+    
+  if (suffix)
+      strcat(conn->mechlist_buf,suffix);
+
+  if (plen!=NULL)
+      *plen=strlen(conn->mechlist_buf);
+
+  *result = conn->mechlist_buf;
+
+  return SASL_OK;
+  
+}

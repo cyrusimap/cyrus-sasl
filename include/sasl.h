@@ -886,6 +886,10 @@ LIBSASL_API int sasl_server_new(const char *service,
 				sasl_conn_t **pconn);
 
 /* This returns a list of mechanisms in a NUL-terminated string
+ *  conn          -- the connection to list mechanisms for (either client
+ *                   or server), or NULL, which indicates that the library
+ *                   should list all available plugins, unconstrained by
+ *                   any requirements.
  *  user          -- restricts mechanisms to those available to that user
  *                   (may be NULL)
  *  prefix        -- appended to beginning of result

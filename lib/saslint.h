@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.36 2002/01/09 20:22:48 rjs3 Exp $
+ * $Id: saslint.h,v 1.37 2002/01/09 22:04:02 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -156,6 +156,9 @@ struct sasl_conn {
   int error_code;
   char *error_buf, *errdetail_buf;
   unsigned error_buf_len, errdetail_buf_len;
+  char *mechlist_buf;
+  unsigned mechlist_buf_len;
+
   char *decode_buf;
 
   char user_buf[CANON_BUF_SIZE+1], authid_buf[CANON_BUF_SIZE+1];
@@ -193,9 +196,6 @@ typedef struct context_list
 
 typedef struct sasl_server_conn {
     sasl_conn_t base; /* parts common to server + client */
-
-    char *mechlist_buf;
-    unsigned mechlist_buf_len;
 
     char *user_realm; /* domain the user authenticating is in */
     int sent_last; /* Have we already done the last send? */
@@ -409,6 +409,23 @@ int external_server_init(const sasl_utils_t *utils,
 			 sasl_server_plug_t **pluglist,
 			 int *plugcount);
 extern sasl_server_plug_t external_server_mech;
+
+/* Mech Listing Functions */
+int _sasl_server_listmech(sasl_conn_t *conn,
+			  const char *user,
+			  const char *prefix,
+			  const char *sep,
+			  const char *suffix,
+			  const char **result,
+			  unsigned *plen,
+			  int *pcount);
+int _sasl_client_listmech(sasl_conn_t *conn,
+			  const char *prefix,
+			  const char *sep,
+			  const char *suffix,
+			  const char **result,
+			  unsigned *plen,
+			  int *pcount);
 
 /*
  * config file declarations (config.c)

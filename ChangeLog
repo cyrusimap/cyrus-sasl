@@ -1,3 +1,6 @@
+2003-09-30  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/digestmd5.c: Clean up some warnings
+
 2003-09-29  Ken Murchison <ken@oceana.com>
 	* plugins/sql.c, doc/options.html: added sql_update and sql_delete
 	  for a complete auxprop_store() implementation; logic cleanup

@@ -27,6 +27,12 @@ SOFTWARE.
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
+#ifdef HAVE_GETTIMEOFDAY
+#include <sys/time.h>
+#endif
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 #include "saslint.h"
 #include <saslutil.h>
 
@@ -47,7 +53,7 @@ char *encode_table;
 char *decode_table;
 
 struct sasl_rand_s {
-  unsigned short int pool[3];
+  unsigned short pool[6];
   int initialized; /* since the init time might be really bad let's make this lazy */
 };
 
@@ -235,146 +241,110 @@ int sasl_utf8verify(const char *str, unsigned len)
   return SASL_OK;
 }      
 
-#if 0
-/* This was used by the audio random stuff */
-static int
-parityof(unsigned char ch)
-{
-  int ret=0;
-  int lup;
-  for (lup=0;lup<8;lup++)
-    ret+= (ch >> lup) & 1;
-
-  return ret;
-}
-#endif
-
 /* 
  * To see why this is really bad see RFC 1750
  *
  * unfortunatly there currently is no way to make 
  * cryptographically secure pseudo random numbers
  * without specialized hardware etc...
- *
- * A note:
- *  After some relativly small number of iterations
- *  (30-50?) this may become really insecure
- *  It would be a good idea to churn() every so often
- *   Currently this is _not_ a problem
+ * thus, this is for nonce use only
  */
-
-static unsigned short* getranddata()
+static unsigned short *getranddata()
 {
-  unsigned short *ret;
-  long curtime;
-  FILE *f;
-
-  ret=sasl_ALLOC(6);
-  if (ret ==NULL) return NULL;
-  memset(ret,0,6);
-
-  /* this will probably only work on linux */
-  if ((f=fopen("/dev/random","r"))!=NULL)
-  {    
-    fread(ret, 1, 6, f);
-
-    fclose(f);
-    return ret;
-  }
-  
-#if 0  /* this works but is horribly slow :) */
-  if ((f=fopen("/dev/audio","r"))!=NULL)
-  {
-    int parity=0,lup,lup2;     
-    tmp=sasl_ALLOC(200);
-    if (tmp ==NULL) return NULL;      
-
-    for (lup=0;lup<48;lup++)
-    {
-
-      fread(tmp, 1, 200, f);
-      parity=0;
-      /* get the parity */
-      for (lup2=0;lup2<200;lup2++)
-	parity+=parityof(tmp[lup2]);
-
-      ret[lup/16] = ret[lup/16] & ( parity << (lup%16));
+    static unsigned short ret[3];
+    long curtime;
+    FILE *f;
+    
+    memset(ret, 0, sizeof(ret));
+    
+    /* this will probably only work on linux */
+    if ((f = fopen(DEV_RANDOM, "r")) != NULL) {
+	fread(ret, 1, sizeof(ret), f);
+	fclose(f);
+	return ret;
     }
-    memset(tmp, 0, 200);
-    sasl_FREE((tmp));    
-    fclose(f);
-    return ret;
-  }
+
+#ifdef HAVE_GETPID
+    ret[0] = (unsigned short) getpid();
 #endif
 
-  /* if all else fails just use timer 
-   * this is really bad (see 1750). any other ideas tho?
-   */
-  curtime=(long) time(NULL);
+#ifdef HAVE_GETTIMEOFDAY
+    {
+	struct timeval tv;
+	
+	if (!gettimeofday(&tv, NULL)) {
+	    /* longs are guaranteed to be at least 32 bits; we need
+	       16 bits in each short */
+	    ret[0] ^= (unsigned short) (tv.tv_sec & 0xFFFF);
+	    ret[1] ^= (unsigned short) (tv.tv_usec >> 16);
+	    ret[2] ^= (unsigned short) (tv.tv_usec & 0xFFFF);
+	}
 
-  ret[0]=(unsigned short) (curtime >> 16);
-  ret[1]=(unsigned short) (curtime & 0x0000FFFF);
-  ret[2]=(unsigned short) ((curtime*7) >> 5);
-
-  return ret;
+	return ret;
+    }
+#endif
+    
+    /* if all else fails just use time() */
+    curtime = (long) time(NULL); /* better be at least 32 bits */
+    
+    ret[0] ^= (unsigned short) (curtime >> 16);
+    ret[1] ^= (unsigned short) (curtime & 0xFFFF);
+    ret[2] ^= (unsigned short) (clock() & 0xFFFF);
+    
+    return ret;
 }
 
 int sasl_randcreate(sasl_rand_t **rpool)
 {
   (*rpool)=sasl_ALLOC(sizeof(sasl_rand_t));
-  if ((*rpool) ==NULL) return SASL_NOMEM;
+  if ((*rpool) == NULL) return SASL_NOMEM;
 
   /* init is lazy */
-  (*rpool)->initialized=-1;
-
+  (*rpool)->initialized = -1;
 
   return SASL_OK;
 }
 
 void sasl_randfree(sasl_rand_t **rpool)
 {
-  sasl_FREE((*rpool));
+    sasl_FREE(*rpool);
 }
 
 void sasl_randseed (sasl_rand_t *rpool, const char *seed, unsigned len)
 {
-  /* is it acceptable to just use the 1st 3 char's given??? */
-  unsigned int lup;
-  
-  for (lup=0;lup<3;lup++)
-    if (len>lup)
-      rpool->pool[lup]=seed[lup];
+    /* is it acceptable to just use the 1st 3 char's given??? */
+    unsigned int lup;
+    
+    rpool->initialized = 1;
+    if (len > 6) len = 6;
+    for (lup = 0; lup < len; lup += 2)
+	rpool->pool[lup] = (seed[lup] << 8) + seed[lup + 1];
 }
 
 void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
 {
-  unsigned short *data;
-  unsigned int lup;
-  if (buf==NULL) return;
-
-  /* see if we need to init now */
-  if (rpool->initialized==-1)
-  {
-    data=getranddata();
-    if (data==NULL)
-      return; /* xxx */
-
-    memcpy(rpool->pool, data, 6);
+    unsigned short *data;
+    unsigned int lup;
+    if (buf==NULL) return;
     
-    memset(data, 0, 6); /* wipe it out */
-    sasl_FREE((data));
-
-    rpool->initialized=1;
-  }
-
+    /* see if we need to init now */
+    if (rpool->initialized == -1) {
+	data = getranddata();
+	if (data == NULL) return; /* yikes! */
+	
+	memcpy(rpool->pool, data, 6);
+	
+	memset(data, 0, 6); /* wipe it out */
+	rpool->initialized = 1;
+    }
+    
 #ifdef WIN32
-  for (lup=0;lup<len;lup++)
-    buf[lup]= (char) (rand());
+    for (lup=0;lup<len;lup++)
+	buf[lup]= (char) (rand() >> 8);
 #else /* WIN32 */
-  for (lup=0;lup<len;lup++)
-    buf[lup]= (char) jrand48(rpool->pool);
+    for (lup=0; lup<len; lup++)
+	buf[lup]= (char) (jrand48(rpool->pool) >> 8);
 #endif /* WIN32 */
-
 }
 
 void sasl_churn (sasl_rand_t *rpool, const char *data, unsigned len)

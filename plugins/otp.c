@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.10 2002/02/04 16:48:11 ken3 Exp $
+ * $Id: otp.c,v 1.11 2002/02/19 20:35:34 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -564,7 +564,7 @@ static int parse_challenge(const sasl_utils_t *utils,
     c = chal;
 
     /* eat leading whitespace */
-    while (*c && isspace(*c)) c++;
+    while (*c && isspace((int) *c)) c++;
 
     if (!is_init) {
 	/* check the prefix */
@@ -597,11 +597,11 @@ static int parse_challenge(const sasl_utils_t *utils,
     *alg = opt;
 
     /* eat whitespace */
-    if (!isspace(*c)) {
+    if (!isspace((int) *c)) {
 	SETERROR(utils, "no whitespace between OTP algorithm and sequence");
 	return SASL_BADPROT;
     }
-    while (*c && isspace(*c)) c++;
+    while (*c && isspace((int) *c)) c++;
 
     /* grab the sequence */
     if ((*seq = strtoul(c, &c, 10)) > OTP_SEQUENCE_MAX) {
@@ -610,16 +610,16 @@ static int parse_challenge(const sasl_utils_t *utils,
     }
 
     /* eat whitespace */
-    if (!isspace(*c)) {
+    if (!isspace((int) *c)) {
 	SETERROR(utils, "no whitespace between OTP sequence and seed");
 	return SASL_BADPROT;
     }
-    while (*c && isspace(*c)) c++;
+    while (*c && isspace((int) *c)) c++;
 
     /* grab the seed, converting to lowercase as we go */
     n = 0;
-    while (*c && isalnum(*c) && (n < OTP_SEED_MAX))
-	seed[n++] = tolower(*c++);
+    while (*c && isalnum((int) *c) && (n < OTP_SEED_MAX))
+	seed[n++] = tolower((int) *c++);
     if (n > OTP_SEED_MAX) {
 	utils->seterror(utils->conn, 0, "OTP seed length > %u", OTP_SEED_MAX);
 	return SASL_BADPROT;
@@ -632,16 +632,17 @@ static int parse_challenge(const sasl_utils_t *utils,
 
     if (!is_init) {
 	/* eat whitespace */
-	if (!isspace(*c)) {
+	if (!isspace((int) *c)) {
 	    SETERROR(utils, "no whitespace between OTP seed and extensions");
 	    return SASL_BADPROT;
 	}
-	while (*c && isspace(*c)) c++;
+	while (*c && isspace((int) *c)) c++;
 
 	/* make sure this is an extended challenge */
 	if (strncmp(c, "ext", 3) ||
 	    (*(c+=3) &&
-	     !(isspace(*c) || (*c == ',') || (*c == '\r') || (*c == '\n')))) {
+	     !(isspace((int) *c) || (*c == ',') ||
+	       (*c == '\r') || (*c == '\n')))) {
 	    SETERROR(utils, "not an OTP extended challenge");
 	    return SASL_BADPROT;
 	}
@@ -1387,15 +1388,15 @@ int hex2bin(char *hex, unsigned char *bin, int binlen)
 
     for (c = hex, i = 0; i < binlen; c++) {
 	 /* whitespace */
-	if (isspace(*c))
+	if (isspace((int) *c))
 	    continue;
 	/* end of string, or non-hex char */
-	if (!*c || !*(c+1) || !isxdigit(*c))
+	if (!*c || !*(c+1) || !isxdigit((int) *c))
 	    break;
 
-	msn = (*c > '9') ? tolower(*c) - 'a' + 10 : *c - '0';
+	msn = (*c > '9') ? tolower((int) *c) - 'a' + 10 : *c - '0';
 	c++;
-	lsn = (*c > '9') ? tolower(*c) - 'a' + 10 : *c - '0';
+	lsn = (*c > '9') ? tolower((int) *c) - 'a' + 10 : *c - '0';
 
 	bin[i++] = (unsigned char) (msn << 4) | lsn;
     }
@@ -1429,9 +1430,9 @@ static int word2bin(const sasl_utils_t *utils,
     memset(bits, 0, 9);
 
     for (c = buf, bit = 0, i = 0; i < 6; i++, c++, bit+=11) {
-	while (*c && isspace(*c)) c++;
+	while (*c && isspace((int) *c)) c++;
 	word = c;
-	while (*c && isalpha(*c)) c++;
+	while (*c && isalpha((int) *c)) c++;
 	if (!*c && i < 5) break;
 	*c = '\0';
 	if (strlen(word) < 1 || strlen(word) > 4) {
@@ -1535,7 +1536,7 @@ static int verify_response(context_t *text, const sasl_utils_t *utils,
 
     /* eat leading whitespace */
     c = response;
-    while (isspace(*c)) c++;
+    while (isspace((int) *c)) c++;
 
     if (strchr(c, ':')) {
 	if (!strncasecmp(c, OTP_HEX_TYPE, strlen(OTP_HEX_TYPE))) {

@@ -614,6 +614,7 @@ _sasl_transition(sasl_conn_t * conn,
     return SASL_NOTDONE;
 
   /* check if this is enabled: default to false */
+  /* XXX---this really has to use the standard configuration facilities */     
   if (sasl_config_getswitch("auto_transition", 0) == 0) return SASL_OK;
 
   return sasl_setpass(conn,
@@ -628,7 +629,7 @@ _sasl_transition(sasl_conn_t * conn,
 /* create context for a single SASL connection
  *  service        -- registered name of the service using SASL (e.g. "imap")
  *  serverFQDN     -- Fully qualified server domain name.  NULL means use
- *                    gethostbyname().  Useful for multi-homed servers.
+ *                    gethostname().  Useful for multi-homed servers.
  *  user_realm     -- permits multiple user domains on server, NULL = default
  *  callbacks      -- callbacks (e.g., authorization, lang, new getopt context)
  *  secflags       -- security flags (see above)

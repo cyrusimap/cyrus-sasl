@@ -1,3 +1,8 @@
+2002-09-07  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/configure.in, saslauthd/Makefile.am: don't
+	  do configure substitutions for the saslauthd_SOURCES variable
+	  (Carlos Velasco <carlosev@newipnet.com>)
+
 2002-09-05  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* doc/os390.html: added
 	* doc/index.html: referenced os390.html and macosx.html

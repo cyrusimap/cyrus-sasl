@@ -1,3 +1,6 @@
+2002-12-11  Ken Murchison <ken@oceana.com>
+	* plugins/otp.c: set SASL_FEAT_ALLOWS_PROXY on client side
+
 2002-12-10  Ken Murchison <ken@oceana.com>
 	* plugins/otp.c: explicitly #include <openssl/md5.h> to resolve
 	  OpenBSD/OpenSSL cruftiness

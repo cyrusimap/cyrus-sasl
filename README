@@ -1,4 +1,4 @@
-$Id: README,v 1.31 2001/12/06 18:01:56 rjs3 Exp $
+$Id: README,v 1.32 2002/04/06 03:44:52 rjs3 Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication and authorization services.
@@ -12,11 +12,6 @@ to majordomo@lists.andrew.cmu.edu with the body "subscribe
 cyrus-sasl". The mailing list is available via anonymous IMAP at
 imap://cyrus.andrew.cmu.edu/archive.cyrus-sasl or via the web at
 http://asg.web.cmu.edu/archive/mailbox.php3?mailbox=archive.cyrus-sasl.
-
-BETA WARNING
--------------
-THIS CODE IS BETA-QUALITY AND IS NOT INTENDED FOR PRODUCTION USE.
-IT IS NOT BACKWARDS COMPATIBLE WITH SASLv1.
 
 If you are looking to port SASLv1 applications to SASLv2, please see
 doc/appconvert.html

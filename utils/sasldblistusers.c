@@ -219,7 +219,12 @@ int listusers(const char *path, listcb_t *cb)
     if (result!=SASL_OK) goto cleanup;
 
     /* make cursor */
+#if DB_VERSION_MAJOR < 3
+    result = mbdb->cursor(mbdb, NULL,&cursor); 
+#else /* DB_VERSION_MAJOR < 3 */
     result = mbdb->cursor(mbdb, NULL,&cursor, 0); 
+#endif /* DB_VERSION_MAJOR < 3 */
+
     if (result!=0) {
 	fprintf(stderr,"Making cursor failure: %s\n",strerror(result));
       result = SASL_FAIL;

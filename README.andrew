@@ -21,6 +21,8 @@ To release:
 
 - tag the CVS repository with sasl-Major_Minor_Revision
 
+- to make tarball: make dist check
+
 - copy to /afs/andrew/system/archive/cmu/anonftp/pub/cyrus-mail
 - update asg.web.cmu.edu
 - announce to:

@@ -31,12 +31,9 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/param.h>
-#include "sasl.h"
+#include <sasl.h>
+#include <saslutil.h>
 #include "saslint.h"
-#include "saslutil.h"
-#ifdef HAVE_GETOPT_H
-#include <getopt.h>
-#endif
 
 #define TESTSTRING "i like ice cream!"
 #define TEST_USERID "tmartin"

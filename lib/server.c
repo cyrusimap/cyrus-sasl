@@ -35,55 +35,164 @@ SOFTWARE.
 #include <stdlib.h>
 #include <limits.h>
 #include <sys/types.h>
-#if HAVE_UNISTD_H
-# include <unistd.h>
-#endif
-#ifndef WIN32
-# include <netdb.h>
-# include <sys/param.h>
-#else /* WIN32 */
-# include <winsock.h>
-#endif /* WIN32 */
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "sasl.h"
 #include "saslint.h"
 #include "saslutil.h"
-#if HAVE_DIRENT_H
-# include <dirent.h>
-# define NAMLEN(dirent) strlen((dirent)->d_name)
-#else
-# define dirent direct
-# define NAMLEN(dirent) (dirent)->d_namlen
-# if HAVE_SYS_NDIR_H
-#  include <sys/ndir.h>
-# endif
-# if HAVE_SYS_DIR_H
-#  include <sys/dir.h>
-# endif
-# if HAVE_NDIR_H
-#  include <ndir.h>
-# endif
-#endif
-#if STDC_HEADERS
-# include <string.h>
-#else
-# ifndef HAVE_STRCHR
-#  define strchr index
-#  define strrchr rindex
-# endif
-char *strchr(), *strrchr();
-
-# ifndef HAVE_MEMCPY
-#  define memcpy(d, s, n) bcopy ((s), (d), (n))
-#  define memmove(d, s, n) bcopy ((s), (d), (n))
-# endif
-#endif
 
 #ifdef sun
 /* gotta define gethostname ourselves on suns */
 extern int gethostname(char *, int);
 #endif
+
+
+static int
+external_server_new(void *glob_context __attribute__((unused)),
+		    sasl_server_params_t *sparams,
+		    const char *challenge __attribute__((unused)),
+		    int challen __attribute__((unused)),
+		    void **conn_context,
+		    const char **errstr)
+{
+  if (!conn_context
+      || !errstr
+      || !sparams
+      || !sparams->utils
+      || !sparams->utils->conn)
+    return SASL_BADPARAM;
+  if (!sparams->utils->conn->external.auth_id)
+    return SASL_NOMECH;
+  *conn_context = NULL;
+  *errstr = NULL;
+  return SASL_OK;
+}
+
+static int
+external_server_step(void *conn_context __attribute__((unused)),
+		     sasl_server_params_t *sparams,
+		     const char *clientin,
+		     int clientinlen,
+		     char **serverout,
+		     int *serveroutlen,
+		     sasl_out_params_t *oparams,
+		     const char **errstr)
+{
+  int result;
+  
+  if (!sparams
+      || !sparams->utils
+      || !sparams->utils->conn
+      || !sparams->utils->getcallback
+      || !serverout
+      || !serveroutlen
+      || !oparams
+      || !errstr)
+    return SASL_BADPARAM;
+
+  if (!sparams->utils->conn->external.auth_id)
+    return SASL_BADPROT;
+  
+  if (! clientin) {
+    /* No initial data; we're in a protocol which doesn't support it.
+     * So we let the server app know that we need some... */
+    *serverout = NULL;
+    *serveroutlen = 0;
+    return SASL_CONTINUE;
+  }
+
+  if (clientinlen		/* if we have a non-zero authorization id */
+      && strcmp(clientin,	/* and it's not the same as the auth_id */
+		sparams->utils->conn->external.auth_id)) {
+    /* The user's trying to authorize as someone they didn't
+     * authenticate as; we need to ask the application if this is
+     * kosher. */
+    int (*authorize_cb)(void *context,
+			const char *auth_identity,
+			const char *requested_user,
+			char **user,
+			const char **errstr);
+    void *authorize_context;
+
+    if ((sparams->utils->getcallback(sparams->utils->conn,
+				     SASL_CB_PROXY_POLICY,
+				     (int (**)()) &authorize_cb,
+				     &authorize_context)
+	 != SASL_OK)
+	|| ! authorize_cb)
+      return SASL_NOAUTHZ;
+
+    if (authorize_cb(authorize_context,
+		     sparams->utils->conn->external.auth_id,
+		     clientin,
+		     &oparams->user,
+		     errstr)
+	!= SASL_OK) {
+      return SASL_NOAUTHZ;
+    }
+  } else {
+    result = _sasl_strdup(sparams->utils->conn->external.auth_id,
+			  &oparams->user,
+			  NULL);
+    if (result != SASL_OK)
+      return result;
+  }
+  
+  result = _sasl_strdup(sparams->utils->conn->external.auth_id,
+			&oparams->authid,
+			NULL);
+  if (result != SASL_OK) {
+    sasl_FREE(oparams->user);
+    return result;
+  }
+
+  oparams->doneflag = 1;
+  oparams->mech_ssf = 0;
+  oparams->maxoutbuf = 0;
+  oparams->encode_context = NULL;
+  oparams->encode = NULL;
+  oparams->getmic = NULL;
+  oparams->decode_context = NULL;
+  oparams->decode = NULL;
+  oparams->verifymic = NULL;
+  oparams->realm = NULL;
+  oparams->param_version = 0;
+  *errstr = NULL;
+
+  return SASL_OK;
+}
+
+static const sasl_server_plug_t external_server_mech = {
+  "EXTERNAL",			/* mech_name */
+  0,				/* max_ssf */
+  SASL_SEC_NOPLAINTEXT
+  | SASL_SEC_NODICTIONARY,	/* security_flags */
+  NULL,				/* glob_context */
+  &external_server_new,		/* mech_new */
+  &external_server_step,	/* mech_step */
+  NULL,				/* mech_dispose */
+  NULL,				/* mech_free */
+  NULL,				/* setpass */
+  NULL,				/* user_query */
+  NULL				/* idle */
+};
+
+static int
+external_server_init(sasl_utils_t *utils,
+		     int max_version,
+		     int *out_version,
+		     const sasl_server_plug_t **pluglist,
+		     int *plugcount)
+{
+  if (!utils || !out_version || !pluglist || !plugcount)
+    return SASL_BADPARAM;
+  if (max_version != SASL_SERVER_PLUG_VERSION)
+    return SASL_BADVERS;
+  *out_version = SASL_SERVER_PLUG_VERSION;
+  *pluglist = &external_server_mech;
+  *plugcount = 1;
+  return SASL_OK;
+}
 
 typedef struct mechanism
 {
@@ -327,6 +436,8 @@ int sasl_server_init(const sasl_callback_t *callbacks,
   mechlist->mech_list=NULL;
   mechlist->mech_length=0;
 
+  add_plugin((void *)&external_server_init, NULL);
+
   ret=_sasl_get_mech_list("sasl_server_plug_init",
 			  _sasl_find_getpath_callback(callbacks),
 			  &add_plugin);
@@ -450,6 +561,25 @@ cleanup_conn:
   return result;
 }
 
+static int mech_permitted(sasl_conn_t *conn,
+			  const sasl_server_plug_t *plug)
+{
+  /* Can this plugin meet the application's security requirements? */
+  if (! plug || ! conn)
+    return 0;
+  if (plug == &external_server_mech) {
+    /* Special case for the external mechanism */
+    if (conn->props.min_ssf < conn->external.ssf
+	|| ! conn->external.auth_id)
+      return 0;
+  } else {
+    /* Generic mechanism */
+    if (conn->props.min_ssf < plug->max_ssf)
+      return 0;
+  }
+  return 1;
+}
+
 int sasl_server_start(sasl_conn_t *conn,
 		      const char *mech,
 		      const char *clientin,
@@ -481,6 +611,9 @@ int sasl_server_start(sasl_conn_t *conn,
   if (m==NULL)
     return SASL_NOMECH;
 
+  /* Make sure that we're willing to use this mech */
+  if (! mech_permitted(conn, m->plug))
+    return SASL_NOMECH;
 
   s_conn->mech=m;
 
@@ -615,9 +748,8 @@ int sasl_listmech(sasl_conn_t *conn,
   {
     /* if user has rights add to list */
     /* XXX This should be done with a callback function */
-    if ( 1) /* user_has_rights(user,listptr->name) ) */
-    {      
-
+    if (mech_permitted(conn, listptr->plug))
+    {
       strcat(*result,listptr->plug->mech_name);
       if (pcount!=NULL)
 	(*pcount)++;

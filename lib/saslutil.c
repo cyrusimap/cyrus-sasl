@@ -32,22 +32,9 @@ SOFTWARE.
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
-#if STDC_HEADERS
-# include <string.h>
-#else
-# ifndef HAVE_STRCHR
-#  define strchr index
-#  define strrchr rindex
-# endif
-char *strchr(), *strrchr();
-# ifndef HAVE_MEMCPY
-#  define memcpy(d, s, n) bcopy ((s), (d), (n))
-#  define memmove(d, s, n) bcopy ((s), (d), (n))
-# endif
-#endif
-#include "sasl.h"
+#include <sasl.h>
+#include <saslutil.h>
 #include "saslint.h"
-#include "saslutil.h"
 
 /*  Contains:
  *
@@ -92,7 +79,16 @@ int sasl_encode64(const char *_in, unsigned inlen,
     unsigned char *out = (unsigned char *)_out;
     unsigned char oval;
     char *blah;
+    unsigned olen;
 
+    /* Will it fit? */
+    olen = (inlen + 2) / 3 * 4;
+    if (outlen)
+      *outlen = olen;
+    if (outmax < olen)
+      return SASL_BUFOVER;
+
+    /* Do the work... */
     blah=(char *) out;
     while (inlen >= 3) {
         *out++ = basis_64[in[0] >> 2];
@@ -172,6 +168,8 @@ int sasl_utf8verify(const char *str, unsigned len)
   return SASL_OK;
 }      
 
+#if 0
+/* This was used by the audio random stuff */
 static int
 parityof(unsigned char ch)
 {
@@ -182,6 +180,7 @@ parityof(unsigned char ch)
 
   return ret;
 }
+#endif
 
 static unsigned short* getranddata()
 {

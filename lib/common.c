@@ -29,30 +29,15 @@ SOFTWARE.
 #ifdef WIN32
 # include "winconfig.h"
 #endif /* WIN32 */
-#include <stdlib.h>
-#include <stdio.h>
-#if STDC_HEADERS
-# include <string.h>
-#else
-# ifndef HAVE_STRCHR
-#  define strchr index
-#  define strrchr rindex
-# endif
-char *strchr(), *strrchr();
-# ifndef HAVE_MEMCPY
-#  define memcpy(d, s, n) bcopy ((s), (d), (n))
-#  define memmove(d, s, n) bcopy ((s), (d), (n))
-# endif
-#endif
 #include <limits.h>
 #ifdef HAVE_VSYSLOG
 #include <syslog.h>
 #endif
 #include <stdarg.h>
-#include "sasl.h"
+#include <sasl.h>
+#include <saslutil.h>
+#include <saslplug.h>
 #include "saslint.h"
-#include "saslutil.h"
-#include "saslplug.h"
 
 int _sasl_debug = 0;
 
@@ -201,7 +186,8 @@ int _sasl_conn_init(sasl_conn_t *conn,
   if (! conn->mutex) return SASL_FAIL;
   result = _sasl_strdup(service, &conn->service, NULL);
   if (result != SASL_OK) goto cleanup_mutex;
-  conn->ssf = 0;
+  conn->external.ssf = 0;
+  conn->external.auth_id = NULL;
   conn->oparams = NULL;
   conn->username = NULL;
   conn->realm = NULL;
@@ -233,6 +219,12 @@ void sasl_dispose(sasl_conn_t **pconn)
   if (! *pconn) return;
 
   (*pconn)->destroy_conn(*pconn);
+  if ((*pconn)->username)
+    sasl_FREE((*pconn)->username);
+  if ((*pconn)->realm)
+    sasl_FREE((*pconn)->realm);
+  if ((*pconn)->external.auth_id)
+    sasl_FREE((*pconn)->external.auth_id);
   sasl_FREE(*pconn);
   *pconn=NULL;
 }
@@ -316,6 +308,7 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, void **pvalue)
 int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
 {
   int result;
+  char *str;
 
   /* make sure the sasl context is valid */
   if (!conn)
@@ -328,27 +321,48 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
   switch(propnum)
   {
     case SASL_USERNAME:
+      result = _sasl_strdup(value, &conn->username, NULL);
+      if (result != SASL_OK)
+	return result;
       if (conn->username)
 	sasl_FREE(conn->username);
-      _sasl_strdup(value, &conn->username, NULL);
+      conn->username = str;
       break;
     case SASL_SSF:
       conn->oparams->mech_ssf=* (sasl_ssf_t *) value;
-      break;      
+      break;
     case SASL_MAXOUTBUF:
       conn->oparams->maxoutbuf=* (int *) value;
       break;
     case SASL_REALM:
-      if (conn->username)
-	sasl_FREE(conn->username);
-      _sasl_strdup(value, &conn->realm, NULL);
+      result = _sasl_strdup(value, &str, NULL);
+      if (result != SASL_OK)
+	return result;
+      if (conn->realm)
+	sasl_FREE(conn->realm);
+      conn->realm = str;
       break;
     case SASL_GETOPTCTX:
       /* huh? */
       break;
     case SASL_SSF_EXTERNAL:
-      conn->ssf=*(sasl_ssf_t *) value;
+    {
+      sasl_external_properties_t *external
+	= (sasl_external_properties_t *) value;
+      if (external->auth_id && strlen(external->auth_id)) {
+	result = _sasl_strdup(external->auth_id,
+			      &str,
+			      NULL);
+	if (result != SASL_OK)
+	  return result;
+      } else
+	str = NULL;
+      if (conn->external.auth_id)
+	sasl_FREE(conn->external.auth_id);
+      conn->external.auth_id = NULL;
+      conn->external.ssf = external->ssf;
       break;
+    }
     case SASL_SEC_PROPS:
       memcpy(&(conn->props),(sasl_security_properties_t *)value,
 	     sizeof(sasl_security_properties_t));
@@ -597,7 +611,10 @@ _sasl_getcallback(sasl_conn_t * conn,
       if (callback->id == callbackid) {
 	*pproc = callback->proc;
 	*pcontext = callback->context;
-	return SASL_OK;
+	if (callback->proc)
+	  return SASL_OK;
+	else
+	  return SASL_INTERACT;
       }
   /* And, if not for this connection, see if there's one
    * for all {server,client} connections... */
@@ -608,7 +625,10 @@ _sasl_getcallback(sasl_conn_t * conn,
       if (callback->id == callbackid) {
 	*pproc = callback->proc;
 	*pcontext = callback->context;
-	return SASL_OK;
+	if (callback->proc)
+	  return SASL_OK;
+	else
+	  return SASL_INTERACT;
       }
 
   /* Otherwise, see if the library provides a default callback. */
@@ -640,10 +660,7 @@ _sasl_getcallback(sasl_conn_t * conn,
     return SASL_FAIL;
   }
 
-  if (*pproc)
-    return SASL_OK;
-  else
-    return SASL_FAIL;
+  return SASL_OK;
 }
 
 /* checks size of buffer and resizes if needed */

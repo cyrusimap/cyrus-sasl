@@ -40,7 +40,7 @@ extern int _sasl_get_mech_list(const char *entryname,
 			       int (*add_plugin)(void *,void *));
 
 extern const sasl_callback_t *
-_sasl_find_getpath_callback(const sasl_callback_t *callbacks)
+_sasl_find_getpath_callback(const sasl_callback_t *callbacks);
 
 extern int _sasl_done_with_plugin(void *plugin);
 
@@ -69,7 +69,7 @@ struct sasl_conn {
   int secflags;  /* strength required by server */
   int got_ip_local, got_ip_remote;
   struct sockaddr_in ip_local, ip_remote;
-  sasl_ssf_t ssf;
+  sasl_external_properties_t external;
 
   void *context;
   sasl_out_params_t *oparams;

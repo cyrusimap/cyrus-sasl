@@ -23,8 +23,8 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
-#include "winconfig.h"
-#include "sasl.h"
+#include <winconfig.h>
+#include <sasl.h>
 
 /* gets the list of mechanisms */
 int _sasl_get_mech_list(const char *entryname,

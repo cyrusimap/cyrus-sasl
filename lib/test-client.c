@@ -117,20 +117,20 @@ void Test( int fd, sasl_conn_t *conn )
 {
   int result;
   char *in;
-  int inlen;
+  unsigned inlen;
   char *buf;
-  int buflen;
+  unsigned buflen;
 
   fprintf(stderr, "Waiting for encrypted test string from server.\n");
 
   test_ReadBuf('S', fd, &in, &inlen);
 
-  fprintf(stderr, "Received %d bytes: '%.*s'\n", inlen, inlen, in);
+  fprintf(stderr, "Received %d bytes: '%*s'\n", inlen, inlen, in);
 
   result = sasl_decode(conn, in, inlen, &buf, (unsigned int *)&buflen);
   checkerror(result);
 
-  fprintf(stderr, "Decoded %d bytes: '%.*s'\n", buflen, buflen, buf);
+  fprintf(stderr, "Decoded %d bytes: '%*s'\n", buflen, buflen, buf);
 
   free(in);
   free(buf);
@@ -139,14 +139,15 @@ void Test( int fd, sasl_conn_t *conn )
 void interaction (sasl_interact_t *t)
 {
   char result[1024];
+  char *p;
 
   printf("%s:",t->prompt);
-  scanf("%s",&result);
+  fgets(result, 1024, stdin);
 
   t->len=strlen(result);
-  t->result=(char *)malloc(t->len);
-  memcpy(t->result, result, t->len);
-
+  p = (char *)malloc(t->len);
+  t->result=p;
+  memcpy(p, result, t->len);
 }
 
 static sasl_security_properties_t *make_secprops(char *Mechanism)
@@ -175,7 +176,7 @@ void Usage(char *arg)
   if (arg)
     fprintf(stderr, "Unknown argument: %s\n", arg);
   fprintf(stderr, "\n");
-  fprintf(stderr, "test-client [-d] [-v] [-u user] [-m mechanism] [-s service] [-r remotehostname]\n");
+  fprintf(stderr, "test-client [-d] [-v] [-e bits] [-u user] [-m mechanism] [-s service] [-r remotehostname]\n");
   fprintf(stderr, "\n");
   exit(-1);
 }
@@ -189,11 +190,12 @@ int main(int argc, char **argv)
   sasl_interact_t *client_interact=NULL;
 
   char *serverin, *clientout;
-  int serverinlen, clientoutlen;
-  char *mechusing;
+  unsigned serverinlen, clientoutlen;
+  const char *mechusing;
 
   char hostname[MAXHOSTNAMELEN];
 
+  int   External  = 0;
   int   Verbose   = 0;
   char *Mechanism = TEST_MECHANISM;
   char *UserID    = TEST_USERID;
@@ -224,6 +226,9 @@ int main(int argc, char **argv)
         break;
       case 'r':
         RemoteHost = argv[++arg];
+        break;
+      case 'e':
+        External = atoi(argv[++arg]);
         break;
       default:
         Usage(argv[arg]);
@@ -275,6 +280,13 @@ EndOfDashArgs:
   result=sasl_client_new(Service, RemoteHost, NULL, 0, &conn);
 
   /* Initialize connection properties */
+  if (External) {
+    sasl_external_properties_t extprops;
+    extprops->ssf = External;
+    extprops->auth_id = UserID;
+    sasl_setprop(conn, SASL_SSF_EXTERNAL, &extprops);
+  }
+  
   {
     sasl_security_properties_t *secprops=NULL;
     int ssf;

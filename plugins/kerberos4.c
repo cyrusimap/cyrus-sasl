@@ -29,23 +29,8 @@ SOFTWARE.
 #ifdef WIN32
 # include "winconfig.h"
 #endif /* WIN32 */
-#include <stdlib.h>
-#if STDC_HEADERS
-# include <string.h>
-#else
-# ifndef HAVE_STRCHR
-#  define strchr index
-#  define strrchr rindex
-# endif
-char *strchr(), *strrchr();
-# ifndef HAVE_MEMCPY
-#  define memcpy(d, s, n) bcopy ((s), (d), (n))
-#  define memmove(d, s, n) bcopy ((s), (d), (n))
-# endif
-#endif
 #include <krb.h>
 #include <des.h>
-#include <sys/types.h>
 #ifdef WIN32
 # include <winsock.h>
 #else
@@ -55,10 +40,6 @@ char *strchr(), *strrchr();
 # include <arpa/inet.h>
 # include <netdb.h>
 #endif /* WIN32 */
-#if HAVE_UNISTD_H
-# include <sys/types.h>
-# include <unistd.h>
-#endif
 #include <fcntl.h>
 #include <sasl.h>
 #include <saslutil.h>

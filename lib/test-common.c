@@ -70,7 +70,7 @@
 
 #include "test-common.h"
 
-int test_WriteBuf(char prefix, int fd, char *buf, int buflen)
+int test_WriteBuf(char prefix, int fd, const char *buf, unsigned buflen)
 {
   char out[128];
   int ret;
@@ -93,7 +93,7 @@ int test_WriteBuf(char prefix, int fd, char *buf, int buflen)
 
   /* Write the prefix 
    */
-  sprintf(out, "%c: %0.4d ", prefix, (base64len+1));
+  sprintf(out, "%c: %04d ", prefix, (base64len+1));
   len = strlen(out);
 
   ret = write(fd, out, len);
@@ -111,12 +111,11 @@ int test_WriteBuf(char prefix, int fd, char *buf, int buflen)
   return(1);  
 }
 
-int test_ReadBuf(char prefix, int fd, char **buf, int *buflen)
+int test_ReadBuf(char prefix, int fd, char **buf, unsigned *buflen)
 {
   char in[128];
   char fmt[128];
   char lenbuf[5];
-  int len;
   int ret;
 
   char *base64buf;
@@ -190,7 +189,7 @@ static char index_64[128] = {
 
 void to64(out, in, inlen)
     unsigned char *out, *in;
-    int inlen;
+    unsigned inlen;
 {
     unsigned char oval;
 

@@ -6,13 +6,20 @@
  *  sasl_callback_t   A typed client/server callback function and context
  *  sasl_interact_t   A client interaction descriptor
  *  sasl_secret_t     A client authentication secret/credentials/passphrase
+ *  sasl_rand_t       Random data context structure
+ *  sasl_security_properties_t  An application's required security level
+ *  sasl_external_properties_t  Security provided by an external security layer
  *
  * Callbacks:
  *  sasl_getopt_t     client/server: Get an option value
+ *  sasl_log_t        client/server: Log message handler
+ *  sasl_getpath_t    client/server: Get path to search for mechanisms
  *  sasl_getsimple_t  client: Get user/language list
  *  sasl_getsecret_t  client: Get authentication secret
  *  sasl_chalprompt_t client: Display challenge and prompt for response
- *  sasl_authorize_t  server: authorize policy callback
+ *  sasl_authorize_t  server: Authorize policy callback
+ *  sasl_server_getsecret_t server: User secret database read
+ *  sasl_server_putsecret_t server: User secret database write
  *
  * Client/Server Function Summary:
  *  sasl_done         Release all SASL global state
@@ -153,7 +160,7 @@ typedef struct sasl_conn sasl_conn_t;
  */
 typedef struct sasl_secret {
     unsigned long len;
-    unsigned char data[1];		/* variable sized */
+    char data[1];		/* variable sized */
 } sasl_secret_t;
 
 /* random data context structure
@@ -398,6 +405,73 @@ typedef unsigned sasl_ssf_t;
  */
 #define SASL_SECURITY_LAYER 0x0001 /* caller supports security layer */
 
+/***************************
+ * Security Property Types *
+ ***************************/
+
+/* Structure specifying the client or server's security policy
+ * and optional additional properties.
+ */
+
+/* These are the various security flags apps can specify. */
+/* NOPLAINTEXT     -- don't permit mechanisms susceptible to simple
+ *                    passive attack (e.g., PLAIN, LOGIN)
+ * NOACTIVE        -- protection from active (non-dictionary) attacks
+ *                    during authentication exchange.  Authenticates server.
+ * NODICTIONARY    -- don't permit mechanisms susceptible to passive
+ *                    dictionary attack
+ * FORWARD_SECRECY -- require forward secrecy between sessions
+ *                    (breaking one won't help break next)
+ */
+#define SASL_SEC_NOPLAINTEXT     0x0001
+#define SASL_SEC_NOACTIVE        0x0002
+#define SASL_SEC_NODICTIONARY    0x0004
+#define SASL_SEC_FORWARD_SECRECY 0x0008
+#define SASL_SEC_MAXIUMUM        0x00FF
+
+typedef struct sasl_security_properties 
+{
+    /* security strength factor
+     *  min_ssf      = minimum acceptable final level
+     *  max_ssf      = maximum acceptable final level
+     */ 
+    sasl_ssf_t min_ssf;
+    sasl_ssf_t max_ssf;
+
+    /* Maximum security layer receive buffer size.
+     *  0=security layer not supported
+     */
+    unsigned maxbufsize; 
+    
+    /* bitfield for attacks to protect against */
+    int security_flags;
+
+    /* NULL terminated array of additional property names, values */ 
+    const char **property_names;
+    const char **property_values;
+} sasl_security_properties_t; 
+
+
+/* Structure communicating the characteristics of an external security
+ * mechanism.  This is used with sasl_setprop() to inform the library
+ * of an active external security layer.  If the auth_id is non-NULL,
+ * this enables the EXTERNAL authentication mechanism; this may also
+ * allow other mechanisms to become active (for instance, if an
+ * application demands encryption, mechanisms which solely provide
+ * authentication might become active if the necessary encryption is
+ * provided external to SASL).  Since this potentially changes the
+ * list of supported mechanisms, the mechanism list should be re-sent,
+ * if it has been sent already.  */
+typedef struct sasl_external_properties
+{
+  /* security provided by the external mechanism */
+  sasl_ssf_t ssf;
+
+  /* authorization identity provided by the external mechanism */
+  char *auth_id;
+} sasl_external_properties_t;
+
+
 /**********************************
  * Common Client/server functions *
  **********************************/
@@ -457,7 +531,8 @@ LIBSASL_API int sasl_getprop(sasl_conn_t *conn, int propnum, void **pvalue);
 LIBSASL_API int sasl_setprop(sasl_conn_t *conn,
 			     int propnum,
 			     const void *value);
-#define SASL_SSF_EXTERNAL 100  /* external SSF active */
+#define SASL_SSF_EXTERNAL 100  /* external SSF active --
+				* sasl_external_properties_t */
 #define SASL_SEC_PROPS    101  /* sasl_security_properties_t */
 
 /* do precalculations during an idle period or network round trip
@@ -477,7 +552,11 @@ typedef struct sasl_interact {
     const char *challenge;
     const char *prompt;
     const char *defresult;	/* default result string */
-    const void *result;		/* set to point to result */
+    void *result;		/* set to point to result -- this will 
+				 * be freed by the library iff it
+				 * would be freed by the library if
+				 * returned from normal callback of
+				 * the same id */
     unsigned len;		/* set to length of result */
 } sasl_interact_t;
 
@@ -532,12 +611,12 @@ LIBSASL_API int sasl_client_new(const char *service,
  *  SASL_INTERACT -- user interaction needed to fill in prompt_need list
  */
 LIBSASL_API int sasl_client_start(sasl_conn_t *conn,
-		      const char *mechlist,
-		      sasl_secret_t *secret,
-		      sasl_interact_t **prompt_need,
-		      char **clientout,
-		      unsigned *clientoutlen,
-		      const char **mech);
+				  const char *mechlist,
+				  sasl_secret_t *secret,
+				  sasl_interact_t **prompt_need,
+				  char **clientout,
+				  unsigned *clientoutlen,
+				  const char **mech);
 
 /* do a single authentication step.
  *  serverin    -- the server message received by the client, MUST have a NUL
@@ -552,12 +631,13 @@ LIBSASL_API int sasl_client_start(sasl_conn_t *conn,
  *  SASL_BADPROT   -- server protocol incorrect/cancelled
  *  SASL_BADSERV   -- server failed mutual auth
  */
-LIBSASL_API int sasl_client_step(sasl_conn_t *conn,
-		     const char *serverin,
-		     unsigned serverinlen,
-		     sasl_interact_t **prompt_need,
-		     char **clientout,
-		     unsigned *clientoutlen);
+LIBSASL_API int
+sasl_client_step(sasl_conn_t *conn,
+		 const char *serverin,
+		 unsigned serverinlen,
+		 sasl_interact_t **prompt_need,
+		 char **clientout,
+		 unsigned *clientoutlen);
 
 /* Set connection secret based on passphrase
  *  may be used in SASL_CB_PASS callback
@@ -572,10 +652,11 @@ LIBSASL_API int sasl_client_step(sasl_conn_t *conn,
  *  SASL_OK       -- success
  *  SASL_NOMEM    -- failure
  */
-LIBSASL_API int sasl_client_auth(sasl_conn_t *conn,
-		     const char *user,
-		     const char *pass, unsigned passlen,
-		     sasl_interact_t *prompts, sasl_secret_t **keepcopy);
+LIBSASL_API int
+sasl_client_auth(sasl_conn_t *conn,
+		 const char *user,
+		 const char *pass, unsigned passlen,
+		 sasl_interact_t *prompts, sasl_secret_t **keepcopy);
 
 /* erase & dispose of a sasl_secret_t
  *  calls free utility last set by sasl_set_alloc
@@ -639,13 +720,13 @@ LIBSASL_API int sasl_server_new(const char *service,
  *  SASL_NOMECH    -- no enabled mechanisms
  */
 LIBSASL_API int sasl_listmech(sasl_conn_t *conn,
-		  const char *user,
-		  const char *prefix,
-		  const char *sep,
-		  const char *suffix,
-		  char **result,
-		  unsigned *plen,
-		  unsigned *pcount);
+			      const char *user,
+			      const char *prefix,
+			      const char *sep,
+			      const char *suffix,
+			      char **result,
+			      unsigned *plen,
+			      unsigned *pcount);
 
 /* start a mechanism exchange within a connection context
  *  mech           -- the mechanism name client requested
@@ -660,12 +741,12 @@ LIBSASL_API int sasl_listmech(sasl_conn_t *conn,
  * Same returns as sasl_server_step()
  */
 LIBSASL_API int sasl_server_start(sasl_conn_t *conn,
-		      const char *mech,
-		      const char *clientin,
-		      unsigned clientinlen,
-		      char **serverout,
-		      unsigned *serveroutlen,
-		      const char **errstr);
+				  const char *mech,
+				  const char *clientin,
+				  unsigned clientinlen,
+				  char **serverout,
+				  unsigned *serveroutlen,
+				  const char **errstr);
 
 /* perform one step of the SASL exchange
  *  inputlen & input -- client data

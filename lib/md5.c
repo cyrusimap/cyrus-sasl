@@ -29,21 +29,8 @@ documentation and/or software.
 #ifdef WIN32
 # include "winconfig.h"
 #endif /* WIN32 */
-#include <sys/types.h>
-#ifdef HAVE_STRINGS_H
-#include <strings.h>
-#endif /* HAVE_STRINGS_H */
 #include "md5global.h"
 #include "md5.h"
-
-#ifndef STDC_HEADERS
-# ifndef HAVE_MEMCPY
-#  define memcpy(d, s, n) bcopy ((s), (d), (n))
-#  define memmove(d, s, n) bcopy ((s), (d), (n))
-#  define memset(s, b, l) bzero ((s), (l))
-# endif
-#endif
-
 
 /* Constants for MD5Transform routine.
 */

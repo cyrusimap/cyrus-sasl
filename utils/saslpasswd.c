@@ -29,20 +29,7 @@ SOFTWARE.
 #ifdef WIN32
 # include "winconfig.h"
 #endif /* WIN32 */
-#include <stdio.h>
-#ifdef HAVE_GETOPT_H
-#include <getopt.h>
-#endif
-#include <stdlib.h>
-#if STDC_HEADERS
-# include <string.h>
-#else
-# ifndef HAVE_STRCHR
-#  define strchr index
-#  define strrchr rindex
-# endif
-char *strchr(), *strrchr();
-#endif
+
 #include <termios.h>
 #include <unistd.h>
 

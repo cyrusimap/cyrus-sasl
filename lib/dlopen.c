@@ -26,42 +26,12 @@ SOFTWARE.
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
-#if STDC_HEADERS
-# include <string.h>
-#else
-# ifndef HAVE_STRCHR
-#  define strchr index
-#  define strrchr rindex
-# endif
-char *strchr(), *strrchr();
-# ifndef HAVE_MEMCPY
-#  define memcpy(d, s, n) bcopy ((s), (d), (n))
-#  define memmove(d, s, n) bcopy ((s), (d), (n))
-# endif
-#endif
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <sys/param.h>
-#include "sasl.h"
+#include <sasl.h>
 #include "saslint.h"
-
-#if HAVE_DIRENT_H 
-# include <dirent.h>
-# define NAMLEN(dirent) strlen((dirent)->d_name)
-#else
-# define dirent direct 
-# define NAMLEN(dirent) (dirent)->d_namlen
-# if HAVE_SYS_NDIR_H
-#  include <sys/ndir.h>
-# endif
-# if HAVE_SYS_DIR_H
-#  include <sys/dir.h>
-# endif
-# if HAVE_NDIR_H
-#  include <ndir.h>
-# endif 
-#endif 
 
 #ifndef PATH_MAX
 # ifdef _POSIX_PATH_MAX
@@ -73,7 +43,7 @@ char *strchr(), *strrchr();
 
 /* gets the list of mechanisms */
 int _sasl_get_mech_list(const char *entryname,
-			const sasl_callback_t *getpath_cb;
+			const sasl_callback_t *getpath_cb,
 			int (*add_plugin)(void *,void *))
 {
   /* XXX These fixed-length buffers could be a problem;
@@ -86,12 +56,11 @@ int _sasl_get_mech_list(const char *entryname,
   int position;
   DIR *dp;
   struct dirent *dir;
-  const sasl_callback_t *callback;
 
-  if (! entry_name
-      || ! getpath_callback
-      || getpath_callback->id != SASL_CB_GETPATH
-      || ! getpath_callback->proc
+  if (! entryname
+      || ! getpath_cb
+      || getpath_cb->id != SASL_CB_GETPATH
+      || ! getpath_cb->proc
       || ! add_plugin)
     return SASL_BADPARAM;
 

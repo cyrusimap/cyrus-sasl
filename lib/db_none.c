@@ -30,7 +30,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifdef WIN32
 # include "winconfig.h"
 #endif /* WIN32 */
-#include "sasl.h"
+#include <sasl.h>
 #include "saslint.h"
 
 /* This just exists to provide these symbols on systems where configure

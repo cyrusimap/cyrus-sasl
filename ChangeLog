@@ -1,6 +1,51 @@
+1999-02-10  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* lib/common.c (_sasl_getcallback): returns SASL_INTERACT if
+	callback exists but proc is NULL (as per spec).
+
+	* acconfig.h: moved string&dir&mem stuff here & winconfig.h; wiped
+	nasty magic from most src
+
+1999-02-09  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* lib/server.c (external_server_init): added, implemented, linked in
+
+	* lib/client.c (external_client_init): added, implemented, linked in
+
+	* include/saslplug.h: changed const char *s in oparams to char *s
+
+	* lib/test-client.c: fixed some little nits
+	(main): added Extern auth flag
+
+	* lib/saslutil.c (sasl_encode64): added outmax and outlen handling
+ 	(parityof): diked out
+
+	* include/sasl.h: made sasl_secret_t.data signed
+
+	* lib/test-server.c: fixed some little nits
+	(main): added Extern auth flag
+	
+	* lib/test-common.c: fixed some little nits
+
+	* testing.txt: fixed test program names
+
+1999-02-08  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* lib/saslint.h: ssf => sasl_external_properties_t
+
+	* lib/common.c (sasl_setprop): serious cleanup
+
+	* lib/server.c (mech_permitted): implemented
+	(sasl_server_start): added mech_permitted() check
+	(sasl_listmech): added mech_permitted() check
+
+	* include/sasl.h: Added sasl_external_properties_t, moved
+	sasl_security_properties_t from saslplug.h, fixed some
+	documentation
+
 1999-02-07  Ryan Troll <ryan+@andrew.cmu.edu>
 
-    * configure.in: Added reminder about version number in
+	* configure.in: Added reminder about version number in
 	winconfig.h
 
 	* include/sasl.h: Fixed WIN32 declarations

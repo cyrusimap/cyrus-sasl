@@ -37,6 +37,7 @@ typedef int sasl_getprop_t(sasl_conn_t *conn,
  * returns:
  *  SASL_OK -- no error
  *  SASL_FAIL -- unable to find a callback of the requested type
+ *  SASL_INTERACT -- caller must use interaction to get data
  */
 typedef int sasl_getcallback_t(sasl_conn_t *conn,
 			       unsigned long callbackid,
@@ -104,46 +105,6 @@ typedef struct sasl_utils {
 	       ...);
 } sasl_utils_t;
 
-/* NOPLAINTEXT     -- don't permit mechanisms susceptible to simple
- *                    passive attack (e.g., PLAIN, LOGIN)
- * NOACTIVE        -- protection from active (non-dictionary) attacks
- *                    during authentication exchange.  Authenticates server.
- * NODICTIONARY    -- don't permit mechanisms susceptible to passive
- *                    dictionary attack
- * FORWARD_SECRECY -- require forward secrecy between sessions
- *                    (breaking one won't help break next)
- */
-#define SASL_SEC_NOPLAINTEXT     0x0001
-#define SASL_SEC_NOACTIVE        0x0002
-#define SASL_SEC_NODICTIONARY    0x0004
-#define SASL_SEC_FORWARD_SECRECY 0x0008
-#define SASL_SEC_MAXIUMUM        0x00FF
-
-/* Structure specifying the client or server's security policy
- * and optional additional properties.
- */
-typedef struct sasl_security_properties 
-{
-    /* security strength factor
-     *  min_ssf      = minimum acceptable final level
-     *  max_ssf      = maximum acceptable final level
-     */ 
-    sasl_ssf_t min_ssf;
-    sasl_ssf_t max_ssf;
-
-    /* Maximum security layer receive buffer size.
-     *  0=security layer not supported
-     */
-    unsigned maxbufsize; 
-    
-    /* bitfield for attacks to protect against */
-    int security_flags;
-
-    /* NULL terminated array of additional property names, values */ 
-    const char **property_names;
-    const char **property_values;
-} sasl_security_properties_t; 
-
 /* variable sized secret structure created by client mechanism
  *
  * structure uses offsets to allow it to be copied & saved
@@ -198,9 +159,9 @@ typedef struct sasl_out_params {
     int (*verifymic)(void *context, const char *input, unsigned inputlen,
 		     unsigned *datalen);
 
-    const char *user;		/* canonicalized user name */
-    const char *authid;		/* canonicalized authentication id */
-    const char *realm;		/* security realm */
+    char *user; 		/* canonicalized user name */
+    char *authid;		/* canonicalized authentication id */
+    char *realm;		/* security realm */
 
     /* set to 0 initially, this allows a plugin with extended parameters
      * to work with an older framework by updating version as parameters

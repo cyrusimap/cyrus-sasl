@@ -52,12 +52,13 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 /* Make Linux happy... */
 #define _GNU_SOURCE
 
+#include <stdio.h>
+
 #ifdef HAVE_LIBNANA
 
 extern int _sasl_debug;
 #define L_DEFAULT_GUARD (_sasl_debug)
 
-#include <stdio.h>
 #include <nana.h>
 #else				/* ! HAVE_LIBNANA */
 #define WITHOUT_NANA
@@ -74,5 +75,53 @@ extern int _sasl_debug;
 #endif
 
 #define SASL_PATH_ENV_VAR "SASL_PATH"
+
+#ifdef HAVE_GETOPT_H
+#include <getopt.h>
+#endif
+#if HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+#include <stdlib.h>
+#include <sys/types.h>
+#ifndef WIN32
+# include <netdb.h>
+# include <sys/param.h>
+#else /* WIN32 */
+# include <winsock.h>
+#endif /* WIN32 */
+#if HAVE_DIRENT_H
+# include <dirent.h>
+# define NAMLEN(dirent) strlen((dirent)->d_name)
+#else /* HAVE_DIRENT_H */
+# define dirent direct
+# define NAMLEN(dirent) (dirent)->d_namlen
+# if HAVE_SYS_NDIR_H
+#  include <sys/ndir.h>
+# endif
+# if HAVE_SYS_DIR_H
+#  include <sys/dir.h>
+# endif
+# if HAVE_NDIR_H
+#  include <ndir.h>
+# endif
+#endif /* ! HAVE_DIRENT_H */
+#if STDC_HEADERS
+# include <string.h>
+#else  /* STDC_HEADERS */
+# ifndef HAVE_STRCHR
+#  define strchr index
+#  define strrchr rindex
+# endif /* ! HAVE_STRCHR */
+# ifdef HAVE_STRINGS_H
+#  include <strings.h>
+# else /* HAVE_STRINGS_H */
+char *strchr(), *strrchr();
+# endif /* ! HAVE_STRINGS_H */
+# ifndef HAVE_MEMCPY
+#  define memcpy(d, s, n) bcopy ((s), (d), (n))
+#  define memmove(d, s, n) bcopy ((s), (d), (n))
+# endif /* ! HAVE_MEMCPY */
+#endif /* ! STDC_HEADERS */
 
 #endif /* CONFIG_H */

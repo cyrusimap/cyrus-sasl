@@ -31,10 +31,10 @@
  * 
  ***************************************************************************/
 
-int test_WriteBuf(char prefix, int fd, char *buf, int buflen);
-int test_ReadBuf(char prefix, int fd, char **buf, int *buflen);
+int test_WriteBuf(char prefix, int fd, const char *buf, unsigned buflen);
+int test_ReadBuf(char prefix, int fd, char **buf, unsigned *buflen);
 
 int from64(char *out, char *in);
-void to64(unsigned char *out, unsigned char *in, int inlen);
+void to64(unsigned char *out, unsigned char *in, unsigned inlen);
 
 #endif /* _TEST_COMMON_H_ */

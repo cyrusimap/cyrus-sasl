@@ -1,5 +1,4 @@
-/*
- * Simple test server.
+/* Simple test server.
  */
 /***************************************************************************
  *
@@ -116,7 +115,7 @@ void Test( sasl_conn_t *conn )
   int outlen;
   char *User;
 
-  sasl_getprop(conn, SASL_USERNAME, &User);
+  sasl_getprop(conn, SASL_USERNAME, (void *)&User);
   fprintf(stderr, "Authenticated as '%s'\n", (User != NULL) ? User : "(NULL)");
 
   result = sasl_encode(conn, TEST_STRING, strlen(TEST_STRING), &out, (unsigned int *)&outlen);
@@ -132,7 +131,7 @@ void Usage(char *arg)
   if (arg)
     fprintf(stderr, "Unknown argument: %s\n", arg);
   fprintf(stderr, "\n");
-  fprintf(stderr, "test-server [-d] [-v] [-s service]\n");
+  fprintf(stderr, "test-server [-d] [-v] [-e bits] [-s service]\n");
   fprintf(stderr, "\n");
   exit(-1);
 }
@@ -144,14 +143,15 @@ int main(int argc, char **argv)
   char hostname[MAXHOSTNAMELEN];
   char *mechlist;
   const char mechusing[1024];
-  int len=0,num=0;
+  unsigned len=0,num=0;
   char *clientin, *serverout;
-  int clientinlen, serveroutlen;
+  unsigned clientinlen, serveroutlen;
   const char *errstr;
 
   extern int _sasl_debug;
 
   int   Verbose   = 0;
+  int   External  = 0;
   char *Service   = TEST_SERVICE;
 
   int arg;
@@ -167,7 +167,10 @@ int main(int argc, char **argv)
         break;
       case 's':
         Service = argv[++arg];
-      break;
+	break;
+      case 'e':
+	External = atoi(argv[++arg]);
+	break;
       default:
         Usage(NULL);
       } 
@@ -213,6 +216,13 @@ EndOfDashArgs:
   checkerror(result);
 
   /* Connection properties */
+  if (External) {
+    sasl_external_properties_t extprops;
+    extprops.ssf = External;
+    extprops.auth_id = UserID;
+    sasl_setprop(conn, SASL_SSF_EXTERNAL, &extprops);
+  }
+
   {
     struct hostent *hp;
     if ((hp = gethostbyname(hostname)) == NULL) {
@@ -243,7 +253,7 @@ EndOfDashArgs:
   /* 4: Client specifies mechanism */
   result = test_ReadBuf('C', 0, &clientin, &clientinlen);
   if (result == 0) Exit(conn);
-  sscanf(clientin, "%s\n", &mechusing);
+  sscanf(clientin, "%s\n", mechusing);
   free(clientin);
 
   if (Verbose)
@@ -278,7 +288,8 @@ EndOfDashArgs:
     /* Read data from client */
     result = test_ReadBuf('C', 0, &clientin, &clientinlen);
     if (result == 0) Exit(conn);
-    if (Verbose) fprintf(stderr, "read %d bytes (%.*s)\n", clientinlen, clientinlen, clientin);
+    if (Verbose) fprintf(stderr, "read %d bytes (%*s)\n",
+			 clientinlen, clientinlen, clientin);
 
     result=sasl_server_step(conn,
 			    clientin,
@@ -297,4 +308,6 @@ EndOfDashArgs:
     Test(conn);
 
   Exit(conn);
+
+  return EXIT_SUCCESS;
 }

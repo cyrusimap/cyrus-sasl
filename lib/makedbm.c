@@ -28,9 +28,9 @@ SOFTWARE.
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
-#include "sasl.h"
+#include <sasl.h>
+#include <saslplug.h>
 #include "saslutil.h"
-#include "saslplug.h"
 
 
 struct scram_entry

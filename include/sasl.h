@@ -384,6 +384,24 @@ typedef int sasl_getpath_t(void * context,
 
 #define SASL_CB_GETPATH	    (3)
 
+/* verify file callback -- this allows applications to check if they
+ * want SASL to use files, file by file.  This is intended to allow
+ * applications to sanity check the environment to make sure plugins
+ * or the configuration file can't be written to, etc.
+ * inputs: 
+ *  context     -- verifypath context from the callback record
+ *  file        -- full path to file to verify
+
+ * returns:
+ *  SASL_OK        -- no error (file can safely be used)
+ *  SASL_CONTINUE  -- continue WITHOUT using this file
+ *  SASL_FAIL      -- error 
+ */
+typedef int sasl_verifyfile_t(void * context,
+                              const char * file);
+
+#define SASL_CB_VERIFYFILE  (4)
+
 /* client/user interaction callbacks:
  */
 /* Simple prompt -- result must persist until next call to getsimple or

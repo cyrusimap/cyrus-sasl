@@ -1,3 +1,10 @@
+2004-11-24  Ken Murchison <ken@oceana.com>
+	* plugins/passdss.c: added; PASSDSS-3DES-1 implementation
+	* configure.in, plugins/Makefile.am, plugins/makeinit.sh:
+	  added support for PASSDSS
+	* doc/draft-newman-sasl-passdss-xx.txt: added
+	* doc/index.html, doc/Makefile.am: added PASSDSS draft
+
 2004-11-10  Alexey Melnikov <alexey.melnikov@isode.com>
 	* doc/draft-burdis-cat-srp-sasl-08.txt: deleted
 	* doc/draft-ietf-sasl-anon-02.txt: deleted

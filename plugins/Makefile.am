@@ -1,7 +1,7 @@
 # Makefile.am for the SASL plugins
 # Rob Siemborski
 # Rob Earhart
-# $Id: Makefile.am,v 1.73 2004/10/24 20:05:20 shadow Exp $
+# $Id: Makefile.am,v 1.74 2004/11/24 18:05:29 ken3 Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -51,6 +51,7 @@ digestmd5_version = 2:20:0
 kerberos4_version = 2:20:0
 gssapiv2_version = 2:20:0
 crammd5_version = 2:20:0
+passdss_version = 2:20:0
 sasldb_version = 2:20:0
 login_version = 2:20:0
 plain_version = 2:20:0
@@ -77,7 +78,7 @@ sasldir = $(prefix)/lib/sasl2
 sasl_LTLIBRARIES = @SASL_MECHS@
 EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la \
 	libgssapiv2.la libdigestmd5.la liblogin.la libsrp.la libotp.la \
-	libntlm.la libsasldb.la libsql.la
+	libntlm.la libpassdss.la libsasldb.la libsql.la
 
 libplain_la_SOURCES = plain.c plain_init.c $(common_sources)
 libplain_la_LDFLAGS = -version-info $(plain_version)
@@ -129,6 +130,11 @@ libntlm_la_LDFLAGS = -version-info $(ntlm_version)
 libntlm_la_DEPENDENCIES = $(COMPAT_OBJS)
 libntlm_la_LIBADD = $(NTLM_LIBS) $(COMPAT_OBJS)
 
+libpassdss_la_SOURCES = passdss.c passdss_init.c $(common_sources)
+libpassdss_la_LDFLAGS = -version-info $(passdss_version)
+libpassdss_la_DEPENDENCIES = $(COMPAT_OBJS)
+libpassdss_la_LIBADD = $(PASSDSS_LIBS) $(COMPAT_OBJS)
+
 # Auxprop Plugins
 libsasldb_la_SOURCES = sasldb.c sasldb_init.c $(common_sources)
 libsasldb_la_LDFLAGS = -version-info $(sasldb_version)
@@ -145,7 +151,7 @@ libsql_la_LIBADD = $(COMPAT_OBJS)
 
 init_src=anonymous_init.c crammd5_init.c digestmd5_init.c gssapiv2_init.c \
 kerberos4_init.c login_init.c plain_init.c srp_init.c otp_init.c ntlm_init.c \
-sasldb_init.c sql_init.c
+passdss_init.c sasldb_init.c sql_init.c
 
 
 CLEANFILES=$(init_src)

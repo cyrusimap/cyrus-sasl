@@ -4,8 +4,10 @@ configure script first.
 
 Read doc/sysadmin.html to learn how to configure SASL.
 
+**********
 If you are upgrading, be sure to read the Upgrading section of the
 README file.
+**********
 
 Note that the library looks for plugins in /usr/lib/sasl, but installs
 them into ${prefix}/lib/sasl, where ${prefix} is usually something
@@ -22,12 +24,12 @@ variable SASL_PATH to the path the library should use.
 You'll probably need the GNU make program, available as of this
 writing at <url:ftp://ftp.gnu.org/pub/gnu/make-3.77.tar.gz>.
 
-libsasl can use gdbm or ndbm to implement its user/password lookup.
-Most systems come with ndbm these days; as of this writing, gdbm's
-available as <url:ftp://ftp.gnu.org/pub/gnu/gdbm-1.7.3.tar.gz>.  This
-isn't necessary, but it's useful if you want to use it with a server
-which doesn't supply its own authentication database (i.e. most
-servers).
+libsasl can use gdbm, Berkeley db, or ndbm to implement its
+user/password lookup. Most systems come with ndbm these days; as of
+this writing, gdbm's available as
+<url:ftp://ftp.gnu.org/pub/gnu/gdbm-1.7.3.tar.gz>.  
+Berkeley DB is available from:
+<url:http://www.sleepycat.com/>
 
 For Kerberos support, you'll need the kerberos libraries.  At CMU, the
 version we use comes from <url:http://www.pdc.kth.se/kth-krb/>.

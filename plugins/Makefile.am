@@ -25,13 +25,13 @@
 
 # Library version info - here at the top, for sanity
 # CURRENT:REVISION:AGE
-plain_version = 1:6:0
-anonymous_version = 1:7:0
-kerberos4_version = 1:7:0
-crammd5_version = 1:6:0
-scrammd5_version = 1:2:0
-gssapiv2_version = 1:6:0
-digestmd5_version = 0:8:0
+plain_version = 1:7:0
+anonymous_version = 1:8:0
+kerberos4_version = 1:8:0
+crammd5_version = 1:7:0
+scrammd5_version = 1:3:0
+gssapiv2_version = 1:7:0
+digestmd5_version = 0:9:0
 
 INCLUDES=-I$(top_srcdir)/include
 

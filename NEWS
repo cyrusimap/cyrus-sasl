@@ -1,3 +1,14 @@
+New in 1.5.13
+-------------
+* Sanity check to make sure there's at least something in sasldb
+  READ UPGRADE INSTRUCTIONS IN README
+
+* Fixes to how external layers are handled (some fixes by Alexey Melnikov)
+* Berkeley DB 3.x support contributed by Greg Shapiro
+* Additional pwcheck fixes (Joe Hohertz)
+* Fixed Heimdal krb5 configure checks
+* other random fixes
+
 New in 1.5.12
 -------------
 * lots of bugfixes

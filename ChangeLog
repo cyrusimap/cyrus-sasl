@@ -1,5 +1,7 @@
 Thu Dec  2 14:11:33 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
+	* version 1.5.13 released
+
 	* utils/saslpasswd.c (main): don't prompt for a password if
 	disabling an account
 
@@ -40,7 +42,7 @@ Fri Nov 19 13:05:47 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 Fri Nov 19 13:05:47 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
-	* lib/db_berkeley.c: patch from Greg Shapio
+	* lib/db_berkeley.c: patch from Greg Shapiro
  	<gshapiro@sendmail.org> to support Berkeley DB 3.x
 
 Thu Nov 18 17:53:03 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>

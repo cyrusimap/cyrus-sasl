@@ -1,7 +1,16 @@
+2002-05-03  Ken Murchison <ken@oceana.com>
+	* plugins/digestmd5.c: added server-side reauth
+	* doc/index.html: added Marshall Rose's SASL papers
+	* doc/options.html: added 'reauth_timeout'
+
 2002-05-03  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/kerberos4.c: fix compile errors
 	* config/kerberos_v4.m4, plugins/digestmd5.c: fix des_cbc_encrypt
 	  interoperability problem (OpenSSL)
+
+2002-05-01  Ken Murchison <ken@oceana.com>
+	* plugins/digestmd5.c, gssapi.c, kerberos4.c, srp.c:
+	  general plugin cleanup - standardizing structure
 
 2002-04-30  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/gssapi.c: Minor cleanup of struct hack in context structure

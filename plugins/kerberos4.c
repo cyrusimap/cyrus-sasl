@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.82 2002/04/28 05:02:32 ken3 Exp $
+ * $Id: kerberos4.c,v 1.83 2002/04/29 20:32:42 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1093,7 +1093,7 @@ static int kerberosv4_client_mech_step(void *conn_context,
 				   user_result == SASL_INTERACT ?
 				   "Please enter your authorization name" : NULL, NULL,
 				   NULL, NULL,
-				   NULL, NULL
+				   NULL, NULL,
 				   NULL, NULL, NULL,
 				   NULL, NULL, NULL);
 	    if (result!=SASL_OK) return result;

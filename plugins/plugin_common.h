@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.h,v 1.8 2002/04/29 14:53:46 ken3 Exp $
+ * $Id: plugin_common.h,v 1.9 2002/04/29 20:32:42 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -96,13 +96,18 @@ int sasl_auxprop_plug_init(const sasl_utils_t *utils, \
 /* note: msg cannot include additional variables, so if you want to
  * do a printf-format string, then you need to call seterror yourself */
 #define SETERROR( utils, msg ) (utils)->seterror( (utils)->conn, 0, (msg) )
+
+#ifndef MEMERROR
 #define MEMERROR( utils ) \
     (utils)->seterror( (utils)->conn, 0, \
                        "Out of Memory in " __FILE__ " near line %d", __LINE__ )
+#endif
 
+#ifndef PARAMERROR
 #define PARAMERROR( utils ) \
     (utils)->seterror( (utils)->conn, 0, \
                        "Parameter Error in " __FILE__ " near line %d", __LINE__ )
+#endif
 
 #ifndef SASLINT_H
 typedef struct buffer_info 

@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.62 2002/04/28 05:02:29 ken3 Exp $
+ * $Id: gssapi.c,v 1.63 2002/04/29 20:32:41 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1197,7 +1197,7 @@ gssapi_client_mech_step(void *conn_context,
 				       user_result == SASL_INTERACT ?
 				       "Please enter your authorization name" : NULL, NULL,
 				       NULL, NULL,
-				       NULL, NULL
+				       NULL, NULL,
 				       NULL, NULL, NULL,
 				       NULL, NULL, NULL);
 		if (result!=SASL_OK) return result;

@@ -1,3 +1,8 @@
+2000-05-22  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* utils/saslpasswd.c: appname patch from Wolfgang Walter
+	<wolfgang.walter@stusta.mhn.de>
+
 2000-05-08  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* version 1.5.21 ready for release

@@ -259,10 +259,8 @@ typedef int sasl_getopt_t(void *context, const char *plugin_name,
  *  SASL_FAIL   -- error
  */
 typedef int sasl_log_t(void *context,
-		       const char *plugin_name,
 		       int priority,
-		       const char *format,
-		       ...);
+		       const char *message);
 #define SASL_CB_LOG	     2
 
 /* client/user interaction callbacks:

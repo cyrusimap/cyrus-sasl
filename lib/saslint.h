@@ -1,6 +1,6 @@
 /* saslint.h - internal SASL library definitions
  * Tim Martin
- * $Id: saslint.h,v 1.4 1998/11/29 22:07:13 rob Exp $
+ * $Id: saslint.h,v 1.5 1998/12/15 04:00:10 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -102,6 +102,10 @@ typedef struct sasl_allocation_utils {
   sasl_realloc_t *realloc;
   sasl_free_t *free;
 } sasl_allocation_utils_t;
+
+typedef struct sasl_log_utils_s {
+  sasl_log_t *log;
+} sasl_log_utils_t;
 
 extern sasl_allocation_utils_t _sasl_allocation_utils;
 

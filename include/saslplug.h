@@ -93,6 +93,15 @@ typedef struct sasl_utils {
     int (*utf8verify)(const char *str, unsigned len);
     void (*rand)(sasl_rand_t *rpool, char *buf, unsigned len);
     void (*churn)(sasl_rand_t *rpool, const char *data, unsigned len);
+
+    /* logging */
+    void (*log)(sasl_conn_t *conn,
+		int priotity,
+		const char *plugin_name,
+		int sasl_error,	/* %z */
+		int errno,	/* %m */
+		const char *format,
+		...);
 } sasl_utils_t;
 
 /* NOPLAINTEXT     -- don't permit mechanisms susceptible to simple

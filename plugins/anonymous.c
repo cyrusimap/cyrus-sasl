@@ -1,6 +1,6 @@
 /* Anonymous SASL plugin
  * Tim Martin 
- * $Id: anonymous.c,v 1.8 1998/11/30 20:05:48 rob Exp $
+ * $Id: anonymous.c,v 1.9 1998/12/15 04:00:12 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -138,38 +138,30 @@ static int continue_step (void *conn_context,
   }
 
   if (text->state==2)
-  {
-    sasl_log_t *log_proc;
-    void *log_context;
+  { 
+    struct sockaddr_in remote_addr;   
+    int result =sparams->utils->getprop(sparams->utils->conn,
+					SASL_IP_REMOTE, (void **)&remote_addr);
 
-    result =sparams->utils->getcallback(sparams->utils->conn,
-					SASL_CB_LOG,
-					(int (**)())&log_proc,
-					&log_context);
-    if (result == SASL_OK && log_proc) {
-      struct sockaddr_in remote_addr;
-      char ipaddr[16];		/* 16==max length of an IP address */
-				/* in dotted form */
-      int ipnum;
+    if (result==SASL_OK) {
+      int ipnum = remote_addr.sin_addr.s_addr;
 
-      result =sparams->utils->getprop(sparams->utils->conn,
-				      SASL_IP_REMOTE, (void **)&remote_addr);
-
-      if (result==SASL_OK) {
-	ipnum = remote_addr.sin_addr.s_addr;
-	sprintf(ipaddr, "%i.%i.%i.%i",
-		ipnum >> 24 & 0xFF,
-		ipnum >> 16 & 0xFF,
-		ipnum >> 8 &0xFF,
-		ipnum & 0xFF);
-      }
-      else
-	sprintf(ipaddr, "no IP given");
-      
-      log_proc(log_context, "ANONYMOUS", SASL_LOG_INFO,
-	       "anonymous login: \"%s\" from [%s]",
-	       clientin, ipaddr);
+      sparams->utils->log(sparams->utils->conn,
+			  SASL_LOG_INFO,
+			  "ANONYMOUS", 0, 0,
+			  "login: \"%s\" from [%i.%i.%i.%i]",
+			  clientin,
+			  ipnum >> 24 & 0xFF,
+			  ipnum >> 16 & 0xFF,
+			  ipnum >> 8 &0xFF,
+			  ipnum & 0xFF);
+    } else {
+      sparams->utils->log(sparams->utils->conn,
+			  SASL_LOG_INFO,
+			  "ANONYMOUS", 0, 0,
+			  "login: \"%s\" from [no IP given]", clientin);
     }
+
 
     oparams->mech_ssf=0;
     oparams->maxoutbuf=0;

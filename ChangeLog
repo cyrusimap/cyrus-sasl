@@ -1,3 +1,9 @@
+1998-12-14  Timothy L Martin  <tmartin+@andrew.cmu.edu>
+
+        * lib/common.c: added logging capability
+
+	* sasl.h, saslplug.h: changed logging functions
+
 1998-12-09  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
 	* utils/*: created utils directory with saslpasswd, imtest, and smtptest

@@ -1,6 +1,6 @@
 /* common.c - Functions that are common to server and clinet
  * Tim Martin
- * $Id: common.c,v 1.9 1998/11/30 14:22:19 rob Exp $
+ * $Id: common.c,v 1.10 1998/12/15 04:00:08 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -73,6 +73,15 @@ sasl_allocation_utils_t _sasl_allocation_utils={
   (sasl_free_t *) &free
 };
 
+/* definition */
+int sasl_syslog(void *context,
+		int priority,
+		const char *message);
+
+sasl_log_utils_t _sasl_log_utils={
+  (sasl_log_t *) &sasl_syslog
+};
+
 static void *sasl_mutex_new(void)
 {
   /* got to return something; NULL => failure */
@@ -110,16 +119,167 @@ void sasl_set_mutex(sasl_mutex_new_t *n, sasl_mutex_lock_t *l,
   _sasl_mutex_utils.dispose=d;
 }
 
-/* Contains functions: (in this order)
- *
- * sasl_done 
- * sasl_dispose 
- * sasl_getprop
- * sasl_setprop
- * sasl_userr
- * sasl_errsting
- * sasl_idle
+
+
+/* checks size of buffer and resizes if needed */
+static int checksize(char **out, int *alloclen, int newlen)
+{
+  if (*alloclen>newlen+2)
+    return SASL_OK;
+
+  *out=sasl_REALLOC(*out, newlen+10);  
+  if (! *out) return SASL_NOMEM; 
+  
+  *alloclen=newlen+10;
+
+  return SASL_OK;
+}
+
+/* adds a string to the buffer; reallocing if need be */
+static int add_string(char **out, int *alloclen, int *outlen, char *add)
+{
+  int lup;
+  int addlen=strlen(add); /* only compute once */
+  if (checksize(out, alloclen, (*outlen)+addlen)!=SASL_OK)
+    return SASL_NOMEM;
+
+  for (lup=0;lup<addlen;lup++) /* add the string at the end */
+  {
+    (*out)[*outlen]=add[lup];
+    (*outlen)++;
+  }
+
+  return SASL_OK;
+}
+
+/*
+ * This function is typically called froma a plugin.
+ * It creates a string from the formatting and varargs given
+ * and calls the logging callback (syslog by default)
  */
+
+void sasl_log (sasl_conn_t *conn,
+	       int priority,
+	       const char *plugin_name,
+	       int sasl_error,	/* %z */
+	       int errno,	/* %m */
+	       const char *format,
+	       ...)
+{
+  char *out=(char *) sasl_ALLOC(100);
+  int alloclen=100; /* current allocated length */
+  int outlen=0; /* current length of output buffer */
+  int pos=0; /* current position in format string */
+  int formatlen=strlen(format);
+
+  int ival;
+  va_list ap; /* varargs thing */
+
+  /* add the plugin name */
+  if (plugin_name!=NULL)
+  {
+    if (add_string(&out, &alloclen, &outlen,(char *) plugin_name)!=SASL_OK) return;
+    if (add_string(&out, &alloclen, &outlen, ": ")!=SASL_OK) return;
+  }
+
+  va_start(ap, format); /* start varargs */
+
+  while(pos<formatlen)
+  {
+    if (format[pos]!='%') /* regular character */
+    {
+      out[outlen]=format[pos];
+      if (checksize(&out, &alloclen, outlen+1)!=SASL_OK) return;
+      outlen++;
+      pos++;
+
+    } else { /* formating thing */
+      int done=0;
+      char frmt[10];
+      int frmtpos=1;
+      char tempbuf[21];
+      frmt[0]='%';
+      pos++;
+
+      while (done==0)
+      {
+	switch(format[pos])
+	  {
+	  case 's': /* need to handle this */
+	    ival = va_arg(ap, int); /* get the next arg */
+	    if (add_string(&out, &alloclen, &outlen, (char *)ival)!=SASL_OK) /* add the string */
+	      return;
+
+	    done=1;
+	    break;
+
+	  case '%': /* double % output the '%' character */
+	    out[outlen]='%';
+	    if (checksize(&out,&alloclen,outlen+1)!=SASL_OK)
+	      return;
+	    outlen++;
+	    done=1;
+	    break;
+
+	  case 'm': /* insert the errno string */
+	    if (add_string(&out, &alloclen, &outlen, strerror(errno))!=SASL_OK) return;
+	    done=1;
+	    break;
+	  case 'z': /* insert the sasl error string */
+	    if (add_string(&out, &alloclen, &outlen,
+			   (char *) sasl_errstring(sasl_error,NULL,NULL))!=SASL_OK) return;
+	    done=1;
+	    break;
+
+	  /* only d, i, o, u, x, or X 
+	     c, e,  E, f,  g, or G can end the format thing */
+	  case 'c':
+	  case 'd':
+	  case 'i':
+	  case 'o':
+	  case 'u':
+	  case 'x':
+	  case 'X':
+	  case 'e':
+	  case 'E':
+	  case 'f':
+	  case 'g':
+	  case 'G':
+	    frmt[frmtpos++]=format[pos];
+	    frmt[frmtpos]=0;
+	    ival = va_arg(ap, int); /* get the next arg */
+
+	    snprintf(tempbuf,20,frmt,ival); /* have sprintf do the work for us */
+	    if (add_string(&out, &alloclen, &outlen, tempbuf)!=SASL_OK) /* now add the string */
+	      return;
+	    done=1;
+
+	    break;
+	  default: 
+	    frmt[frmtpos++]=format[pos]; /* add to the formating */
+	    frmt[frmtpos]=0;	    
+	    if (frmtpos>9) 
+	      done=1;
+	  }
+	pos++;
+	if (pos>formatlen)
+	  done=1;
+      }
+
+    }
+  }
+
+
+  out[outlen]=0; /* put 0 at end */
+
+  va_end(ap);    
+
+  /* send log message */
+  _sasl_log_utils.log(conn,priority, out);
+
+  sasl_FREE(out);
+}
+
 
 /* copy a string to malloced memory */
 int _sasl_strdup(const char *in, char **out, int *outlen)
@@ -504,21 +664,15 @@ _sasl_conn_getopt(void *context,
 }
 
 #ifdef HAVE_VSYSLOG
-static int
-_sasl_log(void *context __attribute__((unused)),
-	  const char *plugin_name,
-	  int priority,
-	  const char *format,
-	  ...)
+
+/* this is the default logging */
+int sasl_syslog(void *context,
+		int priority,
+		const char *message)
 {
-  va_list ap;
   int syslog_priority;
-  char *syslog_format;
-  int free_format = 0;
 
-  if (! plugin_name || ! format)
-    return SASL_BADPARAM;
-
+  /* set syslog priority */
   switch(priority) {
   case SASL_LOG_ERR:
     syslog_priority = LOG_ERR;
@@ -531,29 +685,13 @@ _sasl_log(void *context __attribute__((unused)),
     return SASL_BADPARAM;
   }
 
-  if (strchr(plugin_name, '%')) {
-    syslog_format = (char *)format;
-  } else {
-    syslog_format = sasl_ALLOC(strlen(plugin_name) + strlen(format) + 3);
-    if (! syslog_format) {
-      syslog_format = (char *)format;
-    } else {
-      free_format = 1;
-      strcpy(syslog_format, plugin_name);
-      strcat(syslog_format, ": ");
-      strcat(syslog_format, format);
-    }
-  }
-
-  va_start(ap, format);
-  vsyslog(syslog_priority | LOG_AUTH, syslog_format, ap);
-  va_end(ap);
-
-  if (free_format)
-    sasl_FREE(syslog_format);
-
+  /* do the syslog call. do not need to call openlog */
+  syslog(syslog_priority | LOG_AUTH, message);
+  
   return SASL_OK;
 }
+
+
 #endif				/* HAVE_VSYSLOG */
 
 static int
@@ -634,7 +772,7 @@ _sasl_getcallback(sasl_conn_t * conn,
   switch (callbackid) {
 #ifdef HAVE_VSYSLOG
   case SASL_CB_LOG:
-    *pproc = (int (*)()) &_sasl_log;
+    *pproc = (int (*)()) &sasl_log;
     *pcontext = NULL;
     break;
 #endif /* HAVE_VSYSLOG */
@@ -692,6 +830,8 @@ _sasl_alloc_utils(sasl_conn_t *conn,
   utils->getprop=&sasl_getprop;
   utils->getcallback=&_sasl_getcallback;
   utils->rand=&sasl_rand;
+
+  utils->log=&sasl_log;
 
   sasl_randcreate(&utils->rpool);
   /* there are more to fill in */

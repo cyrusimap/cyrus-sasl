@@ -119,7 +119,8 @@ int _sasl_get_mech_list(const char *entryname,
    * this really needs to be rewritten to do overflow
    * checks appropriately. */
   int result;
-  char str[PATH_MAX],tmp[PATH_MAX],c,prefix[PATH_MAX];
+  char str[PATH_MAX], tmp[PATH_MAX], c, prefix[PATH_MAX];
+  char adj_entryname[1024];
   int pos;
   char *path=NULL;
   int free_path;
@@ -136,6 +137,12 @@ int _sasl_get_mech_list(const char *entryname,
       || ! verifyfile_cb->proc
       || ! add_plugin)
     return SASL_BADPARAM;
+
+#if __OpenBSD__
+  sprintf(adj_entryname, "_%s", entryname);
+#else
+  strcpy(adj_entryname, entryname);
+#endif
 
   /* get the path to the plugins */
   result = ((sasl_getpath_t *)(getpath_cb->proc))(getpath_cb->context,
@@ -176,6 +183,9 @@ int _sasl_get_mech_list(const char *entryname,
 	size_t length;
 	void *library;
 	void *entry_point;
+	char name[PATH_MAX];
+	int flag;
+
 
 	length = NAMLEN(dir);
 	if (length < 4) continue; /* can not possibly be what we're looking for */
@@ -183,40 +193,35 @@ int _sasl_get_mech_list(const char *entryname,
 	if (length + pos>=PATH_MAX) continue; /* too big */
 
 	if (strcmp(dir->d_name + (length - 3), SO_SUFFIX)) continue;
-	{
-	  char name[PATH_MAX];
-	  int flag;
 
-	  memcpy(name,dir->d_name,length);
-	  name[length]='\0';
-
-	  strcpy(tmp,prefix);
-	  strcat(tmp,name);
-
-	  VL(("entry is = [%s]\n",tmp));
-
-	  /* Ask the application if we should use this file or not */
-	  result = ((sasl_verifyfile_t *)(verifyfile_cb->proc))
-	     (verifyfile_cb->context, tmp);
-	  /* returns continue if this file is to be skipped */
-	  if (result == SASL_CONTINUE) continue; 
-	  
-	  if (result != SASL_OK) return result;
-	  
+	memcpy(name,dir->d_name,length);
+	name[length]='\0';
+	
+	strcpy(tmp,prefix);
+	strcat(tmp,name);
+	
+	VL(("entry is = [%s]\n",tmp));
+	
+	/* Ask the application if we should use this file or not */
+	result = ((sasl_verifyfile_t *)(verifyfile_cb->proc))
+	    (verifyfile_cb->context, tmp);
+	/* returns continue if this file is to be skipped */
+	if (result == SASL_CONTINUE) continue; 
+	
+	if (result != SASL_OK) return result;
+	
 #ifdef RTLD_NOW
-	  flag = RTLD_NOW;
+	flag = RTLD_NOW;
 #else
-	  flag = 0;
+	flag = 0;
 #endif
-	  if (!(library = dlopen(tmp, flag))) {
-	      _sasl_log(NULL, SASL_LOG_ERR, NULL, 0, 0,
-			"unable to dlopen %s: %s", tmp, dlerror());
-	      continue;
-	  }
+	if (!(library = dlopen(tmp, flag))) {
+	    _sasl_log(NULL, SASL_LOG_ERR, NULL, 0, 0,
+		      "unable to dlopen %s: %s", tmp, dlerror());
+	    continue;
 	}
-	entry_point=NULL;
-	entry_point = dlsym(library, entryname);
-
+	entry_point = NULL;
+	entry_point = dlsym(library, adj_entryname);
 
 	if (entry_point == NULL) {
 	  VL(("can't get an entry point\n"));

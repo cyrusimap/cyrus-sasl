@@ -1,3 +1,7 @@
+2005-02-25  Alexey Melnikov <alexey.melnikov@isode.com>
+	* include/sasl.h, lib/common.c: Added SASL_VERSION_FULL
+	  define
+
 2005-02-22  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/NTMakefile, win32/common.mak: Windows build of the ldapdb
 	  auxprop plugin

@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.107 2004/11/02 11:32:18 mel Exp $
+ * $Id: common.c,v 1.108 2005/02/25 18:39:51 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -166,6 +166,7 @@ int _sasl_add_string(char **out, size_t *alloclen,
 void sasl_version(const char **implementation, int *version) 
 {
     if(implementation) *implementation = implementation_string;
+    /* NB: the format is not the same as in SASL_VERSION_FULL */
     if(version) *version = (SASL_VERSION_MAJOR << 24) | 
 		           (SASL_VERSION_MINOR << 16) |
 		           (SASL_VERSION_STEP);

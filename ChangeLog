@@ -1,3 +1,7 @@
+2003-01-01  Ken Murchison <ken@oceana.com>
+	* saslauthd/configure.in, saslauthd/Makefile.am: don't make
+	  -lcrypt dependent upon --enable-plain
+
 2002-12-11  Ken Murchison <ken@oceana.com>
 	* plugins/otp.c: set SASL_FEAT_ALLOWS_PROXY on client side
 

@@ -12,7 +12,7 @@ EXTRA_saslauthd_sources = saslauthd-unix.c saslauthd-doors.c getaddrinfo.c \
 			  getnameinfo.c
 saslauthd_DEPENDENCIES = @MAIN_COMPAT_OBJ@ @COMPAT_OBJ@
 saslauthd_LDADD	= @COMPAT_OBJ@ @MAIN_COMPAT_OBJ@ @SASL_KRB_LIB@ \
-		  @GSSAPIBASE_LIBS@ @GSSAPI_LIBS@ @PLAIN_LIBS@ @LIB_SIA@ \
+		  @GSSAPIBASE_LIBS@ @GSSAPI_LIBS@ @LIB_CRYPT@ @LIB_SIA@ \
 		  @LIB_SOCKET@ @SASL_DB_LIB@ @LIB_PAM@ @LDAP_LIBS@
 
 testsaslauthd_SOURCES = testsaslauthd.c

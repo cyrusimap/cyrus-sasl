@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.14 2002/01/04 18:56:50 ken3 Exp $
+ * $Id: srp.c,v 1.15 2002/01/04 20:42:01 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2045,6 +2045,7 @@ ServerCalculateK(context_t *text, BIGNUM *v,
     unsigned char hash[EVP_MAX_MD_SIZE];
     BIGNUM b;
     BIGNUM u;
+    BIGNUM base;
     BIGNUM S;
     BN_CTX *ctx = BN_CTX_new();
     int r;
@@ -2076,11 +2077,27 @@ ServerCalculateK(context_t *text, BIGNUM *v,
      * Host:  S = (Av^u) ^ b % N             (computes session key)
      * Host:  K = Hi(S)
      */
-    BN_init(&S);
-    BN_mod_exp(&S, v, &u, N, ctx);
-    BN_mod_mul(&S, &S, A, N, ctx);
+    BN_init(&base);
+    BN_mod_exp(&base, v, &u, N, ctx);
+    BN_mod_mul(&base, &base, A, N, ctx);
 
-    BN_mod_exp(&S, &S, &b, N, ctx);
+    BN_init(&S);
+    BN_mod_exp(&S, &base, &b, N, ctx);
+
+    /* per Tom Wu: make sure Av^u != 1 (mod N) */
+    if (BN_is_one(&base)) {
+	text->utils->log(NULL, SASL_LOG_ERR, "Unsafe value for 'Av^u'\n");
+	r = SASL_FAIL;
+	goto err;
+    }
+
+    /* per Tom Wu: make sure Av^u != -1 (mod N) */
+    BN_add_word(&base, 1);
+    if (BN_cmp(&S, N) == 0) {
+	text->utils->log(NULL, SASL_LOG_ERR, "Unsafe value for 'Av^u'\n");
+	r = SASL_FAIL;
+	goto err;
+    }
 
     /* K = Hi(S) */
     r = HashInterleaveBigInt(text, &S, key, keylen);
@@ -2092,6 +2109,7 @@ ServerCalculateK(context_t *text, BIGNUM *v,
     BN_CTX_free(ctx);
     BN_clear_free(&b);
     BN_clear_free(&u);
+    BN_clear_free(&base);
     BN_clear_free(&S);
 
     return r;

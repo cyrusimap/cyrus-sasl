@@ -2206,8 +2206,9 @@ server_continue_step(void *conn_context,
       } else if (strcmp(name, "nc") == 0) {
 
 	if (htoi((unsigned char *) value, &noncecount) != SASL_OK) {
-	  result = SASL_BADAUTH;
-	  goto FreeAllMem;
+	    if (errstr) *errstr = "Error converting hex to int";
+	    result = SASL_BADAUTH;
+	    goto FreeAllMem;
 	}
 	digest_strdup(sparams->utils, value, (char **) &ncvalue, NULL);
 
@@ -2429,13 +2430,13 @@ server_continue_step(void *conn_context,
 
     /* if ok verified */
     if (strcmp(serverresponse, response) != 0) {
-      result = SASL_BADAUTH;
-
-      VL(("Client Sent: %s\n", response));
-      VL(("Server calculated: %s\n", serverresponse));
-      /* XXX stuff for reauth */
-      VL(("Don't match\n"));
-      goto FreeAllMem;
+	if (errstr) *errstr = "Client 'response' doesn't match what we generated";
+	result = SASL_BADAUTH;
+	
+	VL(("Client Sent: %s\n", response));
+	VL(("Server calculated: %s\n", serverresponse));
+	/* XXX stuff for reauth */
+	goto FreeAllMem;
     }
     VL(("MATCH! (authenticated) \n"));
 
@@ -2869,7 +2870,9 @@ static int c_start(void *glob_context __attribute__((unused)),
 }
 
 
-
+/*
+ * Convert hex string to int
+ */
 
 static int
 htoi(unsigned char *hexin, int *res)

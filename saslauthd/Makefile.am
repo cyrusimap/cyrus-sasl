@@ -6,8 +6,7 @@ saslauthd_SOURCES = saslauthd-$(IPCTYPE).c mechanisms.c globals.h \
 		    auth_getpwent.h auth_krb5.c auth_krb5.h auth_krb4.c \
 		    auth_krb4.h auth_pam.c auth_pam.h auth_rimap.c \
 		    auth_rimap.h auth_shadow.c auth_shadow.h auth_sia.c \
-		    auth_sia.h auth_sasldb.c auth_sasldb.h lak.c lak.h \
-		    auth_ldap.c auth_ldap.h $(COMPAT_SRC)
+		    auth_sia.h auth_sasldb.c auth_sasldb.h $(COMPAT_SRC)
 saslauthd_DEPENDENCIES = @COMPAT_OBJ@
 saslauthd_LDADD	= @COMPAT_OBJ@ @SASL_KRB_LIB@ @GSSAPIBASE_LIBS@ \
 		  @GSSAPI_LIBS@ @PLAIN_LIBS@ @LIB_SIA@ @LIB_SOCKET@ \

@@ -1,5 +1,5 @@
 /* pwcheck.c -- Unix pwcheck daemon
-   $Id: pwcheck.c,v 1.1 1999/08/26 16:22:43 leg Exp $
+   $Id: pwcheck.c,v 1.2 1999/10/28 18:02:19 leg Exp $
 Copyright 1998, 1999 Carnegie Mellon University
 
                       All Rights Reserved
@@ -33,6 +33,9 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <config.h>
 
 extern int errno;
+
+void newclient(int);
+int retry_write(int, const char *, unsigned);
 
 /*
  * Unix pwcheck daemon-authenticated login (shadow password)
@@ -94,7 +97,7 @@ main()
     }
 }
 
-newclient(c)
+void newclient(c)
 int c;
 {
     char request[1024];
@@ -130,3 +133,33 @@ sendreply:
     close(c);
 }
   
+/*
+ * Keep calling the write() system call with 'fd', 'buf', and 'nbyte'
+ * until all the data is written out or an error occurs.
+ */
+int 
+retry_write(fd, buf, nbyte)
+int fd;
+const char *buf;
+unsigned nbyte;
+{
+    int n;
+    int written = 0;
+
+    if (nbyte == 0) return 0;
+
+    for (;;) {
+        n = write(fd, buf, nbyte);
+        if (n == -1) {
+            if (errno == EINTR) continue;
+            return -1;
+        }
+
+        written += n;
+
+        if (n >= nbyte) return written;
+
+        buf += n;
+        nbyte -= n;
+    }
+}

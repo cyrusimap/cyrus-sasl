@@ -226,8 +226,10 @@ if test "$with_pwcheck" != no; then
      with_pwcheck=/var/pwcheck
    fi
    AC_DEFINE(HAVE_PWCHECK)
-   AC_DEFINE_UNQUOTED(PWCHECKDIR, $with_pwcheck)
+   AC_DEFINE_UNQUOTED(PWCHECKDIR, "$with_pwcheck")
    DIRS="$DIRS pwcheck"
+   AC_CHECK_FUNC(getspnam,PWCHECKMETH="getspnam",PWCHECKMETH="getpwnam")
+   AC_SUBST(PWCHECKMETH)
 fi
 
 dnl CRAM-MD5

@@ -25,6 +25,7 @@ SOFTWARE.
 
 /* checkpw stuff */
 
+#include <config.h>
 #include <sasl.h>
 #include <saslint.h>
 #include <saslutil.h>
@@ -67,6 +68,8 @@ SOFTWARE.
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/uio.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif

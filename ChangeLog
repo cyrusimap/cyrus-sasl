@@ -1,7 +1,17 @@
+Thu Oct 28 13:58:43 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* configure.in: applied patch from Joe Hohertz
+	(jhohertz@golden.net) to get pwcheck to compile.
+
+Mon Oct 25 14:46:04 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/plain.c (client_continue_step): fix so that given an
+	empty server response, client resends (for IMAP).
+
 Wed Oct 20 12:06:56 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/checkpw.c (_sasl_sasldb_setpass): rpool was being free'd
-	even when not created
+	even when not created (Till Franke <franke@suse.de>)
 
 Sat Oct 16 20:13:40 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 

@@ -104,6 +104,20 @@ SQLITE_LIBPATH="C:\work\open_source\sqllite\sqlite\objs"
 !ENDIF
 !ENDIF
 
+!IF "$(LDAP_LIB_BASE)" == ""
+LDAP_LIB_BASE = c:\work\open_source\openldap\openldap-head\ldap\Debug
+!IF "$(VERBOSE)" != "0"
+!MESSAGE Defaulting LDAP library path to $(LDAP_LIB_BASE).
+!ENDIF
+!ENDIF
+
+!IF "$(LDAP_INCLUDE)" == ""
+LDAP_INCLUDE = c:\work\open_source\openldap\openldap-head\ldap\include
+!IF "$(VERBOSE)" != "0"
+!MESSAGE Defaulting LDAP include path to $(LDAP_INCLUDE).
+!ENDIF
+!ENDIF
+
 !IF "$(OS)" == "Windows_NT"
 NULL=
 !ELSE 

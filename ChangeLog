@@ -1,6 +1,8 @@
 2002-06-19  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/digestmd5.c: create layer keys for integrity as
 	  well as privacy
+	* saslauthd/auth_ldap.[ch], saslauthd/lak.[ch]:
+	  Large rewrite (Igor Brezac <igor@ipass.net>)
 
 2002-06-19  Ken Murchison <ken@oceana.com>
 	* doc/draft-melnikov-rfc2831bis-01.txt: added

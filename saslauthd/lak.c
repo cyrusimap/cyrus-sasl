@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <strings.h>
 #include <syslog.h>
+#include <ctype.h>
 
 #ifdef HAVE_CRYPT_H
 #include <crypt.h>
@@ -47,56 +48,244 @@
 #include <lber.h>
 #include "lak.h"
 
-LAK_CONN *conn = NULL;
+static LAK *persistent_lak = NULL;
 
-static int lak_get_conn(LAK_CONN **conn) 
+#define configlistgrowsize 100
+
+struct configlist {
+	char *key;
+	char *value;
+};
+
+#define CONFIGLISTGROWSIZE 100
+
+static struct configlist *configlist;
+static int nconfiglist;
+
+static int lak_read_config(const char *);
+static const char *lak_config_getstring(const char *, const char *);
+static int lak_config_getint(const char *, int );
+static int lak_config_getswitch(const char *, int );
+static int lak_config(const char *, LAK_CONF **);
+static int lak_escape(const char *, char **);
+static int lak_filter(LAK *, const char *, const char *, char **);
+static int lak_connect(LAK *);
+static int lak_bind(LAK *, char, const char *, const char *);
+static int lak_init(const char *, LAK **);
+static int lak_search(LAK *, const char *, const char **, LDAPMessage **);
+static int lak_retrieve(LAK *, const char *, const char *, const char **, LAK_RESULT **);
+static int lak_auth_custom(LAK *, const char *, const char *, const char *);
+static int lak_auth_bind(LAK *, const char *, const char *, const char *);
+static void lak_free_config(LAK_CONF **);
+static int lak_add_result(LAK *lak, LDAPMessage *, const char *, LAK_RESULT **);
+
+static int lak_read_config(const char *filename)
 {
-    	char  *myname = "lak_get_conn";
+	FILE *infile;
+	int lineno = 0;
+	int alloced = 0;
+	char buf[4096];
+	char *p, *key;
+	char *result;
 
-	LAK_CONN *c;
+	nconfiglist=0;
 
-	c = (LAK_CONN *)malloc(sizeof(LAK_CONN));
-	if (c == NULL) {
-		syslog(LOG_ERR|LOG_AUTH, "%s: Cannot allocate memory", myname);
-		return LAK_FAIL;
+	infile = fopen(filename, "r");
+	if (!infile) {
+	    syslog(LOG_ERR|LOG_AUTH,
+		   "Could not open LDAP config file: %s (%m)",
+		   filename);
+	    return LAK_FAIL;
+	}
+    
+	while (fgets(buf, sizeof(buf), infile)) {
+		lineno++;
+
+		if (buf[strlen(buf)-1] == '\n') 
+			buf[strlen(buf)-1] = '\0';
+		for (p = buf; *p && isspace((int) *p); p++);
+			if (!*p || *p == '#') 
+				continue;
+
+		key = p;
+		while (*p && (isalnum((int) *p) || *p == '-' || *p == '_')) {
+			if (isupper((int) *p)) 
+				*p = tolower(*p);
+			p++;
+		}
+		if (*p != ':') {
+			return LAK_FAIL;
+		}
+		*p++ = '\0';
+
+		while (*p && isspace((int) *p)) 
+			p++;
+
+		if (!*p) {
+			return LAK_FAIL;
+		}
+
+		if (nconfiglist == alloced) {
+			alloced += CONFIGLISTGROWSIZE;
+			configlist=realloc((char *)configlist, alloced * sizeof(struct configlist));
+			if (configlist==NULL) 
+				return LAK_FAIL;
+		}
+
+		result = strdup(key);
+		if (result==NULL) 
+			return LAK_NOMEM;
+
+		configlist[nconfiglist].key = result;
+
+		result = strdup(p);
+		if (result==NULL) 
+			return LAK_NOMEM;
+		configlist[nconfiglist].value = result;
+
+		nconfiglist++;
 	}
 
-	c->bound=0;
-	c->ld=NULL;
-	*conn=c;
+	fclose(infile);
 
 	return LAK_OK;
 }
 
+
+static const char *lak_config_getstring(const char *key, const char *def)
+{
+    int opt;
+
+    for (opt = 0; opt < nconfiglist; opt++) {
+	if (*key == configlist[opt].key[0] &&
+	    !strcmp(key, configlist[opt].key))
+	  return configlist[opt].value;
+    }
+    return def;
+}
+
+
+static int lak_config_getint(const char *key, int def)
+{
+    const char *val = lak_config_getstring(key, (char *)0);
+
+    if (!val) return def;
+    if (!isdigit((int) *val) && (*val != '-' || !isdigit((int) val[1]))) return def;
+    return atoi(val);
+}
+
+
+static int lak_config_getswitch(const char *key, int def)
+{
+    const char *val = lak_config_getstring(key, (char *)0);
+
+    if (!val) return def;
+
+    if (*val == '0' || *val == 'n' ||
+	(*val == 'o' && val[1] == 'f') || *val == 'f') {
+	return 0;
+    }
+    else if (*val == '1' || *val == 'y' ||
+	     (*val == 'o' && val[1] == 'n') || *val == 't') {
+	return 1;
+    }
+    return def;
+}
+
+
+static int lak_config(const char *configFile, LAK_CONF **ret)
+{
+	LAK_CONF *conf;
+	int rc = 0;
+	char *s;
+
+	conf = malloc( sizeof(LAK_CONF) );
+	if (conf == NULL) {
+		return LAK_NOMEM;
+	}
+
+	conf->path = strdup(configFile);
+	if (conf->path == NULL) {
+		return LAK_NOMEM;
+	}
+
+	rc = lak_read_config(conf->path);
+	if (rc != LAK_OK) {
+		return LAK_FAIL;
+	}
+
+	conf->servers = (char *) lak_config_getstring("ldap_servers", "ldap://localhost/");
+	conf->bind_dn = (char *) lak_config_getstring("ldap_bind_dn", "");
+	conf->bind_pw = (char *) lak_config_getstring("ldap_bind_pw", "");
+	conf->version = lak_config_getint("ldap_version", LDAP_VERSION3);
+	conf->search_base = (char *) lak_config_getstring("ldap_search_base", "");
+	conf->filter = (char *) lak_config_getstring("ldap_filter", "uid=%u");
+	conf->lookup_attrib = (char *) lak_config_getstring("ldap_lookup_attrib", NULL);
+	conf->auth_method = LAK_AUTH_METHOD_BIND;
+	s = (char *) lak_config_getstring("ldap_auth_method", NULL);
+	if (s) {
+		if (!strcasecmp(s, "custom")) {
+			conf->auth_method = LAK_AUTH_METHOD_CUSTOM;
+		}
+	}
+	conf->timeout.tv_sec = lak_config_getint("ldap_timeout", 5);
+	conf->timeout.tv_usec = 0;
+	conf->size_limit = lak_config_getint("ldap_size_limit", 1);
+	conf->time_limit = lak_config_getint("ldap_time_limit", 5);
+	conf->deref = LDAP_DEREF_NEVER;
+	s = (char *) lak_config_getstring("ldap_deref", NULL);
+	if (s) {
+		if (!strcasecmp(s, "search")) {
+			conf->deref = LDAP_DEREF_SEARCHING;
+		} else if (!strcasecmp(s, "find")) {
+			conf->deref = LDAP_DEREF_FINDING;
+		} else if (!strcasecmp(s, "always")) {
+			conf->deref = LDAP_DEREF_ALWAYS;
+		} else if (!strcasecmp(s, "never")) {
+			conf->deref = LDAP_DEREF_NEVER;
+		}
+	}
+	conf->referrals = lak_config_getswitch("ldap_referrals", 0);
+	conf->restart = lak_config_getswitch("ldap_restart", 1);
+	conf->cache_ttl = lak_config_getint("ldap_cache_ttl", 0);
+	conf->cache_mem = lak_config_getint("ldap_cache_mem", 0);
+	conf->scope = LDAP_SCOPE_SUBTREE;
+	s = (char *) lak_config_getstring("ldap_scope", NULL);
+	if (s) {
+		if (!strcasecmp(s, "one")) {
+			conf->scope = LDAP_SCOPE_ONELEVEL;
+		} else if (!strcasecmp(s, "base")) {
+			conf->scope = LDAP_SCOPE_BASE;
+		}
+	}
+	conf->debug = lak_config_getint("ldap_debug", 0);
+	conf->tls_check_peer = lak_config_getint("ldap_tls_checkpeer", 0);
+	conf->tls_cacert_file = (char *) lak_config_getstring("ldap_tls_cacertfile", NULL);
+	conf->tls_cacert_dir = (char *) lak_config_getstring("ldap_tls_cacertdir", NULL);
+	conf->tls_ciphers = (char *) lak_config_getstring("ldap_tls_ciphers", NULL);
+	conf->tls_cert = (char *) lak_config_getstring("ldap_tls_cert", NULL);
+	conf->tls_key = (char *) lak_config_getstring("ldap_tls_key", NULL);
+
+	*ret = conf;
+	return LAK_OK;
+}
+
+
 /*
- * If any characters in the supplied address should be escaped per RFC
- * 2254, do so. Thanks to Keith Stevenson and Wietse. And thanks to
- * Samuel Tardieu for spotting that wildcard searches were being done in
- * the first place, which prompted the ill-conceived lookup_wildcards
- * parameter and then this more comprehensive mechanism.
- *
  * Note: calling function must free memory.
  */
-static char *lak_escape(LAK *conf, char *s) 
+static int lak_escape(const char *s, char **result) 
 {
-    	char  *myname = "lak_escape";
-
 	char *buf;
 	char *end, *ptr, *temp;
 
-	if (s == NULL) {
-		syslog(LOG_WARNING|LOG_AUTH, "%s: Nothing to escape.", myname);
-		return NULL;
-	}
-
 	buf = malloc(strlen(s) * 2 + 1);
 	if (buf == NULL) {
-		syslog(LOG_ERR|LOG_AUTH, "%s: Cannot allocate memory", myname);
-		return NULL;
+		return LAK_NOMEM;
 	}
 
 	buf[0] = '\0';
-	ptr = s;
+	ptr = (char *)s;
 	end = ptr + strlen(ptr);
 
 	while (((temp = strpbrk(ptr, "*()\\\0"))!=NULL) && (temp < end)) {
@@ -126,11 +315,11 @@ static char *lak_escape(LAK *conf, char *s)
 	if (temp<end)
 		strcat(buf, ptr);
 
-	if (conf->verbose)
-		syslog(LOG_INFO|LOG_AUTH,"%s: After escaping, it's %s", myname, buf);
+	*result = buf;
 
-	return(buf);
+	return LAK_OK;
 }
+
 
 /*
  * lak_filter
@@ -140,32 +329,26 @@ static char *lak_escape(LAK *conf, char *s)
  *   %r = realm
  * Note: calling function must free memory.
  */
-static char *lak_filter(LAK *conf, char *user, char *realm) 
+static int lak_filter(LAK *lak, const char *username, const char *realm, char **result) 
 {
-    	const char *myname = "lak_filter";
-
 	char *buf; 
 	char *end, *ptr, *temp;
 	char *ebuf;
+	int rc;
 	
-	if (conf->filter == NULL) {
-		syslog(LOG_WARNING|LOG_AUTH, "%s: filter not setup", myname);
-		return NULL;
+	if (lak->conf->filter == NULL) {
+		syslog(LOG_WARNING|LOG_AUTH, "filter not setup");
+		return LAK_FAIL;
 	}
 
-	if (user == NULL) {
-		syslog(LOG_WARNING|LOG_AUTH, "%s: user is null", myname);
-		return NULL;
-	}
-
-	buf=malloc(strlen(conf->filter)+strlen(user)+strlen(realm)+1);
+	buf=malloc(strlen(lak->conf->filter)+strlen(username)+strlen(realm)+1);
 	if(buf == NULL) {
-		syslog(LOG_ERR|LOG_AUTH, "%s: Cannot allocate memory", myname);
-		return NULL;
+		syslog(LOG_ERR|LOG_AUTH, "Cannot allocate memory");
+		return LAK_NOMEM;
 	}
 	buf[0] = '\0';
 	
-	ptr=conf->filter;
+	ptr=lak->conf->filter;
 	end = ptr + strlen(ptr);
 
 	while ((temp=strchr(ptr,'%'))!=NULL ) {
@@ -174,7 +357,7 @@ static char *lak_filter(LAK *conf, char *user, char *realm)
 			strncat(buf, ptr, temp-ptr);
 
 		if ((temp+1) >= end) {
-			syslog(LOG_WARNING|LOG_AUTH, "%s: Incomplete lookup substitution format", myname);
+			syslog(LOG_WARNING|LOG_AUTH, "Incomplete lookup substitution format");
 			break;
 		}
 
@@ -183,23 +366,28 @@ static char *lak_filter(LAK *conf, char *user, char *realm)
 				strncat(buf,temp+1,1);
 				break;
 			case 'u':
-				ebuf=lak_escape(conf, user);
-				if (ebuf!=NULL) {
-					strcat(buf,ebuf);
-					free(ebuf);
+				if (username!=NULL) {
+					rc=lak_escape(username, &ebuf);
+					if (rc == LAK_OK) {
+						strcat(buf,ebuf);
+						free(ebuf);
+					}
+				} else {
+					syslog(LOG_WARNING|LOG_AUTH, "Username not available.");
 				}
 				break;
 			case 'r':
 				if (realm!=NULL) {
-					ebuf = lak_escape(conf, realm);
-					if (ebuf != NULL) {
+					rc = lak_escape(realm, &ebuf);
+					if (rc == LAK_OK) {
 						strcat(buf,ebuf);
 						free(ebuf);
 					}
+				} else {
+					syslog(LOG_WARNING|LOG_AUTH, "Realm not available.");
 				}
 				break;
 			default:
-				syslog(LOG_WARNING|LOG_AUTH, "%s: Invalid lookup substitution format '%%%c'!", myname, *(temp+1));
 				break;
 		}
 		ptr=temp+2;
@@ -207,150 +395,233 @@ static char *lak_filter(LAK *conf, char *user, char *realm)
 	if (temp<end)
 		strcat(buf, ptr);
 
-	if (conf->verbose)
-		syslog(LOG_INFO|LOG_AUTH,"%s: After filter substitution, it's %s", myname, buf);
+	*result = buf;
 
-	return(buf);
+	return LAK_OK;
 }
 
-/* 
- * Establish a connection to the LDAP server. 
- */
-static int lak_connect(LAK *conf, LDAP **res)
+
+static int lak_init(const char *configFile, LAK **ret) 
 {
-	char   *myname = "lak_connect";
+	LAK *lak;
+	int rc;
 
+	lak = *ret;
+
+	if (lak != NULL) {
+		return LAK_OK;
+	}
+
+	lak = (LAK *)malloc(sizeof(LAK));
+	if (lak == NULL) {
+		syslog(LOG_ERR|LOG_AUTH, "Cannot allocate memory");
+		return LAK_NOMEM;
+	}
+
+	lak->bind_status=LAK_NOT_BOUND;
+	lak->ld=NULL;
+	lak->conf=NULL;
+
+	rc = lak_config(configFile, &lak->conf);
+	if (rc != LAK_OK) {
+		lak_free_config(&lak->conf);
+		free(lak);
+		return rc;
+	}
+
+	*ret=lak;
+	return LAK_OK;
+}
+
+
+static int lak_connect(LAK *lak)
+{
 	int     rc = 0;
-	LDAP   *ld;
 
-	if (conf->verbose)
-		syslog(LOG_INFO|LOG_AUTH, "%s: Connecting to server %s", myname, conf->servers);
+	if (lak->conf->tls_cacert_file != NULL) {
+		rc = ldap_set_option (NULL, LDAP_OPT_X_TLS_CACERTFILE, lak->conf->tls_cacert_file);
+		if (rc != LDAP_SUCCESS) {
+			syslog (LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_X_TLS_CACERTFILE (%s).", ldap_err2string (rc));
+		}
+	}
 
-	rc = ldap_initialize(&ld, conf->servers);
+	if (lak->conf->tls_cacert_dir != NULL) {
+		rc = ldap_set_option (NULL, LDAP_OPT_X_TLS_CACERTDIR, lak->conf->tls_cacert_dir);
+		if (rc != LDAP_SUCCESS) {
+			syslog (LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_X_TLS_CACERTDIR (%s).", ldap_err2string (rc));
+		}
+	}
+
+	if (lak->conf->tls_check_peer != 0) {
+		rc = ldap_set_option(NULL, LDAP_OPT_X_TLS_REQUIRE_CERT, &lak->conf->tls_check_peer);
+		if (rc != LDAP_SUCCESS) {
+			syslog (LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_X_TLS_REQUIRE_CERT (%s).", ldap_err2string (rc));
+		}
+	}
+
+	if (lak->conf->tls_ciphers != NULL) {
+		/* set cipher suite, certificate and private key: */
+		rc = ldap_set_option(NULL, LDAP_OPT_X_TLS_CIPHER_SUITE, lak->conf->tls_ciphers);
+		if (rc != LDAP_SUCCESS) {
+			syslog (LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_X_TLS_CIPHER_SUITE (%s).", ldap_err2string (rc));
+		}
+	}
+
+	if (lak->conf->tls_cert != NULL) {
+		rc = ldap_set_option(NULL, LDAP_OPT_X_TLS_CERTFILE, lak->conf->tls_cert);
+		if (rc != LDAP_SUCCESS) {
+			syslog (LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_X_TLS_CERTFILE (%s).", ldap_err2string (rc));
+		}
+	}
+
+	if (lak->conf->tls_key != NULL) {
+		rc = ldap_set_option(NULL, LDAP_OPT_X_TLS_KEYFILE, lak->conf->tls_key);
+		if (rc != LDAP_SUCCESS) {
+			syslog (LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_X_TLS_KEYFILE (%s).", ldap_err2string (rc));
+		}
+	}
+
+	rc = ldap_initialize(&lak->ld, lak->conf->servers);
 	if (rc != LDAP_SUCCESS) {
-		syslog(LOG_ERR|LOG_AUTH, "%s: ldap_initialize failed", myname, conf->servers);
+		syslog(LOG_ERR|LOG_AUTH, "ldap_initialize failed", lak->conf->servers);
 		return LAK_FAIL;
 	}
 
-	if (conf->debug) {
-		ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &(conf->debug));
+	if (lak->conf->debug) {
+		rc = ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &(lak->conf->debug));
 		if (rc != LDAP_OPT_SUCCESS)
-			syslog(LOG_WARNING|LOG_AUTH, "%s: Unable to set LDAP_OPT_DEBUG_LEVEL %x.", myname, conf->debug);
+			syslog(LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_DEBUG_LEVEL %x.", lak->conf->debug);
 	}
 
-	rc = ldap_set_option(ld, LDAP_OPT_NETWORK_TIMEOUT, &(conf->timeout));
+	rc = ldap_set_option(lak->ld, LDAP_OPT_PROTOCOL_VERSION, &(lak->conf->version));
 	if (rc != LDAP_OPT_SUCCESS) {
-		syslog(LOG_WARNING|LOG_AUTH, "%s: Unable to set LDAP_OPT_NETWORK_TIMEOUT %d.%d.", myname, conf->timeout.tv_sec, conf->timeout.tv_usec);
+		syslog(LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_PROTOCOL_VERSION %d.", lak->conf->version);
+		lak->conf->version = LDAP_VERSION2;
 	}
 
-	if (conf->timelimit) {
-		ldap_set_option(ld, LDAP_OPT_TIMELIMIT, &(conf->timelimit));
-		if (rc != LDAP_OPT_SUCCESS)
-			syslog(LOG_WARNING|LOG_AUTH, "%s: Unable to set LDAP_OPT_TIMELIMIT %d.", myname, conf->timelimit);
+	rc = ldap_set_option(lak->ld, LDAP_OPT_NETWORK_TIMEOUT, &(lak->conf->timeout));
+	if (rc != LDAP_OPT_SUCCESS) {
+		syslog(LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_NETWORK_TIMEOUT %d.%d.", lak->conf->timeout.tv_sec, lak->conf->timeout.tv_usec);
 	}
 
-	if (conf->deref) {
-		rc = ldap_set_option(ld, LDAP_OPT_DEREF, &(conf->deref));
-		if (rc != LDAP_OPT_SUCCESS)
-			syslog(LOG_WARNING|LOG_AUTH, "%s: Unable to set LDAP_OPT_DEREF %d.", myname, conf->deref);
+	ldap_set_option(lak->ld, LDAP_OPT_TIMELIMIT, &(lak->conf->time_limit));
+	if (rc != LDAP_OPT_SUCCESS) {
+		syslog(LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_TIMELIMIT %d.", lak->conf->time_limit);
 	}
 
-	if (conf->referrals) {
-		rc = ldap_set_option(ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON);
-		if (rc != LDAP_OPT_SUCCESS)
-			syslog(LOG_WARNING|LOG_AUTH, "%s: Unable to set LDAP_OPT_REFERRALS.", myname);
+	rc = ldap_set_option(lak->ld, LDAP_OPT_DEREF, &(lak->conf->deref));
+	if (rc != LDAP_OPT_SUCCESS) {
+		syslog(LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_DEREF %d.", lak->conf->deref);
 	}
 
-	if (conf->sizelimit) {
-		rc = ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &(conf->sizelimit));
-		if (rc != LDAP_OPT_SUCCESS)
-			syslog(LOG_WARNING|LOG_AUTH, "%s: Unable to set LDAP_OPT_SIZELIMIT %d.", myname, conf->sizelimit);
+	rc = ldap_set_option(lak->ld, LDAP_OPT_REFERRALS, lak->conf->referrals ? LDAP_OPT_ON : LDAP_OPT_OFF);
+	if (rc != LDAP_OPT_SUCCESS) {
+		syslog(LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_REFERRALS.");
 	}
 
-	/*
-	* Bind to the server
-	*/
-	rc = ldap_bind_s(ld, conf->bind_dn, conf->bind_pw, LDAP_AUTH_SIMPLE);
-	if (rc != LDAP_SUCCESS) {
-		syslog(LOG_WARNING|LOG_AUTH, "%s: Unable to bind to server %s as %s: %d (%s)", myname,
-		conf->servers, conf->bind_dn, rc, ldap_err2string(rc));
-		ldap_unbind_s(ld);
-		return LAK_FAIL;
+	rc = ldap_set_option(lak->ld, LDAP_OPT_SIZELIMIT, &(lak->conf->size_limit));
+	if (rc != LDAP_OPT_SUCCESS)
+		syslog(LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_SIZELIMIT %d.", lak->conf->size_limit);
+
+	rc = ldap_set_option(lak->ld, LDAP_OPT_RESTART, lak->conf->restart ? LDAP_OPT_ON : LDAP_OPT_OFF);
+	if (rc != LDAP_OPT_SUCCESS) {
+		syslog(LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_RESTART.");
 	}
 
 	/*
 	 * Set up client-side caching
 	 */
-	if (conf->cache_expiry) {
-		if (conf->verbose)
-			syslog(LOG_INFO|LOG_AUTH, "%s: Enabling %ld-byte cache with %ld-second expiry", myname, conf->cache_size, conf->cache_expiry);
-
-		rc = ldap_enable_cache(ld, conf->cache_expiry, conf->cache_size);
+	if (lak->conf->cache_ttl) {
+		rc = ldap_enable_cache(lak->ld, lak->conf->cache_ttl, lak->conf->cache_mem);
 		if (rc != LDAP_SUCCESS) {
-			syslog(LOG_WARNING|LOG_AUTH, "%s: Unable to configure cache: %d (%s) -- continuing", myname, rc, ldap_err2string(rc));
-		} else {
-		if (conf->verbose)
-			syslog(LOG_WARNING|LOG_AUTH, "%s: Caching enabled", myname);
+			syslog(LOG_WARNING|LOG_AUTH, "Unable to enable cache -- continuing (%s)", ldap_err2string(rc));
 		}
 	}
 
-	*res = ld;
 	return LAK_OK;
 }
 
-/* 
- * lak_search - 
- */
-static int lak_search(LAK *conf, LAK_CONN *conn, char *filter, char **attrs, LDAPMessage **res)
+
+static int lak_bind(LAK *lak, char flag, const char *bind_dn, const char *password) 
 {
-	char   *myname = "lak_search";
+	int rc;
+
+	if (lak->bind_status == LAK_BIND_ANONYMOUS) {
+		if (flag == LAK_BIND_ANONYMOUS) {
+			return LAK_OK;
+		}
+	}
+
+	if (lak->bind_status == LAK_NOT_BOUND) {
+		if (lak->ld) {
+			if (lak->conf->cache_ttl)
+				ldap_destroy_cache(lak->ld);
+			ldap_unbind_s(lak->ld);
+			lak->ld = NULL;
+		}
+
+		rc = lak_connect(lak);
+		if (rc != LAK_OK) {
+			return rc;
+		}
+	} else {
+		if (lak->conf->version == LDAP_VERSION2) {
+			if (lak->ld != NULL) {
+				if (lak->conf->cache_ttl)
+					ldap_destroy_cache(lak->ld);
+				ldap_unbind_s(lak->ld);
+
+				lak->ld = NULL;
+			}
+			rc = lak_connect(lak);
+			if (rc != LAK_OK) {
+				return rc;
+			}
+		}
+	}
+
+	rc = ldap_simple_bind_s(lak->ld, bind_dn, password);
+	if (rc != LDAP_SUCCESS) {
+		if (flag == LAK_BIND_ANONYMOUS) {
+			syslog(LOG_WARNING|LOG_AUTH, "ldap_simple_bind(as %s) failed (%s)", bind_dn, ldap_err2string(rc));
+		}
+		return LAK_FAIL;
+	}
+
+	lak->bind_status = flag;
+	return LAK_OK;
+}
+
+
+static int lak_search(LAK *lak, const char *filter, const char **attrs, LDAPMessage **res)
+{
 	int rc = 0;
 
 	*res = NULL;
 
-	/*
-	* Connect to the LDAP server, if necessary.
-	*/
-	if (!conn->bound) {
-		syslog(LOG_WARNING|LOG_AUTH, "%s: No existing connection reopening", myname);
+	rc = lak_bind(lak, LAK_BIND_ANONYMOUS, lak->conf->bind_dn, lak->conf->bind_pw);
+	if (rc) {
+		syslog(LOG_WARNING|LOG_AUTH, "lak_bind() failed");
+		return LAK_FAIL;
+	}
 
-		if (conn->ld) {
-			if (conf->verbose)
-				syslog(LOG_INFO|LOG_AUTH, "%s: Closing existing connection", myname);
-			if (conf->cache_expiry)
-				ldap_destroy_cache(conn->ld);
-
-			ldap_unbind_s(conn->ld);
-			conn->ld = NULL;
-		}
-
-		rc = lak_connect(conf, &(conn->ld));
-		if (rc) {
-			syslog(LOG_WARNING|LOG_AUTH, "%s: (re)connect attempt failed", myname);
-			return LAK_FAIL;
-		}
-
-		conn->bound = 1;
-	} 
-
-	/*
-	* On to the search.
-	*/
-	rc = ldap_search_st(conn->ld, conf->search_base, conf->scope, filter,
-	                    (char **) attrs, 0, &(conf->timeout), res);
+	rc = ldap_search_st(lak->ld, lak->conf->search_base, lak->conf->scope, filter, (char **) attrs, 0, &(lak->conf->timeout), res);
 	switch (rc) {
 		case LDAP_SUCCESS:
+		case LDAP_SIZELIMIT_EXCEEDED:
 			break;
 
 		default:
-			syslog(LOG_WARNING|LOG_AUTH, "%s: ldap_search_st() failed: %s", myname, ldap_err2string(rc));
+			syslog(LOG_WARNING|LOG_AUTH, "ldap_search_st() failed: %s", ldap_err2string(rc));
 			ldap_msgfree(*res);
-			conn->bound = 0;
+			lak->bind_status = LAK_NOT_BOUND;
 			return LAK_FAIL;
 	}
 
-	if ((ldap_count_entries(conn->ld, *res)) != 1) {
-		syslog(LOG_WARNING|LOG_AUTH, "%s: object not found or got ambiguous search result.", myname);
+	if ((ldap_count_entries(lak->ld, *res)) != 1) {
+		if (lak->conf->debug) {
+			syslog(LOG_WARNING|LOG_AUTH, "object not found or got ambiguous search result (%s).", filter);
+		}
 		ldap_msgfree(*res);
 		return LAK_FAIL;
 	}
@@ -358,185 +629,293 @@ static int lak_search(LAK *conf, LAK_CONN *conn, char *filter, char **attrs, LDA
 	return LAK_OK;
 }
 
-/* 
- * lak_lookup - retrieve user@realm values specified by 'attrs'
- */
-int lak_lookup(LAK *conf, char *user, char *realm, char **attrs, LAK_RESULT **res)
-{
-	char   *myname = "lak_lookup";
 
+/* 
+ * lak_retrieve - retrieve user@realm values specified by 'attrs'
+ */
+static int lak_retrieve(LAK *lak, const char *user, const char *realm, const char **attrs, LAK_RESULT **ret)
+{
 	int rc = 0;
 	char *filter = NULL;
-	LAK_RESULT *ptr = NULL, *temp = NULL;
-	LDAPMessage *msg;
+	LDAPMessage *res;
 	LDAPMessage *entry;
 	BerElement *ber;
-	char *attr, **vals;
+	char *attr;
     
-    	*res = NULL;
+    	*ret = NULL;
 
-	if (conn == NULL) {
-		rc = lak_get_conn(&conn);
-		if (rc != LAK_OK) {
-			syslog(LOG_WARNING|LOG_AUTH, "%s: lak_get_conn failed.", myname);
-			return LAK_FAIL;
-		}
-	}
-
-	filter = lak_filter(conf, user, realm);
-	if (filter == NULL) {
-		syslog(LOG_WARNING|LOG_AUTH, "%s: lak_filter failed.", myname);
-		return LAK_FAIL;
-	}
-
-	rc = lak_search(conf, conn, filter, attrs, &msg);
+	rc = lak_filter(lak, user, realm, &filter);
 	if (rc != LAK_OK) {
-		syslog(LOG_WARNING|LOG_AUTH, "%s: lak_search failed.", myname);
+		return LAK_FAIL;
+	}
+
+	rc = lak_search(lak, filter, attrs, &res);
+	if (rc != LAK_OK) {
 		free(filter);
 		return LAK_FAIL;
 	}
 
-	entry = ldap_first_entry(conn->ld, msg); 
+	entry = ldap_first_entry(lak->ld, res); 
 	if (entry == NULL) {
-		syslog(LOG_WARNING|LOG_AUTH, "%s: ldap_first_entry() failed.", myname);
+		syslog(LOG_WARNING|LOG_AUTH, "ldap_first_entry() failed.");
 		free(filter);
-		ldap_msgfree(msg);
+		ldap_msgfree(res);
 		return LAK_FAIL;
 	}
 
-	attr = ldap_first_attribute(conn->ld, entry, &ber);
-	if (attr == NULL) {
-		syslog(LOG_WARNING|LOG_AUTH, "%s: no attributes found", myname);
-		free(filter);
-		ldap_msgfree(msg);
-		return LAK_FAIL;
-	}
+	for (attr = ldap_first_attribute(lak->ld, entry, &ber); attr != NULL; 
+		attr = ldap_next_attribute(lak->ld, entry, ber)) {
 
-	while (attr != NULL) {
+		lak_add_result(lak, entry, attr, ret);
 
-		vals = ldap_get_values(conn->ld, entry, attr);
-		if (vals == NULL) {
-			syslog(LOG_WARNING|LOG_AUTH, "%s: Entry doesn't have any values for %s", myname, attr);
-			continue;
-		}
-
-		temp = (LAK_RESULT *) malloc(sizeof(LAK_RESULT));
-		if (*res == NULL) {
-			*res = temp;
-			ptr = *res;
-		}
-		else {
-			ptr->next = temp;
-			ptr = temp;
-		}
-		ptr->attribute = (char *)strdup(attr);
-		ptr->value = (char *)strdup(vals[0]); /* Get only first attribute */
-		ptr->len = strlen(ptr->value);
-		ptr->next = NULL;
-
-		if (conf->verbose)
-			syslog(LOG_INFO|LOG_AUTH, "%s: Attribute %s, Value %s", myname, ptr->attribute, ptr->value);
-
-		ldap_value_free(vals);
 		ldap_memfree(attr);
-
-		attr = ldap_next_attribute(conn->ld, entry, ber);
 	}
 
 	if (ber != NULL)
 		ber_free(ber, 0);
-	ldap_msgfree(msg);
+	ldap_msgfree(res);
 	free(filter);
 
-	if (*res == NULL)
+	if (*ret == NULL)
 		return LAK_NOENT;
-	else
-		return LAK_OK;
-		
+
+	return LAK_OK;
 }
 
-int lak_authenticate(LAK *conf, char *user, char* realm, char *password) 
+
+static int lak_auth_custom(LAK *lak, const char *user, const char *realm, const char *password) 
 {
-	char   *myname = "lak_authenticate";
-
-	LAK_RESULT *res;
+	LAK_RESULT *lres;
 	int rc;
-	int ret;
 	char *end, *temp, *ptr;
-	char *attrs[] = {"userPassword", NULL};
+	const char *attrs[] = {"userPassword", NULL};
 
-	rc = lak_lookup(conf, user, realm, attrs, &res);
+	rc = lak_retrieve(lak, user, realm, attrs, &lres);
 	if (rc != LAK_OK) {
-		if (conf->verbose) {
-			syslog(LOG_WARNING|LOG_AUTH, "%s: User not found %s", myname, user);
-		}
-		lak_free(res);
-		return LAK_FAIL;
+		return rc;
 	}
 
-	ret = LAK_FAIL;
+	rc = LAK_FAIL;
 
-	ptr = res->value;
-	end = (char *) ptr + res->len;
+	ptr = lres->value;
+	end = (char *) ptr + lres->len;
 
 	temp = (char *) strchr(ptr, '}');
 
 	if ((temp != NULL) && (temp < end)) {
 		if (!strncasecmp(ptr, "{crypt}", temp - ptr + 1)) {
 			if (!strcmp(ptr+7, (char *)crypt(password, ptr+7)))
-				ret = LAK_OK;
+				rc = LAK_OK;
 		}
 		else if (!strncasecmp(ptr, "{clear}", temp - ptr + 1)) {
 			if (!strcmp(ptr+7, password))
-				ret = LAK_OK;
+				rc = LAK_OK;
 		}
 		/* Add MD5, SHA and others */
 		else {
-			syslog(LOG_WARNING|LOG_AUTH, "%s: Unknown password encryption for %s", myname, user);
+			syslog(LOG_WARNING|LOG_AUTH, "Unknown password encryption for %s", user);
 		}
 	}
 
-	lak_free(res);
+	lak_free_result(lres);
 
-	return(ret);
+	return(rc);
 }
 
-/* 
- * lak_free - free memory buffers
- */
-void lak_free(LAK_RESULT *result) 
-{
-	/* char   *myname = "lak_free"; */
 
-	if (result == NULL)
+static int lak_auth_bind(LAK *lak, const char *user, const char *realm, const char *password) 
+{
+	char *filter;
+	int rc;
+	char *dn;
+	LDAPMessage *res, *entry;
+
+	rc = lak_filter(lak, user, realm, &filter);
+	if (rc != LAK_OK) {
+		syslog(LOG_WARNING|LOG_AUTH, "lak_filter failed.");
+		return LAK_FAIL;
+	}
+
+	rc = lak_search(lak, filter, NULL, &res);
+	if (rc != LAK_OK) {
+		free(filter);
+		return LAK_FAIL;
+	}
+
+	entry = ldap_first_entry(lak->ld, res); 
+	if (entry == NULL) {
+		syslog(LOG_WARNING|LOG_AUTH, "ldap_first_entry().");
+		free(filter);
+		ldap_msgfree(res);
+		return LAK_FAIL;
+	}
+
+	dn = ldap_get_dn(lak->ld, res);
+	if (dn == NULL) {
+		syslog(LOG_ERR|LOG_AUTH, "ldap_get_dn() failed.");
+		free(filter);
+		ldap_msgfree (res);
+		return LAK_FAIL;
+	}
+
+	free(filter);
+	ldap_msgfree(res);
+
+	rc = lak_bind(lak, LAK_BIND_AS_USER, dn, password);
+
+	ldap_memfree(dn);
+
+	lak_bind(lak, LAK_BIND_ANONYMOUS, lak->conf->bind_dn, lak->conf->bind_pw);
+
+	return rc;
+}
+
+
+int lak_authenticate(const char *user, const char *realm, const char *password, const char *configFile) 
+{
+	LAK *lak;
+	int rc;
+
+	lak = persistent_lak;
+
+	if (lak == NULL) {
+		rc = lak_init(configFile, &lak);
+		if (rc != LAK_OK) {
+			return rc;
+		}
+		persistent_lak = lak;
+	}
+
+	if (lak->conf->auth_method == LAK_AUTH_METHOD_BIND) {
+		rc = lak_auth_bind(lak, user, realm, password);
+	} else {
+		rc = lak_auth_custom(lak, user, realm, password);
+	}
+
+	return rc;
+}
+
+
+int lak_lookup_attrib(const char *user, const char *realm, const char *configFile, LAK_RESULT **ret) 
+{
+	LAK *lak;
+	LAK_RESULT *lres;
+	char *attrs[2];
+	int rc;
+
+	lak = persistent_lak;
+
+	if (lak == NULL) {
+		rc = lak_init(configFile, &lak);
+		if (rc != LAK_OK) {
+			return rc;
+		}
+		persistent_lak = lak;
+	}
+
+	if (lak->conf->lookup_attrib == NULL) {
+		syslog(LOG_WARNING|LOG_AUTH, "ldap_lookup_attrib not supplied.");
+		return LAK_FAIL;
+	}
+
+	attrs[0] = lak->conf->lookup_attrib;
+	attrs[1] = NULL;
+
+	rc = lak_retrieve(lak, user, realm, (const char **)attrs, &lres);
+	if (rc != LAK_OK) {
+		return rc;
+	}
+
+	*ret = lres;
+	return LAK_OK;
+}
+
+
+static void lak_free_config(LAK_CONF **ret) 
+{
+	LAK_CONF *conf;
+
+	conf = *ret;
+
+	if (conf == NULL) {
+		return;
+	}
+
+	if (conf->path != NULL) {
+		free(conf->path);
+	}
+
+	free(configlist);
+	free (conf);
+
+	*ret = NULL;
+	return;
+}
+
+static int lak_add_result(LAK *lak, LDAPMessage *entry, const char *attr, LAK_RESULT **ret)  
+{
+	LAK_RESULT *lres, *temp;
+	char **vals;
+	
+	vals = ldap_get_values(lak->ld, entry, attr);
+	if (vals == NULL) {
+		syslog(LOG_WARNING|LOG_AUTH, "ldap_get_values failed for %s.", attr);
+		return LAK_FAIL;
+	}
+
+	lres = (LAK_RESULT *) malloc(sizeof(LAK_RESULT));
+	if (lres == NULL) {
+		syslog(LOG_ERR|LOG_AUTH, "Cannot allocate memory");
+		return LAK_NOMEM;
+	}
+
+	lres->value = strdup(vals[0]);
+	ldap_value_free(vals);
+	if (lres->value == NULL) {
+		lak_free_result(lres);
+		return LAK_NOMEM;
+	}
+
+	lres->attribute = strdup(attr);
+	if (lres->attribute == NULL) {
+		ldap_value_free(vals);
+		return LAK_NOMEM;
+	}
+
+	lres->len = strlen(lres->value);
+	lres->next = NULL;
+
+	if (*ret == NULL) {
+		*ret = lres;
+	} else {
+		for (temp = (*ret)->next; temp != NULL; temp = temp->next) ;
+		temp = lres;
+	}
+
+	return LAK_OK;
+}
+
+
+void lak_free_result(LAK_RESULT *lres) 
+{
+	if (lres == NULL)
 		return;
 
-	if (result->next != NULL) {
-		lak_free(result->next);
+	if (lres->next != NULL) {
+		lak_free_result(lres->next);
 	}
 
-	free(result->attribute);	
-	free(result->value);	
-	free(result);
-}
-
-/* 
- * lak_close - free memory buffers
- */
-void lak_close(LAK *conf, LAK_CONN *conn) 
-{
-	/* char   *myname = "lak_close"; */
-
-	if (conn->ld) {
-		if (conf->cache_expiry)
-			ldap_destroy_cache(conn->ld);
-			
-		ldap_unbind_s(conn->ld);
+	if (lres->attribute != NULL) {
+		free(lres->attribute);	
 	}
 
-	if (conn) {
-		free(conn);
+	if (lres->value != NULL) {
+		free(lres->value);	
 	}
+
+	free(lres);
+
+	return;
 }
 
 #endif /* AUTH_LDAP */

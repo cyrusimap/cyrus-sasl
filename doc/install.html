@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASLv2 INSTALL Documentation</title>
-<!-- $Id: install.html,v 1.6 2002/05/08 15:48:01 ken3 Exp $ -->
+<!-- $Id: install.html,v 1.7 2002/07/24 19:27:00 leg Exp $ -->
 </HEAD>
 <BODY>
 <H1>Installation Procedure</H1>
@@ -13,54 +13,64 @@ This document offers a general overview of installing the SASL library.
   ./configure
   make
   make install
+  ln -s /usr/local/lib/sasl2 /usr/lib/sasl2
 </pre>
 
-If you're checking this directly out of CVS, you'll need to run "sh
-./SMakefile" to build the configure script first.<p>
+<p>If you're checking this directly out of CVS, you'll need to run "sh
+./SMakefile" to build the configure script first.
 
-<A HREF=sysadmin.html>Read</A> to learn how to configure SASL.  There is
-also a <A HREF=upgrading.html>document</A> that covers upgrade issues.
+<p>Read <A HREF=sysadmin.html>the System Administrator's Guide</A> to
+learn how to configure libsasl in depth.  There is also a <A
+HREF=upgrading.html>document</A> that covers migrating from libsasl v1
+to libsasl v2 applications.
 
 <H2>Details</H2>
 
-Note that the library looks for plugins in <tt>/usr/lib/sasl2</tt>,
+<p>Note that the library looks for plugins in <tt>/usr/lib/sasl2</tt>,
 but installs them into <tt>${prefix}/lib/sasl2</tt>, where
 <tt>${prefix}</tt> is usually something like <tt>/usr/local</tt>.
 This is intentional - we want the plugins installed with the rest of
 the package (wherever things get installed at your site), but we want
-the library to *always* be able to find its plugins under
+the library to <em>always</em> be able to find its plugins under
 <tt>/usr/lib/sasl2</tt>, no matter where you install things, so that
-the SASL plugin ABI on all platforms is roughly the same.<p>
+the SASL plugin ABI on all platforms is roughly the same.
 
-If you don't want to do this for some reason, you can set the location
+<p>If you don't want to do this for some reason, you can set the location
 where the library will look for plugins by setting the environment
-variable SASL_PATH to the path the library should use.<p>
+variable SASL_PATH to the path the library should use.
 
-You'll probably need the GNU make program, available as of this
+<h3>Requirements</h3>
+
+<p>You'll probably need the GNU make program, available as of this
 writing <a
 href=ftp://ftp.gnu.org/pub/gnu/make/make-3.77.tar.gz>here</a>.<p>
 
-libsasl2 can use gdbm, Berkeley db, or ndbm to implement its
+<p>libsasl2 can use gdbm, Berkeley db, or ndbm to implement its
 user/password lookup. Most systems come with ndbm these days; as of
 this writing, gdbm is available as <a
 href=ftp://ftp.gnu.org/pub/gnu/gdbm/gdbm-1.7.3.tar.gz>this file</a>.
 Berkeley DB is available from: <a
-href=http://www.sleepycat.com/>here</a><p>
+href=http://www.sleepycat.com/>here</a>
 
-For Kerberos support, you'll need the kerberos libraries.  At CMU, the
-version we use comes from <a href=http://www.pdc.kth.se/kth-krb/>here</a>.<p>
+<p>For Kerberos support, you'll need the kerberos libraries.  At CMU, the
+version we use comes from <a href=http://www.pdc.kth.se/kth-krb/>here</a>.
 
-For GSSAPI support you will need either MIT Kerberos 5 or the
-<a href=http://www.pdc.kth.se/heimdal>Heimdal implementation</a>.<p>
+<p>For GSSAPI support you will need either MIT Kerberos 5 or the
+<a href=http://www.pdc.kth.se/heimdal>Heimdal implementation</a>.
 
-This has been tested under Linux 2.2, Linux 2.4, Solaris 2.7 and Solaris 2.8.
-It should work under any platform where dynamic objects can be linked against
-other dynamic objects, and where the dynamic library file extension is
-".so", or where libtool creates the .la files correctly.<p>
+<p>You may want to play with your CPPFLAGS and LDFLAGS a little if you're
+using vendor compilers. We use <tt>gcc</tt> extensively, but you'll
+probably have more luck if you use the same compiler for the library
+as you do for your applications. You can see what compilers we use on
+our platforms by looking at the "SMakefile".
 
-You may want to play with your CPPFLAGS and LDFLAGS a little if you're
-using vendor compilers (which we recommend).  You can see what
-compilers we use on our platforms by looking at the "SMakefile".
+<h3>Support platforms</h3>
+
+<p>This has been tested under Linux 2.2, Linux 2.4, Solaris 2.7 and
+Solaris 2.8.  It should work under any platform where dynamic objects
+can be linked against other dynamic objects, and where the dynamic
+library file extension is ".so", or where libtool creates the .la
+files correctly.
 
 <hr>
 <h2>Installation under Win32:</h2>
@@ -68,10 +78,7 @@ compilers we use on our platforms by looking at the "SMakefile".
 <B>If you are using SASL under Win32 or have compiled it, please let
 us know!</B>
 <br>
-<i>Note: The Win32 port of SASLv2 is Incomplete.</i><p>
-
-We've tested the latest version under Windows and are eager to see
-other people use it!<p>
+<i>Note: The Win32 port of SASLv2 is Incomplete.</i>
 
 <ul>
 <li>From within Visual C++, open workspace "sasl\win32\libsasl\libsasl.dsw"

@@ -1461,6 +1461,7 @@ static int lak_auth_fastbind(
 
 		if (lak->conf->use_sasl) {
 
+#if LDAP_VENDOR_VERSION >= 20122
 			rc = ldap_extended_operation_s(lak->ld, LDAP_EXOP_X_WHO_AM_I, 
 					NULL, NULL, NULL, NULL, &retdn);
 			if (rc != LDAP_SUCCESS || !retdn) {
@@ -1469,6 +1470,10 @@ static int lak_auth_fastbind(
 				goto done;
 			}
 			dn = retdn->bv_val;
+#else
+			syslog(LOG_ERR|LOG_AUTH, "Group check not supported when ldap_use_sasl: yes.");
+			goto done;
+#endif
 		}
 
 		rc = lak_group_member(lak, user, service, realm, dn);

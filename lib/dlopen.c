@@ -167,7 +167,7 @@ int _sasl_get_mech_list(const char *entryname,
 	  dlclose(library);
 	  continue;
 	}
-	VL(("added [%s] sucessfully\n",dir->d_name));
+	VL(("added [%s] successfully\n",dir->d_name));
       }
 
      closedir(dp);

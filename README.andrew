@@ -1,3 +1,7 @@
+#!/bin/sh
+smake -gnu init install
+exit 0
+
 To wash, "smake -gnu wash install".
 
 Use the vendor cc if possible on platforms which have purify (it has

@@ -304,15 +304,16 @@ static int server_continue_step (void *conn_context,
     char *time=gettime(params->utils);
     char *randdigits=randomdigits(params->utils);
 
+    int *intp;
+
     if ((time==NULL) || (randdigits==NULL))
 	return SASL_NOMEM;
 
     /* get requested ssf */
     result = sasl_getprop(params->utils->conn,
-			  SASL_SSF_EXTERNAL, (void **)&(text->ssf));  
+			  SASL_SSF_EXTERNAL, (void **)&intp);  
     if (result!=SASL_OK) { return result; }
-    text->ssf=1;
-
+    text->ssf = *intp;
 
     /* save msg for step #2 */
     text->clientinitmsg=params->utils->malloc(clientinlen);
@@ -487,7 +488,7 @@ static int server_continue_step (void *conn_context,
 */
     oparams->mech_ssf=text->ssf;
 
-    oparams->maxoutbuf=1024; /* no clue what this should be */
+    oparams->maxoutbuf=0; /* no clue what this should be */
 
 
 
@@ -668,14 +669,15 @@ static int c_continue_step (void *conn_context,
     char *authorid="";
     char *authenid="";
     char hostname[256];
+    int *intp;
 
     if ((time==NULL) || (randdigits==NULL)) return SASL_NOMEM;
 
     /* get ssf */
     result = sasl_getprop(params->utils->conn,
-			  SASL_SSF_EXTERNAL, (void **)&(text->ssf));  
+			  SASL_SSF_EXTERNAL, (void **)&intp);  
     if (result!=SASL_OK) return result;
-    text->ssf=1;
+    text->ssf = *intp;
 
     /* set hostname */
     result=gethostname(hostname,sizeof(hostname));
@@ -888,7 +890,7 @@ static int c_continue_step (void *conn_context,
 
     /* set oparams */
     oparams->mech_ssf=text->ssf;
-    oparams->maxoutbuf=1024; /* no clue what this should be */
+    oparams->maxoutbuf=0; /* no clue what this should be */
 
     oparams->user="anonymous"; /* set username */
     oparams->authid="anonymous";

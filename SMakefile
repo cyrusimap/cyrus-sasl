@@ -5,9 +5,19 @@ if test ! -x configure; then
   autoheader
   echo autoconf
   autoconf
-  echo automake --add-missing
-  automake --add-missing
+  echo automake --add-missing --include-deps
+  automake --add-missing --include-deps
 fi
+
+case `uname` in
+  Linux) CFLAGS="${CFLAGS} -O2 -g"
+	 ;;
+
+  SunOS) CFLAGS="${CFLAGS} -xs -xO3 -xdepend"
+	 ;;
+esac
 
 MAKE=gmake
 LNCOMMAND="${SRCDIR}/configure --prefix=/usr/local --disable-java"
+
+export CC CFLAGS

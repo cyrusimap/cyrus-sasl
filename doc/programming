@@ -1,0 +1,38 @@
+			Programming with SASL
+			 by Larry Greenfield
+			 (a work in progress)
+
+Eventually, I hope to expand this into workable documentation for
+using the SASL library with various programs.  For now, all I have is
+what isn't implemented.  For guidance in using the library, take a
+look at the sample/ directory, and the forthcoming Cyrus IMAP server
+distribution.
+
+I. What's Not Implemented
+
+Some parts of this API aren't implemented by this implementation.  In
+brief:
+
+A. Credentials
+
+None of the modules support passing credentials.  In the future, we
+hope to add credential passing to the modules that support it (most
+likely the Kerberos modules).  Thus, an application that specifies
+SASL_SEC_PASS_CREDENTIALS will not receive any mechanisms.  The
+functions sasl_cred_install() and sasl_cred_uninstall() do nothing.
+
+B. Secrets
+
+sasl_client_auth() is unimplemented.  It is unclear what this is
+intended for.  If we implement it, it will probably be for generating
+secrets for fast reauthentication.
+
+The "secret" parameter to sasl_client_start is unused.  It is likely
+that this was intended for fast reauthentication.
+
+C. Idle
+
+While the implementation & plugins correctly implement the idle calls,
+none of them currently do anything.
+
+$Id: programming,v 1.1 1999/06/22 21:16:41 leg Exp $

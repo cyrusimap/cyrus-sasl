@@ -243,19 +243,16 @@ typedef unsigned sasl_ssf_t;
  *                         dictionary attack
  * FORWARD_SECRECY      -- require forward secrecy between sessions
  *                         (breaking one won't help break next)
- * MAXIMUM              -- require all security attributes
- *		           known by the library at runtime
- * PASS_CREDENTIALS     -- prefer mechanisms which pass client
- *			   credentials (if available),
- *			   and allow mechanisms which can pass
+ * NOANONYMOUS          -- don't permit mechanisms that allow anonymous login
+ * PASS_CREDENTIALS     -- require mechanisms which pass client
+ *			   credentials, and allow mechanisms which can pass
  *			   credentials to do so
  */
 #define SASL_SEC_NOPLAINTEXT     (0x0001)
 #define SASL_SEC_NOACTIVE        (0x0002)
 #define SASL_SEC_NODICTIONARY    (0x0004)
 #define SASL_SEC_FORWARD_SECRECY (0x0008)
-#define SASL_SEC_MAX_DEFINED     (0x000F)
-#define SASL_SEC_MAXIMUM         (0x0100)
+#define SASL_SEC_NOANONYMOUS     (0x0010)
 #define SASL_SEC_PASS_CREDENTIALS (0x0200)
 
 typedef struct sasl_security_properties 

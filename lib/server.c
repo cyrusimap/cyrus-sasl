@@ -38,7 +38,11 @@ SOFTWARE.
 #ifdef HAVE_PAM
 #define DEFAULT_PLAIN_MECHANISM "PAM"
 #else
+# ifdef HAVE_KRB
+#define DEFAULT_PLAIN_MECHANISM "kerberos_v4"
+# else
 #define DEFAULT_PLAIN_MECHANISM "passwd"
+# endif
 #endif
 
 #include "sasl.h"
@@ -71,6 +75,8 @@ extern int gethostname(char *, int);
  * sasl_setpass
  */
 
+static int _sasl_checkpass(const char *mech, const char *service, 
+			   const char *user, const char *pass);
 
 static int
 external_server_new(void *glob_context __attribute__((unused)),
@@ -395,7 +401,8 @@ static int init_mechlist(void)
 {
   /* set util functions - need to do rest*/
   mechlist->utils=_sasl_alloc_utils(NULL, &global_callbacks);
-
+  mechlist->utils->checkpass = &_sasl_checkpass;
+  
   if (mechlist->utils==NULL)
     return SASL_NOMEM;
 
@@ -518,7 +525,7 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
   result = ((sasl_getpath_t *)(getpath_cb->proc))(getpath_cb->context,
 						  &path_to_config);
   if (result!=SASL_OK) return result;
-
+  if (path_to_config == NULL) path_to_config = "";
 
   /* length = length of path + '/' + length of appname + ".conf" + 1
      for '\0' */
@@ -684,6 +691,7 @@ int sasl_server_new(const char *service,
   serverconn->sparams->utils=_sasl_alloc_utils(*pconn, &global_callbacks);
   if (serverconn->sparams->utils==NULL)
     return SASL_NOMEM;
+  serverconn->sparams->utils->checkpass = &_sasl_checkpass;
 
   serverconn->sparams->transition = &_sasl_transition;
 
@@ -709,8 +717,9 @@ int sasl_server_new(const char *service,
 /*
  * The rule is:
  * IF mech strength + external strength < min ssf THEN FAIL
+ * We also have to look at the security properties and make sure
+ * that this mechanism has everything we want
  */
-
 static int mech_permitted(sasl_conn_t *conn,
 			  const sasl_server_plug_t *plug)
 {
@@ -727,6 +736,16 @@ static int mech_permitted(sasl_conn_t *conn,
     if (plug->max_ssf < conn->props.min_ssf)
       return 0;
   }
+
+  /* security properties---if there are any flags that differ and are
+     in what the connection are requesting, then fail */
+
+  /* do we want to special case SASL_SEC_PASS_CREDENTIALS? nah.. */
+  if (((conn->props.security_flags ^ plug->security_flags) 
+       & conn->props.security_flags) != 0) {
+      return 0;
+  }
+
   return 1;
 }
 
@@ -974,6 +993,37 @@ int sasl_listmech(sasl_conn_t *conn,
   
 }
 
+/* returns OK if it's valid */
+static int _sasl_checkpass(const char *mech, const char *service,
+			   const char *user, const char *pass)
+{
+    int result = SASL_NOMECH;
+
+#ifdef HAVE_PAM
+    if (!strcmp(mech, "PAM")) {
+	result = _sasl_PAM_verify_password(user, pass, NULL);
+    }
+#endif
+
+    if (!strcmp(mech, "passwd")) {
+	result = _sasl_passwd_verify_password(user, pass, NULL);
+    }
+
+    if (!strcmp(mech, "shadow")) {
+	result = _sasl_shadow_verify_password(user, pass, NULL);
+    }
+
+#ifdef HAVE_KRB
+    if (!strcmp(mech, "kerberos_v4")) {
+	/* check against krb */
+	result = _sasl_kerberos_verify_password(user, pass, service, NULL);
+    }
+#endif
+
+    return result;
+}
+
+
 /* check if a plaintext password is valid
  * if user is NULL, check if plaintext is enabled
  * inputs:
@@ -995,32 +1045,24 @@ int sasl_checkpass(sasl_conn_t *conn,
 		   unsigned passlen,
 		   const char **errstr)
 {
-    const char *mech;
+    const char *mech = NULL;
     int result = SASL_NOMECH;
+    sasl_getopt_t *getopt;
+    void *context;
 
-    mech = sasl_config_getstring("plainmech", DEFAULT_PLAIN_MECHANISM);
+    if (user == NULL) return SASL_NOUSER;
 
-#ifdef HAVE_PAM
-    if (!strcmp(mech, "PAM")) {
-	result = _sasl_PAM_verify_password(user, pass, errstr);
-    }
-#endif
-
-    if (!strcmp(mech, "passwd")) {
-	result = _sasl_passwd_verify_password(user, pass, errstr);
+    if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context) 
+	    == SASL_OK) {
+	getopt(context, NULL, "pwcheck_method", &mech, NULL);
     }
 
-    if (!strcmp(mech, "shadow")) {
-	result = _sasl_shadow_verify_password(user, pass, errstr);
+    if (mech == NULL) {
+	mech = DEFAULT_PLAIN_MECHANISM;
     }
 
-#ifdef HAVE_KRB
-    if (!strcmp(mech, "kerberos")) {
-	/* check against krb */
-	result = _sasl_kerberos_verify_password(user, pass, 
-						conn->service, errstr);
-    }
-#endif
+    result = _sasl_checkpass(mech, conn->service, user, pass);
+    *errstr = NULL;
 
     if (result == SASL_OK) {
 	result = _sasl_strdup(user, &(conn->oparams.authid), NULL);

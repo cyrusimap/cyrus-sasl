@@ -105,13 +105,17 @@ typedef struct context {
   des_key_schedule dec_keysched;   /* decryption key schedule */
 
 
-  struct sockaddr_in ip_local;     /* local ip address and port. needed for layers */
-  struct sockaddr_in ip_remote;    /* remote ip address and port. needed for layers */
+  struct sockaddr_in *ip_local;     /* local ip address and port.
+				       needed for layers */
+  struct sockaddr_in *ip_remote;    /* remote ip address and port.
+				       needed for layers */
 
   sasl_malloc_t *malloc;           /* encode and decode need these */
-  sasl_free_t *free;               /* encode and decode need these */
+  sasl_realloc_t *realloc;       
+  sasl_free_t *free;
 
   char *buffer;                    /* used for layers */
+  int bufsize;
   char sizebuf[4];
   int cursize;
   int size;
@@ -120,30 +124,23 @@ typedef struct context {
 
 } context_t;
 
+static char *srvtab = NULL;
+
 static int privacy_encode(void *context, const char *input, unsigned inputlen,
 			  char **output, unsigned *outputlen)
 {
   int len;
   context_t *text;
+
   text=context;
-  FILE *stream;
-
-    stream=fopen("/tmp/krbfoo","a");
-    for (lup=0;lup<inputlen;lup++) {
-      fprintf(stream,"%i. %i\n",lup,(unsigned char) input[lup]);
-    }
-    fprintf(stream, "remote: %d\n", text->ip_remote);
-    fprintf(stream, "local: %d\n", text->ip_local);
-
-    fclose(stream);
 
   *output=text->malloc(inputlen+40);
   if ((*output) ==NULL) return SASL_NOMEM;
   
   len=krb_mk_priv((char *) input, *output+4,
-		  inputlen,  text->enc_keysched, 
-		  &(text->session), &(text->ip_local),
-		  &(text->ip_remote));
+		  inputlen,  text->init_keysched, 
+		  text->session, text->ip_local,
+		  text->ip_remote);
 
   *outputlen=len+4;
 
@@ -166,116 +163,101 @@ static int privacy_decode(void *context,
     context_t *text=context;
     char *extra;
     unsigned int extralen=0;
-    FILE *stream;
-    int lup;
 
-    stream=fopen("/tmp/krbfoo","a");
-    for (lup=0;lup<inputlen;lup++) {
-      fprintf(stream,"%i. %i\n",lup,(unsigned char) input[lup]);
-    }
-    fprintf(stream, "remote: %d\n", text->ip_remote);
-    fprintf(stream, "local: %d\n", text->ip_local);
-
-    fclose(stream);
-  
-    if (text->needsize>0) /* 4 bytes for how long message is */
-    {
-      /* if less than 4 bytes just copy those we have into text->size */
-      if (inputlen<4) 
-	tocopy=inputlen;
-      else
-	tocopy=4;
+    if (text->needsize>0) { /* 4 bytes for how long message is */
+	/* if less than 4 bytes just copy those we have into text->size */
+	if (inputlen<4) 
+	    tocopy=inputlen;
+	else
+	  tocopy=4;
       
-      if (tocopy>text->needsize)
-	tocopy=text->needsize;
+	if (tocopy>text->needsize)
+	    tocopy=text->needsize;
 
-      memcpy(text->sizebuf+4-text->needsize, input, tocopy);
-      text->needsize-=tocopy;
-
-      input+=tocopy;
-      inputlen-=tocopy;
-
-      if (text->needsize==0) /* got all of size */
-      {
-	memcpy(&(text->size), text->sizebuf, 4);
-	text->cursize=0;
-	text->size=ntohl(text->size);
-
-	if (text->size>0xFFFF) return SASL_FAIL; /* too big probably error */
+	memcpy(text->sizebuf+4-text->needsize, input, tocopy);
+	text->needsize-=tocopy;
 	
-	text->buffer=text->malloc(text->size+5);
-	if (text->buffer == NULL) return SASL_NOMEM;
-      }
-      *outputlen=0;
-      *output=NULL;
-      if (inputlen==0) /* have to wait until next time for data */
-	return SASL_OK;
+	input+=tocopy;
+	inputlen-=tocopy;
 
-      if (text->size==0)  /* should never happen */
-	return SASL_FAIL;
+	if (text->needsize==0) /* got all of size */
+	{
+	    memcpy(&(text->size), text->sizebuf, 4);
+	    text->cursize=0;
+	    text->size=ntohl(text->size);
+	    
+	    /* too big? */
+	    if (text->size>0xFFFF) return SASL_FAIL;
+	    
+	    if (text->bufsize < text->size + 5) {
+		text->buffer = text->realloc(text->buffer, text->size + 5);
+		text->bufsize = text->size + 5;
+	    }
+	    if (text->buffer == NULL) return SASL_NOMEM;
+	}
+	*outputlen=0;
+	*output=NULL;
+	if (inputlen==0) /* have to wait until next time for data */
+	    return SASL_OK;
+	
+	if (text->size==0)  /* should never happen */
+	    return SASL_FAIL;
     }
-
+    
     diff=text->size - text->cursize; /* bytes need for full message */
-
+    
     if (! text->buffer)
-      return SASL_FAIL;
-
-    if (inputlen < diff) /* not enough for a decode */
-    {
-      memcpy(text->buffer+text->cursize, input, inputlen);
-      text->cursize+=inputlen;
-      *outputlen=0;
-      *output=NULL;
-      return SASL_OK;
+	return SASL_FAIL;
+    
+    if (inputlen < diff) { /* not enough for a decode */
+	memcpy(text->buffer+text->cursize, input, inputlen);
+	text->cursize+=inputlen;
+	*outputlen=0;
+	*output=NULL;
+	return SASL_OK;
     } else {
-      memcpy(text->buffer+text->cursize, input, diff);
-      input+=diff;      
-      inputlen-=diff;
+	memcpy(text->buffer+text->cursize, input, diff);
+	input+=diff;      
+	inputlen-=diff;
     }
-  
+    
     data=text->malloc(sizeof(MSG_DAT));
     if (data==NULL) return SASL_NOMEM;
     memset(data,0,sizeof(MSG_DAT));
+    
+    len= krb_rd_priv((char *) text->buffer,text->size,  text->init_keysched, 
+		     text->session, text->ip_remote, text->ip_local, data);
 
-    len= krb_rd_priv((char *) text->buffer,text->size,  text->dec_keysched, 
-		     &(text->session),
-		     &(text->ip_remote), &(text->ip_local), data);
-
-    if (len!=0)
-    {
-      text->free(text->buffer);
-      return SASL_FAIL-(len*100);
+    if (len!=0) {
+	return SASL_FAIL-(len*100);
     }
 
     *output=text->malloc(data->app_length+1);
     if ((*output) == NULL) {
-      text->free(text->buffer);
-      return SASL_NOMEM;
+	return SASL_NOMEM;
     }
- 
+    
     *outputlen=data->app_length;
-    memcpy(*output, data->app_data,data->app_length);
+    memcpy(*output, data->app_data, data->app_length);
     (*output)[*outputlen] = '\0';
-    text->free(text->buffer);
 
     text->free(data);
     text->size=-1;
     text->needsize=4;
 
     /* if received more than the end of a packet */
-    if (inputlen!=0)
-    {
-      extra=NULL;
-      privacy_decode(text, input, inputlen,
-			   &extra, &extralen);
-      if (extra!=NULL) /* if received 2 packets merge them together */
-      {	
-	*output=realloc( *output, *outputlen+extralen);
-	memcpy(*output+*outputlen, extra, extralen); 
-	*outputlen+=extralen;	
-      }
+    if (inputlen!=0) {
+	extra=NULL;
+	privacy_decode(text, input, inputlen,
+		       &extra, &extralen);
+	if (extra!=NULL) {
+	    /* if received 2 packets merge them together */
+	    *output = text->realloc( *output, *outputlen+extralen);
+	    memcpy(*output+*outputlen, extra, extralen); 
+	    *outputlen+=extralen;	
+	}
     }
-     
+    
     return SASL_OK;
 }
 
@@ -289,7 +271,6 @@ integrity_encode(void *context,
 		 unsigned *outputlen)
 {
   int len;
-  char *out;
   context_t *text;
   text=context;
 
@@ -298,8 +279,8 @@ integrity_encode(void *context,
 
   len=krb_mk_safe((char *) input, (*output)+4,
 		  inputlen, /* text->keysched, */
-		  &(text->session), &(text->ip_local),
-		  &(text->ip_remote));
+		  (text->session), (text->ip_local),
+		  (text->ip_remote));
 
   /* returns -1 on error */
   if (len==-1) return SASL_FAIL;
@@ -322,14 +303,7 @@ static int integrity_decode(void *context, const char *input, unsigned inputlen,
     char *extra;
     unsigned int extralen=0;
     unsigned diff;
-    FILE *stream;
-    int lup;
 
-    stream=fopen("/tmp/krbfoo","a+");
-    for (lup=0;lup<inputlen;lup++)
-      fprintf(stream,"%i. %i\n",lup,(unsigned char) input[lup]);
-    fclose(stream);
-  
     if (text->needsize>0) /* 4 bytes for how long message is */
     {
       /* if less than 4 bytes just copy those we have into text->size */
@@ -353,8 +327,12 @@ static int integrity_decode(void *context, const char *input, unsigned inputlen,
 	text->cursize=0;
 	text->size=ntohl(text->size);
 	if (text->size>0xFFFF) return SASL_FAIL; /* too big probably error */
-	free(text->buffer);
-	text->buffer=malloc(text->size);
+
+	if (text->bufsize < text->size) {
+	    text->buffer = text->realloc(text->buffer, text->size);
+	    text->bufsize = text->size;
+	}
+	if (text->buffer == NULL) return SASL_NOMEM;
       }
 
       *outputlen=0;
@@ -386,8 +364,8 @@ static int integrity_decode(void *context, const char *input, unsigned inputlen,
     if (data==NULL) return SASL_NOMEM;
 
     len= krb_rd_safe((char *) text->buffer,text->size, /* text->keysched, */
-		     &(text->session),
-		     &(text->ip_remote), &(text->ip_local), data);
+		     (text->session),
+		     (text->ip_remote), (text->ip_local), data);
 
 
 
@@ -413,7 +391,7 @@ static int integrity_decode(void *context, const char *input, unsigned inputlen,
 			   &extra, &extralen);
       if (extra!=NULL) /* if received 2 packets merge them together */
       {
-	*output=realloc( *output, *outputlen+extralen);
+	*output = text->realloc(*output, *outputlen+extralen);
 	memcpy(*output+*outputlen, extra, extralen); 
 	*outputlen+=extralen;	
       }
@@ -422,6 +400,25 @@ static int integrity_decode(void *context, const char *input, unsigned inputlen,
     return SASL_OK;
 }
 
+static int
+new_text(sasl_client_params_t *p, context_t **text)
+{
+    context_t *ret = (context_t *) p->utils->malloc(sizeof(context_t));
+
+    if (ret==NULL) return SASL_NOMEM;
+
+    ret->malloc = p->utils->malloc;
+    ret->realloc = p->utils->realloc;
+    ret->free = p->utils->free;
+
+    ret->buffer = NULL;
+    ret->bufsize = 0;
+
+    ret->state = 0;  
+    *text = ret;
+
+    return SASL_OK;
+}
 
 static int
 server_start(void *glob_context __attribute__((unused)),
@@ -436,29 +433,23 @@ server_start(void *glob_context __attribute__((unused)),
   if (errstr)
     *errstr = NULL;
 
-  /* holds state are in */
-  text= sparams->utils->malloc(sizeof(context_t));
-  if (text==NULL) return SASL_NOMEM;
-  text->malloc = sparams->utils->malloc;
-  text->free = sparams->utils->free;
-  text->state=1;
-  
-  *conn=text;
-
-  return SASL_OK;
+  return new_text(sparams, (context_t **) conn);
 }
 
 
 
 static void dispose(void *conn_context, sasl_utils_t *utils)
 {
+    context_t *text = (context_t *) conn_context;
 
-  utils->free(conn_context);
+    if (text->buffer) utils->free(text->buffer);
+    utils->free(text);
 }
 
-static void mech_free(void *global_context, sasl_utils_t *utils)
+static void mech_free(void *global_context __attribute__((unused)),
+		      sasl_utils_t *utils __attribute__((unused)) )
 {
-
+    if (srvtab) utils->free(srvtab);
 }
 
 static int cando_sec(sasl_security_properties_t *props,
@@ -504,10 +495,12 @@ static int server_continue_step (void *conn_context,
   if (errstr)
     *errstr = NULL;
 
-  if (text->state==1)
+  if (text->state==0)
   {    
     /* random 32-bit number */
     unsigned long randocts,nchal;
+
+    /* shouldn't we check for erroneous client input here?!? */
 
     VL(("KERBEROS_V4 Step 1\n"));
 
@@ -523,18 +516,18 @@ static int server_continue_step (void *conn_context,
 
     *serveroutlen=4;
 
-    text->state=2;
+    text->state=1;
     return SASL_CONTINUE;
   }
 
-  if (text->state==2)
+  if (text->state==1)
   {
     unsigned long nchal;
     unsigned char sout[8];  
     AUTH_DAT ad;
     KTEXT_ST ticket;
     int lup;
-    struct sockaddr_in addr;
+    struct sockaddr_in *addr;
 
     VL(("KERBEROS_V4 Step 2\n"));
 
@@ -563,7 +556,7 @@ static int server_continue_step (void *conn_context,
 
     /* check ticket */
     result=krb_rd_req(&ticket, (char *) sparams->service,
-		      text->instance,addr.sin_addr.s_addr,&ad, "");
+		      text->instance,addr->sin_addr.s_addr,&ad, srvtab);
 
     if (result!=SASL_OK) /* if fails mechanism fails */
     {
@@ -592,16 +585,17 @@ static int server_continue_step (void *conn_context,
       sout[4] |= KRB_SECFLAG_CREDENTIALS;
     sout[5]=0x00;  /* max ciphertext buffer size */
     sout[6]=0xFF;  /* let's say we can support up to 64K */
-    sout[7]=0xFF;  /* there is no inherint inability with our layers to support more tho */
+    sout[7]=0xFF;  /* no inherint inability with our layers to support more */
 
     memcpy(text->session, ad.session, 8);
     memcpy(text->pname, ad.pname, sizeof(text->pname));
     memcpy(text->pinst, ad.pinst, sizeof(text->pinst));
     memcpy(text->prealm, ad.prealm, sizeof(text->prealm));
-    des_key_sched(&ad.session, text->init_keysched);
+    des_key_sched(ad.session, text->init_keysched);
 
-    des_key_sched(&ad.session, text->enc_keysched); /* make keyschedule for */
-    des_key_sched(&ad.session, text->dec_keysched); /* encryption and decryption */
+    /* make keyschedule for encryption and decryption */
+    des_key_sched(ad.session, text->enc_keysched);
+    des_key_sched(ad.session, text->dec_keysched);
     
     des_ecb_encrypt((des_cblock *)sout,
 		    (des_cblock *)sout,
@@ -613,11 +607,11 @@ static int server_continue_step (void *conn_context,
     memcpy((char *) *serverout, sout, 8);
     *serveroutlen=8;
    
-    text->state=3;
+    text->state=2;
     return SASL_CONTINUE;
   }
 
-  if (text->state==3)
+  if (text->state==2)
   {
     int result;
     unsigned long testnum;
@@ -686,7 +680,7 @@ static int server_continue_step (void *conn_context,
     text->free=sparams->utils->free;
 
     /* fill in oparams */
-    oparams->maxoutbuf=1024; /* no clue what this should be */
+    oparams->maxoutbuf=0xFFFF; /* no clue what this should be */
     oparams->param_version=0;
     
     {
@@ -732,7 +726,6 @@ static int server_continue_step (void *conn_context,
 
     text->size=-1;
     text->needsize=4;
-    text->buffer=NULL;
 
     return SASL_OK;
   }
@@ -746,7 +739,7 @@ static const sasl_server_plug_t plugins[] =
   {
     "KERBEROS_V4",
     KRB_DES_SECURITY_BITS,
-    0,
+    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOACTIVE | SASL_SEC_NOANONYMOUS,
     NULL,
     &server_start,
     &server_continue_step,
@@ -761,44 +754,46 @@ static const sasl_server_plug_t plugins[] =
   }
 };
 
-int sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
+int sasl_server_plug_init(sasl_utils_t *utils,
 			  int maxversion,
 			  int *out_version,
 			  const sasl_server_plug_t **pluglist,
 			  int *plugcount)
 {
-  /* fail if we can't open the srvtab file */
-  if (access(KEYFILE, R_OK)!=0)
-    return SASL_FAIL;
+    char *ret;
+    unsigned int rl;
+    
+    utils->getopt(utils->getopt_context, "KERBEROS_V4", "srvtab", &ret, &rl);
 
-  if (maxversion<KERBEROS_VERSION)
-    return SASL_BADVERS;
+    if (ret == NULL) {
+	ret = KEYFILE;
+	rl = strlen(ret);
+    }
+    srvtab = utils->malloc(sizeof(char) * (rl + 1));
+    strcpy(srvtab, ret);
 
-  *pluglist=plugins;
+    /* fail if we can't open the srvtab file */
+    if (access(srvtab, R_OK)!=0)
+	return SASL_FAIL;
 
-  *plugcount=1;  
-  *out_version=KERBEROS_VERSION;
+    if (maxversion<KERBEROS_VERSION)
+	return SASL_BADVERS;
 
-  return SASL_OK;
+    *pluglist=plugins;
+
+    *plugcount=1;  
+    *out_version=KERBEROS_VERSION;
+    
+    return SASL_OK;
 }
 
 static int client_start(void *glob_context __attribute__((unused)), 
 		 sasl_client_params_t *params,
 		 void **conn)
 {
-  context_t *text;
-
   VL(("KERBEROS_V4 Client start\n"));
 
-  /* holds state are in */
-  text= params->utils->malloc(sizeof(context_t));
-  if (text==NULL) return SASL_NOMEM;
-  text->malloc= params->utils->malloc;
-  text->free= params->utils->free;
-  text->state=0;  
-  *conn=text;
-
-  return SASL_OK;
+  return new_text(params, (context_t **) conn);
 }
 
 static int client_continue_step (void *conn_context,
@@ -836,7 +831,7 @@ static int client_continue_step (void *conn_context,
     KTEXT_ST ticket;
     char *service=(char *)params->service;
 
-    VL(("KEBREROS_V4 Step 2\n"));
+    VL(("KERBEROS_V4 Step 2\n"));
 
     memset(&ticket, 0L, sizeof(ticket));
     ticket.length=MAX_KTXT_LEN;   
@@ -863,11 +858,13 @@ static int client_continue_step (void *conn_context,
     }
 
     text->realm=krb_realmofhost(params->serverFQDN);
-
     text->hostname=(char *) params->serverFQDN;
 
-    strncpy (text->instance, krb_get_phost (params->serverFQDN), sizeof (text->instance));
-    text->instance[sizeof(text->instance)-1] = 0;
+    /* the instance of the principal we're authenticating with */
+    strncpy (text->instance, krb_get_phost (params->serverFQDN), 
+	     sizeof (text->instance));
+    /* text->instance is NULL terminated unless it was too long */
+    text->instance[sizeof(text->instance)-1] = '\0';
 
     VL (("service=%s\n", service));
     VL (("instance=%s\n",text->instance));
@@ -995,25 +992,25 @@ static int client_continue_step (void *conn_context,
 		      text->realm,
 		      &text->credentials)))
     {
-
       return SASL_BADAUTH;
     }
+
     memcpy(text->session, text->credentials.session, 8);
-    des_key_sched((des_cblock *)text->session, text->init_keysched);
 
-    des_key_sched((des_cblock *)text->session, text->enc_keysched); /* make keyschedule for */
-    des_key_sched((des_cblock *)text->session, text->dec_keysched); /* encryption and decryption */
-
+    /* make key schedule for encryption and decryption */
+    des_key_sched(text->session, text->init_keysched);
+    des_key_sched(text->session, text->enc_keysched);
+    des_key_sched(text->session, text->dec_keysched);
 
     /* decrypt from server */
-    des_ecb_encrypt((des_cblock *)in, (des_cblock *)in, text->init_keysched,DES_DECRYPT);
+    des_ecb_encrypt((des_cblock *)in, (des_cblock *)in,
+		    text->init_keysched, DES_DECRYPT);
 
     /* convert to 32bit int */
-    testnum=(in[0]*256*256*256)+(in[1]*256*256)+(in[2]*256)+in[3];
-
+    testnum = (in[0]*256*256*256)+(in[1]*256*256)+(in[2]*256)+in[3];
 
     /* verify data 1st 4 octets must be equal to chal+1 */
-    if (testnum!=text->challenge+1)
+    if (testnum != text->challenge+1)
     {
       VL(("challenge not right\n"));
       return SASL_BADAUTH;
@@ -1039,9 +1036,9 @@ static int client_continue_step (void *conn_context,
     if ((in[4] & KRB_SECFLAG_ENCRYPTION)
 	&& cando_sec(&params->props, KRB_SECFLAG_ENCRYPTION)) {
       /* encryption */
-      oparams->encode=&privacy_encode;
-      oparams->decode=&privacy_decode;
-      oparams->mech_ssf=56;
+      oparams->encode = &privacy_encode;
+      oparams->decode = &privacy_decode;
+      oparams->mech_ssf = 56;
       sout[4] = KRB_SECFLAG_ENCRYPTION;
       VL (("Using encryption layer\n"));
     } else if ((in[4] & KRB_SECFLAG_INTEGRITY)
@@ -1067,11 +1064,11 @@ static int client_continue_step (void *conn_context,
     servermaxbuf=in[5]*256*256+in[6]*256+in[7];
     oparams->maxoutbuf=servermaxbuf;
 
-    sout[5]= (oparams->maxoutbuf) >> 16;  /* max ciphertext buffer size */
-    sout[6]= (oparams->maxoutbuf) >> 8;
-    sout[7]= (oparams->maxoutbuf);
+    sout[5] = (oparams->maxoutbuf) >> 16;  /* max ciphertext buffer size */
+    sout[6] = (oparams->maxoutbuf) >> 8;
+    sout[7] = (oparams->maxoutbuf);
 
-    sout[8]=0x00; /* just to be safe */
+    sout[8] = 0x00; /* just to be safe */
 
     /* append userid */
     len = 9;			/* 8 + trailing NULL */
@@ -1081,14 +1078,13 @@ static int client_continue_step (void *conn_context,
     }
 
     /* append 0 based octets so is multiple of 8 */
-    while(len%8)
+    while(len % 8)
     {
       sout[len]=0;
       len++;
     }
     sout[len]=0;
     
-    des_key_sched((des_cblock *)text->session, text->init_keysched);
     des_pcbc_encrypt((des_cblock *)sout,
 		     (des_cblock *)sout,
 		     len,
@@ -1134,13 +1130,10 @@ static int client_continue_step (void *conn_context,
     }
 
     oparams->doneflag=1;
-
-
     oparams->param_version=0;
 
     text->size=-1;
     text->needsize=4;
-    text->buffer=NULL;
 
     text->state++;
 
@@ -1160,7 +1153,7 @@ static const sasl_client_plug_t client_plugins[] =
   {
     "KERBEROS_V4",
     KRB_DES_SECURITY_BITS,
-    0,
+    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOACTIVE | SASL_SEC_NOANONYMOUS,
     NULL,
     &client_required_prompts,
     &client_start,

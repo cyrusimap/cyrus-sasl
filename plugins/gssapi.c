@@ -414,7 +414,7 @@ static const sasl_server_plug_t plugins[] =
   {
     "GSSAPI",
     56, /* max ssf */
-    0,
+    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOACTIVE | SASL_SEC_NOANONYMOUS,
     NULL,
     &sasl_gss_server_start,
     &sasl_gss_server_step,
@@ -697,7 +697,7 @@ static const sasl_client_plug_t client_plugins[] =
   {
     "GSSAPI",
     56, /* max ssf */
-    0,
+    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOACTIVE | SASL_SEC_NOANONYMOUS,
     NULL,
     NULL,
     &sasl_gss_client_start,

@@ -25,6 +25,8 @@
 
 SUBDIRS=include lib plugins utils doc man @DIRS@
 
+EXTRA_DIST=README.Y2K
+
 dist-hook:
 	@for dir in config cmulocal sample win32; do		\
 	  if test ! -d $(distdir)/$$dir; then			\

@@ -1,5 +1,5 @@
 Testing the CMU SASL Library with the included sample applications
-################################################################
+##################################################################
 
 The CMU SASL library comes with two small sample programs:
 sample-client and sample-server.  Each of these programs dump base-64

@@ -75,7 +75,7 @@ server_continue_step (void *conn_context __attribute__((unused)),
 	       const char **errstr)
 {
   int result;
-  struct sockaddr_in remote_addr;   
+  struct sockaddr_in *remote_addr;   
   char *clientdata;
 
   if (!sparams
@@ -108,7 +108,7 @@ server_continue_step (void *conn_context __attribute__((unused)),
 				   SASL_IP_REMOTE, (void **)&remote_addr);
 
   if (result==SASL_OK) {
-    int ipnum = remote_addr.sin_addr.s_addr;
+    int ipnum = remote_addr->sin_addr.s_addr;
 
     sparams->utils->log(sparams->utils->conn,
 			SASL_LOG_INFO,
@@ -131,7 +131,7 @@ server_continue_step (void *conn_context __attribute__((unused)),
     sparams->utils->free(clientdata);
   
   oparams->mech_ssf=0;
-  oparams->maxoutbuf=0;
+  oparams->maxoutbuf = 0;
   oparams->encode=NULL;
   oparams->decode=NULL;
 
@@ -159,7 +159,7 @@ static const sasl_server_plug_t plugins[] =
   {
     "ANONYMOUS",		/* mech_name */
     0,				/* max_ssf */
-    0,				/* security_flags */
+    SASL_SEC_NOPLAINTEXT,	/* security_flags */
     NULL,			/* glob_context */
     &server_start,		/* mech_new */
     &server_continue_step,	/* mech_step */
@@ -337,7 +337,7 @@ static const sasl_client_plug_t client_plugins[] =
   {
     "ANONYMOUS",		/* mech_name */
     0,				/* max_ssf */
-    0,				/* security_flags */
+    SASL_SEC_NOPLAINTEXT,	/* security_flags */
     client_required_prompts,	/* required_prompts */
     NULL,			/* glob_context */
     &client_start,		/* mech_new */

@@ -423,7 +423,7 @@ static int server_continue_step (void *conn_context,
 
     oparams->mech_ssf=0;
 
-    oparams->maxoutbuf=1024; /* no clue what this should be */
+    oparams->maxoutbuf=0; /* no clue what this should be */
   
     oparams->encode=NULL;
     oparams->decode=NULL;
@@ -528,7 +528,7 @@ static const sasl_server_plug_t plugins[] =
   {
     "CRAM-MD5",
     0,
-    0,
+    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
     NULL,
     &start,
     &server_continue_step,
@@ -609,6 +609,7 @@ static int get_authid(sasl_client_params_t *params,
   sasl_getsimple_t *getauth_cb;
   void *getauth_context;
   sasl_interact_t *prompt = NULL;
+  const char *ptr;
 
   /* see if we were given the authname in the prompt */
   if (prompt_need) prompt = find_prompt(*prompt_need,SASL_CB_AUTHNAME);
@@ -631,19 +632,23 @@ static int get_authid(sasl_client_params_t *params,
     {
     case SASL_INTERACT:
       return SASL_INTERACT;
+
     case SASL_OK:
       if (! getauth_cb)
-	return SASL_FAIL;
+	  return SASL_FAIL;
       result = getauth_cb(getauth_context,
 			  SASL_CB_AUTHNAME,
-			  (const char **)authid,
+			  (const char **)&ptr,
 			  NULL);
       if (result != SASL_OK)
-	return result;
+	  return result;
 
+      *authid=params->utils->malloc(strlen(ptr)+1);
+      if ((*authid)==NULL) return SASL_NOMEM;
+      strcpy(*authid, ptr);
       break;
+
     default:
-      /* sucess */
       break;
     }
 
@@ -660,10 +665,10 @@ static int get_password(sasl_client_params_t *params,
   int result;
   sasl_getsecret_t *getpass_cb;
   void *getpass_context;
-  sasl_interact_t *prompt;
+  sasl_interact_t *prompt = NULL;
 
   /* see if we were given the password in the prompt */
-  prompt=find_prompt(*prompt_need,SASL_CB_PASS);
+  if (prompt_need) prompt=find_prompt(*prompt_need,SASL_CB_PASS);
   if (prompt!=NULL)
   {
     /* We prompted, and got.*/
@@ -800,7 +805,7 @@ static int c_continue_step (void *conn_context,
   text=conn_context;
 
   oparams->mech_ssf=0;
-  oparams->maxoutbuf=1024; /* no clue what this should be */
+  oparams->maxoutbuf=0; /* no clue what this should be */
   oparams->encode=NULL;
   oparams->decode=NULL;
   oparams->user="anonymous"; /* set username */
@@ -813,7 +818,7 @@ static int c_continue_step (void *conn_context,
   if (text->state==1)
   {     
     sasl_security_properties_t secprops;
-    int external;
+    unsigned int external;
 
     text->msgid=params->utils->malloc(1);
     if (text->msgid==NULL) return SASL_NOMEM;
@@ -825,7 +830,7 @@ static int c_continue_step (void *conn_context,
     secprops=params->props;
     external=params->external_ssf;
 
-    if (secprops.min_ssf>0)
+    if (secprops.min_ssf>0+external)
       return SASL_TOOWEAK;
 
     text->state=2;
@@ -834,7 +839,6 @@ static int c_continue_step (void *conn_context,
 
   if (text->state==2)
   {
-    /*    unsigned char digest[1024];*/
     char *in16;
     int auth_result=SASL_OK;
     int pass_result=SASL_OK;
@@ -867,7 +871,7 @@ static int c_continue_step (void *conn_context,
 
     
     /* free prompts we got */
-    free_prompts(params,*prompt_need);
+    if (prompt_need) free_prompts(params,*prompt_need);
 
     /* if there are prompts not filled in */
     if ((auth_result==SASL_INTERACT) ||
@@ -907,6 +911,9 @@ static int c_continue_step (void *conn_context,
 
     /*nothing more to do; authenticated */
     oparams->doneflag=1;
+    oparams->mech_ssf = 0;
+    oparams->authid = (char *) params->utils->malloc(strlen(text->authid) + 1);
+    strcpy(oparams->authid, text->authid);
 
     VL(("clientout looks like=%s %i\n",*clientout,*clientoutlen));
 
@@ -929,7 +936,7 @@ static const sasl_client_plug_t client_plugins[] =
   {
     "CRAM-MD5",
     0,
-    0,
+    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
     client_required_prompts,
     NULL,
     &c_start,

@@ -566,33 +566,37 @@ int sasl_client_start(sasl_conn_t *conn,
     VL(("Considering mech %s\n",name));
 
     /* foreach in server list */
-    for (m = cmechlist->mech_list;
-	 m != NULL;
-	 m = m->next)
-      if (! strcasecmp(m->plug->mech_name, name)
-	  && have_prompts(conn, m->plug)
-	  && minssf <= m->plug->max_ssf
-	  && (! bestm
-	      || ((conn->props.security_flags
-		   & SASL_SEC_PASS_CREDENTIALS)
-		  && ! (bestm->plug->security_flags
-			& SASL_SEC_PASS_CREDENTIALS)
-		  && (m->plug->security_flags
-		      & SASL_SEC_PASS_CREDENTIALS))
-	      || ((! (conn->props.security_flags
-		      & SASL_SEC_PASS_CREDENTIALS)
-		   || ! ((bestm->plug->security_flags
-			  & SASL_SEC_PASS_CREDENTIALS)
-			 ^ (m->plug->security_flags
-			    & SASL_SEC_PASS_CREDENTIALS)))
-		  && m->plug->max_ssf > bestssf)))
-	{
-	  VL(("Best mech so far: %s\n", m->plug->mech_name));
-	  if (mech)
-	    *mech=m->plug->mech_name;
-	  bestssf=m->plug->max_ssf;
-	  bestm=m;
+    for (m = cmechlist->mech_list; m != NULL; m = m->next) {
+	/* is this the mechanism the server is suggesting? */
+	if (strcasecmp(m->plug->mech_name, name))
+	    continue; /* no */
+
+	/* do we have the prompts for it? */
+	if (!have_prompts(conn, m->plug))
+	    break;
+
+	/* is it strong enough? */
+	if (minssf > (m->plug->max_ssf + conn->external.ssf))
+	    break;
+
+	/* does it meet our security properties? */
+	if (((conn->props.security_flags ^ m->plug->security_flags)
+	     & conn->props.security_flags) != 0) {
+	    break;
 	}
+
+	if (bestm && m->plug->max_ssf <= bestssf) {
+	    /* this mechanism is no better than what we already have! */
+	    break;
+	}
+
+	VL(("Best mech so far: %s\n", m->plug->mech_name));
+	if (mech)
+	    *mech=m->plug->mech_name;
+	bestssf=m->plug->max_ssf;
+	bestm=m;
+	break;
+    }
   }
 
   if (bestm == NULL) {

@@ -73,8 +73,8 @@ static const char *flag_subopts[] = {
   "nodict",
 #define OPT_FORWARDSEC (3)
   "forwardsec",
-#define OPT_MAXIMUM (4)
-  "maximum",
+#define OPT_NOANONYMOUS (4)
+  "noanonymous",
 #define OPT_PASSCRED (5)
   "passcred",
   NULL
@@ -275,7 +275,7 @@ main(int argc, char *argv[])
   unsigned len, count;
   char *data;
   const char *errstr = NULL;
-  sasl_ssf_t ssf;
+  sasl_ssf_t *ssf;
 
   progname = strrchr(argv[0], '/');
   if (progname)
@@ -355,8 +355,8 @@ main(int argc, char *argv[])
 	case OPT_FORWARDSEC:
 	  secprops.security_flags |= SASL_SEC_FORWARD_SECRECY;
 	  break;
-	case OPT_MAXIMUM:
-	  secprops.security_flags |= SASL_SEC_MAXIMUM;
+	case OPT_NOANONYMOUS:
+	  secprops.security_flags |= SASL_SEC_NOANONYMOUS;
 	  break;
 	case OPT_PASSCRED:
 	  secprops.security_flags |= SASL_SEC_PASS_CREDENTIALS;
@@ -559,7 +559,7 @@ main(int argc, char *argv[])
   if (result != SASL_OK)
     sasldebug(result, "ssf", NULL);
   else
-    printf("SSF: %d\n", ssf);
+    printf("SSF: %d\n", *ssf);
 
   return (EXIT_SUCCESS);
 }

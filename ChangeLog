@@ -1,11 +1,45 @@
+Mon Jun 21 22:39:17 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/kerberos4.c: efficiency improvements (not so many
+	mallocs/frees)
+
+Fri Jun 18 00:05:56 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/kerberos4.c (sasl_server_plug_init): made srvtab file
+	configurable (srvtab)
+
+	* plugins/digestmd5.c (get_pair): doesn't check that there
+	actually is a '=' in *name.  does this code check for errors?
+
 Thu Jun 17 00:46:03 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/digestmd5.c (init_rc4): the generation of
 	incoming/outgoing keys was seriously flawed and didn't conform to
 	the draft.
 
+	* plugins/digestmd5.c: it's broken.  both integrity and
+	encryption.  disabled in this version.  authentication SHOULD
+	still work.
+
 	* plugins/cram.c (get_authid): added a NULL check (causing test
 	client to crash!)
+
+Thu Jun 17 00:40:07 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/client.c (sasl_client_start): rewrote the evil if statement
+	from hell, and added security properties check
+
+	* lib/server.c (mech_permitted): added security properties check
+
+	* plugins/plain.c (server_continue_step): if null first step, just
+	return SASL_CONTINUE so it might work with IMAP!
+
+Wed Jun 16 23:19:00 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/server.c (sasl_checkpass): pwcheck_method added
+
+	* plugins/plain.c (verify_password): added PAM support
+	pwcheck_method added
 
 Tue Jun 15 15:21:05 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 

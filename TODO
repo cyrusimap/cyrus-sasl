@@ -1,34 +1,35 @@
-C
-~~~~~~~~~~
+Library
+~~~~~~~
 ) Work with our GSSAPI libs
-) No buffers on the stack
-) No fixed-length buffers
-) Zero all sensitive data after use
 ) Better/FASTER random numbers (init time is pretty miserable)
 ) Test suite
-) Configuration directory support -- multiple files which, together,
-  determine the security parameters and available mechanisms on a per-protocol
-  and per-application basis.
+) Confirm API changes
+) Add dbm to pwcheck_method
 
 Documentation
-~~~~~~~~~~
-) Rob:
-  - About SASL
-) Karen:
-  - Java documentation cleanup?
-  - SASL home page
+~~~~~~~~~~~~~
+) so much to do here
+) how to write an application using sasl
+) man pages
+) how to configure sasl
 
 Mechs to write
-~~~~~~~~~~
+~~~~~~~~~~~~~~
 ) PASSDSS-3DES-1 (draft-newman-sasl-passdss-01.txt)
 ) OTP
 
 Digest-MD5
 ~~~~~~~~~~
-) Purify, exhaustively test, &c.
+) Layers
+) Checking wacko cases or even not so wacko cases
+) Testing
+
+Kerberos_V4
+~~~~~~~~~~~
+) Needs to check timestamps for replay attacks
 
 ABI
-~~~~~~~~~~
+~~~
 ) Consider IRIX ABI issues for plugins
 	- /usr/lib32/sasl?
 	- /usr/lib/sasl/{ABI}?

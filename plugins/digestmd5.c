@@ -24,6 +24,9 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
+#define IM_BROKEN		/* integrity/encryption are very broken
+				   in this implementation */
+
 #include <config.h>
 #include <des.h>
 #include <stdlib.h>
@@ -102,19 +105,29 @@ typedef unsigned char HASHHEX[HASHHEXLEN + 1];
 #define MAC_SIZE 10
 #endif
 
+#define SEALING_CLIENT_SERVER "Digest H(A1) to client-to-server sealing key magic constant"
+#define SEALING_SERVER_CLIENT "Digest H(A1) to server-to-client sealing key magic constant"
+
+#define SIGNING_CLIENT_SERVER "Digest session key to client-to-server signing key magic constant"
+#define SIGNING_SERVER_CLIENT "Digest session key to server-to-client signing key magic constant"
+
+#define SERVER 0
+#define CLIENT 1
+
 /* function definitions for cipher encode/decode */
 typedef int cipher_function_t(void *,
-			     const char *,
-			     unsigned,
-			     char **,
-			     unsigned *);
+			      const char *,
+			      unsigned,
+			      char **,
+			      unsigned *);
 
-typedef int cipher_init_t(void *,
+typedef int cipher_init_t(void *, sasl_utils_t *,
 			  char *, int);
 
 /* context that stores info */
 typedef struct context {
   int             state;	/* state in the authentication we are in */
+  int i_am;			/* are we the client or server? */
 
   unsigned char  *nonce;
   int             noncelen;
@@ -146,8 +159,6 @@ typedef struct context {
   int             size;
   int             needsize;
 
-
-
   /* Server MaxBuf for Client or Client MaxBuf For Server */
   unsigned int    maxbuf;
 
@@ -169,7 +180,7 @@ typedef struct context {
   rc4_context_t *rc4_enc_context;
   rc4_context_t *rc4_dec_context;
 #endif /* WITH_RC4 */
-}               context_t;
+} context_t;
 
 /* this is from the rpc world */
 #define IN
@@ -177,14 +188,6 @@ typedef struct context {
 
 
 static int      htoi(unsigned char *hexin, int *res);
-
-/* xxx these should be different but then we need to do lots of other stuff */
-
-#define MAGIC_IC "Digest session key to client-to-server signing key magic constant"
-#define MAGIC_IS "Digest session key to client-to-server signing key magic constant"
-
-#define MAGIC_CC "Digest H(A1) to client-to-server sealing key magic constant"
-#define MAGIC_CS "Digest H(A1) to client-to-server sealing key magic constant"
 
 #define DIGESTMD5_VERSION (3)
 #define KEYS_FILE NULL
@@ -365,17 +368,6 @@ DigestCalcHA1(IN context_t * text,
   utils->MD5Update(&Md5Ctx, HA1, HASHLEN);
   utils->MD5Update(&Md5Ctx, pszMagic_i, strlen((char *) pszMagic_i));
   utils->MD5Final(text->Ki, &Md5Ctx);
-
-  /* xxx rc-* use different n */
-  if (n>0)
-  {
-    utils->MD5Init(&Md5Ctx);
-    utils->MD5Update(&Md5Ctx, HA1, n);
-    utils->MD5Update(&Md5Ctx, pszMagic_c, strlen((char *) pszMagic_c));
-    utils->MD5Final(text->Kc, &Md5Ctx);
-  } else {
-    /*xxx errr..    text->Kc=NULL; */
-  }
 }
 
 
@@ -575,16 +567,6 @@ DigestCalcHA1FromSecret(IN context_t * text,
   utils->MD5Update(&Md5Ctx, HA1, HASHLEN);
   utils->MD5Update(&Md5Ctx, pszMagic_i, strlen((char *) pszMagic_i));
   utils->MD5Final(text->Ki, &Md5Ctx);
-
-  /* for confedentiality protection Kcs = MD5(H(A1),"session key") */
-  if (n>0) {
-    utils->MD5Init(&Md5Ctx);
-    utils->MD5Update(&Md5Ctx, HA1, n); /* 16 here */
-    utils->MD5Update(&Md5Ctx, pszMagic_c, strlen((char *) pszMagic_c));
-    utils->MD5Final(text->Kc, &Md5Ctx);  
-  } else {
-    /* xxx errr... text->Kc=NULL;*/
-  }
 }
 
 static char    *
@@ -805,10 +787,14 @@ get_pair(char **in, char **name, char **value)
   *name = NULL;
   *value = NULL;
 
-  if (curp == NULL)
-    return;
-  if (curp[0] == '\0')
-    return;
+  if (curp == NULL) {
+      *name = NULL;
+      return;
+  }
+  if (curp[0] == '\0') {
+      *name = NULL;
+      return;
+  }
 
   /* skipping spaces: */
   while (curp[0] == ' ')
@@ -817,6 +803,10 @@ get_pair(char **in, char **name, char **value)
   *name = curp;
 
   *value = strchr(*name, '=');
+  if (*value == NULL) {
+      *name = NULL;
+      return;
+  }
   (*value)[0] = '\0';
   (*value)++;
 
@@ -960,22 +950,47 @@ int enc_3des(struct context *text,
   return SASL_OK;
 }
 
-static int init_3des(context_t *text, char *key, int keylen)
+static int init_3des(context_t *text, sasl_utils_t *utils, 
+		     char *key, int keylen)
 {
-  if (text == NULL) return SASL_BADPARAM;
-  if (key == NULL) return SASL_BADPARAM;
+    char enckey[16];
+    char deckey[16];
+    MD5_CTX Md5Ctx;
+    
+    if (text == NULL) return SASL_BADPARAM;
+    if (key == NULL) return SASL_BADPARAM;
+    
+    VL(("initializing 3des\n"));
+  
+    utils->MD5Init(&Md5Ctx);
+    utils->MD5Update(&Md5Ctx, key, keylen);
+    if (text->i_am == SERVER) {
+	utils->MD5Update(&Md5Ctx, SEALING_SERVER_CLIENT, 
+			 strlen(SEALING_SERVER_CLIENT));
+    } else {
+	utils->MD5Update(&Md5Ctx, SEALING_CLIENT_SERVER,
+			 strlen(SEALING_SERVER_CLIENT));
+    }
+    utils->MD5Final(enckey, &Md5Ctx);
+    
+    utils->MD5Init(&Md5Ctx);
+    utils->MD5Update(&Md5Ctx, key, keylen);
+    if (text->i_am == SERVER) {
+	utils->MD5Update(&Md5Ctx, SEALING_CLIENT_SERVER, 
+			 strlen(SEALING_CLIENT_SERVER));
+    } else {
+	utils->MD5Update(&Md5Ctx, SEALING_SERVER_CLIENT,
+			 strlen(SEALING_CLIENT_SERVER));
+    }
+    utils->MD5Final(deckey, &Md5Ctx);
+    
+    des_key_sched((des_cblock *) enckey, text->keysched_enc);
+    des_key_sched((des_cblock *) deckey, text->keysched_dec);
+    
+    des_key_sched((des_cblock *) (enckey+7), text->keysched_enc2);
+    des_key_sched((des_cblock *) (deckey+7), text->keysched_dec2);
 
-  if (keylen<14) return SASL_FAIL;
-
-  VL(("initializing 3des\n"));
-
-  des_key_sched((des_cblock *) key, text->keysched_enc); /* encryption and decryption */
-  des_key_sched((des_cblock *) key, text->keysched_dec); /* encryption and decryption */
-
-  des_key_sched((des_cblock *) (key+7), text->keysched_enc2); /* encryption and decryption */
-  des_key_sched((des_cblock *) (key+7), text->keysched_dec2); /* encryption and decryption */
-
-  return SASL_OK;
+    return SASL_OK;
 }
 
 
@@ -1013,9 +1028,7 @@ static int dec_des(context_t *text,
 		    DES_DECRYPT);
   }
 
-  /* xxx this is wrong */
-  while( (*output)[(*outputlen)-1]==0)
-    (*outputlen)--;
+  /* HOW CAN WE STRIP OFF THE PADDING?!?!? */
 
   return SASL_OK;
 }
@@ -1039,7 +1052,9 @@ static int enc_des(context_t *text,
   {
     if (inputlen-lup<8)
     {
-      memset(last,0,8);
+      memset(last,8-(inputlen-lup),8); /* "padding prefix is one or more 
+					  octets each containing 
+					  the number of padding bytes" */
       memcpy(last,input+lup,inputlen-lup);
       /* encrpyt with 1st key */
       des_ecb_encrypt((des_cblock *) last,
@@ -1060,34 +1075,78 @@ static int enc_des(context_t *text,
 
   return SASL_OK;
 }
-static int init_des(context_t *text, char *key, int keylen)
+
+static int init_des(context_t *text, sasl_utils_t *utils,
+		    char *key, int keylen)
 {
-  if (text == NULL) return SASL_BADPARAM;
-  if (key == NULL) return SASL_BADPARAM;
-
-  if (keylen<7) return SASL_FAIL;
-
-  VL(("initializing DES\n"));
-
-  des_key_sched((des_cblock *) key, text->keysched_enc); /* encryption and decryption */
-  des_key_sched((des_cblock *) key, text->keysched_dec); /* encryption and decryption */
-
-  return SASL_OK;
+    char enckey[16];
+    char deckey[16];
+    MD5_CTX Md5Ctx;
+    
+    if (text == NULL) return SASL_BADPARAM;
+    if (key == NULL) return SASL_BADPARAM;
+    
+    utils->MD5Init(&Md5Ctx);
+    utils->MD5Update(&Md5Ctx, key, keylen);
+    if (text->i_am == SERVER) {
+	utils->MD5Update(&Md5Ctx, SEALING_SERVER_CLIENT, 
+			 strlen(SEALING_SERVER_CLIENT));
+    } else {
+	utils->MD5Update(&Md5Ctx, SEALING_CLIENT_SERVER,
+			 strlen(SEALING_SERVER_CLIENT));
+    }
+    utils->MD5Final(enckey, &Md5Ctx);
+    
+    utils->MD5Init(&Md5Ctx);
+    utils->MD5Update(&Md5Ctx, key, keylen);
+    if (text->i_am == SERVER) {
+	utils->MD5Update(&Md5Ctx, SEALING_CLIENT_SERVER, 
+			 strlen(SEALING_CLIENT_SERVER));
+    } else {
+	utils->MD5Update(&Md5Ctx, SEALING_SERVER_CLIENT,
+			 strlen(SEALING_CLIENT_SERVER));
+    }
+    utils->MD5Final(deckey, &Md5Ctx);
+    
+    VL(("initializing DES\n"));
+    
+    des_key_sched((des_cblock *) enckey, text->keysched_enc);
+    des_key_sched((des_cblock *) deckey, text->keysched_dec);
+    
+    return SASL_OK;
 }
 
 #ifdef WITH_RC4
 static int
-init_rc4(void *v,
-	 char *key,
-	 int keylen)
+init_rc4(void *v, sasl_utils_t *utils,
+	 char *key, int keylen)
 {
   context_t *text = (context_t *) v;
   char enckey[16];
   char deckey[16];
-  MD5_CTX ctx;
+  MD5_CTX Md5Ctx;
 
-  
+  utils->MD5Init(&Md5Ctx);
+  utils->MD5Update(&Md5Ctx, key, keylen);
+  if (text->i_am == SERVER) {
+      utils->MD5Update(&Md5Ctx, SEALING_SERVER_CLIENT, 
+		       strlen(SEALING_SERVER_CLIENT));
+  } else {
+      utils->MD5Update(&Md5Ctx, SEALING_CLIENT_SERVER,
+		       strlen(SEALING_SERVER_CLIENT));
+  }
+  utils->MD5Final(enckey, &Md5Ctx);
 
+  utils->MD5Init(&Md5Ctx);
+  utils->MD5Update(&Md5Ctx, key, keylen);
+  if (text->i_am == SERVER) {
+      utils->MD5Update(&Md5Ctx, SEALING_CLIENT_SERVER, 
+		       strlen(SEALING_CLIENT_SERVER));
+  } else {
+      utils->MD5Update(&Md5Ctx, SEALING_SERVER_CLIENT,
+		       strlen(SEALING_CLIENT_SERVER));
+  }
+  utils->MD5Final(deckey, &Md5Ctx);
 
   text->rc4_enc_context=(rc4_context_t *) text->malloc(sizeof(rc4_context_t));
   if (text->rc4_enc_context==NULL) return SASL_NOMEM;
@@ -1095,8 +1154,8 @@ init_rc4(void *v,
   text->rc4_dec_context=(rc4_context_t *) text->malloc(sizeof(rc4_context_t));
   if (text->rc4_dec_context==NULL) return SASL_NOMEM;
 
-  rc4_init(text->rc4_enc_context, key, keylen);
-  rc4_init(text->rc4_dec_context, key, keylen);
+  rc4_init(text->rc4_enc_context, enckey, 16);
+  rc4_init(text->rc4_dec_context, deckey, 16);
 
   return SASL_OK;
 }
@@ -1160,18 +1219,10 @@ privacy_encode(void *context,
 		   &out,outputlen);
   out+=(*outputlen);
 
-#ifdef DIGEST_DRAFT_2
   /* copy in version */
   tmpnum = htonl(version);
   memcpy(out, &tmpnum, 4);	/* 4 bytes = version */  
   out+=4;
-#else
-  /* copy in version */
-  tmpnum = htonl(version);
-  memcpy(out, ((char *)&tmpnum)+2, 2);	/* 2 bytes = version */  
-  out+=2;
-#endif
-
 
   /* construct (seqnum, msg) */
   param2 = (unsigned char *) text->malloc(inputlen + 4);
@@ -1616,28 +1667,29 @@ integrity_decode(void *context,
 }
 
 
-static int      server_start(void *glob_context __attribute__((unused)),
-			                     sasl_server_params_t * sparams,
-	                      const char *challenge __attribute__((unused)),
-			                int challen __attribute__((unused)),
-			                     void **conn,
-			                     const char **errstr) {
-  context_t      *text;
+static int server_start(void *glob_context __attribute__((unused)),
+			sasl_server_params_t * sparams,
+			const char *challenge __attribute__((unused)),
+			int challen __attribute__((unused)),
+			void **conn,
+			const char **errstr)
+{
+    context_t *text;
 
-  if (errstr)
-    *errstr = NULL;
+    if (errstr)
+	*errstr = NULL;
 
-  /* holds state are in */
-  text = sparams->utils->malloc(sizeof(context_t));
-  if (text == NULL)
-    return SASL_NOMEM;
-  text->state = 1;
+    /* holds state are in */
+    text = sparams->utils->malloc(sizeof(context_t));
+    if (text == NULL)
+	return SASL_NOMEM;
 
-  text->cipher_init=NULL;
+    text->i_am = SERVER;
+    text->state = 1;
+    text->cipher_init=NULL;
+    *conn = text;
 
-  *conn = text;
-
-  return SASL_OK;
+    return SASL_OK;
 }
 
 static void
@@ -1708,6 +1760,11 @@ server_continue_step(void *conn_context,
      * digest-challenge  = 1#( realm | nonce | qop-options | stale | maxbuf |
      * charset | cipher-opts | auth-param )
      */
+
+#ifdef IM_BROKEN
+    cipheropts = "frog";
+    qop = "auth";
+#endif
 
     /* get realm */
     result = get_realm(sparams, &realm);
@@ -1853,8 +1910,11 @@ server_continue_step(void *conn_context,
 
     /* parse what we got */
     while (in[0] != '\0') {
-      char           *name, *value;
+      char           *name = NULL, *value = NULL;
       get_pair(&in, &name, &value);
+
+      if (name == NULL)
+	  break;
 
       VL(("received form client pair: %s - %s\n", name, value));
 
@@ -2149,8 +2209,8 @@ server_continue_step(void *conn_context,
 				     qop,
 				     digesturi,
 				     A1,
-				     MAGIC_IS,
-				     MAGIC_CS,
+				     SIGNING_SERVER_CLIENT,
+				     SEALING_SERVER_CLIENT,
 				     n,
 				     &text->response_value);
 
@@ -2211,9 +2271,9 @@ server_continue_step(void *conn_context,
 
     /* initialize cipher if need be */
     if (text->cipher_init!=NULL)
-      text->cipher_init(text, 
+      text->cipher_init(text, sparams->utils,
 			text->Kc, /* the privacy key */
-			n); /* number of bits of key we made */
+			n); /* number of bytes of key we made */
 
     /*
      * The server receives and validates the "digest-response". The server
@@ -2295,13 +2355,13 @@ FreeAllMem:
 }
 
 static int
-                setpass(void *glob_context __attribute__((unused)),
-			                sasl_server_params_t * sparams,
-			                const char *user,
-			                const char *pass,
-			                unsigned passlen,
-			                int flags __attribute__((unused)),
-			                const char **errstr) {
+setpass(void *glob_context __attribute__((unused)),
+	sasl_server_params_t * sparams,
+	const char *user,
+	const char *pass,
+	unsigned passlen,
+	int flags __attribute__((unused)),
+	const char **errstr) {
   int             result;
   sasl_server_putsecret_t *putsecret;
   void           *putsecret_context;
@@ -2389,8 +2449,16 @@ const sasl_server_plug_t plugins[] =
 {
   {
     "DIGEST-MD5",
+#ifndef IM_BROKEN
+#ifdef WITH_RC4
     128,				/*xxx max ssf */
+#else
+    112,
+#endif
+#else
     0,
+#endif
+    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
     NULL,
     &server_start,
     &server_continue_step,
@@ -2423,25 +2491,25 @@ int sasl_server_plug_init(sasl_utils_t * utils __attribute__((unused)),
 }
 
 /* put in sasl_wrongmech */
-static int      c_start(void *glob_context __attribute__((unused)),
-			                sasl_client_params_t * params,
-			                void **conn) {
-  context_t      *text;
+static int c_start(void *glob_context __attribute__((unused)),
+		   sasl_client_params_t * params,
+		   void **conn) {
+    context_t *text;
 
-  /* holds state are in */
-  text = params->utils->malloc(sizeof(context_t));
-  if (text == NULL)
-    return SASL_NOMEM;
+    /* holds state are in */
+    text = params->utils->malloc(sizeof(context_t));
+    if (text == NULL)
+	return SASL_NOMEM;
 
-  text->authid = NULL;
-  text->password = NULL;
+    text->i_am = CLIENT;
+    text->authid = NULL;
+    text->password = NULL;
+    text->cipher_init=NULL;
+    text->state = 1;
 
-  text->cipher_init=NULL;
+    *conn = text;
 
-  text->state = 1;
-  *conn = text;
-
-  return SASL_OK;
+    return SASL_OK;
 }
 
 
@@ -3055,7 +3123,7 @@ c_continue_step(void *conn_context,
       } else if ((secprops.max_ssf>=56)  && ((ciphers & CIPHER_RC456) == CIPHER_RC456)) { /* rc4-56 */
  	VL(("Trying to use rc4-56"));
  	cipher = "rc4-56";
- 	text->cipher_enc=(cipher_function_t *) &enc_rc4; /* uses same function both ways */
+ 	text->cipher_enc=(cipher_function_t *) &enc_rc4;
  	text->cipher_dec=(cipher_function_t *) &dec_rc4;
  	text->cipher_init=&init_rc4;
  	oparams->mech_ssf = 56;
@@ -3076,7 +3144,7 @@ c_continue_step(void *conn_context,
       } else if ((secprops.max_ssf>=40)  && ((ciphers & CIPHER_RC440) == CIPHER_RC440)) { /* rc4-40 */
  	VL(("Trying to use rc4-40"));
  	cipher = "rc4-40";
- 	text->cipher_enc=(cipher_function_t *) &enc_rc4; /* uses same function both ways */
+ 	text->cipher_enc=(cipher_function_t *) &enc_rc4;
  	text->cipher_dec=(cipher_function_t *) &dec_rc4;
  	text->cipher_init=&init_rc4;
  	oparams->mech_ssf = 40;
@@ -3166,8 +3234,8 @@ c_continue_step(void *conn_context,
 				  qop,
 				  digesturi,
 				  text->password,
-				  MAGIC_IC,
-				  MAGIC_CC,
+				  SIGNING_CLIENT_SERVER,
+				  SEALING_CLIENT_SERVER,
 				  n, /* bytes to use to make privacy key */
 				  &text->response_value);
 
@@ -3254,7 +3322,7 @@ c_continue_step(void *conn_context,
     /* set oparams */
 
     oparams->doneflag = 1;
-    oparams->maxoutbuf = 1024;	/* no clue what this should be */
+    oparams->maxoutbuf = 4096;
 
     oparams->param_version = 0;
 
@@ -3274,7 +3342,7 @@ c_continue_step(void *conn_context,
 
     /* initialize cipher if need be */
     if (text->cipher_init!=NULL)
-      text->cipher_init(text, text->Kc, n);
+      text->cipher_init(text, params->utils, text->Kc, n);
 
 FreeAllocatedMem:
     params->utils->free(response);	/* !!! */
@@ -3367,8 +3435,16 @@ const sasl_client_plug_t client_plugins[] =
 {
   {
     "DIGEST-MD5",
-    1 /* ??? */ ,		/* max ssf */
+#ifndef IM_BROKEN
+#ifdef WITH_RC4
+    128,				/*xxx max ssf */
+#else
+    112,
+#endif
+#else
     0,
+#endif
+    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
     client_required_prompts,
     NULL,
     &c_start,

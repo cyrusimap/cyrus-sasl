@@ -181,7 +181,8 @@ static int use_key(char *user __attribute__((unused)),
  * 0 for failure.  On failure, 'reply' is filled in with a pointer to
  * the reason.
  */
-int _sasl_kerberos_verify_password(const char *user, const char *passwd,char *service, const char **reply)
+int _sasl_kerberos_verify_password(const char *user, const char *passwd,
+				   const char *service, const char **reply)
 {
     int result;
     des_cblock key;
@@ -196,7 +197,7 @@ int _sasl_kerberos_verify_password(const char *user, const char *passwd,char *se
 
     if (krb_get_lrealm(realm, 1)) return SASL_FAIL;
 
-    sprintf(tfname, "/tmp/tkt_imapd_%d", getpid());
+    sprintf(tfname, "/tmp/tkt_%d", getpid());
     krb_set_tkt_string(tfname);
 
     /* First try Kerberos string-to-key */
@@ -219,7 +220,7 @@ int _sasl_kerberos_verify_password(const char *user, const char *passwd,char *se
 
     if (result != 0) {
 	dest_tkt();
-	*reply = krb_err_txt[result];
+	if (reply) *reply = krb_err_txt[result];
 	return SASL_FAIL;
     }
 
@@ -230,20 +231,21 @@ int _sasl_kerberos_verify_password(const char *user, const char *passwd,char *se
     if (result != 0) {
 	memset(&authent, 0, sizeof(authent));
 	dest_tkt();
-	*reply = krb_err_txt[result];
+	if (reply) *reply = krb_err_txt[result];
 	return SASL_FAIL;
     }
     strcpy(instance, "*");
-    result = krb_rd_req(&authent, service, instance, 0L, &kdata, ""); /* xxx allow alternate locations */
+    result = krb_rd_req(&authent, service, instance, 0L, &kdata, ""); 
+				/* xxx allow alternate locations */
     memset(&authent, 0, sizeof(authent));
     memset(kdata.session, 0, sizeof(kdata.session));
     if (result != 0 || strcmp(kdata.pname, user) != 0 || kdata.pinst[0] ||
 	strcmp(kdata.prealm, realm) != 0) {
 	if (result != 0) {
-	    *reply = krb_err_txt[result];
+	    if (reply) *reply = krb_err_txt[result];
 	}
 	else {
-	    *reply = "Kerberos ID does not match user name";
+	    if (reply) *reply = "Kerberos ID does not match user name";
 	}
 	result = SASL_FAIL;
     }
@@ -318,7 +320,7 @@ static int sasl_pam_conv(int num_msg, struct pam_message **msg,
     int ret;
 
     reply = (struct pam_response *) sasl_ALLOC(sizeof(struct pam_response) * 
-					   num_msg);
+					       num_msg);
     if (reply == NULL)
 	return PAM_CONV_ERR;
 
@@ -363,22 +365,18 @@ int _sasl_PAM_verify_password(const char *userid, const char *password,
 			      const char **reply __attribute__((unused)) )
 {
     pam_handle_t *pamh;
-    struct sasl_pam_data *pd;
+    struct sasl_pam_data pd;
     int pam_error;
 
     if (!userid || !password) {
 	return SASL_BADPARAM;
     }
 
-    pd = (struct sasl_pam_data *) sasl_ALLOC(sizeof(struct sasl_pam_data));
-    if (pd == NULL)
-	return SASL_NOMEM;
+    my_conv.appdata_ptr = &pd;
 
-    my_conv.appdata_ptr = (void *) pd;
-
-    pd->userid = userid;
-    pd->password = password;
-    pd->pam_error = 0;
+    pd.userid = userid;
+    pd.password = password;
+    pd.pam_error = 0;
 
     pam_error = pam_start("SASL", userid, &my_conv, &pamh);
     if (pam_error != PAM_SUCCESS) {
@@ -393,7 +391,6 @@ int _sasl_PAM_verify_password(const char *userid, const char *password,
     return SASL_OK;    
 
 pam_err:
-    sasl_FREE(pd);
     return SASL_BADAUTH;
 }
 

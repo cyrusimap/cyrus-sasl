@@ -26,9 +26,10 @@ SOFTWARE.
 /*
  * Current Valid keys:
  *
- * PlainMech: <string>
- * Transition: <boolean>
+ * pwcheck_method: <string>
+ * auto_transition: <boolean>
  *
+ * srvtab: <string>
  */
 
 

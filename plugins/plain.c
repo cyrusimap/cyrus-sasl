@@ -134,45 +134,47 @@ static int server_continue_step (void *conn_context,
 
 #else /* SASL_MINIMAL_SERVER */
 
+extern int _sasl_kerberos_verify_password(const char *user, const char *passwd,
+					  const char *service, 
+					  const char **reply);
+
+extern int _sasl_shadow_verify_password(const char *userid, 
+					const char *password,
+					const char **reply);
+
+extern int _sasl_passwd_verify_password(const char *userid,
+					    const char *password,
+					    const char **reply);
+
+extern int _sasl_PAM_verify_password(const char *userid, const char *password,
+				     const char **reply);
+
 /* fills in password  remember to free password and wipe it out correctly */
-static int verify_password(const char *userid,
-			   const char *password)
+static
+int verify_password(sasl_server_params_t *params, 
+		    const char *user, const char *pass)
 {
-  struct passwd *pwd;
-  char *salt;
-  char *crypted;
+    const char *mech;
+    int result;
+    
+    params->utils->getopt(params->utils->getopt_context, "PLAIN",
+			  "pwcheck_method", &mech, NULL);
 
-  /* XXX Really, this should use the reentrant versions of getpwnam,
-   * getspnam, and crypt.  The problem is that Linux/glibc and Solaris 
-   * have different reentrant APIs (someday, I'd like to know what the 
-   * glibc people were smoking), and it'd be a royal pain to figure
-   * out which version we're supposed to be using. */
-  /* Eventually, this should probably just be ported to use PAM. */
+    if (mech == NULL) {
+#ifdef HAVE_PAM
+	mech = "PAM";
+#else
+#ifdef HAVE_KRB
+	mech = "kerberos_v4";
+#else
+	mech = "passwd";
+#endif /* HAVE_KRB */
+#endif /* HAVE_PAM */
+    }
 
-  pwd=getpwnam(userid);
-  if (pwd==NULL) return SASL_NOUSER;
-
-  salt = pwd->pw_passwd;
-
-  crypted= crypt(password, salt);
-
-  if (strcmp(crypted, pwd->pw_passwd)) {
-#ifdef HAVE_GETSPNAM
-      /* Well, the normal password file failed.  Let's attempt the
-       * shadow password file, and see if that gets us anywhere. */
-      struct spwd *spwd = getspnam(userid);
-      if (! spwd)
-	return SASL_BADAUTH; /* can't use it */
-      salt = spwd->sp_pwdp;
-      crypted = crypt(password, salt);
-      if (strcmp(crypted, spwd->sp_pwdp))
-	return SASL_BADAUTH;	/* we still lose. */
-#else  /* HAVE_GETSPNAM */
-      return SASL_BADAUTH;	/* can't do anything */
-#endif /* !HAVE_GETSPNAM */
-  }
-  
-  return SASL_OK;
+    result = params->utils->checkpass(mech, params->service, user, pass);
+    
+    return result;
 }
 
 static int
@@ -193,7 +195,7 @@ server_continue_step (void *conn_context,
 
   oparams->mech_ssf=0;
 
-  oparams->maxoutbuf=0; /* no clue what this should be */
+  oparams->maxoutbuf = 0;
   
   oparams->encode=NULL;
   oparams->decode=NULL;
@@ -206,6 +208,17 @@ server_continue_step (void *conn_context,
 
   /*nothing more to do; authenticated */
   oparams->doneflag=1;
+
+  if (text->state == 1 && clientin == NULL && clientinlen == 0)
+  {
+      /* for IMAP's sake! */
+      *serverout = params->utils->malloc(1);
+      if (! *serverout) return SASL_NOMEM;
+      (*serverout)[0] = '\0';
+      *serveroutlen = 0;
+
+      return SASL_CONTINUE;
+  }
 
   if (text->state==1)
   {
@@ -259,8 +272,7 @@ server_continue_step (void *conn_context,
     strcpy(passcopy,password);
 
     /* verify password - return sasl_ok on success*/    
-    result=verify_password(authen,
-			   passcopy);
+    result=verify_password(params, authen, passcopy);
     
     params->utils->free(passcopy);
 
@@ -330,7 +342,7 @@ static const sasl_server_plug_t plugins[] =
   {
     "PLAIN",
     0,
-    0,
+    SASL_SEC_NOANONYMOUS,
     NULL,
     &start,
     &server_continue_step,
@@ -760,7 +772,7 @@ static int client_continue_step (void *conn_context,
 
     /* set oparams */
     oparams->mech_ssf=0;
-    oparams->maxoutbuf=0;
+    oparams->maxoutbuf = 0;
     oparams->encode=NULL;
     oparams->decode=NULL;
     if (! oparams->user) {
@@ -792,7 +804,7 @@ static const sasl_client_plug_t client_plugins[] =
   {
     "PLAIN",
     0,
-    0,
+    SASL_SEC_NOANONYMOUS,
     NULL,
     NULL,
     &c_start,

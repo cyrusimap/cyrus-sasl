@@ -86,7 +86,7 @@ struct sasl_conn {
   const sasl_global_callbacks_t *global_callbacks; /* global callbacks
 						    * for this
 						    * connection */
-  char *serverFQDN; /* xxx i think this is only used in server */
+  char *serverFQDN;
 };
 
 extern int _sasl_conn_init(sasl_conn_t *conn,
@@ -169,7 +169,9 @@ extern int sasl_config_getswitch(const char *key,int def);
 /* clear password checking declarations (checkpw.c) */
 extern int _sasl_passwd_verify_password(const char *userid,const char *password, const char **reply);
 extern int _sasl_shadow_verify_password(const char *userid,const char *password, const char **reply);
-extern int _sasl_kerberos_verify_password(const char *user,const char *passwd,char *service, 
+extern int _sasl_kerberos_verify_password(const char *user,
+					  const char *passwd,
+					  const char *service,
 					  const char **reply);
 extern int _sasl_PAM_verify_password(const char *userid,const char *password, const char **reply);
 

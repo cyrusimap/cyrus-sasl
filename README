@@ -1,25 +1,22 @@
+$Id: README,v 1.7 1999/06/22 21:16:38 leg Exp $
+
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication. See RFC 2222 for more
 information.
 
+It is available at:
+ftp://ftp.andrew.cmu.edu/pub/cyrus/cyrus-sasl-1.5.0.tar.gz
+
+FEATURES
+--------
 The following mechanisms are included in this distribution:
 ANONYMOUS
 CRAM-MD5
 KERBEROS_V4
 PLAIN
 SCRAM-MD5 (deprecated)
-GSSAPI (MIT Kerberos 5 or Heimdal Kerberos 5)
-DIGEST-MD5 (beta)
-
-In order to get rc4 encryption under digest-md5, you'll need an
-implementation of rc4.  This might be export controlled (which is why
-it's a seperate package); if you think you have an export license,
-know that don't need one, or aren't planning to export it, it's
-available under <http://andrew2.andrew.cmu.edu/dist/>.
-
-The library uses the enviornment variable SASL_PATH to locate the
-directory where the mechanisms are; this should be a colon-seperated
-list of directories containing plugins.
+GSSAPI (MIT Kerberos 5 or Heimdal Kerberos 5; untested in the release)
+DIGEST-MD5 (partial)
 
 The library uses a gdbm or ndbm file on the server side to store
 per-user authentication secrets (except for the PLAIN mechanism, which
@@ -33,31 +30,81 @@ file.
 
 The sample directory contains two programs which provide a reference
 for using the library, as well as making it easy to test a mechanism
-on the command line.
+on the command line.  See "docs/programming" for more information.
 
-We use a slightly unusual version of libtool--this one (libtool-1.2f)
-includes inter-library dependancies when linking dynamic libraries.
-Hopefully, this will be released to the rest of the world sometime
-soon; as is, it works for us...
+INSTALLATION
+------------
+Please see the file "INSTALL" to install this package.  We hope it to
+be relatively straightforward; if you try it on systems that we
+haven't, please contact us with your experiences.
 
-Known Bugs: SCRAM-MD5 is no longer being maintained, and probably
-needs some work in order to be useable.  DIGEST-MD5 is still unstable.
-The interfaces for setting local and remote IP addresses will likely
-change at some point in the future.
+In order to get RC4 encryption under DIGEST-MD5, you'll need an
+implementation of RC4.  This might be export controlled (which is why
+it's a seperate package); if you think you have an export license,
+know that don't need one, or aren't planning to export it, it's
+available under <http://andrew2.andrew.cmu.edu/dist/>.  However, since
+this release doesn't support encryption under DIGEST-MD5 (see below),
+it doesn't matter anyway.
 
-Comments/Suggestions:
+The library uses the environment variable SASL_PATH to locate the
+directory where the mechanisms are; this should be a colon-seperated
+list of directories containing plugins.
 
-Larry Greenfield (leg@andrew.cmu.edu)
-Tim Martin (tmartin@andrew.cmu.edu)
+CONFIGURATION
+-------------
+By default, libsasl looks for configuration files in
+/usr/lib/sasl/Appname.conf where Appname is settable by the
+application (for example, the Cyrus IMAP server sets this to "Cyrus").
+Applications can also override this default configuration mechanism.
 
+Currently configurable parameters:
+- srvtab (for KERBEROS_V4): [/etc/srvtab] path
+	where to find the srvtab
 
-References:
+- pwcheck_method: [PAM] one of {PAM, kerberos_v4, passwd, shadow}
+	how to check plaintext passwords. (future will add "dbm" to 
+	check secrets database.)
 
+- auto_transition: [false]
+	if true, automatically add secrets to the secret database when
+	PLAIN or check_password is used, so in the future the user can
+	use the more secure mechanisms.
+
+KNOWN BUGS
+----------
+* SCRAM-MD5 is no longer being maintained, and probably needs some
+work in order to be useable.
+
+* DIGEST-MD5 has authentication implemented, but encryption and
+integrity protection are disabled.  It is the view of the authors that
+the current DIGEST-MD5 spec is ambiguous in regards to encryption.
+The encryption as implemented here generated RC4 in depth and thus
+should not be used.
+
+* The RC4 library is not always correctly found and dynamically
+loaded.  This isn't regarded as a huge problem, since we aren't
+supporting encryption in DIGEST-MD5 at this time.
+
+AUTHORS
+-------
+For any comments/suggestions/bug reports, please contact
+cyrus-bugs@andrew.cmu.edu.
+
+If you feel a great need to send mail to a person, contact Larry
+Greenfield at leg+sasl@andrew.cmu.edu.
+
+Authors can be found in the file AUTHORS.
+
+REFERENCES
+----------
 [ANONYMOUS] Newman, C., "Anonymous SASL Mechanism", RFC 2245, November
 1997.
 
 [CRAM-MD5] Klensin, Catoe, Krumviede, "IMAP/POP AUTHorize Extension
 for Simple Challenge/Response", RFC 2195, September 1997.
+
+[DIGEST-MD5] Leach, Newman, "Using Digest Authentication as a SASL
+Mechanism", draft-leach-digest-sasl-03.txt, work in progress.
 
 [KEYED-MD5] Krawczyk, Bellare, Canetti, "HMAC: Keyed-Hashing for Message
 Authentication", RFC 2104, February 1997. 

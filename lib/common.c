@@ -126,7 +126,7 @@ int sasl_decode(sasl_conn_t *conn, const char *input, unsigned inputlen,
 {
   if (! conn || ! input || ! output || ! outputlen)
     return SASL_FAIL;
-  if (conn->oparams.encode==NULL)
+  if (conn->oparams.decode==NULL)
   {
     /* just copy the string, no encryption */
     *output = sasl_ALLOC(inputlen + 1);
@@ -452,9 +452,13 @@ _sasl_global_getopt(void *context,
 	      == SASL_OK))
 	return SASL_OK;
 
-  /* TODO: Someday, we ought to look up options in a global
-   * configuration file of some sort.  For now, though, we
-   * just default to pretending the option doesn't exist. */
+  /* look it up in our configuration file */
+  *result = sasl_config_getstring(option, NULL);
+  if (*result != NULL) {
+      if (len) { *len = strlen(*result); }
+      return SASL_OK;
+  }
+
   return SASL_FAIL;
 }
 
@@ -898,6 +902,7 @@ _sasl_alloc_utils(sasl_conn_t *conn,
   utils->utf8verify = &sasl_utf8verify;
   utils->rand=&sasl_rand;
   utils->churn=&sasl_churn;  
+  utils->checkpass=NULL;
   
   utils->getcallback=&_sasl_getcallback;
 

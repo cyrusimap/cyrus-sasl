@@ -30,10 +30,10 @@ version we use comes from <url:http://www.pdc.kth.se/kth-krb/>.
 For GSSAPI support you will need either MIT Kerberos 5 or the Heimdal
 implementation <url:http://www.pdc.kth.se/heimdal>.
 
-This has been tested under IRIX 6.2, Linux 2.0, and Solaris 2.5.1.
-It should work under any platform where dynamic objects can be linked
-against other dynamic objects, and where the dynamic library file
-extension is ".so".
+This has been tested under Linux 2.0, and Solaris 2.6.  It should work
+under any platform where dynamic objects can be linked against other
+dynamic objects, and where the dynamic library file extension is
+".so".
 
 You may want to play with your CPPFLAGS and LDFLAGS a little if you're
 using vendor compilers (which we recommend).  We use the following
@@ -77,3 +77,4 @@ WIN32 NOTES
 * Kerberos mechanism has been compiled using MIT's kclient package
 * PLAIN is currently crippled, and does not support server use.
 * CRAM-MD5 and SCRAM-MD5 should work, but have not been tested.
+* DIGEST-MD5 and GSSAPI have been totally untested.

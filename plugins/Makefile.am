@@ -51,7 +51,7 @@ libanonymous_la_LDFLAGS = -version-info $(anonymous_version)
 
 libkerberos4_la_SOURCES = kerberos4.c
 libkerberos4_la_LDFLAGS = -version-info $(kerberos4_version)
-libkerberos4_la_LIBADD = -lkrb -ldes $(LIB_SOCKET)
+libkerberos4_la_LIBADD = $(SASL_KRB_LIB) $(LIB_SOCKET)
 
 libgssapiv2_la_SOURCES = gssapi.c
 libgssapiv2_la_LDFLAGS = -version-info $(gssapiv2_version)

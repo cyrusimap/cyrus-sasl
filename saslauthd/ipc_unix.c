@@ -507,8 +507,7 @@ int get_accept_lock() {
 
 	do {
 		rc = fcntl(accept_fd, F_SETLKW, &lock_st);
-
-	} while (errno == EINTR);
+	} while (rc != 0 && errno == EINTR);
 
 	if (rc != 0) {
 		rc = errno;
@@ -546,9 +545,8 @@ int rel_accept_lock() {
 	errno = 0;
 
 	do {
-		rc = fcntl(accept_fd, F_SETLK, &lock_st);
-
-	} while (errno == EINTR);
+		rc = fcntl(accept_fd, F_SETLKW, &lock_st);
+	} while (rc != 0 && errno == EINTR);
 
 	if (rc != 0) {
 		rc = errno;

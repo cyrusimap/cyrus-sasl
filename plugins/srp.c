@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.8 2001/12/09 04:03:18 ken3 Exp $
+ * $Id: srp.c,v 1.9 2001/12/14 19:18:34 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -91,36 +91,91 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 #define OPTION_MANDATORY	"mandatory="
 #define OPTION_MAXBUFFERSIZE	"maxbuffersize="
 
+/* Table of recommended Modulus (base 16) and Generator pairs */
+struct Ng {
+    char *N;
+    unsigned long g;
+} Ng_tab[] = {
+    /* [264 bits] */
+    { "115B8B692E0E045692CF280B436735C77A5A9E8A9E7ED56C965F87DB5B2A2ECE3",
+      2
+    },
+    /* [384 bits] */
+    { "8025363296FB943FCE54BE717E0E2958A02A9672EF561953B2BAA3BAACC3ED5754EB764C7AB7184578C57D5949CCB41B",
+    2
+    },
+    /* [512 bits] */
+    { "D4C7F8A2B32C11B8FBA9581EC4BA4F1B04215642EF7355E37C0FC0443EF756EA2C6B8EEB755A1C723027663CAA265EF785B8FF6A9B35227A52D86633DBDFCA43",
+      2
+    },
+    /* [640 bits] */
+    { "C94D67EB5B1A2346E8AB422FC6A0EDAEDA8C7F894C9EEEC42F9ED250FD7F0046E5AF2CF73D6B2FA26BB08033DA4DE322E144E7A8E9B12A0E4637F6371F34A2071C4B3836CBEEAB15034460FAA7ADF483",
+      2
+    },
+    /* [768 bits] */
+    { "B344C7C4F8C495031BB4E04FF8F84EE95008163940B9558276744D91F7CC9F402653BE7147F00F576B93754BCDDF71B636F2099E6FFF90E79575F3D0DE694AFF737D9BE9713CEF8D837ADA6380B1093E94B6A529A8C6C2BE33E0867C60C3262B",
+      2
+    },
+    /* [1024 bits] */
+    { "EEAF0AB9ADB38DD69C33F80AFA8FC5E86072618775FF3C0B9EA2314C9C256576D674DF7496EA81D3383B4813D692C6E0E0D5D8E250B98BE48E495C1D6089DAD15DC7D7B46154D6B6CE8EF4AD69B15D4982559B297BCF1885C529F566660E57EC68EDBC3C05726CC02FD4CBF4976EAA9AFD5138FE8376435B9FC61D2FC0EB06E3",
+      2
+    },
+    /* [1280 bits] */
+    { "D77946826E811914B39401D56A0A7843A8E7575D738C672A090AB1187D690DC43872FC06A7B6A43F3B95BEAEC7DF04B9D242EBDC481111283216CE816E004B786C5FCE856780D41837D95AD787A50BBE90BD3A9C98AC0F5FC0DE744B1CDE1891690894BC1F65E00DE15B4B2AA6D87100C9ECC2527E45EB849DEB14BB2049B163EA04187FD27C1BD9C7958CD40CE7067A9C024F9B7C5A0B4F5003686161F0605B",
+      2
+    },
+    /* [1536 bits] */
+    { "9DEF3CAFB939277AB1F12A8617A47BBBDBA51DF499AC4C80BEEEA9614B19CC4D5F4F5F556E27CBDE51C6A94BE4607A291558903BA0D0F84380B655BB9A22E8DCDF028A7CEC67F0D08134B1C8B97989149B609E0BE3BAB63D47548381DBC5B1FC764E3F4B53DD9DA1158BFD3E2B9C8CF56EDF019539349627DB2FD53D24B7C48665772E437D6C7F8CE442734AF7CCB7AE837C264AE3A9BEB87F8A2FE9B8B5292E5A021FFF5E91479E8CE7A28C2442C6F315180F93499A234DCF76E3FED135F9BB",
+      2
+    },
+    /* [2048 bits] */
+    { "AC6BDB41324A9A9BF166DE5E1389582FAF72B6651987EE07FC3192943DB56050A37329CBB4A099ED8193E0757767A13DD52312AB4B03310DCD7F48A9DA04FD50E8083969EDB767B0CF6095179A163AB3661A05FBD5FAAAE82918A9962F0B93B855F97993EC975EEAA80D740ADBF4FF747359D041D5C33EA71D281E446B14773BCA97B43A23FB801676BD207A436C6481F1D2B9078717461A5B9D32E688F87748544523B524B0D57D5EA77A2775D2ECFA032CFBDBF52FB3786160279004E57AE6AF874E7303CE53299CCC041C7BC308D82A5698F3A8D0C38271AE35F8E9DBFBB694B5C803D89F7AE435DE236D525F54759B65E372FCD68EF20FA7111F9E4AFF73",
+      2
+    }
+};
+
+#define NUM_Ng (sizeof(Ng_tab) / sizeof(struct Ng))
+
 
 /******************** Options *************************/
 
 typedef struct layer_option_s {
-    const char *name;
-    int bit;
-    int ssf;
-    const char *openssl_name;
+    const char *name;		/* name used in option strings */
+    unsigned enabled;		/* enabled?  determined at run-time */
+    unsigned bit;		/* unique bit in bitmask */
+    sasl_ssf_t ssf;		/* ssf of layer */
+    const char *evp_name;	/* name used for lookup in EVP table */
 } layer_option_t;
 
 static layer_option_t integrity_options[] = {
-    {"HMAC-SHA-1",	0x1, 0,	"sha1"},
-    {"HMAC-RIPEMD-160",	0x2, 0,	"rmd160"},
-    {"HMAC-MD5",	0x4, 0,	"md5"},
-    {NULL,		0x0, 0,	NULL}
+    {"HMAC-SHA-1",	0, (1<<0), 1,	"sha1"},
+    {"HMAC-RIPEMD-160",	0, (1<<1), 1,	"rmd160"},
+    {"HMAC-MD5",	0, (1<<2), 1,	"md5"},
+    {NULL,		0, (0<<0), 1,	NULL}
 };
 
 static layer_option_t confidentiality_options[] = {
-    /* nothing yet */
-    {NULL,		0x0, 0,	NULL}
+    {"DES",		0, (1<<0), 56,	"des-ofb"},
+    {"3DES",		0, (1<<1), 112,	"des-ede-ofb"},
+    {"AES",		0, (1<<2), 128,	"aes-128-ofb"},
+    {"Blowfish",	0, (1<<3), 128,	"bf-ofb"},
+    {"CAST-128",	0, (1<<4), 128,	"cast5-ofb"},
+    {"IDEA",		0, (1<<5), 128,	"idea-ofb"},
+    {NULL,		0, (0<<0), 0,	NULL}
 };
 
 
+enum {
+    BIT_REPLAY_DETECTION=	(1<<0),
+    BIT_INTEGRITY=		(1<<1),
+    BIT_CONFIDENTIALITY=	(1<<2)
+};
+
 typedef struct srp_options_s {
-
-    int replay_detection;
-
-    int integrity;
-    int confidentiality;
-
+    unsigned replay_detection;	/* replay detection on/off flag */
+    unsigned integrity;		/* bitmask of integrity layers */
+    unsigned confidentiality;	/* bitmask of confidentiality layers */
+    unsigned mandatory;		/* bitmask of mandatory layers */
 } srp_options_t;
 
 /* The main SRP context */
@@ -130,7 +185,7 @@ typedef struct context_s {
     mpz_t N;
     mpz_t g;
 
-    mpz_t v; /* verifier */
+    mpz_t v;			/* verifier */
 
     mpz_t b;
     mpz_t B;
@@ -144,8 +199,8 @@ typedef struct context_s {
     char *M1;
     int M1len;
 
-    char *authid; /* authentication id */
-    char *userid; /* authorization id */
+    char *authid;		/* authentication id */
+    char *userid;		/* authorization id */
     char *realm;
     sasl_secret_t *password;
 
@@ -157,16 +212,14 @@ typedef struct context_s {
     char *salt;
     int saltlen;
 
-    const char *mech_name; /* used for propName in sasldb */
-
-    /* used by hash functions */
-    const EVP_MD *md;
-    const EVP_MD *hmac_md;
-    const sasl_utils_t *utils;
+    const char *mech_name;	/* used for propName in sasldb */
 
     /* Layer foo */
-    int enabled_integrity_layer;
-    int enabled_replay_detection;
+    unsigned enabled;		/* bitmask of enabled layers */
+    const EVP_MD *md;
+    const EVP_MD *hmac_md;
+    const EVP_CIPHER *cipher;
+    const sasl_utils_t *utils;
 
     int seqnum_out;
     int seqnum_in;
@@ -213,14 +266,14 @@ layer_encode(void *context,
   input = text->enc_in_buf->data;
   inputlen = text->enc_in_buf->curlen;
 
-  if (text->enabled_integrity_layer) {
+  if (text->enabled & BIT_INTEGRITY) {
       HMAC_CTX hmac_ctx;
 
       HMAC_Init(&hmac_ctx, text->K, text->Klen, text->hmac_md);
 
       HMAC_Update(&hmac_ctx, input, inputlen);
 
-      if (text->enabled_replay_detection) {
+      if (text->enabled & BIT_REPLAY_DETECTION) {
 	  tmpnum = htonl(text->seqnum_out);
 	  HMAC_Update(&hmac_ctx, (char *) &tmpnum, 4);
       
@@ -255,7 +308,7 @@ decode(context_t *text,
 {
     int hashlen = 0;
 
-    if (text->enabled_integrity_layer) {
+    if (text->enabled & BIT_INTEGRITY) {
 	int tmpnum;
 	char hashdata[EVP_MAX_MD_SIZE];
 	int i;
@@ -275,7 +328,7 @@ decode(context_t *text,
 	/* create my version of the hash */
 	HMAC_Update(&hmac_ctx, (char *)input, inputlen - hashlen);
 
-	if (text->enabled_replay_detection) {
+	if (text->enabled & BIT_REPLAY_DETECTION) {
 	    tmpnum = htonl(text->seqnum_in);
 	    HMAC_Update(&hmac_ctx, (char *) &tmpnum, 4);
 	    
@@ -554,7 +607,6 @@ UnBuffer(char *in, int inlen, char **out, int *outlen)
     int len;
 
     if ((!in) || (inlen < 4)) {
-	/*VL(("Buffer is not big enough to be SRP buffer: %d\n", inlen));*/
 	return SASL_FAIL;
     }
 
@@ -564,7 +616,6 @@ UnBuffer(char *in, int inlen, char **out, int *outlen)
 
     /* make sure it's right */
     if (len + 4 != inlen) {
-	/*VL(("SRP Buffer isn't of the right length\n"));*/
 	return SASL_FAIL;
     }
 
@@ -843,7 +894,6 @@ GetMPI(unsigned char *data, int datalen, mpz_t *outnum,
     int len;
 
     if ((!data) || (datalen < 2)) {
-	/*VL(("Buffer is not big enough to be SRP MPI: %d\n", datalen));*/
 	return SASL_FAIL;
     }
 
@@ -853,8 +903,6 @@ GetMPI(unsigned char *data, int datalen, mpz_t *outnum,
 
     /* make sure it's right */
     if (len + 2 > datalen) {
-	/*VL(("Not enough data for this SRP MPI: we have %d; it say it's %d\n",
-	  datalen, len+2));*/
 	return SASL_FAIL;
     }
 
@@ -1318,8 +1366,7 @@ static int
 FindBit(char *name, layer_option_t *opts)
 {
     while (opts->name) {
-	/*VL(("Looking for [%s] this is [%s]\n",name,opts->name));*/
-	if (strcasecmp(name, opts->name)==0) {
+	if (!strcasecmp(name, opts->name)) {
 	    return opts->bit;
 	}
 
@@ -1330,7 +1377,7 @@ FindBit(char *name, layer_option_t *opts)
 }
 
 static layer_option_t *
-FindOptionFromBit(int bit, layer_option_t *opts)
+FindOptionFromBit(unsigned bit, layer_option_t *opts)
 {
     while (opts->name) {
 	if (opts->bit == bit) {
@@ -1346,41 +1393,53 @@ FindOptionFromBit(int bit, layer_option_t *opts)
 static int
 ParseOptionString(char *str, srp_options_t *opts, int isserver)
 {
-    if (strcmp(str,OPTION_REPLAY_DETECTION)==0) {
+    if (!strcasecmp(str, OPTION_REPLAY_DETECTION)) {
 	if (opts->replay_detection) {
-	    /*VL(("Replay Detection option appears twice\n"));*/
 	    return SASL_FAIL;
 	}
 	opts->replay_detection = 1;
-    } else if (strncmp(str,OPTION_INTEGRITY,strlen(OPTION_INTEGRITY))==0) {
+    } else if (!strncasecmp(str, OPTION_INTEGRITY, strlen(OPTION_INTEGRITY))) {
 
 	int bit = FindBit(str+strlen(OPTION_INTEGRITY), integrity_options);
 
 	if (bit == 0) return SASL_OK;
 
 	if (isserver && (bit & opts->integrity)) {
-	    /*VL(("Option %s exists multiple times\n",str));*/
 	    return SASL_FAIL;
 	}
 
 	opts->integrity = opts->integrity | bit;
 
-    } else if (strncmp(str,OPTION_CONFIDENTIALITY,
-		       strlen(OPTION_CONFIDENTIALITY))==0) {
+    } else if (!strncasecmp(str, OPTION_CONFIDENTIALITY,
+			    strlen(OPTION_CONFIDENTIALITY))) {
 
 	int bit = FindBit(str+strlen(OPTION_CONFIDENTIALITY),
 			  confidentiality_options);
 	if (bit == 0) return SASL_OK;
 
 	if (isserver && (bit & opts->confidentiality)) {
-	    /*VL(("Option %s exists multiple times\n",str));*/
 	    return SASL_FAIL;
 	}
 
 	opts->confidentiality = opts->confidentiality | bit;
 
+    } else if (!isserver && !strncasecmp(str, OPTION_MANDATORY,
+					 strlen(OPTION_MANDATORY))) {
+
+	char *layer = str+strlen(OPTION_MANDATORY);
+
+	if (!strcasecmp(layer, OPTION_REPLAY_DETECTION))
+	    opts->mandatory |= BIT_REPLAY_DETECTION;
+	else if (!strncasecmp(layer, OPTION_INTEGRITY,
+			      strlen(OPTION_INTEGRITY)-1))
+	    opts->mandatory |= BIT_INTEGRITY;
+	else if (!strncasecmp(layer, OPTION_CONFIDENTIALITY,
+			      strlen(OPTION_CONFIDENTIALITY)-1))
+	    opts->mandatory |= BIT_CONFIDENTIALITY;
+	else
+	    return SASL_FAIL;
+
     } else {
-	/*VL(("Option not undersood: %s\n",str));*/
 	return SASL_FAIL;
     }
 
@@ -1413,20 +1472,24 @@ ParseOptions(const sasl_utils_t *utils, char *in, srp_options_t *out,
 }
 
 static layer_option_t *
-FindBest(int available, layer_option_t *opts)
+FindBest(int available, sasl_ssf_t min_ssf, sasl_ssf_t max_ssf,
+	 layer_option_t *opts)
 {
-    while (opts->name) {
-	/*VL(("FindBest %d %d\n",available, opts->bit));*/
+    layer_option_t *best = NULL;
 
-	if ((available & opts->bit) &&
-	    EVP_get_digestbyname(opts->openssl_name)) {
-	    return opts;
+    if (!available) return NULL;
+
+    while (opts->name) {
+	if (opts->enabled && (available & opts->bit) &&
+	    (opts->ssf >= min_ssf) && (opts->ssf <= max_ssf) &&
+	    (!best || (opts->ssf > best->ssf))) {
+		best = opts;
 	}
 
 	opts++;
     }
 
-    return NULL;
+    return best;
 }
 
 static int
@@ -1502,14 +1565,9 @@ CreateServerOptions(const sasl_utils_t *utils,
     /* Add integrity options */
     optlist = integrity_options;
     while(optlist->name) {
-	if ((props->min_ssf <= 1) && (props->max_ssf >= 1) &&
-	    EVP_get_digestbyname(optlist->openssl_name)) {
+	if (optlist->enabled &&
+	    (props->min_ssf <= 1) && (props->max_ssf >= 1)) {
 	    opts.integrity |= optlist->bit;
-	}
-	/* Can't advertise integrity w/o HMAC-SHA-1 (mandatory) */
-	else if (!strcasecmp(optlist->name, "HMAC-SHA-1")) {
-	    opts.integrity = 0;
-	    break;
 	}
 	optlist++;
     }
@@ -1519,11 +1577,12 @@ CreateServerOptions(const sasl_utils_t *utils,
 	opts.replay_detection = 1;
     }
 
-    /* Add integrity options */
+    /* Add confidentiality options */
     optlist = confidentiality_options;
     while(optlist->name) {
-	if (((int)props->min_ssf <= optlist->ssf) &&
-	    ((int)props->max_ssf >= optlist->ssf)) {
+	if (optlist->enabled &&
+	    (props->min_ssf <= optlist->ssf) &&
+	    (props->max_ssf >= optlist->ssf)) {
 	    opts.confidentiality |= optlist->bit;
 	}
 	optlist++;
@@ -1562,35 +1621,68 @@ CreateClientOpts(sasl_client_params_t *params,
 
     /* we now go searching for an option that gives us at least "musthave"
        and at most "limit" bits of ssf. */
-    if ((limit > 1) && (available->confidentiality)) {
-	params->utils->log(NULL, SASL_LOG_ERR, "xxx No good privacy layers\n");
-	return SASL_FAIL;
+    params->utils->log(NULL, SASL_LOG_DEBUG,
+		       "Available confidentiality = %d\n",
+		       available->confidentiality);
+
+    if (limit > 1) {
+	/* confidentiality */
+	layer_option_t *copt = NULL;
+
+	copt = FindBest(available->confidentiality, musthave, limit,
+			confidentiality_options);
+	
+	if (copt) {
+	    out->confidentiality = copt->bit;
+	    /* we've already satisfied the SSF with the confidentiality
+	     * layer, but we'll also use an integrity layer if we can
+	     */
+	    musthave = 0;
+	}
+	else if (musthave > 1) {
+	    params->utils->log(NULL, SASL_LOG_ERR,
+			       "Can't find an acceptable privacy layer\n");
+	    return SASL_TOOWEAK;
+	}
     }
 
     params->utils->log(NULL, SASL_LOG_DEBUG,
 		       "Available integrity = %d\n",available->integrity);
 
-    if ((limit >= 1) && (musthave <= 1) && (available->integrity)) {
+    if ((limit >= 1) && (musthave <= 1)) {
 	/* integrity */
 	layer_option_t *iopt;
-	
-	iopt = FindBest(available->integrity, integrity_options);
+
+	iopt = FindBest(available->integrity, musthave, limit,
+			integrity_options);
 	
 	if (iopt) {
 	    out->integrity = iopt->bit;
-	    return SASL_OK;
+	    out->replay_detection = available->replay_detection;
+	}
+	else if (musthave > 0) {
+	    params->utils->log(NULL, SASL_LOG_ERR,
+			       "Can't find an acceptable integrity layer\n");
+	    return SASL_TOOWEAK;
 	}
     }
 
-    if (musthave <= 0) { /* xxx how do we know if server doesn't support no layer??? */
-	/* no layer */
-	return SASL_OK;
+    /* Check to see if we've satisfied all of the servers mandatory layers */
+    params->utils->log(NULL, SASL_LOG_DEBUG,
+		       "Mandatory layers = %d\n",available->mandatory);
 
+    if ((!out->replay_detection &&
+	 (available->mandatory & BIT_REPLAY_DETECTION)) ||
+	(!out->integrity &&
+	 (available->mandatory & BIT_INTEGRITY)) ||
+	(!out->confidentiality &&
+	 (available->mandatory & BIT_CONFIDENTIALITY))) {
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Mandatory layer not supported\n");
+	return SASL_TOOWEAK;
     }
 
-    
-    params->utils->log(NULL, SASL_LOG_ERR, "Can't find an acceptable layer\n");
-    return SASL_TOOWEAK;
+    return SASL_OK;
 }
 
 /* Set the options (called my client and server)
@@ -1618,13 +1710,18 @@ SetOptions(srp_options_t *opts,
     oparams->encode = &layer_encode;
     oparams->decode = &layer_decode;
 
-    text->enabled_replay_detection = opts->replay_detection;
+    if (opts->replay_detection) {
+	text->enabled |= BIT_REPLAY_DETECTION;
+
+	/* If no integrity layer specified, default to HMAC-SHA-1 */
+	if (!opts->integrity)
+	    opts->integrity = FindBit("HMAC-SHA-1", integrity_options);
+    }
 
     if (opts->integrity) {
 	layer_option_t *iopt;
 
-	text->enabled_integrity_layer = 1;
-	oparams->mech_ssf = 1;
+	text->enabled |= BIT_INTEGRITY;
 
 	iopt = FindOptionFromBit(opts->integrity, integrity_options);
 	if (!iopt) {
@@ -1633,10 +1730,25 @@ SetOptions(srp_options_t *opts,
 	    return SASL_FAIL;
 	}
 
-	text->hmac_md = EVP_get_digestbyname(iopt->openssl_name);
+	oparams->mech_ssf = iopt->ssf;
+	text->hmac_md = EVP_get_digestbyname(iopt->evp_name);
     }
 
-    /* conf foo */
+    if (opts->confidentiality) {
+	layer_option_t *iopt;
+
+	text->enabled |= BIT_CONFIDENTIALITY;
+
+	iopt = FindOptionFromBit(opts->confidentiality, confidentiality_options);
+	if (!iopt) {
+	    utils->log(NULL, SASL_LOG_ERR,
+		       "Unable to find integrity layer option now\n");
+	    return SASL_FAIL;
+	}
+
+	oparams->mech_ssf = iopt->ssf;
+	text->cipher = EVP_get_cipherbyname(iopt->evp_name);
+    }
 
     return SASL_OK;
 }
@@ -1781,10 +1893,10 @@ srp_md5_server_mech_new(void *glob_context __attribute__((unused)),
 }
 
 
-/* N in base16 */
-#define BIGN_STRING "AC6BDB41324A9A9BF166DE5E1389582FAF72B6651987EE07FC3192943DB56050A37329CBB4A099ED8193E0757767A13DD52312AB4B03310DCD7F48A9DA04FD50E8083969EDB767B0CF6095179A163AB3661A05FBD5FAAAE82918A9962F0B93B855F97993EC975EEAA80D740ADBF4FF747359D041D5C33EA71D281E446B14773BCA97B43A23FB801676BD207A436C6481F1D2B9078717461A5B9D32E688F87748544523B524B0D57D5EA77A2775D2ECFA032CFBDBF52FB3786160279004E57AE6AF874E7303CE53299CCC041C7BC308D82A5698F3A8D0C38271AE35F8E9DBFBB694B5C803D89F7AE435DE236D525F54759B65E372FCD68EF20FA7111F9E4AFF73"
-
 /* A large safe prime (N = 2q+1, where q is prime)
+ *
+ * Use N with the most bits from our table.
+ *
  * All arithmetic is done modulo N
  */
 static int generate_N_and_g(mpz_t N, mpz_t g)
@@ -1792,11 +1904,11 @@ static int generate_N_and_g(mpz_t N, mpz_t g)
     int result;
     
     mpz_init(N);
-    result = mpz_set_str (N, BIGN_STRING, 16);
+    result = mpz_set_str (N, Ng_tab[NUM_Ng-1].N, 16);
     if (result) return SASL_FAIL;
 
     mpz_init(g);
-    mpz_set_ui (g, 2);
+    mpz_set_ui (g, Ng_tab[NUM_Ng-1].g);
 
     return SASL_OK;
 }
@@ -2169,6 +2281,12 @@ server_step2(context_t *text,
       return r;
     }
 
+    /* Check the value of A */
+    if (!mpz_cmp_ui(text->A, 0) || !mpz_cmp_ui(text->A, 1)) {
+	params->utils->log(NULL, SASL_LOG_ERR, "Illegal value for 'A'\n");
+	return SASL_FAIL;
+    }
+    
     r = GetUTF8(params->utils, data, datalen, &text->userid, &data, &datalen);
     if (r) {
       params->utils->seterror(params->utils->conn, 0, 
@@ -2656,7 +2774,7 @@ static int srp_md5_mech_avail(void *glob_context __attribute__((unused)),
     return (EVP_get_digestbyname("md5") ? SASL_OK : SASL_NOMECH);
 }
 
-static const sasl_server_plug_t srp_server_plugins[] = 
+static sasl_server_plug_t srp_server_plugins[] = 
 {
   {
     "SRP-SHA-1",		/* mech_name */
@@ -2721,19 +2839,58 @@ static const sasl_server_plug_t srp_server_plugins[] =
   }
 };
 
-int srp_server_plug_init(const sasl_utils_t *utils __attribute__((unused)),
+int srp_server_plug_init(const sasl_utils_t *utils,
 			 int maxversion,
 			 int *out_version,
 			 const sasl_server_plug_t **pluglist,
 			 int *plugcount,
 			 const char *plugname __attribute__((unused)))
 {
+    int nplug;
+    layer_option_t *opts;
+
     if (maxversion<SASL_SERVER_PLUG_VERSION) {
 	SETERROR(utils, "SRP version mismatch");
 	return SASL_BADVERS;
     }
 
+    nplug = sizeof(srp_server_plugins)/sizeof(sasl_server_plug_t);
+
+    /* Add all digests and ciphers */
     OpenSSL_add_all_algorithms();
+
+    /* Can't advertise integrity w/o support for HMAC-SHA-1 */
+    if (EVP_get_digestbyname("sha1")) {
+	/* See which digests we have available */
+	opts = integrity_options;
+	while (opts->name) {
+	    if (EVP_get_digestbyname(opts->evp_name)) {
+		opts->enabled = 1;
+	    }
+	    
+	    opts++;
+	}
+    }
+
+    /* Can't advertise confidentiality w/o support for AES */
+    if (EVP_get_cipherbyname("aes-128-ofb")) {
+	/* See which ciphers we have available and set max_ssf accordingly */
+	opts = confidentiality_options;
+	while (opts->name) {
+	    if (EVP_get_cipherbyname(opts->evp_name)) {
+		opts->enabled = 1;
+
+		if (opts->ssf > srp_server_plugins[0].max_ssf) {
+		    int i;
+		    for (i = 0; i < nplug; i++) {
+			srp_server_plugins[i].max_ssf = opts->ssf;
+		    }
+		}
+	    }
+
+	    opts++;
+	}
+    }
 
 #ifdef DO_SRP_SETPASS
     /* Do we have database support? */
@@ -2745,7 +2902,7 @@ int srp_server_plug_init(const sasl_utils_t *utils __attribute__((unused)),
 
     *pluglist=srp_server_plugins;
 
-    *plugcount=sizeof(srp_server_plugins)/sizeof(sasl_server_plug_t);
+    *plugcount=nplug;
     *out_version=SASL_SERVER_PLUG_VERSION;
 
     return SASL_OK;
@@ -2786,7 +2943,7 @@ static int srp_rmd160_client_mech_new(void *glob_context __attribute__((unused))
     const EVP_MD *md;
     context_t *text;
 
-    if ((md = EVP_get_digestbyname("sha1")) == NULL)
+    if ((md = EVP_get_digestbyname("rmd160")) == NULL)
 	return SASL_NOMECH;
 
     /* holds state are in */
@@ -2814,7 +2971,7 @@ static int srp_md5_client_mech_new(void *glob_context __attribute__((unused)),
     const EVP_MD *md;
     context_t *text;
 
-    if ((md = EVP_get_digestbyname("sha1")) == NULL)
+    if ((md = EVP_get_digestbyname("md5")) == NULL)
 	return SASL_NOMECH;
 
     /* holds state are in */
@@ -3175,6 +3332,29 @@ client_step1(context_t *text,
     return r;
 }
 
+/* Check to see if N,g is in the recommended list */
+static int check_N_and_g(mpz_t N, mpz_t g)
+{
+    char *N_prime;
+    unsigned long g_prime;
+    unsigned i;
+    int r = SASL_FAIL;
+
+    N_prime = mpz_get_str(NULL, 16, N);
+    g_prime = mpz_get_ui(g);
+
+    for (i = 0; i < NUM_Ng; i++) {
+	if (!strcasecmp(N_prime, Ng_tab[i].N) && (g_prime == Ng_tab[i].g)) {
+	    r = SASL_OK;
+	    break;
+	}
+    }
+
+    free(N_prime);
+    return r;
+}
+
+
 static int
 client_step2(context_t *text,
 	     sasl_client_params_t *params,
@@ -3210,6 +3390,14 @@ client_step2(context_t *text,
     if (r) {
 	params->utils->log(NULL, SASL_LOG_ERR,
 			   "Error getting MPI string for 'g'\n");
+	goto done;
+    }
+
+    /* Check N and g to see if they are one of the recommended pairs */
+    r = check_N_and_g(text->N, text->g);
+    if (r) {
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Values of 'N' and 'g' are not recommended\n");
 	goto done;
     }
 
@@ -3344,11 +3532,17 @@ client_step3(context_t *text,
     r = GetMPI((unsigned char *) data, datalen, &text->B, &data, &datalen);
     if (r) return r;
 
+    /* Check the value of B */
+    if (!mpz_cmp_ui(text->B, 0) || !mpz_cmp_ui(text->B, 1)) {
+	params->utils->log(NULL, SASL_LOG_ERR, "Illegal value for 'B'\n");
+	return SASL_FAIL;
+    }
+    
     if (datalen != 0) {
 	params->utils->log(NULL, SASL_LOG_ERR, "Extra data parsing buffer\n");
 	return SASL_FAIL;
     }
-    
+
     /* Calculate shared context key K
      *
      */
@@ -3518,7 +3712,7 @@ srp_client_mech_step(void *conn_context,
 }
 
 
-static const sasl_client_plug_t srp_client_plugins[] = 
+static sasl_client_plug_t srp_client_plugins[] = 
 {
   {
     "SRP-SHA-1",   	        /* mech_name */
@@ -3575,16 +3769,48 @@ int srp_client_plug_init(const sasl_utils_t *utils __attribute__((unused)),
 			 int *plugcount,
 			 const char *plugname __attribute__((unused)))
 {
+    int nplug;
+    layer_option_t *opts;
+
     if (maxversion < SASL_CLIENT_PLUG_VERSION) {
 	SETERROR(utils, "SRP version mismatch");
 	return SASL_BADVERS;
     }
 
+    nplug = sizeof(srp_client_plugins)/sizeof(sasl_client_plug_t);
+
+    /* Add all digests and ciphers */
     OpenSSL_add_all_algorithms();
+
+    /* See which digests we have available */
+    opts = integrity_options;
+    while (opts->name) {
+	if (EVP_get_digestbyname(opts->evp_name))
+	    opts->enabled = 1;
+
+	opts++;
+    }
+
+    /* See which ciphers we have available and set max_ssf accordingly */
+    opts = confidentiality_options;
+    while (opts->name) {
+	if (EVP_get_cipherbyname(opts->evp_name)) {
+	    opts->enabled = 1;
+
+	    if (opts->ssf > srp_client_plugins[0].max_ssf) {
+		int i;
+		for (i = 0; i < nplug; i++) {
+		    srp_client_plugins[i].max_ssf = opts->ssf;
+		}
+	    }
+	}
+
+	opts++;
+    }
 
     *pluglist=srp_client_plugins;
 
-    *plugcount=sizeof(srp_client_plugins)/sizeof(sasl_client_plug_t);
+    *plugcount=nplug;
     *out_version=SASL_CLIENT_PLUG_VERSION;
 
     return SASL_OK;

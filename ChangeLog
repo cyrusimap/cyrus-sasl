@@ -1,3 +1,10 @@
+2001-12-14  Ken Murchison <ken@oceana.com>
+	* plugins/srp.c: improved client/server layer option handling
+	* plugins/srp.c: added client-side support for mandatory options
+	* plugins/srp.c: added framework for confidentiality layers
+	* plugins/srp.c: added some data sanity checking (thanks to
+	  Tom Holroyd <tomh@po.crl.go.jp> for feedback)
+
 2001-12-13  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* lib/server.c, lib/common.c: Fix handling of
 	  global callbacks so that plugin_list works again

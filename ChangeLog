@@ -1,3 +1,11 @@
+1999-11-17  Timothy L Martin  <tmartin@andrew.cmu.edu>
+
+	* plugins/digestmd5.c (sasl_server_plug_init): NOUSER if no users in secrets db
+
+	* lib/server.c: doesn't show mechanisms where there are no secrets
+	changed parameter to mechanism_permitted() to allow checking condition
+	
+
 Tue Nov 16 14:33:49 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* version 1.5.12 cut for testing 

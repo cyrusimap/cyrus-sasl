@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.42 1999/11/15 22:20:40 tmartin Exp $
+ * $Id: cram.c,v 1.43 1999/11/17 08:52:06 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -529,6 +529,96 @@ static int server_continue_step (void *conn_context,
   return SASL_FAIL; /* should never get here */
 }
 
+/*
+ * See if there's at least one CRAM secret in the database
+ *
+ * Note: this function is duplicated in multiple plugins. If you fix
+ * something here please update the other files
+ */
+
+static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
+{
+  sasl_secret_t *sec=NULL;
+  int result;
+  sasl_server_getsecret_t *getsecret;
+  void *getsecret_context;
+
+  /* get callback so we can request the secret */
+  result = utils->getcallback(utils->conn,
+				       SASL_CB_SERVER_GETSECRET,
+				       &getsecret,
+				       &getsecret_context);
+  if (result != SASL_OK) {
+    VL(("result = %i trying to get secret callback\n",result));
+    return result;
+  }
+
+  if (! getsecret) {
+    VL(("Received NULL getsecret callback\n"));
+    return SASL_FAIL;
+  }
+
+  /* We use the user's CRAM secret which is kinda 1/2 way thru the
+     hmac */
+  /* Request secret */
+  result = getsecret(getsecret_context, mech_name, "DUMMY", "ENTRY", &sec);
+
+  if (result == SASL_NOUSER || !sec) {
+    return SASL_NOUSER;
+  }
+
+  free_secret(utils, &sec);
+
+  return SASL_OK;
+}
+
+/*
+ * Put a DUMMY entry in the db to show that there is at least one CRAM entry in the db
+ *
+ * Note: this function is duplicated in multiple plugins. If you fix
+ * something here please update the other files
+ */
+
+static int mechanism_fill_db(char *mech_name, sasl_server_params_t *sparams)
+{
+  int result;
+  sasl_server_putsecret_t *putsecret;
+  void *putsecret_context;
+  sasl_secret_t *sec = NULL;
+
+  /* get the callback for saving to the password db */
+  result = sparams->utils->getcallback(sparams->utils->conn,
+				       SASL_CB_SERVER_PUTSECRET,
+				       &putsecret,
+				       &putsecret_context);
+  if (result != SASL_OK) {
+    return result;
+  }
+
+  /* allocate a secret structure that we're going to save to disk */  
+  sec=(sasl_secret_t *) sparams->utils->malloc(sizeof(sasl_secret_t)+
+					       1);
+  if (sec == NULL) {
+    result = SASL_NOMEM;
+    return result;
+  }
+  
+  /* set the size */
+  sec->len = 1;
+  /* and insert the data */
+  memcpy(sec->data,"X", 1);
+
+  /* do the store */
+  result = putsecret(putsecret_context,
+		     mech_name, 
+		     "DUMMY",
+		     "ENTRY",
+		     sec);
+
+
+  return result;
+}
+
 static int
 setpass(void *glob_context __attribute__((unused)),
 	sasl_server_params_t *sparams,
@@ -603,6 +693,14 @@ setpass(void *glob_context __attribute__((unused)),
 		       user,
 		       realm,
 		       sec);
+
+    if (result != SASL_OK) {
+	goto cleanup;
+    }
+
+    /* put entry in db to say we have at least one user */
+    result = mechanism_fill_db("CRAM-MD5", sparams);
+
  cleanup:
     if (sec) {
 	memset(sec, 0, sizeof(sasl_secret_t) + sizeof(HMAC_MD5_STATE));
@@ -635,7 +733,7 @@ static const sasl_server_plug_t plugins[] =
   }
 };
 
-int sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
+int sasl_server_plug_init(sasl_utils_t *utils,
 			  int maxversion,
 			  int *out_version,
 			  const sasl_server_plug_t **pluglist,
@@ -644,10 +742,15 @@ int sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
   if (maxversion<CRAM_MD5_VERSION)
     return SASL_BADVERS;
 
+  /* make sure there is a cram entry */
+
   *pluglist=plugins;
 
   *plugcount=1;  
   *out_version=CRAM_MD5_VERSION;
+
+  if ( mechanism_db_filled("CRAM-MD5",utils) != SASL_OK)
+    return SASL_NOUSER;
 
   return SASL_OK;
 }

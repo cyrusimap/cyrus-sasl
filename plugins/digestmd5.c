@@ -233,7 +233,7 @@ static unsigned char *COLON = (unsigned char *) ":";
 
 
 /* These 2 functions are used for debugging */
-#if 0
+
 static void tmp_log_string(char *str)
 {
   FILE *stream;
@@ -263,7 +263,7 @@ static void tmp_log(char *foo, int len)
 
   fclose(stream);
 }
-#endif /* 0 */
+
 
 void
 CvtHex(
@@ -2563,6 +2563,96 @@ server_continue_step(void *conn_context,
   return SASL_FAIL;		/* should never get here */
 }
 
+/*
+ * See if there's at least one secret in the database
+ *
+ * Note: this function is duplicated in multiple plugins. If you fix
+ * something here please update the other files
+ */
+
+static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
+{
+  sasl_secret_t *sec=NULL;
+  int result;
+  sasl_server_getsecret_t *getsecret;
+  void *getsecret_context;
+
+  /* get callback so we can request the secret */
+  result = utils->getcallback(utils->conn,
+			      SASL_CB_SERVER_GETSECRET,
+			      &getsecret,
+			      &getsecret_context);
+
+  if (result != SASL_OK) {
+    VL(("result = %i trying to get secret callback\n",result));
+    return result;
+  }
+
+  if (! getsecret) {
+    VL(("Received NULL getsecret callback\n"));
+    return SASL_FAIL;
+  }
+
+  /* Request secret */
+  result = getsecret(getsecret_context, mech_name, "DUMMY", "ENTRY", &sec);
+
+  if (result == SASL_NOUSER) {
+    return SASL_NOUSER;
+  }
+
+  if (sec!=NULL)
+    utils->free(sec); /* xxx should zero out memory */
+
+  return result;
+}
+
+/*
+ * Put a DUMMY entry in the db to show that there is at least one entry in the db
+ *
+ * Note: this function is duplicated in multiple plugins. If you fix
+ * something here please update the other files
+ */
+
+static int mechanism_fill_db(char *mech_name, sasl_server_params_t *sparams)
+{
+  int result;
+  sasl_server_putsecret_t *putsecret;
+  void *putsecret_context;
+  sasl_secret_t *sec = NULL;
+
+  /* get the callback for saving to the password db */
+  result = sparams->utils->getcallback(sparams->utils->conn,
+				       SASL_CB_SERVER_PUTSECRET,
+				       &putsecret,
+				       &putsecret_context);
+  if (result != SASL_OK) {
+    return result;
+  }
+
+  /* allocate a secret structure that we're going to save to disk */  
+  sec=(sasl_secret_t *) sparams->utils->malloc(sizeof(sasl_secret_t)+
+					       1);
+  if (sec == NULL) {
+    result = SASL_NOMEM;
+    return result;
+  }
+  
+  /* set the size */
+  sec->len = 1;
+  /* and insert the data */
+  memcpy(sec->data,"X", 1);
+
+  /* do the store */
+  result = putsecret(putsecret_context,
+		     mech_name, 
+		     "DUMMY",
+		     "ENTRY",
+		     sec);
+
+
+  return result;
+}
+
 static int
 setpass(void *glob_context __attribute__((unused)),
 	sasl_server_params_t * sparams,
@@ -2632,6 +2722,13 @@ setpass(void *glob_context __attribute__((unused)),
       memset(&secbuf, 0, sizeof(secbuf));
   }
 
+  if (result != SASL_OK) {
+      return result;
+  }
+
+  /* put entry in db to say we have at least one user */
+  result = mechanism_fill_db("DIGEST-MD5", sparams);
+
   return result;
 }
 
@@ -2677,6 +2774,11 @@ int sasl_server_plug_init(sasl_utils_t * utils __attribute__((unused)),
 
   *plugcount = 1;
   *out_version = DIGESTMD5_VERSION;
+
+  if ( mechanism_db_filled("DIGEST-MD5",utils) != SASL_OK)
+  {
+    return SASL_NOUSER;
+  }
 
   return SASL_OK;
 }

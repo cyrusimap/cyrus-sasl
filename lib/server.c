@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.56 1999/11/15 23:53:07 tmartin Exp $
+ * $Id: server.c,v 1.57 1999/11/17 08:52:05 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -220,6 +220,7 @@ external_server_init(sasl_utils_t *utils,
 typedef struct mechanism
 {
   int version;
+  int condition; /* set to SASL_NOUSER if no available users */
   const sasl_server_plug_t *plug;
   struct mechanism *next;
   void *library; /* this a pointer to shared library returned by dlopen 
@@ -424,7 +425,7 @@ static int add_plugin(void *p, void *library) {
   result = entry_point(mechlist->utils, SASL_SERVER_PLUG_VERSION, &version,
 		       &pluglist, &plugcount);
 
-  if (result != SASL_OK)
+  if ((result != SASL_OK) && (result != SASL_NOUSER))
   {
     VL(("entry_point error %i\n",result));
     return result;
@@ -444,6 +445,8 @@ static int add_plugin(void *p, void *library) {
 
       mech->plug=pluglist++;
       mech->version = version;
+      
+      mech->condition = result; /* SASL_OK or SASL_NOUSER */
 
       /*
        * We want plugin library to close but we only
@@ -740,11 +743,14 @@ int sasl_server_new(const char *service,
  * that this mechanism has everything we want
  */
 static int mech_permitted(sasl_conn_t *conn,
-			  const sasl_server_plug_t *plug)
+			  mechanism_t *mech)
 {
+  const sasl_server_plug_t *plug = mech->plug;
+
   /* Can this plugin meet the application's security requirements? */
   if (! plug || ! conn)
     return 0;
+
   if (plug == &external_server_mech) {
     /* Special case for the external mechanism */
     if (conn->props.min_ssf > conn->external.ssf
@@ -755,6 +761,9 @@ static int mech_permitted(sasl_conn_t *conn,
     if (plug->max_ssf < conn->props.min_ssf)
       return 0;
   }
+
+  /* if there are no users in the secrets database we can't use this mechanism */
+  if (mech->condition == SASL_NOUSER) return 0;
 
   /* security properties---if there are any flags that differ and are
      in what the connection are requesting, then fail */
@@ -826,7 +835,7 @@ int sasl_server_start(sasl_conn_t *conn,
     return SASL_NOMECH;
 
   /* Make sure that we're willing to use this mech */
-  if (! mech_permitted(conn, m->plug))
+  if (! mech_permitted(conn, m))
     return SASL_NOMECH;
 
   s_conn->mech=m;
@@ -1018,7 +1027,7 @@ int sasl_listmech(sasl_conn_t *conn,
   /* make list */
   for (lup = 0; lup < mechlist->mech_length; lup++) {
       /* currently, we don't use the "user" parameter for anything */
-      if (mech_permitted(conn, listptr->plug)) {
+      if (mech_permitted(conn, listptr)) {
 	  if (pcount != NULL)
 	      (*pcount)++;
 

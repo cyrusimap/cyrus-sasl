@@ -749,7 +749,11 @@ static int checksize(char **out, int *alloclen, int newlen)
 /* adds a string to the buffer; reallocing if need be */
 static int add_string(char **out, int *alloclen, int *outlen, char *add)
 {
-  int addlen=strlen(add); /* only compute once */
+  int addlen;
+
+  if (add==NULL) add = "(null)";
+
+  addlen=strlen(add); /* only compute once */
   if (checksize(out, alloclen, (*outlen)+addlen)!=SASL_OK)
     return SASL_NOMEM;
 

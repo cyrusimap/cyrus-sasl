@@ -3,7 +3,7 @@
 ** SQL Auxprop plugin
 **   based on the original work of Simon Loader and Patrick Welche
 **
-** $Id: sql.c,v 1.6 2003/09/12 13:53:11 rjs3 Exp $
+** $Id: sql.c,v 1.7 2003/09/17 15:21:27 ken3 Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -225,6 +225,7 @@ static void *_pgsql_open(char *host, char *port,
     if((PQstatus(conn)==CONNECTION_OK))
 	return conn;
 
+    utils->log(NULL, SASL_LOG_ERR, "sql plugin: %s", PQerrorMessage(conn));
     return NULL;
 }
 
@@ -243,7 +244,9 @@ static int _pgsql_query(void *conn, char *query, char *value, size_t size,
   result = PQexec(conn, query);
   if (PQresultStatus(result) != PGRES_TUPLES_OK) 
     {
+      utils->log(NULL, SASL_LOG_NOTE, "sql plugin: %s", PQerrorMessage(conn));
       utils->free(query);
+      PQclear(result);
       return -1;
     }
 	
@@ -340,7 +343,7 @@ static char *sql_create_statement(sasl_server_params_t *sparams,
     ulen = strlen(user);
     rlen = strlen(realm);
     plen = strlen(prop);
-    ilen = strlen(insertvalue);
+    ilen = insertvalue ? strlen(insertvalue) : 0;
     /* don't forget the trailing 0x0 */
     filtersize = strlen(select_line) + ulen + rlen + plen + ilen;
     /* add in the transaction terms, keep the trailer from before */ 
@@ -889,13 +892,13 @@ static void sql_auxprop_free(void *glob_context, const sasl_utils_t *utils) {
 }
 
 static sasl_auxprop_plug_t sql_auxprop_plugin = {
-    0,		/* Features */
-    0,		/* spare */
-    NULL,	/* glob_context */
+    0,			/* Features */
+    0,			/* spare */
+    NULL,		/* glob_context */
     sql_auxprop_free,	/* auxprop_free */
     sql_auxprop_lookup,	/* auxprop_lookup */
-    "sql",	/* name */
-    sql_auxprop_store /* auxprop_store */
+    "sql",		/* name */
+    sql_auxprop_store	/* auxprop_store */
 };
 
 int sql_auxprop_plug_init(const sasl_utils_t *utils,

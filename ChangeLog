@@ -1,3 +1,6 @@
+2003-09-17  Ken Murchison <ken@oceana.com>
+	* plugins/sql.c: misc fixes from Patrick Welche <prlw1@newn.cam.ac.uk>
+	
 2003-09-16  Ken Murchison <ken@oceana.com>
 	* doc/mechanisms.html: updated to latest versions of LOGIN and
 	  SRP drafts

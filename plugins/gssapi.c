@@ -1058,56 +1058,6 @@ get_userid(sasl_client_params_t *params,char **userid,sasl_interact_t **prompt_n
   return result;
 }
 
-#if 0
-static int  /* borrowed from plain.c */
-get_authid(sasl_client_params_t *params,
-	   char **authid,
-	   sasl_interact_t **prompt_need)
-{
-  
-  int result;
-  sasl_getsimple_t *getauth_cb;
-  void *getauth_context;
-  sasl_interact_t *prompt;
-  const char *id;
-
-  /* see if we were given the authname in the prompt */
-  prompt=find_prompt(prompt_need,SASL_CB_AUTHNAME);
-  if (prompt!=NULL)
-  {
-      /* copy it */
-      *authid=params->utils->malloc(prompt->len+1);
-      if ((*authid)==NULL) return SASL_NOMEM;
-
-      strncpy(*authid, prompt->result, prompt->len+1);      
-      return SASL_OK;
-  }
-
-  /* Try to get the callback... */
-  result = params->utils->getcallback(params->utils->conn,
-				      SASL_CB_AUTHNAME,
-				      &getauth_cb,
-				      &getauth_context);
-  if (result == SASL_OK && getauth_cb) {
-    id = NULL;
-    result = getauth_cb(getauth_context,
-			SASL_CB_AUTHNAME,
-			&id,
-			NULL);
-    if (result != SASL_OK)
-      return result;
-    if (! id)
-      return SASL_BADPARAM;
-    *authid = params->utils->malloc(strlen(id) + 1);
-    if (! *authid)
-      return SASL_NOMEM;
-    strcpy(*authid, id);
-  }
-
-  return result;
-}
-#endif
-
 static int 
 sasl_gss_client_step (void *conn_context,
 		      sasl_client_params_t *params,

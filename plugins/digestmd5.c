@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.145 2002/12/05 22:50:42 leg Exp $
+ * $Id: digestmd5.c,v 1.146 2003/01/29 18:17:56 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -102,7 +102,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.145 2002/12/05 22:50:42 leg Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.146 2003/01/29 18:17:56 rjs3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -3548,7 +3548,7 @@ static int parse_server_challenge(client_context_t *ctext,
 
 static int ask_user_info(client_context_t *ctext,
 			 sasl_client_params_t *params,
-			 char **realms,
+			 char **realms, int nrealm,
 			 sasl_interact_t **prompt_need,
 			 sasl_out_params_t *oparams)
 {
@@ -3559,7 +3559,7 @@ static int ask_user_info(client_context_t *ctext,
     int user_result = SASL_OK;
     int auth_result = SASL_OK;
     int pass_result = SASL_OK;
-    int realm_result = SASL_OK;
+    int realm_result = SASL_FAIL;
 
     /* try to get the authid */
     if (oparams->authid == NULL) {
@@ -3589,21 +3589,29 @@ static int ask_user_info(client_context_t *ctext,
     }
 
     /* try to get the realm */
-    if (realms && text->realm == NULL) {
-	realm_result = _plug_get_realm(params->utils, (const char **) realms,
-				       (const char **) &realm,
-				       prompt_need);
-	
+    if (text->realm == NULL) {
+	if (realms) {
+	    if(nrealm == 1) {
+		/* only one choice */
+		realm = realms[0];
+		realm_result = SASL_OK;
+	    } else {
+		/* ask the user */
+		realm_result = _plug_get_realm(params->utils,
+					       (const char **) realms,
+					       (const char **) &realm,
+					       prompt_need);
+	    }
+	}
+
+	/* fake the realm if we must */
 	if ((realm_result != SASL_OK) && (realm_result != SASL_INTERACT)) {
-	    /* Fake the realm, if we can. */
 	    if (params->serverFQDN) {
-		_plug_strdup(params->utils, params->serverFQDN,
-			     (char **) &text->realm, NULL);
+		realm = params->serverFQDN;
 	    } else {
 		return realm_result;
 	    }
-	}
-	/* if realm_result == SASL_OK, text->realm has been filled in */
+	}    
     }
     
     /* free prompts we got */
@@ -3665,6 +3673,7 @@ static int ask_user_info(client_context_t *ctext,
 	if (result != SASL_OK) return result;
     }
 
+    /* Get an allocated version of the realm into the structure */
     if (realm && text->realm == NULL) {
 	_plug_strdup(params->utils, realm, (char **) &text->realm, NULL);
     }
@@ -3711,7 +3720,7 @@ digestmd5_client_mech_step1(client_context_t *ctext,
     params->utils->log(params->utils->conn, SASL_LOG_DEBUG,
 		       "DIGEST-MD5 client step 1");
 
-    result = ask_user_info(ctext, params, NULL, prompt_need, oparams);
+    result = ask_user_info(ctext, params, NULL, 0, prompt_need, oparams);
     if (result != SASL_OK) return result;
 
     /* check if we have cached info for this user on this server */
@@ -3797,7 +3806,8 @@ digestmd5_client_mech_step2(client_context_t *ctext,
 	}
     }
 
-    result = ask_user_info(ctext, params, realms, prompt_need, oparams);
+    result = ask_user_info(ctext, params, realms, nrealm,
+			   prompt_need, oparams);
     if (result != SASL_OK) goto FreeAllocatedMem;
 
     /*

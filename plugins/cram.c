@@ -1,7 +1,7 @@
 /* CRAM-MD5 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: cram.c,v 1.73 2002/05/06 20:52:08 rjs3 Exp $
+ * $Id: cram.c,v 1.74 2002/07/16 18:58:13 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -70,7 +70,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: cram.c,v 1.73 2002/05/06 20:52:08 rjs3 Exp $";
+static const char plugin_id[] = "$Id: cram.c,v 1.74 2002/07/16 18:58:13 rjs3 Exp $";
 
 /* convert a string of 8bit chars to it's representation in hex
  * using lowercase letters
@@ -322,7 +322,7 @@ crammd5_server_mech_step2(server_context_t *text,
     sparams->utils->hmac_md5_final((unsigned char *) &digest, &tmphmac);
     
     /* convert to base 16 with lower case letters */
-    digest_str = convert16((unsigned char *) digest, 4, sparams->utils);
+    digest_str = convert16((unsigned char *) digest, 16, sparams->utils);
     
     /* if same then verified 
      *  - we know digest_str is null terminated but clientin might not be

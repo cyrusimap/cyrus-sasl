@@ -32,7 +32,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_getpwent.c,v 1.1 2000/10/01 20:42:52 esys Exp $"
+#ident "$Id: auth_getpwent.c,v 1.2 2000/10/01 22:01:50 esys Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -44,7 +44,7 @@
 #endif /* HAVE_DES_H */
 /* END PUBLIC DEPENDENCIES */
 
-#define RETURN(x) {endpwent(); return strdup(x);}
+#define RETURN(x) return strdup(x)
 
 /* FUNCTION: auth_getpwent */
 
@@ -63,11 +63,13 @@ auth_getpwent (
     pw = getpwnam(login);
     endpwent();
 
-    if (pw == NULL)
+    if (pw == NULL) {
 	RETURN("NO");
+    }
 
-    if (strcmp(pw->pw_passwd, crypt(password, pw->pw_passwd)))
+    if (strcmp(pw->pw_passwd, crypt(password, pw->pw_passwd))) {
 	RETURN("NO");
+    }
 
     RETURN("OK");
 }

@@ -84,7 +84,7 @@ int retry_read(int fd, void *inbuf, unsigned nbyte)
 
 	nread += n;
 
-	if (nread >= (int) nbyte) return nread;
+	if (n >= (int) nbyte) return nread;
 
 	buf += n;
 	nbyte -= n;

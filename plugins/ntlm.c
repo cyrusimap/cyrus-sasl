@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.19 2003/12/07 00:34:09 ken3 Exp $
+ * $Id: ntlm.c,v 1.20 2003/12/29 21:26:00 rjs3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -94,7 +94,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.19 2003/12/07 00:34:09 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.20 2003/12/29 21:26:00 rjs3 Exp $";
 
 #ifdef WIN32
 static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);
@@ -742,7 +742,7 @@ static int retry_read(SOCKET fd, char *buf0, unsigned nbyte)
 
 	nread += n;
 
-	if (nread >= (int) nbyte) return nread;
+	if (n >= (int) nbyte) return nread;
 
 	buf += n;
 	nbyte -= n;

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.69 2003/12/19 01:47:37 rjs3 Exp $
+ * $Id: checkpw.c,v 1.70 2003/12/29 21:25:57 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -440,7 +440,7 @@ static int retry_read(int fd, void *buf0, unsigned nbyte)
 
 	nread += n;
 
-	if (nread >= (int) nbyte) return nread;
+	if (n >= (int) nbyte) return nread;
 
 	buf += n;
 	nbyte -= n;

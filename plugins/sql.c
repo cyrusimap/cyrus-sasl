@@ -3,7 +3,7 @@
 ** SQL Auxprop plugin
 **   based on the original work of Simon Loader and Patrick Welche
 **
-** $Id: sql.c,v 1.3 2003/09/10 18:34:12 mnigrosh Exp $
+** $Id: sql.c,v 1.4 2003/09/12 13:41:23 rjs3 Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -188,7 +188,7 @@ int pgsql_exists(const char *input)
   return 0;
 }
 static void *_pgsql_open(char *host, char *port,
-			 int usessl,
+			 int usessl __attribute__((unused)),
 			 const char *user, const char *password,
 			 const char *database,
 			 const sasl_utils_t *utils __attribute__((unused)))
@@ -330,16 +330,11 @@ static char *sql_create_statement(sasl_server_params_t *sparams,
      */
 
     /*Newer versions of postgres actually accept "START TRANSACTION"*/
-    
-#if HAVE_MYSQL
-    begin = "START TRANSACTION; ";
-#endif /*HAVE_MYSQL */
-#if HAVE_PGSQL
-    begin = "BEGIN; ";
-#endif /*HAVE_PGSQL */
-    
-    commit = " COMMIT;";
-    rollback = " ROLLBACK;";
+
+    /* xxx temp fix until real fix available  -- no transactions */
+    begin = "";
+    commit = "";
+    rollback = "";
       
     beginlen = strlen(begin);
     commitlen = strlen(commit);
@@ -398,6 +393,12 @@ static char *sql_create_statement(sasl_server_params_t *sparams,
 	    buf_ptr += plen;
 	    break;
 	  case 'i':
+	    if(!insertvalue) {
+		sparams->utils->log(NULL, SASL_LOG_ERR,
+			            "Cannot use %%i in select statements");
+		sparams->utils->free(buf);
+		return NULL;
+	    }
 	    memcpy(buf_ptr, insertvalue, ilen);
 	    buf_ptr += ilen;
 	    break;

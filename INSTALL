@@ -1,4 +1,6 @@
-To install, run "./configure", then "make".
+To install, run "./configure", then "make".  If you're checking this
+directly out of CVS, you'll need to run "sh ./SMakefile" to build the
+configure script first.
 
 Note that the library looks for plugins in /usr/lib/sasl, but installs
 them into ${prefix}/lib/sasl, where ${prefix} is usually something

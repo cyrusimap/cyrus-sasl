@@ -1,3 +1,7 @@
+2004-07-21  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/gssapi.c: Memory management cleanup
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+
 2004-07-15  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* configure.in, plugins/gssapi.c: Wrap all GSS calls
 	  in mutexes when required by the implementation.

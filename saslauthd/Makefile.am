@@ -7,8 +7,8 @@ saslauthd_DEPENDENCIES = @COMPAT_OBJ@
 saslauthd_LDADD	= @COMPAT_OBJ@ @SASL_KRB_LIB@ @GSSAPIBASE_LIBS@ @GSSAPI_LIBS@ @PLAIN_LIBS@ @LIB_SIA@ @LIB_SOCKET@ @SASL_DB_LIB@ @LIB_PAM@
 
 testsaslauthd_SORUCES = testsaslauthd.c
-saslauthd_DEPENDENCIES = @COMPAT_OBJ@
-saslauthd_LDADD = @COMPAT_OBJ@ @LIB_SOCKET@
+testsaslauthd_DEPENDENCIES = @COMPAT_OBJ@
+testsaslauthd_LDADD = @COMPAT_OBJ@ @LIB_SOCKET@
 
 EXTRA_DIST	= saslauthd.8 saslauthd.mdoc config include
 INCLUDES	= -I$(top_srcdir)/include

@@ -242,6 +242,8 @@ int main(int argc, char **argv)
 
 #else
 
+#include <stdio.h>
+
 int main()
 {
     printf("Must have gdbm or ndbm for the program\n");

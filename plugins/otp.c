@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.34 2004/06/18 15:08:26 ken3 Exp $
+ * $Id: otp.c,v 1.35 2004/06/23 16:09:24 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -68,7 +68,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: otp.c,v 1.34 2004/06/18 15:08:26 ken3 Exp $";
+static const char plugin_id[] = "$Id: otp.c,v 1.35 2004/06/23 16:09:24 rjs3 Exp $";
 
 #define OTP_SEQUENCE_MAX	9999
 #define OTP_SEQUENCE_DEFAULT	499
@@ -920,7 +920,6 @@ static int otp_server_mech_step1(server_context_t *text,
 {
     const char *authzid;
     const char *authidp;
-    char *authid;
     size_t authid_len;
     unsigned lup = 0;
     int result, n;
@@ -958,36 +957,25 @@ static int otp_server_mech_step1(server_context_t *text,
 	return SASL_BADPROT;
     }
     
-    authid = params->utils->malloc(authid_len + 1);    
-    if (authid == NULL) {
+    text->authid = params->utils->malloc(authid_len + 1);    
+    if (text->authid == NULL) {
 	MEMERROR(params->utils);
 	return SASL_NOMEM;
     }
     
     /* we can't assume that authid is null-terminated */
-    strncpy(authid, authidp, authid_len);
-    authid[authid_len] = '\0';
-    
-    /* Get the realm */
-    result = _plug_parseuser(params->utils, &text->authid, &text->realm,
-			     params->user_realm,
-			     params->serverFQDN, authid);
-    
-    params->utils->free(authid);
-    if (result) {
-	params->utils->seterror(params->utils->conn, 0, 
-				"OTP: Error getting realm");
-	return SASL_FAIL;
-    }
-    
+    strncpy(text->authid, authidp, authid_len);
+    text->authid[authid_len] = '\0';
+
     n = 0;
     do {
 	/* Get user secret */
 	result = params->utils->prop_request(params->propctx,
 					     lookup_request);
 	if (result != SASL_OK) return result;
-	
-	/* this will trigger the getting of the aux properties */
+
+	/* this will trigger the getting of the aux properties.
+	   Must use the fully qualified authid here */
 	result = params->canon_user(params->utils->conn, text->authid, 0,
 				    SASL_CU_AUTHID, oparams);
 	if (result != SASL_OK) return result;
@@ -1006,6 +994,7 @@ static int otp_server_mech_step1(server_context_t *text,
 	    params->utils->seterror(params->utils->conn,0,
 				    "no OTP secret in database");
 	    result = params->transition ? SASL_TRANS : SASL_NOUSER;
+	    return (result);
 	}
 	
 	if (auxprop_values[0].name && auxprop_values[0].values) {

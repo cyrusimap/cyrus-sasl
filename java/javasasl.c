@@ -243,7 +243,7 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericServer_jni_1sasl_1server_1sta
    int result;
   jbyteArray arr;
   const char *errstr;
-  signed char *in=NULL;
+  char *in=NULL;
 
   VL(("in server start\n"));
 
@@ -267,7 +267,7 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericServer_jni_1sasl_1server_1sta
 
   arr=(*env)->NewByteArray(env,outlen);
 
-  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (signed char *) out);
+  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *) out);
 
   return arr;
 }
@@ -448,7 +448,7 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericClient_jni_1sasl_1client_1sta
 
   /* make the byte array to return */
   arr=(*env)->NewByteArray(env,outlen);
-  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (signed char *) out);
+  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *) out);
   
   return arr;
 }
@@ -467,7 +467,7 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericServer_jni_1sasl_1server_1ste
   unsigned int outlen;
   jbyteArray arr;
   const char *errstr;  
-  signed char *in = NULL;
+  char *in = NULL;
 
   if (jlen > 0)
       in = (*env)->GetByteArrayElements(env, jarr, 0);
@@ -493,7 +493,7 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericServer_jni_1sasl_1server_1ste
   /* make byte array to return with stuff to send to server */
   arr=(*env)->NewByteArray(env,outlen);
 
-  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (signed char *) out);
+  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *) out);
 
   return arr;
 }
@@ -536,7 +536,7 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericClient_jni_1sasl_1client_1ste
   char *out;
   unsigned int outlen;
   jbyteArray arr;
-  signed char *in = (*env)->GetByteArrayElements(env, jarr, 0);
+  char *in = (*env)->GetByteArrayElements(env, jarr, 0);
 
   globalenv=env;
   globalobj=obj;
@@ -573,7 +573,7 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericClient_jni_1sasl_1client_1ste
   /* make byte array to return with stuff to send to server */
   arr=(*env)->NewByteArray(env,outlen);
 
-  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (signed char *) out);
+  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *) out);
 
   return arr;
 }
@@ -619,7 +619,7 @@ JNIEXPORT void JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1set_1prop_1bytes
    jobject obj __attribute__((unused)),
    jint ptr, jint propnum, jbyteArray jarr)
 {
-  signed char *value = (*env)->GetByteArrayElements(env, jarr, 0);
+  char *value = (*env)->GetByteArrayElements(env, jarr, 0);
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
   int result;
 
@@ -637,7 +637,7 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1encode
    jbyteArray jarr, jint jlen)
 {
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
-  signed char *in = (*env)->GetByteArrayElements(env, jarr, 0);
+  char *in = (*env)->GetByteArrayElements(env, jarr, 0);
   char *out;
   unsigned int outlen;
   int result;
@@ -648,7 +648,7 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1encode
     throwexception(env,result);
 
   arr=(*env)->NewByteArray(env,outlen);
-  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (signed char *) out);
+  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *) out);
 
   return arr;
 }
@@ -661,7 +661,7 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1decode
 {
 
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
-  signed char *in = (*env)->GetByteArrayElements(env, jarr, 0);
+  char *in = (*env)->GetByteArrayElements(env, jarr, 0);
   char *out;
   unsigned int outlen=9;
   int inlen=jlen;
@@ -673,7 +673,7 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1decode
     throwexception(env,result);
 
   arr=(*env)->NewByteArray(env,outlen);
-  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (signed char *) out);
+  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *) out);
 
   (*env)->ReleaseByteArrayElements(env, jarr, in,0);
 
@@ -732,7 +732,7 @@ JNIEXPORT void JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1set_1server
    jint ptr, jbyteArray jarr, jint jport)
 {
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
-  signed char *ip = (*env)->GetByteArrayElements(env, jarr, 0);
+  char *ip = (*env)->GetByteArrayElements(env, jarr, 0);
   struct sockaddr_in addr;
   int result;
 
@@ -759,7 +759,7 @@ JNIEXPORT void JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1set_1client
    jint ptr, jbyteArray jarr, jint jport)
 {
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
-  signed char *ip = (*env)->GetByteArrayElements(env, jarr, 0);
+  char *ip = (*env)->GetByteArrayElements(env, jarr, 0);
   struct sockaddr_in addr;
   int result;
 

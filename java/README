@@ -1,0 +1,20 @@
+
+This is a java version of the SASL libraries. It supports all the
+mechanisms in the C version and conforms to the internet draft in the
+doc/ directory. JNI is used.
+
+Sample applications exist in the Test/ directory.
+
+They generally can be run with something like:
+
+java -debug -classpath
+../:/usr/java/lib/classes.zip:/usr/obj/sasl/java/:. jimtest -p 2143 -m
+KERBEROS_V4 cyrus-dev
+
+and
+
+java -debug -classpath
+../:/usr/java/lib/classes.zip:/usr/obj/sasl/java/:. testserver
+
+
+Any feedback is welcome.

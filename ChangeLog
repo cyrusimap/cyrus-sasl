@@ -1,3 +1,7 @@
+2002-01-22  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* lib/common.c: Complete definition of sasl_global_listmech
+	  (from Love <lha@stacken.kth.se>)
+
 2002-01-21  Ken Murchison <ken@oceana.com>
 	* doc/draft-myers-saslrev-01.txt: moved TOC
 	* doc/draft-ietf-cat-sasl-gssapi-05.txt: moved TOC

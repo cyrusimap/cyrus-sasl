@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.62 2000/08/23 19:13:55 leg Exp $
+ * $Id: kerberos4.c,v 1.63 2000/10/03 05:44:35 leg Exp $
  */
 /* 
  * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -905,368 +905,382 @@ static int client_continue_step (void *conn_context,
 				 int *clientoutlen,
 				 sasl_out_params_t *oparams)
 {
-  KTEXT_ST authent;
-  context_t *text;
-  text=conn_context;
+    KTEXT_ST authent;
+    context_t *text;
+    text=conn_context;
 
-  authent.length = MAX_KTXT_LEN;
+    authent.length = MAX_KTXT_LEN;
   
-  if (text->state==0)
-  {
-    VL(("KERBEROS_V4 Step 1\n"));
-
-    *clientout = NULL;
-    *clientoutlen = 0;
-
-    text->state=1;
-
-    return SASL_CONTINUE;
-  }
-
-  if (text->state==1)
-  {
-    /* We should've just recieved a 32-bit number in network byte order.
-     * We want to reply with an authenticator. */
-    int result;
-    KTEXT_ST ticket;
-
-    VL(("KERBEROS_V4 Step 2\n"));
-
-    memset(&ticket, 0L, sizeof(ticket));
-    ticket.length=MAX_KTXT_LEN;   
-
-    if (serverinlen != 4) {
-	VL(("serverin not 4 bytes long\n"));
-	return SASL_FAIL; 
-    }
-
-    memcpy(&text->challenge, serverin, 4);
-
-    text->challenge=ntohl(text->challenge); 
-
-    if (params->serverFQDN == NULL) {
-	VL(("No serverFQDN set\n"));
-	return SASL_BADPARAM;
-    }
-    if (params->service == NULL) {
-	VL(("No service set\n"));
-	return SASL_BADPARAM;
-    }
-
-    text->realm=krb_realmofhost(params->serverFQDN);
-    text->hostname=(char *) params->serverFQDN;
-
-    /* the instance of the principal we're authenticating with */
-    strncpy (text->instance, krb_get_phost (params->serverFQDN), 
-	     sizeof (text->instance));
-    /* text->instance is NULL terminated unless it was too long */
-    text->instance[sizeof(text->instance)-1] = '\0';
-
-    VL (("service=%s\n", params->service));
-    VL (("instance=%s\n",text->instance));
-
-    if ((result=krb_mk_req(&ticket, (char *) params->service, text->instance,
-			   text->realm,text->challenge)))
+    if (text->state==0)
     {
-	VL(("krb_mk_req failed service=%s instance=%s realm=%s krb error=%d\n",
-	    params->service,text->instance,text->realm,result));
-	return SASL_FAIL;
-    }
-    
-    *clientout=params->utils->malloc(ticket.length);
-    memcpy((char *) (*clientout), ticket.dat, ticket.length);
-    *clientoutlen=ticket.length;
+	VL(("KERBEROS_V4 Step 1\n"));
 
-    text->state=2;
-    return SASL_CONTINUE;
-  }
+	*clientout = NULL;
+	*clientoutlen = 0;
 
-  /* challenge #2 */
-  if (text->state==2)
-  {
-    int need = 0;
-    int musthave = 0;
-    int testnum;
-    int nchal;    
-    unsigned char *sout = NULL;
-    unsigned len;
-    unsigned char in[8];
-    const char *userid;
-    int result;
-    sasl_getsimple_t *getuser_cb;
-    void *getuser_context;
-    sasl_interact_t *prompt;
-    int prompt_for_userid = 0;
-    int servermaxbuf;
+	text->state=1;
 
-    if (prompt_need && *prompt_need) {
-      /* If we requested prompts, make sure they're
-       * properly filled in. */
-      for (prompt = *prompt_need;
-	   prompt->id != SASL_CB_LIST_END;
-	   ++prompt)
-	if (! prompt->result)
-	  return SASL_BADPARAM;
-
-      /* Get the username */
-      if (! oparams->user)
-	for (prompt = *prompt_need;
-	     prompt->id != SASL_CB_LIST_END;
-	     ++prompt)
-	  if (prompt->id == SASL_CB_USER) {
-	    oparams->user
-	      = params->utils->malloc(strlen(prompt->result) + 1);
-	    if (! oparams->user)
-	      return SASL_NOMEM;
-	    strcpy(oparams->user, prompt->result);
-	    break;
-	  }
-
-      params->utils->free(*prompt_need);
-      *prompt_need = NULL;
+	return SASL_CONTINUE;
     }
 
-    /* Now, try to get the userid by normal means... */
-    if (! oparams->user) {
-      /* Try to get the callback... */
-      result = params->utils->getcallback(params->utils->conn,
-					  SASL_CB_USER,
-					  &getuser_cb,
-					  &getuser_context);
-      switch (result) {
-      case SASL_INTERACT:
-	/* We'll set up an interaction later. */
-	prompt_for_userid = 1;
-	break;
-      case SASL_OK:
-	if (! getuser_cb)
-	  break;
-	result = getuser_cb(getuser_context,
-			    SASL_CB_USER,
-			    &userid,
-			    NULL);
-	if (result != SASL_OK)
-	  return result;
-	if (userid) {
-	  oparams->user = params->utils->malloc(strlen(userid) + 1);
-	  if (! oparams->user)
-	    return SASL_NOMEM;
-	  strcpy(oparams->user, userid);
+    else if (text->state==1) {
+	/* We should've just recieved a 32-bit number in network byte order.
+	 * We want to reply with an authenticator. */
+	int result;
+	KTEXT_ST ticket;
+
+	VL(("KERBEROS_V4 Step 2\n"));
+
+	memset(&ticket, 0L, sizeof(ticket));
+	ticket.length=MAX_KTXT_LEN;   
+
+	if (serverinlen != 4) {
+	    params->utils->log(NULL, SASL_LOG_ERR, "KERBEROS_V4", SASL_FAIL,
+			       0, "server challenge not 4 bytes long");
+	    return SASL_FAIL; 
 	}
-	break;
-      default:
-	return result;
-      }
-    }
-      
-    /* And now, if we *still* don't have userid,
-     * but we think we can prompt, we need to set up a prompt. */
-    if (! oparams->user && prompt_for_userid) {
-      if (! prompt_need)
-	return SASL_INTERACT;
-      *prompt_need = params->utils->malloc(sizeof(sasl_interact_t) * 2);
-      if (! *prompt_need)
-	return SASL_NOMEM;
-      prompt = *prompt_need;
-      prompt->id = SASL_CB_USER;
-      prompt->prompt = "Remote Userid";
-      prompt->defresult = NULL;
-      prompt++;
-      prompt->id = SASL_CB_LIST_END;
-      return SASL_INTERACT;
-    }
-      
-    /* must be 8 octets */
-    if (serverinlen!=8)
-    {
-      return SASL_BADAUTH;
-    }
 
-    memcpy(in, serverin, 8);
+	memcpy(&text->challenge, serverin, 4);
 
-    /* get credentials */
-    if ((krb_get_cred((char *)params->service,
-		      text->instance,
-		      text->realm,
-		      &text->credentials)))
-    {
-      return SASL_BADAUTH;
-    }
+	text->challenge=ntohl(text->challenge); 
 
-    memcpy(text->session, text->credentials.session, 8);
+	if (params->serverFQDN == NULL) {
+	    params->utils->log(NULL, SASL_LOG_ERR, "KERBEROS_V4", 
+			       SASL_BADPARAM, 0, 
+			       "no 'serverFQDN' set");
+	    return SASL_BADPARAM;
+	}
+	if (params->service == NULL) {
+	    params->utils->log(NULL, SASL_LOG_ERR, "KERBEROS_V4", 
+			       SASL_BADPARAM, 0, 
+			       "no 'service' set");
+	    return SASL_BADPARAM;
+	}
 
-    /* make key schedule for encryption and decryption */
-    des_key_sched(&text->session, text->init_keysched);
-    des_key_sched(&text->session, text->enc_keysched);
-    des_key_sched(&text->session, text->dec_keysched);
+	text->realm=krb_realmofhost(params->serverFQDN);
+	text->hostname=(char *) params->serverFQDN;
 
-    /* decrypt from server */
-    des_ecb_encrypt((des_cblock *)in, (des_cblock *)in,
-		    text->init_keysched, DES_DECRYPT);
+	/* the instance of the principal we're authenticating with */
+	strncpy (text->instance, krb_get_phost (params->serverFQDN), 
+		 sizeof (text->instance));
+	/* text->instance is NULL terminated unless it was too long */
+	text->instance[sizeof(text->instance)-1] = '\0';
 
-    /* convert to 32bit int */
-    testnum = (in[0]*256*256*256)+(in[1]*256*256)+(in[2]*256)+in[3];
-
-    /* verify data 1st 4 octets must be equal to chal+1 */
-    if (testnum != text->challenge+1)
-    {
-      VL(("challenge not right\n"));
-      return SASL_BADAUTH;
-    }
-
-    /* construct 8 octets
-     * 1-4 - original checksum
-     * 5 - bitmask of sec layer
-     * 6-8 max buffer size
-     */
-
-
-    if (params->props.min_ssf > KRB_DES_SECURITY_BITS + params->external_ssf) {
-      VL (("Minimum ssf too strong min_ssf=%u\n",
-	   params->props.min_ssf));
-      return SASL_TOOWEAK;
-    } else if (params->props.min_ssf > params->props.max_ssf) {
-      return SASL_BADPARAM;
-    }
-
-    /* create stuff to send to server */
-    sout = (char *) params->utils->malloc(9+strlen(oparams->user)+9);
-
-    nchal=htonl(text->challenge);
-    memcpy(sout, &nchal, 4);
-
-    /* need bits of layer */
-    need = params->props.max_ssf - params->external_ssf;
-    musthave = params->props.min_ssf - params->external_ssf;
-
-    VL(("need = %i musthave = %i \n",need, musthave));
-
-    if ((in[4] & KRB_SECFLAG_ENCRYPTION)
-	&& (need>=56) && (musthave <= 56)) {
-      /* encryption */
-      oparams->encode = &privacy_encode;
-      oparams->decode = &privacy_decode;
-      oparams->mech_ssf = 56;
-      sout[4] = KRB_SECFLAG_ENCRYPTION;
-      VL (("Using encryption layer\n"));
-    } else if ((in[4] & KRB_SECFLAG_INTEGRITY)
-	       && (need >= 1) && (musthave <= 1)) {
-      /* integrity */
-      oparams->encode=&integrity_encode;
-      oparams->decode=&integrity_decode;
-      oparams->mech_ssf=1;
-      sout[4] = KRB_SECFLAG_INTEGRITY;
-      VL (("Using integrity layer\n"));
-    } else if ((in[4] & KRB_SECFLAG_NONE) && (musthave <= 0)) {
-      /* no layer */
-      oparams->encode=NULL;
-      oparams->decode=NULL;
-      oparams->mech_ssf=0;
-      sout[4] = KRB_SECFLAG_NONE;
-      VL (("Using no layer\n"));
-    } else {
-      return SASL_BADPROT;
-    }
-
-    servermaxbuf=in[5]*256*256+in[6]*256+in[7];
-    oparams->maxoutbuf=servermaxbuf;
-
-    sout[5] = (oparams->maxoutbuf) >> 16;  /* max ciphertext buffer size */
-    sout[6] = (oparams->maxoutbuf) >> 8;
-    sout[7] = (oparams->maxoutbuf);
-
-    sout[8] = 0x00; /* just to be safe */
-
-    /* append userid */
-    len = 9;			/* 8 + trailing NULL */
-    if (oparams->user) {
-      strcpy((char *)sout + 8, oparams->user);
-      len += strlen(oparams->user);
-    }
-
-    /* append 0 based octets so is multiple of 8 */
-    while(len % 8)
-    {
-      sout[len]=0;
-      len++;
-    }
-    sout[len]=0;
+	if ((result=krb_mk_req(&ticket, (char *) params->service, 
+			       text->instance, text->realm,text->challenge)))
+	{
+	    params->utils->log(NULL, SASL_LOG_ERR, "KERBEROS_V4", 
+			       SASL_FAIL, 0, 
+			       "krb_mk_req() failed: %s (%d)",
+			       krb_err_txt[result], result);
+	    return SASL_FAIL;
+	}
     
-    des_pcbc_encrypt((des_cblock *)sout,
-		     (des_cblock *)sout,
-		     len,
-		     text->init_keysched,
-		     (des_cblock *)text->session,
-		     DES_ENCRYPT);
+	*clientout=params->utils->malloc(ticket.length);
+	memcpy((char *) (*clientout), ticket.dat, ticket.length);
+	*clientoutlen=ticket.length;
 
-    *clientout = params->utils->malloc(len);
-    memcpy((char *) *clientout, sout, len);
-
-    *clientoutlen=len;
-
-    /* nothing more to do; should be authenticated */
-    result = params->utils->getprop(params->utils->conn,
-                          SASL_IP_LOCAL, (void **)&(text->ip_local));
-    if (result != SASL_OK)
-    {
-	VL(("Unable to get SASL_IP_LOCAL (local IP address)\n"));
-	return result;
+	text->state=2;
+	return SASL_CONTINUE;
     }
 
-    result = params->utils->getprop(params->utils->conn,
-                          SASL_IP_REMOTE, (void **)&(text->ip_remote));
-    if (result != SASL_OK)
-    {
-	VL(("Unable to get SASL_IP_REMOTE (IP address of server we're contacting)\n"));
-	return result;
+    /* challenge #2 */
+    else if (text->state==2) {
+	int need = 0;
+	int musthave = 0;
+	int testnum;
+	int nchal;    
+	unsigned char *sout = NULL;
+	unsigned len;
+	unsigned char in[8];
+	const char *userid;
+	int result;
+	sasl_getsimple_t *getuser_cb;
+	void *getuser_context;
+	sasl_interact_t *prompt;
+	int prompt_for_userid = 0;
+	int servermaxbuf;
+
+	if (prompt_need && *prompt_need) {
+	    /* If we requested prompts, make sure they're
+	     * properly filled in. */
+	    for (prompt = *prompt_need;
+		 prompt->id != SASL_CB_LIST_END;
+		 ++prompt)
+		if (! prompt->result)
+		    return SASL_BADPARAM;
+
+	    /* Get the username */
+	    if (! oparams->user)
+		for (prompt = *prompt_need;
+		     prompt->id != SASL_CB_LIST_END;
+		     ++prompt)
+		    if (prompt->id == SASL_CB_USER) {
+			oparams->user
+			    = params->utils->malloc(strlen(prompt->result) + 1);
+			if (! oparams->user)
+			    return SASL_NOMEM;
+			strcpy(oparams->user, prompt->result);
+			break;
+		    }
+
+	    params->utils->free(*prompt_need);
+	    *prompt_need = NULL;
+	}
+
+	/* Now, try to get the userid by normal means... */
+	if (! oparams->user) {
+	    /* Try to get the callback... */
+	    result = params->utils->getcallback(params->utils->conn,
+						SASL_CB_USER,
+						&getuser_cb,
+						&getuser_context);
+	    switch (result) {
+	    case SASL_INTERACT:
+		/* We'll set up an interaction later. */
+		prompt_for_userid = 1;
+		break;
+	    case SASL_OK:
+		if (! getuser_cb)
+		    break;
+		result = getuser_cb(getuser_context,
+				    SASL_CB_USER,
+				    &userid,
+				    NULL);
+		if (result != SASL_OK)
+		    return result;
+		if (userid) {
+		    oparams->user = params->utils->malloc(strlen(userid) + 1);
+		    if (! oparams->user)
+			return SASL_NOMEM;
+		    strcpy(oparams->user, userid);
+		}
+		break;
+	    default:
+		return result;
+	    }
+	}
+      
+	/* And now, if we *still* don't have userid,
+	 * but we think we can prompt, we need to set up a prompt. */
+	if (! oparams->user && prompt_for_userid) {
+	    if (! prompt_need)
+		return SASL_INTERACT;
+	    *prompt_need = params->utils->malloc(sizeof(sasl_interact_t) * 2);
+	    if (! *prompt_need)
+		return SASL_NOMEM;
+	    prompt = *prompt_need;
+	    prompt->id = SASL_CB_USER;
+	    prompt->prompt = "Remote Userid";
+	    prompt->defresult = NULL;
+	    prompt++;
+	    prompt->id = SASL_CB_LIST_END;
+	    return SASL_INTERACT;
+	}
+      
+	/* must be 8 octets */
+	if (serverinlen!=8) {
+	    params->utils->log(NULL, SASL_LOG_ERR, "KERBEROS_V4", SASL_BADAUTH,
+			       0, "server response not 8 bytes long");
+	    return SASL_BADAUTH;
+	}
+
+	memcpy(in, serverin, 8);
+
+	/* get credentials */
+	if ((result = krb_get_cred((char *)params->service,
+			  text->instance,
+			  text->realm,
+			  &text->credentials)) != 0) {
+	    params->utils->log(NULL, SASL_LOG_ERR, "KERBEROS_V4", 
+			       SASL_BADAUTH, 0, 
+			       "krb_get_cred() failed: %s (%d)",
+			       krb_err_txt[result], result);
+	    return SASL_BADAUTH;
+	}
+
+	memcpy(text->session, text->credentials.session, 8);
+
+	/* make key schedule for encryption and decryption */
+	des_key_sched(&text->session, text->init_keysched);
+	des_key_sched(&text->session, text->enc_keysched);
+	des_key_sched(&text->session, text->dec_keysched);
+
+	/* decrypt from server */
+	des_ecb_encrypt((des_cblock *)in, (des_cblock *)in,
+			text->init_keysched, DES_DECRYPT);
+
+	/* convert to 32bit int */
+	testnum = (in[0]*256*256*256)+(in[1]*256*256)+(in[2]*256)+in[3];
+
+	/* verify data 1st 4 octets must be equal to chal+1 */
+	if (testnum != text->challenge+1)
+	{
+	    params->utils->log(NULL, SASL_LOG_ERR, "KERBEROS_V4", 
+			       SASL_BADAUTH, 0, 
+			       "server response incorrect");
+	    return SASL_BADAUTH;
+	}
+
+	/* construct 8 octets
+	 * 1-4 - original checksum
+	 * 5 - bitmask of sec layer
+	 * 6-8 max buffer size
+	 */
+	if (params->props.min_ssf > 
+	       KRB_DES_SECURITY_BITS + params->external_ssf) {
+	    params->utils->log(NULL, SASL_LOG_ERR, "KERBEROS_V4", 
+			       SASL_TOOWEAK, 0, 
+			       "minimum ssf too strong for this mechanism");
+	    return SASL_TOOWEAK;
+	} else if (params->props.min_ssf > params->props.max_ssf) {
+	    params->utils->log(NULL, SASL_LOG_ERR, "KERBEROS_V4", 
+			       SASL_BADPARAM, 0, 
+			       "minimum ssf larger than maximum ssf");
+	    return SASL_BADPARAM;
+	}
+
+	/* create stuff to send to server */
+	sout = (char *) params->utils->malloc(9+strlen(oparams->user)+9);
+
+	nchal=htonl(text->challenge);
+	memcpy(sout, &nchal, 4);
+
+	/* need bits of layer */
+	need = params->props.max_ssf - params->external_ssf;
+	musthave = params->props.min_ssf - params->external_ssf;
+
+	if ((in[4] & KRB_SECFLAG_ENCRYPTION)
+	    && (need>=56) && (musthave <= 56)) {
+	    /* encryption */
+	    oparams->encode = &privacy_encode;
+	    oparams->decode = &privacy_decode;
+	    oparams->mech_ssf = 56;
+	    sout[4] = KRB_SECFLAG_ENCRYPTION;
+	    /* using encryption layer */
+	} else if ((in[4] & KRB_SECFLAG_INTEGRITY)
+		   && (need >= 1) && (musthave <= 1)) {
+	    /* integrity */
+	    oparams->encode=&integrity_encode;
+	    oparams->decode=&integrity_decode;
+	    oparams->mech_ssf=1;
+	    sout[4] = KRB_SECFLAG_INTEGRITY;
+	    /* using integrity layer */
+	} else if ((in[4] & KRB_SECFLAG_NONE) && (musthave <= 0)) {
+	    /* no layer */
+	    oparams->encode=NULL;
+	    oparams->decode=NULL;
+	    oparams->mech_ssf=0;
+	    sout[4] = KRB_SECFLAG_NONE;
+	} else {
+	    params->utils->log(NULL, SASL_LOG_ERR, "KERBEROS_V4", 
+			       SASL_BADPROT, 0, 
+			       "unable to agree on layers with server");
+	    return SASL_BADPROT;
+	}
+
+	servermaxbuf=in[5]*256*256+in[6]*256+in[7];
+	oparams->maxoutbuf=servermaxbuf;
+
+	sout[5] = (oparams->maxoutbuf) >> 16;  /* max ciphertext buffer size */
+	sout[6] = (oparams->maxoutbuf) >> 8;
+	sout[7] = (oparams->maxoutbuf);
+
+	sout[8] = 0x00; /* just to be safe */
+
+	/* append userid */
+	len = 9;			/* 8 + trailing NULL */
+	if (oparams->user) {
+	    strcpy((char *)sout + 8, oparams->user);
+	    len += strlen(oparams->user);
+	}
+
+	/* append 0 based octets so is multiple of 8 */
+	while(len % 8)
+	{
+	    sout[len]=0;
+	    len++;
+	}
+	sout[len]=0;
+    
+	des_pcbc_encrypt((des_cblock *)sout,
+			 (des_cblock *)sout,
+			 len,
+			 text->init_keysched,
+			 (des_cblock *)text->session,
+			 DES_ENCRYPT);
+
+	*clientout = params->utils->malloc(len);
+	memcpy((char *) *clientout, sout, len);
+
+	*clientoutlen=len;
+
+	/* nothing more to do; should be authenticated */
+	result = params->utils->getprop(params->utils->conn,
+					SASL_IP_LOCAL, 
+					(void **)&(text->ip_local));
+	if (result != SASL_OK) {
+	    params->utils->log(NULL, SASL_LOG_ERR, "KERBEROS_V4", 
+			       result, 0, 
+			       "unable to get local IP address: %z");
+	    return result;
+	}
+
+	result = params->utils->getprop(params->utils->conn,
+					SASL_IP_REMOTE, 
+					(void **)&(text->ip_remote));
+	if (result != SASL_OK) {
+	    params->utils->log(NULL, SASL_LOG_ERR, "KERBEROS_V4", 
+			       result, 0, 
+			       "unable to get remote IP address: %z");
+	    return result;
+	}
+
+	oparams->authid =
+	    params->utils->malloc(strlen(text->credentials.pname)
+				  + strlen(text->credentials.pinst)
+				  + 2);
+	if (! oparams->authid)
+	    return SASL_NOMEM;
+	strcpy(oparams->authid, text->credentials.pname);
+	if (text->credentials.pinst[0]) {
+	    strcat(oparams->authid, ".");
+	    strcat(oparams->authid, text->credentials.pinst);
+	}
+
+	if (oparams->user && !oparams->user[0]) {
+	    params->utils->free(oparams->user);
+	    oparams->user = NULL;
+	}
+	if (! oparams->user) {
+	    oparams->user = params->utils->malloc(strlen(oparams->authid) + 1);
+	    if (! oparams->user)
+		return SASL_NOMEM;
+	    strcpy(oparams->user, oparams->authid);
+	}
+
+	oparams->doneflag=1;
+	oparams->param_version=0;
+
+	text->size=-1;
+	text->needsize=4;
+
+	text->state++;
+
+	if (sout) params->utils->free(sout);
+
+	return SASL_CONTINUE;
+    }
+    else if (text->state==3) {
+	*clientout = NULL;
+	*clientoutlen = 0;
+
+	/* we're done! */
+	text->state++;
+	return SASL_OK;
     }
 
-    oparams->authid =
-      params->utils->malloc(strlen(text->credentials.pname)
-			    + strlen(text->credentials.pinst)
-			    + 2);
-    if (! oparams->authid)
-      return SASL_NOMEM;
-    strcpy(oparams->authid, text->credentials.pname);
-    if (text->credentials.pinst[0]) {
-      strcat(oparams->authid, ".");
-      strcat(oparams->authid, text->credentials.pinst);
-    }
-
-    if (oparams->user && !oparams->user[0]) {
-      params->utils->free(oparams->user);
-      oparams->user = NULL;
-    }
-    if (! oparams->user) {
-      oparams->user = params->utils->malloc(strlen(oparams->authid) + 1);
-      if (! oparams->user)
-	return SASL_NOMEM;
-      strcpy(oparams->user, oparams->authid);
-    }
-
-    oparams->doneflag=1;
-    oparams->param_version=0;
-
-    text->size=-1;
-    text->needsize=4;
-
-    text->state++;
-
-    if (sout) params->utils->free(sout);
-
-    return SASL_CONTINUE;
-  }
-
-  if (text->state==3)
-  {
-      *clientout = NULL;
-      *clientoutlen = 0;
-      VL(("Verify we're done step"));
-      text->state++;
-      return SASL_OK;
-  }
-
-  return SASL_FAIL; /* should never get here */
+    return SASL_FAIL; /* should never get here */
 }
 
 static const long client_required_prompts[] = {

@@ -1,5 +1,5 @@
 /* pwcheck.c -- Unix pwcheck daemon
-   $Id: pwcheck.c,v 1.4 1999/12/05 23:00:44 leg Exp $
+   $Id: pwcheck.c,v 1.5 2000/03/09 01:39:44 leg Exp $
 Copyright 1998, 1999 Carnegie Mellon University
 
                       All Rights Reserved
@@ -29,7 +29,9 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <sys/un.h>
 #include <sys/uio.h>
 #include <sys/stat.h>
+#ifdef HAVE_PATHS_H
 #include <paths.h>
+#endif
 #include <unistd.h>
 #include <syslog.h>
 

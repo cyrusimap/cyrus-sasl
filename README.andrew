@@ -14,6 +14,7 @@ problems dealing with code produced by gcc 2.8.1).
 To release:
 - run testsuite successfully
 - compile successfully without kerberos or gssapi support
+- compile successfully on all andrew systypes
 - increment version in configure.in
 - synchronize version with include/sasl.h and win32/include/config.h
 - increment version in saslauthd/configure.in as needed
@@ -26,6 +27,7 @@ To release:
 - to make tarball: make distcheck (make sure you are on a machine that
   is not using GNU tar!  Solaris tar seems to not get along with it well.)
 - compile on non-andrew machine
+  - be sure to compile saslauthd as well
 
 - copy to /afs/andrew/system/archive/cmu/anonftp/pub/cyrus-mail
 - sign the distribution (pgp -sb foo.tar.gz)

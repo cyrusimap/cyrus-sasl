@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.47 2002/02/23 00:42:02 rjs3 Exp $
+ * $Id: checkpw.c,v 1.48 2002/03/04 17:18:39 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -551,7 +551,7 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
       return SASL_OK;
   
     response[count] = '\0';
-    sasl_seterror(conn, 0, "authentication failed");
+    sasl_seterror(conn, SASL_NOLOG, "authentication failed");
     return SASL_BADAUTH;
 }
 

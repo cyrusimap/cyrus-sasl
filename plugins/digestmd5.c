@@ -2389,8 +2389,10 @@ server_continue_step(void *conn_context,
 	goto FreeAllMem;
     }
 
-    /* if no realm specified use empty string realm */
-    digest_strdup(sparams->utils, "", &realm, NULL);
+    if (!realm) {
+	/* if no realm specified use empty string realm */
+	digest_strdup(sparams->utils, "", &realm, NULL);
+    }
 
     /* We use the user's DIGEST secret */
     result = getsecret(getsecret_context, "DIGEST-MD5", username,

@@ -1127,11 +1127,11 @@ larger chunk of data, so be careful!</li>
 
 <p><b>Memory management:</b> As usual, whoever allocates the memory
 must free it. The SASL library will keep the data returned from
-<tt>sasl_encode()</tt> until the next call to
-<tt>sasl_encode()</tt> on that connection. (<tt>sasl_decode()</tt>
-results persist until the next call to <tt>sasl_decode()</tt>.) The
-application must not attempt to free the memory returned from
-either function.</p>
+<tt>sasl_encode()</tt> until the next call to <tt>sasl_encode()</tt>
+on that connection. (<tt>sasl_decode()</tt> results persist until the
+next call to <tt>sasl_decode()</tt> on that connection.) The
+application must not attempt to free the memory returned from either
+function.</p>
 
 <p><b>Internally:</b></p>
 

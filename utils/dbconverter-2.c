@@ -1,5 +1,5 @@
 /* dbconverter-2.c -- convert libsasl v1 sasldb's to SASLv2 format
- * $Id: dbconverter-2.c,v 1.6 2002/07/05 15:44:43 rjs3 Exp $
+ * $Id: dbconverter-2.c,v 1.7 2002/09/19 19:20:54 rjs3 Exp $
  * Rob Siemborski
  * based on SASLv1 sasldblistusers
  */
@@ -214,12 +214,16 @@ static int berkeleydb_open(const char *path,DB **mbdb)
     ret = db_create(mbdb, NULL, 0);
     if (ret == 0 && *mbdb != NULL)
     {
-	    ret = (*mbdb)->open(*mbdb, path, NULL, DB_HASH, DB_CREATE, 0664);
-	    if (ret != 0)
-	    {
-		    (void) (*mbdb)->close(*mbdb, 0);
-		    *mbdb = NULL;
-	    }
+#if DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR >= 1
+	ret = (*mbdb)->open(*mbdb, NULL, path, NULL, DB_HASH, DB_CREATE, 0664);
+#else
+	ret = (*mbdb)->open(*mbdb, path, NULL, DB_HASH, DB_CREATE, 0664);
+#endif
+	if (ret != 0)
+	{
+	    (void) (*mbdb)->close(*mbdb, 0);
+	    *mbdb = NULL;
+	}
     }
 #endif /* DB_VERSION_MAJOR < 3 */
 

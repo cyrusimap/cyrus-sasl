@@ -1,7 +1,7 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Rob Siemborski
  * Tim Martin
- * $Id: db_berkeley.c,v 1.4 2002/07/05 15:45:13 rjs3 Exp $
+ * $Id: db_berkeley.c,v 1.5 2002/09/19 19:20:52 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -85,12 +85,16 @@ static int berkeleydb_open(const sasl_utils_t *utils,
     ret = db_create(mbdb, NULL, 0);
     if (ret == 0 && *mbdb != NULL)
     {
-	    ret = (*mbdb)->open(*mbdb, path, NULL, DB_HASH, flags, 0660);
-	    if (ret != 0)
-	    {
-		    (void) (*mbdb)->close(*mbdb, 0);
-		    *mbdb = NULL;
-	    }
+#if DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR >= 1
+	ret = (*mbdb)->open(*mbdb, NULL, path, NULL, DB_HASH, flags, 0660);
+#else
+	ret = (*mbdb)->open(*mbdb, path, NULL, DB_HASH, flags, 0660);
+#endif
+	if (ret != 0)
+	{
+	    (void) (*mbdb)->close(*mbdb, 0);
+	    *mbdb = NULL;
+	}
     }
 #endif /* DB_VERSION_MAJOR < 3 */
 

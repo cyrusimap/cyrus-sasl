@@ -26,6 +26,9 @@ SOFTWARE.
 #include <config.h>
 #include <sasl.h>
 #include <saslplug.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 #ifdef WIN32
 /* This must be after sasl.h, saslutil.h */
@@ -288,7 +291,7 @@ client_continue_step(void *conn_context __attribute__((unused)),
   userlen = strlen(user);
 
   memset(hostname, 0, sizeof(hostname));
-  gethostname(hostname,sizeof(hostname));
+  gethostname(hostname, sizeof(hostname));
   hostname[sizeof(hostname)-1] = '\0';
 
   

@@ -38,10 +38,13 @@ SOFTWARE.
 #include <stdio.h>
 /* need to handle the fact that errno has been defined as a function
    in a dll, not an extern int */
-#ifdef errno
-#undef errno
-#endif /* errno */
+# ifdef errno
+#  undef errno
+# endif /* errno */
 #endif /* WIN32 */
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 static const char build_ident[] = "$Build: libsasl " PACKAGE "-" VERSION " $";
 

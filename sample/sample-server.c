@@ -38,6 +38,10 @@ __declspec(dllimport) int getsubopt(char **optionp, char * const *tokens, char *
 #include <sasl.h>
 #include <saslutil.h>
 
+#ifdef HAVE_GETOPT_H
+#include <getopt.h>
+#endif
+
 #ifndef HAVE_GETSUBOPT
 int getsubopt(char **optionp, char * const *tokens, char **valuep);
 #endif

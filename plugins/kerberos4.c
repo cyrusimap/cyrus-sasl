@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.50 2000/02/23 02:47:07 leg Exp $
+ * $Id: kerberos4.c,v 1.51 2000/02/23 06:50:33 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -36,12 +36,13 @@ SOFTWARE.
 # include <arpa/inet.h>
 # include <netdb.h>
 #endif /* WIN32 */
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 #include <fcntl.h>
 #include <sasl.h>
 #include <saslutil.h>
 #include <saslplug.h>
-
-#define VL(x) printf x
 
 #ifdef WIN32
 /* This must be after sasl.h, saslutil.h */

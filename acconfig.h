@@ -78,6 +78,9 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 /* Does your system have the vsnprintf() call? */
 #undef HAVE_VSNPRINTF
 
+/* does your system have gettimeofday()? */
+#undef HAVE_GETTIMEOFDAY
+
 /* should we include support for the pwcheck daemon? */
 #undef HAVE_PWCHECK
 
@@ -90,7 +93,21 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 /* do we have a preferred mechanism, or should we just pick the highest ssf? */
 #undef PREFER_MECH
 
+/* define if your compile has __attribute__ */
+#undef HAVE___ATTRIBUTE__
+
+/* define if you have unistd.h */
+#undef HAVE_UNISTD_H
+
+/* define if your system has getpid() */
+#undef HAVE_GETPID
+
 @BOTTOM@
+
+/* location of the random number generator */
+#ifndef DEV_RANDOM
+#define DEV_RANDOM "/dev/random"
+#endif
 
 /* Make Solaris happy... */
 #ifndef __EXTENSIONS__
@@ -111,19 +128,13 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define VL(foo)
 #define VLP(foo,bar)
 
-#ifndef __GNUC__
+#ifndef HAVE___ATTRIBUTE__
 /* Can't use attributes... */
 #define __attribute__(foo)
 #endif
 
 #define SASL_PATH_ENV_VAR "SASL_PATH"
 
-#ifdef HAVE_GETOPT_H
-#include <getopt.h>
-#endif
-#if HAVE_UNISTD_H
-# include <unistd.h>
-#endif
 #include <stdlib.h>
 #include <sys/types.h>
 #ifndef WIN32
@@ -132,39 +143,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #else /* WIN32 */
 # include <winsock.h>
 #endif /* WIN32 */
-#if HAVE_DIRENT_H
-# include <dirent.h>
-# define NAMLEN(dirent) strlen((dirent)->d_name)
-#else /* HAVE_DIRENT_H */
-# define dirent direct
-# define NAMLEN(dirent) (dirent)->d_namlen
-# if HAVE_SYS_NDIR_H
-#  include <sys/ndir.h>
-# endif
-# if HAVE_SYS_DIR_H
-#  include <sys/dir.h>
-# endif
-# if HAVE_NDIR_H
-#  include <ndir.h>
-# endif
-#endif /* ! HAVE_DIRENT_H */
-#if STDC_HEADERS
-# include <string.h>
-#else  /* STDC_HEADERS */
-# ifndef HAVE_STRCHR
-#  define strchr index
-#  define strrchr rindex
-# endif /* ! HAVE_STRCHR */
-# ifdef HAVE_STRINGS_H
-#  include <strings.h>
-# else /* HAVE_STRINGS_H */
-char *strchr(), *strrchr();
-# endif /* ! HAVE_STRINGS_H */
-# ifndef HAVE_MEMCPY
-#  define memcpy(d, s, n) bcopy ((s), (d), (n))
-#  define memmove(d, s, n) bcopy ((s), (d), (n))
-# endif /* ! HAVE_MEMCPY */
-#endif /* ! STDC_HEADERS */
+#include <string.h>
 
 #include <netinet/in.h>
 

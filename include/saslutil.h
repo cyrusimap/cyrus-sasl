@@ -61,8 +61,12 @@ LIBSASL_API void sasl_randseed(sasl_rand_t *rpool,
 			       const char *seed,
 			       unsigned len);
 
-/* generate random octets
- */
+/* generate "random" octets. in reality, these should ONLY be used for
+ * nonces, where it's important that a nonce be unique (with high
+ * probability) but not necessary cryptographically random. 
+ *
+ * an interesting thing to think about is forking, causing the pool to be
+ * reused. */
 LIBSASL_API void sasl_rand(sasl_rand_t *rpool,
 			   char *buf,
 			   unsigned len);

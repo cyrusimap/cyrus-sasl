@@ -4,6 +4,7 @@ Library
 ) Test suite
 ) configure stuff: static libs, etc.
 ) Use libltdl---probably much better portability
+  thread problems?  stdio problems?
 ) parse the .la file instead of assuming we load the ".so" file
 ) better support for including missing routines
 ) check return settings (ssf, etc.) on auth failure
@@ -37,11 +38,9 @@ Kerberos_V4
 GSSAPI
 ~~~~~~
 ) Allow specification of alternate keytab file?
-) check cross-realm functioning
 
 Plain
 ~~~~~
-) finish pwcheck implementation
 
 Cram-MD5
 ~~~~~~~~

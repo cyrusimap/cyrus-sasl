@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.60 2000/04/13 19:53:00 tmartin Exp $
+ * $Id: kerberos4.c,v 1.61 2000/04/19 16:18:48 leg Exp $
  */
 /* 
  * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -929,17 +929,15 @@ static int client_continue_step (void *conn_context,
      * We want to reply with an authenticator. */
     int result;
     KTEXT_ST ticket;
-    char *service=(char *)params->service;
 
     VL(("KERBEROS_V4 Step 2\n"));
 
     memset(&ticket, 0L, sizeof(ticket));
     ticket.length=MAX_KTXT_LEN;   
 
-    if (serverinlen != 4)
-    {
-      VL(("serverin not 4 bytes long\n"));
-      return SASL_FAIL; 
+    if (serverinlen != 4) {
+	VL(("serverin not 4 bytes long\n"));
+	return SASL_FAIL; 
     }
 
     memcpy(&text->challenge, serverin, 4);
@@ -954,11 +952,6 @@ static int client_continue_step (void *conn_context,
 	VL(("No service set\n"));
 	return SASL_BADPARAM;
     }
-    if (params->service==NULL)
-    {
-      VL(("No service set\n"));
-      return SASL_BADAUTH;
-    }
 
     text->realm=krb_realmofhost(params->serverFQDN);
     text->hostname=(char *) params->serverFQDN;
@@ -969,14 +962,14 @@ static int client_continue_step (void *conn_context,
     /* text->instance is NULL terminated unless it was too long */
     text->instance[sizeof(text->instance)-1] = '\0';
 
-    VL (("service=%s\n", service));
+    VL (("service=%s\n", params->service));
     VL (("instance=%s\n",text->instance));
 
-    if ((result=krb_mk_req(&ticket, service, text->instance,
+    if ((result=krb_mk_req(&ticket, (char *) params->service, text->instance,
 			   text->realm,text->challenge)))
     {
 	VL(("krb_mk_req failed service=%s instance=%s realm=%s krb error=%d\n",
-	    service,text->instance,text->realm,result));
+	    params->service,text->instance,text->realm,result));
 	return SASL_FAIL;
     }
     

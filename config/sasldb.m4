@@ -2,50 +2,6 @@ dnl Functions to check what database to use for libsasldb
 
 dnl Berkeley DB specific checks first..
 
-dnl this is unbelievably painful due to confusion over what db-3 should be
-dnl named and where the db-3 header file is located.  arg.
-AC_DEFUN(BERKELEY_DB_CHK_LIB,
-[
-	BDB_SAVE_LIBS=$LIBS
-
-	if test -d $with_bdb_lib; then
-	    LIBS="$LIBS -L$with_bdb_lib"
-	    BDB_LIBADD="-L$with_bdb_lib -R $with_bdb_lib"
-	else
-	    BDB_LIBADD=""
-	fi
-
-        for dbname in db-4.1 db4.1 db-4.0 db4.0 db-4 db4 db-3.3 db3.3 db-3.2 db3.2 db-3.1 db3.1 db-3 db3 db
-          do
-            AC_CHECK_LIB($dbname, db_create, SASL_DB_LIB="$BDB_LIBADD -l$dbname";
-              dblib="berkeley"; break, dblib="no")
-          done
-        if test "$dblib" = "no"; then
-          AC_CHECK_LIB(db, db_open, SASL_DB_LIB="$BDB_LIBADD -ldb";
-            dblib="berkeley"; dbname=db,
-            dblib="no")
-        fi
-
-	LIBS=$BDB_SAVE_LIBS
-])
-
-AC_DEFUN(BERKELEY_DB_CHK,
-[
-	if test -d $with_bdb_inc; then
-	    CPPFLAGS="$CPPFLAGS -I$with_bdb_inc"
-	    BDB_INCADD="-I$with_bdb_inc"
-	else
-	    BDB_INCADD=""
-	fi
-
-	dnl FreeBSD puts it in a wierd place
-	dnl (but they should use with-bdb-incdir now)
-	AC_CHECK_HEADER(db.h,
-                       	BERKELEY_DB_CHK_LIB()
-			SASL_DB_INC=$BDB_INCADD,
-                        dblib="no")
-])
-
 dnl Figure out what database type we're using
 AC_DEFUN(SASL_DB_CHECK, [
 cmu_save_LIBS="$LIBS"
@@ -53,14 +9,7 @@ AC_ARG_WITH(dblib, [  --with-dblib=DBLIB      set the DB library to use [berkele
   dblib=$withval,
   dblib=auto_detect)
 
-AC_ARG_WITH(bdb-libdir,
-	[  --with-bdb-libdir=DIR   Berkeley DB lib files are in DIR],
-	with_bdb_lib=$withval,
-	with_bdb_lib=none)
-AC_ARG_WITH(bdb-incdir,
-	[  --with-bdb-incdir=DIR   Berkeley DB include files are in DIR],
-	with_bdb_inc=$withval,
-	with_bdb_inc=none)
+CYRUS_BERKELEY_DB_OPTS()
 
 SASL_DB_LIB=""
 
@@ -68,7 +17,9 @@ case "$dblib" in
 dnl this is unbelievably painful due to confusion over what db-3 should be
 dnl named.  arg.
   berkeley)
-	BERKELEY_DB_CHK()
+	CYRUS_BERKELEY_DB_CHK()
+	CPPFLAGS="${CPPFLAGS} ${BDB_INCADD}"
+	SASL_DB_INC=$BDB_INCADD
 	;;
   gdbm)
 	AC_ARG_WITH(with-gdbm,[  --with-gdbm=PATH        use gdbm from PATH],
@@ -101,7 +52,7 @@ dnl named.  arg.
 	;;
   auto_detect)
         dnl How about berkeley db?
-	BERKELEY_DB_CHK()
+	CYRUS_BERKELEY_DB_CHK()
 	if test "$dblib" = no; then
 	  dnl How about ndbm?
 	  AC_CHECK_HEADER(ndbm.h, [
@@ -121,6 +72,10 @@ dnl named.  arg.
 					     SASL_DB_LIB="-lgdbm", dblib="no")],
   			     dblib="no")
 	  fi
+	else
+	  dnl we took Berkeley
+	  CPPFLAGS="${CPPFLAGS} ${BDB_INCADD}"
+	  SASL_DB_INC=$BDB_INCADD
 	fi
 	;;
   none)

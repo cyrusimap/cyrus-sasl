@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Upgrading from Cyrus SASLv1 to Cyrus SASLv2</title>
-<!-- $Id: upgrading.html,v 1.8 2002/07/19 15:13:20 rjs3 Exp $ -->
+<!-- $Id: upgrading.html,v 1.9 2002/07/24 18:16:26 leg Exp $ -->
 </HEAD>
 <BODY>
 <H1>Upgrading from Cyrus SASLv1 to Cyrus SASLv2</H1>
@@ -9,24 +9,43 @@ This document covers issues with upgrading from SASLv1 to SASLv2.
 To upgrade:
 
 <ol>
-<li> Install Cyrus SASLv2 as normal according to <a
+<li> Install Cyrus SASL v2 as normal according to <a
 href="install.html">the installation guide</a>.  This will overwrite
 some manpages, but will not affect your current applications.  Do NOT
 attempt to make it use the same directories.</li>
 
-<li> If you are using <tt>/etc/sasldb</tt> for authentication, you'll need to take the following steps to convert:
+<li> Install your new Cyrus SASL v2 applications. Applications that
+use Cyrus SASLv1 will <em>not</em> use the Cyrus SASL v2
+infrastructure.
+
+<li> If you used <tt>/etc/sasldb</tt> for authentication, you'll need
+to take the following steps to convert to using <tt>/etc/sasldb2</tt>
+with Cyrus SASL v2:
       <ol>
       <li> run <tt>utils/dbconverter-2</tt> after installation.</li>
-      <li> change the <tt>pwcheck_method</tt> in any config files to <tt>auxprop</tt></li>
-      <li> (optional) add <tt>auxprop_plugin</tt> to the config files, set to <tt>sasldb</tt></li>
+      <li> change the <tt>pwcheck_method</tt> in any config files to
+      <tt>auxprop</tt></li> 
+      <li> (optional) add <tt>auxprop_plugin</tt> to the config files,
+      set to <tt>sasldb</tt></li>
       </ol>
-</li>
 
-<li> If you are continuing to use libsaslv1 applications, read onwards
-to understand the ramifications.</li>
+<li> If you used <tt>passwd</tt> or <tt>shadow</tt> as your
+<tt>pwcheck_method</tt> in libsasl v1, you'll need to convert to using
+<tt>saslauthd</tt>. Configure libsasl v2 with
+<tt>--with-saslauthd</tt> and arrange to start <tt>saslauthd</tt> on
+boot. Change <tt>pwcheck_method</tt> in any configuration files to
+<tt>saslauthd</tt>.</li>
 
-<li> If you want to learn how to port applications from SASLv1 to SASLv2,
-you should read <A HREF=appconvert.html>this document</A>.
+<li> If you used <tt>pwcheck</tt> with libsasl v1, you can either
+continue to use <tt>pwcheck</tt> with libsasl v1 or you can switch to
+<tt>saslauthd</tt>, which offers more flexibility and a potentially
+more efficient implementation.</li>
+
+<li> If you are continuing to use some libsasl v1 applications, read
+onwards to understand the ramifications.</li>
+
+<li> If you want to learn how to port applications from libsasl v1 to
+libsasl v2, you should read <A HREF=appconvert.html>this document</A>.
 </ol>
 
 <h2><A NAME="overview">Backwards Compatibility</A></h2>

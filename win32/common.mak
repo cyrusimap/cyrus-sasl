@@ -10,7 +10,7 @@ LINK32=link.exe /nologo
 LINK32DLL=$(LINK32) /dll
 LINK32EXE=$(LINK32)
 
-SYS_LIBS=ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib
+SYS_LIBS=ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib
 
 # Define the minimal Windows OS you want to run on:40 (NT), 50 (W2K), 51 (XP)
 # Default is no restrictions. Currently we only check for 51 or later.

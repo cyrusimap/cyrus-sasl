@@ -1,3 +1,7 @@
+2004-06-03  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* win32/config.mak: Remove unneeded libraries
+	  (Alexey Melnikov <alexey.melnikov@isode.com>)
+
 2004-06-02  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* Spelling Fixes (selsky@columbia.edu)
 

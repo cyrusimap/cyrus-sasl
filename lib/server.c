@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.78 2000/05/08 16:16:32 leg Exp $
+ * $Id: server.c,v 1.79 2000/07/10 18:54:45 leg Exp $
  */
 
 /* 
@@ -867,6 +867,38 @@ static int mech_permitted(sasl_conn_t *conn,
     return 1;
 }
 
+/*
+ * make the authorization 
+ *
+ */
+
+static int do_authorization(sasl_server_conn_t *s_conn, const char **errstr)
+{
+    int ret;
+    sasl_authorize_t *authproc;
+    void *auth_context;
+    const char *canonuser;
+    
+    /* now let's see if authname is allowed to proxy for username! */
+    
+    /* check the proxy callback */
+    if (_sasl_getcallback(&s_conn->base, SASL_CB_PROXY_POLICY,
+			  &authproc, &auth_context) != SASL_OK) {
+	return SASL_NOAUTHZ;
+    }
+    ret = authproc(auth_context, s_conn->base.oparams.authid,
+		   s_conn->base.oparams.user, &canonuser, errstr);
+    
+    if (ret == SASL_OK && canonuser != NULL) {
+	if (s_conn->base.oparams.user != NULL)
+	    sasl_FREE(s_conn->base.oparams.user);
+	s_conn->base.oparams.user = (char *) canonuser;
+    }
+
+    return SASL_OK;
+}
+
+
 /* start a mechanism exchange within a connection context
  *  mech           -- the mechanism name client requested
  *  clientin       -- client initial response, NULL if empty
@@ -939,7 +971,7 @@ int sasl_server_start(sasl_conn_t *conn,
 					&(conn->context),
 					errstr);
 
-  if (result == SASL_OK)
+  if (result == SASL_OK) {
       result = s_conn->mech->plug->mech_step(conn->context,
 					     s_conn->sparams,
 					     clientin,
@@ -948,6 +980,12 @@ int sasl_server_start(sasl_conn_t *conn,
 					     (int *) serveroutlen,
 					     &conn->oparams,
 					     errstr);
+  }
+   
+  if (result == SASL_OK) {
+      result = do_authorization(s_conn, errstr);
+  }
+
  done:
   return result;
 }
@@ -998,26 +1036,7 @@ int sasl_server_step(sasl_conn_t *conn,
 					errstr);
 
     if (ret == SASL_OK) {
-	sasl_authorize_t *authproc;
-	void *auth_context;
-	const char *canonuser;
-
-	/* now let's see if authname is allowed to proxy for username! */
-
-	/* check the proxy callback */
-	if (_sasl_getcallback(&s_conn->base, SASL_CB_PROXY_POLICY,
-			      &authproc, &auth_context)
-	    != SASL_OK) {
-	    return SASL_NOAUTHZ;
-	}
-	ret = authproc(auth_context, s_conn->base.oparams.authid,
-		       s_conn->base.oparams.user, &canonuser, errstr);
-
-	if (ret == SASL_OK && canonuser != NULL) {
-	    if (s_conn->base.oparams.user != NULL)
-		sasl_FREE(s_conn->base.oparams.user);
-	    s_conn->base.oparams.user = (char *) canonuser;
-	}
+	ret = do_authorization(s_conn, errstr);
     }
 
     return ret;

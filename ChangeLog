@@ -1,3 +1,8 @@
+2003-08-29  Ken Murchison <ken@oceana.com>
+	* doc/draft-murchison-sasl-login-00.txt: added
+	* doc/draft-sasl-login.txt: deleted
+	* doc/index.html, doc/Makefile.am: updated to "official" LOGIN draft
+
 2003-08-29  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/gssapi.c: properly compute GSSAPI MAXOUTBUF
 	  (Paul Turgyan <pturgyan@umich.edu>)

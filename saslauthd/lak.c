@@ -552,10 +552,10 @@ static int lak_expand_tokens(
 	/* find the longest param of username and realm, 
 	   do not worry about domain because it is always shorter 
 	   then username                                           */
-	user_len=username ? strlen(username) : 0;
-	service_len=service ? strlen(service) : 0;
-	realm_len=realm ? strlen(realm) : 0;
-	dn_len=realm ? strlen(dn) : 0;
+	user_len=ISSET(username) ? strlen(username) : 0;
+	service_len=ISSET(service) ? strlen(service) : 0;
+	realm_len=ISSET(realm) ? strlen(realm) : 0;
+	dn_len=ISSET(dn) ? strlen(dn) : 0;
 
 	maxparamlength = LAK_MAX(user_len, service_len);
 	maxparamlength = LAK_MAX(maxparamlength, realm_len);

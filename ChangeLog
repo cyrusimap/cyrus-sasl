@@ -1,3 +1,6 @@
+2004-05-25  Ken Murchison <ken@oceana.com>
+	* plugins/digest-md5.c: use separate global contexts for client/server
+
 2004-05-21  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* configure.in, lib/Makefile.am: Better handling of -ldoor library
 	  addition (only add it to base library, don't add -lpthread)

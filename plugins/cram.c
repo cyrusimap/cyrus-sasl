@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.40 1999/09/20 18:35:02 leg Exp $
+ * $Id: cram.c,v 1.41 1999/11/02 18:49:17 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -272,7 +272,7 @@ static char *gettime(sasl_server_params_t *sparams)
 /* convert a string of 8bit chars to it's representation in hex
  * using lowercase letters
  */
-static char *convert16(unsigned char *in,int inlen,sasl_utils_t *utils)
+static char *convert16(unsigned char *in, int inlen, sasl_utils_t *utils)
 {
   static char hex[]="0123456789abcdef";
   int lup;
@@ -398,7 +398,7 @@ static int server_continue_step (void *conn_context,
     void *getsecret_context;
 
     HMAC_MD5_CTX tmphmac;
-    char digest_str[33];
+    char *digest_str;
     UINT4 digest[4];
 
     VL(("CRAM-MD5 Step 2\n"));
@@ -478,13 +478,8 @@ static int server_continue_step (void *conn_context,
 			      text->msgidlen);
     sparams->utils->hmac_md5_final((unsigned char *)&digest, &tmphmac);
 
-    /* this converts to base 16 with lower case letters 
-       we don't need to use snprintf here */
-    sprintf(digest_str, "%08x%08x%08x%08x",
-	    ntohl(digest[0]),
-	    ntohl(digest[1]),
-	    ntohl(digest[2]),
-	    ntohl(digest[3]));
+    /* convert to base 16 with lower case letters */
+    digest_str = convert16((unsigned char *) digest, 4, sparams->utils);
 
     /* free sec */
     free_secret(sparams->utils,&sec);
@@ -492,14 +487,15 @@ static int server_continue_step (void *conn_context,
     /* if same then verified 
      *  - we know digest_str is null terminated but clientin might not be
      */
-    if (strncmp(digest_str,clientin+pos+1,strlen(digest_str))!=0)
-    {
-      sparams->utils->free(userid);
-      if (errstr) {
-	  *errstr = "incorrect digest response";
-      }
-      return SASL_BADAUTH;
+    if (strncmp(digest_str,clientin+pos+1,strlen(digest_str))!=0) {
+	sparams->utils->free(userid);
+	if (errstr) {
+	    *errstr = "incorrect digest response";
+	}
+	free(digest_str);
+	return SASL_BADAUTH;
     }
+    free(digest_str);
 
     VL(("Succeeded!\n"));
 

@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.67 2000/02/23 19:54:42 tmartin Exp $
+ * $Id: server.c,v 1.68 2000/02/24 01:36:22 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -36,15 +36,7 @@ SOFTWARE.
 #include <fcntl.h>
 #include <string.h>
 
-#ifdef HAVE_PAM
-#define DEFAULT_PLAIN_MECHANISM "PAM"
-#else
-# ifdef HAVE_KRB
-#define DEFAULT_PLAIN_MECHANISM "kerberos_v4"
-# else
-#define DEFAULT_PLAIN_MECHANISM "passwd"
-# endif
-#endif
+#define DEFAULT_PLAIN_MECHANISM "sasldb"
 
 #include "sasl.h"
 #include "saslint.h"

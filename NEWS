@@ -1,3 +1,13 @@
+New in 1.5.16
+-------------
+* pwcheck_method now defaults to sasldb.
+  READ UPGRADE INSTRUCTIONS IN README
+
+* sanity checking inputs throughout the code.
+* Unsupported LOGIN plugin added to the Windows build.
+* calling sasl_checkpass() with pwcheck_method: kerberos_v4 restores the
+  old ticket file before returning.
+
 New in 1.5.15
 -------------
 * configure now correctly detects Berkeley DB 3.x (Claus Assmann).

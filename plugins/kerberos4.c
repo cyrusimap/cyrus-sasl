@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.52 2000/02/23 16:58:14 tmartin Exp $
+ * $Id: kerberos4.c,v 1.53 2000/02/24 01:36:22 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -560,6 +560,7 @@ static int server_continue_step (void *conn_context,
     AUTH_DAT ad;
     KTEXT_ST ticket;
     int lup;
+    struct sockaddr_in *addr;
 
     VL(("KERBEROS_V4 Step 2\n"));
 
@@ -581,9 +582,7 @@ static int server_continue_step (void *conn_context,
     /* we ignore IP addresses in krb4 tickets at CMU to facilitate moving
        from machine to machine */
 
-    /* check ticket */
-    result=krb_rd_req(&ticket, (char *) sparams->service,
-		      text->instance, 0L, &ad, srvtab);
+    addr = NULL;
 #else
     /* get ip number in addr*/
     result = sparams->utils->getprop(sparams->utils->conn,
@@ -593,11 +592,10 @@ static int server_continue_step (void *conn_context,
 	    *errstr = "couldn't get remote IP address";
 	return SASL_BADAUTH;
     }
-
-    /* check ticket */
-    result = krb_rd_req(&ticket, (char *) sparams->service,
-			text->instance, addr->sin_addr.s_addr, &ad, srvtab);
 #endif
+    /* check ticket */
+    result = krb_rd_req(&ticket, (char *) sparams->service, text->instance, 
+			addr ? addr->sin_addr.s_addr : 0L, &ad, srvtab);
 
     if (result) { /* if fails mechanism fails */
 	VL(("krb_rd_req failed service=%s instance=%s error code=%i\n",

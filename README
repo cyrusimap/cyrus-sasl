@@ -1,4 +1,4 @@
-$Id: README,v 1.21 1999/12/02 20:10:30 leg Exp $
+$Id: README,v 1.22 2000/02/24 01:36:21 leg Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication. See RFC 2222 for more
@@ -12,6 +12,11 @@ to majordomo@lists.andrew.cmu.edu with the body "subscribe cyrus-sasl".
 
 UPGRADING FROM PREVIOUS VERSIONS
 --------------------------------
+* Upgrading from versions 1.5.15 or earlier:
+  Cyrus SASL now defaults to "sasldb" by default.  If you were
+  depending on a different behavior, make sure to set "pwcheck_method"
+  in your configuration file.
+
 * Upgrading from versions 1.5.12 or earlier:
   If you use the sasldb (for PLAIN, CRAM-MD5, or DIGEST-MD5):
     run "saslpasswd" and set one password in your existing database; we now

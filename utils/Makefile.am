@@ -26,8 +26,10 @@ sbin_PROGRAMS = saslpasswd
 man_MANS = saslpasswd.8
 saslpasswd_LDADD = ../lib/libsasl.la
 
-noinst_PROGRAMS = dbconverter-1.5.9 testsuite
+noinst_PROGRAMS = dbconverter-1.5.9
 dbconverter_1_5_9_LDADD = ../lib/libsasl.la $(SASL_DB_LIB)
+
+EXTRA_PROGRAMS = testsuite
 testsuite_LDADD = ../lib/libsasl.la $(SASL_DB_LIB)
 
 include_HEADERS = @SASL_UTIL_HEADERS_EXTRA@

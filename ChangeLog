@@ -1,5 +1,7 @@
 2000-02-23  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
+	* version 1.5.16 BETA ready for release
+
 	* configure.in (LIB_DES): try using DES from OpenSSL.
 
 2000-02-23  Timothy Martin  <tmartin+@andrew.cmu.edu>
@@ -21,12 +23,14 @@
 
 	* plugins/digestmd5.c (c_continue_step): check params
 
-	* plugins/kerberos4.c (server_continue_step): checks everywhere if errstr exists before setting to it
+	* plugins/kerberos4.c (server_continue_step): checks everywhere if
+	errstr exists before setting to it
 
 	* plugins/kerberos4.c (server_continue_step): checks everywhere if
 	errstr exists before setting to it
 
-	* plugins/kerberos4.c (server_continue_step): only set errstr if non-null
+	* plugins/kerberos4.c (server_continue_step): only set errstr if
+	non-null
 
 	* plugins/digestmd5.c (c_continue_step): imid
 	

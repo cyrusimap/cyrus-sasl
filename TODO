@@ -1,7 +1,7 @@
 Library
 ~~~~~~~
 ) Better/FASTER random numbers (init time is pretty miserable)
-) Test suite
+) Test suite needs work
 ) configure stuff: static libs, etc.
 ) Use libltdl---probably much better portability
   thread problems?  stdio problems?
@@ -16,7 +16,7 @@ Documentation
 ) how to write an application using sasl (programmer's guide)
 ) man pages (saslpasswd, individual functions, etc.)
 ) how to configure sasl (sysadmin guide)
-) update INSTALL to have step-by-step instructions
+) update INSTALL to have clearer step-by-step instructions
 
 Mechs to write
 ~~~~~~~~~~~~~~

@@ -362,7 +362,7 @@ AC_ARG_WITH(plugindir, [  --with-plugindir=DIR    set the directory where plugin
 AC_DEFINE_UNQUOTED(PLUGINDIR, "$plugindir")
 AC_SUBST(plugindir)
 
-AC_ARG_WITH(rc4, [  --with-rc4=DIR  use rc4 (look in DIR) [yes] ],
+AC_ARG_WITH(rc4, [  --with-rc4=DIR          use rc4 (look in DIR) [yes] ],
 	with_rc4=$withval,
 	with_rc4=yes)
 if test "$with_rc4" != no; then
@@ -382,6 +382,7 @@ AC_MSG_CHECKING(rc4 support)
 AC_MSG_RESULT($with_rc4)
 LIB_RC4=""
 if test "$with_rc4" != no; then
+  AC_DEFINE(WITH_RC4)
   LIB_RC4="-lrc4";
 fi
 AC_SUBST(LIB_RC4)

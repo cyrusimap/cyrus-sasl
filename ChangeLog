@@ -1,10 +1,23 @@
+Wed Nov 17 16:41:09 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/server.c (mechanism_permitted): cleaned up the plaintext
+	only under layer code
+
+	* lib/common.c (_sasl_syslog): was missing some breaks; also now
+ 	logs bad priorities at the LOG_DEBUG level
+
+	* lib/db_berkeley.c: wasn't calling _sasl_log with a logging level
+
+	* lib/checkpw.c (_sasl_sasldb_set_pass): *errstr was being set to
+	NULL even if errstr was NULL
+
 1999-11-17  Timothy L Martin  <tmartin@andrew.cmu.edu>
 
-	* plugins/digestmd5.c (sasl_server_plug_init): NOUSER if no users in secrets db
+	* plugins/digestmd5.c (sasl_server_plug_init): return SASL_NOUSER
+	if no users in secrets db
 
 	* lib/server.c: doesn't show mechanisms where there are no secrets
 	changed parameter to mechanism_permitted() to allow checking condition
-	
 
 Tue Nov 16 14:33:49 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 

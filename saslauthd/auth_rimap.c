@@ -53,7 +53,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_rimap.c,v 1.8 2003/12/12 00:43:04 rbraun Exp $"
+#ident "$Id: auth_rimap.c,v 1.9 2003/12/16 21:54:14 rbraun Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -128,11 +128,13 @@ sig_null (
     }
 #ifdef __APPLE__
     return;
-#elsif RETSIGTYPE == void
+#else /* __APPLE__ */
+ #if RETSIGTYPE == void
     return;
-#else
+ #else /* RETSIGTYPE */
     return 0;
-#endif
+ #endif /* RETSIGTYPE */
+#endif /* __APPLE__ */
 }
 
 /* END FUNCTION: sig_null */

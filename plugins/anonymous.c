@@ -66,6 +66,11 @@ static const char anonymous_id[] = "anonymous";
 # define L_DEFAULT_GUARD (0)
 #endif
 
+/* only used by client */
+typedef struct context {
+  int state;
+} context_t;
+
 static int
 server_start(void *glob_context __attribute__((unused)),
       sasl_server_params_t *sparams __attribute__((unused)),
@@ -121,7 +126,7 @@ server_continue_step (void *conn_context __attribute__((unused)),
   clientdata = sparams->utils->malloc(clientinlen + 1);
   if (! clientdata)
     return SASL_NOMEM;
-  strncpy(clientdata, clientin, clientinlen);
+  strncpy(clientdata, clientin, clientinlen+1);
   clientdata[clientinlen] = '\0';
 
   result = sparams->utils->getprop(sparams->utils->conn,
@@ -211,22 +216,39 @@ int sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
   return SASL_OK;
 }
 
+static void dispose(void *conn_context, sasl_utils_t *utils)
+{
+  context_t *text;
+  text=conn_context;
+
+  if (!text)
+    return;
+
+  utils->free(text);
+}
+
 /* put in sasl_wrongmech */
 static int
 client_start(void *glob_context __attribute__((unused)),
 	sasl_client_params_t *params __attribute__((unused)),
 	void **conn)
 {
+  context_t *text;
+
   if (! conn)
     return SASL_BADPARAM;
 
-  *conn=NULL;
+  /* holds state are in */
+  text = params->utils->malloc(sizeof(context_t));
+  if (text==NULL) return SASL_NOMEM;
+  text->state=1;  
+  *conn=text;
 
   return SASL_OK;
 }
 
 static int
-client_continue_step(void *conn_context __attribute__((unused)),
+client_continue_step(void *conn_context,
 		sasl_client_params_t *params,
 		const char *serverin __attribute__((unused)),
 		int serverinlen,
@@ -240,7 +262,21 @@ client_continue_step(void *conn_context __attribute__((unused)),
   char hostname[256];
   sasl_getsimple_t *getuser_cb;
   void *getuser_context;
-  const char *user;
+  const char *user = NULL;
+  context_t *text;
+  text=conn_context;
+
+  if (text->state == 2) {
+      *clientout = NULL;
+      *clientoutlen = 0;
+      VL(("Verify we're done step"));
+      text->state++;
+      return SASL_OK;      
+  }
+
+  if (text->state != 1) {
+      return SASL_FAIL;
+  }
 
   VL(("ANONYMOUS: step 1\n"));
 
@@ -265,6 +301,7 @@ client_continue_step(void *conn_context __attribute__((unused)),
       return SASL_BADPARAM;
 
     user = (*prompt_need)[0].result;
+    userlen = (*prompt_need)[0].len;
     params->utils->free(*prompt_need);
     *prompt_need = NULL;
   } else {
@@ -303,23 +340,23 @@ client_continue_step(void *conn_context __attribute__((unused)),
     }
   }
   
-  if (! user)
+  if (! user) {
     user = "anonymous";
+    userlen = strlen(user);
+  }
   
   VL(("anonymous: user=%s\n",user));
 
-  userlen = strlen(user);
+
 
   memset(hostname, 0, sizeof(hostname));
   gethostname(hostname, sizeof(hostname));
   hostname[sizeof(hostname)-1] = '\0';
-
   
   *clientoutlen = userlen + strlen(hostname) + 1;
 
   *clientout = params->utils->malloc(*clientoutlen + 1);
   if (! *clientout) return SASL_NOMEM;
-
 
   strcpy(*clientout, user);
   (*clientout)[userlen] = '@';
@@ -347,7 +384,9 @@ client_continue_step(void *conn_context __attribute__((unused)),
   /* free memory */
   if (user) params->utils->free(user);
 
-  return SASL_OK;
+  text->state = 2;
+
+  return SASL_CONTINUE;
 }
 
 static const long client_required_prompts[] = {
@@ -365,7 +404,7 @@ static const sasl_client_plug_t client_plugins[] =
     NULL,			/* glob_context */
     &client_start,		/* mech_new */
     &client_continue_step,	/* mech_step */
-    NULL,			/* mech_dispose */
+    &dispose,			/* mech_dispose */
     NULL,			/* mech_free */
     NULL,			/* auth_create */
     NULL			/* idle */

@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.50 2000/03/07 05:19:57 tmartin Exp $
+ * $Id: cram.c,v 1.51 2000/03/09 04:53:12 tmartin Exp $
  */
 
 /* 
@@ -208,7 +208,7 @@ static char * randomdigits(sasl_server_params_t *sparams)
       (temp[2] * 256) +
       (temp[3] );
 
-  ret = sparams->utils->malloc(15);
+  ret = sparams->utils->malloc(15); /* there's no way an unsigned can be longer than this right? */
   if (ret == NULL) return NULL;
   sprintf(ret, "%u", num);
 
@@ -886,10 +886,10 @@ static int get_authid(sasl_client_params_t *params,
   if (prompt!=NULL)
   {
     /* copy it */
-    *authid=params->utils->malloc(strlen(prompt->result)+1);
+    *authid=params->utils->malloc(prompt->len+1);
     if ((*authid)==NULL) return SASL_NOMEM;
 
-    strcpy(*authid, prompt->result);
+    strncpy(*authid, prompt->result, prompt->len+1);
     return SASL_OK;
   }
 
@@ -1185,17 +1185,27 @@ static int c_continue_step (void *conn_context,
     /*nothing more to do; authenticated */
     oparams->doneflag=1;
     oparams->mech_ssf = 0;
-    oparams->authid = (char *) params->utils->malloc(strlen(text->authid) + 1);
-    strcpy(oparams->authid, text->authid);
 
-    oparams->user = (char *) params->utils->malloc(strlen(text->authid) + 1);
-    strcpy(oparams->user, text->authid);
+    if (cram_strdup(params->utils, text->authid, &(oparams->authid), NULL)!=SASL_OK)
+	return SASL_NOMEM;
+
+    if (cram_strdup(params->utils, text->authid, &(oparams->user), NULL)!=SASL_OK)
+	return SASL_NOMEM;
 
     VL(("clientout looks like=%s %i\n",*clientout,*clientoutlen));
 
     text->state++; /* fail if called again */
 
-    return SASL_OK;
+    return SASL_CONTINUE;
+  }
+
+  if (text->state == 3)
+  {
+      *clientout = NULL;
+      *clientoutlen = 0;
+      VL(("Verify we're done step"));
+      text->state++;
+      return SASL_OK;      
   }
 
   return SASL_FAIL; /* should never get here */

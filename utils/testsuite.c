@@ -171,12 +171,12 @@ char really_long_string[32000];
 /*
  * Setup some things for test
  */
-void init(void)
+void init(unsigned int seed)
 {
     int lup;
     int result;
 
-    srand(time(NULL));
+    srand(seed);    
 
     for (lup=0;lup<32000;lup++)
 	really_long_string[lup] = '0' + (rand() % 10);
@@ -667,7 +667,7 @@ void sendbadsecond(char *mech, void *rock)
 
     printf("%s --> start\n",mech);
     
-    if (strcmp(mech,"GSSAPI")==0) service = "imap";
+    if (strcmp(mech,"GSSAPI")==0) service = "host";
 
     if (sasl_client_init(client_callbacks)!=SASL_OK) fatal("Unable to init client");
     if (sasl_server_init(goodsasl_cb,"TestSuite")!=SASL_OK) fatal("");
@@ -711,6 +711,7 @@ void sendbadsecond(char *mech, void *rock)
 	corrupt(send->type, out, outlen, &out, &outlen);
 	mayfail = 1;
     }
+
     tofree = out;
     result = sasl_server_start(saslconn,
 			       mech,
@@ -777,7 +778,6 @@ void sendbadsecond(char *mech, void *rock)
 	if (tofree) free(tofree);
 	mystep++;
 
-
 	if (mystep == send->step)
 	{
 	    corrupt(send->type, out, outlen, &out, &outlen);
@@ -814,21 +814,18 @@ void sendbadsecond(char *mech, void *rock)
     }
 
     if (out) free(out);
-    printf("%s --> %s\n",mech,sasl_errstring(result,NULL,NULL));
 
     /* client to server */
-    
     result = sasl_encode(clientconn, CLIENT_TO_SERVER, strlen(CLIENT_TO_SERVER), &out, &outlen);
     if (result != SASL_OK) fatal("Error encoding");
-
     if (mystep == send->step)
     {
 	corrupt(send->type, out, outlen, &out, &outlen);
 	mayfail = 1;
-    } 
+    }
     tofree = out;
     dec = NULL;
-    result = sasl_decode(saslconn, out, outlen, &dec, &declen);
+    result = sasl_decode(saslconn, out, -13, &dec, &declen);
     if (mayfail == 1)
     {
 	if (result >= 0)
@@ -852,6 +849,7 @@ void sendbadsecond(char *mech, void *rock)
 
     /* no need to do other direction since symetric */
 
+    printf("%s --> %s\n",mech,sasl_errstring(result,NULL,NULL));
  done:
     sasl_dispose(&clientconn);
     sasl_dispose(&saslconn);
@@ -1103,11 +1101,24 @@ void notes(void)
 }
 
 
-int main()
+int main(int argc, char **argv)
 {
+    char c;
+    unsigned int seed = time(NULL);
+    char *a;
+    while ((c = getopt(argc, argv, "s:")) != EOF)
+	switch (c) {
+	case 's':
+	    seed = atoi(optarg);
+	    break;
+	default:
+	    fatal("Invaled arguement");
+	    break;
+    }
+
     notes();
 
-    init();
+    init(seed);
 
     create_ids();
     printf("Created id's in sasldb... ok\n");

@@ -158,7 +158,7 @@ int _sasl_get_mech_list(const char *entryname,
    * this really needs to be rewritten to do overflow
    * checks appropriately. */
   int result;
-  char str[PATH_MAX], tmp[PATH_MAX], c, prefix[PATH_MAX];
+  char str[PATH_MAX], tmp[PATH_MAX+2], c, prefix[PATH_MAX+2]; /* 1 for '/' 1 for trailing '\0' */
 #if __OpenBSD__
   char adj_entryname[1024];
 #else

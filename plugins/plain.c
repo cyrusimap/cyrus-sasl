@@ -1,6 +1,6 @@
 /* Plain SASL plugin
  * Tim Martin 
- * $Id: plain.c,v 1.40 2000/03/07 05:20:01 tmartin Exp $
+ * $Id: plain.c,v 1.41 2000/03/09 04:53:15 tmartin Exp $
  */
 
 /* 
@@ -397,12 +397,12 @@ static int get_userid(sasl_client_params_t *params,
   prompt=find_prompt(prompt_need,SASL_CB_USER);
   if (prompt!=NULL)
     {
-      /* copy it */
-      *userid=params->utils->malloc(strlen(prompt->result)+1);
-      if ((*userid)==NULL) return SASL_NOMEM;
+	/* copy it */
+	*userid=params->utils->malloc(prompt->len+1);
+	if ((*userid)==NULL) return SASL_NOMEM;
 	
-      strcpy(*userid, prompt->result);
-      return SASL_OK;
+	strncpy(*userid, prompt->result, prompt->len+1);
+	return SASL_OK;
     }
 
   /* Try to get the callback... */
@@ -444,12 +444,12 @@ static int get_authid(sasl_client_params_t *params,
   prompt=find_prompt(prompt_need,SASL_CB_AUTHNAME);
   if (prompt!=NULL)
   {
-    /* copy it */
-    *authid=params->utils->malloc(strlen(prompt->result)+1);
-    if ((*authid)==NULL) return SASL_NOMEM;
-
-    strcpy(*authid, prompt->result);
-    return SASL_OK;
+      /* copy it */
+      *authid=params->utils->malloc(prompt->len+1);
+      if ((*authid)==NULL) return SASL_NOMEM;
+      
+      strncpy(*authid, prompt->result, prompt->len+1);    
+      return SASL_OK;
   }
 
   /* Try to get the callback... */
@@ -756,9 +756,18 @@ static int client_continue_step (void *conn_context,
 
     oparams->param_version = 0;
 
-    text->state++;
+    text->state=3;
 
-    return SASL_OK;
+    return SASL_CONTINUE;
+  }
+
+  if (text->state == 3)
+  {
+      *clientout = NULL;
+      *clientoutlen = 0;
+      VL(("Verify we're done step"));
+      text->state++;
+      return SASL_OK;      
   }
 
   return SASL_FAIL; /* should never get here */

@@ -2961,12 +2961,11 @@ get_authid(sasl_client_params_t * params,
   prompt = find_prompt(prompt_need, SASL_CB_AUTHNAME);
   if (prompt != NULL) {
     /* copy it */
-    *authid = params->utils->malloc(strlen(prompt->result) + 1);
-    if ((*authid) == NULL)
-      return SASL_NOMEM;
+      *authid=params->utils->malloc(prompt->len+1);
+      if ((*authid)==NULL) return SASL_NOMEM;
 
-    strcpy(*authid, prompt->result);
-    return SASL_OK;
+      strncpy(*authid, prompt->result, prompt->len+1);      
+      return SASL_OK;
   }
   /* Try to get the callback... */
   result = params->utils->getcallback(params->utils->conn,
@@ -3015,10 +3014,10 @@ get_userid(sasl_client_params_t *params,
   prompt=find_prompt(prompt_need,SASL_CB_USER);
   if (prompt!=NULL) {
       /* copy it */
-      *userid=params->utils->malloc(strlen(prompt->result)+1);
+      *userid=params->utils->malloc(prompt->len+1);
       if ((*userid)==NULL) return SASL_NOMEM;
 
-      strcpy(*userid, prompt->result);
+      strncpy(*userid, prompt->result, prompt->len+1);
       return SASL_OK;
     }
 
@@ -3122,9 +3121,10 @@ c_get_realm(sasl_client_params_t * params,
     prompt = find_prompt(prompt_need, SASL_CB_GETREALM);
     if (prompt != NULL) {
 	/* copy it */
-	*myrealm = params->utils->malloc(strlen(prompt->result)+1);
-	if ((*myrealm) == NULL) return SASL_NOMEM;
-	strcpy(*myrealm, prompt->result);
+	*myrealm=params->utils->malloc(prompt->len+1);
+	if ((*myrealm)==NULL) return SASL_NOMEM;
+
+	strncpy(*myrealm, prompt->result, prompt->len+1);
 	return SASL_OK;
     }
 
@@ -3684,14 +3684,13 @@ c_continue_step(void *conn_context,
 
     digesturi = params->utils->malloc(strlen(params->service) + 1 +
 				      strlen(params->serverFQDN) + 1 +
-    /* strlen(params->serverFQDN)+1 */
-				      1
-      );
+				      1);
     if (digesturi == NULL) {
       result = SASL_NOMEM;
       goto FreeAllocatedMem;
     };
 
+    /* allocated exactly this. safe */
     strcpy((char *) digesturi, params->service);
     strcat((char *) digesturi, "/");
     strcat((char *) digesturi, params->serverFQDN);
@@ -3878,7 +3877,7 @@ FreeAllocatedMem:
     VL(("All done. exiting DIGEST-MD5\n"));
 
     return result;
-  }
+ }
 
   if (text->state == 3) {	
      /* Verify that server is really what he claims to be */

@@ -969,10 +969,10 @@ get_userid(sasl_client_params_t *params,char **userid,sasl_interact_t **prompt_n
   if (prompt!=NULL)
     {
       /* copy it */
-      *userid=params->utils->malloc(strlen(prompt->result)+1);
+      *userid=params->utils->malloc(prompt->len+1);
       if ((*userid)==NULL) return SASL_NOMEM;
-	
-      strcpy(*userid, prompt->result);
+
+      strncpy(*userid, prompt->result, prompt->len+1);      
       return SASL_OK;
     }
 
@@ -1017,12 +1017,12 @@ get_authid(sasl_client_params_t *params,
   prompt=find_prompt(prompt_need,SASL_CB_AUTHNAME);
   if (prompt!=NULL)
   {
-    /* copy it */
-    *authid=params->utils->malloc(strlen(prompt->result)+1);
-    if ((*authid)==NULL) return SASL_NOMEM;
+      /* copy it */
+      *authid=params->utils->malloc(prompt->len+1);
+      if ((*authid)==NULL) return SASL_NOMEM;
 
-    strcpy(*authid, prompt->result);
-    return SASL_OK;
+      strncpy(*authid, prompt->result, prompt->len+1);      
+      return SASL_OK;
   }
 
   /* Try to get the callback... */

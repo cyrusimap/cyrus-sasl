@@ -297,7 +297,7 @@ static int kerberos_verify_password(sasl_conn_t *conn,
 
     /* Check validity of returned ticket */
     gethostname(hostname, sizeof(hostname));
-    strncpy(phost, krb_get_phost(hostname), sizeof(phost));
+    strncpy(phost, krb_get_phost(hostname), sizeof(phost)-1);
 
     result = krb_mk_req(&authent, (char *) service, phost, realm, 0);
 

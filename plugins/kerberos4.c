@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.56 2000/03/07 05:20:01 tmartin Exp $
+ * $Id: kerberos4.c,v 1.57 2000/03/09 04:53:15 tmartin Exp $
  */
 /* 
  * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -984,7 +984,7 @@ static int client_continue_step (void *conn_context,
     int musthave = 0;
     int testnum;
     int nchal;    
-    unsigned char sout[1024];
+    unsigned char *sout = NULL;
     unsigned len;
     unsigned char in[8];
     const char *userid;
@@ -1126,6 +1126,8 @@ static int client_continue_step (void *conn_context,
     }
 
     /* create stuff to send to server */
+    sout = (char *) params->utils->malloc(9+strlen(oparams->user)+9);
+
     nchal=htonl(text->challenge);
     memcpy(sout, &nchal, 4);
 
@@ -1246,7 +1248,18 @@ static int client_continue_step (void *conn_context,
 
     text->state++;
 
-    return SASL_OK;
+    if (sout) params->utils->free(sout);
+
+    return SASL_CONTINUE;
+  }
+
+  if (text->state==3)
+  {
+      *clientout = NULL;
+      *clientoutlen = 0;
+      VL(("Verify we're done step"));
+      text->state++;
+      return SASL_OK;
   }
 
   return SASL_FAIL; /* should never get here */

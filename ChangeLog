@@ -1,3 +1,23 @@
+2000-03-08  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* plugins/plain.c: ditto
+
+	* plugins/kerberos4.c: strcpy,sprintf checked
+
+	* plugins/gssapi.c: strcpy,sprintf checked
+
+	* plugins/digestmd5.c: strcpy, sprintf checking
+
+	* plugins/cram.c (c_continue_step): ditto
+	(randomdigits): checks of strcpy, sprintf
+
+	* plugins/anonymous.c (client_continue_step): ditto but more
+ 	annoying. had to add a context, mech_dispose etc..
+
+	* plugins/plain.c (server_continue_step): ditto
+
+	* plugins/kerberos4.c (client_continue_step): client last step verifier added
+
 2000-03-08  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* configure.in: added paths.h to AC_CHECK_HEADERS
@@ -5,6 +25,14 @@
 	* pwcheck/pwcheck.c: #ifdef HAVE_PATHS_H added
 
 2000-03-07  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* utils/Makefile.am: added foo for sasldblistusers
+
+	* utils/sasldblistusers.8: wrote
+
+	* utils/sasldblistusers.c: wrote
+
+	* lib/checkpw.c (kerberos_verify_password): make sure trailing null
 
         * <lots>: updated license
 

@@ -1,3 +1,7 @@
+2004-04-27  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/auth_shadow.c: Make thread-safe
+	  (Steve Barber <steveb@cme.nist.gov>)
+
 2004-04-26  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/auth_krb5.c: Alternate realm support for Kerberos 5
 

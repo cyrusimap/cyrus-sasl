@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.40 1999/10/01 20:26:43 leg Exp $
+ * $Id: kerberos4.c,v 1.41 1999/11/03 04:04:16 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -1204,7 +1204,7 @@ static const sasl_client_plug_t client_plugins[] =
     KRB_DES_SECURITY_BITS,
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOACTIVE | SASL_SEC_NOANONYMOUS,
     NULL,
-    &client_required_prompts,
+    (void *) &client_required_prompts,
     &client_start,
     &client_continue_step,
     &dispose,

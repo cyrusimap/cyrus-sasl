@@ -1874,7 +1874,6 @@ server_continue_step(void *conn_context,
 #endif /* WITH_RC4 */
 
     char           *charset = "utf-8";
-    /* char *algorithm="md5-sess"; */
 
 
     /*
@@ -1940,15 +1939,26 @@ server_continue_step(void *conn_context,
      * authentication exchange.
      */
 
-    if (add_to_challenge(sparams->utils, &challenge, "charset", (unsigned char *) charset, TRUE) != SASL_OK) {
+    if (add_to_challenge(sparams->utils, &challenge, "charset", (unsigned char *) charset, FALSE) != SASL_OK) {
       VL(("add_to_challenge 4 failed\n"));
       return SASL_FAIL;
     }
+
+
     /*
-     * if (add_to_challenge(sparams->utils, &challenge,"algorithm",
-     *     algorithm, TRUE)!=SASL_OK)
-     *         return SASL_FAIL;
+     * algorithm 
+     *  This directive is required for backwards compatibility with HTTP 
+     *  Digest., which supports other algorithms. . This directive is 
+     *  required and MUST appear exactly once; if not present, or if multiple 
+     *  instances are present, the client should abort the authentication 
+     *  exchange. 
+     *
+     * algorithm         = "algorithm" "=" "md5-sess" 
      */
+   
+    if (add_to_challenge(sparams->utils, &challenge,"algorithm",
+			 "md5-sess", FALSE)!=SASL_OK)
+      return SASL_FAIL;
 
     *serverout = challenge;
     *serveroutlen = strlen(*serverout);
@@ -2380,7 +2390,7 @@ server_continue_step(void *conn_context,
      */
 
     /* add to challenge */
-    if (add_to_challenge(sparams->utils, &response_auth, "rspauth", (unsigned char *) text->response_value, TRUE) != SASL_OK) {
+    if (add_to_challenge(sparams->utils, &response_auth, "rspauth", (unsigned char *) text->response_value, FALSE) != SASL_OK) {
       VL(("add_to_challenge failed\n"));
       result = SASL_FAIL;
       goto FreeAllMem;
@@ -3049,6 +3059,7 @@ c_continue_step(void *conn_context,
     int             auth_result = SASL_OK;
     int             pass_result = SASL_OK;
     int            realm_result = SASL_OK;
+    int            algorithm_count = 0;
 
     VL(("Digest-MD5 Step 2\n"));
 
@@ -3175,11 +3186,33 @@ c_continue_step(void *conn_context,
 	    } else {
 		IsUTF8 = TRUE;
 	    }
+	} else if (strcmp(name,"algorithm")==0) {
+
+	  if (strcmp(value, "md5-sess") != 0)
+	  {
+	    VL(("'algorithm' isn't 'md5-sess'\n"));
+	    result = SASL_FAIL;
+	    goto FreeAllocatedMem;
+	  }
+
+	  algorithm_count++;
+	  if (algorithm_count > 1)
+	  {
+	    VL(("Must see 'algoirthm' only once\n"));
+	    result = SASL_FAIL;
+	    goto FreeAllocatedMem;
+	  }
 	} else {
 	    VL(("unrecognized pair: ignoring\n"));
 	}
     }
 
+    if (algorithm_count != 1)
+    {
+      VL(("Must see 'algoirthm' once. Didn't see at all\n"));
+      result = SASL_FAIL;
+      goto FreeAllocatedMem;
+    }
 
     /* make callbacks */
 
@@ -3462,7 +3495,7 @@ c_continue_step(void *conn_context,
       result = SASL_FAIL;
       goto FreeAllocatedMem;
     }
-    if (add_to_challenge(params->utils, &client_response, "qop", (unsigned char *) qop, TRUE) != SASL_OK) {
+    if (add_to_challenge(params->utils, &client_response, "qop", (unsigned char *) qop, FALSE) != SASL_OK) {
       result = SASL_FAIL;
       goto FreeAllocatedMem;
     }
@@ -3483,7 +3516,7 @@ c_continue_step(void *conn_context,
       result = SASL_FAIL;
       goto FreeAllocatedMem;
     }
-    if (add_to_challenge(params->utils, &client_response, "response", (unsigned char *) response, TRUE) != SASL_OK) {
+    if (add_to_challenge(params->utils, &client_response, "response", (unsigned char *) response, FALSE) != SASL_OK) {
 
       result = SASL_FAIL;
       goto FreeAllocatedMem;

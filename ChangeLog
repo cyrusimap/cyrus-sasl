@@ -1,3 +1,6 @@
+2002-12-04  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/canonusr.c: Check for potential buffer overflow
+
 2002-12-03  Ken Murchison <ken@oceana.com>
 	* plugins/digestmd5.c: major fast reauth rewrite, mech_step cleanup
 	* doc/options.html: server-side reauth is disabled by default

@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.38 1999/08/21 02:36:34 leg Exp $
+ * $Id: cram.c,v 1.39 1999/08/21 03:12:48 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -438,7 +438,7 @@ static int server_continue_step (void *conn_context,
 
     /* this converts to base 16 with lower case letters 
        we don't need to use snprintf here */
-    sprintf(digest_str, "%08lx%08lx%08lx%08lx",
+    sprintf(digest_str, "%08x%08x%08x%08x",
 	    ntohl(digest[0]),
 	    ntohl(digest[1]),
 	    ntohl(digest[2]),

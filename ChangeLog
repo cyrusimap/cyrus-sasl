@@ -1,5 +1,7 @@
 Fri Aug 20 00:57:45 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
+	* Version 1.5.5 released
+
 	* include/makemd5.c: added; creates the md5global.h at compile
 	time to autodetech what size numbers we have
 

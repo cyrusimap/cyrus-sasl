@@ -1,6 +1,5 @@
 /* winconfig.h--SASL configuration for win32
  * Ryan Troll
- * $Id: winconfig.h,v 1.3 1998/11/30 14:56:10 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -34,7 +33,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define PACKAGE "cyrus-sasl"
 
 /* Our version */
-#define VERSION "v1.2b3"
+#define VERSION "v1.4b1"
 
 /* Registry key that contains the locations of the plugins */
 #define SASL_KEY "SOFTWARE\\Carnegie Mellon\\Project Cyrus\\SASL Library\\Available Plugins"
@@ -55,9 +54,10 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 #define HAVE_MEMCPY 1
 
-/* Windows calls this function something else
+/* Windows calls these function something else
  */
 #define strcasecmp stricmp
+#define strncasecmp strnicmp
 
 #define MAXHOSTNAMELEN 1024
 

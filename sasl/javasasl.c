@@ -1,6 +1,5 @@
 /* javasasl.c--Java SASL JNI implementation
  * Tim Martin
- * $Id: javasasl.c,v 1.6 1998/11/17 19:29:54 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University

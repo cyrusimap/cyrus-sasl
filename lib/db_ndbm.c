@@ -1,6 +1,5 @@
 /* db_ndbm.c--SASL ndbm interface
  * Rob Earhart
- * $Id: db_ndbm.c,v 1.1 1998/11/29 22:07:13 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University

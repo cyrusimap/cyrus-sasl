@@ -1,6 +1,5 @@
 /* Anonymous SASL plugin
  * Tim Martin 
- * $Id: anonymous.c,v 1.9 1998/12/15 04:00:12 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University

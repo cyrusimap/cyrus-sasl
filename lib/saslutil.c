@@ -1,6 +1,5 @@
 /* saslutil.c
  * Tim Martin 5/20/98
- * $Id: saslutil.c,v 1.8 1999/01/12 19:03:16 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University

@@ -1,6 +1,5 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Earhart
- * $Id: dlopen.c,v 1.7 1998/12/09 06:55:39 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University

@@ -1,3 +1,22 @@
+1999-01-26  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* configure.in: Added digest-md5 configuration
+
+	* plugins/Makefile.am: Added digestmd5 stuff
+
+	* Removed Id tags from all files
+	
+	* plugins/digestmd5.c: Added plugin from Alexey
+
+1999-01-25  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* include/winconfig.h: Bumped version to 1.4b1
+	(strncasecmp): Added strncasecmp => strnicmp translation
+
+	* configure.in: Bumped version to 1.4b1
+
+	* Makefile.am (dist-hook): Added cmulocal to dist
+
 1999-01-19  Rob Earhart  <rob+@andrew.cmu.edu>
 
 	* Version 1.3b2 released

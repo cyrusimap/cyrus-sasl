@@ -1,6 +1,5 @@
 /* db_none.c--provides linkage for systems which lack a backend db lib
  * Rob Earhart
- * $Id: db_none.c,v 1.1 1998/11/29 22:07:13 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University

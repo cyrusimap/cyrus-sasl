@@ -1,6 +1,5 @@
 /* db_gdbm.c--SASL gdbm interface
  * Rob Earhart
- * $Id: db_gdbm.c,v 1.2 1998/12/09 06:55:38 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University

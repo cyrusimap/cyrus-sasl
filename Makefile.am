@@ -1,6 +1,5 @@
 # Top-level Makefile.am for SASL
 # Rob Earhart
-# $Id: Makefile.am,v 1.9 1999/01/12 22:11:55 rob Exp $
 #
 ################################################################
 #        Copyright 1998 by Carnegie Mellon University
@@ -27,8 +26,10 @@
 SUBDIRS=include lib plugins utils @DIRS@
 
 dist-hook:
-	cp -r -p $(srcdir)/config $(srcdir)/win32 $(distdir)
+	cp -r -p $(top_srcdir)/config $(srcdir)/win32 $(distdir)
 	find $(distdir) -name CVS -print | xargs rm -rf
+	cp -r -p $(top_srcdir)/cmulocal $(distdir)
+	find $(distdir)/cmulocal -name CVS -print | xargs rm -rf
 
 install-exec-local:
 	@if test "$(plugindir)" != "$(prefix)/lib/sasl"; then \

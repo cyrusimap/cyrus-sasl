@@ -1,6 +1,5 @@
 /* Create dbm files for use with scram-md5 mechanism
  * Tim Martin 
- * $Id: makedbm.c,v 1.1 1998/11/16 20:06:37 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University

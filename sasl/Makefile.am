@@ -1,6 +1,5 @@
 # Makefile.am for the Java SASL library
 # Rob Earhart
-# $Id: Makefile.am,v 1.6 1998/11/30 14:35:44 rob Exp $
 #
 ################################################################
 #        Copyright 1998 by Carnegie Mellon University

@@ -1,6 +1,5 @@
 # Makefile.am for the SASL plugins
 # Rob Earhart
-# $Id: Makefile.am,v 1.6 1999/01/12 19:03:18 rob Exp $
 #
 #
 #         Copyright 1998 by Carnegie Mellon University
@@ -31,6 +30,7 @@ kerberos4_version = 1:1:0
 crammd5_version = 1:0:0
 scrammd5_version = 1:0:0
 gssapiv2_version = 1:0:0
+digestmd5_version = 0:0:0
 
 INCLUDES=-I$(top_srcdir)/include
 
@@ -40,7 +40,7 @@ plugindir = @plugindir@
 
 sasldir = $(prefix)/lib/sasl
 sasl_LTLIBRARIES = @SASL_MECHS@
-EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la libscrammd5.la libgssapiv2.la
+EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la libscrammd5.la libgssapiv2.la libdigestmd5.la
 
 libplain_la_SOURCES = plain.c
 libplain_la_LDFLAGS = -version-info $(plain_version)
@@ -62,3 +62,6 @@ libcrammd5_la_LDFLAGS = -version-info $(crammd5_version)
 
 libscrammd5_la_SOURCES = scram.c
 libscrammd5_la_LDFLAGS = -version-info $(scrammd5_version)
+
+libdigestmd5_la_SOURCES = digestmd5.c
+libdigestmd5_la_LDFLAGS = -version-info $(digestmd5_version)

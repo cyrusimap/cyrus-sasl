@@ -1,6 +1,5 @@
 /* SCRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: scram.c,v 1.5 1998/11/30 20:05:51 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University

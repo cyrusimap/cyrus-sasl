@@ -1,6 +1,5 @@
 /* windlopen.c--Windows dynamic loader interface
  * Ryan Troll
- * $Id: windlopen.c,v 1.1 1998/11/20 16:22:01 ryan Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University

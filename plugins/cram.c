@@ -1,6 +1,5 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.7 1998/12/09 06:56:10 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University

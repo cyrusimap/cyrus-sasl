@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.30 2002/07/19 15:13:20 rjs3 Exp $ -->
+<!-- $Id: sysadmin.html,v 1.31 2002/07/24 17:25:36 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -391,6 +391,14 @@ opiekeys in <tt>/etc/opiekeys</tt>, but it's configurable using the
 sasldb is completely incompatible.
 
 <p>
+<dt><b>Q:</b> I'm having performance problems on each authentication, there is
+a noticeable slowdown when sasl initilizes, what can I do?
+<dd>
+<p><b>A:</b>SASL reads from /dev/random as part of its initilization, you
+can define DEV_RANDOM to be /dev/urandom instead in config.h, which offers
+less secure random numbers but is less likely to block.
+
+<p>
 <dt><b>Q:</b> I've converted the sasldb database to the new format. 
 Why can't anybody authenticate?
 <dd>
@@ -413,10 +421,8 @@ support it.  Don't enable it unless you know you need it.
 <dt><b>Q:</b> How can I get a non-root application to check plaintext
 passwords?
 <dd>
-<p><b>A:</b> Try using the "pwcheck" daemon and setting "pwcheck_method"
-to "pwcheck".  Alternatively, you can use the saslauthd daemon.
-You'll have to run <tt>configure</tt> with the <tt>--with-pwcheck</tt> or
-<tt>--with-saslauthd</tt> option respectively.
+<p><b>A:</b> Use the "saslauthd" daemon and setting "pwcheck_method"
+to "saslauthd".  You'll have to run <tt>configure</tt> with the <tt>--with-saslauthd</tt> option.
 
 <p>
 <dt><b>Q:</b> I want to use Berkeley DB, but it's installed in

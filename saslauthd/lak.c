@@ -64,8 +64,8 @@ static int lak_config_switch(const char *);
 static void lak_config_free(LAK_CONF *);
 static int lak_config(const char *, LAK_CONF **);
 static int lak_escape(const char *, const unsigned int, char **);
-static int lak_domtok(const char *, int, char **);
-static int lak_filter(const char *, const char *, const char *, const char *, char **);
+static int lak_tokenize_domain(const char *, int, char **);
+static int lak_expand_tokens(const char *, const char *, const char *, const char *, char **);
 static int lak_connect(LAK *);
 static int lak_bind(LAK *, char, const char *, const char *);
 static int lak_search(LAK *, const char *, const char *, const char **, LDAPMessage **);
@@ -410,6 +410,9 @@ static int lak_escape(const char *s, const unsigned int n, char **result)
 	char *buf;
 	char *end, *ptr, *temp;
 
+	if (n > strlen(s))  // Sanity check, just in case
+		return LAK_FAIL;
+
 	buf = malloc(n * 5 + 1);
 	if (buf == NULL) {
 		return LAK_NOMEM;
@@ -443,17 +446,18 @@ static int lak_escape(const char *s, const unsigned int n, char **result)
 		}
 		ptr=temp+1;
 	}
-	if (temp<end)
-		strncat(buf, ptr, (temp ? end-temp : n));
+	if (ptr<end)
+		strncat(buf, ptr, end-ptr);
 
 	*result = buf;
 
 	return LAK_OK;
 }
 
-static int lak_domtok(const char *d, int n, char **result)
+static int lak_tokenize_domains(const char *d, int n, char **result)
 {
 	char *s, *s1;
+	char *lasts;
 	int nt, i;
 
 	*result = NULL;
@@ -475,14 +479,14 @@ static int lak_domtok(const char *d, int n, char **result)
 	}
 
 	i = nt - n;
-	s1 = strtok(s, ".");
+	s1 = (char *)strtok_r(s, ".", &lasts);
 	while(s1) {
 		if (i == 0) {
 			*result = strdup(s1);
 			free(s);
 			return (*result == NULL ? LAK_NOMEM : LAK_OK);
 		}
-		s1 = strtok(NULL, ".");
+		s1 = (char *)strtok_r(NULL, ".", &lasts);
 		i--;
 	}
 
@@ -493,7 +497,7 @@ static int lak_domtok(const char *d, int n, char **result)
 #define MAX(a,b,c) (a>b?(a>c?a:c):(b>c?b:c))
 
 /*
- * lak_filter
+ * lak_exapdn_tokens
  * Parts with the strings provided.
  *   %%   = %
  *   %u   = user
@@ -504,7 +508,7 @@ static int lak_domtok(const char *d, int n, char **result)
  *   %r   = realm
  * Note: calling function must free memory.
  */
-static int lak_filter(const char *pattern, const char *username, const char *service, const char *realm, char **result) 
+static int lak_expand_tokens(const char *pattern, const char *username, const char *service, const char *realm, char **result) 
 {
 	char *buf; 
 	char *end, *ptr, *temp;
@@ -606,7 +610,7 @@ static int lak_filter(const char *pattern, const char *username, const char *ser
 			case '8':
 			case '9':
 				if (username!=NULL && (domain = strchr(username, '@')) && domain[1]!='\0') {
-					rc=lak_domtok(domain+1, (int) *(temp+1)-48, &ebuf);
+					rc=lak_tokenize_domains(domain+1, (int) *(temp+1)-48, &ebuf);
 					if (rc == LAK_OK) {
 						strcat(buf,ebuf);
 						free(ebuf);
@@ -947,15 +951,15 @@ int lak_retrieve(LAK *lak, const char *user, const char *service, const char *re
 		return LAK_FAIL;
 	}
 
-	rc = lak_filter(lak->conf->filter, user, service, realm, &filter);
+	rc = lak_expand_tokens(lak->conf->filter, user, service, realm, &filter);
 	if (rc != LAK_OK) {
-		syslog(LOG_WARNING|LOG_AUTH, "lak_filter(filter) failed.");
+		syslog(LOG_WARNING|LOG_AUTH, "lak_expand_tokens(filter) failed.");
 		return LAK_FAIL;
 	}
 
-	rc = lak_filter(lak->conf->search_base, user, service, realm, &search_base);
+	rc = lak_expand_tokens(lak->conf->search_base, user, service, realm, &search_base);
 	if (rc != LAK_OK) {
-		syslog(LOG_WARNING|LOG_AUTH, "lak_filter(search_base) failed.");
+		syslog(LOG_WARNING|LOG_AUTH, "lak_expand_tokens(search_base) failed.");
 		return LAK_FAIL;
 	}
 
@@ -1019,9 +1023,9 @@ static int lak_group_member(LAK *lak, const char *user, const char *service, con
 	char *group;
 	int rc;
 
-	rc = lak_filter(lak->conf->group_dn, user, service, realm, &group);
+	rc = lak_expand_tokens(lak->conf->group_dn, user, service, realm, &group);
 	if (rc != LAK_OK) {
-		syslog(LOG_WARNING|LOG_AUTH, "lak_filter(group) failed.");
+		syslog(LOG_WARNING|LOG_AUTH, "lak_expand_tokens(group) failed.");
 		return LAK_FAIL;
 	}
 
@@ -1088,15 +1092,15 @@ static int lak_auth_bind(LAK *lak, const char *user, const char *service, const 
 	char *dn;
 	LDAPMessage *res, *entry;
 
-	rc = lak_filter(lak->conf->filter, user, service, realm, &filter);
+	rc = lak_expand_tokens(lak->conf->filter, user, service, realm, &filter);
 	if (rc != LAK_OK) {
-		syslog(LOG_WARNING|LOG_AUTH, "lak_filter(filter) failed.");
+		syslog(LOG_WARNING|LOG_AUTH, "lak_expand_tokens(filter) failed.");
 		return LAK_FAIL;
 	}
 
-	rc = lak_filter(lak->conf->search_base, user, service, realm, &search_base);
+	rc = lak_expand_tokens(lak->conf->search_base, user, service, realm, &search_base);
 	if (rc != LAK_OK) {
-		syslog(LOG_WARNING|LOG_AUTH, "lak_filter(search_base) failed.");
+		syslog(LOG_WARNING|LOG_AUTH, "lak_expand_tokens(search_base) failed.");
 		return LAK_FAIL;
 	}
 
@@ -1149,9 +1153,9 @@ static int lak_auth_fastbind(LAK *lak, const char *user, const char *service, co
 	int rc;
 	char *dn = NULL;
 
-	rc = lak_filter(lak->conf->filter, user, service, realm, &dn);
+	rc = lak_expand_tokens(lak->conf->filter, user, service, realm, &dn);
 	if (rc != LAK_OK || dn == NULL) {
-		syslog(LOG_WARNING|LOG_AUTH, "lak_filter(filter) failed.");
+		syslog(LOG_WARNING|LOG_AUTH, "lak_expand_tokens(filter) failed.");
 		return LAK_FAIL;
 	}
 

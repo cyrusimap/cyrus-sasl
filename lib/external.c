@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: external.c,v 1.12 2002/06/12 16:03:21 rjs3 Exp $
+ * $Id: external.c,v 1.13 2002/09/04 12:13:52 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -57,7 +57,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: external.c,v 1.12 2002/06/12 16:03:21 rjs3 Exp $";
+static const char plugin_id[] = "$Id: external.c,v 1.13 2002/09/04 12:13:52 ken3 Exp $";
 
 /*****************************  Server Section  *****************************/
 
@@ -213,9 +213,6 @@ static int external_client_mech_new(void *glob_context __attribute__((unused)),
 	|| !conn_context)
 	return SASL_BADPARAM;
     
-    if (!params->utils->conn->external.auth_id)
-	return SASL_NOMECH;
-    
     text = sasl_ALLOC(sizeof(client_context_t));
     if(!text) return SASL_NOMEM;
     
@@ -249,9 +246,6 @@ external_client_mech_step(void *conn_context,
 	|| !clientoutlen
 	|| !oparams)
 	return SASL_BADPARAM;
-    
-    if (!params->utils->conn->external.auth_id)
-	return SASL_BADPROT;
     
     if (serverinlen != 0)
 	return SASL_BADPROT;
@@ -301,14 +295,18 @@ external_client_mech_step(void *conn_context,
 	if (result != SASL_OK) return result;
 	
 	result = params->canon_user(params->utils->conn,
-				    params->utils->conn->external.auth_id, 0,
+				    params->utils->conn->external.auth_id ?
+				    params->utils->conn->external.auth_id :
+				    "UNKNOWN", 0,
 				    SASL_CU_AUTHID, oparams);
 	if (result != SASL_OK) return result;
 	
 	memcpy(text->out_buf, user, *clientoutlen);
     } else {
 	result = params->canon_user(params->utils->conn,
-				    params->utils->conn->external.auth_id, 0,
+				    params->utils->conn->external.auth_id ?
+				    params->utils->conn->external.auth_id :
+				    "UNKNOWN", 0,
 				    SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
 	if (result != SASL_OK) return result;
     }

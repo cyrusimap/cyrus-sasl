@@ -1,3 +1,7 @@
+2003-05-13  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* config/sasldb.m4, utils/Makefile.am: fix installation of man
+	  pages that are homed in the utils/ directory
+
 2003-05-06  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/saslauthd-main.c: misc spelling and UI cleanups
 

@@ -3,6 +3,8 @@
 	  64 bit portability warnings.
 	* utils/testsuite.c: Fixed several 64 bit portability warnings.
 	* utils/saslpasswd.c: Fixed typo in an auxprop name.
+	* include/saslplug.h, lib/common.c, lib/saslint.h,
+	  lib/server.c: Added sasl_server_plugin_info().
 
 2004-10-24  Derrick Brashear <shadow@andrew.cmu.edu> 
 	* lib/common.c: initialize path in case caller didn't.

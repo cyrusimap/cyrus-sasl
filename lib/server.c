@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.141 2004/07/06 13:42:23 rjs3 Exp $
+ * $Id: server.c,v 1.142 2004/10/26 17:28:46 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -132,7 +132,8 @@ int sasl_setpass(sasl_conn_t *conn,
     sasl_server_userdb_setpass_t *setpass_cb = NULL;
     void *context = NULL;
     int tried_setpass = 0;
-    mechanism_t *m;
+    mechanism_t *sm;
+    server_sasl_mechanism_t *m;
     char *current_mech;
      
     if (!_sasl_server_active || !mechlist) return SASL_NOTINIT;
@@ -213,7 +214,9 @@ int sasl_setpass(sasl_conn_t *conn,
     }
 
     /* now we let the mechanisms set their secrets */
-    for (m = mechlist->mech_list; m; m = m->next) {
+    for (sm = mechlist->mech_list; sm; sm = sm->next) {
+	m = &sm->m;
+
 	if (!m->plug->setpass) {
 	    /* can't set pass for this mech */
 	    continue;
@@ -277,8 +280,8 @@ static void server_dispose(sasl_conn_t *pconn)
   context_list_t *cur, *cur_next;
   
   if (s_conn->mech
-      && s_conn->mech->plug->mech_dispose) {
-    s_conn->mech->plug->mech_dispose(pconn->context,
+      && s_conn->mech->m.plug->mech_dispose) {
+    s_conn->mech->m.plug->mech_dispose(pconn->context,
 				     s_conn->sparams->utils);
   }
   pconn->context = NULL;
@@ -286,7 +289,7 @@ static void server_dispose(sasl_conn_t *pconn)
   for(cur = s_conn->mech_contexts; cur; cur=cur_next) {
       cur_next = cur->next;
       if(cur->context)
-	  cur->mech->plug->mech_dispose(cur->context, s_conn->sparams->utils);
+	  cur->mech->m.plug->mech_dispose(cur->context, s_conn->sparams->utils);
       sasl_FREE(cur);
   }  
   s_conn->mech_contexts = NULL;
@@ -372,15 +375,15 @@ int sasl_server_add_plugin(const char *plugname,
 	mech = sasl_ALLOC(sizeof(mechanism_t));
 	if (! mech) return SASL_NOMEM;
 
-	mech->plug=pluglist++;
-	if(_sasl_strdup(plugname, &mech->plugname, NULL) != SASL_OK) {
+	mech->m.plug = pluglist++;
+	if(_sasl_strdup(plugname, &mech->m.plugname, NULL) != SASL_OK) {
 	    sasl_FREE(mech);
 	    return SASL_NOMEM;
 	}
-	mech->version = version;
+	mech->m.version = version;
 
 	/* wheather this mech actually has any users in it's db */
-	mech->condition = result; /* SASL_OK, SASL_CONTINUE or SASL_NOUSER */
+	mech->m.condition = result; /* SASL_OK, SASL_CONTINUE or SASL_NOUSER */
 
 	mech->next = mechlist->mech_list;
 	mechlist->mech_list = mech;
@@ -413,12 +416,12 @@ static int server_done(void) {
 	  prevm=m;
 	  m=m->next;
     
-	  if (prevm->plug->mech_free) {
-	      prevm->plug->mech_free(prevm->plug->glob_context,
+	  if (prevm->m.plug->mech_free) {
+	      prevm->m.plug->mech_free(prevm->m.plug->glob_context,
 				     mechlist->utils);
 	  }
 
-	  sasl_FREE(prevm->plugname);	  	  
+	  sasl_FREE(prevm->m.plugname);	  	  
 	  sasl_FREE(prevm);    
       }
       _sasl_free_utils(&mechlist->utils);
@@ -443,10 +446,10 @@ static int server_idle(sasl_conn_t *conn)
 	return 0;
     
     for (m = mechlist->mech_list;
-	 m!=NULL;
+	 m != NULL;
 	 m = m->next)
-	if (m->plug->idle
-	    &&  m->plug->idle(m->plug->glob_context,
+	if (m->m.plug->idle
+	    &&  m->m.plug->idle(m->m.plug->glob_context,
 			      conn,
 			      conn ? ((sasl_server_conn_t *)conn)->sparams : NULL))
 	    return 1;
@@ -592,8 +595,8 @@ static int parse_mechlist_file(const char *mechlistfile)
 	sasl_server_plug_t *nplug;
 
 	if (n == NULL) { r = SASL_NOMEM; break; }
-	n->version = SASL_SERVER_PLUG_VERSION;
-	n->condition = SASL_CONTINUE;
+	n->m.version = SASL_SERVER_PLUG_VERSION;
+	n->m.condition = SASL_CONTINUE;
 	nplug = sasl_ALLOC(sizeof(sasl_server_plug_t));
 	if (nplug == NULL) { r = SASL_NOMEM; break; }
 	memset(nplug, 0, sizeof(sasl_server_plug_t));
@@ -603,7 +606,7 @@ static int parse_mechlist_file(const char *mechlistfile)
 	*/
 	
 	/* grab file */
-	n->f = grab_field(buf, &ptr);
+	n->m.f = grab_field(buf, &ptr);
 
 	/* grab mech_name */
 	nplug->mech_name = grab_field(ptr, &ptr);
@@ -634,7 +637,7 @@ static int parse_mechlist_file(const char *mechlistfile)
 	}
 
 	/* insert mechanism into mechlist */
-	n->plug = nplug;
+	n->m.plug = nplug;
 	n->next = mechlist->mech_list;
 	mechlist->mech_list = n;
 	mechlist->mech_length++;
@@ -992,12 +995,12 @@ static int mech_permitted(sasl_conn_t *conn,
 
     if(!conn) return SASL_NOMECH;
 
-    if(! mech || ! mech->plug) {
+    if(! mech || ! mech->m.plug) {
 	PARAMERROR(conn);
 	return SASL_NOMECH;
     }
     
-    plug = mech->plug;
+    plug = mech->m.plug;
 
     /* get the list of allowed mechanisms (default = all) */
     if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context)
@@ -1096,7 +1099,7 @@ static int mech_permitted(sasl_conn_t *conn,
 
     /* if there are no users in the secrets database we can't use this 
        mechanism */
-    if (mech->condition == SASL_NOUSER) {
+    if (mech->m.condition == SASL_NOUSER) {
 	sasl_seterror(conn, 0, "no users in secrets db");
 	return SASL_NOMECH;
     }
@@ -1210,7 +1213,7 @@ int sasl_server_start(sasl_conn_t *conn,
 
     while (m!=NULL)
     {
-	if ( strcasecmp(mech,m->plug->mech_name)==0)
+	if ( strcasecmp(mech, m->m.plug->mech_name)==0)
 	{
 	    break;
 	}
@@ -1228,7 +1231,7 @@ int sasl_server_start(sasl_conn_t *conn,
 	goto done;
     }
 
-    if (m->condition == SASL_CONTINUE) {
+    if (m->m.condition == SASL_CONTINUE) {
 	sasl_server_plug_init_t *entry_point;
 	void *library = NULL;
 	sasl_server_plug_t *pluglist;
@@ -1236,7 +1239,7 @@ int sasl_server_start(sasl_conn_t *conn,
 	int l = 0;
 
 	/* need to load this plugin */
-	result = _sasl_get_plugin(m->f,
+	result = _sasl_get_plugin(m->m.f,
 		    _sasl_find_verifyfile_callback(global_callbacks.callbacks),
 				  &library);
 
@@ -1254,7 +1257,7 @@ int sasl_server_start(sasl_conn_t *conn,
 	    /* find the correct mechanism in this plugin */
 	    for (l = 0; l < plugcount; l++) {
 		if (!strcasecmp(pluglist[l].mech_name, 
-				m->plug->mech_name)) break;
+				m->m.plug->mech_name)) break;
 	    }
 	    if (l == plugcount) {
 		result = SASL_NOMECH;
@@ -1262,8 +1265,8 @@ int sasl_server_start(sasl_conn_t *conn,
 	}
 	if (result == SASL_OK) {
 	    /* check that the parameters are the same */
-	    if ((pluglist[l].max_ssf != m->plug->max_ssf) ||
-		(pluglist[l].security_flags != m->plug->security_flags)) {
+	    if ((pluglist[l].max_ssf != m->m.plug->max_ssf) ||
+		(pluglist[l].security_flags != m->m.plug->security_flags)) {
 		_sasl_log(conn, SASL_LOG_ERR, 
 			  "%s: security parameters don't match mechlist file",
 			  pluglist[l].mech_name);
@@ -1272,9 +1275,9 @@ int sasl_server_start(sasl_conn_t *conn,
 	}
 	if (result == SASL_OK) {
 	    /* copy mechlist over */
-	    sasl_FREE((sasl_server_plug_t *) m->plug);
-	    m->plug = &pluglist[l];
-	    m->condition = SASL_OK;
+	    sasl_FREE((sasl_server_plug_t *) m->m.plug);
+	    m->m.plug = &pluglist[l];
+	    m->m.condition = SASL_OK;
 	}
 
 	if (result != SASL_OK) {
@@ -1305,7 +1308,7 @@ int sasl_server_start(sasl_conn_t *conn,
     
     if(!conn->context) {
 	/* Note that we don't hand over a new challenge */
-	result = s_conn->mech->plug->mech_new(s_conn->mech->plug->glob_context,
+	result = s_conn->mech->m.plug->mech_new(s_conn->mech->m.plug->glob_context,
 					      s_conn->sparams,
 					      NULL,
 					      0,
@@ -1317,7 +1320,7 @@ int sasl_server_start(sasl_conn_t *conn,
     
     if (result == SASL_OK) {
          if(clientin) {
-            if(s_conn->mech->plug->features & SASL_FEAT_SERVER_FIRST) {
+            if(s_conn->mech->m.plug->features & SASL_FEAT_SERVER_FIRST) {
                 /* Remote sent first, but mechanism does not support it.
                  * RFC 2222 says we fail at this point. */
                 sasl_seterror(conn, 0,
@@ -1330,7 +1333,7 @@ int sasl_server_start(sasl_conn_t *conn,
                                           serverout, serveroutlen);
             }
         } else {
-            if(s_conn->mech->plug->features & SASL_FEAT_WANT_CLIENT_FIRST) {
+            if(s_conn->mech->m.plug->features & SASL_FEAT_WANT_CLIENT_FIRST) {
                 /* Mech wants client first anyway, so we should do that */
                 *serverout = "";
                 *serveroutlen = 0;
@@ -1349,7 +1352,7 @@ int sasl_server_start(sasl_conn_t *conn,
        && result != SASL_CONTINUE
        && result != SASL_INTERACT) {
 	if(conn->context) {
-	    s_conn->mech->plug->mech_dispose(conn->context,
+	    s_conn->mech->m.plug->mech_dispose(conn->context,
 					     s_conn->sparams->utils);
 	    conn->context = NULL;
 	}
@@ -1405,7 +1408,7 @@ int sasl_server_step(sasl_conn_t *conn,
     if(serverout) *serverout = NULL;
     if(serveroutlen) *serveroutlen = 0;
 
-    ret = s_conn->mech->plug->mech_step(conn->context,
+    ret = s_conn->mech->m.plug->mech_step(conn->context,
 					s_conn->sparams,
 					clientin,
 					clientinlen,
@@ -1444,7 +1447,7 @@ int sasl_server_step(sasl_conn_t *conn,
        && ret != SASL_CONTINUE
        && ret != SASL_INTERACT) {
 	if(conn->context) {
-	    s_conn->mech->plug->mech_dispose(conn->context,
+	    s_conn->mech->m.plug->mech_dispose(conn->context,
 					     s_conn->sparams->utils);
 	    conn->context = NULL;
 	}
@@ -1465,7 +1468,7 @@ static unsigned mech_names_len()
   for (listptr = mechlist->mech_list;
        listptr;
        listptr = listptr->next)
-    result += (unsigned) strlen(listptr->plug->mech_name);
+    result += (unsigned) strlen(listptr->m.plug->mech_name);
 
   return result;
 }
@@ -1544,7 +1547,7 @@ int _sasl_server_listmech(sasl_conn_t *conn,
 	  }
 
 	  /* now print the mechanism name */
-	  strcat(conn->mechlist_buf, listptr->plug->mech_name);
+	  strcat(conn->mechlist_buf, listptr->m.plug->mech_name);
       }
 
       listptr = listptr->next;
@@ -1583,7 +1586,7 @@ sasl_string_list_t *_sasl_server_mechs(void)
 	  return NULL;
       }
       
-      next->d = listptr->plug->mech_name;
+      next->d = listptr->m.plug->mech_name;
 
       if(!retval) {
 	  next->next = NULL;
@@ -1900,3 +1903,190 @@ int sasl_checkapop(sasl_conn_t *conn,
 #endif /* DO_SASL_CHECKAPOP */
 }
  
+
+
+/* It would be nice if we can show other information like Author, Company, Year, plugin version */
+static void
+_sasl_print_mechanism (
+  server_sasl_mechanism_t *m,
+  sasl_info_callback_stage_t stage,
+  void *rock
+)
+{
+    char delimiter;
+
+    if (stage == SASL_INFO_LIST_START) {
+	printf ("List of server plugins follows\n");
+	return;
+    } else if (stage == SASL_INFO_LIST_END) {
+	return;
+    }
+
+    /* Process the mechanism */
+    printf ("Plugin \"%s\" ", m->plugname);
+
+    switch (m->condition) {
+	case SASL_OK:
+	    printf ("[loaded]");
+	    break;
+
+	case SASL_CONTINUE:
+	    printf ("[delayed]");
+	    break;
+
+	case SASL_NOUSER:
+	    printf ("[no users]");
+	    break;
+
+	default:
+	    printf ("[unknown]");
+	    break;
+    }
+
+    printf (", \tAPI version: %d\n", m->version);
+
+    if (m->plug != NULL) {
+	printf ("\tSASL mechanism: %s, best SSF: %d, supports setpass: %s\n",
+		m->plug->mech_name,
+		m->plug->max_ssf,
+		(m->plug->setpass != NULL) ? "yes" : "no"
+		);
+
+
+	printf ("\tsecurity flags:");
+	
+	delimiter = ' ';
+	if (m->plug->security_flags & SASL_SEC_NOANONYMOUS) {
+	    printf ("%cNO_ANONYMOUS", delimiter);
+	    delimiter = '|';
+	}
+
+	if (m->plug->security_flags & SASL_SEC_NOPLAINTEXT) {
+	    printf ("%cNO_PLAINTEXT", delimiter);
+	    delimiter = '|';
+	}
+	
+	if (m->plug->security_flags & SASL_SEC_NOACTIVE) {
+	    printf ("%cNO_ACTIVE", delimiter);
+	    delimiter = '|';
+	}
+
+	if (m->plug->security_flags & SASL_SEC_NODICTIONARY) {
+	    printf ("%cNO_DICTIONARY", delimiter);
+	    delimiter = '|';
+	}
+
+	if (m->plug->security_flags & SASL_SEC_FORWARD_SECRECY) {
+	    printf ("%cFORWARD_SECRECY", delimiter);
+	    delimiter = '|';
+	}
+
+	if (m->plug->security_flags & SASL_SEC_PASS_CREDENTIALS) {
+	    printf ("%cPASS_CREDENTIALS", delimiter);
+	    delimiter = '|';
+	}
+
+	if (m->plug->security_flags & SASL_SEC_MUTUAL_AUTH) {
+	    printf ("%cMUTUAL_AUTH", delimiter);
+	    delimiter = '|';
+	}
+
+
+
+	printf ("\n\tfeatures:");
+	
+	delimiter = ' ';
+	if (m->plug->features & SASL_FEAT_WANT_CLIENT_FIRST) {
+	    printf ("%cWANT_CLIENT_FIRST", delimiter);
+	    delimiter = '|';
+	}
+
+	if (m->plug->features & SASL_FEAT_SERVER_FIRST) {
+	    printf ("%cSERVER_FIRST", delimiter);
+	    delimiter = '|';
+	}
+
+	if (m->plug->features & SASL_FEAT_ALLOWS_PROXY) {
+	    printf ("%cPROXY_AUTHENTICATION", delimiter);
+	    delimiter = '|';
+	}
+
+	if (m->plug->features & SASL_FEAT_NEEDSERVERFQDN) {
+	    printf ("%cNEED_SERVER_FQDN", delimiter);
+	    delimiter = '|';
+	}
+    }
+
+
+    if (m->f) {
+	printf ("\n\twill be loaded from \"%s\"", m->f);
+    }
+
+    printf ("\n");
+}
+
+
+/* Dump information about available server plugins (separate functions should be
+   used for canon and auxprop plugins */
+int sasl_server_plugin_info (
+  char *mech_list,		/* space separated mechanism list or NULL for ALL */
+  sasl_server_info_callback_t *info_cb,
+  void *info_cb_rock
+)
+{
+    mechanism_t *m;
+    server_sasl_mechanism_t plug_data;
+    char * cur_mech;
+    char * p;
+
+    if (info_cb == NULL) {
+	info_cb = _sasl_print_mechanism;
+    }
+
+    if (mechlist != NULL) {
+	info_cb (NULL, SASL_INFO_LIST_START, info_cb_rock);
+
+	if (mech_list == NULL) {
+	    m = mechlist->mech_list; /* m point to beginning of the list */
+
+	    while (m != NULL) {
+		memcpy (&plug_data, &m->m, sizeof(plug_data));
+
+		info_cb (&plug_data, SASL_INFO_LIST_MECH, info_cb_rock);
+	    
+		m = m->next;
+	    }
+	} else {
+
+	    cur_mech = mech_list;
+
+	    while (cur_mech != NULL) {
+		p = strchr (cur_mech, ' ');
+		if (p != NULL) {
+		    *p = '\0';
+		    p++;
+		}
+
+		m = mechlist->mech_list; /* m point to beginning of the list */
+
+		while (m != NULL) {
+		    if (strcasecmp (cur_mech, m->m.plug->mech_name) == 0) {
+			memcpy (&plug_data, &m->m, sizeof(plug_data));
+
+			info_cb (&plug_data, SASL_INFO_LIST_MECH, info_cb_rock);
+		    }
+	    
+		    m = m->next;
+		}
+
+		cur_mech = p;
+	    }
+	}
+
+	info_cb (NULL, SASL_INFO_LIST_END, info_cb_rock);
+
+	return (SASL_OK);
+    }
+
+    return (SASL_NOTINIT);
+}

@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.100 2001/12/06 22:27:29 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.101 2002/01/09 19:14:16 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2365,6 +2365,8 @@ digestmd5_server_mech_step(void *conn_context,
 	    sparams->utils->log(sparams->utils->conn, SASL_LOG_WARN,
 				"protocol violation: client requested invalid cipher");
 	    SETERROR(sparams->utils, "client requested invalid cipher");
+	    /* Mark that we attempted security layer negotiation */
+	    oparams->mech_ssf = 2;
 	    result = SASL_FAIL;
 	    goto FreeAllMem;
 	}
@@ -2536,7 +2538,14 @@ digestmd5_server_mech_step(void *conn_context,
      * nothing more to do; authenticated set oparams information
      */
     oparams->doneflag = 1;
-    oparams->maxoutbuf = client_maxbuf;
+    oparams->maxoutbuf = client_maxbuf - 4;
+    if(oparams->mech_ssf > 1) {
+	/* MAC block (privacy) */
+	oparams->maxoutbuf -= 25;
+    } else if(oparams->mech_ssf == 1) {
+	/* MAC block (integrity) */
+	oparams->maxoutbuf -= 16;
+    }
 
     oparams->param_version = 0;
 
@@ -2547,7 +2556,7 @@ digestmd5_server_mech_step(void *conn_context,
 
     /* used by layers */
     text->size = -1;
-    text->needsize = 4;
+x    text->needsize = 4;
     text->buffer = NULL;
 
     { /* xxx if layers */
@@ -3710,6 +3719,14 @@ digestmd5_client_mech_step(void *conn_context,
     /* set oparams */
     oparams->doneflag = 1;
     oparams->maxoutbuf = server_maxbuf;
+    if(oparams->mech_ssf > 1) {
+	/* MAC block (privacy) */
+	oparams->maxoutbuf -= 25;
+    } else if(oparams->mech_ssf == 1) {
+	/* MAC block (integrity) */
+	oparams->maxoutbuf -= 16;
+    }
+
     oparams->param_version = 0;
 
     text->seqnum = 0;		/* for integrity/privacy */

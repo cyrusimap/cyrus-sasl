@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.71 2001/12/06 22:27:30 rjs3 Exp $
+ * $Id: kerberos4.c,v 1.72 2002/01/09 19:14:17 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -754,6 +754,8 @@ static int kerberosv4_server_mech_step (void *conn_context,
 	oparams->mech_ssf=KRB_DES_SECURITY_BITS;
 	break;
     default:
+	/* Mark that we tried */
+	oparams->mech_ssf = 2;
         SETERROR(sparams->utils, "not a supported encryption layer");
 	return SASL_BADPROT;
     }
@@ -778,6 +780,11 @@ static int kerberosv4_server_mech_step (void *conn_context,
 
     /* fill in oparams */
     oparams->maxoutbuf = (in[5] << 16) + (in[6] << 8) + in[7];
+    if(oparams->mech_ssf) {
+	/* FIXME: Likely to be too large */
+	oparams->maxoutbuf -= 50;
+    }
+    
     oparams->param_version = 0;
     
     if(sparams->canon_user)
@@ -1283,6 +1290,8 @@ static int kerberosv4_client_mech_step(void *conn_context,
 	    oparams->mech_ssf=0;
 	    sout[4] = KRB_SECFLAG_NONE;
 	} else {
+	    /* Mark that we tried */
+	    oparams->mech_ssf=2;
 	    SETERROR(cparams->utils,
 				"unable to agree on layers with server");
 	    return SASL_BADPROT;
@@ -1290,6 +1299,10 @@ static int kerberosv4_client_mech_step(void *conn_context,
 
 	servermaxbuf=in[5]*256*256+in[6]*256+in[7];
 	oparams->maxoutbuf=servermaxbuf;
+	if(oparams->mech_ssf) {
+	    /* FIXME: Likely to be too large */
+	    oparams->maxoutbuf -= 50;
+	}
 
 	sout[5] = (oparams->maxoutbuf) >> 16;  /* max ciphertext buffer size */
 	sout[6] = (oparams->maxoutbuf) >> 8;

@@ -1,6 +1,8 @@
 2002-01-09  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* lib/common.c (sasl_decode): Removed maxoutbuf check
 	* man/sasl_setprop.3: Minor clarifications
+	* plugins/digestmd5.c, plugins/gssapi.c, plugins/kerberos4.c:
+	  Assorted security layer fixes (maxoutbuf setting, mech_ssf setting)
 
 2002-01-05  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 

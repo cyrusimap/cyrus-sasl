@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.44 2001/12/06 22:27:30 rjs3 Exp $
+ * $Id: gssapi.c,v 1.45 2002/01/09 19:14:17 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -980,6 +980,8 @@ gssapi_server_mech_step(void *conn_context,
 	    /* not a supported encryption layer */
 	    SETERROR(text->utils,
 		    "protocol violation: client requested invalid layer");
+	    /* Mark that we attempted negotiation */
+	    oparams->mech_ssf = 2;
 	    if (output_token->value)
 		gss_release_buffer(&min_stat, output_token);
 	    sasl_gss_free_context_contents(text);
@@ -1010,7 +1012,11 @@ gssapi_server_mech_step(void *conn_context,
 
 	    memcpy(&oparams->maxoutbuf,((char *) real_output_token.value) + 1,
 		   sizeof(unsigned));
-	    oparams->maxoutbuf = ntohl(oparams->maxoutbuf);
+	    oparams->maxoutbuf = ntohl(oparams->maxoutbuf) - 4;
+	    if(oparams->mech_ssf) {
+		/* FIXME, this is probabally too big */
+		oparams->maxoutbuf -= 50;
+	    }
 	}
 
 	gss_release_buffer(&min_stat, output_token);
@@ -1482,8 +1488,6 @@ gssapi_client_mech_step(void *conn_context,
 	/* bit mask of server support */
 	serverhas = ((char *)output_token->value)[0];
 	
-	oparams->maxoutbuf=(*(unsigned long *)output_token->value & 0xFFFFFF);
-
 	/* if client didn't set use strongest layer available */
 	if (allowed >= 56 && need <= 56 && (serverhas & 4)) {
 	    /* encryption */
@@ -1507,6 +1511,12 @@ gssapi_client_mech_step(void *conn_context,
 	    /* there's no appropriate layering for us! */
 	    sasl_gss_free_context_contents(text);
 	    return SASL_TOOWEAK;
+	}
+
+	oparams->maxoutbuf=(*(unsigned long *)output_token->value & 0xFFFFFF);
+	if(oparams->mech_ssf) {
+	    /* FIXME: probabally too large */
+	    oparams->maxoutbuf -= 50;
 	}
 	
 	gss_release_buffer(&min_stat, output_token);

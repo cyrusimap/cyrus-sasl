@@ -305,7 +305,7 @@ main(int argc, char *argv[])
   const char *errstr = NULL;
   int result;
   char *user_domain = NULL;
-  int repeat;
+  int repeat = 0;
 
   while ((c = getopt(argc, argv, "p:u:r:s:f:R:")) != EOF)
       switch (c) {

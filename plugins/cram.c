@@ -1,7 +1,7 @@
 /* CRAM-MD5 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: cram.c,v 1.61 2001/12/07 03:22:56 rjs3 Exp $
+ * $Id: cram.c,v 1.62 2002/01/21 18:16:54 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -798,6 +798,11 @@ static int crammd5_client_mech_step(void *conn_context,
   {     
     sasl_security_properties_t secprops;
     unsigned int external;
+    char *in16;
+    int result;
+    int auth_result=SASL_OK;
+    int pass_result=SASL_OK;
+    int maxsize;
 
     *clientout=NULL;
     *clientoutlen=0;
@@ -807,24 +812,10 @@ static int crammd5_client_mech_step(void *conn_context,
     external=params->external_ssf;
 
     if (secprops.min_ssf>0+external) {
-	SETERROR( params->utils, "whoops! looks like someone wanted SSF out of the CRAM plugin");
+	SETERROR( params->utils,
+		  "whoops! looks like someone wanted SSF out of the CRAM plugin");
 	return SASL_TOOWEAK;
     }
-
-    text->state=2;
-
-    /* (server always goes first for CRAM) */
-    if(serverinlen == 0)
-	return SASL_CONTINUE;
-  }
-
-  if (text->state==2)
-  {
-    char *in16;
-    int result;
-    int auth_result=SASL_OK;
-    int pass_result=SASL_OK;
-    int maxsize;
 
     /* try to get the userid */
     if (text->authid==NULL)

@@ -11,3 +11,4 @@ config.status
 .libs
 *.l[ao]
 saslauthd
+saslauthd.8

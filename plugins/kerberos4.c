@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.90 2002/09/19 16:28:52 ken3 Exp $
+ * $Id: kerberos4.c,v 1.91 2002/09/19 18:36:58 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -107,7 +107,7 @@ extern int gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: kerberos4.c,v 1.90 2002/09/19 16:28:52 ken3 Exp $";
+static const char plugin_id[] = "$Id: kerberos4.c,v 1.91 2002/09/19 18:36:58 rjs3 Exp $";
 
 #ifndef KEYFILE
 #define KEYFILE "/etc/srvtab";
@@ -292,7 +292,7 @@ static int kerberosv4_decode_once(void *context,
 	    text->size=ntohl(text->size);
 	    
 	    /* too big? */
-	    if ((text->size > 0xFFFF) || (text->size < 0)) return SASL_FAIL;
+	    if ((text->size > 0xFFFFFF) || (text->size < 0)) return SASL_FAIL;
 	    
 	    result = _plug_buf_alloc(text->utils, &text->buffer,
 				     &text->bufsize, text->size + 5);
@@ -646,7 +646,7 @@ static int kerberosv4_server_mech_step(void *conn_context,
 	    sout[4] |= KRB_SECFLAG_CREDENTIALS;
 
 	if(sparams->props.maxbufsize) {
-	    int tmpmaxbuf = htonl(sparams->props.maxbufsize & 0xFFFFFF);
+	    int tmpmaxbuf = htonl(sparams->props.maxbufsize > 0xFFFFFF ? 0xFFFFFF : sparams->props.maxbufsize);
 
 	    sout[5]=((tmpmaxbuf >> 16) & 0xFF);
 	    sout[6]=((tmpmaxbuf >> 8) & 0xFF);
@@ -1259,7 +1259,7 @@ static int kerberosv4_client_mech_step(void *conn_context,
 	}
 	
 	if(cparams->props.maxbufsize) {
-	    int tmpmaxbuf = htonl(cparams->props.maxbufsize & 0xFFFFFF);
+	    int tmpmaxbuf = htonl(cparams->props.maxbufsize > 0xFFFFFF ? 0xFFFFFF : cparams->props.maxbufsize);
 
 	    sout[5]=((tmpmaxbuf >> 16) & 0xFF);
 	    sout[6]=((tmpmaxbuf >> 8) & 0xFF);

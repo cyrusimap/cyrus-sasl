@@ -63,7 +63,6 @@
  *  sasl_setpass      Change a password or add a user entry
  *  sasl_auxprop_request  Request auxiliary properties
  *  sasl_auxprop_getctx   Get auxiliary property context for connection
- *  sasl_auxprop_getnames Get auxiliary property values by name
  *
  * Basic client model:
  *  1. client calls sasl_client_init() at startup to load plug-ins

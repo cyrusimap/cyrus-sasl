@@ -171,7 +171,10 @@ static int saslauthd_verify_password(const char *saslauthd_path,
     arg.rbuf = response;
     arg.rsize = sizeof(response);
 
-    door_call(s, &arg);
+    if(door_call(s, &arg) != 0) {
+	printf("NO \"door_call failed\"\n");
+	return -1;	
+    }
 
     assert(arg.data_size < sizeof(response));
     response[arg.data_size] = '\0';

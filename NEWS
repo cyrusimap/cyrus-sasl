@@ -1,3 +1,11 @@
+New in 1.4.1
+----------------------------------------
+* Tested kerberos4, cram, plain, and anonymous fairly extensively
+* Many bugs fixed
+* Created sample programs
+* Added digest
+* Prototype credential API
+
 New in 1.3b1
 ----------------------------------------
 * Added saslpasswd for setting sasl passwords

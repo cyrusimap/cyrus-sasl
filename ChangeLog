@@ -1,5 +1,7 @@
 1999-03-30  Rob Earhart  <rob+@andrew.cmu.edu>
 
+	* Version 1.4.1 released
+
 	* configure.in: added digest des check, rc4 check
 
 	* plugins/digestmd5.c: diked out rc4 code

@@ -1,3 +1,8 @@
+2004-09-08  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/cram.c, plugins/anonymous.c, plugins/login.c,
+	  plugins/plain.c, plugins/sasldb.c: Fixed several 64 bit
+	  portability warnings
+
 2004-07-29  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/digestmd5.c: Fix handling of client realm callback
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)

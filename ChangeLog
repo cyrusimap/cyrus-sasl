@@ -1,3 +1,6 @@
+2002-01-25  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* saslauthd/Makefile.am: Correct multiple EXTRA_DIST bug
+
 2002-01-23  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* utils/dbconverter-2.c (main): More intelligent default paths
 	* acconfig.h: #ifndef's for _GNU_SOURCE (Assar <assar@permabit.com>)

@@ -1,3 +1,7 @@
+Thu Sep  9 13:30:48 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* doc/sysadmin.html: added some links
+
 Wed Sep  8 14:21:23 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/client.c (sasl_client_start): added another cmu kludge for a

@@ -1,4 +1,6 @@
 AC_INIT(mechanisms.h)
+AC_PREREQ([2.54])
+
 AC_CONFIG_AUX_DIR(config)
 AC_CANONICAL_HOST
 
@@ -13,7 +15,7 @@ AC_ARG_WITH(saslauthd, [  --with-saslauthd=DIR    enable use of the saslauth dae
   AC_DEFINE_UNQUOTED(PATH_SASLAUTHD_RUNDIR, "$with_saslauthd",[Location of saslauthd socket])
 AM_CONDITIONAL(SASLAUTHD, test "$with_saslauthd" != no)
 
-AM_INIT_AUTOMAKE(saslauthd,2.1.15)
+AM_INIT_AUTOMAKE(saslauthd,2.1.16-BETA)
 CMU_INIT_AUTOMAKE
 
 dnl Checks for programs.

@@ -1,3 +1,12 @@
+New in 2.1.16-BETA
+------------------
+* Significantly improved Win32 support
+* Writable auxprop support
+* Expanded SQL support (including postgres)
+* Significantly improved documentation
+* Improved realm/username handling with saslauthd
+* Support for modern automake and autoconf
+
 New in 2.1.15
 -------------
 * Fix a number of build issues

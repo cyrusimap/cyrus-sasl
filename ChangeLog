@@ -1,10 +1,14 @@
+Mon Sep  6 20:10:14 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* configure.in: when checking for PAM, don't use -ldl, use
+ 	SASL_DB_LIBS
+
 Sat Sep  4 22:32:18 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/gssapi.c: now returns error messages via errstr for
  	server steps	
 	(sasl_gss_server_step): fixed a buffer-off-by-one error
 
-=======
 Thu Aug 26 12:23:26 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/server.c: now pwcheck_method is case & trailing whitespace

@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.11 2000/02/24 01:36:22 leg Exp $ -->
+<!-- $Id: sysadmin.html,v 1.12 2000/04/09 07:24:44 leg Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -20,8 +20,8 @@ href="http://www.sendmail.org">Sendmail</a> (versions 8.10.0 and
 higher) and <a href="http://web.asg.cmu.edu/cyrus">Cyrus imapd</a>
 (versions 1.6.0 and higher).
 
-<p> Applications use the SASL library to tell it how to accomplish the
-SASL protocol exchange, and what the results were.
+<p> Applications use the SASL library to tell them how to accomplish
+the SASL protocol exchange, and what the results were.
 
 <p> SASL is only a framework: specific SASL mechanisms govern the
 exact protocol exchange.  If there are n protocols and m different
@@ -164,7 +164,7 @@ flexible in this regard:
   <p>(<tt>sasldb</tt> is the default method.)<p>
 
 <dt><i>pwcheck</i><dd> checks passwords with the use of a seperate,
-  helper daemon. needs to be documented.<p>
+  helper daemon. <b>needs to be documented.</b><p>
 
 <dt><i>write your own</i><dd> Last, but not least, the most flexible
   method of authentication for PLAIN is to write your own.  If you do
@@ -174,8 +174,8 @@ flexible in this regard:
   routine "<tt>_sasl_checkpass()</tt>" in the file
   <tt>lib/server.c</tt> to support a new method, and to add that
   method to <tt>lib/checkpw.c</tt>.  Be sure to add a prototype in
-  <tt>lib/saslint.h</tt>!<p>
-</ul>
+  <tt>lib/saslint.h</tt>!  (tell people to use pwcheck?)<p>
+</dl>
 
 <p>The LOGIN mechanism (not to be confused with IMAP4's LOGIN command)
 is an undocumented, unsupported mechanism.  It's included in the Cyrus
@@ -282,7 +282,19 @@ Check your application's documentation for more information.
 
 <h2>Compiling and installing the library</h2>
 
-what configure options to use?
+<h3>what configure options to use?</h3>
+
+<p><b>don't install a mechanism you aren't going to use.</b></p>
+
+<p>use <tt>--disable-krb4</tt> and <tt>--disable-gssapi</tt> if you
+aren't a kerberos site.</p>
+
+<p>use <tt>--disable-cram</tt> and <tt>--disable-digest</tt> if you
+can't use shared secret mechanisms.</p>
+
+<p>need pwcheck?  use <tt>--enable-pwcheck</tt>
+
+<h3>other stuff</h3>
 
 <p>what can go wrong with shared libraries?
 
@@ -297,7 +309,7 @@ applications) its flexibility can also make it a chore to compile.
 <h2>Troubleshooting</h2>
 
 <dl compact>
-<dt><b>Q:</b>Why doesn't KERBEROS_V4 doesn't appear as an
+<dt><b>Q:</b> Why doesn't KERBEROS_V4 doesn't appear as an
 available mechanism?
 <dd>
 <p><b>A:</b> Check that the <tt>srvtab</tt> file is readable by the
@@ -307,14 +319,14 @@ the Cyrus user.  By default, the library looks for the srvtab in
 option.
 
 <p>
-<dt><b>Q:</b>Why don't CRAM-MD5 and DIGEST-MD5 appear as an available
+<dt><b>Q:</b> Why don't CRAM-MD5 and DIGEST-MD5 appear as an available
 mechanisms?
 <dd>
 <p><b>A:</b> The mechanisms won't appear until after some users have
 been created.  Use <tt>saslpasswd</tt> to create a user.
 
 <p>
-<dt><b>Q:</b>CRAM-MD5 and DIGEST-MD5 used to appear,
+<dt><b>Q:</b> CRAM-MD5 and DIGEST-MD5 used to appear,
 but since I've upgraded they don't anymore!
 <dd>
 <p><b>A:</b> As of Cyrus SASL 1.5.13, we've added a versioning feature
@@ -326,16 +338,17 @@ messages; if it indicates an incompatible version number, there's
 probably a conversion tool you'll have to run.
 
 <p>
-<dt><b>Q:</b>Is LOGIN supported?
+<dt><b>Q:</b> Is LOGIN supported?
 <dd>
 <p><b>A:</b> The LOGIN mechanism is a non-standard, undocumented
-plaintext mechanism.  We received a version of it, and it will
-hopefully be included in the next release.
+plaintext mechanism.  It's included in the SASL distribution purely
+for sites that need it to interoperate with old clients; we don't
+support it.  Don't enable it unless you know you need it.
 
 <p>
 <dt><b>Q:</b> How come PAM doesn't work as an plaintext verifier?
 <dd>
-<p><b>A:</b>Check your PAM configuration.  On Solaris, it's generally
+<p><b>A:</b> Check your PAM configuration.  On Solaris, it's generally
 found in <tt>/etc/pam.conf</tt>.  On Linux, it's usually in the
 directory <tt>/etc/pam.d</tt>.  You'll have to configure PAM for the
 service you're providing: "smtp" for Sendmail, or "imap" and "pop" for
@@ -345,7 +358,7 @@ Cyrus.
 <dt><b>Q:</b> How can I get a non-root application to check plaintext
 passwords?
 <dd>
-<p><b>A:</b>Try using the "pwcheck" daemon and setting
+<p><b>A:</b> Try using the "pwcheck" daemon and setting
 "pwcheck_method" to "pwcheck".  You'll have to run <tt>configure</tt>
 with the <tt>--with-pwcheck</tt> option.
 

@@ -1,11 +1,25 @@
 <HTML><HEAD>
 <title>Upgrading from Cyrus SASLv1 to Cyrus SASLv2</title>
-<!-- $Id: upgrading.html,v 1.4 2001/12/04 20:21:03 leg Exp $ -->
+<!-- $Id: upgrading.html,v 1.5 2001/12/04 20:27:04 leg Exp $ -->
 </HEAD>
 <BODY>
 <H1>Upgrading from Cyrus SASLv1 to Cyrus SASLv2</H1>
 
 This document covers issues with upgrading from SASLv1 to SASLv2.
+To upgrade:
+
+<ol>
+<li> Install Cyrus SASLv2 as normal according to <a
+href="install.html">the installation guide</a>.  This will overwrite
+some manpages, but will not affect your current applications.  Do NOT
+attempt to make it use the same directories.</li>
+
+<li> If you are using <tt>/etc/sasldb</tt> for any authentication, run
+<tt>utils/dbconverter-2</tt> after installation.</li>
+
+<li> If you are continuing to use libsaslv1 applications, read onwards
+to understand the ramifications.</li>
+</ol>
 
 <h2><A NAME="overview">Backwards Compatibility</A></h2>
 

@@ -1,3 +1,7 @@
+2001-07-23  Rob Siemborski <rjs3+@andrew.cmu.edu>
+
+	* check for db3/db.h as well as db.h for Berkeley DB
+
 2001-07-18  Rob Siemborski <rjs3+@andrew.cmu.edu>
 
         * Updated config.guess and config.sub

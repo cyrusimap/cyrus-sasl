@@ -119,6 +119,9 @@
 /* do we have a preferred mechanism, or should we just pick the highest ssf? */
 #undef PREFER_MECH
 
+/* do we have a wierd location of db.h? */
+#undef HAVE_DB3_DB_H
+
 /* define if your compile has __attribute__ */
 #undef HAVE___ATTRIBUTE__
 

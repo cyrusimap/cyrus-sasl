@@ -1,6 +1,6 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Tim Martin
- * $Id: db_berkeley.c,v 1.16 2001/01/04 21:20:45 leg Exp $
+ * $Id: db_berkeley.c,v 1.17 2001/07/23 15:52:15 rjs3 Exp $
  */
 
 /* 
@@ -44,7 +44,13 @@
  */
 
 #include <config.h>
+
+#ifdef HAVE_DB3_DB_H
+#include <db3/db.h>
+#else
 #include <db.h>
+#endif
+
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <assert.h>

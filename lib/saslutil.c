@@ -1,7 +1,7 @@
 /* saslutil.c
  * Rob Siemborski
  * Tim Martin
- * $Id: saslutil.c,v 1.42 2003/10/20 15:19:58 rjs3 Exp $
+ * $Id: saslutil.c,v 1.43 2004/04/29 15:48:46 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -47,7 +47,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -386,7 +385,7 @@ void sasl_randseed (sasl_rand_t *rpool, const char *seed, unsigned len)
 
 static void randinit(sasl_rand_t *rpool)
 {
-    assert(rpool);
+    if (!rpool) return;
     
     if (!rpool->initialized) {
 	getranddata(rpool->pool);

@@ -6,8 +6,9 @@
 	  (Alexey Melnikov <alexey.melnikov@isode.com>)
 
 2004-06-16  Rob Siemborski <rjs3@andrew.cmu.edu>
-	* Support for passing of GSSAPI credentials
-	  (Alexey Melnikov <alexey.melnikov@isode.com>)
+	* Support for forwarding of GSSAPI credentials
+	  (Morten Olsen <mso@medical-insight.com & 
+	   Alexey Melnikov <alexey.melnikov@isode.com>)
 
 2004-06-03  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* win32/config.mak: Remove unneeded libraries

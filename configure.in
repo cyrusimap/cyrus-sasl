@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.181 2004/01/12 17:24:56 rjs3 Exp $
+dnl $Id: configure.in,v 1.182 2004/01/12 19:13:48 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -782,11 +782,11 @@ if test "$with_sfio" != "no"; then
 	with_sfio="/usr/local"
    fi
 
-   AC_DEFUN(SFIO_INC_CHK,
+   AC_DEFUN([SFIO_INC_CHK],
 	[if test -r "$with_sfio$1/sfio.h"; then SFIO_DIR=$with_sfio;
 					      SFIO_INC_DIR=$with_sfio$1])
 
-   AC_DEFUN(SFIO_LIB_CHK,[
+   AC_DEFUN([SFIO_LIB_CHK],[
 		str="$SFIO_DIR/$1/libsfio.*"
 		for i in `echo $str`; do
 			if test -r $i; then

@@ -19,3 +19,12 @@ To release:
 - add release notice to ChangeLog
 - add user visible changes to NEWS
 
+- update asg.web.cmu.edu
+- announce to:
+    info-cyrus@andrew.cmu.edu
+    cyrus-sasl@lists.andrew.cmu.edu
+    comp.os.linux.announce
+    comp.mail.imap
+    comp.mail.sendmail after 8.10 comes out
+    
+    www.freshmeat.net

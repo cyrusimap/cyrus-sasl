@@ -1,7 +1,7 @@
 /* Login SASL plugin
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.6 2001/02/19 19:15:12 leg Exp $
+ * $Id: login.c,v 1.7 2001/06/19 15:35:30 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -300,6 +300,8 @@ server_continue_step (void *conn_context,
     if (! *serverout) return SASL_NOMEM;
     (*serverout)[0] = '\0';
     *serveroutlen = 0;
+
+    oparams->doneflag = 1;
 
     text->state++; /* so fails if called again */
 
@@ -754,6 +756,8 @@ static int client_continue_step (void *conn_context,
       return SASL_BADPROT;
     }
 
+    params->utils->free(in);
+
     *clientoutlen = strlen(oparams->user);
 
     *clientout = params->utils->malloc(*clientoutlen);
@@ -780,6 +784,8 @@ static int client_continue_step (void *conn_context,
       return SASL_BADPROT;
     }
 
+    params->utils->free(in);
+
     *clientoutlen = text->password->len;
 
     *clientout = params->utils->malloc(*clientoutlen);
@@ -787,10 +793,6 @@ static int client_continue_step (void *conn_context,
     memcpy(*clientout, text->password->data, *clientoutlen);
 
     /* set oparams */
-    oparams->mech_ssf=0;
-    oparams->maxoutbuf = 0;
-    oparams->encode=NULL;
-    oparams->decode=NULL;
     if (! oparams->user) {
       oparams->user = params->utils->malloc(strlen(oparams->authid) + 1);
       if (! oparams->user)
@@ -806,6 +808,7 @@ static int client_continue_step (void *conn_context,
     }
 
     oparams->param_version = 0;
+    oparams->doneflag = 1;
 
     text->state = 99;
 

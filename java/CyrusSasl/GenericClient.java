@@ -120,7 +120,7 @@ public class GenericClient extends GenericCommon implements SaslClient
 	}
 
 	if (wantpass==1) {
-	    pc = new PasswordCallback("Please enter your password");
+	    pc = new PasswordCallback("Please enter your password", false);
 	    cbs[pos] = pc;
 	    pos++;
 	}
@@ -146,7 +146,7 @@ public class GenericClient extends GenericCommon implements SaslClient
 	    this.authid = nc2.getName();
 	}
 	if (pc!=null) {
-	    this.password = pc.getPassword();
+	    this.password = new String(pc.getPassword());
 	}
 	if (rc!=null) {
 	    this.realm = rc.getRealm();

@@ -13,7 +13,7 @@ if test "$with_des" != no; then
   fi
 
   dnl check for openssl installing -lcrypto, then make vanilla check
-  AC_CHECK_LIB(crypto, des_pcbc_encrypt,
+  AC_CHECK_LIB(crypto, des_ncbc_encrypt,
       AC_CHECK_HEADER(openssl/des.h, [AC_DEFINE(WITH_SSL_DES)
                                      LIB_DES="-lcrypto";
                                      with_des=yes],
@@ -21,12 +21,12 @@ if test "$with_des" != no; then
       with_des=no, $LIB_RSAREF)
 
   if test "$with_des" = no; then
-    AC_CHECK_LIB(des, des_pcbc_encrypt, [LIB_DES="-ldes";
+    AC_CHECK_LIB(des, des_cbc_encrypt, [LIB_DES="-ldes";
                                         with_des=yes], with_des=no)
   fi
 
   if test "$with_des" = no; then
-     AC_CHECK_LIB(des524, des_pcbc_encrypt, [LIB_DES="-ldes524";
+     AC_CHECK_LIB(des524, des_cbc_encrypt, [LIB_DES="-ldes524";
                                        with_des=yes], with_des=no)
   fi
 
@@ -40,7 +40,7 @@ if test "$with_des" != no; then
                  LIB_RSAREF="-lRSAglue -lrsaref"; cmu_have_rsaref=yes,
                  cmu_have_rsaref=no)
 
-    AC_CHECK_LIB(crypto, des_pcbc_encrypt, 
+    AC_CHECK_LIB(crypto, des_ncbc_encrypt, 
 	AC_CHECK_HEADER(openssl/des.h, [AC_DEFINE(WITH_SSL_DES)
 					LIB_DES="-lcrypto";
 					with_des=yes],

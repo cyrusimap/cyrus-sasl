@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.121 2002/05/02 22:05:11 ken3 Exp $
+ * $Id: digestmd5.c,v 1.122 2002/05/03 15:40:44 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -103,7 +103,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.121 2002/05/02 22:05:11 ken3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.122 2002/05/03 15:40:44 rjs3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -750,12 +750,17 @@ static int dec_des(void *v,
     context_t *text = (context_t *) v;
     int p,padding = 0;
     
-    des_cbc_encrypt((void *) input,
-		    (void *) output,
-		    inputlen,
-		    text->keysched_dec,
-		    &text->ivec_dec,
-		    DES_DECRYPT);
+
+#ifdef WITH_SSL_DES  /* OpenSSL has a broken des_cbc_encrypt */
+    des_ncbc_encrypt((void *) input,
+#else
+     des_cbc_encrypt((void *) input,
+#endif
+		     (void *) output,
+		     inputlen,
+		     text->keysched_dec,
+		     &text->ivec_dec,
+		     DES_DECRYPT);
     
     /* now chop off the padding */
     padding = output[inputlen - 11];
@@ -785,30 +790,35 @@ static int enc_des(void *v,
 		   unsigned char digest[16],
 		   char *output,
 		   unsigned *outputlen)
-{  context_t *text = (context_t *) v;
- int len;
- int paddinglen;
- 
- /* determine padding length */
- paddinglen = 8 - ((inputlen+10)%8);
- 
- /* now construct the full stuff to be ciphered */
- memcpy(output, input, inputlen);                /* text */
- memset(output+inputlen, paddinglen, paddinglen);/* pad  */
- memcpy(output+inputlen+paddinglen, digest, 10); /* hmac */
- 
- len = inputlen+paddinglen+10;
- 
- des_cbc_encrypt((void *) output,
-		 (void *) output,
-		 len,
-		 text->keysched_enc,
-		 &text->ivec_enc,
-		 DES_ENCRYPT);
- 
- *outputlen = len;
- 
- return SASL_OK;
+{
+  context_t *text = (context_t *) v;
+  int len;
+  int paddinglen;
+  
+  /* determine padding length */
+  paddinglen= 8 - ((inputlen+10)%8);
+
+  /* now construct the full stuff to be ciphered */
+  memcpy(output, input, inputlen);                /* text */
+  memset(output+inputlen, paddinglen, paddinglen);/* pad  */
+  memcpy(output+inputlen+paddinglen, digest, 10); /* hmac */
+
+  len=inputlen+paddinglen+10;
+
+#ifdef WITH_SSL_DES  /* OpenSSL has a broken des_cbc_encrypt */
+  des_ncbc_encrypt((void *) output,
+#else
+   des_cbc_encrypt((void *) output,
+#endif
+		   (void *) output,
+		   len,
+		   text->keysched_enc,
+		   &text->ivec_enc,
+		   DES_ENCRYPT);
+
+  *outputlen=len;
+
+  return SASL_OK;
 }
 
 static int init_des(void *v,

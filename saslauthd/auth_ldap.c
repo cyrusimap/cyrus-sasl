@@ -31,7 +31,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_ldap.c,v 1.13 2002/06/19 17:35:29 rjs3 Exp $"
+#ident "$Id: auth_ldap.c,v 1.14 2002/07/05 15:54:12 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -52,7 +52,7 @@
 #include "lak.h"
 #include "globals.h"
 
-const char *SASLAUTHD_CONF_FILE = "/usr/local/etc/saslauthd.conf";
+const char *SASLAUTHD_CONF_FILE = SASLAUTHD_CONF_FILE_DEFAULT;
 
 char *					/* R: allocated response string */
 auth_ldap(

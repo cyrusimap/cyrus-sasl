@@ -16,6 +16,8 @@
 	* saslauthd/saslauthd.mdoc: documentation of -n 0
 	* plugins/cram.c (crammd5_client_mech_step): fix client-first
 	  handling
+	* sasldb/db_gdbm.c: improved error reporting
+	  (Courtesy Marshall T. Rose <mrose@dbc.mtview.ca.us>
 
 2002-01-19  Ken Murchison <ken@oceana.com>
 	* plugins/otp.c: set serverout to NULL where we have nothing to

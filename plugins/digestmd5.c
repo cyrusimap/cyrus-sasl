@@ -40,11 +40,15 @@ SOFTWARE.
 #ifdef WIN32
 # include <winsock.h>
 #else
+#if 0
 //# include <sys/param.h>
 //# include <sys/socket.h>
+#endif
 # include <netinet/in.h>
+#if 0
 //# include <arpa/inet.h>
 //# include <netdb.h>
+#endif
 #endif /* WIN32 */
 
 #include <sasl.h>

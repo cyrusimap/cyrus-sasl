@@ -260,7 +260,6 @@
 
 	* configure.in: Added kaffeh support
 
->>>>>>> 1.38
 1999-03-08  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
 	* plugins/plain.c: No sensetive information leaked

@@ -39,16 +39,11 @@ AC_DEFUN(BERKELEY_DB_CHK,
 	fi
 
 	dnl FreeBSD puts it in a wierd place
-	AC_CHECK_HEADER(db3/db.h,
-                       BERKELEY_DB_CHK_LIB()
-                       if test "$dblib" = "berkeley"; then
-			 SASL_DB_INC=$BDB_INCADD
-                         AC_DEFINE(HAVE_DB3_DB_H)
-                       fi,
-               AC_CHECK_HEADER(db.h,
-                       	       BERKELEY_DB_CHK_LIB()
-			       SASL_DB_INC=$BDB_INCADD,
-                               dblib="no"))
+	dnl (but they should use with-bdb-incdir now)
+	AC_CHECK_HEADER(db.h,
+                       	BERKELEY_DB_CHK_LIB()
+			SASL_DB_INC=$BDB_INCADD,
+                        dblib="no")
 ])
 
 dnl Figure out what database type we're using

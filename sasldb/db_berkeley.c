@@ -1,7 +1,7 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Rob Siemborski
  * Tim Martin
- * $Id: db_berkeley.c,v 1.2 2001/12/04 02:06:59 rjs3 Exp $
+ * $Id: db_berkeley.c,v 1.3 2002/03/27 20:11:29 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -45,11 +45,7 @@
 
 #include <config.h>
 
-#ifdef HAVE_DB3_DB_H
-#include <db3/db.h>
-#else
 #include <db.h>
-#endif
 
 #include <sys/stat.h>
 #include <stdlib.h>

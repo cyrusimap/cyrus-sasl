@@ -89,7 +89,7 @@ int listusers(const char *path, listcb_t *cb)
 
     while (dkey.dptr != NULL) {
 	char *authid = dkey.dptr;
-	char *realm  = dkey.dptr+strlen(authid)+1;
+	char *realm  = (char *)dkey.dptr+strlen(authid)+1;
 	char *tmp    = realm + strlen(realm)+1;
 	char mech[1024];
 	int len = dkey.dsize - (tmp - ((char *)dkey.dptr));

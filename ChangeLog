@@ -1,3 +1,9 @@
+2003-03-06  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/digestmd5.c: fix parity of digest-uri test
+	* lib/client.c, common.c, saslint.h, server.c: Pass global
+	  callbacks to global utils structure
+	  (Howard Chu <hyc@highlandsun.com>)
+
 2002-02-20  Ken Murchison <ken@oceana.com>
 	* doc/draft-ietf-sasl-rfc2831bis-00.txt: added
 	* doc/draft-melnikov-rfc2831bis-02.txt: deleted
@@ -10,8 +16,6 @@
 
 2003-02-12  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 	* plugins/digestmd5.c: verify the service component of digest-uri
-	* plugins/digestmd5.c: time() is used, include time.h
-	* plugins/cram.c: time() is used, include time.h
 
 2002-02-11  Ken Murchison <ken@oceana.com>
 	* doc/draft-ietf-sasl-anon-00.txt: added

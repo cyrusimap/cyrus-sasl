@@ -27,4 +27,4 @@ sbin_PROGRAMS = pwcheck
 pwcheck_SOURCES = pwcheck.c
 EXTRA_pwcheck_SOURCES = pwcheck_getpwnam.c pwcheck_getspnam.c
 pwcheck_DEPENDECIES = pwcheck_@PWCHECKMETH@.lo
-pwcheck_LDADD = pwcheck_@PWCHECKMETH@.lo @LIB_CRYPT@ 
+pwcheck_LDADD = pwcheck_@PWCHECKMETH@.lo @LIB_CRYPT@ @LIB_SOCKET@

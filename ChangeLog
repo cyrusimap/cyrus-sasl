@@ -1,6 +1,7 @@
 2005-02-14  Derrick Brashear <shadow@andrew.cmu.edu>
 	* saslauthd/krbtf.c: updated from CMUCS
-
+	* saslauthd/auth_krb5.c: log the krb5 error return if get_creds fails 
+	
 2005-02-01  Alexey Melnikov <alexey.melnikov@isode.com>
 	* win32/include/config.h: Updated to match gai.h changes.
 	* win32/include/config.h: added define for the OTP plugin.

@@ -168,6 +168,13 @@
 /* do we have sys/param.h? */
 #undef HAVE_SYS_PARAM_H
 
+/* do we have sysexits.h? */
+#undef HAVE_SYSEXITS_H
+
+/* stdarg.h? varargs.h? */
+#undef HAVE_STDARG_H
+#undef HAVE_VARARGS_H
+
 /* define if your system has getaddrinfo() */
 #undef HAVE_GETADDRINFO
 

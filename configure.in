@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.141 2002/09/03 15:11:43 rjs3 Exp $
+dnl $Id: configure.in,v 1.142 2002/09/04 12:32:01 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -756,7 +756,7 @@ AC_HEADER_TIME
 AC_HEADER_STDC
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(fcntl.h limits.h malloc.h paths.h strings.h sys/file.h sys/time.h syslog.h unistd.h inttypes.h sys/uio.h sys/param.h)
+AC_CHECK_HEADERS(fcntl.h limits.h malloc.h paths.h strings.h sys/file.h sys/time.h syslog.h unistd.h inttypes.h sys/uio.h sys/param.h sysexits.h stdarg.h varargs.h)
 
 IPv6_CHECK_SS_FAMILY()
 IPv6_CHECK_SA_LEN()

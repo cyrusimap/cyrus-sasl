@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.39 1999/09/08 18:32:37 leg Exp $
+ * $Id: kerberos4.c,v 1.40 1999/10/01 20:26:43 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -56,7 +56,7 @@ typedef struct krb_principal {
 #ifndef R_OK
 #define R_OK 04
 #endif
-//we also need io.h for access() prototype
+/* we also need io.h for access() prototype */
 #include <io.h>
 #endif /* WIN32 */
 

@@ -3465,14 +3465,6 @@ c_continue_step(void *conn_context,
     }
     /* XXX nonce count */
 
-    /* serv-type */
-    /* ervtype=params->service; */
-    /* host */
-    /* ost=params->serverFQDN; //params->params->serverFQDN; */
-    /* XXX serv-name */
-    /* servname=params->serverFQDN; //params->params->serverFQDN; */
-    /* XXX digest uri */
-
     digesturi = params->utils->malloc(strlen(params->service) + 1 +
 				      strlen(params->serverFQDN) + 1 +
     /* strlen(params->serverFQDN)+1 */

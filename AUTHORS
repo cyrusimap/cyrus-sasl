@@ -34,11 +34,11 @@ Chris Newman <chris.newman@sun.com> wrote the initial version of the
 SASL API, as well as the version 2 SASL API (documented in sasl.h,
 saslutil.h, saslplug.h, and prop.h).
 
-Ryan Troll started the Windows port, and both Larry Greenfield and
-Alexey Melnikov have done more work on it.
+Ryan Troll <ryan@andrew.cmu.edu> started the Windows port,
+and both Larry Greenfield and Alexey Melnikov have done more work on it.
 
 getaddrinfo.c was written by Hajimu UMEMOTO <ume@mahoroba.org>
 which is based on the IPv6 code written by KIKUCHI Takahiro
 <kick@kyoto.wide.ad.jp>
 
-$Id: AUTHORS,v 1.14 2003/10/15 17:02:23 rjs3 Exp $
+$Id: AUTHORS,v 1.15 2003/10/15 17:03:11 rjs3 Exp $

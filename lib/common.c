@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.102 2004/07/06 13:42:23 rjs3 Exp $
+ * $Id: common.c,v 1.103 2004/07/06 16:03:05 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -847,7 +847,8 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
 	  if(result != SASL_OK) MEMERROR(conn);
 	  ((sasl_server_conn_t *)conn)->sparams->appname =
               ((sasl_server_conn_t *)conn)->appname;
-	  ((sasl_server_conn_t *)conn)->sparams->applen = (unsigned) strlen(str);
+	  ((sasl_server_conn_t *)conn)->sparams->applen =
+	      (unsigned) strlen(((sasl_server_conn_t *)conn)->appname);
       } else {
 	  ((sasl_server_conn_t *)conn)->sparams->appname = NULL;
 	  ((sasl_server_conn_t *)conn)->sparams->applen = 0;

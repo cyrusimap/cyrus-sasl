@@ -26,4 +26,13 @@ sbin_PROGRAMS = saslpasswd
 man_MANS = saslpasswd.8
 saslpasswd_LDADD = ../lib/libsasl.la
 
+include_HEADERS = @SASL_UTIL_HEADERS_EXTRA@
+EXTRA_HEADERS = sfsasl.h
+
+lib_LTLIBRARIES = @SASL_UTIL_LIBS_EXTRA@
+EXTRA_LTLIBRARIES = libsfsasl.la
+libsfsasl_la_SOURCES = sfsasl.c
+libsfsasl_la_LDFLAGS = -version-info 0:0:0 -export-dynamic -rpath $(libdir)
+
 INCLUDES=-I$(top_srcdir)/include
+EXTRA_DIST = saslpasswd.8

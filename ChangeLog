@@ -1,3 +1,29 @@
+1999-08-19  Gregory M. Diskin  <diskin+@andrew.cmu.edu>
+
+	* lib/db_testw32.c: wrote this to store and retrieve mech-specific
+	secrets for one user, to test mechs on win32 using sample-server
+	and sample-client.
+
+	* plugins/gssapi.c:  Fix include statements for Win32
+
+	* sample/sample-server.c (main): ifdef out a free statement which
+	causes win32 to crash.
+
+	* utils/saslpasswd.c (main) (read_password): rebuild for Win32
+
+	win32/include/config.h (VL):  enabled for debug printing
+
+	* win32/libsasl/libsasl.dsp:  Add db_testw32.c to build
+
+	* win32/libsasl/libsasl.dsw:  Add gssapi plugin and utility
+	saslpwd to project
+
+	* win32/sample_client/sample_client.dsp: Remove pre-compiled header
+	option
+
+	* win32/saslDIGESTMD5/saslDIGESTMD5.h:  Enable inclusion of this
+	header file on win32
+
 1999-08-19  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
 	* sample/sample-server.c (samp_recv): give better error messages. less obfuscated code

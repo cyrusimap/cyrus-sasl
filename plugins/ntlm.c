@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.26 2004/04/16 14:27:54 ken3 Exp $
+ * $Id: ntlm.c,v 1.27 2004/06/30 13:19:36 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -99,7 +99,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.26 2004/04/16 14:27:54 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.27 2004/06/30 13:19:36 ken3 Exp $";
 
 #ifdef WIN32
 static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);
@@ -167,6 +167,7 @@ enum {
     NTLM_USE_ASCII		= 0x00002,
     NTLM_ASK_TARGET		= 0x00004,
     NTLM_AUTH_NTLM		= 0x00200,
+    NTLM_ALWAYS_SIGN		= 0x08000,
     NTLM_TARGET_IS_DOMAIN	= 0x10000,
     NTLM_TARGET_IS_SERVER	= 0x20000,
     NTLM_FLAGS_MASK		= 0x0ffff

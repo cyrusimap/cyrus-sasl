@@ -1,6 +1,6 @@
 /*
  * Mar  8, 2000 by Hajimu UMEMOTO <ume@mahoroba.org>
- * $Id: gai.h,v 1.2 2001/12/04 02:05:19 rjs3 Exp $
+ * $Id: gai.h,v 1.3 2002/04/22 16:36:50 rjs3 Exp $
  *
  * This module is besed on ssh-1.2.27-IPv6-1.5 written by
  * KIKUCHI Takahiro <kick@kyoto.wide.ad.jp>
@@ -73,10 +73,6 @@
 #ifndef AI_PASSIVE
 #define AI_PASSIVE	1
 #define AI_CANONNAME	2
-#define	AI_NUMERICHOST	4
-#define NI_NUMERICHOST	2
-#define NI_NAMEREQD	4
-#define NI_NUMERICSERV	8
 struct addrinfo {
 	int	ai_flags;	/* AI_PASSIVE, AI_CANONNAME */
 	int	ai_family;	/* PF_xxx */
@@ -87,6 +83,13 @@ struct addrinfo {
 	struct sockaddr *ai_addr;	/* binary address */
 	struct addrinfo *ai_next;	/* next structure in linked list */
 };
+#endif
+
+#ifndef AI_NUMERICHOST   /* support glibc 2.0.x */
+#define	AI_NUMERICHOST	4
+#define NI_NUMERICHOST	2
+#define NI_NAMEREQD	4
+#define NI_NUMERICSERV	8
 #endif
 
 int	getaddrinfo(const char *, const char *,

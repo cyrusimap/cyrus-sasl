@@ -1,6 +1,6 @@
 /* auxprop.c - auxilliary property support
  * Rob Siemborski
- * $Id: auxprop.c,v 1.13 2003/10/20 15:19:58 rjs3 Exp $
+ * $Id: auxprop.c,v 1.14 2004/01/26 19:59:53 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -811,7 +811,8 @@ int sasl_auxprop_add_plugin(const char *plugname,
 			 &out_version, &plug, plugname);
 
     if(result != SASL_OK) {
-	_sasl_log(NULL, SASL_LOG_ERR, "auxpropfunc error %i\n",result);
+	_sasl_log(NULL, SASL_LOG_ERR, "auxpropfunc error %s\n",
+		  sasl_errstring(result, NULL, NULL));
 	return result;
     }
 

@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASLv2 README</title>
-<!-- $Id: readme.html,v 1.8 2002/07/19 15:13:20 rjs3 Exp $ -->
+<!-- $Id: readme.html,v 1.9 2002/10/21 14:39:15 ken3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Read Me First</H1>
@@ -9,15 +9,19 @@ This document offers a general overview of the SASL library.
 
 <H2>FEATURES</H2>
 
-The following mechanisms are included in this distribution:
+The following <a href="mechanisms.html">mechanisms</a> are included in
+this distribution:
 <ul>
 <li>ANONYMOUS
 <li>CRAM-MD5
 <li>DIGEST-MD5
+<li>EXTERNAL
 <li>GSSAPI (MIT Kerberos 5 or Heimdal Kerberos 5)
 <li>KERBEROS_V4
-<li>PLAIN
+<li>LOGIN
+<li>NTLM (requires OpenSSL libcrypto)
 <li>OTP (requires OpenSSL libcrypto)
+<li>PLAIN
 <li>SRP (work in progress; requires OpenSSL libcrypto)
 </ul>
 

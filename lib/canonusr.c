@@ -1,6 +1,6 @@
 /* canonusr.c - user canonicalization support
  * Rob Siemborski
- * $Id: canonusr.c,v 1.9 2002/07/18 01:21:27 ken3 Exp $
+ * $Id: canonusr.c,v 1.10 2002/09/16 18:37:20 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -288,7 +288,7 @@ static int _canonuser_internal(const sasl_utils_t *utils,
     begin_u = &(userin[i]);
     if(i>0) ulen -= i;
 
-    for(;isspace((int)begin_u[ulen-1]) && ulen > 0; ulen--);
+    for(;ulen > 0 && isspace((int)begin_u[ulen-1]); ulen--);
     if(begin_u == &(userin[ulen])) {
 	sasl_FREE(in_buf);
 	utils->seterror(utils->conn, 0, "All-whitespace username.");

@@ -66,7 +66,8 @@ contains a pointer to the data. It is the applications job to make sure this typ
 .nf
 SASL_AUTH_EXTERNAL - external authentication ID (const char *)
 SASL_SSF_EXTERNAL -  external SSF active -- (sasl_ssf_t)
-SASL_SEC_PROPS  -    sasl_security_properties_t 
+SASL_DEFUSERREALM - user realm (const char *)
+SASL_SEC_PROPS  -    sasl_security_properties_t (may be freed after call)
 SASL_IPLOCALPORT -   string describing the local ip and port in the form
                      "a.b.c.d;p", or "e:f:g:h:i:j:k:l;port"
 SASL_IPREMOTEPORT -  string describing the remote ip and port in the form

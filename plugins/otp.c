@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.33 2004/06/18 14:18:31 ken3 Exp $
+ * $Id: otp.c,v 1.34 2004/06/18 15:08:26 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -68,7 +68,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: otp.c,v 1.33 2004/06/18 14:18:31 ken3 Exp $";
+static const char plugin_id[] = "$Id: otp.c,v 1.34 2004/06/18 15:08:26 ken3 Exp $";
 
 #define OTP_SEQUENCE_MAX	9999
 #define OTP_SEQUENCE_DEFAULT	499
@@ -986,15 +986,14 @@ static int otp_server_mech_step1(server_context_t *text,
 	result = params->utils->prop_request(params->propctx,
 					     lookup_request);
 	if (result != SASL_OK) return result;
-
-	/* this will trigger the getting of the aux properties.
-	   Must use the fully qualified authid here */
-	result = params->canon_user(params->utils->conn, authid, 0,
+	
+	/* this will trigger the getting of the aux properties */
+	result = params->canon_user(params->utils->conn, text->authid, 0,
 				    SASL_CU_AUTHID, oparams);
 	if (result != SASL_OK) return result;
 	
 	result = params->canon_user(params->utils->conn,
-				    strlen(authzid) ? authzid : authid,
+				    strlen(authzid) ? authzid : text->authid,
 				    0, SASL_CU_AUTHZID, oparams);
 	if (result != SASL_OK) return result;
 	

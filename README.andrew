@@ -24,6 +24,7 @@ To release:
 - add user visible changes to NEWS
 
 - tag the CVS repository with sasl-Major_Minor_Revision
+- check out the tag into a CLEAN repository
 - to make tarball: make distcheck (make sure you are on a machine that
   is not using GNU tar!  Solaris tar seems to not get along with it well.)
 - compile on non-andrew machine

@@ -1,7 +1,7 @@
 /* Login SASL plugin
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.2 2000/02/27 20:46:15 leg Exp $
+ * $Id: login.c,v 1.3 2000/03/04 01:20:24 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -70,6 +70,7 @@ static int start(void *glob_context __attribute__((unused)),
   text->state=1;
 
   text->username = NULL;
+  text->password = NULL;
 
   *conn=text;
 

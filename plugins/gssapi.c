@@ -1082,7 +1082,8 @@ sasl_gss_client_step (void *conn_context,
     case SASL_GSSAPI_STATE_SSFCAP:
       {
 	sasl_security_properties_t secprops = params->props;
-	unsigned int alen, external = params->external_ssf, need = 0;
+	unsigned int alen, external = params->external_ssf;
+	int need = 0;
 
 	if (serverinlen)
 	  {
@@ -1118,14 +1119,14 @@ sasl_gss_client_step (void *conn_context,
 	need = secprops.max_ssf - external;
 
 	/* if client didn't set use strongest layer */
-	if (need > 1) {
+	if (need >= 56) {
 	    /* encryption */
 	    oparams->encode = &sasl_gss_privacy_encode;
 	    oparams->decode = &sasl_gss_decode;
 	    oparams->mech_ssf = 56;
 	    text->ssf = 4;
 	    DEBUG ((stderr,"Using encryption layer\n"));
-	} else if (need == 1) {
+	} else if (need >= 1) {
 	    /* integrity */
 	    oparams->encode = &sasl_gss_integrity_encode;
 	    oparams->decode = &sasl_gss_decode;

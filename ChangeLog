@@ -1,3 +1,7 @@
+1999-11-15  Timothy L Martin  <tmartin@andrew.cmu.edu>
+
+	* plugins/gssapi.c (sasl_gss_client_step): changed "unsigned int need" to int need so negative numbers wouldn't underflow
+
 Mon Nov 15 00:43:10 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/gssapi.c (sasl_gss_client_step): deals with external

@@ -2049,7 +2049,7 @@ server_continue_step(void *conn_context,
      */
    
     if (add_to_challenge(sparams->utils, &challenge,"algorithm",
-			 "md5-sess", FALSE)!=SASL_OK)
+			 (unsigned char *) "md5-sess", FALSE)!=SASL_OK)
       return SASL_FAIL;
 
     *serverout = challenge;
@@ -3126,6 +3126,7 @@ c_continue_step(void *conn_context,
   }
 
   if (text->state == 2) {
+    int need = 0;
     unsigned char  *digesturi = NULL;
     unsigned char  *nonce = NULL;
     unsigned char  *ncvalue = (unsigned char *) "00000001";
@@ -3393,9 +3394,11 @@ c_continue_step(void *conn_context,
     secprops = params->props;
     external = params->external_ssf;
     /*    VL(("external ssf=%d\n", external));*/
-    if (params->props.min_ssf > 56) {
+    if (params->props.min_ssf > 56 + external) {
       VL(("Minimum ssf too strong min_ssf=%i\n", params->props.min_ssf));
       return SASL_TOOWEAK;
+    } else if (params->props.min_ssf > params->props.max_ssf) {
+      return SASL_BADPARAM;
     }
     /*
      * this isn't necessary right? if (secprops.max_ssf<0) { VL (("ssf too
@@ -3406,8 +3409,11 @@ c_continue_step(void *conn_context,
 
     params->utils->free(qop);
 
+    /* need bits of layer */
+    need = params->props.max_ssf - external;
+
     /* if client didn't set use strongest layer */
-    if ((params->props.max_ssf > 1) &&
+    if ((need > 1) &&
 	((protection & DIGEST_PRIVACY) == DIGEST_PRIVACY)) {
 
       oparams->encode = &privacy_encode; 
@@ -3418,7 +3424,7 @@ c_continue_step(void *conn_context,
       /* Client request encryption, server supports it */
       /* encryption */
 #ifdef WITH_RC4
-      if ((params->props.max_ssf>=128)  && 
+      if ((need>=128)  && 
 	  ((ciphers & CIPHER_RC4) == CIPHER_RC4)) { /* rc4 */
 	VL(("Trying to use rc4"));
 	cipher = "rc4";
@@ -3432,7 +3438,7 @@ c_continue_step(void *conn_context,
 #endif /* WITH_RC4 */
 
 #ifdef WITH_DES
-      } else if ((params->props.max_ssf>=112) && ((ciphers & CIPHER_3DES) == CIPHER_3DES)) {
+      } else if ((need>=112) && ((ciphers & CIPHER_3DES) == CIPHER_3DES)) {
 	VL(("Trying to use 3des"));
 	cipher = "3des";
 	text->cipher_enc=(cipher_function_t *) &enc_3des;
@@ -3443,7 +3449,7 @@ c_continue_step(void *conn_context,
 #endif /* WITH_DES */
 
 #ifdef WITH_RC4
-      } else if ((params->props.max_ssf>=56)  && ((ciphers & CIPHER_RC456) == CIPHER_RC456)) { /* rc4-56 */
+      } else if ((need>=56)  && ((ciphers & CIPHER_RC456) == CIPHER_RC456)) { /* rc4-56 */
  	VL(("Trying to use rc4-56"));
  	cipher = "rc4-56";
  	text->cipher_enc=(cipher_function_t *) &enc_rc4;
@@ -3454,7 +3460,7 @@ c_continue_step(void *conn_context,
 #endif /* WITH_RC4 */
 
 #ifdef WITH_DES
-      } else if ((params->props.max_ssf>=55)  && ((ciphers & CIPHER_DES) == CIPHER_DES)) { /* des */
+      } else if ((need>=55)  && ((ciphers & CIPHER_DES) == CIPHER_DES)) { /* des */
 	VL(("Trying to use des"));
 	cipher = "des";
 	text->cipher_enc=(cipher_function_t *) &enc_des;
@@ -3465,7 +3471,7 @@ c_continue_step(void *conn_context,
 #endif /* WITH_DES */
 
 #ifdef WITH_RC4
-      } else if ((params->props.max_ssf>=40)  && ((ciphers & CIPHER_RC440) == CIPHER_RC440)) { /* rc4-40 */
+      } else if ((need>=40)  && ((ciphers & CIPHER_RC440) == CIPHER_RC440)) { /* rc4-40 */
  	VL(("Trying to use rc4-40"));
  	cipher = "rc4-40";
  	text->cipher_enc=(cipher_function_t *) &enc_rc4;
@@ -3485,7 +3491,7 @@ c_continue_step(void *conn_context,
 
     if (qop==NULL)
     {
-      if ((params->props.min_ssf <= 1) && (params->props.max_ssf >= 1) &&
+      if ((params->props.min_ssf - external <= 1) && (need >= 1) &&
 	  ((protection & DIGEST_INTEGRITY) == DIGEST_INTEGRITY)) {
 	/* integrity */
 	oparams->encode = &integrity_encode;

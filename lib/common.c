@@ -275,6 +275,7 @@ void _sasl_conn_dispose(sasl_conn_t *conn) {
 int sasl_getprop(sasl_conn_t *conn, int propnum, void **pvalue)
 {
   int result;
+  int *tmpint;
 
   if (! conn) return SASL_FAIL;
   if (! pvalue) return SASL_FAIL;

@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.41 1999/11/02 18:49:17 leg Exp $
+ * $Id: cram.c,v 1.42 1999/11/15 22:20:40 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -571,7 +571,7 @@ setpass(void *glob_context __attribute__((unused)),
 
 	/* do the precalculation. this is what we're going to save to disk */
 	sparams->utils->hmac_md5_precalc(md5state, /* OUT */
-					 pass,     /* IN */
+					 (const unsigned char *) pass,     /* IN */
 					 passlen); /* IN */
 	
 	/* allocate a secret structure that we're going to save to disk */  

@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.43 1999/11/11 16:00:47 leg Exp $
+ * $Id: kerberos4.c,v 1.44 1999/11/15 22:20:43 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -935,6 +935,7 @@ static int client_continue_step (void *conn_context,
   /* challenge #2 */
   if (text->state==2)
   {
+    int need = 0;
     int testnum;
     int nchal;    
     unsigned char sout[1024];
@@ -1069,19 +1070,24 @@ static int client_continue_step (void *conn_context,
      * 6-8 max buffer size
      */
 
-    if (params->props.min_ssf > KRB_DES_SECURITY_BITS)
-    {
+
+    if (params->props.min_ssf > KRB_DES_SECURITY_BITS + params->external_ssf) {
       VL (("Minimum ssf too strong min_ssf=%u\n",
 	   params->props.min_ssf));
       return SASL_TOOWEAK;
+    } else if (params->props.min_ssf > params->props.max_ssf) {
+      return SASL_BADPARAM;
     }
 
     /* create stuff to send to server */
     nchal=htonl(text->challenge);
     memcpy(sout, &nchal, 4);
 
+    /* need bits of layer */
+    need = params->props.max_ssf - params->external_ssf;
+
     if ((in[4] & KRB_SECFLAG_ENCRYPTION)
-	&& cando_sec(&params->props, KRB_SECFLAG_ENCRYPTION)) {
+	&& (need>1)) {
       /* encryption */
       oparams->encode = &privacy_encode;
       oparams->decode = &privacy_decode;
@@ -1089,15 +1095,14 @@ static int client_continue_step (void *conn_context,
       sout[4] = KRB_SECFLAG_ENCRYPTION;
       VL (("Using encryption layer\n"));
     } else if ((in[4] & KRB_SECFLAG_INTEGRITY)
-	       && cando_sec(&params->props, KRB_SECFLAG_INTEGRITY)) {
+	       && (need == 1)) {
       /* integrity */
       oparams->encode=&integrity_encode;
       oparams->decode=&integrity_decode;
       oparams->mech_ssf=1;
       sout[4] = KRB_SECFLAG_INTEGRITY;
       VL (("Using integrity layer\n"));
-    } else if ((in[4] & KRB_SECFLAG_NONE)
-	       && cando_sec(&params->props, KRB_SECFLAG_NONE)) {
+    } else if (in[4] & KRB_SECFLAG_NONE) {
       /* no layer */
       oparams->encode=NULL;
       oparams->decode=NULL;

@@ -1,6 +1,6 @@
 # Makefile.am for the SASL library
 # Rob Earhart
-# $Id: Makefile.am,v 1.59 2002/09/06 17:12:50 rjs3 Exp $
+# $Id: Makefile.am,v 1.60 2002/09/06 17:21:00 rjs3 Exp $
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -79,7 +79,7 @@ endif
 libsasl2.a: libsasl2.la $(SASL_STATIC_OBJS)
 	@echo adding static plugins and dependencies
 	$(AR) cru .libs/$@ $(SASL_STATIC_OBJS)
-	@for i in libsasl2.la ../sasldb/libsasldb.la ../plugins/lib*.la; do \
+	@for i in ./libsasl2.la ../sasldb/libsasldb.la ../plugins/lib*.la; do \
 	if test ! -f $$i; then continue; fi; . $$i; \
 	for j in $$dependency_libs foo; do \
 	case $$j in foo) ;; \

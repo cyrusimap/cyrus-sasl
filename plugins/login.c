@@ -2,7 +2,7 @@
  * Rob Siemborski (SASLv2 Conversion)
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.11 2002/01/19 22:15:07 rjs3 Exp $
+ * $Id: login.c,v 1.12 2002/01/21 21:04:50 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -255,7 +255,7 @@ static sasl_server_plug_t login_server_plugins[] =
     "LOGIN",
     0,
     SASL_SEC_NOANONYMOUS,
-    0,
+    SASL_FEAT_SERVER_FIRST,
     NULL,
     &login_server_mech_new,
     &login_server_mech_step,
@@ -635,7 +635,7 @@ static sasl_client_plug_t login_client_plugins[] =
     "LOGIN",
     0,
     SASL_SEC_NOANONYMOUS,
-    0,
+    SASL_FEAT_SERVER_FIRST,
     NULL,
     NULL,
     &login_client_mech_new,

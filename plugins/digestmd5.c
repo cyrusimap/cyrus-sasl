@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.105 2002/01/19 22:33:59 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.106 2002/01/21 21:04:49 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2654,7 +2654,7 @@ static sasl_server_plug_t digestmd5_server_plugins[] =
     0,
 #endif
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
-    SASL_FEAT_INTERNAL_CLIENT_FIRST,
+    0,
     NULL,
     &digestmd5_server_mech_new,
     &digestmd5_server_mech_step,
@@ -3131,24 +3131,23 @@ digestmd5_client_mech_step(void *conn_context,
 
   if(serverinlen > 2048) return SASL_BADPROT;
 
-#if 0 /* this is what it would look like if we didn't let the glue
-       * code handle this */
   if (text->state == 1) {
-      /* here's where we'd attempt fast reauth if possible */
-      /* if we can, then goto text->state=3!!! */
-
-      /* however, we don't implement it, so we just return
-       * that there is no initial client send */
-
-      if(clientout) *clientout = NULL;
-      if(clientoutlen) *clientoutlen = 0;
-
       text->state = 2;
-      return SASL_CONTINUE;
+
+      if (!serverin) {
+          /* here's where we'd attempt fast reauth if possible */
+          /* if we can, then goto text->state=3!!! */
+
+          /* however, we don't implement it, so we just return
+           * that there is no initial client send */
+          if(clientout) *clientout = NULL;
+          if(clientoutlen) *clientoutlen = 0;
+
+          return SASL_CONTINUE;
+      }
+
+      /* otherwise fall through and send response */
   }
-#else
-  if(text->state == 1) text->state = 2;
-#endif
 
   *clientout = NULL;
   *clientoutlen = 0;
@@ -3840,7 +3839,6 @@ static sasl_client_plug_t digestmd5_client_plugins[] =
     0,
 #endif
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
-    /* Note: we don't do client-first on this side of the plugin */
     0,
     NULL,
     NULL,

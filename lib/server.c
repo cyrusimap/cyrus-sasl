@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.99 2002/01/21 05:34:30 rjs3 Exp $
+ * $Id: server.c,v 1.100 2002/01/21 21:04:47 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1160,37 +1160,32 @@ int sasl_server_start(sasl_conn_t *conn,
     }
     
     if (result == SASL_OK) {
-	if(clientin &&
-	   (s_conn->mech->plug->features &
-	    (SASL_FEAT_WANT_CLIENT_FIRST | SASL_FEAT_INTERNAL_CLIENT_FIRST))) {
-	    /* both protocol & mech did client-send-first */
-	    result = sasl_server_step(conn,
-				      clientin, clientinlen,
-				      serverout, serveroutlen);
-	} else if (clientin) {
-	    /* Remote sent first, but mechanism does not support it.
-	     * RFC 2222 says we fail at this point. */
-	    sasl_seterror(conn, 0,
-			  "Remote sent first but mech does not allow it.");
-	    result = SASL_BADPROT;
-	} else {
-	    /* protocol CAN do client-send-first, but no data arrived */
-	    /* OR protocol can't do client-send-first */
-	    if(!(s_conn->mech->plug->features & SASL_FEAT_WANT_CLIENT_FIRST) ||
-	    (s_conn->mech->plug->features & SASL_FEAT_INTERNAL_CLIENT_FIRST)) {
-		/* Mech wants server-first, so let them have it */
-		/* or the send-first situation is handled internally
-		 * by the mechanism */
-		result = sasl_server_step(conn,
-					  clientin, clientinlen,
-					  serverout, serveroutlen);
-	    } else {
-		/* Mech wants client first anyway, so we should do that */
-		*serverout = "";
-		*serveroutlen = 0;
-		result = SASL_CONTINUE;
-	    }
-	}	 
+         if(clientin) {
+            if(s_conn->mech->plug->features & SASL_FEAT_SERVER_FIRST) {
+                /* Remote sent first, but mechanism does not support it.
+                 * RFC 2222 says we fail at this point. */
+                sasl_seterror(conn, 0,
+                              "Remote sent first but mech does not allow it.");
+                result = SASL_BADPROT;
+            } else {
+                /* Mech wants client-first, so let them have it */
+                result = sasl_server_step(conn,
+                                          clientin, clientinlen,
+                                          serverout, serveroutlen);
+            }
+        } else {
+            if(s_conn->mech->plug->features & SASL_FEAT_WANT_CLIENT_FIRST) {
+                /* Mech wants client first anyway, so we should do that */
+                *serverout = "";
+                *serveroutlen = 0;
+                result = SASL_CONTINUE;
+            } else {
+                /* Mech wants server-first, so let them have it */
+                result = sasl_server_step(conn,
+                                          clientin, clientinlen,
+                                          serverout, serveroutlen);
+            }
+	}
     }
 
  done:

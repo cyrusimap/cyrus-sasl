@@ -283,15 +283,26 @@ typedef struct sasl_client_params {
 
 /* features shared between client and server */
 /* These allow the glue code to handle client-first and server-last issues */
+
+/* This indicates that the mechanism prefers to do client-send-first
+ * if the protocol allows it. */
 #define SASL_FEAT_WANT_CLIENT_FIRST 0x0002
+
 /* This feature is depricated, instead, plugins should set *serverout to
  * non-NULL and return SASL_OK intelligently to allow flexible use of
  * server-last semantics */
 /* #define SASL_FEAT_WANT_SERVER_LAST 0x0004 */
 
-/* This says that client-first is handled internally (e.g. DIGEST-MD5) */
-/* Note that this is not the preferred way of doing things */
-#define SASL_FEAT_INTERNAL_CLIENT_FIRST 0x0008
+/* This feature is depricated, instead plugins should correctly set
+ * SASL_FEAT_SERVER_FIRST as needed */
+/* #define SASL_FEAT_INTERNAL_CLIENT_FIRST 0x0008 */
+
+/* This indicates that the plugin is server-first only. 
+ * Not defining eit her of SASL_FEAT_SERVER_FIRST or 
+ * SASL_FEAT_WANT_CLIENT_FIRST indicates that the mechanism will take care 
+ * of the client-first situation internally.
+ */
+#define SASL_FEAT_SERVER_FIRST 0x0010
 
 /* client plug-in features */
 #define SASL_FEAT_NEEDSERVERFQDN 0x0001

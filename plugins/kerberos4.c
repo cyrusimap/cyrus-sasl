@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.73 2002/01/18 01:12:27 rjs3 Exp $
+ * $Id: kerberos4.c,v 1.74 2002/01/21 21:04:50 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -898,7 +898,7 @@ static sasl_server_plug_t kerberosv4_server_plugins[] =
     "KERBEROS_V4",
     KRB_DES_SECURITY_BITS,
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOACTIVE | SASL_SEC_NOANONYMOUS,
-    0,
+    SASL_FEAT_SERVER_FIRST,
     NULL,
     &kerberosv4_server_mech_new,
     &kerberosv4_server_mech_step,
@@ -1437,7 +1437,7 @@ static sasl_client_plug_t kerberosv4_client_plugins[] =
     "KERBEROS_V4",
     KRB_DES_SECURITY_BITS,
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOACTIVE | SASL_SEC_NOANONYMOUS,
-    SASL_FEAT_NEEDSERVERFQDN,
+    SASL_FEAT_NEEDSERVERFQDN | SASL_FEAT_SERVER_FIRST,
     kerberosv4_client_required_prompts,
     NULL,
     &kerberosv4_client_mech_new,

@@ -1,7 +1,7 @@
 /* CRAM-MD5 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: cram.c,v 1.62 2002/01/21 18:16:54 rjs3 Exp $
+ * $Id: cram.c,v 1.63 2002/01/21 21:04:49 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -515,7 +515,7 @@ static sasl_server_plug_t crammd5_server_plugins[] =
     "CRAM-MD5",
     0,
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
-    0,
+    SASL_FEAT_SERVER_FIRST,
     NULL,
     &crammd5_server_mech_new,
     &crammd5_server_mech_step,
@@ -916,7 +916,7 @@ static sasl_client_plug_t crammd5_client_plugins[] =
     "CRAM-MD5",
     0,
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
-    0,
+    SASL_FEAT_SERVER_FIRST,
     NULL,
     NULL,
     &crammd5_client_mech_new,

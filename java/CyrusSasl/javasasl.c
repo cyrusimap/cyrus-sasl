@@ -33,10 +33,16 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <assert.h>
+
 #include "javasasl.h"
+
+#define VL(x) /* printf x */
 
 static JNIEnv *globalenv;
 static jobject globalobj;
+
+static int setcomplete(JNIEnv *env, jobject obj);
 
 static void throwexception(JNIEnv *env, int error)
 {
@@ -519,7 +525,7 @@ static int setcomplete(JNIEnv *env, jobject obj)
     }
 
     /* do the callback */
-    (*env)->CallObjectMethod(env, obj, mid,5);
+    (*env)->CallObjectMethod(env, obj, mid, 5);
 
     return SASL_OK;
 }
@@ -536,16 +542,22 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericClient_jni_1sasl_1client_1ste
   char *out;
   unsigned int outlen;
   jbyteArray arr;
-  char *in = (*env)->GetByteArrayElements(env, jarr, 0);
+  char *in;
+
+  VL(("in client step\n"));
+
+  if (jarr) {
+      in = (*env)->GetByteArrayElements(env, jarr, 0);
+      in[jlen]=0;
+  } else {
+      assert(jlen == 0);
+       in = NULL;
+  }
 
   globalenv=env;
   globalobj=obj;
 
-  in[jlen]=0;
-  VL(("in client step\n"));
-
   do {
-
       result=sasl_client_step(conn, (const char *) in, jlen,
 			      &client_interact,
 			      &out, &outlen);
@@ -559,8 +571,8 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericClient_jni_1sasl_1client_1ste
   {
       /* throw exception */
       VL (("Throwing exception %d\n",result));
-    throwexception(env,result);
-    return NULL;
+      throwexception(env,result);
+      return NULL;
   }
 
   if (result == SASL_OK) {
@@ -568,13 +580,19 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericClient_jni_1sasl_1client_1ste
       setcomplete(env,obj);
   }
 
-  (*env)->ReleaseByteArrayElements(env, jarr,in ,0);
-
+  if (jarr) {
+      VL(("about to releasebytearrayelements"));
+      (*env)->ReleaseByteArrayElements(env, jarr,in ,0);
+  }
+      
+  VL(("about to newbytearray\n"));
   /* make byte array to return with stuff to send to server */
   arr=(*env)->NewByteArray(env,outlen);
-
+  
+  VL(("about to setbytearray\n"));
   (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *) out);
 
+  VL(("returning arr\n"));
   return arr;
 }
 

@@ -54,7 +54,8 @@ public abstract class GenericCommon
   public static int SASL_SEC_PROPS   =101;  /* sasl_security_properties_t */
 
 
-  int ptr;  /* this is the actual pointer to the sasl_conn_t */
+    int ptr;			// this is the actual pointer to sasl_conn_t
+    int ssfactive;		// active ssf on this connection
 
   boolean finished;
 
@@ -273,7 +274,7 @@ public abstract class GenericCommon
 	jni_sasl_dispose(ptr);
     }
 
-    private boolean complete = false;
+    protected boolean complete = false;
 
     public boolean isComplete()
     {

@@ -9,7 +9,6 @@ public class GenericClient extends GenericCommon implements SaslClient
     private byte[]initial_response;
     private String mechanism;
     private javax.security.auth.callback.CallbackHandler cbh;
-    private boolean complete = false;
 
     GenericClient(int cptr, String mechlist,
 		  java.util.Hashtable props,

@@ -126,6 +126,16 @@ static int privacy_encode(void *context, const char *input, unsigned inputlen,
   int len;
   context_t *text;
   text=context;
+  FILE *stream;
+
+    stream=fopen("/tmp/krbfoo","a");
+    for (lup=0;lup<inputlen;lup++) {
+      fprintf(stream,"%i. %i\n",lup,(unsigned char) input[lup]);
+    }
+    fprintf(stream, "remote: %d\n", text->ip_remote);
+    fprintf(stream, "local: %d\n", text->ip_local);
+
+    fclose(stream);
 
   *output=text->malloc(inputlen+40);
   if ((*output) ==NULL) return SASL_NOMEM;
@@ -159,9 +169,13 @@ static int privacy_decode(void *context,
     FILE *stream;
     int lup;
 
-    stream=fopen("/tmp/krbfoo","a+");
-    for (lup=0;lup<inputlen;lup++)
+    stream=fopen("/tmp/krbfoo","a");
+    for (lup=0;lup<inputlen;lup++) {
       fprintf(stream,"%i. %i\n",lup,(unsigned char) input[lup]);
+    }
+    fprintf(stream, "remote: %d\n", text->ip_remote);
+    fprintf(stream, "local: %d\n", text->ip_local);
+
     fclose(stream);
   
     if (text->needsize>0) /* 4 bytes for how long message is */

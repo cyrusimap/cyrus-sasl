@@ -2501,16 +2501,12 @@ const sasl_server_plug_t plugins[] =
   }
 };
 
-int             sasl_server_plug_init(sasl_utils_t * utils __attribute__((unused)),
-		                     int maxversion __attribute__((unused)),
-				                      int *out_version,
-		                       const sasl_server_plug_t ** pluglist,
-				                      int *plugcount) {
-  /* fail if we can't open the srvtab file */
-  /*
-   * if (access(KEYFILE, R_OK)!=0) //  return SASL_FAIL;
-   */
-
+int sasl_server_plug_init(sasl_utils_t * utils __attribute__((unused)),
+			  int maxversion __attribute__((unused)),
+			  int *out_version,
+			  const sasl_server_plug_t ** pluglist,
+			  int *plugcount) 
+{
   /*  if (maxversion < DIGESTMD5_VERSION)
       return SASL_BADVERS;*/
 

@@ -18,7 +18,7 @@ testsaslauthd_LDADD = @COMPAT_OBJ@ @LIB_SOCKET@
 
 EXTRA_DIST	= saslauthd.8 saslauthd.mdoc config include \
 		  getnameinfo.c getaddrinfo.c saslauthd-unix.c \
-		  saslauthd-doors.c saslauthd.conf LDAP_SASLAUTHD
+		  saslauthd-doors.c
 INCLUDES	= -I$(top_srcdir)/include
 
 dist-hook: saslauthd.8

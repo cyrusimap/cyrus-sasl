@@ -110,10 +110,12 @@ typedef struct context {
     unsigned needsize;
 } context_t;
 
-#define SASL_GSSAPI_STATE_AUTHNEG 1
-#define SASL_GSSAPI_STATE_SSFCAP  2
-#define SASL_GSSAPI_STATE_SSFREQ  3
-#define SASL_GSSAPI_STATE_AUTHENTICATED    4
+enum {
+    SASL_GSSAPI_STATE_AUTHNEG = 1,
+    SASL_GSSAPI_STATE_SSFCAP = 2,
+    SASL_GSSAPI_STATE_SSFREQ = 3,
+    SASL_GSSAPI_STATE_AUTHENTICATED = 4
+};
 
 static void
 sasl_gss_disperr(context_t *context, char **outp, 

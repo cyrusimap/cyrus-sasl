@@ -2,9 +2,6 @@
 	* acconfig.h, configure.in: Actually check for sysexits.h,
 	  varargs.h, and stdarg.h
 
-2002-09-04  Ken Murchison <ken@oceana.com>
-	* lib/external.c: allow EXTERNAL even when we don't know the authid
-
 2002-09-03  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* (throughout) fix handling of sys/param.h
 	* (throughout) fix handling of time.h and sys/time.h

@@ -106,7 +106,7 @@ SOURCE=..\..\plugins\plugin_common.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\saslANONYMOUS.cpp
+SOURCE=.\saslANONYMOUS.c
 # End Source File
 # Begin Source File
 

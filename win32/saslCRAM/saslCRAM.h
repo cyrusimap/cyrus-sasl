@@ -26,4 +26,3 @@ SASLCRAM_API int sasl_client_plug_init(sasl_utils_t *utils __attribute__((unused
 			  int *plugcount);
 
 #endif /* _SASLCRAM_H_ */
-

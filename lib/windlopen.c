@@ -1,6 +1,6 @@
 /* windlopen.c--Windows dynamic loader interface
  * Ryan Troll
- * $Id: windlopen.c,v 1.12 2002/11/21 20:21:26 leg Exp $
+ * $Id: windlopen.c,v 1.13 2002/11/22 02:05:44 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -90,7 +90,7 @@ int _sasl_locate_entry(void *library,
 	return SASL_BADPARAM;
     }
 
-	snprintf(myentryname, sizeof(myentryname), "_%s", entryname);
+	snprintf(myentryname, sizeof(myentryname), "%s", entryname);
 
     *entry_point = GetProcAddress(library, myentryname);
 

@@ -1,7 +1,7 @@
 /* Anonymous SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: anonymous.c,v 1.48 2002/11/21 20:21:26 leg Exp $
+ * $Id: anonymous.c,v 1.49 2002/11/22 02:05:46 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -60,7 +60,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: anonymous.c,v 1.48 2002/11/21 20:21:26 leg Exp $";
+static const char plugin_id[] = "$Id: anonymous.c,v 1.49 2002/11/22 02:05:46 leg Exp $";
 
 static const char anonymous_id[] = "anonymous";
 
@@ -129,7 +129,7 @@ anonymous_server_mech_step(void *conn_context __attribute__((unused)),
 			"ANONYMOUS login: \"%s\"",
 			clientdata);
     
-    if (clientdata != clientin)
+    if (clientdata != clientin) 
 	sparams->utils->free(clientdata);
     
     result = sparams->canon_user(sparams->utils->conn,

@@ -106,7 +106,7 @@ SOURCE=..\..\plugins\plugin_common.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\saslDIGESTMD5.cpp
+SOURCE=.\saslDIGESTMD5.c
 # End Source File
 # Begin Source File
 

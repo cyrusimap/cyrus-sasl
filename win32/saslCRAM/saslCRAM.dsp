@@ -106,7 +106,7 @@ SOURCE=..\..\plugins\plugin_common.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\saslCRAM.cpp
+SOURCE=.\saslCRAM.c
 # End Source File
 # Begin Source File
 

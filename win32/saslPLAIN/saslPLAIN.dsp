@@ -106,7 +106,7 @@ SOURCE=..\..\plugins\plugin_common.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\saslPLAIN.cpp
+SOURCE=.\saslPLAIN.c
 # End Source File
 # Begin Source File
 

@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.12 2002/04/18 18:19:31 rjs3 Exp $
+ * $Id: otp.c,v 1.13 2002/04/25 14:26:09 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -116,6 +116,8 @@ static algorithm_option_t algorithm_options[] = {
 typedef struct context {
     int state;
     char *authid;
+    sasl_secret_t *password;
+    sasl_secret_t *password_free;
     int locked;				/* is the user's secret locked? */
     algorithm_option_t *alg;
 #ifdef HAVE_OPIE
@@ -141,9 +143,10 @@ static void otp_both_mech_dispose(void *conn_context,
   if (!text)
     return;
 
-  if (text->authid)   _plug_free_string(utils,&(text->authid));
+  if (text->authid)           _plug_free_string(utils,&(text->authid));
+  if (text->password_free)    _plug_free_secret(utils, &(text->password_free));
   
-  if (text->out_buf)  utils->free(text->out_buf);
+  if (text->out_buf)          utils->free(text->out_buf);
 
   utils->free(text);
 }
@@ -332,9 +335,9 @@ static int get_otpassword(sasl_client_params_t *params,
   return result;
 }
 
-static int get_secret(sasl_client_params_t *params,
-		      sasl_secret_t **secret,
-		      sasl_interact_t **prompt_need)
+static int get_password(context_t *text,
+			sasl_client_params_t *params,
+			sasl_interact_t **prompt_need)
 {
 
   int result;
@@ -354,16 +357,17 @@ static int get_secret(sasl_client_params_t *params,
       }
       
       /* copy what we got into a secret_t */
-      *secret = (sasl_secret_t *) params->utils->malloc(sizeof(sasl_secret_t)+
-							prompt->len+1);
-      if (! *secret) {
+      text->password_free = text->password =
+	  (sasl_secret_t *) params->utils->malloc(sizeof(sasl_secret_t)+
+						  prompt->len+1);
+      if (!text->password) {
 	  MEMERROR( params->utils );
 	  return SASL_NOMEM;
       }
       
-      (*secret)->len=prompt->len;
-      memcpy((*secret)->data, prompt->result, prompt->len);
-      (*secret)->data[(*secret)->len]=0;
+      text->password->len=prompt->len;
+      memcpy(text->password->data, prompt->result, prompt->len);
+      text->password->data[text->password->len]=0;
 
       return SASL_OK;
   }
@@ -379,7 +383,7 @@ static int get_secret(sasl_client_params_t *params,
     result = getpass_cb(params->utils->conn,
 			getpass_context,
 			SASL_CB_PASS,
-			secret);
+			&(text->password));
 
   return result;
 }
@@ -768,7 +772,6 @@ static int otp_client_mech_step(void *conn_context,
     int pass_result=SASL_OK;
     char challenge[OTP_CHALLENGE_MAX+1];
     char *response = NULL;
-    sasl_secret_t *secret = NULL;
 
     if (serverinlen > OTP_CHALLENGE_MAX) {
 	SETERROR(params->utils, "OTP challenge too long");
@@ -787,7 +790,7 @@ static int otp_client_mech_step(void *conn_context,
 	/*
 	 * try to get the secret pass-phrase
 	 */
-	pass_result=get_secret(params, &secret, prompt_need);
+	pass_result=get_password(text, params, prompt_need);
       
 	if ((pass_result!=SASL_OK) && (pass_result!=SASL_INTERACT))
 	    return pass_result;
@@ -843,7 +846,7 @@ static int otp_client_mech_step(void *conn_context,
 	    goto done;
 	}
 
-	if (!secret) {
+	if (!text->password) {
 	    PARAMERROR(params->utils);
 	    result = SASL_BADPARAM;
 	    goto done;
@@ -856,7 +859,8 @@ static int otp_client_mech_step(void *conn_context,
 	}
 
 	/* generate otp */
-	result = generate_otp(params->utils, alg, seq, seed, secret->data, otp);
+	result = generate_otp(params->utils, alg, seq, seed,
+			      text->password->data, otp);
 	if (result != SASL_OK) {
 	    /* generate_otp() takes care of error message */
 	    *clientout = NULL;
@@ -884,7 +888,7 @@ static int otp_client_mech_step(void *conn_context,
 	    } while (!strcasecmp(seed, new_seed));
 
 	    result = generate_otp(params->utils, alg, OTP_SEQUENCE_DEFAULT,
-				  new_seed, secret->data, new_otp);
+				  new_seed, text->password->data, new_otp);
 
 	    if (result == SASL_OK) {
 		/* create an init-hex response */
@@ -913,9 +917,6 @@ static int otp_client_mech_step(void *conn_context,
 	result = SASL_OK;
 
       done:
-	/* free sensitive info */
-	_plug_free_secret(params->utils, &secret);
-
 	text->state = 3;
 
 	return result;

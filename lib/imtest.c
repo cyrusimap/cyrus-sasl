@@ -377,7 +377,7 @@ main(argc, argv)
   YO_FILE *yofile;
   char hostname[1024];
   int ipaddr;
-  char username[1000];
+  char *username;
   char tmp[4];
   
   struct sockaddr_in *saddr_l=malloc(sizeof(struct sockaddr_in));
@@ -404,7 +404,7 @@ main(argc, argv)
     if (argc < 3) usage();
 
     host = argv[1];
-    /*    username = argv[2];*/
+    username = argv[2];
     portstr = argv[3];
 
     if (*argv[1] == '-') 
@@ -421,7 +421,8 @@ main(argc, argv)
 
 	else usage();
 	host = argv[2];
-	portstr = argv[3];
+	username = argv[3];
+	portstr = argv[4];
     }
     if (!portstr) usage();
 
@@ -491,7 +492,7 @@ main(argc, argv)
 
   secret->len=strlen(secret->data);
 
-  strcpy(username, "tmartin");
+  printf("username=[%s]\n",username);
   sasl_setprop(conn, SASL_USERNAME, username);
 
   port=143;

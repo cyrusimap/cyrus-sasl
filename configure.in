@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.146 2002/09/11 15:24:49 ken3 Exp $
+dnl $Id: configure.in,v 1.147 2002/09/11 19:57:07 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -74,7 +74,16 @@ CMU_C___ATTRIBUTE__
 dnl check for -R, etc. switch
 CMU_GUESS_RUNPATH_SWITCH
 dnl let's just link against local.  otherwise we never find anything useful.
-CPPFLAGS="-I/usr/local/include ${CPPFLAGS}"
+if test "$ac_cv_prog_gcc" = yes; then
+  dnl xxx we should add -W at some point (but that might scare people)
+  CFLAGS="-Wall ${CFLAGS}"
+  GCC_VERSION=`gcc -v 2>&1 | sed -n -e '/version/s/.*version \([[0-9]]\)\..*/\1/p'`
+  if test "$GCC_VERSION" != "3"; then
+    CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
+  fi
+else
+  CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
+fi 
 CMU_ADD_LIBPATH("/usr/local/lib")
 
 AM_DISABLE_STATIC

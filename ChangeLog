@@ -3,6 +3,8 @@
 	  properly (Seow Kok Heng <kokheng@jhs.com.sg>)
 	* acinclude.m4: Added copy of the correct libtool macros as
 	  acinclude.m4
+	* configure.in: fix for gcc 3.x
+	  (Carlos Velasco <carlosev@newipnet.com>)
 
 2002-09-10  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/server.c: Better handling of add_plugin failures

@@ -1,3 +1,8 @@
+2002-04-27  Ken Murchison <ken@oceana.com>
+	* plugins/plugin_common.[ch], anonymous.c, cram.c, digestmd5.c,
+	  gssapi.c, kerberosv4.c, login.c, otp.c, plain.c, srp.c,
+	  lib/external.c: move make_prompts stuff into plugin_common
+
 2002-04-26  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* sasldb/allockey.c: be sure to set userPassword and not *userPassword
 
@@ -10,6 +15,7 @@
 	* plugins/plugin_common.[ch], digestmd5.c, gssapi.c,
 	  kerberosv4.c, srp.c: move decode/concatenation of multiple
 	  packets into plugin_common
+	* utils/testsuite.c: set SASL_AUTH_EXTERNAL so we can test EXTERNAL
 
 2002-04-25  Ken Murchison <ken@oceana.com>
 	* plugins/otp.c: don't free the secret when we get data from a

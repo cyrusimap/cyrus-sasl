@@ -1,4 +1,4 @@
-.\" $Id: saslauthd.mdoc,v 1.14 2002/10/14 19:43:12 rjs3 Exp $
+.\" $Id: saslauthd.mdoc,v 1.15 2002/10/24 21:09:10 rjs3 Exp $
 .\" Copyright 1997-2001 Messaging Direct Ltd. All rights reserved.
 .\"
 .\" This manpage uses the BSD mdoc manpage macros. Please don't
@@ -66,7 +66,10 @@ authentication mechanism. (Depricated, use -O instead)
 Use
 .Ar path
 as the pathname to the named socket to listen on for
-connection requests. This must be an absolute pathname.
+connection requests. This must be an absolute pathname, and MUST NOT
+include the trailing "/mux".  Note that the default for this value
+is "/var/state/saslauthd" (or what was specified at compile time)
+and that this directory must exist for saslauthd to function.
 .It Fl n Ar threads
 Use
 .Ar threads

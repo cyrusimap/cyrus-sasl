@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.37 2002/09/17 15:30:48 ken3 Exp $ -->
+<!-- $Id: sysadmin.html,v 1.38 2002/10/24 21:09:20 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -129,6 +129,12 @@ of saslauthd can be can be found in <tt>saslauthd(8)</tt>.  Generally you
 want something like <tt>saslauthd -a pam</tt>.  If plaintext authentications
 seem to be taking some time under load, increasing the value of the <tt>-n</tt>
 parameter can help.<p>
+
+Saslauthd keeps its named socket in "/var/state/saslauthd" by default.
+This can be overridden by specifying an alternate value to --with-saslauthd=/foo/bar
+at compile time, or by passing the -m parameter to saslauthd (along with setting
+the saslauthd_path SASL option).  Whatever directory this is, it must exist in
+order for saslauthd to function.<p>
 
 Once you configure (and start) <tt>saslauthd</tt>,
 there is a <tt>testsaslauthd</tt>

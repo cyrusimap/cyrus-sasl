@@ -1,6 +1,7 @@
 2002-02-27  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* saslauthd/saslauthd.mdoc: Clarify that sasldb with saslauthd
 	  is not what you want to be doing.
+	* doc/sysadmin.html: Update "sasldb" verifier to "auxprop"
 
 2002-02-22  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* lib/checkpw.c: made retry_read static

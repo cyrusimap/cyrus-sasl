@@ -5,7 +5,7 @@ New in 1.5.21
 New in 1.5.20
 -------------
 * bug fixes
-* LOGIN mechanism can finish in less roundtrips
+* LOGIN mechanism has a compatibility tweak
 
 New in 1.5.19
 -------------

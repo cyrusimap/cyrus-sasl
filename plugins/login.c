@@ -1,7 +1,7 @@
 /* Login SASL plugin
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.4 2000/03/07 05:20:01 tmartin Exp $
+ * $Id: login.c,v 1.5 2000/04/26 17:01:14 tmartin Exp $
  */
 /* 
  * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -189,18 +189,25 @@ server_continue_step (void *conn_context,
   VL (("Login: server state #%i\n",text->state));
 
   if (text->state == 1) {
-    /* get username */
 
-    VL (("out=%s len=%i\n",USERNAME,strlen(USERNAME)));
-
-    *serveroutlen = strlen(USERNAME);
-    *serverout = params->utils->malloc(*serveroutlen);
-    if (! *serverout) return SASL_NOMEM;
-    memcpy(*serverout,USERNAME,*serveroutlen);
-
-    text->state = 2;
-
-    return SASL_CONTINUE;
+      /* Check inlen, possibly we have already the user name */
+      /* In this case fall through to state 2 */
+      if (clientinlen > 0) {
+	  text->state = 2;
+      } else {
+	  /* get username */
+	  
+	  VL (("out=%s len=%i\n",USERNAME,strlen(USERNAME)));
+  
+	  *serveroutlen = strlen(USERNAME);
+	  *serverout = params->utils->malloc(*serveroutlen);
+	  if (! *serverout) return SASL_NOMEM;
+	  memcpy(*serverout,USERNAME,*serveroutlen);
+	  
+	  text->state = 2;
+	  
+	  return SASL_CONTINUE;
+      }
   }
 
   if (text->state == 2) {

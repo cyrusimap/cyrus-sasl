@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.3 2001/12/04 02:06:49 rjs3 Exp $
+ * $Id: srp.c,v 1.4 2001/12/04 16:18:24 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2701,7 +2701,7 @@ srp_sha1_setpass(void *glob_context __attribute__((unused)),
     context_t text;
 
     text.utils = sparams->utils;
-    text.propName = "SRP-MD5-120";
+    text.propName = "SRP-SHA-160";
     text.HashLen    = srp_sha1Len(text.utils);
     text.HashInit   = srp_sha1Init;
     text.HashUpdate = srp_sha1Update;

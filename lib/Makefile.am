@@ -1,6 +1,6 @@
 # Makefile.am for the SASL library
 # Rob Earhart
-# $Id: Makefile.am,v 1.60 2002/09/06 17:21:00 rjs3 Exp $
+# $Id: Makefile.am,v 1.61 2002/09/10 14:53:47 rjs3 Exp $
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -50,15 +50,18 @@ EXTRA_LIBRARIES = libsasl2.a
 noinst_LIBRARIES = @SASL_STATIC_LIBS@
 libsasl2_a_SOURCES=
 
-common_headers = saslint.h plugin_common.h
-common_sources = auxprop.c canonusr.c checkpw.c client.c common.c config.c external.c md5.c saslutil.c server.c seterror.c plugin_common.c dlopen.c
+common_headers = saslint.h
+common_sources = auxprop.c canonusr.c checkpw.c client.c common.c config.c external.c md5.c saslutil.c server.c seterror.c dlopen.c
+
+LTLIBOBJS = @LTLIBOBJS@ plugin_common.lo
+LIBOBJS = @LIBOBJS@ plugin_common.o
 
 lib_LTLIBRARIES = libsasl2.la
 
 libsasl2_la_SOURCES = $(common_sources) $(common_headers)
 libsasl2_la_LDFLAGS = -version-info $(sasl_version)
-libsasl2_la_DEPENDENCIES = @LTLIBOBJS@
-libsasl2_la_LIBADD = @LTLIBOBJS@ $(SASL_DL_LIB) $(LIB_SOCKET)
+libsasl2_la_DEPENDENCIES = $(LTLIBOBJS)
+libsasl2_la_LIBADD = $(LTLIBOBJS) $(SASL_DL_LIB) $(LIB_SOCKET)
 
 plugin_common.lo:
 	ln -s $(top_builddir)/plugins/plugin_common.lo plugin_common.lo

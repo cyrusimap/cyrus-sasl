@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.89 2001/12/04 02:05:27 rjs3 Exp $
+ * $Id: server.c,v 1.90 2001/12/06 17:52:53 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1465,7 +1465,7 @@ static int _sasl_checkpass(sasl_conn_t *conn, const char *service,
 
     if (result == SASL_NOMECH) {
 	/* no mechanism available ?!? */
-	_sasl_log(conn, SASL_LOG_ERR, "unkwnown password verifier %s", mech);
+	_sasl_log(conn, SASL_LOG_ERR, "unknown password verifier %s", mech);
     }
 
     if (result != SASL_OK)

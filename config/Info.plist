@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist SYSTEM "file://localhost/System/Library/DTDs/PropertyList.dtd">
+<!-- $Id: Info.plist,v 1.2 2001/12/04 02:05:09 rjs3 Exp $ -->
 <plist version="0.9">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleExecutable</key>
-	<string>SASL</string>
+	<string>SASL2</string>
 	<key>CFBundleGetInfoString</key>
-	<string>Cyrus SASL Library</string>
+	<string>Cyrus SASL v2 Library</string>
 	<key>CFBundleIdentifier</key>
-	<string>edu.cmu.andrew.SASLframework</string>
+	<string>edu.cmu.andrew.SASL2framework</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>1.1.0</string>
 	<key>CFBundleName</key>
-	<string>SASL Framework</string>
+	<string>SASL v2 Framework</string>
 	<key>CFBundlePackageType</key>
 	<string>FMWK</string>
 	<key>CFBundleShortVersionString</key>

@@ -23,29 +23,29 @@ typedef struct HMAC_MD5_STATE_s {
  *
  * digest may be same as text or key
  */
-void hmac_md5(const unsigned char *text, int text_len,
-	      const unsigned char *key, int key_len,
-	      unsigned char digest[HMAC_MD5_SIZE]);
+void _sasl_hmac_md5(const unsigned char *text, int text_len,
+		    const unsigned char *key, int key_len,
+		    unsigned char digest[HMAC_MD5_SIZE]);
 
 /* create context from key
  */
-void hmac_md5_init(HMAC_MD5_CTX *hmac,
-		   const unsigned char *key, int key_len);
+void _sasl_hmac_md5_init(HMAC_MD5_CTX *hmac,
+			 const unsigned char *key, int key_len);
 
 /* precalculate intermediate state from key
  */
-void hmac_md5_precalc(HMAC_MD5_STATE *hmac,
-		      const unsigned char *key, int key_len);
+void _sasl_hmac_md5_precalc(HMAC_MD5_STATE *hmac,
+			    const unsigned char *key, int key_len);
 
 /* initialize context from intermediate state
  */
-void hmac_md5_import(HMAC_MD5_CTX *hmac, HMAC_MD5_STATE *state);
+void _sasl_hmac_md5_import(HMAC_MD5_CTX *hmac, HMAC_MD5_STATE *state);
 
-#define hmac_md5_update(hmac, text, text_len) MD5Update(&(hmac)->ictx, (text), (text_len))
+#define _sasl_hmac_md5_update(hmac, text, text_len) _sasl_MD5Update(&(hmac)->ictx, (text), (text_len))
 
 /* finish hmac from intermediate result.  Intermediate result is zeroed.
  */
-void hmac_md5_final(unsigned char digest[HMAC_MD5_SIZE],
-		    HMAC_MD5_CTX *hmac);
+void _sasl_hmac_md5_final(unsigned char digest[HMAC_MD5_SIZE],
+			  HMAC_MD5_CTX *hmac);
 
 #endif /* HMAC_MD5_H */

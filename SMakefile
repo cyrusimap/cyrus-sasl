@@ -1,9 +1,19 @@
 if test ! -x configure; then
-  echo aclocal -I cmulocal
-  aclocal -I cmulocal
+  echo aclocal -I cmulocal -I config
+  aclocal -I cmulocal -I config
   echo autoheader
   autoheader
   echo autoconf
+  autoconf
+  echo automake --add-missing --include-deps
+  automake --add-missing --include-deps
+  echo cd saslauthd
+  cd saslauthd
+  echo aclocal -I ../cmulocal -I config
+  aclocal -I ../cmulocal -I config -I ../config
+  echo autoheader
+  autoheader
+  echo autoconf 
   autoconf
   echo automake --add-missing --include-deps
   automake --add-missing --include-deps
@@ -30,8 +40,8 @@ case `uname` in
 esac
 
 MAKE=gmake
-LNCOMMAND="${SRCDIR}/configure --prefix=/usr/local --enable-login --enable-cmulocal --enable-java ${LNEXTRA}"
+LNCOMMAND="${SRCDIR}/configure --with-staticsasl --prefix=/usr/local --enable-cmulocal --with-sfio=/usr/local --enable-java ${LNEXTRA}"
 CPPFLAGS=-I/usr/local/include/gssapi
+INSTCOMMAND="${MAKE} DESTDIR=${DESTDIR} install; echo 'usr/local /' > ${DESTDIR}/depot.conf"
 
 export CC CFLAGS CPPFLAGS LIBS
-# -lgssapi_krb5 -lkrb5 -lk5crypto -lndbm

@@ -1,9 +1,10 @@
 /* common.c - Functions that are common to server and clinet
+ * Rob Siemborski
  * Tim Martin
+ * $Id: common.c,v 1.67 2001/12/04 02:05:25 rjs3 Exp $
  */
-
 /* 
- * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,10 +52,13 @@
 #include <syslog.h>
 #endif
 #include <stdarg.h>
+#include <ctype.h>
+
 #include <sasl.h>
 #include <saslutil.h>
 #include <saslplug.h>
 #include "saslint.h"
+
 #ifdef WIN32
 /* need to handle the fact that errno has been defined as a function
    in a dll, not an extern int */
@@ -68,14 +72,12 @@
 
 static const char build_ident[] = "$Build: libsasl " PACKAGE "-" VERSION " $";
 
-void *dispose_mutex = NULL;
+void *free_mutex = NULL;
 
 void (*_sasl_client_cleanup_hook)(void) = NULL;
 void (*_sasl_server_cleanup_hook)(void) = NULL;
 int (*_sasl_client_idle_hook)(sasl_conn_t *conn) = NULL;
 int (*_sasl_server_idle_hook)(sasl_conn_t *conn) = NULL;
-sasl_server_getsecret_t *_sasl_server_getsecret_hook = NULL;
-sasl_server_putsecret_t *_sasl_server_putsecret_hook = NULL;
 
 sasl_allocation_utils_t _sasl_allocation_utils={
   (sasl_malloc_t *)  &malloc,
@@ -84,43 +86,42 @@ sasl_allocation_utils_t _sasl_allocation_utils={
   (sasl_free_t *) &free
 };
 
-static void *sasl_mutex_new(void)
+/* Intenal mutex functions do as little as possible (no thread protection) */
+static void *sasl_mutex_alloc(void)
 {
-  /* got to return something; NULL => failure */
-  return sasl_ALLOC(1);
+  return (void *)0x1;
 }
 
 static int sasl_mutex_lock(void *mutex __attribute__((unused)))
 {
-  return SASL_OK;
+    return SASL_OK;
 }
 
 static int sasl_mutex_unlock(void *mutex __attribute__((unused)))
 {
-  return SASL_OK;
+    return SASL_OK;
 }
 
-static void sasl_mutex_dispose(void *mutex)
+static void sasl_mutex_free(void *mutex __attribute__((unused)))
 {
-  sasl_FREE(mutex);
+    return;
 }
 
 sasl_mutex_utils_t _sasl_mutex_utils={
-  &sasl_mutex_new,
+  &sasl_mutex_alloc,
   &sasl_mutex_lock,
   &sasl_mutex_unlock,
-  &sasl_mutex_dispose
+  &sasl_mutex_free
 };
 
-void sasl_set_mutex(sasl_mutex_new_t *n, sasl_mutex_lock_t *l,
-		    sasl_mutex_unlock_t *u, sasl_mutex_dispose_t *d)
+void sasl_set_mutex(sasl_mutex_alloc_t *n, sasl_mutex_lock_t *l,
+		    sasl_mutex_unlock_t *u, sasl_mutex_free_t *d)
 {
-  _sasl_mutex_utils.new=n;
+  _sasl_mutex_utils.alloc=n;
   _sasl_mutex_utils.lock=l;
   _sasl_mutex_utils.unlock=u;
-  _sasl_mutex_utils.dispose=d;
+  _sasl_mutex_utils.free=d;
 }
-
 
 /* copy a string to malloced memory */
 int _sasl_strdup(const char *in, char **out, int *outlen)
@@ -133,53 +134,137 @@ int _sasl_strdup(const char *in, char **out, int *outlen)
   return SASL_OK;
 }
 
-int sasl_encode(sasl_conn_t *conn, const char *input, unsigned inputlen,
-		char **output, unsigned *outputlen)
+/* adds a string to the buffer; reallocing if need be */
+int _sasl_add_string(char **out, int *alloclen, int *outlen, const char *add)
 {
-    int result;
-    if (! conn || ! input || ! output || ! outputlen)
-	return SASL_FAIL;
+  int addlen;
 
-  
+  if (add==NULL) add = "(null)";
 
-    if (conn->oparams.encode==NULL)
-    {
-	/* just copy the string, no encryption */
-	*output = sasl_ALLOC(inputlen+1);
-	if (! *output) return SASL_NOMEM;
-	memcpy(*output, input, inputlen);
-	*outputlen = inputlen;
-	(*output)[inputlen] = '\0'; /* sanity for stupid clients */
-	return SASL_OK;
-    } else {
+  addlen=strlen(add); /* only compute once */
+  if (_buf_alloc(out, alloclen, (*outlen)+addlen)!=SASL_OK)
+    return SASL_NOMEM;
 
-	result = conn->oparams.encode(conn->context, input,
-				      inputlen, output, outputlen);
-	return result;
-    }
+  strncpy(*out + *outlen, add, addlen);
+  *outlen += addlen;
+
+  return SASL_OK;
 }
 
-int sasl_decode(sasl_conn_t *conn, const char *input, unsigned inputlen,
-		char **output, unsigned *outputlen)
+/* security-encode a regular string.  Mostly a wrapper for sasl_encodev */
+/* output is only valid until next call to sasl_encode or sasl_encodev */
+int sasl_encode(sasl_conn_t *conn, const char *input,
+		unsigned inputlen,
+		const char **output, unsigned *outputlen)
 {
     int result;
-    if (! conn || ! input || ! output || ! outputlen)
-	return SASL_FAIL;
-    if (conn->oparams.decode==NULL)
-    {
-	/* just copy the string, no encryption */
-	*output = sasl_ALLOC(inputlen + 1);
-	if (! *output) return SASL_NOMEM;
-	memcpy(*output, input, inputlen);
-	*outputlen = inputlen;
-	(*output)[inputlen] = '\0'; /* sanity for stupid clients */
-	return SASL_OK;
-	
-    } else {
-	result = conn->oparams.decode(conn->context, input, inputlen,
-				      output, outputlen);
-	return result;
+    struct iovec tmp;
+
+    if(!conn) return SASL_BADPARAM;
+    if(!input || !inputlen || !output || !outputlen)
+	PARAMERROR(conn);
+    
+    /* maxoutbuf checking is done in sasl_encodev */
+
+    /* Note: We are casting a const pointer here, but it's okay
+     * because we believe people downstream of us are well-behaved, and the
+     * alternative is an absolute mess, performance-wise. */
+    tmp.iov_base = (void *)input;
+    tmp.iov_len = inputlen;
+    
+    result = sasl_encodev(conn, &tmp, 1, output, outputlen);
+
+    RETURN(conn, result);
+}
+
+/* security-encode an iovec */
+/* output is only valid until next call to sasl_encode or sasl_encodev */
+int sasl_encodev(sasl_conn_t *conn,
+		 const struct iovec *invec, unsigned numiov,
+		 const char **output, unsigned *outputlen)
+{
+    int result;
+    unsigned i;
+    size_t total_size = 0;
+
+    if (!conn) return SASL_BADPARAM;
+    if (! invec || ! output || ! outputlen || numiov < 1)
+	PARAMERROR(conn);
+
+    if(!conn->props.maxbufsize) {
+	sasl_seterror(conn, 0,
+		      "called sasl_encode[v] with application that does not support security layers");
+	return SASL_TOOWEAK;
     }
+
+    /* This might be better to check on a per-plugin basis, but I think
+     * it's cleaner and more effective here.  It also encourages plugins
+     * to be honest about what they accept */
+
+    for(i=0; i<numiov;i++) {
+	total_size += invec[i].iov_len;
+    }    
+    if(total_size > conn->oparams.maxoutbuf)
+	PARAMERROR(conn);
+
+    if(conn->oparams.encode == NULL)  {
+	result = _iovec_to_buf(invec, numiov, &conn->encode_buf);
+	if(result != SASL_OK) INTERROR(conn, result);
+       
+	*output = conn->encode_buf->data;
+	*outputlen = conn->encode_buf->curlen;
+
+    } else {
+	result = conn->oparams.encode(conn->context, invec, numiov,
+				      output, outputlen);
+    }
+
+    RETURN(conn, result);
+}
+ 
+/* output is only valid until next call to sasl_decode */
+int sasl_decode(sasl_conn_t *conn,
+		const char *input, unsigned inputlen,
+		const char **output, unsigned *outputlen)
+{
+    int result;
+
+    if(!conn) return SASL_BADPARAM;
+    if(!input || !output || !outputlen)
+	PARAMERROR(conn);
+
+    if(!conn->props.maxbufsize) {
+	sasl_seterror(conn, 0,
+		      "called sasl_decode with application that does not support security layers");
+	return SASL_TOOWEAK;
+    }
+
+    if(inputlen > conn->oparams.maxoutbuf)
+	PARAMERROR(conn);
+    
+    if(conn->oparams.decode == NULL)
+    {
+	/* Since we know how long the output is maximally, we can
+	 * just allocate it to begin with, and never need another
+         * allocation! */
+	if(!conn->decode_buf)
+	    conn->decode_buf = sasl_ALLOC(conn->oparams.maxoutbuf + 1);
+	if(!conn->decode_buf)
+	    MEMERROR( conn );
+	
+	memcpy(conn->decode_buf, input, inputlen);
+	conn->decode_buf[inputlen] = '\0';
+	*output = conn->decode_buf;
+	*outputlen = inputlen;
+	
+        return SASL_OK;
+    } else {
+        result = conn->oparams.decode(conn->context, input, inputlen,
+                                      output, outputlen);
+        RETURN(conn, result);
+    }
+
+    INTERROR(conn, SASL_FAIL);
 }
 
 
@@ -203,69 +288,118 @@ void sasl_done(void)
   if (_sasl_client_cleanup_hook)
     _sasl_client_cleanup_hook();
   
-  sasl_MUTEX_DISPOSE(dispose_mutex);
-  dispose_mutex = NULL;
+  _sasl_canonuser_free();
+  _sasl_done_with_plugins();
+  
+  sasl_MUTEX_FREE(free_mutex);
+  free_mutex = NULL;
+
+  _sasl_free_utils(&sasl_global_utils);
 
   /* in case of another init/done */
   _sasl_server_cleanup_hook = NULL;
   _sasl_client_cleanup_hook = NULL;
+
+  _sasl_client_idle_hook = NULL;
+  _sasl_server_idle_hook = NULL;
 }
 
 /* fills in the base sasl_conn_t info */
 int _sasl_conn_init(sasl_conn_t *conn,
 		    const char *service,
-		    int secflags,
+		    int flags,
+		    enum Sasl_conn_type type,
 		    int (*idle_hook)(sasl_conn_t *conn),
 		    const char *serverFQDN,
+		    const char *iplocalport,
+		    const char *ipremoteport,
 		    const sasl_callback_t *callbacks,
 		    const sasl_global_callbacks_t *global_callbacks) {
   int result = SASL_OK;
 
-  I(conn);
-  I(service);
+  conn->type = type;
 
   result = _sasl_strdup(service, &conn->service, NULL);
-  if (result != SASL_OK) goto done;
-  conn->external.ssf = 0;
-  conn->external.auth_id = NULL;
-  memset(&conn->oparams, 0, sizeof(conn->oparams));
-  conn->secflags = secflags;
-  conn->got_ip_local = 0;
-  conn->got_ip_remote = 0;
-  conn->props.min_ssf = 0;
-  if (secflags & SASL_SECURITY_LAYER) {
-      conn->props.max_ssf = INT_MAX;
-  } else {
-      conn->props.max_ssf = 0;
-  }
-  conn->props.security_flags = 0;
+  if (result != SASL_OK) 
+      MEMERROR(conn);
+
+  memset(&conn->oparams, 0, sizeof(sasl_out_params_t));
+  memset(&conn->external, 0, sizeof(_sasl_external_properties_t));
+
+  conn->flags = flags;
+
+  result = sasl_setprop(conn, SASL_IPLOCALPORT, iplocalport);
+  if(result != SASL_OK)
+      RETURN(conn, result);
+  
+  result = sasl_setprop(conn, SASL_IPREMOTEPORT, ipremoteport);
+  if(result != SASL_OK)
+      RETURN(conn, result);
+  
+  conn->encode_buf = NULL;
+  conn->context = NULL;
+  conn->secret = NULL;
   conn->idle_hook = idle_hook;
   conn->callbacks = callbacks;
   conn->global_callbacks = global_callbacks;
 
-  if (serverFQDN==NULL) {
-    char name[MAXHOSTNAMELEN];
-    memset(name, 0, sizeof(name));
-    gethostname(name, MAXHOSTNAMELEN);
+  memset(&conn->props, 0, sizeof(conn->props));
 
-    result = _sasl_strdup(name, &conn->serverFQDN, NULL);
-    if (result != SASL_OK)
-      goto done;
+  /* Start this buffer out as an empty string */
+  conn->error_code = SASL_OK;
+  conn->errdetail_buf = conn->error_buf = NULL;
+  conn->errdetail_buf_len = conn->error_buf_len = 150;
+
+  result = _buf_alloc(&conn->error_buf, &conn->error_buf_len, 150);     
+  if(result != SASL_OK) MEMERROR(conn);
+  result = _buf_alloc(&conn->errdetail_buf, &conn->errdetail_buf_len, 150);
+  if(result != SASL_OK) MEMERROR(conn);
+  
+  conn->error_buf[0] = '\0';
+  conn->errdetail_buf[0] = '\0';
+  
+  conn->decode_buf = NULL;
+  conn->decode_buf_len = 0;
+
+  if(serverFQDN) {
+      result = _sasl_strdup(serverFQDN, &conn->serverFQDN, NULL);
+  } else if (conn->type == SASL_CONN_SERVER) {
+      /* We can fake it because we *are* the server */
+      char name[MAXHOSTNAMELEN];
+      memset(name, 0, sizeof(name));
+      gethostname(name, MAXHOSTNAMELEN);
+      
+      result = _sasl_strdup(name, &conn->serverFQDN, NULL);
   } else {
-    result = _sasl_strdup(serverFQDN, &conn->serverFQDN, NULL);
-    if (result != SASL_OK)
-      goto done;
+      conn->serverFQDN = NULL;
   }
+  
 
- done:
-  return result;
+  if(result != SASL_OK) MEMERROR( conn );
+
+  RETURN(conn, SASL_OK);
 }
+
+/* It turns out to be conveinent to have a shared sasl_utils_t */
+const sasl_utils_t *sasl_global_utils = NULL;
 
 int _sasl_common_init(void)
 {
-    if (!dispose_mutex)
-	dispose_mutex = sasl_MUTEX_NEW();
-    if (!dispose_mutex) return SASL_FAIL;
+    int result;
+    
+    /* Setup the global utilities */
+    if(!sasl_global_utils) {
+	sasl_global_utils = _sasl_alloc_utils(NULL, NULL);
+	if(sasl_global_utils == NULL) return SASL_NOMEM;
+    }
+
+    /* Init the canon_user plugin */
+    result = sasl_canonuser_add_plugin("INTERNAL", internal_canonuser_init);
+    if(result != SASL_OK) return result;    
+
+    if (!free_mutex)
+	free_mutex = sasl_MUTEX_ALLOC();
+    if (!free_mutex) return SASL_FAIL;
 
     return SASL_OK;
 }
@@ -280,13 +414,11 @@ void sasl_dispose(sasl_conn_t **pconn)
   if (! pconn) return;
   if (! *pconn) return;
 
-
   /* serialize disposes. this is necessary because we can't
-     dispose of conn->mutex if someone else is locked on it
-     xxx there probably is a better way to do this */
-  result = sasl_MUTEX_LOCK(dispose_mutex);
+     dispose of conn->mutex if someone else is locked on it */
+  result = sasl_MUTEX_LOCK(free_mutex);
   if (result!=SASL_OK) return;
-
+  
   /* *pconn might have become NULL by now */
   if (! (*pconn)) return;
 
@@ -294,27 +426,35 @@ void sasl_dispose(sasl_conn_t **pconn)
   sasl_FREE(*pconn);
   *pconn=NULL;
 
-  sasl_MUTEX_UNLOCK(dispose_mutex);
+  sasl_MUTEX_UNLOCK(free_mutex);
 }
 
 void _sasl_conn_dispose(sasl_conn_t *conn) {
-  if (conn->service)
-    sasl_FREE(conn->service);
+  if (conn->serverFQDN)
+      sasl_FREE(conn->serverFQDN);
 
   if (conn->external.auth_id)
-    sasl_FREE(conn->external.auth_id);
+      sasl_FREE(conn->external.auth_id);
 
-  if (conn->oparams.user)
-    sasl_FREE(conn->oparams.user);
+  if(conn->encode_buf) {
+      if(conn->encode_buf->data) sasl_FREE(conn->encode_buf->data);
+      sasl_FREE(conn->encode_buf);
+  }
 
-  if (conn->oparams.authid)
-    sasl_FREE(conn->oparams.authid);
+  if(conn->error_buf)
+      sasl_FREE(conn->error_buf);
+  
+  if(conn->errdetail_buf)
+      sasl_FREE(conn->errdetail_buf);
 
-  if (conn->oparams.realm)
-    sasl_FREE(conn->oparams.realm);
+  if(conn->decode_buf)
+      sasl_FREE(conn->decode_buf);
 
-  if (conn->serverFQDN)
-    sasl_FREE(conn->serverFQDN);
+  if(conn->service)
+      sasl_FREE(conn->service);
+
+  /* oparams sub-members should be freed by the plugin, in so much
+   * as they were allocated by the plugin */
 }
 
 
@@ -326,53 +466,111 @@ void _sasl_conn_dispose(sasl_conn_t *conn) {
  *  SASL_NOTDONE  -- property not available yet
  *  SASL_BADPARAM -- bad property number
  */
-int sasl_getprop(sasl_conn_t *conn, int propnum, void **pvalue)
+int sasl_getprop(sasl_conn_t *conn, int propnum, const void **pvalue)
 {
   int result = SASL_OK;
-
-  if (! conn) return SASL_FAIL;
-  if (! pvalue) return SASL_FAIL;
+  sasl_getopt_t *getopt;
+  void *context;
+  
+  if (! conn) return SASL_BADPARAM;
+  if (! pvalue) PARAMERROR(conn);
 
   switch(propnum)
   {
-    case SASL_USERNAME:
-      if (! conn->oparams.user)
-	result = SASL_NOTDONE;
-      else
-	*(char **)pvalue=conn->oparams.user;
-      break;
-    case SASL_SSF:
+  case SASL_SSF:
       *(sasl_ssf_t **)pvalue= &conn->oparams.mech_ssf;
       break;      
-    case SASL_MAXOUTBUF:
+  case SASL_MAXOUTBUF:
       *(unsigned **)pvalue = &conn->oparams.maxoutbuf;
       break;
-    case SASL_REALM:
-      if (! conn->oparams.realm)
-	result = SASL_NOTDONE;
+  case SASL_GETOPTCTX:
+      result = _sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context);
+      if(result != SASL_OK) break;
+      
+      *(void **)pvalue = context;
+      break;
+  case SASL_CALLBACK:
+      *(const sasl_callback_t **)pvalue = conn->callbacks;
+      break;
+  case SASL_IPLOCALPORT:
+      if(conn->got_ip_local)
+	  *(const char **)pvalue = conn->iplocalport;
+      else {
+	  *(const char **)pvalue = NULL;
+	  result = SASL_NOTDONE;
+      }
+      break;
+  case SASL_IPREMOTEPORT:
+      if(conn->got_ip_remote)
+	  *(const char **)pvalue = conn->ipremoteport;
+      else {
+	  *(const char **)pvalue = NULL;
+	  result = SASL_NOTDONE;
+      }	  
+      break;
+  case SASL_USERNAME:
+      if(! conn->oparams.user)
+	  result = SASL_NOTDONE;
       else
-	*(char **)pvalue = conn->oparams.realm;
+	  *((const char **)pvalue) = conn->oparams.user;
       break;
-    case SASL_GETOPTCTX:
-      result = SASL_FAIL;
-      /* ??? */
+  case SASL_SERVERFQDN:
+      *((const char **)pvalue) = conn->serverFQDN;
       break;
-    case SASL_IP_LOCAL:
-      if (! conn->got_ip_local)
-	result = SASL_NOTDONE;
+  case SASL_DEFUSERREALM:
+      if(conn->type != SASL_CONN_SERVER) result = SASL_BADPROT;
       else
-	*(struct sockaddr_in **)pvalue = &conn->ip_local;
+	  *((const char **)pvalue) = ((sasl_server_conn_t *)conn)->user_realm;
       break;
-    case SASL_IP_REMOTE:
-      if (! conn->got_ip_remote)
-	result = SASL_NOTDONE;
-      else
-	*(struct sockaddr_in **)pvalue = &conn->ip_remote;
+  case SASL_SERVICE:
+      *((const char **)pvalue) = conn->service;
       break;
-    default: 
+  case SASL_AUTHSOURCE: /* name of plugin (not name of mech) */
+      if(conn->type == SASL_CONN_CLIENT) {
+	  *((const char **)pvalue) =
+	      ((sasl_client_conn_t *)conn)->mech->plugname;
+      } else if (conn->type == SASL_CONN_SERVER) {
+	  *((const char **)pvalue) =
+	      ((sasl_server_conn_t *)conn)->mech->plugname;
+      } else {
+	  result = SASL_BADPARAM;
+      }
+      break;
+  case SASL_MECHNAME: /* name of mech */
+      if(conn->type == SASL_CONN_CLIENT) {
+	  *((const char **)pvalue) =
+	      ((sasl_client_conn_t *)conn)->mech->plug->mech_name;
+      } else if (conn->type == SASL_CONN_SERVER) {
+	  *((const char **)pvalue) =
+	      ((sasl_server_conn_t *)conn)->mech->plug->mech_name;
+      } else {
+	  result = SASL_BADPARAM;
+      }
+      
+      if(!(*pvalue) && result == SASL_OK) result = SASL_NOTDONE;
+      break;
+  case SASL_PLUGERR:
+      *((const char **)pvalue) = conn->error_buf;
+      break;
+  case SASL_SSF_EXTERNAL:
+      *((const sasl_ssf_t **)pvalue) = &conn->external.ssf;
+      break;
+  case SASL_AUTH_EXTERNAL:
+      *((const char **)pvalue) = conn->external.auth_id;
+      break;
+  case SASL_SEC_PROPS:
+      *((const sasl_security_properties_t **)pvalue) = &conn->props;
+      break;
+  default: 
       result = SASL_BADPARAM;
   }
-  return result; 
+
+  if(result == SASL_BADPARAM) {
+      PARAMERROR(conn);
+  } else if(result != SASL_OK) {
+      INTERROR(conn, result);
+  } else
+      RETURN(conn, result); 
 }
 
 /* set property in SASL connection state
@@ -391,50 +589,115 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
 
   switch(propnum)
   {
-    case SASL_SSF_EXTERNAL:
-    {
-      sasl_external_properties_t *external
-	= (sasl_external_properties_t *) value;
-      if (external->auth_id && strlen(external->auth_id)) {
-	result = _sasl_strdup(external->auth_id,
-			      &str,
-			      NULL);
-	if (result != SASL_OK) {
-	    return result;
-	}
-      } else
-	str = NULL;
-      if (conn->external.auth_id)
-	sasl_FREE(conn->external.auth_id);
-      conn->external.auth_id = str;
-      conn->external.ssf = external->ssf;
+  case SASL_SSF_EXTERNAL:
+      conn->external.ssf = *((sasl_ssf_t *)value);
       break;
-    }
-    case SASL_SEC_PROPS:
+
+  case SASL_AUTH_EXTERNAL:
+      if(value && strlen(value)) {
+	  result = _sasl_strdup(value, &str, NULL);
+	  if(result != SASL_OK) MEMERROR(conn);
+      } else {
+	  str = NULL;
+      }
+
+      if(conn->external.auth_id)
+	  sasl_FREE(conn->external.auth_id);
+
+      conn->external.auth_id = str;
+
+      break;
+
+  case SASL_SEC_PROPS:
       memcpy(&(conn->props),(sasl_security_properties_t *)value,
 	     sizeof(sasl_security_properties_t));
       break;
-    case SASL_IP_LOCAL:
-      conn->got_ip_local = 1;
-      conn->ip_local= *(struct sockaddr_in *) value;
+
+  case SASL_IPREMOTEPORT:
+  {
+      const char *ipremoteport = (const char *)value;
+      if(!value) {
+	  conn->got_ip_remote = 0; 
+      } else if (_sasl_ipfromstring(ipremoteport, NULL, 0)
+		 != SASL_OK) {
+	  sasl_seterror(conn, 0, "Bad IPREMOTEPORT value");
+	  RETURN(conn, SASL_BADPARAM);
+      } else {
+	  strcpy(conn->ipremoteport, ipremoteport);
+	  conn->got_ip_remote = 1;
+      }
+      
+      if(conn->got_ip_remote) {
+	  if(conn->type == SASL_CONN_CLIENT) {
+	      ((sasl_client_conn_t *)conn)->cparams->ipremoteport
+		  = conn->ipremoteport;
+	  } else if (conn->type == SASL_CONN_SERVER) {
+	      ((sasl_server_conn_t *)conn)->sparams->ipremoteport
+		  = conn->ipremoteport;
+	  }
+      } else {
+	  if(conn->type == SASL_CONN_CLIENT) {
+	      ((sasl_client_conn_t *)conn)->cparams->ipremoteport
+		  = NULL;
+	  } else if (conn->type == SASL_CONN_SERVER) {
+	      ((sasl_server_conn_t *)conn)->sparams->ipremoteport
+		  = NULL;
+	  }
+      }
+
       break;
-    case SASL_IP_REMOTE:
-      conn->got_ip_remote = 1;
-      conn->ip_remote= *(struct sockaddr_in *) value;
-      break;
-    default:
-      result = SASL_BADPARAM;
   }
 
-  return result;
+  case SASL_IPLOCALPORT:
+  {
+      const char *iplocalport = (const char *)value;
+      if(!value) {
+	  conn->got_ip_local = 0;	  
+      } else if (_sasl_ipfromstring(iplocalport, NULL, 0)
+		 != SASL_OK) {
+	  sasl_seterror(conn, 0, "Bad IPLOCALPORT value");
+	  RETURN(conn, SASL_BADPARAM);
+      } else {
+	  strcpy(conn->iplocalport, iplocalport);
+	  conn->got_ip_local = 1;
+      }
+
+      if(conn->got_ip_local) {
+	  if(conn->type == SASL_CONN_CLIENT) {
+	      ((sasl_client_conn_t *)conn)->cparams->iplocalport
+		  = conn->iplocalport;
+	  } else if (conn->type == SASL_CONN_SERVER) {
+	      ((sasl_server_conn_t *)conn)->sparams->iplocalport
+		  = conn->iplocalport;
+	  }
+      } else {
+	  if(conn->type == SASL_CONN_CLIENT) {
+	      ((sasl_client_conn_t *)conn)->cparams->iplocalport
+		  = NULL;
+	  } else if (conn->type == SASL_CONN_SERVER) {
+	      ((sasl_server_conn_t *)conn)->sparams->iplocalport
+		  = NULL;
+	  }
+      }
+      break;
+  }
+
+  default:
+      sasl_seterror(conn, 0, "Unknown parameter type");
+      result = SASL_BADPARAM;
+  }
+  
+  RETURN(conn, result);
 }
 
-int sasl_usererr(int saslerr)
+/* this is apparently no longer a user function */
+static int sasl_usererr(int saslerr)
 {
+    /* Hide the difference in a username failure and a password failure */
     if (saslerr == SASL_NOUSER)
 	return SASL_BADAUTH;
 
-    /* return the error given; no transform necessary */
+    /* otherwise return the error given; no transform necessary */
     return saslerr;
 }
 
@@ -457,11 +720,11 @@ const char *sasl_errstring(int saslerr,
     case SASL_BADPARAM: return "invalid parameter supplied";
     case SASL_TRYAGAIN: return "transient failure (e.g., weak key)";
     case SASL_BADMAC:   return "integrity check failed";
+    case SASL_NOTINIT:  return "SASL library not initialized";
                              /* -- client only codes -- */
     case SASL_INTERACT:   return "needs user interaction";
     case SASL_BADSERV:    return "server failed mutual authentication step";
     case SASL_WRONGMECH:  return "mechanism doesn't support requested feature";
-    case SASL_NEWSECRET:  return "new secret needed";
                              /* -- server only codes -- */
     case SASL_BADAUTH:    return "authentication failure";
     case SASL_NOAUTHZ:    return "authorization failure";
@@ -471,14 +734,39 @@ const char *sasl_errstring(int saslerr,
     case SASL_EXPIRED:    return "passphrase expired, has to be reset";
     case SASL_DISABLED:   return "account disabled";
     case SASL_NOUSER:     return "user not found";
-    case SASL_PWLOCK:     return "password locked";
-    case SASL_NOCHANGE:   return "requested change was not needed";
     case SASL_BADVERS:    return "version mismatch with plug-in";
-    case SASL_NOPATH:     return "path not set";
+    case SASL_UNAVAIL:    return "remote authentication server unavailable";
+    case SASL_NOVERIFY:   return "user exists, but no verifier for user";
+    case SASL_PWLOCK:     return "passphrase locked";
+    case SASL_NOCHANGE:   return "requested change was not needed";
+    case SASL_WEAKPASS:   return "passphrase is too weak for security policy";
+    case SASL_NOUSERPASS: return "user supplied passwords are not permitted";
+
     default:   return "undefined error!";
     }
 
 }
+
+/* Return the sanitized error detail about the last error that occured for 
+ * a connection */
+const char *sasl_errdetail(sasl_conn_t *conn) 
+{
+    unsigned need_len;
+    const char *errstr;
+    char leader[128];
+    
+    errstr = sasl_errstring(conn->error_code, NULL, NULL);
+    snprintf(leader,128,"SASL(%d): %s: ",
+	     sasl_usererr(conn->error_code), errstr);
+    
+    need_len = strlen(leader) + strlen(conn->error_buf) + 12;
+    _buf_alloc(&conn->errdetail_buf, &conn->errdetail_buf_len, need_len);
+
+    snprintf(conn->errdetail_buf, need_len, "%s%s", leader, conn->error_buf);
+   
+    return conn->errdetail_buf;
+}
+
 
 static int
 _sasl_global_getopt(void *context,
@@ -528,7 +816,7 @@ _sasl_conn_getopt(void *context,
   const sasl_callback_t *callback;
 
   if (! context)
-    return SASL_FAIL;
+    return SASL_BADPARAM;
 
   conn = (sasl_conn_t *) context;
 
@@ -566,15 +854,22 @@ static int _sasl_syslog(void *context __attribute__((unused)),
 
     /* set syslog priority */
     switch(priority) {
+    case SASL_LOG_NONE:
+	return SASL_OK;
+	break;
     case SASL_LOG_ERR:
 	syslog_priority = LOG_ERR;
 	break;
-    case SASL_LOG_WARNING:
+    case SASL_LOG_WARN:
 	syslog_priority = LOG_WARNING;
 	break;
-    case SASL_LOG_INFO:
-	syslog_priority = LOG_INFO;
+    case SASL_LOG_NOTE:
+    case SASL_LOG_FAIL:
+	syslog_priority = LOG_NOTICE;
 	break;
+    case SASL_LOG_PASS:
+    case SASL_LOG_TRACE:
+    case SASL_LOG_DEBUG:
     default:
 	syslog_priority = LOG_DEBUG;
 	break;
@@ -638,16 +933,16 @@ _sasl_getsimple(void *context,
 
 static int
 _sasl_getpath(void *context __attribute__((unused)),
-	      char ** path_dest)
+	      const char **path)
 {
-  char *path;
-
-  if (! path_dest)
-    return SASL_BADPARAM;
-  path = getenv(SASL_PATH_ENV_VAR);
   if (! path)
-    path = PLUGINDIR;
-  return _sasl_strdup(path, path_dest, NULL);
+    return SASL_BADPARAM;
+
+  *path = getenv(SASL_PATH_ENV_VAR);
+  if (! *path)
+    *path = PLUGINDIR;
+
+  return SASL_OK;
 }
 
 static int
@@ -661,45 +956,45 @@ _sasl_verifyfile(void *context __attribute__((unused)),
 
 
 static int
-_sasl_proxy_policy(void *context __attribute__((unused)),
-		   const char *auth_identity,
-		   const char *requested_user,
-		   const char **user,
-		   const char **errstr)
+_sasl_proxy_policy(sasl_conn_t *conn,
+		   void *context __attribute__((unused)),
+		   const char *requested_user, unsigned rlen,
+		   const char *auth_identity, unsigned alen,
+		   const char *def_realm __attribute__((unused)),
+		   unsigned urlen __attribute__((unused)),
+		   struct propctx *propctx __attribute__((unused)))
 {
-    int r = 0;
+    if (!conn)
+	return SASL_BADPARAM;
 
-    *user = NULL;
-    if (!requested_user || *requested_user == '\0') {
-	requested_user = auth_identity;
+    if (!requested_user || *requested_user == '\0')
+	return SASL_OK;
+
+    if (!auth_identity || !requested_user || rlen != alen ||
+	(memcmp(auth_identity, requested_user, rlen) != 0)) {
+	sasl_seterror(conn, 0,
+		      "Requested identity not authenticated identity");
+	RETURN(conn, SASL_BADAUTH);
     }
-    if (!auth_identity || !requested_user || 
-	(strcmp(auth_identity, requested_user) != 0)) {
-	if (errstr)
-	    *errstr = "Requested identity not authenticated identity";
-	return SASL_BADAUTH;
-    }
-    r = _sasl_strdup(requested_user, (char **) user, NULL);
-    
-    return r;
+
+    return SASL_OK;
 }
 
-int
-_sasl_getcallback(sasl_conn_t * conn,
-		  unsigned long callbackid,
-		  int (**pproc)(),
-		  void **pcontext)
+int _sasl_getcallback(sasl_conn_t * conn,
+		      unsigned long callbackid,
+		      int (**pproc)(),
+		      void **pcontext)
 {
   const sasl_callback_t *callback;
 
-  if (! pproc || ! pcontext)
-    return SASL_BADPARAM;
+  if (!pproc || !pcontext)
+      PARAMERROR(conn);
 
   /* Some callbacks are always provided by the library */
   switch (callbackid) {
   case SASL_CB_LIST_END:
     /* Nothing ever gets to provide this */
-    return SASL_FAIL;
+      INTERROR(conn, SASL_FAIL);
   case SASL_CB_GETOPT:
       if (conn) {
 	  *pproc = &_sasl_conn_getopt;
@@ -762,14 +1057,6 @@ _sasl_getcallback(sasl_conn_t * conn,
     *pproc = (int (*)()) &_sasl_getsimple;
     *pcontext = conn;
     return SASL_OK;
-  case SASL_CB_SERVER_GETSECRET:
-    *pproc = _sasl_server_getsecret_hook;
-    *pcontext = conn;
-    return SASL_OK;
-  case SASL_CB_SERVER_PUTSECRET:
-    *pproc = _sasl_server_putsecret_hook;
-    *pcontext = conn;
-    return SASL_OK;
   case SASL_CB_VERIFYFILE:
     *pproc = & _sasl_verifyfile;
     *pcontext = NULL;
@@ -783,60 +1070,31 @@ _sasl_getcallback(sasl_conn_t * conn,
   /* Unable to find a callback... */
   *pproc = NULL;
   *pcontext = NULL;
-  return SASL_FAIL;
+  sasl_seterror(conn, SASL_NOLOG, "Unable to find a callback: %d", callbackid);
+  RETURN(conn,SASL_FAIL);
 }
 
-/* checks size of buffer and resizes if needed */
-static int checksize(char **out, int *alloclen, int newlen)
-{
-  if (*alloclen>newlen+2)
-    return SASL_OK;
-
-  *out=sasl_REALLOC(*out, newlen+10);  
-  if (! *out) return SASL_NOMEM; 
-  
-  *alloclen=newlen+10;
-
-  return SASL_OK;
-}
-
-/* adds a string to the buffer; reallocing if need be */
-static int add_string(char **out, int *alloclen, int *outlen, char *add)
-{
-  int addlen;
-
-  if (add==NULL) add = "(null)";
-
-  addlen=strlen(add); /* only compute once */
-  if (checksize(out, alloclen, (*outlen)+addlen)!=SASL_OK)
-    return SASL_NOMEM;
-
-  strncpy(*out + *outlen, add, addlen);
-  *outlen += addlen;
-
-  return SASL_OK;
-}
 
 /*
- * This function is typically called froma a plugin.
+ * This function is typically called from a plugin.
  * It creates a string from the formatting and varargs given
  * and calls the logging callback (syslog by default)
+ *
+ * %m will parse the value in the next argument as an errno string
+ * %z will parse the next argument as a SASL error code.
  */
 
-int
+void
 _sasl_log (sasl_conn_t *conn,
-	   int priority,
-	   const char *plugin_name,
-	   int sasl_error,	/* %z */
-	   int errno,	/* %m */
-	   const char *format,
+	   int level,
+	   const char *fmt,
 	   ...)
 {
-  char *out=(char *) sasl_ALLOC(100);
+  char *out=(char *) sasl_ALLOC(250);
   int alloclen=100; /* current allocated length */
   int outlen=0; /* current length of output buffer */
   int pos=0; /* current position in format string */
-  int formatlen=strlen(format);
+  int formatlen;
   int result;
   sasl_log_t *log_cb;
   void *log_ctx;
@@ -845,35 +1103,26 @@ _sasl_log (sasl_conn_t *conn,
   char *cval;
   va_list ap; /* varargs thing */
 
+  if(!fmt) goto done;
+  if(!out) return;
+  
+  formatlen = strlen(fmt);
+
   /* See if we have a logging callback... */
   result = _sasl_getcallback(conn, SASL_CB_LOG, &log_cb, &log_ctx);
   if (result == SASL_OK && ! log_cb)
     result = SASL_FAIL;
-  if (result != SASL_OK)
-    return result;
+  if (result != SASL_OK) goto done;
   
-  /* add the plugin name */
-  if (plugin_name!=NULL)
-  {
-    result = add_string(&out, &alloclen, &outlen,(char *)
-			plugin_name);
-    if (result != SASL_OK)
-      return result;
-    result = add_string(&out, &alloclen, &outlen, ": ");
-    if (result != SASL_OK)
-      return result;
-  }
-
-  va_start(ap, format); /* start varargs */
+  va_start(ap, fmt); /* start varargs */
 
   while(pos<formatlen)
   {
-    if (format[pos]!='%') /* regular character */
+    if (fmt[pos]!='%') /* regular character */
     {
-      out[outlen]=format[pos];
-      result = checksize(&out, &alloclen, outlen+1);
-      if (result != SASL_OK)
-	return result;
+      result = _buf_alloc(&out, &alloclen, outlen+1);
+      if (result != SASL_OK) goto done;
+      out[outlen]=fmt[pos];
       outlen++;
       pos++;
 
@@ -887,73 +1136,78 @@ _sasl_log (sasl_conn_t *conn,
 
       while (done==0)
       {
-	switch(format[pos])
+	switch(fmt[pos])
 	  {
 	  case 's': /* need to handle this */
 	    cval = va_arg(ap, char *); /* get the next arg */
-	    result = add_string(&out, &alloclen,
+	    result = _sasl_add_string(&out, &alloclen,
 				&outlen, cval);
 	      
 	    if (result != SASL_OK) /* add the string */
-	      return result;
+		goto done;
 
 	    done=1;
 	    break;
 
 	  case '%': /* double % output the '%' character */
-	    out[outlen]='%';
-	    result = checksize(&out,&alloclen,outlen+1);
+	    result = _buf_alloc(&out,&alloclen,outlen+1);
 	    if (result != SASL_OK)
-	      return result;
+		goto done;
+	    
+	    out[outlen]='%';
 	    outlen++;
 	    done=1;
 	    break;
 
 	  case 'm': /* insert the errno string */
-	    result = add_string(&out, &alloclen, &outlen,
-				strerror(errno));
+	    result = _sasl_add_string(&out, &alloclen, &outlen,
+				strerror(va_arg(ap, int)));
 	    if (result != SASL_OK)
-	      return result;
+		goto done;
+	    
 	    done=1;
 	    break;
+
 	  case 'z': /* insert the sasl error string */
-	    result = add_string(&out, &alloclen, &outlen,
-				(char *) sasl_errstring(sasl_error,NULL,NULL));
+	    result = _sasl_add_string(&out, &alloclen, &outlen,
+				(char *) sasl_errstring(va_arg(ap, int),NULL,NULL));
 	    if (result != SASL_OK)
-	      return result;
+		goto done;
+	    
 	    done=1;
 	    break;
 
 	  case 'c':
-	    frmt[frmtpos++]=format[pos];
+	    frmt[frmtpos++]=fmt[pos];
 	    frmt[frmtpos]=0;
 	    tempbuf[0] = (char) va_arg(ap, int); /* get the next arg */
 	    tempbuf[1]='\0';
 	    
 	    /* now add the character */
-	    result = add_string(&out, &alloclen, &outlen, tempbuf);
+	    result = _sasl_add_string(&out, &alloclen, &outlen, tempbuf);
 	    if (result != SASL_OK)
-	      return result;
+		goto done;
+		
 	    done=1;
-
 	    break;
 
 	  case 'd':
 	  case 'i':
-	    frmt[frmtpos++]=format[pos];
+	    frmt[frmtpos++]=fmt[pos];
 	    frmt[frmtpos]=0;
 	    ival = va_arg(ap, int); /* get the next arg */
 
 	    snprintf(tempbuf,20,frmt,ival); /* have snprintf do the work */
 	    /* now add the string */
-	    result = add_string(&out, &alloclen, &outlen, tempbuf);
+	    result = _sasl_add_string(&out, &alloclen, &outlen, tempbuf);
 	    if (result != SASL_OK)
-	      return result;
+		goto done;
+
 	    done=1;
 
 	    break;
 	  default: 
-	    frmt[frmtpos++]=format[pos]; /* add to the formating */
+	    frmt[frmtpos++]=fmt[pos]; /* add to the formating */
 	    frmt[frmtpos]=0;	    
 	    if (frmtpos>9) 
 	      done=1;
@@ -966,17 +1220,20 @@ _sasl_log (sasl_conn_t *conn,
     }
   }
 
-
   out[outlen]=0; /* put 0 at end */
 
   va_end(ap);    
 
   /* send log message */
-  result = log_cb(log_ctx, priority, out);
-  sasl_FREE(out);
-  return result;
+  result = log_cb(log_ctx, level, out);
+
+ done:
+  if(out) sasl_FREE(out);
 }
 
+
+
+/* Allocate and Init a sasl_utils_t structure */
 sasl_utils_t *
 _sasl_alloc_utils(sasl_conn_t *conn,
 		  sasl_global_callbacks_t *global_callbacks)
@@ -999,48 +1256,84 @@ _sasl_alloc_utils(sasl_conn_t *conn,
     utils->getopt_context = global_callbacks;
   }
 
-  utils->getprop=&sasl_getprop;
-
   utils->malloc=_sasl_allocation_utils.malloc;
   utils->calloc=_sasl_allocation_utils.calloc;
   utils->realloc=_sasl_allocation_utils.realloc;
   utils->free=_sasl_allocation_utils.free;
 
-  utils->mutex_new = _sasl_mutex_utils.new;
+  utils->mutex_alloc = _sasl_mutex_utils.alloc;
   utils->mutex_lock = _sasl_mutex_utils.lock;
   utils->mutex_unlock = _sasl_mutex_utils.unlock;
-  utils->mutex_dispose = _sasl_mutex_utils.dispose;
+  utils->mutex_free = _sasl_mutex_utils.free;
   
   utils->MD5Init  = &_sasl_MD5Init;
   utils->MD5Update= &_sasl_MD5Update;
   utils->MD5Final = &_sasl_MD5Final;
-  utils->hmac_md5 = &hmac_md5;
-  utils->hmac_md5_init = &hmac_md5_init;
-  utils->hmac_md5_final = &hmac_md5_final;
-  utils->hmac_md5_precalc = &hmac_md5_precalc;
-  utils->hmac_md5_import = &hmac_md5_import;
+  utils->hmac_md5 = &_sasl_hmac_md5;
+  utils->hmac_md5_init = &_sasl_hmac_md5_init;
+  utils->hmac_md5_final = &_sasl_hmac_md5_final;
+  utils->hmac_md5_precalc = &_sasl_hmac_md5_precalc;
+  utils->hmac_md5_import = &_sasl_hmac_md5_import;
   utils->mkchal = &sasl_mkchal;
   utils->utf8verify = &sasl_utf8verify;
   utils->rand=&sasl_rand;
   utils->churn=&sasl_churn;  
   utils->checkpass=NULL;
   
+  utils->encode64=&sasl_encode64;
+  utils->decode64=&sasl_decode64;
+  
+  utils->erasebuffer=&sasl_erasebuffer;
+
+  utils->getprop=&sasl_getprop;
+  utils->setprop=&sasl_setprop;
+
   utils->getcallback=&_sasl_getcallback;
 
   utils->log=&_sasl_log;
 
+  utils->seterror=&sasl_seterror;
+
+#ifndef macintosh
+  /* Aux Property Utilities */
+  utils->prop_new=&prop_new;
+  utils->prop_dup=&prop_dup;
+  utils->prop_request=&prop_request;
+  utils->prop_get=&prop_get;
+  utils->prop_getnames=&prop_getnames;
+  utils->prop_clear=&prop_clear;
+  utils->prop_dispose=&prop_dispose;
+  utils->prop_format=&prop_format;
+  utils->prop_set=&prop_set;
+  utils->prop_setvals=&prop_setvals;
+  utils->prop_erase=&prop_erase;
+#endif
+
+  /* Spares */
+  utils->spare_fptr = NULL;
+  utils->spare_fptr1 = utils->spare_fptr2 = 
+      utils->spare_fptr3 = NULL;
+  
   return utils;
 }
 
 int
-_sasl_free_utils(sasl_utils_t ** utils)
+_sasl_free_utils(const sasl_utils_t ** utils)
 {
-  if (! utils) return SASL_BADPARAM;
-  if (! *utils) return SASL_OK;
-  sasl_randfree(&(*utils)->rpool);
-  sasl_FREE(*utils);
-  *utils = NULL;
-  return SASL_OK;
+    sasl_utils_t *nonconst;
+
+    if(!utils) return SASL_BADPARAM;
+    if(!*utils) return SASL_OK;
+
+    /* I wish we could avoid this cast, it's pretty gratuitous but it
+     * does make life easier to have it const everywhere else. */
+    nonconst = (sasl_utils_t *)(*utils);
+
+    sasl_randfree(&(nonconst->rpool));
+    sasl_FREE(nonconst);
+
+    *utils = NULL;
+    return SASL_OK;
 }
 
 int sasl_idle(sasl_conn_t *conn)
@@ -1107,3 +1400,142 @@ _sasl_find_verifyfile_callback(const sasl_callback_t *callbacks)
   return &default_verifyfile_cb;
 }
 
+/* Basically a conditional call to realloc(), if we need more */
+int _buf_alloc(char **rwbuf, unsigned *curlen, unsigned newlen) 
+{
+    if(!(*rwbuf)) {
+	*rwbuf = sasl_ALLOC(newlen);
+	if (*rwbuf == NULL) {
+	    *curlen = 0;
+	    return SASL_NOMEM;
+	}
+	*curlen = newlen;
+    } else if(*rwbuf && *curlen < newlen) {
+	size_t needed = 2*(*curlen);
+
+	while(needed < newlen)
+	    needed *= 2;
+
+	*rwbuf = sasl_REALLOC(*rwbuf, needed);
+	
+	if (*rwbuf == NULL) {
+	    *curlen = 0;
+	    return SASL_NOMEM;
+	}
+	*curlen = needed;
+    } 
+
+    return SASL_OK;
+}
+
+/* for the mac os x cfm glue: this lets the calling function
+   get pointers to the error buffer without having to touch the sasl_conn_t struct */
+void _sasl_get_errorbuf(sasl_conn_t *conn, char ***bufhdl, unsigned **lenhdl)
+{
+	*bufhdl = &conn->error_buf;
+	*lenhdl = &conn->error_buf_len;
+}
+
+/* convert an iovec to a single buffer */
+int _iovec_to_buf(const struct iovec *vec,
+		  unsigned numiov, buffer_info_t **output) 
+{
+    unsigned i;
+    int ret;
+    buffer_info_t *out;
+    char *pos;
+
+    if(!vec || !output) return SASL_BADPARAM;
+
+    if(!(*output)) {
+	*output = sasl_ALLOC(sizeof(buffer_info_t));
+	if(!*output) return SASL_NOMEM;
+	memset(*output,0,sizeof(buffer_info_t));
+    }
+
+    out = *output;
+    
+    out->curlen = 0;
+    for(i=0; i<numiov; i++)
+	out->curlen += vec[i].iov_len;
+
+    ret = _buf_alloc(&out->data, &out->reallen, out->curlen);
+
+    if(ret != SASL_OK) return SASL_NOMEM;
+    
+    memset(out->data, 0, out->reallen);
+    pos = out->data;
+    
+    for(i=0; i<numiov; i++) {
+	memcpy(pos, vec[i].iov_base, vec[i].iov_len);
+	pos += vec[i].iov_len;
+    }
+
+    return SASL_OK;
+}
+
+/* This code might be useful in the future, but it isn't now, so.... */
+#if 0
+int _sasl_iptostring(const struct sockaddr *addr, socklen_t addrlen,
+		     char *out, unsigned outlen) {
+    char hbuf[NI_MAXHOST], pbuf[NI_MAXSERV];
+    
+    if(!addr || !out) return SASL_BADPARAM;
+
+    getnameinfo(addr, addrlen, hbuf, sizeof(hbuf), pbuf, sizeof(pbuf),
+		NI_NUMERICHOST | NI_WITHSCOPEID | NI_NUMERICSERV);
+
+    if(outlen < strlen(hbuf) + strlen(pbuf) + 2)
+	return SASL_BUFOVER;
+
+    snprintf(out, outlen, "%s;%s", hbuf, pbuf);
+
+    return SASL_OK;
+}
+#endif
+
+int _sasl_ipfromstring(const char *addr,
+		       struct sockaddr *out, socklen_t outlen) 
+{
+    int i, j;
+    struct addrinfo hints, *ai = NULL;
+    char hbuf[NI_MAXHOST];
+    
+    /* A NULL out pointer just implies we don't do a copy, just verify it */
+
+    if(!addr) return SASL_BADPARAM;
+
+    /* Parse the address */
+    for (i = 0; addr[i] != '\0' && addr[i] != ';'; i++) {
+	if (i >= NI_MAXHOST)
+	    return SASL_BADPARAM;
+	hbuf[i] = addr[i];
+    }
+    hbuf[i] = '\0';
+
+    if (addr[i] == ';')
+	i++;
+    /* XXX: Do we need this check? */
+    for (j = i; addr[j] != '\0'; j++)
+	if (!isdigit((int)(addr[j])))
+	    return SASL_BADPARAM;
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = PF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE | AI_NUMERICHOST;
+    if (getaddrinfo(hbuf, &addr[i], &hints, &ai) != 0)
+	return SASL_BADPARAM;
+
+    if (out) {
+	if (outlen < (unsigned)ai->ai_addrlen) {
+	    freeaddrinfo(ai);
+	    return SASL_BUFOVER;
+	}
+	memcpy(out, ai->ai_addr, ai->ai_addrlen);
+    }
+
+    freeaddrinfo(ai);
+
+    return SASL_OK;
+}

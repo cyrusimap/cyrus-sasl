@@ -9,9 +9,6 @@ If you're checking this directly out of CVS, you'll need to run "sh
 
 Read doc/sysadmin.html to learn how to configure SASL.
 
-
-
-
 **********
 If you are upgrading, be sure to read the Upgrading section of the
 README file.
@@ -45,10 +42,10 @@ version we use comes from <url:http://www.pdc.kth.se/kth-krb/>.
 For GSSAPI support you will need either MIT Kerberos 5 or the Heimdal
 implementation <url:http://www.pdc.kth.se/heimdal>.
 
-This has been tested under Linux 2.0, and Solaris 2.6.  It should work
-under any platform where dynamic objects can be linked against other
-dynamic objects, and where the dynamic library file extension is
-".so".
+This has been tested under Linux 2.2, Linux 2.4, Solaris 2.7 and Solaris 2.8.
+It should work under any platform where dynamic objects can be linked against
+other dynamic objects, and where the dynamic library file extension is
+".so", or where libtool creates the .la files correctly.
 
 You may want to play with your CPPFLAGS and LDFLAGS a little if you're
 using vendor compilers (which we recommend).  You can see what

@@ -1,5 +1,7 @@
 /* MD5C.C - RSA Data Security, Inc., MD5 message-digest algorithm
-*/
+ */
+
+/* Function names changed to avoid namespace collisions: Rob Siemborski */
 
 /* Copyright (C) 1991-2, RSA Data Security, Inc. Created 1991. All
 rights reserved.
@@ -97,9 +99,7 @@ MD5_CTX *context; /* context */
 {
        context->count[0] = context->count[1] = 0; 
 
-         /* Load magic initialization constants.
-
-*/
+       /* Load magic initialization constants. */
        context->state[0] = 0x67452301; 
        context->state[1] = 0xefcdab89; 
        context->state[2] = 0x98badcfe; 
@@ -153,8 +153,7 @@ unsigned int inputLen; /* length of input block */
 
 /* MD5 finalization. Ends an MD5 message-digest operation, writing the
        the message digest and zeroizing the context. 
-
-        */
+*/
 
 void _sasl_MD5Final (digest, context)
 unsigned char digest[16]; /* message digest */
@@ -166,12 +165,10 @@ MD5_CTX *context; /* context */
          /* Save number of bits */
          Encode (bits, context->count, 8);
 
-         /* Pad out to 56 mod 64.
-
-*/
-       index = (unsigned int)((context->count[0] >> 3) & 0x3f); 
-       padLen = (index < 56) ? (56 - index) : (120 - index); 
-       _sasl_MD5Update (context, PADDING, padLen); 
+         /* Pad out to 56 mod 64. */
+	 index = (unsigned int)((context->count[0] >> 3) & 0x3f); 
+	 padLen = (index < 56) ? (56 - index) : (120 - index); 
+	 _sasl_MD5Update (context, PADDING, padLen); 
 
          /* Append length (before padding) */
          _sasl_MD5Update (context, bits, 8);
@@ -179,15 +176,11 @@ MD5_CTX *context; /* context */
          /* Store state in digest */
          Encode (digest, context->state, 16);
 
-         /* Zeroize sensitive information.
-
-*/
+         /* Zeroize sensitive information. */
        MD5_memset ((POINTER)context, 0, sizeof (*context)); 
 }
 
-/* MD5 basic transformation. Transforms state based on block.
-
-        */
+/* MD5 basic transformation. Transforms state based on block. */
 
 static void MD5Transform (state, block)
 UINT4 state[4];
@@ -345,9 +338,9 @@ unsigned int len;
        ((char *)output)[i] = (char)value; 
 }
 
-void hmac_md5_init(HMAC_MD5_CTX *hmac,
-		   const unsigned char *key,
-		   int key_len)
+void _sasl_hmac_md5_init(HMAC_MD5_CTX *hmac,
+			 const unsigned char *key,
+			 int key_len)
 {
   unsigned char k_ipad[65];    /* inner padding -
 				* key XORd with ipad
@@ -415,14 +408,14 @@ void hmac_md5_init(HMAC_MD5_CTX *hmac,
  * buffer fields.  So all we have to do is save the state field; we
  * can zero the others when we reload it.  Which is why the decision
  * was made to pad the key out to 64 bytes in the first place. */
-void hmac_md5_precalc(HMAC_MD5_STATE *state,
-		      const unsigned char *key,
-		      int key_len)
+void _sasl_hmac_md5_precalc(HMAC_MD5_STATE *state,
+			    const unsigned char *key,
+			    int key_len)
 {
   HMAC_MD5_CTX hmac;
   unsigned lupe;
 
-  hmac_md5_init(&hmac, key, key_len);
+  _sasl_hmac_md5_init(&hmac, key, key_len);
   for (lupe = 0; lupe < 4; lupe++) {
     state->istate[lupe] = htonl(hmac.ictx.state[lupe]);
     state->ostate[lupe] = htonl(hmac.octx.state[lupe]);
@@ -431,7 +424,7 @@ void hmac_md5_precalc(HMAC_MD5_STATE *state,
 }
 
 
-void hmac_md5_import(HMAC_MD5_CTX *hmac,
+void _sasl_hmac_md5_import(HMAC_MD5_CTX *hmac,
 		     HMAC_MD5_STATE *state)
 {
   unsigned lupe;
@@ -442,12 +435,12 @@ void hmac_md5_import(HMAC_MD5_CTX *hmac,
   }
   /* Init the counts to account for our having applied
    * 64 bytes of key; this works out to 0x200 (64 << 3; see
-   * _sasl_MD5Update above...) */
+   * MD5Update above...) */
   hmac->ictx.count[0] = hmac->octx.count[0] = 0x200;
 }
 
-void hmac_md5_final(unsigned char digest[HMAC_MD5_SIZE],
-		    HMAC_MD5_CTX *hmac)
+void _sasl_hmac_md5_final(unsigned char digest[HMAC_MD5_SIZE],
+			  HMAC_MD5_CTX *hmac)
 {
   _sasl_MD5Final(digest, &hmac->ictx);  /* Finalize inner md5 */
   _sasl_MD5Update(&hmac->octx, digest, 16); /* Update outer ctx */
@@ -455,7 +448,7 @@ void hmac_md5_final(unsigned char digest[HMAC_MD5_SIZE],
 }
 
 
-void hmac_md5(text, text_len, key, key_len, digest)
+void _sasl_hmac_md5(text, text_len, key, key_len, digest)
 const unsigned char* text; /* pointer to data stream */
 int text_len; /* length of data stream */
 const unsigned char* key; /* pointer to authentication key */

@@ -64,26 +64,26 @@ JAV =
 endif
 if MACOSX
 INSTALLOSX = install-exec-local-osx
-else
-INSTALLOSX =
+else 
+INSTALLOSX = 
 endif
 
-SUBDIRS=include lib plugins utils doc man $(PWC) $(SAM) $(JAV) $(SAD)
-EXTRA_DIST=config cmulocal win32 testing.txt mac_only_files.sit.hqx dlcompat-20010505
+SUBDIRS=include sasldb plugins lib utils doc man $(PWC) $(SAM) $(JAV) $(SAD)
+EXTRA_DIST=config cmulocal win32 testing.txt ONEWS mac dlcompat-20010505
 
 dist-hook:
 	@find $(distdir) -name CVS -print | xargs -t rm -rf
 
-framedir = /Library/Frameworks/SASL.framework
+framedir = /Library/Frameworks/SASL2.framework
 install-exec-local: $(INSTALLOSX)
-	@if test "$(plugindir)" != "$(prefix)/lib/sasl"; then \
+	@if test "$(plugindir)" != "$(prefix)/lib/sasl2"; then \
 	  echo "********************************************************"; \
 	  echo "* WARNING:"; \
-	  echo "* Plugins are being installed into $(prefix)/lib/sasl,"; \
+	  echo "* Plugins are being installed into $(prefix)/lib/sasl2,"; \
 	  echo "* but the library will look for them in $(plugindir)."; \
 	  echo "* You need to make sure that the plugins will eventually"; \
 	  echo "* be in $(plugindir) -- the easiest way is to make a"; \
-	  echo "* symbolic link from $(plugindir) to $(prefix)/lib/sasl,"; \
+	  echo "* symbolic link from $(plugindir) to $(prefix)/lib/sasl2,"; \
 	  echo "* but this may not be appropriate for your site, so this"; \
 	  echo "* installation procedure won't do it for you."; \
 	  echo "*"; \
@@ -100,3 +100,4 @@ install-exec-local-osx:
 	cd $(framedir) ; ln -fs Versions/A/Headers .
 	cd $(framedir) ; ln -fs Versions/A/Resources .
 	$(INSTALL_DATA) $(srcdir)/config/Info.plist $(framedir)/Versions/A/Resources
+

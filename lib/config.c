@@ -1,9 +1,10 @@
 /* SASL Config file API
+ * Rob Siemborski
  * Tim Martin (originally in Cyrus distribution)
- * $Id: config.c,v 1.11 2001/06/20 11:49:35 n3liw Exp $
+ * $Id: config.c,v 1.12 2001/12/04 02:05:26 rjs3 Exp $
  */
 /* 
- * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,6 +46,7 @@
 /*
  * Current Valid keys:
  *
+ * canon_user_plugin: <string>
  * pwcheck_method: <string>
  * auto_transition: <boolean>
  * plugin_list: <string>
@@ -68,7 +70,7 @@ struct configlist {
 static struct configlist *configlist;
 static int nconfiglist;
 
-#define CONFIGLISTGROWSIZE 10 /* 100 */
+#define CONFIGLISTGROWSIZE 100
 
 int sasl_config_init(const char *filename)
 {
@@ -88,8 +90,6 @@ int sasl_config_init(const char *filename)
     
     while (fgets(buf, sizeof(buf), infile)) {
 	lineno++;
-
-	VL(("reading config file lineno=%i\n",lineno));
 
 	if (buf[strlen(buf)-1] == '\n') buf[strlen(buf)-1] = '\0';
 	for (p = buf; *p && isspace((int) *p); p++);

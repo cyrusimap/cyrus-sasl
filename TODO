@@ -1,41 +1,37 @@
 Library
 ~~~~~~~
 ) Better/FASTER random numbers (init time is pretty miserable)
-) Test suite needs work
-) configure stuff: static libs, etc.
-) Use libltdl---probably much better portability
-  thread problems?  stdio problems?
-) parse the .la file instead of assuming we load the ".so" file
+) Test suite [still] needs work
 ) better support for including missing routines
 ) check return settings (ssf, etc.) on auth failure
-) Make real global objects in cram, digest
-) when making callbacks, the returned strings are sometimes only valid
-  until the next time that callback is made.  (i believe the config
-  callback is an example of this.)
 ) add SASL_SEC_MUTUAL_AUTHENTICATION
-
 
 Documentation
 ~~~~~~~~~~~~~
 ) so much to do here
-) how to write an application using sasl (programmer's guide)
-) man pages (check spelling) (do saslpasswd, sasldblistusers etc)
-) how to configure sasl (sysadmin guide)
+) man pages (check spelling) 
+) programmers/sysadmin guide updates and clarifications
 ) update INSTALL to have clearer step-by-step instructions
 
 Mechs to write
 ~~~~~~~~~~~~~~
-) PASSDSS-3DES-1 (draft-newman-sasl-passdss-01.txt)
-) OTP
+
+SRP
+~~~
+) Add confidentiality layers
+) Add HMAC-SHA-160 integrity layer
+) Cleanup code (debugging messages, etc)
+
+OTP
+~~~
+) Protect against race attack (depends on OPIE modifications)
+) Notify when sequence number gets too low (depends on OPIE modifications)
 
 Digest-MD5
 ~~~~~~~~~~
 ) Checking wacko cases or even not so wacko cases
 ) Testing
-) correct handling of SASL_SET_CREATE
-) allow sending multiple realms from server to client
-) reauth?
-) eliminate last client step. Applications will need to be rewritten.
+) reauth? (probabally not)
 
 Kerberos_V4
 ~~~~~~~~~~~
@@ -44,7 +40,7 @@ Kerberos_V4
 
 GSSAPI
 ~~~~~~
-) Allow specification of alternate keytab file?
+) Allow specification of alternate keytab file
 
 Plain
 ~~~~~
@@ -52,15 +48,14 @@ Plain
 Cram-MD5
 ~~~~~~~~
 ) needs snprintf support
-) correct handling of SASL_SET_CREATE
 
 Database stuff
 ~~~~~~~~~~~~~~
-) Flat text file?
 ) transactions?
 ) version the database?
 ) atomic updates of passwords (we can crash and leave the user with 
-  different passwords for different mechanisms)
+  different passwords for different mechanisms) [through failure to
+  make setpass calls]
 
 ABI
 ~~~

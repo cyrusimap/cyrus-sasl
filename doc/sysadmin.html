@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.20 2001/01/19 18:45:26 wcw Exp $ -->
+<!-- $Id: sysadmin.html,v 1.21 2001/12/04 02:05:17 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -112,52 +112,6 @@ authentication and password are verified.  The Cyrus SASL library is
 flexible in this regard:
 
 <DL>
-<dt><i>passwd</i><dd> <tt>/etc/passwd</tt>, via the call
-  <tt>getpwnam()</tt>, is supported innately in the library.  Simply
-  set the configuration option "pwcheck_method" to "passwd".<p>
-
-<dt><i>shadow</i><dd> <tt>/etc/shadow</tt> is somewhat trickier.  If
-  the servers that use SASL run as root (such as Sendmail) there's no
-  problem: just set the "pwcheck_method" option to "shadow".  However,
-  many daemons do not run as root for additional security, such as
-  Cyrus imapd.  In order for these servers to check passwords, they
-  either need a helper program that runs as root, or need special
-  privileges to read <tt>/etc/shadow</tt>.  The easiest way is to give
-  the server the rights to read <tt>/etc/shadow</tt> by, for instance,
-  adding the cyrus user to the "shadow" group and then setting
-  "pwcheck_method" to "shadow".
-
-  <p>Another possible approach to check shadow passwords is the
-  <i>pwcheck</i> daemon.<p>
-
-<dt><i>sia</i><dd> Security Integration Architecture is the secure
-  method of authenticating users on Digital Unix.  It should be used
-  especially if C2 level security is enabled.  This type must be
-  explicitly enabled at compile time.<p>
-
-<dt><i>kerberos_v4</i><dd> Kerberos v4, if found by the configuration
-  script at compile time, can be enabled for plaintext password
-  checking by setting "pwcheck_method" to "kerberos_v4".  This is
-  different from the KERBEROS_V4 mechanism discussed below---this
-  configuration option merely specifies how to check plaintext
-  passwords on the server.<p>
-
-<dt><i>pam</i><dd> PAM, the pluggable authentication module, is the
-  default way of authenticating users on Solaris and Linux.  It can be
-  configured to check passwords in many different ways: through
-  Radius, through NIS, through LDAP, or even using the traditional
-  <tt>/etc/passwd</tt> file.  If you wish to use PAM for
-  authentication and the Cyrus SASL library found the PAM library when
-  it was configured at compilation time, set "pwcheck_method" to
-  "PAM".  It uses PAM with the service name (for example, Sendmail
-  uses "smtp" and Cyrus imapd uses "imap").<p>
-
-  <p>The PAM authentication for SASL <i>only</i> affects the plaintext
-  authentication it does.  It has no effect on the other mechanisms,
-  so it is incorrect to try to use PAM to enforce additional
-  restrictions beyond correct password on an application that uses
-  SASL for authentication.<p>
-
 <dt><i>sasldb</i><dd> This stores passwords in the SASL secrets
   database, the same database that stores the secrets for shared
   secret methods.  Its principal advantages are that passwords used by
@@ -165,11 +119,15 @@ flexible in this regard:
   password mechanisms and that this is the only plaintext
   authentication method that supports multiple realms on a single
   server.  However, system built-in routines will not use sasldb.
-
   <p>(<tt>sasldb</tt> is the default method.)<p>
 
 <dt><i>pwcheck</i><dd> checks passwords with the use of a seperate,
   helper daemon. <b>needs to be documented.</b><p>
+
+<dt><i>saslauthd</i><dd> contacts the saslauthd daemon to to check
+  passwords using a variety of mechanisms.  You can compile support
+  for saslauthd using the --with-saslauthd configure option.  More
+  information can be found in saslauthd(8)<p> 
 
 <dt><i>write your own</i><dd> Last, but not least, the most flexible
   method of authentication for PLAIN is to write your own.  If you do
@@ -179,7 +137,10 @@ flexible in this regard:
   routine "<tt>_sasl_checkpass()</tt>" in the file
   <tt>lib/server.c</tt> to support a new method, and to add that
   method to <tt>lib/checkpw.c</tt>.  Be sure to add a prototype in
-  <tt>lib/saslint.h</tt>!  (tell people to use pwcheck?)<p>
+  <tt>lib/saslint.h</tt>!<p>
+  It is important to note however that
+  currently the more flexable/prefered method is to create a new saslauthd
+  mechanism.<p>
 </dl>
 
 <p>The LOGIN mechanism (not to be confused with IMAP4's LOGIN command)
@@ -200,12 +161,14 @@ secure than simply sending the secret over the wire proving that the
 client knows it.
 
 <p>There's a downside: in order to verify such responses, the
-server must keep password equivalents in a database; if this database
-is compromised, it is the same as if all the passwords for the
-realm are compromised.
+server must keep passwords or password equivalents in a database;
+if this database is compromised, it is the same as if all the
+passwords for the realm are compromised.
 
-<p>The Cyrus SASL library stores these secrets in the
-<tt>/etc/sasldb</tt> database.  Depending on the exact database method
+<p>For simplicity sake, the Cyrus SASL library stores plaintext
+passwords only in the <tt>/etc/sasldb</tt> database.  These passwords
+are then shared among all mechanisms which choose to use it.
+Depending on the exact database method
 used (gdbm, ndbm, or db) the file may have different suffixes or may
 even have two different files ("<tt>sasldb.dir</tt>" and
 "<tt>sasldb.pag</tt>").  It is also possible for a server to define
@@ -216,6 +179,10 @@ application is known to do this.
 sasldb is properly protected; only the servers that need to read it to
 verify passwords should be able to.  If there are any normal shell
 users on the system, they must not be able to read it.
+
+<p>This point is important, so we will repeat it: <b>sasldb stores the
+plaintext versions of all of its passwords, if it is compromised so
+are all of the passwords that it stores</b>.
 
 <p>Managing password changes is outside the scope of the library.
 However, system administrators should probably make a way of letting
@@ -253,6 +220,38 @@ Different SASL applications can use different srvtab files.
 <p>A SASL application must be able to read its srvtab or keytab file.
 
 <p>You may want to consult the <a href="gssapi.html">GSSAPI Tutorial</a>.</p>
+
+<h3>The OTP mechanism</h3>
+
+The Cyrus SASL library also supports the One-Time-Password (OTP)
+mechanism.  This mechanism is similar to CRAM-MD5 and DIGEST-MD5 in
+that is uses a shared secret and a challege/response exchange.
+However, OTP is more secure than the other shared secret mechanisms in
+that the secret is used to generate a sequence of one-time (single
+use) passwords which prevents reply attacks, and that secret need
+not be stored on the system.
+
+<p>The Cyrus SASL library provides server-side support for the OTP
+mechanism via the "One Time Passwords in Everything" (OPIE) library v2.4.
+OPIE should be configured with the <tt>--disable-user-locking</tt> 
+option if the SASL server application will not be running as "root" 
+and the <tt>--enable-insecure-override</tt> option if you plan to run 
+"<tt>saslpasswd</tt>" from a remote shell (see note below).
+
+<p>OPIE uses its own "opiekeys" database for storing the data ncessary
+for generating the server challenges.  The location of the opiekeys
+file is configurable in SASL; by default it is <tt>/etc/opiekeys</tt>,
+but this is modifiable by the "opiekeys" option.
+
+<p>A SASL server application must be able to read and write the
+opiekeys file.
+
+<p><b>NOTE:</b>The "opiepasswd" utility which ships with OPIE requires a
+user ID to be in <tt>/etc/passwd</tt> before creating the key in the
+opiekeys file, which makes it unusable on a closed system such as
+Cyrus IMAPD.  Because of this, the "<tt>saslpasswd</tt>" utility can
+be used to change the keys in the opiekeys database (in addition to
+changing the secrets in sasldb).
 
 <h2>How to set configuration options</h2>
 
@@ -307,6 +306,8 @@ can't use shared secret mechanisms.</p>
 
 <p>make sure to make the /usr/lib/sasl symbolic link.
 
+<p>canon_user plugin selection: uses canon_user_plugin option
+
 <p>Unfortunately, since SASL is very flexible (allowing administrators to
 upgrade and install new authentication plugins without recompiling any
 applications) its flexibility can also make it a chore to compile.
@@ -326,23 +327,20 @@ the Cyrus user.  By default, the library looks for the srvtab in
 option.
 
 <p>
-<dt><b>Q:</b> Why don't CRAM-MD5 and DIGEST-MD5 appear as an available
-mechanisms?
+<dt><b>Q:</b> Why doesn't OTP doesn't appear as an available
+mechanism?
 <dd>
-<p><b>A:</b> The mechanisms won't appear until after some users have
-been created.  Use <tt>saslpasswd</tt> to create a user.
+<p><b>A:</b> Check that the <tt>opiekeys</tt> file is readable by the
+user running as the daemon.  For Cyrus imapd, it must be readable by
+the Cyrus user.  By default, the library looks for the opiekeys in
+<tt>/etc/opiekeys</tt>, but it's configurable using the <tt>opiekeys</tt>
+option.
 
 <p>
-<dt><b>Q:</b> CRAM-MD5 and DIGEST-MD5 used to appear,
-but since I've upgraded they don't anymore!
+<dt><b>Q:</b> Why don't CRAM-MD5 and DIGEST-MD5 work with my old sasldb?
 <dd>
-<p><b>A:</b> As of Cyrus SASL 1.5.13, we've added a versioning feature
-into the database.  If you're upgrading from before 1.5.13, you'll
-have to use <tt>saslpasswd</tt> to set a password.
-
-<p>If you're upgrading from 1.5.13 or later, check the syslog
-messages; if it indicates an incompatible version number, there's
-probably a conversion tool you'll have to run.
+<p><b>A:</b> Because sasldb now stores plaintext passwords only, the old
+sasldb is completely incompatible.
 
 <p>
 <dt><b>Q:</b> Is LOGIN supported?
@@ -352,23 +350,14 @@ plaintext mechanism.  It's included in the SASL distribution purely
 for sites that need it to interoperate with old clients; we don't
 support it.  Don't enable it unless you know you need it.
 
-
-<p>
-<dt><b>Q:</b> How come PAM doesn't work as an plaintext verifier?
-<dd>
-<p><b>A:</b> Check your PAM configuration.  On Solaris, it's generally
-found in <tt>/etc/pam.conf</tt>.  On Linux, it's usually in the
-directory <tt>/etc/pam.d</tt>.  You'll have to configure PAM for the
-service you're providing: "smtp" for Sendmail, or "imap" and "pop" for
-Cyrus.
-
 <p>
 <dt><b>Q:</b> How can I get a non-root application to check plaintext
 passwords?
 <dd>
-<p><b>A:</b> Try using the "pwcheck" daemon and setting
-"pwcheck_method" to "pwcheck".  You'll have to run <tt>configure</tt>
-with the <tt>--with-pwcheck</tt> option.
+<p><b>A:</b> Try using the "pwcheck" daemon and setting "pwcheck_method"
+to "pwcheck".  Alternatively, you can use the saslauthd daemon.
+You'll have to run <tt>configure</tt> with the <tt>--with-pwcheck</tt> or
+<tt>--with-saslauthd</tt> option respectively.
 
 <p>
 <dt><b>Q:</b> I want to use Berkeley DB, but it's installed in
@@ -407,6 +396,9 @@ http://asg.web.cmu.edu/archive/mailbox.php3?mailbox=archive.cyrus-sasl</a>
 approval before they go out to the list and so posting may be
 (greatly) delayed.
 </dl>
+
+<hr>
+Back to the <A href=index.html>index</a>
 
 </body>
 </html>

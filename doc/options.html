@@ -1,0 +1,62 @@
+<HTML><HEAD>
+<title>Options for Cyrus SASL</title>
+<!-- $Id: options.html,v 1.2 2001/12/04 02:05:15 rjs3 Exp $ -->
+</HEAD>
+<BODY>
+<h1>Options for Cyrus SASL</h1>
+
+<p>This document contains information on what options are used by the
+Cyrus SASL glue code and bundled mechanisms:</p>
+
+<TABLE BORDER WIDTH=95%>
+<TR><TH>Option</TH><TH>Used By</TH><TH>Description</TH><TH>Default</TH></TR>
+<TR>
+<TD>auto_transition</TD><TD>Glue Code</TD>
+<TD>When set to 'y', automatically transition users to other mechs
+when they do a successful plaintext authentication</TD><TD>'n'</TD>
+</TR>
+<TR>
+<TD>canon_user_plugin</TD><TD>Glue Code</TD>
+<TD>Name of canon_user plugin to use</TD><TD>INTERNAL</TD>
+</TR>
+<TR>
+<TD>keytab</TD><TD>GSSAPI</TD>
+<TD>Location of keytab file</TD><TD>System Dependant</TD>
+</TR>
+<TR>
+<TD>mech_list</TD><TD>Glue Code</TD>
+<TD>Whitespace separated list of mechanisms to allow (e.g. 'plain
+otp').  Used to restrict the mechanisms to a subset of the installed
+plugins.</TD><TD>All Available</TD>
+</TR>
+<TR>
+<TD>opiekeys</TD><TD>OTP</TD>
+<TD>Location of the opiekeys file</TD><TD>/etc/opiekeys</TD>
+</TR>
+<TR>
+<TD>plugin_list</TD><TD>Glue Code</TD>
+<TD>Location of Plugin list (Unsupported)</TD><TD>N/A</TD>
+</TR>
+<TR>
+<TD>pwcheck_method</TD><TD>Glue Code</TD>
+<TD>Mechanism used to verify passwords, used by sasl_checkpass
+(possible values: 'auxprop', 'pwcheck', 'saslauthd', 'alwaystrue')</TD><TD>auxprop</TD>
+</TR>
+<TR>
+<TD>saslauthd_path</TD><TD>Glue Code</TD>
+<TD>Path to saslauthd binary</TD><TD>System Dependant</TD>
+</TR>
+<TR>
+<TD>sasldb_path</TD><TD>sasldb plugin</TD>
+<TD>Path to sasldb file</TD><TD>/etc/sasldb (System Dependant)</TD>
+<TR>
+<TD>srvtab</TD><TD>KERBEROS_V4</TD>
+<TD>Location of the srvtab file</TD><TD>System Dependant</TD>
+</TR>
+</TABLE>
+
+<hr>
+Back to the <A href=index.html>index</a>
+
+</body>
+</html>

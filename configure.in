@@ -1,8 +1,9 @@
 dnl configure.in for the SASL library
+dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.111 2001/08/03 22:05:28 rbraun Exp $
+dnl $Id: configure.in,v 1.112 2001/12/04 02:02:00 rjs3 Exp $
 dnl
-dnl Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
+dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
 dnl Redistribution and use in source and binary forms, with or without
 dnl modification, are permitted provided that the following conditions
@@ -49,8 +50,11 @@ dnl
 dnl REMINDER: When changing the version number here, please also update
 dnl the values in win32/include/config.h and include/sasl.h as well.
 dnl
-AM_INIT_AUTOMAKE(cyrus-sasl, 1.5.27)
+AM_INIT_AUTOMAKE(cyrus-sasl, 2.0.4-BETA)
 CMU_INIT_AUTOMAKE
+
+# and include our config dir scripts
+ACLOCAL="$ACLOCAL -I \$(top_srcdir)/config"
 
 DIRS=""
 
@@ -60,6 +64,10 @@ AC_ARG_ENABLE(sample, [  --enable-sample         compile sample code [yes]],,ena
 
 AC_PROG_CC
 AC_PROG_CPP
+AC_PROG_AWK
+AC_PROG_LN_S
+AC_PROG_MAKE_SET
+AC_PROG_RANLIB
 AC_PROG_INSTALL
 CMU_C___ATTRIBUTE__
 
@@ -76,6 +84,16 @@ CMU_PROG_LIBTOOL
 if test "$ac_cv_prog_gcc" = yes; then
   CFLAGS="-Wall -W ${CFLAGS}"
 fi
+
+AC_ARG_WITH(staticsasl,[  --with-staticsasl       build a static library with all mechs included.                 (Different from enable-static, but probabally the one you want)])
+AC_MSG_CHECKING(to build static libsasl2.a)
+if test "$with_staticsasl" = yes; then
+  AC_MSG_RESULT(yes)
+  SASL_STATIC_LIBS="$SASL_STATIC_LIBS libsasl2.a"
+else
+  AC_MSG_RESULT(no)
+fi
+AC_SUBST(SASL_STATIC_LIBS)
 
 AC_ARG_WITH(purecov,[  --with-purecov          link with purecov])
 if test "$with_purecov" = yes; then
@@ -96,187 +114,92 @@ if test "$enable_java" = yes; then
     AC_WARN([Disabling Java support])
     enable_java=no
   fi
+else
+# Make distcheck work
+  JAVAC="true"
+  JAVAH="true"
+  JAVADOC="true"
 fi
 AM_CONDITIONAL(JAVA, test "$enable_java" = yes)
 
 if test "$enable_java" = yes; then
   AC_MSG_CHECKING([JNI cpp flags])
+  AC_CACHE_VAL(sasl_cv_java_includes,[
   if test `echo $JAVAH | sed 's,.*/,,'` = "kaffeh"; then
-    JAVA_INCLUDES=-I`echo $JAVAH | sed -e 's,/bin.*,/include/kaffe,'`
+    sasl_cv_java_includes=-I`echo $JAVAH | sed -e 's,/bin.*,/include/kaffe,'`
   else
     java_base=`echo $JAVAC | sed 's,/bin.*,'','`
 
-    AC_ARG_WITH(javabase, [  --with-javabase=PATH      set path to find jni.h in [/usr/java/include] ],
+    AC_ARG_WITH(javabase, [  --with-javabase=PATH    set path to find jni.h in [/usr/java/include] ],
         java_base=$withval,)
 	
 
-    JAVA_INCLUDES=''
+    sasl_cv_java_includes=''
     for dir in `find ${java_base}/include -follow -type d -print | grep -v green_threads`; do
-      JAVA_INCLUDES="${JAVA_INCLUDES} -I$dir"
+      sasl_cv_java_includes="${sasl_cv_java_includes} -I$dir"
     done
   fi
+
+  sasl_cv_java_includes="${sasl_cv_java_includes} -I$javapath/include"])
+
+  JAVA_INCLUDES=$sasl_cv_java_includes
+  AC_SUBST(JAVA_INCLUDES)
+  AC_MSG_RESULT(ok)
+
   JAVAROOT=".."
   AC_SUBST(JAVAROOT)
-
-  JAVA_INCLUDES="${JAVA_INCLUDES} -I$javapath/include"
-
-  AC_SUBST(JAVA_INCLUDES)
-  AC_MSG_RESULT(JAVA_INCLUDES)
   JAVAC=`echo "$JAVAC" | sed 's,.*/,,'`
   JAVAH=`echo "$JAVAH" | sed 's,.*/,,'`
 fi
 
 AM_CONDITIONAL(SAMPLE, test "$enable_sample" = yes)
 
-dnl Figure out what database path we're using
-AC_ARG_WITH(dbpath, [  --with-dbpath=PATH      set the DB path to use [/etc/sasldb] ],
-  dbpath=$withval,
-  dbpath=/etc/sasldb)
-AC_MSG_CHECKING(DB path to use)
-AC_MSG_RESULT($dbpath)
-AC_DEFINE_UNQUOTED(SASL_DB_PATH, "$dbpath")
-
-dnl Figure out what database type we're using
-cmu_save_LIBS="$LIBS"
-AC_ARG_WITH(dblib, [  --with-dblib=DBLIB      set the DB library to use [berkeley] ],
-  dblib=$withval,
-  dblib=auto_detect)
-SASL_DB_LIB=""
-
-dnl this is unbelievably painful due to confusion over what db-3 should be
-dnl named and where the db-3 header file is located.  arg.
-AC_DEFUN(BERKELEY_DB_CHK_LIB,
-[      for dbname in db-3.2 db3.2 db-3.1 db3.1 db-3 db3 db
-         do
-           AC_CHECK_LIB($dbname, db_create, SASL_DB_LIB="-l$dbname";
-             dblib="berkeley"; break, dblib="no")
-         done
-       if test "$dblib" = "no"; then
-         AC_CHECK_LIB(db, db_open, SASL_DB_LIB="-ldb";
-           dblib="berkeley"; dbname=db,
-           dblib="no")
-       fi
-])
-
-AC_DEFUN(BERKELEY_DB_CHK,
-[      dnl FreeBSD puts it in a wierd place
-       AC_CHECK_HEADER(db3/db.h,
-                       BERKELEY_DB_CHK_LIB()
-                       if test "$dblib" = "berkeley"; then
-                         AC_DEFINE(HAVE_DB3_DB_H)
-                       fi,
-               AC_CHECK_HEADER(db.h,
-                       	       BERKELEY_DB_CHK_LIB(),
-                               dblib="no"))
-])
-
-case "$dblib" in
-  berkeley)
-	BERKELEY_DB_CHK()
-	;;
-  gdbm)
-	AC_CHECK_HEADER(gdbm.h,
-			AC_CHECK_LIB(gdbm, gdbm_open, SASL_DB_LIB="-lgdbm",
-                                           dblib="no"),
-			dblib="no")
-	;;
-  ndbm)
-	dnl We want to attempt to use -lndbm if we can, just in case
-	dnl there's some version of it installed and overriding libc
-	AC_CHECK_HEADER(ndbm.h,
-			AC_CHECK_LIB(ndbm, dbm_open, SASL_DB_LIB="-lndbm",
-				AC_CHECK_FUNC(dbm_open,,dblib="no")),
-				dblib="no")
-	;;
-  auto_detect)
-        dnl How about berkeley db?
-	BERKELEY_DB_CHK()
-	if test "$dblib" = no; then
-	  dnl How about ndbm?
-	  AC_CHECK_HEADER(ndbm.h, 
-		AC_CHECK_LIB(ndbm, dbm_open,
-			     dblib="ndbm"; SASL_DB_LIB="-lndbm",
-		   	     dblib="weird"),
-		   dblib="no")
-	  if test "$dblib" = "weird"; then
-	    dnl Is ndbm in the standard library?
-            AC_CHECK_FUNC(dbm_open, dblib="ndbm", dblib="no")
-	  fi
-
-	  if test "$dblib" = no; then
-            dnl Can we use gdbm?
-   	    AC_CHECK_HEADER(gdbm.h,
-		AC_CHECK_LIB(gdbm, gdbm_open, dblib="gdbm";
-					     SASL_DB_LIB="-lgdbm", dblib="no"),
-  			     dblib="no")
-	  fi
-	fi
-	;;
-  none)
-	;;
-  no)
-	;;
-  *)
-	AC_MSG_WARN([Bad DB library implementation specified;])
-	AC_ERROR([Use either \"berkeley\", \"gdbm\", \"ndbm\" or \"none\"])
-	dblib=no
-	;;
-esac
-LIBS="$cmu_save_LIBS"
-
-AC_MSG_CHECKING(DB library to use)
-AC_MSG_RESULT($dblib)
-
-case "$dblib" in
-  gdbm) 
-    SASL_DB_BACKEND="db_${dblib}.lo"
-    AC_DEFINE(SASL_GDBM)
-    ;;
-  ndbm)
-    SASL_DB_BACKEND="db_${dblib}.lo"
-    AC_DEFINE(SASL_NDBM)
-    ;;
-  berkeley)
-    SASL_DB_BACKEND="db_${dblib}.lo"
-    AC_DEFINE(SASL_BERKELEYDB)
-    ;;
-  *)
-    AC_MSG_WARN([Disabling SASL authentication database support])
-    SASL_DB_BACKEND="db_none.lo"
-    SASL_DB_LIB=""
-    ;;
-esac
-AC_SUBST(SASL_DB_BACKEND)
-AC_SUBST(SASL_DB_LIB)
+dnl we extracted this to config/sasldb.m4
+SASL_DB_PATH_CHECK()
+SASL_DB_CHECK()
 
 AC_CHECK_LIB(dl, dlopen, SASL_DL_LIB="-ldl", SASL_DL_LIB="")
 AC_SUBST(SASL_DL_LIB)
 
+dnl Do we need leading underscores on our symbols?
+
+AC_CHECK_PROGS(NM, nm)
+
+AC_MSG_CHECKING(for underscore before symbols)
+AC_CACHE_VAL(sasl_cv_uscore,[
+    echo "main(){int i=1;}
+    foo(){int i=6;}" > conftest.c
+    ${CC} -o a.out conftest.c > /dev/null
+    if (${NM} a.out | grep _foo) > /dev/null; then
+      sasl_cv_uscore=yes
+    else
+      sasl_cv_uscore=no
+    fi])
+AC_MSG_RESULT($sasl_cv_uscore)
+rm -f conftest.c a.out
+
+if test $sasl_cv_uscore = yes; then
+  if test $ac_cv_lib_dl_dlopen = yes ; then
+	AC_MSG_CHECKING(whether dlsym adds the underscore for us)
+	AC_CACHE_VAL(sasl_cv_dlsym_adds_uscore,AC_TRY_RUN( [
+#include <dlfcn.h>
+#include <stdio.h>
+foo() { int i=0;}
+main() { void *self, *ptr1, *ptr2; self=dlopen(NULL,RTLD_LAZY);
+    if(self) { ptr1=dlsym(self,"foo"); ptr2=dlsym(self,"_foo");
+    if(ptr1 && !ptr2) exit(0); } exit(1); } 
+], [sasl_cv_dlsym_adds_uscore=yes], sasl_cv_dlsym_adds_uscore=no
+	AC_DEFINE(DLSYM_NEEDS_UNDERSCORE),
+	AC_MSG_WARN(cross-compiler, we'll do our best)))
+
+      AC_MSG_RESULT($sasl_cv_dlsym_adds_uscore)
+  fi
+fi
+
 dnl See if we can provide a default logging function...
 AC_CHECK_FUNCS(syslog)
 
-LIB_CRYPT=""
-AC_CHECK_FUNC(crypt, cmu_have_crypt=yes,
-  AC_CHECK_LIB(crypt, crypt,
-	       LIB_CRYPT="-lcrypt"; cmu_have_crypt=yes,
-	       cmu_have_crypt=no))
-AC_SUBST(LIB_CRYPT)
-
 CMU_SOCKETS
-
-AC_ARG_ENABLE(sia, [  --enable-sia            enable SIA authentication [no] ],
-  sia=$enableval,
-  sia=no)
-LIB_SIA=""
-if test "$sia" != no; then
-  if test -f /etc/sia/matrix.conf; then
-    AC_DEFINE(HAVE_SIA)
-    LIB_SIA="-lsecurity -ldb -lm -laud"
-  else
-    AC_ERROR([No support for SIA found])
-  fi
-fi
-AC_SUBST(LIB_SIA)
 
 AC_ARG_WITH(pam, [  --with-pam=DIR          use PAM (rooted in DIR) [yes] ],
 	with_pam=$withval,
@@ -294,7 +217,7 @@ if test "$with_pam" != no; then
   LIBS="$cmu_save_LIBS"
 fi
 
-AC_MSG_CHECKING(PAM support)
+AC_MSG_CHECKING(for PAM support)
 AC_MSG_RESULT($with_pam)
 LIB_PAM=""
 if test "$with_pam" != no; then
@@ -314,11 +237,11 @@ if test "$with_saslauthd" != no; then
   AC_DEFINE_UNQUOTED(PATH_SASLAUTHD_RUNDIR, "$with_saslauthd")
 fi
 AM_CONDITIONAL(SASLAUTHD, test "$with_saslauthd" != no)
-
-AC_CHECK_FUNCS(getspnam getuserpw, break)
+AC_MSG_CHECKING(if I should include saslauthd)
+AC_MSG_RESULT($with_saslauthd)
 
 AC_ARG_WITH(pwcheck,
-[  --with-pwcheck=DIR      enable use of the pwcheck daemonusing statedir DIR ],
+[  --with-pwcheck=DIR      enable depricated pwcheck daemonusing statedir DIR ],
 	with_pwcheck=$withval,
 	with_pwcheck=no)
 if test "$with_pwcheck" != no; then
@@ -331,6 +254,30 @@ if test "$with_pwcheck" != no; then
    AC_SUBST(PWCHECKMETH)
 fi
 AM_CONDITIONAL(PWCHECK, test "$with_pwcheck" != no)
+AC_MSG_CHECKING(if I should include pwcheck)
+AC_MSG_RESULT($with_pwcheck)
+
+AC_ARG_ENABLE(alwaystrue, [  --enable-alwaystrue     enable the alwaystrue password verifier (discouraged)],
+		enable_alwaystrue=$enableval,
+		enable_alwaystrue=no)
+if test "$enable_alwaystrue" = yes; then
+  AC_DEFINE(HAVE_ALWAYSTRUE)
+fi
+AC_MSG_CHECKING(if I should include the alwaystrue verifier)
+AC_MSG_RESULT($enable_alwaystrue)
+
+dnl sasl_checkapop support
+AC_ARG_ENABLE(checkapop, [  --enable-checkapop      enable use of sasl_checkapop [yes] ],
+  checkapop=$enableval,
+  checkapop=yes)
+
+AC_MSG_CHECKING(if we should enable sasl_checkapop)
+if test "$checkapop" != no; then
+  AC_MSG_RESULT(enabled)
+  AC_DEFINE(DO_SASL_CHECKAPOP)
+else
+  AC_MSG_RESULT(disabled)
+fi
 
 dnl CRAM-MD5
 AC_ARG_ENABLE(cram, [  --enable-cram           enable CRAM-MD5 authentication [yes] ],
@@ -341,70 +288,18 @@ AC_MSG_CHECKING(CRAM-MD5)
 if test "$cram" != no; then
   AC_MSG_RESULT(enabled)
   SASL_MECHS="$SASL_MECHS libcrammd5.la"
+  SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/cram.o"
+  AC_DEFINE(STATIC_CRAMMD5)
 else
   AC_MSG_RESULT(disabled)
 fi
 
-
-dnl SCRAM-MD5
-AC_ARG_ENABLE(scram, [  --enable-scram          enable unsupported SCRAM-MD5 authentication [no] ],
-  scram=$enableval,
-  scram=no)
-
-AC_MSG_CHECKING(SCRAM-MD5)
-if test "$scram" != no; then
-  AC_MSG_RESULT(enabled)
-  SASL_MECHS="$SASL_MECHS libscrammd5.la"
-else
-  AC_MSG_RESULT(disabled)
-fi
+SASL_DES_CHK
 
 dnl DIGEST-MD5
 AC_ARG_ENABLE(digest, [  --enable-digest         enable DIGEST-MD5 authentication [yes] ],
   digest=$enableval,
   digest=yes)
-
-AC_ARG_WITH(des, [  --with-des=DIR          with DES (look in DIR) [yes] ],
-	with_des=$withval,
-	with_des=yes)
-
-LIB_DES=""
-if test "$with_des" != no; then
-  if test -d $with_des; then
-    CPPFLAGS="$CPPFLAGS -I${with_des}/include"
-    LDFLAGS="$LDFLAGS -L${with_des}/lib"
-  fi
-  AC_CHECK_LIB(des, des_pcbc_encrypt, [LIB_DES="-ldes";
-				       with_des=yes], with_des=no)
-  if test "$with_des" = no; then
-    AC_CHECK_LIB(des524, des_pcbc_encrypt, [LIB_DES="-ldes524";
-				       with_des=yes], with_des=no)
-  fi
-  if test "$with_des" = no; then
-    dnl if openssl is around, we might be able to use that for des
-
-    dnl if openssl has been compiled with the rsaref2 libraries,
-    dnl we need to include the rsaref libraries in the crypto check
-    LIB_RSAREF=""
-    AC_CHECK_LIB(rsaref, RSAPublicEncrypt,
-                 LIB_RSAREF="-lRSAglue -lrsaref"; cmu_have_rsaref=yes,
-                 cmu_have_rsaref=no)
-
-    AC_CHECK_LIB(crypto, des_pcbc_encrypt, 
-	AC_CHECK_HEADER(openssl/des.h, [AC_DEFINE(WITH_SSL_DES)
-					LIB_DES="-lcrypto";
-					with_des=yes],
-			with_des=no), 
-        with_des=no, $LIB_RSAREF)
-  fi
-fi
-
-dnl if test "$with_des" != no; then
-dnl   AC_DEFINE(WITH_DES)
-dnl  LIB_DES="-ldes"
-dnl fi
-
-AC_SUBST(LIB_DES)
 
 if test "$digest" != no; then
   dnl In order to compile digest, we should look for need libdes.
@@ -421,156 +316,63 @@ AC_MSG_CHECKING(DIGEST-MD5)
 if test "$digest" != no; then
   AC_MSG_RESULT(enabled)
   SASL_MECHS="$SASL_MECHS libdigestmd5.la"
+  SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/digestmd5.o"
+  AC_DEFINE(STATIC_DIGESTMD5)
 else
   AC_MSG_RESULT(disabled)
 fi
 
+dnl OTP
+AC_ARG_ENABLE(otp, [  --enable-otp            enable OTP authentication [no] ],
+  otp=$enableval,
+  otp=yes)
 
-dnl KERBEROS_V4
-AC_ARG_ENABLE(krb4, [  --enable-krb4           enable KERBEROS_V4 authentication [yes] ],
-  krb4=$enableval,
-  krb4=yes)
-
-if test "$krb4" != no; then
-  dnl In order to compile kerberos4, we need libkrb and libdes.
-
-  dnl we might need -lresolv for kerberos
-  AC_CHECK_LIB(resolv,res_search)
-
-  dnl if we were ambitious, we would look more aggressively for the
-  dnl krb4 install
-  if test -d ${krb4}; then
-     AC_CACHE_CHECK(for Kerberos includes, cyrus_krbinclude, [
-       for krbhloc in include/kerberosIV include/kerberos include
-       do
-         if test -f ${krb4}/${krbhloc}/krb.h ; then
-           cyrus_krbinclude=${krb4}/${krbhloc}
-           break
-         fi
-       done
-       ])
-
-     if test -n "${cyrus_krbinclude}"; then
-       CPPFLAGS="$CPPFLAGS -I${cyrus_krbinclude}"
-     fi
-     LDFLAGS="$LDFLAGS -L$krb4/lib"
-  fi
-
-  if test "$with_des" != no; then
-    AC_CHECK_HEADER(krb.h,
-      AC_CHECK_LIB(com_err, com_err,
-	AC_CHECK_LIB(krb, krb_mk_priv, COM_ERR="-lcom_err",
-                     krb4=no, -ldes -lcom_err),
-	AC_CHECK_LIB(krb, krb_mk_priv, COM_ERR="", krb4=no, -ldes)))
-
-  else
-    AC_WARN(No DES library found for Kerberos V4 support)
-    krb4=no
-  fi
-dnl check for MIT Kerberos for Macintosh 4 on Mac OS X
-  if test "$krb4" = "no"; then
-    if test "$with_des" != "no"; then
-	AC_CHECK_HEADER(krb.h,
-	  AC_CHECK_LIB(krb4, krb_mk_priv, krb4=kfm, krb4=no))
-    fi
-  fi
-fi
-
-AC_MSG_CHECKING(KERBEROS_V4)
-if test "$krb4" = kfm; then
-  AC_MSG_RESULT(MIT KfM 4.0)
-  SASL_MECHS="$SASL_MECHS libkerberos4.la"
-  AC_DEFINE(HAVE_KRB)
-  SASL_KRB_LIB="-lkrb4 -ldes524"
-  AC_SUBST(SASL_KRB_LIB)
-  AC_DEFINE(HAVE_MIT_KFM)
-else
-if test "$krb4" != no; then
+AC_MSG_CHECKING(OTP)
+if test "$otp" != no; then
   AC_MSG_RESULT(enabled)
-  SASL_MECHS="$SASL_MECHS libkerberos4.la"
-  AC_DEFINE(HAVE_KRB)
-  SASL_KRB_LIB="-lkrb -ldes $COM_ERR"
-  AC_SUBST(SASL_KRB_LIB)
-else
-  AC_MSG_RESULT(disabled)
-fi
-fi
+  SASL_MECHS="$SASL_MECHS libotp.la"
+  SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/otp.o"
+  AC_DEFINE(STATIC_OTP)
 
-dnl GSSAPI
-AC_ARG_ENABLE(gssapi, [  --enable-gssapi	  enable GSSAPI authentication [yes] ],
-  gssapi=$enableval,
-  gssapi=yes)
+  dnl Test for OPIE
+  AC_ARG_WITH(with-opie,[  --with-opie=PATH        use OPIE (One Time Passwords in Everything) from PATH],
+	with_opie="${withval}")
 
-if test "$gssapi" != no; then
-  if test -d ${gssapi}; then
-     CPPFLAGS="$CPPFLAGS -I$gssapi/include"
-     LDFLAGS="$LDFLAGS -L$gssapi/lib"
-  fi
-  AC_CHECK_HEADER(gssapi.h, AC_DEFINE(HAVE_GSSAPI_H),
-    AC_CHECK_HEADER(gssapi/gssapi.h,, AC_WARN(Disabling GSSAPI); gssapi=no))
-fi
+  case "$with_opie" in
+	""|yes) 
+		AC_CHECK_LIB(opie, opiechallenge,
+			AC_CHECK_HEADER(opie.h, with_opie="yes",
+					with_opie="no"),
+			with_opie="no")
+		;;
+	*)
+		if test -d $with_opie; then
+		  CPPFLAGS="${CPPFLAGS} -I${with_opie}/include"
+		  LDFLAGS="${LDFLAGS} -L${with_opie}/lib"
+		else
+		  with_opie="no"
+		fi
+		;;
+  esac
 
-if test "$gssapi" != no; then
-  dnl We need to find out which gssapi implementation we are
-  dnl using. Supported alternatives are: MIT Kerberos 5 and
-  dnl Heimdal Kerberos 5 (http://www.pdc.kth.se/heimdal)
-  dnl
-  dnl The choice is reflected in GSSAPIBASE_LIBS
-  dnl we might need libdb
-  AC_CHECK_LIB(db, db_open)
+  AC_MSG_CHECKING(for OPIE)
+  AC_MSG_RESULT($with_opie)
 
-  gss_impl="mit";
-  AC_CHECK_LIB(resolv,res_search)
-  if test -d ${gssapi}; then 
-     CPPFLAGS="$CPPFLAGS -I$gssapi/include"
-     LDFLAGS="$LDFLAGS -L$gssapi/lib"
-  fi
-
-# the base64_decode check fails because libroken has dependencies
-# FIXME: this is probabally non-optimal as well
-  AC_CHECK_LIB(krb5,krb5_vlog,gss_impl="heimdal",,)
-#  AC_CHECK_LIB(roken,base64_decode,gss_impl="heimdal",, $LIB_CRYPT)
-
-  if test -d ${gssapi}; then
-     GSSAPIBASE_LIBS="-L$gssapi/lib"
-  fi
-
-  if test "$gss_impl" = mit; then
-     GSSAPIBASE_LIBS="$GSSAPIBASE_LIBS -lgssapi_krb5 -lkrb5 -lk5crypto -lcom_err"
-  elif test "$gss_impl" = "heimdal"; then
-     GSSAPIBASE_LIBS="$GSSAPIBASE_LIBS -lgssapi -lkrb5 -ldes -lasn1 -lroken ${LIB_CRYPT} -lcom_err"
+  if test "$with_opie" = no; then
+    dnl In order to compile server-side OTP, we need OPIE.
+    AC_WARN([Disabling server-side OTP support])
   else
-     gssapi="no"
-     AC_WARN(Disabling GSSAPI)
+    AC_DEFINE(HAVE_OPIE)
+    OTP_LIBS="-lopie"
+    AC_SUBST(OTP_LIBS)
   fi
-
-fi
-
-if test "$ac_cv_header_gssapi_h" = "yes"; then
-  AC_EGREP_HEADER(GSS_C_NT_HOSTBASED_SERVICE, gssapi.h,
-    AC_DEFINE(HAVE_GSS_C_NT_HOSTBASED_SERVICE))
-elif test "$ac_cv_header_gssapi_gssapi_h"; then
-  AC_EGREP_HEADER(GSS_C_NT_HOSTBASED_SERVICE, gssapi/gssapi.h,
-    AC_DEFINE(HAVE_GSS_C_NT_HOSTBASED_SERVICE))
-fi
-
-GSSAPI_LIBS=""
-AC_MSG_CHECKING(GSSAPI)
-if test "$gssapi" != no; then
-  AC_MSG_RESULT(with implementation ${gss_impl})
-  AC_CHECK_LIB(ndbm,dbm_open,GSSAPIBASE_LIBS="$GSSAPIBASE_LIBS -lndbm")
-  AC_CHECK_LIB(resolv,res_search,GSSAPIBASE_LIBS="$GSSAPIBASE_LIBS -lresolv")
-  SASL_MECHS="$SASL_MECHS libgssapiv2.la"
-
-  cmu_save_LIBS="$LIBS"
-  LIBS="$LIBS $GSSAPIBASE_LIBS"
-  AC_CHECK_FUNCS(gsskrb5_register_acceptor_identity)
-  LIBS="$cmu_save_LIBS"
 else
   AC_MSG_RESULT(disabled)
 fi
-AC_SUBST(GSSAPI_LIBS)
-AC_SUBST(GSSAPIBASE_LIBS)
+
+SASL_KERBEROS_V4_CHK
+SASL_GSSAPI_CHK
+SASL_PLAIN_CHK
 
 dnl ANONYMOUS
 AC_ARG_ENABLE(anon, [  --enable-anon           enable ANONYMOUS authentication [yes] ],
@@ -581,38 +383,8 @@ AC_MSG_CHECKING(ANONYMOUS)
 if test "$anon" != no; then
   AC_MSG_RESULT(enabled)
   SASL_MECHS="$SASL_MECHS libanonymous.la"
-else
-  AC_MSG_RESULT(disabled)
-fi
-
-
-dnl PLAIN
-AC_ARG_ENABLE(plain, [  --enable-plain          enable PLAIN authentication [yes] ],
-  plain=$enableval,
-  plain=yes)
-
-PLAIN_LIBS=""
-if test "$plain" != no; then
-  dnl In order to compile plain, we need crypt.
-  if test "$cmu_have_crypt" = yes; then
-    PLAIN_LIBS=$LIB_CRYPT
-  fi
-  if test "$krb4" != "no"; then
-    PLAIN_LIBS="$PLAIN_LIBS $SASL_KRB_LIB"
-  fi  
-  if test "$with_pam" != no; then
-    PLAIN_LIBS="$PLAIN_LIBS $LIB_PAM"
-  fi
-  if test "$sia" != no; then
-    PLAIN_LIBS="$PLAIN_LIBS $LIB_SIA"
-  fi
-fi
-AC_SUBST(PLAIN_LIBS)
-
-AC_MSG_CHECKING(PLAIN)
-if test "$plain" != no; then
-  AC_MSG_RESULT(enabled)
-  SASL_MECHS="$SASL_MECHS libplain.la"
+  SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/anonymous.o"
+  AC_DEFINE(STATIC_ANONYMOUS)
 else
   AC_MSG_RESULT(disabled)
 fi
@@ -626,12 +398,14 @@ AC_MSG_CHECKING(LOGIN)
 if test "$login" != no; then
   AC_MSG_RESULT(enabled)
   SASL_MECHS="$SASL_MECHS liblogin.la"
+  SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/login.o"
+  AC_DEFINE(STATIC_LOGIN)
 else
   AC_MSG_RESULT(disabled)
 fi
 
 dnl SRP
-AC_ARG_ENABLE(srp, [  --enable-srp           enable SRP authentication [no] ],
+AC_ARG_ENABLE(srp, [  --enable-srp            enable SRP authentication [no] ],
   srp=$enableval,
   srp=no)
 
@@ -642,22 +416,27 @@ if test "$srp" != no; then
   SRP_LIBS="-lgmp -lcrypto"
   AC_SUBST(SRP_LIBS)
   SASL_MECHS="$SASL_MECHS libsrp.la"
+  SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/srp.o"
+  AC_DEFINE(STATIC_SRP)
 else
   AC_MSG_RESULT(disabled)
 fi
 
-AC_SUBST(SASL_MECHS)
+# and add in the plugin_common file (it's shared)
+SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/plugin_common.o"
 
+AC_SUBST(SASL_MECHS)
+AC_SUBST(SASL_STATIC_OBJS)
 
 AC_ARG_WITH(plugindir, [  --with-plugindir=DIR    set the directory where plugins will
-                          be found [/usr/lib/sasl] ],
+                          be found [/usr/lib/sasl2] ],
   plugindir=$withval,
-  plugindir=/usr/lib/sasl)
+  plugindir=/usr/lib/sasl2)
 AC_DEFINE_UNQUOTED(PLUGINDIR, "$plugindir")
 AC_SUBST(plugindir)
 
 dnl look for rc4 libraries. we accept the CMU one or one from openSSL
-AC_ARG_WITH(rc4, [  --with-rc4=DIR          use internal rc4 routines [yes] ],
+AC_ARG_WITH(rc4, [  --with-rc4              use internal rc4 routines [yes] ],
 	with_rc4=$withval,
 	with_rc4=yes)
 
@@ -673,9 +452,98 @@ case "$host_os" in
 esac
 AM_CONDITIONAL(MACOSX, test "$building_for_macosx" = yes)
 
-AC_HEADER_DIRENT
-AC_HEADER_STDC
-AC_CHECK_FUNCS(strchr memcpy getpwnam getspnam gettimeofday)
+dnl dmalloc tests
+AC_MSG_CHECKING(for dmalloc library)
+AC_ARG_WITH(dmalloc, [  --with-dmalloc=DIR      with DMALLOC support (for test applications) [no] ],
+	with_dmalloc=$withval,
+	with_dmalloc=no)
+
+DMALLOC_LIBS=""
+
+if test "$with_dmalloc" != "no"; then
+   if test "$with_dmalloc" = "yes"; then
+	with_dmalloc="/usr/local"
+   fi
+
+   if test -r "$with_dmalloc/libdmalloc.a"; then
+	DMALLOC_LIBS="$with_dmalloc/libdmalloc.a"
+	AC_DEFINE(WITH_DMALLOC)
+	AC_MSG_RESULT(yes)
+   elif test -r "$with_dmalloc/lib/libdmalloc.a"; then
+	DMALLOC_LIBS="$with_dmalloc/lib/libdmalloc.a"
+	AC_DEFINE(WITH_DMALLOC)
+	AC_MSG_RESULT(yes)
+   else
+	AC_MSG_ERROR(cannot find dmalloc library, please check your installation.)
+   fi
+else
+   AC_MSG_RESULT(no)
+fi
+
+AC_SUBST(DMALLOC_LIBS)
+
+dnl sfio tests
+AC_MSG_CHECKING(for sfio library)
+AC_ARG_WITH(sfio, [  --with-sfio=DIR         with SFIO support (for smtptest/libsfsasl) [no] ],
+	with_sfio=$withval,
+	with_sfio=no)
+
+if test "$with_sfio" != "no"; then
+   if test "$with_sfio" = "yes"; then
+	with_sfio="/usr/local"
+   fi
+
+   AC_DEFUN(SFIO_INC_CHK,
+	[if test -r "$with_sfio$1/sfio.h"; then SFIO_DIR=$with_sfio;
+					      SFIO_INC_DIR=$with_sfio$1])
+
+   AC_DEFUN(SFIO_LIB_CHK,[
+		str="$SFIO_DIR/$1/libsfio.*"
+		for i in `echo $str`; do
+			if test -r $i; then
+				SFIO_LIBDIR=$SFIO_DIR/$1
+				break 2
+			fi
+		done
+		])
+
+   SFIO_INC_CHK()
+   el[]SFIO_INC_CHK(/include)
+   el[]SFIO_INC_CHK(/include/sfio)
+   fi
+
+   if test -z "$SFIO_DIR"; then
+	AC_MSG_ERROR(Cannot find sfio.h, Please check your SFIO installation.)
+   fi
+
+   SFIO_LIB_CHK(lib)
+   SFIO_LIB_CHK(lib/sfio)
+
+   if test -z "$SFIO_LIBDIR"; then
+	AC_MSG_ERROR(Cannot find sfio library, Please check your SFIO installation.)
+   fi
+
+   SFIO_INC_FLAGS="-I$SFIO_INC_DIR"
+   SFIO_LIB_FLAGS="-L$SFIO_LIBDIR -lsfio"
+   SMTPTEST_PROGRAM="smtptest"
+   SASL_UTIL_LIBS_EXTRA=libsfsasl2.la
+   SASL_UTIL_HEADERS_EXTRA=sfsasl.h
+
+   AC_MSG_RESULT(yes)
+else
+   AC_MSG_RESULT(no)
+   SFIO_INC_FLAGS=""
+   SFIO_LIB_FLAGS=""
+   SMTPTEST_PROGRAM=""
+   SASL_UTIL_LIBS_EXTRA=""
+   SASL_UTIL_HEADERS_EXTRA=""
+fi
+
+AC_SUBST(SFIO_INC_FLAGS)
+AC_SUBST(SFIO_LIB_FLAGS)
+AC_SUBST(SMTPTEST_PROGRAM)
+AC_SUBST(SASL_UTIL_LIBS_EXTRA)
+AC_SUBST(SASL_UTIL_HEADERS_EXTRA)
 
 dnl check for getsubopt
 sasl_cv_getsubopt=no
@@ -694,27 +562,63 @@ AC_CHECK_FUNC(vsnprintf, [AC_DEFINE(HAVE_VSNPRINTF)], [sasl_cv_snprintf=yes])
 if test $sasl_cv_snprintf = yes; then
 	LIBOBJS="$LIBOBJS snprintf.o"
         SNPRINTFOBJS="snprintf.o"
+        LTSNPRINTFOBJS="snprintf.lo"
 fi
 AC_SUBST(SNPRINTFOBJS)
+AC_SUBST(LTSNPRINTFOBJS)
+
+dnl do we need to link in -lresolv?
+AC_CHECK_LIB(resolv, inet_aton)
+
+dnl Check for getaddrinfo
+GETADDRINFOOBJS=""
+sasl_cv_getaddrinfo=no
+IPv6_CHECK_FUNC(getaddrinfo,
+		[AC_DEFINE(HAVE_GETADDRINFO)], [sasl_cv_getaddrinfo=yes])
+if test $sasl_cv_getaddrinfo = yes; then
+    LIBOBJS="$LIBOBJS getaddrinfo.o"
+    GETADDRINFOOBJS="getaddrinfo.o"
+    LTGETADDRINFOOBJS="getaddrinfo.lo"
+fi
+AC_SUBST(GETADDRINFOOBJS)
+AC_SUBST(LTGETADDRINFOOBJS)
+
+dnl Check for getnameinfo
+GETNAMEINFOOBJS=""
+sasl_cv_getnameinfo=no
+IPv6_CHECK_FUNC(getnameinfo,
+		[AC_DEFINE(HAVE_GETNAMEINFO)], [sasl_cv_getnameinfo=yes])
+if test $sasl_cv_getnameinfo = yes; then
+	LIBOBJS="$LIBOBJS getnameinfo.o"
+        GETNAMEINFOOBJS="getnameinfo.o"
+        LTGETNAMEINFOOBJS="getnameinfo.lo"
+fi
+AC_SUBST(GETNAMEINFOOBJS)
+AC_SUBST(LTGETNAMEINFOOBJS)
 
 LTLIBOBJS=`echo "$LIBOBJS" | sed 's/\.o/.lo/g'`
+AC_SUBST(LIBOBJS)
 AC_SUBST(LTLIBOBJS)
 
-AC_CHECK_HEADERS(getopt.h unistd.h crypt.h pwd.h shadow.h paths.h)
 AC_C_CONST
 AC_C_INLINE
-
+AC_TYPE_MODE_T
+AC_TYPE_PID_T
 AC_TYPE_SIGNAL
 
-AC_CHECK_HEADER(sfio.h,
-	        SASL_UTIL_LIBS_EXTRA=libsfsasl.la
-	          SASL_UTIL_HEADERS_EXTRA=sfsasl.h,
-                SASL_UTIL_LIBS_EXTRA=""
-                  SASL_UTIL_HEADERS_EXTRA="")
-AC_SUBST(SASL_UTIL_LIBS_EXTRA)
-AC_SUBST(SASL_UTIL_HEADERS_EXTRA)
+AC_HEADER_TIME
+AC_HEADER_STDC
+AC_HEADER_DIRENT
+AC_HEADER_SYS_WAIT
+AC_CHECK_HEADERS(fcntl.h limits.h malloc.h paths.h strings.h sys/file.h sys/time.h syslog.h unistd.h inttypes.h sys/uio.h)
 
-AC_CHECK_FUNCS(getdomainname getpassphrase getpid)
+IPv6_CHECK_SS_FAMILY()
+IPv6_CHECK_SA_LEN()
+IPv6_CHECK_SOCKLEN_T()
+
+#AC_FUNC_MEMCMP
+#AC_FUNC_VPRINTF
+AC_CHECK_FUNCS(gethostname getdomainname getpwnam getspnam gettimeofday memcpy mkdir select socket strchr strdup strerror strspn strstr strtol jrand48)
 
 if test $enable_cmulocal = yes; then
     AC_WARN([enabling CMU local kludges])
@@ -722,21 +626,29 @@ if test $enable_cmulocal = yes; then
     AC_DEFINE_UNQUOTED(PREFER_MECH, "KERBEROS_V4")
 fi
 
+AC_EGREP_HEADER(sockaddr_storage, sys/socket.h,
+		AC_DEFINE(HAVE_STRUCT_SOCKADDR_STORAGE))
+
 AC_SUBST(DIRS)
+
+AC_CONFIG_SUBDIRS(saslauthd)
 
 AC_OUTPUT(Makefile
 include/Makefile
-lib/Makefile
+sasldb/Makefile
 plugins/Makefile
+lib/Makefile
 utils/Makefile
 doc/Makefile
 sample/Makefile
 java/Makefile
 java/CyrusSasl/Makefile
+java/Test/Makefile
 java/javax/Makefile
 java/javax/security/Makefile
 java/javax/security/auth/Makefile
 java/javax/security/auth/callback/Makefile
 pwcheck/Makefile
-saslauthd/Makefile
 man/Makefile)
+
+echo Configuration Complete.  Type \'make\' to build.

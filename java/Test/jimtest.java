@@ -221,6 +221,7 @@ class jimtest
     static void usage()
     {
 	System.out.println("Usage:");
+	System.out.println("jimtest [-k minssf] [-l maxssf] [-m mech] [-p port] server");
 	System.exit(1);
     }
 
@@ -238,8 +239,7 @@ class jimtest
 
         while ((i < (args.length-1) ) && (args[i].startsWith("-"))) {
 	    arg = args[i++];
-	    
-	    
+	    	    
 	    // use this type of check for arguments that require arguments
 	    if (arg.equals("-k")) {
 		if (i < args.length)

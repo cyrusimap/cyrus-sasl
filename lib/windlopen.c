@@ -1,9 +1,9 @@
 /* windlopen.c--Windows dynamic loader interface
  * Ryan Troll
+ * $Id: windlopen.c,v 1.11 2001/12/04 02:05:27 rjs3 Exp $
  */
-
 /* 
- * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -112,19 +112,16 @@ int _sasl_get_mech_list(const char *entryname,
        * ValueName: "Really Cool Plugin"
        * Location: "c:\sasl\plugins\cool.dll"
        */
-
       HINSTANCE library    = NULL;
       FARPROC entry_point = NULL;
 
       /* Found a library.  Now open it.
        */
-      VL(("entry is = [%s]\n", Location));
-
-
       library = LoadLibrary(Location);
       if (library == NULL) {
         DWORD foo = GetLastError();
-        VL(("Unable to dlopen %s: %d\n", Location, foo));
+	_sasl_log(NULL, SASL_LOG_ERR, "Unable to dlopen %s: %d",
+		  Location, foo);
         continue;
       }
 
@@ -133,7 +130,8 @@ int _sasl_get_mech_list(const char *entryname,
       entry_point = GetProcAddress(library, entryname);
         
       if (entry_point == NULL) {
-        VL(("can't get entry point %s: %d\n", entryname, GetLastError()));
+        _sasl_log(NULL, SASL_LOG_ERR,
+		  "can't get entry point %s: %d", entryname, GetLastError());
         FreeLibrary(library);
         continue;
       }
@@ -141,7 +139,8 @@ int _sasl_get_mech_list(const char *entryname,
       /* Opened the library, found the entrypoint.  Now add it.
        */
       if ((*add_plugin)(entry_point, (void *)library) != SASL_OK) {
-        VL(("add_plugin to list failed\n"));
+        _sasl_log(NULL, SASL_LOG_ERR,
+		  "add_plugin to list failed");
         FreeLibrary(library);
         continue;
       }

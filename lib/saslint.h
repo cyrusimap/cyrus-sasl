@@ -1,8 +1,10 @@
 /* saslint.h - internal SASL library definitions
+ * Rob Siemborski
  * Tim Martin
+ * $Id: saslint.h,v 1.34 2001/12/04 02:05:26 rjs3 Exp $
  */
 /* 
- * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,78 +49,193 @@
 #include <config.h>
 #include "sasl.h"
 #include "saslplug.h"
+#include "saslutil.h"
+#include "prop.h"
 
-extern int _sasl_common_init(void);
+/* #define'd constants */
+#define CANON_BUF_SIZE 256
 
-/* dlopen.c */
-extern int _sasl_get_mech_list(const char *entryname,
-			       const sasl_callback_t *getpath_callback,
-			       const sasl_callback_t *verifyfile_callback,
-			       int (*add_plugin)(void *,void *));
-extern int _sasl_get_plugin(const char *file,
-			    const char *entryname,
-			    const sasl_callback_t *verifyfile_callback,
-			    void **entrypoint,
-			    void **library);
+/* Error Handling Foo */
+/* Helpful Hints:
+ *  -Error strings are set as soon as possible (first function in stack trace
+ *   with a pointer to the sasl_conn_t.
+ *  -Error codes are set as late as possible (only in the sasl api functions),
+ *   thoug "as often as possible" also comes to mind to ensure correctness
+ *  -Errors from calls to _buf_alloc, _sasl_strdup, etc are assumed to be
+ *   memory errors.
+ *  -Only errors (error codes < SASL_OK) should be remembered
+ */
+#define RETURN(conn, val) { if(conn && (val) < SASL_OK) \
+                               (conn)->error_code = (val); \
+                            return (val); }
+#define MEMERROR(conn) {\
+    if(conn) sasl_seterror( (conn), 0, \
+                   "Out of Memory in " __FILE__ " near line %d", __LINE__ ); \
+    RETURN(conn, SASL_NOMEM) }
+#define PARAMERROR(conn) {\
+    if(conn) sasl_seterror( (conn), SASL_NOLOG, \
+                  "Parameter error in " __FILE__ " near line %d", __LINE__ ); \
+    RETURN(conn, SASL_BADPARAM) }
+#define INTERROR(conn, val) {\
+    if(conn) sasl_seterror( (conn), 0, \
+                   "Internal Error %d in " __FILE__ " near line %d", (val),\
+		   __LINE__ ); \
+    RETURN(conn, (val)) }
 
-extern const sasl_callback_t *
-_sasl_find_getpath_callback(const sasl_callback_t *callbacks);
+#ifndef PATH_MAX
+# ifdef _POSIX_PATH_MAX
+#  define PATH_MAX _POSIX_PATH_MAX
+# else
+#  define PATH_MAX 1024         /* arbitrary; probably big enough will
+                                 * probably only be 256+64 on
+                                 * pre-posix machines */
+# endif
+#endif
 
-extern const sasl_callback_t *
-_sasl_find_verifyfile_callback(const sasl_callback_t *callbacks);
-
-extern int _sasl_done_with_plugin(void *plugin);
-
-extern void (*_sasl_client_cleanup_hook)(void);
-extern void (*_sasl_server_cleanup_hook)(void);
-
-extern int (*_sasl_client_idle_hook)(sasl_conn_t *conn);
-extern int (*_sasl_server_idle_hook)(sasl_conn_t *conn);
-
-extern sasl_server_getsecret_t *_sasl_server_getsecret_hook;
-extern sasl_server_putsecret_t *_sasl_server_putsecret_hook;
-
-extern int _sasl_strdup(const char *in, char **out, int *outlen);
-
+/* Datatype Definitions */
 typedef struct {
   const sasl_callback_t *callbacks;
   const char *appname;
 } sasl_global_callbacks_t;
 
+typedef struct _sasl_external_properties 
+{
+    sasl_ssf_t ssf;
+    char *auth_id;
+} _sasl_external_properties_t;
+
+typedef struct buffer_info
+{ 
+    char *data;
+    unsigned curlen;
+    unsigned reallen;
+} buffer_info_t;
+
+typedef struct add_plugin_list 
+{
+    const char *entryname;
+    int (*add_plugin)(const char *, void *);
+} add_plugin_list_t;
+
+enum Sasl_conn_type { SASL_CONN_UNKNOWN = 0,
+		      SASL_CONN_SERVER = 1,
+                      SASL_CONN_CLIENT = 2 };
+
 struct sasl_conn {
+  enum Sasl_conn_type type;
+
   void (*destroy_conn)(sasl_conn_t *); /* destroy function */
 
   char *service;
 
-  int secflags;  /* security layer flags passed to sasl_*_new */
+  int flags;  /* flags passed to sasl_*_new */
+
+  /* IP information.  A buffer of size 52 is adequate for this in its
+     longest format (see sasl.h) */
   int got_ip_local, got_ip_remote;
-  struct sockaddr_in ip_local, ip_remote;
-  sasl_external_properties_t external;
+  char iplocalport[NI_MAXHOST + NI_MAXSERV];
+  char ipremoteport[NI_MAXHOST + NI_MAXSERV];
 
   void *context;
   sasl_out_params_t oparams;
 
   sasl_security_properties_t props;
+  _sasl_external_properties_t external;
 
   sasl_secret_t *secret;
 
   int (*idle_hook)(sasl_conn_t *conn);
   const sasl_callback_t *callbacks;
   const sasl_global_callbacks_t *global_callbacks; /* global callbacks
-						    * for this
 						    * connection */
   char *serverFQDN;
+
+  /* Pointers to memory that we are responsible for */
+  buffer_info_t *encode_buf;
+
+  int error_code;
+  char *error_buf, *errdetail_buf;
+  unsigned error_buf_len, errdetail_buf_len;
+  char *decode_buf;
+  unsigned decode_buf_len;
+
+  char user_buf[CANON_BUF_SIZE+1], authid_buf[CANON_BUF_SIZE+1];
 };
 
-extern int _sasl_conn_init(sasl_conn_t *conn,
-			   const char *service,
-			   int secflags,
-			   int (*idle_hook)(sasl_conn_t *conn),
-			   const char *local_domain,
-			   const sasl_callback_t *callbacks,
-			   const sasl_global_callbacks_t * global_callbacks);
+/* Server Conn Type Information */
 
-extern void _sasl_conn_dispose(sasl_conn_t *conn);
+typedef struct mechanism
+{
+    int version;
+    int condition; /* set to SASL_NOUSER if no available users;
+		      set to SASL_CONTINUE if delayed plugn loading */
+    char *plugname; /* for AUTHSOURCE tracking */
+    const sasl_server_plug_t *plug;
+    struct mechanism *next;
+    char *f;       /* where should i load the mechanism from? */
+} mechanism_t;
+
+typedef struct mech_list {
+  const sasl_utils_t *utils;  /* gotten from plug_init */
+
+  void *mutex;            /* mutex for this data */ 
+  mechanism_t *mech_list; /* list of mechanisms */
+  int mech_length;       /* number of mechanisms */
+} mech_list_t;
+
+typedef struct context_list 
+{
+    mechanism_t *mech;
+    void *context;     /* if NULL, this mech is disabled for this connection
+			* otherwise, use this context instead of a call
+			* to mech_new */
+    struct context_list *next;
+} context_list_t;
+
+typedef struct sasl_server_conn {
+    sasl_conn_t base; /* parts common to server + client */
+
+    char *mechlist_buf;
+    unsigned mechlist_buf_len;
+
+    char *user_realm; /* domain the user authenticating is in */
+    int sent_last; /* Have we already done the last send? */
+    int authenticated;
+    mechanism_t *mech; /* mechanism trying to use */
+    sasl_server_params_t *sparams;
+    context_list_t *mech_contexts;
+} sasl_server_conn_t;
+
+/* Client Conn Type Information */
+
+typedef struct cmechanism
+{
+    int version;
+
+    char *plugname;
+    const sasl_client_plug_t *plug;
+
+    struct cmechanism *next;  
+} cmechanism_t;
+
+typedef struct cmech_list {
+  const sasl_utils_t *utils; 
+
+  void *mutex;            /* mutex for this data */ 
+  cmechanism_t *mech_list; /* list of mechanisms */
+  int mech_length;       /* number of mechanisms */
+
+} cmech_list_t;
+
+typedef struct sasl_client_conn {
+  sasl_conn_t base; /* parts common to server + client */
+
+  cmechanism_t *mech;
+  sasl_client_params_t *cparams;
+
+  char *serverFQDN;
+
+} sasl_client_conn_t;
 
 typedef struct sasl_allocation_utils {
   sasl_malloc_t *malloc;
@@ -127,12 +244,63 @@ typedef struct sasl_allocation_utils {
   sasl_free_t *free;
 } sasl_allocation_utils_t;
 
+typedef struct sasl_mutex_utils {
+  sasl_mutex_alloc_t *alloc;
+  sasl_mutex_lock_t *lock;
+  sasl_mutex_unlock_t *unlock;
+  sasl_mutex_free_t *free;
+} sasl_mutex_utils_t;
+
 typedef struct sasl_log_utils_s {
   sasl_log_t *log;
 } sasl_log_utils_t;
 
-extern sasl_allocation_utils_t _sasl_allocation_utils;
+typedef int sasl_plaintext_verifier(sasl_conn_t *conn,
+				    const char *userid,
+				    const char *passwd,
+				    const char *service,
+				    const char *user_realm);
 
+struct sasl_verify_password_s {
+    char *name;
+    sasl_plaintext_verifier *verify;
+};
+
+/*
+ * globals & constants
+ */
+/*
+ * common.c
+ */
+extern const sasl_utils_t *sasl_global_utils;
+
+extern void (*_sasl_client_cleanup_hook)(void);
+extern void (*_sasl_server_cleanup_hook)(void);
+extern int (*_sasl_client_idle_hook)(sasl_conn_t *conn);
+extern int (*_sasl_server_idle_hook)(sasl_conn_t *conn);
+
+extern sasl_allocation_utils_t _sasl_allocation_utils;
+extern sasl_mutex_utils_t _sasl_mutex_utils;
+
+/*
+ * checkpw.c
+ */
+extern struct sasl_verify_password_s _sasl_verify_password[];
+
+/*
+ * dlopen.c and staticopen.c
+ */
+extern const int _is_sasl_server_static;
+
+/*
+ * server.c
+ */
+/* (this is a function call to ensure this is read-only to the outside) */
+extern int _is_sasl_server_active(void);
+
+/*
+ * Allocation and Mutex utility macros
+ */
 #define sasl_ALLOC(__size__) (_sasl_allocation_utils.malloc((__size__)))
 #define sasl_CALLOC(__nelem__, __size__) \
 	(_sasl_allocation_utils.calloc((__nelem__), (__size__)))
@@ -140,34 +308,61 @@ extern sasl_allocation_utils_t _sasl_allocation_utils;
 	(_sasl_allocation_utils.realloc((__ptr__), (__size__)))
 #define sasl_FREE(__ptr__) (_sasl_allocation_utils.free((__ptr__)))
 
-typedef struct sasl_mutex_utils {
-  sasl_mutex_new_t *new;
-  sasl_mutex_lock_t *lock;
-  sasl_mutex_unlock_t *unlock;
-  sasl_mutex_dispose_t *dispose;
-} sasl_mutex_utils_t;
-
-extern sasl_mutex_utils_t _sasl_mutex_utils;
-
-#define sasl_MUTEX_NEW() (_sasl_mutex_utils.new())
+#define sasl_MUTEX_ALLOC() (_sasl_mutex_utils.alloc())
 #define sasl_MUTEX_LOCK(__mutex__) (_sasl_mutex_utils.lock((__mutex__)))
 #define sasl_MUTEX_UNLOCK(__mutex__) (_sasl_mutex_utils.unlock((__mutex__)))
-#define sasl_MUTEX_DISPOSE(__mutex__) \
-	(_sasl_mutex_utils.dispose((__mutex__)))
+#define sasl_MUTEX_FREE(__mutex__) \
+	(_sasl_mutex_utils.free((__mutex__)))
+
+/* function prototypes */
+/*
+ * dlopen.c and staticopen.c
+ */
+/*
+ * The differences here are:
+ * _sasl_load_plugins loads all plugins from all files
+ * _sasl_get_plugin loads the LIBRARY for an individual file
+ * _sasl_done_with_plugins frees the LIBRARIES loaded by the above 2
+ * _sasl_locate_entry locates an entrypoint in a given library
+ */
+extern int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
+			       const sasl_callback_t *getpath_callback,
+			       const sasl_callback_t *verifyfile_callback);
+extern int _sasl_get_plugin(const char *file,
+			    const sasl_callback_t *verifyfile_cb,
+			    void **libraryptr);
+extern int _sasl_locate_entry(void *library, const char *entryname,
+                              void **entry_point);
+extern int _sasl_done_with_plugins();
+
+
+/*
+ * common.c
+ */
+extern const sasl_callback_t *
+_sasl_find_getpath_callback(const sasl_callback_t *callbacks);
+
+extern const sasl_callback_t *
+_sasl_find_verifyfile_callback(const sasl_callback_t *callbacks);
+
+extern int _sasl_common_init(void);
+
+extern int _sasl_conn_init(sasl_conn_t *conn,
+			   const char *service,
+			   int flags,
+			   enum Sasl_conn_type type,
+			   int (*idle_hook)(sasl_conn_t *conn),
+			   const char *serverFQDN,
+			   const char *iplocalport,
+			   const char *ipremoteport,
+			   const sasl_callback_t *callbacks,
+			   const sasl_global_callbacks_t *global_callbacks);
+extern void _sasl_conn_dispose(sasl_conn_t *conn);
 
 extern sasl_utils_t *
 _sasl_alloc_utils(sasl_conn_t *conn,
 		  sasl_global_callbacks_t *global_callbacks);
-
-extern int
-_sasl_free_utils(sasl_utils_t ** utils);
-
-extern sasl_server_getsecret_t *_sasl_db_getsecret;
-
-extern sasl_server_putsecret_t *_sasl_db_putsecret;
-
-extern int
-_sasl_server_check_db(const sasl_callback_t *verifyfile_cb);
+extern int _sasl_free_utils(const sasl_utils_t ** utils);
 
 extern int
 _sasl_getcallback(sasl_conn_t * conn,
@@ -175,41 +370,93 @@ _sasl_getcallback(sasl_conn_t * conn,
 		  int (**pproc)(),
 		  void **pcontext);
 
-extern int
+extern void
 _sasl_log(sasl_conn_t *conn,
-	  int priority,
-	  const char *plugin_name,
-	  int sasl_error,	/* %z */
-	  int error_value, /* %m */
-	  const char *format,
+	  int level,
+	  const char *fmt,
 	  ...);
 
-/* config file declarations (config.c) */
+void _sasl_get_errorbuf(sasl_conn_t *conn, char ***bufhdl, unsigned **lenhdl);
+int _sasl_add_string(char **out, int *alloclen, int *outlen, const char *add);
+
+/* More Generic Utilities in common.c */
+extern int _sasl_strdup(const char *in, char **out, int *outlen);
+
+/* Basically a conditional call to realloc(), if we need more */
+int _buf_alloc(char **rwbuf, unsigned *curlen, unsigned newlen);
+
+/* convert an iovec to a single buffer */
+int _iovec_to_buf(const struct iovec *vec,
+		  unsigned numiov, buffer_info_t **output);
+
+/* Convert between string formats and sockaddr formats */
+int _sasl_iptostring(const struct sockaddr *addr, socklen_t addrlen,
+		     char *out, unsigned outlen);
+int _sasl_ipfromstring(const char *addr, struct sockaddr *out,
+		       socklen_t outlen);
+
+/*
+ * external plugin (external.c)
+ */
+int external_client_init(const sasl_utils_t *utils,
+			 int max_version,
+			 int *out_version,
+			 sasl_client_plug_t **pluglist,
+			 int *plugcount);
+extern sasl_client_plug_t external_client_mech;
+int external_server_init(const sasl_utils_t *utils,
+			 int max_version,
+			 int *out_version,
+			 sasl_server_plug_t **pluglist,
+			 int *plugcount);
+extern sasl_server_plug_t external_server_mech;
+
+/*
+ * config file declarations (config.c)
+ */
 extern int sasl_config_init(const char *filename);
 extern const char *sasl_config_getstring(const char *key,const char *def);
 extern int sasl_config_getint(const char *key,int def);
 extern int sasl_config_getswitch(const char *key,int def);
 
-/* clear password checking declarations (checkpw.c) */
-typedef int sasl_plaintext_verifier(sasl_conn_t *conn,
-				    const char *userid,
-				    const char *passwd,
-				    const char *service,
-				    const char *user_realm,
-				    const char **reply);
-struct sasl_verify_password_s {
-    char *name;
-    sasl_plaintext_verifier *verify;
-};
+/* checkpw.c */
+#ifdef DO_SASL_CHECKAPOP
+extern int _sasl_auxprop_verify_apop(sasl_conn_t *conn,
+				     const char *userstr,
+				     const char *challenge,
+				     const char *response,
+				     const char *user_realm);
+#endif /* DO_SASL_CHECKAPOP */
 
-extern struct sasl_verify_password_s _sasl_verify_password[];
+/* Auxprop Plugin (checkpw.c) */
+extern int sasldb_auxprop_plug_init(const sasl_utils_t *utils,
+				    int max_version,
+				    int *out_version,
+				    sasl_auxprop_plug_t **plug,
+				    const char *plugname);
 
-extern int _sasl_sasldb_set_pass(sasl_conn_t *conn,
-				 const char *user, 
-				 const char *pass,
-				 unsigned passlen,
-				 const char *user_realm,
-				 int flags,
-				 const char **errstr);
+/*
+ * auxprop.c
+ */
+extern int _sasl_auxprop_add_plugin(void *p, void *library);
+extern void _sasl_auxprop_free(void);
+extern void _sasl_auxprop_lookup(sasl_server_params_t *sparams,
+				 unsigned flags,
+				 const char *user, unsigned ulen);
+
+/*
+ * canonusr.c
+ */
+void _sasl_canonuser_free();
+extern int internal_canonuser_init(const sasl_utils_t *utils,
+				   int max_version,
+				   int *out_version,
+				   sasl_canonuser_plug_t **plug,
+				   const char *plugname);
+extern int _sasl_canon_user(sasl_conn_t *conn,
+			    const char *user, unsigned ulen,
+			    const char *authid, unsigned alen,
+			    unsigned flags,
+			    sasl_out_params_t *oparams);
 
 #endif /* SASLINT_H */

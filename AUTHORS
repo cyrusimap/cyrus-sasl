@@ -1,6 +1,11 @@
 Tim Martin <tmartin@andrew.cmu.edu> wrote, debugged, and tested
 most of the code.
 
+Rob Siemborski <rjs3+@andrew.cmu.edu> wrote and tested the conversion
+to the SASLv2 API.
+
+Ken Murchison <ken@oceana.com> worked on the OTP and SRP plugins.
+
 Rob Earhart <earhart@cmu.edu> wrote the build/installation procedure,
 wrote and tested some of the code, and provided general guidance and
 coding advice.
@@ -16,5 +21,8 @@ based on Tim Martin's PLAIN plugin.
 
 Larry Greenfield <leg+sasl@andrew.cmu.edu> complained. a lot.
 
-Chris Newman <chris.newman@innosoft.com> wrote the initial version of
-the SASL API documented in sasl.h, saslutil.h, and saslplug.h.
+Chris Newman <chris.newman@innosoft.com> wrote the initial version of the
+SASL API, as well as the version 2 SASL API (documented in sasl.h,
+saslutil.h, saslplug.h, and prop.h).
+
+$Id: AUTHORS,v 1.8 2001/12/04 01:59:43 rjs3 Exp $

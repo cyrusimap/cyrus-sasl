@@ -1,8 +1,10 @@
 /* saslutil.c
- * Tim Martin 5/20/98
+ * Rob Siemborski
+ * Tim Martin
+ * $Id: saslutil.c,v 1.34 2001/12/04 02:05:27 rjs3 Exp $
  */
 /* 
- * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,6 +49,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
 #ifdef HAVE_GETTIMEOFDAY
 #include <sys/time.h>
 #endif
@@ -155,14 +158,18 @@ int sasl_encode64(const char *_in, unsigned inlen,
  *  in     -- input data
  *  inlen  -- length of input data
  *  out    -- output data (may be same as in, must have enough space)
+ *  outmax  -- max size of output buffer
  * result:
  *  outlen -- actual output length
  *
- * returns SASL_BADPROT on bad base64, SASL_OK on success
+ * returns:
+ * SASL_BADPROT on bad base64,
+ * SASL_BUFOVER if result won't fit,
+ * SASL_OK on success
  */
 
 int sasl_decode64(const char *in, unsigned inlen,
-		  char *out, unsigned *outlen)
+		  char *out, unsigned outmax, unsigned *outlen)
 {
     unsigned len = 0,lup;
     int c1, c2, c3, c4;
@@ -177,29 +184,29 @@ int sasl_decode64(const char *in, unsigned inlen,
     for (lup=0;lup<inlen/4;lup++)
     {
         c1 = in[0];
-        if (CHAR64(c1) == -1) return SASL_FAIL;
+        if (CHAR64(c1) == -1) return SASL_BADPROT;
         c2 = in[1];
-        if (CHAR64(c2) == -1) return SASL_FAIL;
+        if (CHAR64(c2) == -1) return SASL_BADPROT;
         c3 = in[2];
-        if (c3 != '=' && CHAR64(c3) == -1) return SASL_FAIL; 
+        if (c3 != '=' && CHAR64(c3) == -1) return SASL_BADPROT; 
         c4 = in[3];
-        if (c4 != '=' && CHAR64(c4) == -1) return SASL_FAIL;
+        if (c4 != '=' && CHAR64(c4) == -1) return SASL_BADPROT;
         in += 4;
         *out++ = (CHAR64(c1) << 2) | (CHAR64(c2) >> 4);
-        ++len;
+        if(++len >= outmax) return SASL_BUFOVER;
         if (c3 != '=') {
             *out++ = ((CHAR64(c2) << 4) & 0xf0) | (CHAR64(c3) >> 2);
-            ++len;
+            if(++len >= outmax) return SASL_BUFOVER;
             if (c4 != '=') {
                 *out++ = ((CHAR64(c3) << 6) & 0xc0) | CHAR64(c4);
-                ++len;
+                if(++len >= outmax) return SASL_BUFOVER;
             }
         }
     }
 
     *out=0; /* terminate string */
 
-    *outlen=len;
+    if(outlen) *outlen=len;
 
     return SASL_OK;
 }
@@ -211,12 +218,10 @@ int sasl_decode64(const char *in, unsigned inlen,
  * returns final length or 0 if not enough space
  */
 
-/* xxx has this ever been tested??? */
-
 int sasl_mkchal(sasl_conn_t *conn,
 		char *buf,
 		unsigned maxlen,
-		int hostflag)
+		unsigned hostflag)
 {
   sasl_rand_t *pool = NULL;
   unsigned long randnum;
@@ -349,7 +354,7 @@ void sasl_randseed (sasl_rand_t *rpool, const char *seed, unsigned len)
     rpool->initialized = 1;
     if (len > 6) len = 6;
     for (lup = 0; lup < len; lup += 2)
-	rpool->pool[lup] = (seed[lup] << 8) + seed[lup + 1];
+	rpool->pool[lup/2] = (seed[lup] << 8) + seed[lup + 1];
 }
 
 static void randinit(sasl_rand_t *rpool)
@@ -359,14 +364,16 @@ static void randinit(sasl_rand_t *rpool)
     if (!rpool->initialized) {
 	getranddata(rpool->pool);
 	rpool->initialized = 1;
-
-#ifdef __APPLE__
+#if !(defined(WIN32)||defined(macintosh))
+#ifndef HAVE_JRAND48
     {
 	long *foo = (long *)rpool->pool;
 	srandom(*foo);
     }
-#endif
+#endif /* HAVE_JRAND48 */
+#endif /* WIN32 */
     }
+
 }
 
 void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
@@ -377,19 +384,19 @@ void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
     
     /* init if necessary */
     randinit(rpool);
-
-#ifdef __APPLE__
-    for (lup=0;lup<len;lup++)
-	buf[lup] = (char) (random() >> 8);
-#else
+ 
 #if (defined(WIN32)||defined(macintosh))
     for (lup=0;lup<len;lup++)
 	buf[lup] = (char) (rand() >> 8);
 #else /* WIN32 */
+#ifdef HAVE_JRAND48
     for (lup=0; lup<len; lup++)
 	buf[lup] = (char) (jrand48(rpool->pool) >> 8);
+#else
+    for (lup=0;lup<len;lup++)
+	buf[lup] = (char) (random() >> 8);
+#endif /* HAVE_JRAND48 */
 #endif /* WIN32 */
-#endif
 }
 
 /* this function is just a bad idea all around, since we're not trying to
@@ -406,6 +413,10 @@ void sasl_churn (sasl_rand_t *rpool, const char *data, unsigned len)
     
     for (lup=0; lup<len; lup++)
 	rpool->pool[lup % 3] ^= data[lup];
+}
+
+void sasl_erasebuffer(char *buf, unsigned len) {
+    memset(buf, 0, len);
 }
 
 #ifdef WIN32

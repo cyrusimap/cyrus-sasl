@@ -42,7 +42,10 @@
 #
 ################################################################
 
-include_HEADERS = hmac-md5.h md5.h md5global.h sasl.h saslplug.h saslutil.h
+noinst_HEADERS = gai.h
+
+saslincludedir = $(includedir)/sasl
+saslinclude_HEADERS = hmac-md5.h md5.h md5global.h sasl.h saslplug.h saslutil.h prop.h
 
 noinst_PROGRAMS = makemd5
 
@@ -53,8 +56,7 @@ md5global.h: makemd5
 	./makemd5 md5global.h
 
 if MACOSX
-framedir = /Library/Frameworks/SASL.framework
+framedir = /Library/Frameworks/SASL2.framework
 frameheaderdir = $(framedir)/Versions/A/Headers
-frameheader_DATA = $(include_HEADERS)
+frameheader_DATA = $(saslinclude_HEADERS)
 endif
-

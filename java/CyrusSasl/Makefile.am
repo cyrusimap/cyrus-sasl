@@ -28,7 +28,7 @@ javasasl_version = 1:0:0
 javasasldir = $(prefix)/lib/java/classes/sasl/CyrusSasl
 javahtmldir = $(prefix)/html/sasl
 
-INCLUDES=$(JAVA_INCLUDES) -I$(top_srcdir)/include
+INCLUDES=-I$(top_srcdir)/include $(JAVA_INCLUDES)
 
 javasasl_JAVA = Sasl.java GenericClient.java \
 		ClientFactory.java \
@@ -43,7 +43,7 @@ CLASSES = $(javasasl_JAVA:.java=.class)
 
 lib_LTLIBRARIES = libjavasasl.la
 libjavasasl_la_SOURCES = javasasl.h javasasl.c
-libjavasasl_la_LDFLAGS = -export_dynamic -lsasl -version-info $(javasasl_version) $(wildcard ../lib/*.lo)
+libjavasasl_la_LDFLAGS = -export_dynamic -lsasl2 -version-info $(javasasl_version) $(wildcard ../lib/*.lo)
 BUILT_SOURCES = javasasl.h $(CLASSES)
 
 $(srcdir)/javasasl.c: javasasl.h

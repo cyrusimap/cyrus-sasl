@@ -1,10 +1,10 @@
 /* SASL server API implementation
+ * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.88 2001/06/20 11:47:24 n3liw Exp $
+ * $Id: server.c,v 1.89 2001/12/04 02:05:27 rjs3 Exp $
  */
-
 /* 
- * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,17 +58,17 @@
 #include <string.h>
 #include <ctype.h>
 
-#define DEFAULT_PLAIN_MECHANISM "sasldb"
-
 #include "sasl.h"
 #include "saslint.h"
+#include "saslplug.h"
 #include "saslutil.h"
-
 
 #ifdef sun
 /* gotta define gethostname ourselves on suns */
 extern int gethostname(char *, int);
 #endif
+
+#define DEFAULT_CHECKPASS_MECH "auxprop"
 
 #ifndef PATH_MAX
 # ifdef _POSIX_PATH_MAX
@@ -86,185 +86,19 @@ extern int gethostname(char *, int);
  * sasl_server_start
  * sasl_server_step
  * sasl_checkpass
- * sasl_userexists <= not yet implemented
+ * sasl_checkapop
+ * sasl_user_exists
  * sasl_setpass
  */
 
 /* if we've initialized the server sucessfully */
 static int _sasl_server_active = 0;
 
-static int _sasl_checkpass(sasl_conn_t *conn,
-			   const char *mech, const char *service, 
-			   const char *user, const char *pass,
-			   const char **errstr);
+/* For access by other modules */
+int _is_sasl_server_active(void) { return _sasl_server_active; }
 
-static int
-external_server_new(void *glob_context __attribute__((unused)),
-		    sasl_server_params_t *sparams,
-		    const char *challenge __attribute__((unused)),
-		    int challen __attribute__((unused)),
-		    void **conn_context,
-		    const char **errstr)
-{
-  if (!conn_context
-      || !errstr
-      || !sparams
-      || !sparams->utils
-      || !sparams->utils->conn)
-    return SASL_BADPARAM;
-  if (!sparams->utils->conn->external.auth_id)
-    return SASL_NOMECH;
-  *conn_context = NULL;
-  *errstr = NULL;
-  return SASL_OK;
-}
-
-static int
-external_server_step(void *conn_context __attribute__((unused)),
-		     sasl_server_params_t *sparams,
-		     const char *clientin,
-		     int clientinlen,
-		     char **serverout,
-		     int *serveroutlen,
-		     sasl_out_params_t *oparams,
-		     const char **errstr)
-{
-  int result;
-  
-  if (!sparams
-      || !sparams->utils
-      || !sparams->utils->conn
-      || !sparams->utils->getcallback
-      || !serverout
-      || !serveroutlen
-      || !oparams)
-    return SASL_BADPARAM;
-
-  if (errstr) {
-      *errstr = NULL;
-  }
-
-  if (!sparams->utils->conn->external.auth_id)
-    return SASL_BADPROT;
-
-  if ((sparams->props.security_flags & SASL_SEC_NOANONYMOUS) &&
-      (!strcmp(sparams->utils->conn->external.auth_id, "anonymous"))) {
-      *errstr = "anonymous login not allowed";
-      return SASL_NOAUTHZ;
-  }
-  
-  if (! clientin) {
-    /* No initial data; we're in a protocol which doesn't support it.
-     * So we let the server app know that we need some... */
-    *serverout = NULL;
-    *serveroutlen = 0;
-    return SASL_CONTINUE;
-  }
-
-  if (clientinlen) {		/* if we have a non-zero authorization id */
-      /* The user's trying to authorize as someone they didn't
-       * authenticate as */
-      result = _sasl_strdup(clientin, &oparams->user, NULL);
-      if (result != SASL_OK)
-	  return result;
-  } else {
-      /* just copy the authid to the userid */
-      result = _sasl_strdup(sparams->utils->conn->external.auth_id,
-			    &oparams->user,
-			    NULL);
-      if (result != SASL_OK)
-	  return result;
-  }
-  
-  result = _sasl_strdup(sparams->utils->conn->external.auth_id,
-			&oparams->authid,
-			NULL);
-  if (result != SASL_OK) {
-    sasl_FREE(oparams->user);
-    return result;
-  }
-
-  oparams->doneflag = 1;
-  oparams->mech_ssf = 0;
-  oparams->maxoutbuf = 0;
-  oparams->encode_context = NULL;
-  oparams->encode = NULL;
-  oparams->getmic = NULL;
-  oparams->decode_context = NULL;
-  oparams->decode = NULL;
-  oparams->verifymic = NULL;
-  oparams->realm = NULL;
-  oparams->param_version = 0;
-
-  return SASL_OK;
-}
-
-static const sasl_server_plug_t external_server_mech = {
-  "EXTERNAL",			/* mech_name */
-  0,				/* max_ssf */
-  SASL_SEC_NOPLAINTEXT
-  | SASL_SEC_NOANONYMOUS
-  | SASL_SEC_NODICTIONARY,	/* security_flags */
-  NULL,				/* glob_context */
-  &external_server_new,		/* mech_new */
-  &external_server_step,	/* mech_step */
-  NULL,				/* mech_dispose */
-  NULL,				/* mech_free */
-  NULL,				/* setpass */
-  NULL,				/* user_query */
-  NULL,				/* idle */
-  NULL,				/* install_credentials */
-  NULL,				/* uninstall_credentials */
-  NULL				/* dispose_credentials */
-};
-
-static int
-external_server_init(sasl_utils_t *utils,
-		     int max_version,
-		     int *out_version,
-		     const sasl_server_plug_t **pluglist,
-		     int *plugcount)
-{
-  if (!utils || !out_version || !pluglist || !plugcount)
-    return SASL_BADPARAM;
-  if (max_version != SASL_SERVER_PLUG_VERSION)
-    return SASL_BADVERS;
-  *out_version = SASL_SERVER_PLUG_VERSION;
-  *pluglist = &external_server_mech;
-  *plugcount = 1;
-  return SASL_OK;
-}
-
-typedef struct mechanism
-{
-    int version;
-    int condition; /* set to SASL_NOUSER if no available users;
-		      set to SASL_CONTINUE if delayed plugn loading */
-    const sasl_server_plug_t *plug;
-    struct mechanism *next;
-    union {
-	void *library; /* this a pointer to shared library returned by dlopen 
-			  or some similar function on other platforms */
-	char *f;       /* where should i load the mechanism from? */
-    } u;
-} mechanism_t;
-
-typedef struct mech_list {
-  sasl_utils_t *utils;  /* gotten from plug_init */
-
-  void *mutex;            /* mutex for this data */ 
-  mechanism_t *mech_list; /* list of mechanisms */
-  int mech_length;       /* number of mechanisms */
-} mech_list_t;
-
-typedef struct sasl_server_conn {
-    sasl_conn_t base; /* parts common to server + client */
-    
-    char *user_realm; /* domain the user authenticating is in */
-    int authenticated;
-    mechanism_t *mech; /* mechanism trying to use */
-    sasl_server_params_t *sparams;
-} sasl_server_conn_t;
+static int _sasl_checkpass(sasl_conn_t *conn, const char *service, 
+			   const char *user, const char *pass);
 
 static mech_list_t *mechlist = NULL; /* global var which holds the list */
 
@@ -275,14 +109,18 @@ static sasl_global_callbacks_t global_callbacks;
  *  user        -- user name
  *  pass        -- plaintext password, may be NULL to remove user
  *  passlen     -- length of password, 0 = strlen(pass)
+ *  oldpass     -- NULL will sometimes work
+ *  oldpasslen  -- length of password, 0 = strlen(oldpass)
  *  flags       -- see flags below
- *  errstr      -- optional more detailed error
  * 
  * returns:
  *  SASL_NOCHANGE  -- proper entry already exists
  *  SASL_NOMECH    -- no authdb supports password setting as configured
+ *  SASL_NOVERIFY  -- user exists, but no settable password present
  *  SASL_DISABLED  -- account disabled
  *  SASL_PWLOCK    -- password locked
+ *  SASL_WEAKPASS  -- password too weak for security policy
+ *  SASL_NOUSERPASS -- user-supplied passwords not permitted
  *  SASL_FAIL      -- OS error
  *  SASL_BADPARAM  -- password too long
  *  SASL_OK        -- successful
@@ -290,48 +128,42 @@ static sasl_global_callbacks_t global_callbacks;
 
 int sasl_setpass(sasl_conn_t *conn,
 		 const char *user,
-		 const char *pass,
-		 unsigned passlen,
-		 int flags,
-		 const char **errstr)
+		 const char *pass, unsigned passlen,
+		 const char *oldpass,
+		 unsigned oldpasslen,
+		 unsigned flags)
 {
     int result=SASL_OK, tmpresult;
     sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;
+    sasl_server_userdb_setpass_t *setpass_cb = NULL;
+    void *context = NULL;
     mechanism_t *m;
      
+    if (!_sasl_server_active || !mechlist) return SASL_NOTINIT;
+
     /* check params */
-    if (errstr) { *errstr = NULL; }
     if (!conn) return SASL_BADPARAM;
      
-    if (!mechlist) {
-	if (errstr) *errstr = "No mechanisms available";
-	return SASL_FAIL;
-    }
-    if (!(flags & SASL_SET_DISABLE) && passlen == 0) {
-	if (errstr) *errstr = "Password must be at least one character long";
-	return SASL_BADPARAM;
-    }
+    if ((!(flags & SASL_SET_DISABLE) && passlen == 0)
+        || ((flags & SASL_SET_CREATE) && (flags & SASL_SET_DISABLE)))
+	PARAMERROR(conn);
 
-    if ((flags & SASL_SET_CREATE) && (flags & SASL_SET_DISABLE)) {
-	if (errstr) *errstr = "Can't both create and disable simultaneously";
-	return SASL_BADPARAM;
-    }
-
-    /* set/create password for PLAIN usage */
-    tmpresult = _sasl_sasldb_set_pass(conn, user, pass, passlen, 
-				      s_conn->user_realm, flags, errstr);
-    if (tmpresult != SASL_OK && tmpresult != SASL_NOCHANGE) {
-	result = tmpresult;
-	_sasl_log(conn, SASL_LOG_ERR, "PLAIN", tmpresult,
-#ifndef WIN32
-		  errno,
-#else
-		  GetLastError(),
-#endif
-		  "failed to set secret for %s: %z", user);
+    /* call userdb callback function */
+    result = _sasl_getcallback(conn, SASL_CB_SERVER_USERDB_SETPASS,
+			       &setpass_cb, &context);
+    if(result == SASL_OK && setpass_cb) {
+	tmpresult = setpass_cb(conn, context, user, pass, passlen,
+			    s_conn->sparams->propctx, flags);
+	if(tmpresult != SASL_OK) {
+	    _sasl_log(conn, SASL_LOG_ERR,
+		      "setpass callback failed for %s: %z",
+		      user, tmpresult);
+	} else {
+	    _sasl_log(conn, SASL_LOG_NOTE,
+		      "setpass callback succeeded for %s", user);
+	}
     } else {
-	_sasl_log(conn, SASL_LOG_INFO, "PLAIN", 0, 0, 
-		  "set secret for %s", user);
+	result = SASL_OK;
     }
 
     /* copy info into sparams */
@@ -350,74 +182,91 @@ int sasl_setpass(sasl_conn_t *conn,
 				     user,
 				     pass,
 				     passlen,
-				     flags,
-				     errstr);
+				     oldpass, oldpasslen,
+				     flags);
 	if (tmpresult == SASL_OK) {
-	    _sasl_log(conn, SASL_LOG_INFO, m->plug->mech_name, 0, 0,
-		      "set secret for %s", user);
+	    _sasl_log(conn, SASL_LOG_NOTE,
+		      "%s: set secret for %s", m->plug->mech_name, user);
 
 	    m->condition = SASL_OK; /* if we previously thought the
 				       mechanism didn't have any user secrets 
 				       we now think it does */
 
 	} else if (tmpresult == SASL_NOCHANGE) {
-	    _sasl_log(conn, SASL_LOG_INFO, m->plug->mech_name, 0, 0,
-		      "secret not changed for %s", user);
+	    _sasl_log(conn, SASL_LOG_NOTE,
+		      "%s: secret not changed for %s", m->plug->mech_name, user);
 	} else {
 	    result = tmpresult;
-	    _sasl_log(conn, SASL_LOG_ERR, m->plug->mech_name, tmpresult,
+	    _sasl_log(conn, SASL_LOG_ERR,
+		      "%s: failed to set secret for %s: %z (%m)",
+		      m->plug->mech_name, user, tmpresult,
 #ifndef WIN32
-		      errno,
+		      errno
 #else
-		      GetLastError(),
+		      GetLastError()
 #endif
-		      "failed to set secret for %s: %z", user);
+		      );
 	}
     }
 
-    return result;
+    RETURN(conn, result);
 }
-
-
 
 /* local mechanism which disposes of server */
 static void server_dispose(sasl_conn_t *pconn)
 {
   sasl_server_conn_t *s_conn=  (sasl_server_conn_t *) pconn;
-
-  if (pconn->oparams.credentials) {
-    if (s_conn->mech
-	&& s_conn->mech->plug->dispose_credentials)
-      s_conn->mech->plug->dispose_credentials(pconn->context,
-					      pconn->oparams.credentials);
-    else
-      sasl_FREE(pconn->oparams.credentials);
-  }
+  context_list_t *cur, *cur_next;
   
   if (s_conn->mech
-      && s_conn->mech->plug->mech_dispose)
+      && s_conn->mech->plug->mech_dispose) {
     s_conn->mech->plug->mech_dispose(pconn->context,
 				     s_conn->sparams->utils);
+  }
+  pconn->context = NULL;
 
-  if (s_conn->user_realm)
-    sasl_FREE(s_conn->user_realm);
-
+  for(cur = s_conn->mech_contexts; cur; cur=cur_next) {
+      cur_next = cur->next;
+      if(cur->context)
+	  cur->mech->plug->mech_dispose(cur->context, s_conn->sparams->utils);
+      sasl_FREE(cur);
+  }  
+  s_conn->mech_contexts = NULL;
+  
   _sasl_free_utils(&s_conn->sparams->utils);
 
+  if (s_conn->sparams->propctx)
+      prop_dispose(&s_conn->sparams->propctx);
+
+  if (s_conn->mechlist_buf)
+      sasl_FREE(s_conn->mechlist_buf);
+
+  if (s_conn->user_realm)
+      sasl_FREE(s_conn->user_realm);
+
   if (s_conn->sparams)
-    sasl_FREE(s_conn->sparams);
+      sasl_FREE(s_conn->sparams);
 
   _sasl_conn_dispose(pconn);
 }
 
 static int init_mechlist(void)
 {
+    sasl_utils_t *newutils = NULL;
+
+    mechlist->mutex = sasl_MUTEX_ALLOC();
+    if(!mechlist->mutex) return SASL_FAIL;
+
     /* set util functions - need to do rest */
-    mechlist->utils = _sasl_alloc_utils(NULL, &global_callbacks);
-    if (mechlist->utils == NULL)
+    newutils = _sasl_alloc_utils(NULL, &global_callbacks);
+    if (newutils == NULL)
 	return SASL_NOMEM;
 
-    mechlist->utils->checkpass = &_sasl_checkpass;
+    newutils->checkpass = &sasl_checkpass;
+
+    mechlist->utils = newutils;
+    mechlist->mech_list=NULL;
+    mechlist->mech_length=0;
 
     return SASL_OK;
 }
@@ -425,17 +274,19 @@ static int init_mechlist(void)
 /*
  * parameters:
  *  p - entry point
- *  library - shared library ptr returned by dlopen
  */
-static int add_plugin(void *p, void *library) 
+int sasl_server_add_plugin(const char *plugname,
+			   sasl_server_plug_init_t *p)
 {
     int plugcount;
-    const sasl_server_plug_t *pluglist;
+    sasl_server_plug_t *pluglist;
     mechanism_t *mech;
     sasl_server_plug_init_t *entry_point;
     int result;
     int version;
     int lupe;
+
+    if(!plugname || !p) return SASL_BADPARAM;
 
     entry_point = (sasl_server_plug_init_t *)p;
 
@@ -445,16 +296,17 @@ static int add_plugin(void *p, void *library)
 			 &pluglist, &plugcount);
 
     if ((result != SASL_OK) && (result != SASL_NOUSER)) {
-	VL(("entry_point error %i\n",result));
+	_sasl_log(NULL, SASL_LOG_WARN,
+		  "server add_plugin entry_point error %i\n", result);
 	return result;
     }
 
     /* Make sure plugin is using the same SASL version as us */
-    if (version > SASL_SERVER_PLUG_VERSION)
+    if (version != SASL_SERVER_PLUG_VERSION)
     {
-	_sasl_log(NULL, SASL_LOG_ERR, NULL, 0, 0,
+	_sasl_log(NULL, SASL_LOG_ERR,
 		  "version mismatch on plugin");
-	result = SASL_FAIL;
+	return SASL_BADVERS;
     }
 
     for (lupe=0;lupe < plugcount ;lupe++)
@@ -463,25 +315,17 @@ static int add_plugin(void *p, void *library)
 	if (! mech) return SASL_NOMEM;
 
 	mech->plug=pluglist++;
+	if(_sasl_strdup(plugname, &mech->plugname, NULL) != SASL_OK) {
+	    sasl_FREE(mech);
+	    return SASL_NOMEM;
+	}
 	mech->version = version;
-      
+
 	/* wheather this mech actually has any users in it's db */
 	mech->condition = result; /* SASL_OK or SASL_NOUSER */
 
-	/*
-	 * We want plugin library to close but we only
-	 * want to do this once per plugin regardless
-	 * of how many mechs are in a single plugin 
-	 */
-	if (lupe==0) {
-	    mech->u.library=library;
- 	} else {
-	    mech->u.library=NULL;
-	}
-
 	mech->next = mechlist->mech_list;
 	mechlist->mech_list = mech;
-
 	mechlist->mech_length++;
     }
 
@@ -501,16 +345,29 @@ static void server_done(void) {
 	  prevm=m;
 	  m=m->next;
     
-	  if (prevm->plug->glob_context!=NULL)
+	  if (prevm->plug->mech_free) {
+	      prevm->plug->mech_free(prevm->plug->glob_context,
+				     mechlist->utils);
+	  }
+	  
+	  if (prevm->plug->glob_context!=NULL) {
 	      sasl_FREE(prevm->plug->glob_context);
-	  if (prevm->condition == SASL_OK && prevm->u.library != NULL)
-	      _sasl_done_with_plugin(prevm->u.library);
+	  }
+
+	  sasl_FREE(prevm->plugname);	  	  
 	  sasl_FREE(prevm);    
       }
       _sasl_free_utils(&mechlist->utils);
+      sasl_MUTEX_FREE(mechlist->mutex);
       sasl_FREE(mechlist);
       mechlist = NULL;
   }
+
+  /* Free the auxprop plugins */
+  _sasl_auxprop_free();
+
+  global_callbacks.callbacks = NULL;
+  global_callbacks.appname = NULL;
 
   /* no longer active. fail on listmech's etc. */
   _sasl_server_active = 0;
@@ -537,7 +394,8 @@ server_idle(sasl_conn_t *conn)
 static int load_config(const sasl_callback_t *verifyfile_cb)
 {
   int result;
-  char *path_to_config=NULL, *c;
+  const char *path_to_config=NULL;
+  char *c;
   char *config_filename=NULL;
   int len;
   const sasl_callback_t *getpath_cb=NULL;
@@ -590,9 +448,6 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
 
  done:
   if (config_filename) sasl_FREE(config_filename);
-  if ((path_to_config) && (*path_to_config)) { /* was path_to_config allocated? */
-      sasl_FREE(path_to_config);
-  }
 
   return result;
 }
@@ -674,7 +529,7 @@ static int parse_mechlist_file(const char *mechlistfile)
 	*/
 	
 	/* grab file */
-	n->u.f = grab_field(buf, &ptr);
+	n->f = grab_field(buf, &ptr);
 
 	/* grab mech_name */
 	nplug->mech_name = grab_field(ptr, &ptr);
@@ -697,8 +552,9 @@ static int parse_mechlist_file(const char *mechlistfile)
 		map++;
 	    }
 	    if (!map->name) {
-		_sasl_log(NULL, SASL_LOG_ERR, nplug->mech_name, 
-			  SASL_FAIL, 0, "couldn't identify flag '%s'", t);
+		_sasl_log(NULL, SASL_LOG_ERR,
+			  "%s: couldn't identify flag '%s'",
+			  nplug->mech_name, t);
 
 	    }
 	    free(t);
@@ -716,7 +572,8 @@ static int parse_mechlist_file(const char *mechlistfile)
 }
 
 /* initialize server drivers, done once per process
- *  callbacks      -- base callbacks for all server connections
+ *  callbacks      -- callbacks for all server connections; must include
+ *                    getopt callback
  *  appname        -- name of calling application (for lower level logging)
  * results:
  *  state          -- server state
@@ -736,12 +593,20 @@ int sasl_server_init(const sasl_callback_t *callbacks,
     sasl_getopt_t *getopt;
     void *context;
 
+    const add_plugin_list_t ep_list[] = {
+	{ "sasl_server_plug_init", (void *)&sasl_server_add_plugin },
+	{ "sasl_auxprop_plug_init", (void *)&sasl_auxprop_add_plugin },
+	{ "sasl_canonuser_init", (void *)&sasl_canonuser_add_plugin },
+	{ NULL, NULL }
+    };
+
     /* we require the appname to be non-null */
     if (appname==NULL) return SASL_BADPARAM;
 
-    _sasl_server_getsecret_hook = _sasl_db_getsecret;
-    _sasl_server_putsecret_hook = _sasl_db_putsecret;
-
+    ret = _sasl_common_init();
+    if (ret != SASL_OK)
+	return ret;
+ 
     _sasl_server_cleanup_hook = &server_done;
 
     /* verify that the callbacks look ok */
@@ -754,8 +619,7 @@ int sasl_server_init(const sasl_callback_t *callbacks,
     /* allocate mechlist and set it to empty */
     mechlist = sasl_ALLOC(sizeof(mech_list_t));
     if (mechlist == NULL) return SASL_NOMEM;
-    mechlist->mech_list = NULL;
-    mechlist->mech_length = 0;
+
     ret = init_mechlist();
     if (ret != SASL_OK) return ret;
 
@@ -767,46 +631,43 @@ int sasl_server_init(const sasl_callback_t *callbacks,
 	return ret;
     }
 
-    /* check db */
-    ret = _sasl_server_check_db(vf);
+    /* load internal plugins */
+    sasl_server_add_plugin("EXTERNAL", &external_server_init);
 
-    /* load plugins */
-    add_plugin((void *)&external_server_init, NULL);
-
-    /* delayed loading of plugins? */
-    if (_sasl_getcallback(NULL, SASL_CB_GETOPT, &getopt, &context) 
+    /* delayed loading of plugins? (DSO only, as it doesn't
+     * make much [any] sense to delay in the static library case) */
+    if (!_is_sasl_server_static &&
+	_sasl_getcallback(NULL, SASL_CB_GETOPT, &getopt, &context) 
 	   == SASL_OK) {
 	getopt(context, NULL, "plugin_list", &pluginfile, NULL);
     }
+    
     if (pluginfile != NULL) {
 	/* this file should contain a list of plugins available.
 	   we'll load on demand. */
-
+	
 	/* Ask the application if it's safe to use this file */
 	ret = ((sasl_verifyfile_t *)(vf->proc))(vf->context,
 						pluginfile,
 						SASL_VRFY_CONF);
 	if (ret != SASL_OK) {
-	    _sasl_log(NULL, SASL_LOG_ERR, NULL, ret, 0,
-		      "unable to load plugin list %s: %z", pluginfile);
+	    _sasl_log(NULL, SASL_LOG_ERR,
+		      "unable to load plugin list %s: %z", pluginfile, ret);
 	}
-
+	
 	if (ret == SASL_OK) {
 	    ret = parse_mechlist_file(pluginfile);
 	}
     } else {
 	/* load all plugins now */
-	ret = _sasl_get_mech_list("sasl_server_plug_init",
-				  _sasl_find_getpath_callback(callbacks),
-				  _sasl_find_verifyfile_callback(callbacks),
-				  &add_plugin);
+	ret = _sasl_load_plugins(ep_list,
+				 _sasl_find_getpath_callback(callbacks),
+				 _sasl_find_verifyfile_callback(callbacks));
     }
-
-    if (ret == SASL_OK)	ret = _sasl_common_init();
   
     if (ret == SASL_OK) {
 	/* _sasl_server_active shows if we're active or not. 
-	   sasl_done() sets it back to 0 */
+	   server_done() sets it back to 0 */
 	_sasl_server_active = 1;
 	_sasl_server_idle_hook = &server_idle;
     }
@@ -825,17 +686,18 @@ int sasl_server_init(const sasl_callback_t *callbacks,
 static int
 _sasl_transition(sasl_conn_t * conn,
 		 const char * pass,
-		 int passlen)
+		 unsigned passlen)
 {
     const char *dotrans = "n";
     sasl_getopt_t *getopt;
+    int result = SASL_OK;
     void *context;
 
     if (! conn)
 	return SASL_BADPARAM;
 
     if (! conn->oparams.authid)
-	return SASL_NOTDONE;
+	PARAMERROR(conn);
 
     /* check if this is enabled: default to false */
     if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context) == SASL_OK)
@@ -847,25 +709,29 @@ _sasl_transition(sasl_conn_t * conn,
     if (*dotrans == '1' || *dotrans == 'y' ||
 	(*dotrans == 'o' && dotrans[1] == 'n') || *dotrans == 't') {
 	/* ok, it's on! */
-	return sasl_setpass(conn,
-			    conn->oparams.authid,
-			    pass,
-			    passlen,
-			    0,
-			    NULL);
+	result = sasl_setpass(conn,
+			      conn->oparams.authid,
+			      pass,
+			      passlen,
+			      NULL, 0, 0);
     }
 
-    return SASL_OK;
+    RETURN(conn,result);
 }
 
 
 /* create context for a single SASL connection
  *  service        -- registered name of the service using SASL (e.g. "imap")
- *  serverFQDN     -- Fully qualified server domain name.  NULL means use
- *                    gethostname().  Useful for multi-homed servers.
- *  user_realm     -- permits multiple user domains on server, NULL = default
+ *  serverFQDN     -- Fully qualified domain name of server.  NULL means use
+ *                    gethostname() or equivalent.
+ *                    Useful for multi-homed servers.
+ *  user_realm     -- permits multiple user realms on server, NULL = default
+ *  iplocalport    -- server IPv4/IPv6 domain literal string with port
+ *                    (if NULL, then mechanisms requiring IPaddr are disabled)
+ *  ipremoteport   -- client IPv4/IPv6 domain literal string with port
+ *                    (if NULL, then mechanisms requiring IPaddr are disabled)
  *  callbacks      -- callbacks (e.g., authorization, lang, new getopt context)
- *  secflags       -- security flags (see above)
+ *  flags          -- usage flags (see above)
  * returns:
  *  pconn          -- new connection context
  *
@@ -877,12 +743,15 @@ _sasl_transition(sasl_conn_t * conn,
 int sasl_server_new(const char *service,
 		    const char *serverFQDN,
 		    const char *user_realm,
+		    const char *iplocalport,
+		    const char *ipremoteport,
 		    const sasl_callback_t *callbacks,
-		    int secflags,
+		    unsigned flags,
 		    sasl_conn_t **pconn)
 {
   int result;
   sasl_server_conn_t *serverconn;
+  sasl_utils_t *utils;
 
   if (! pconn) return SASL_FAIL;
   if (! service) return SASL_FAIL;
@@ -890,44 +759,61 @@ int sasl_server_new(const char *service,
   *pconn=sasl_ALLOC(sizeof(sasl_server_conn_t));
   if (*pconn==NULL) return SASL_NOMEM;
 
-  (*pconn)->destroy_conn = &server_dispose;
-  result = _sasl_conn_init(*pconn, service, secflags,
-			   &server_idle,
-			   serverFQDN,
-			   callbacks, &global_callbacks);
-  if (result != SASL_OK) return result;
+  memset(*pconn, 0, sizeof(sasl_server_conn_t));
 
   serverconn = (sasl_server_conn_t *)*pconn;
 
-  serverconn->mech = NULL;
-
   /* make sparams */
   serverconn->sparams=sasl_ALLOC(sizeof(sasl_server_params_t));
-  if (serverconn->sparams==NULL) return SASL_NOMEM;
+  if (serverconn->sparams==NULL)
+      MEMERROR(*pconn);
+
+  memset(serverconn->sparams, 0, sizeof(sasl_server_params_t));
+
+  (*pconn)->destroy_conn = &server_dispose;
+  result = _sasl_conn_init(*pconn, service, flags, SASL_CONN_SERVER,
+			   &server_idle, serverFQDN,
+			   iplocalport, ipremoteport,
+			   callbacks, &global_callbacks);
+  if (result != SASL_OK)
+      goto done_error;
+
 
   /* set util functions - need to do rest */
-  serverconn->sparams->utils=_sasl_alloc_utils(*pconn, &global_callbacks);
-  if (serverconn->sparams->utils==NULL)
-    return SASL_NOMEM;
-  serverconn->sparams->utils->checkpass = &_sasl_checkpass;
+  utils=_sasl_alloc_utils(*pconn, &global_callbacks);
+  if (!utils) {
+      result = SASL_NOMEM;
+      goto done_error;
+  }
+  
+  utils->checkpass = &sasl_checkpass;
 
+  /* Setup the propctx -> We'll assume the default size */
+  serverconn->sparams->propctx=prop_new(0);
+  if(!serverconn->sparams->propctx) {
+      result = SASL_NOMEM;
+      goto done_error;
+  }
+  
+  serverconn->sparams->utils = utils;
   serverconn->sparams->transition = &_sasl_transition;
-
+  serverconn->sparams->canon_user = &_sasl_canon_user;
+  serverconn->sparams->serverFQDN = (*pconn)->serverFQDN;
   serverconn->sparams->props = serverconn->base.props;
 
   /* set some variables */
-  if (user_realm==NULL) {
-    serverconn->user_realm = NULL;
-  } else {
+  if (user_realm) {
     result = _sasl_strdup(user_realm, &serverconn->user_realm, NULL);
+  } else {
+    serverconn->user_realm = NULL;
   }
 
-  if (result!=SASL_OK) {
-      _sasl_conn_dispose(*pconn);
-      sasl_FREE(*pconn);
-      *pconn = NULL;
-  }
+  if(result == SASL_OK) return SASL_OK;
 
+ done_error:
+  _sasl_conn_dispose(*pconn);
+  sasl_FREE(*pconn);
+  *pconn = NULL;
   return result;
 }
 
@@ -940,21 +826,74 @@ int sasl_server_new(const char *service,
 static int mech_permitted(sasl_conn_t *conn,
 			  mechanism_t *mech)
 {
-    const sasl_server_plug_t *plug = mech->plug;
+    sasl_server_conn_t *s_conn = (sasl_server_conn_t *)conn;
+    const sasl_server_plug_t *plug;
     int myflags;
+    context_list_t *cur;
+    sasl_getopt_t *getopt;
+    void *context;
+    sasl_ssf_t minssf = 0;
 
-    /* Can this plugin meet the application's security requirements? */
-    if (! plug || ! conn)
+    if(!conn) return SASL_BADPARAM;
+
+    if(! mech || ! mech->plug) {
+	PARAMERROR(conn);
 	return 0;
+    }
+    
+    plug = mech->plug;
 
+    /* get the list of allowed mechanisms (default = all) */
+    if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context)
+            == SASL_OK) {
+	const char *mlist;
+
+	getopt(context, NULL, "mech_list", &mlist, NULL);
+
+	/* if we have a list, check the plugin against it */
+	if (mlist) {
+	    const char *cp;
+
+	    while (*mlist) {
+		for (cp = mlist; *cp && !isspace((int) *cp); cp++);
+		if (((size_t) (cp - mlist) == strlen(plug->mech_name)) &&
+		    !strncasecmp(mlist, plug->mech_name,
+				 strlen(plug->mech_name))) {
+		    break;
+		}
+		mlist = cp;
+		while (*mlist && isspace((int) *mlist)) mlist++;
+	    }
+
+	    if (!*mlist) return 0;  /* reached EOS -> not in our list */
+	}
+    }
+
+    /* setup parameters for the call to mech_avail */
+    s_conn->sparams->serverFQDN=conn->serverFQDN;
+    s_conn->sparams->service=conn->service;
+    s_conn->sparams->user_realm=s_conn->user_realm;
+    s_conn->sparams->props=conn->props;
+    s_conn->sparams->external_ssf=conn->external.ssf;
+
+    /* Check if we have banished this one already */
+    for(cur = s_conn->mech_contexts; cur; cur=cur->next) {
+	if(cur->mech == mech) {
+	    /* If it's not mech_avail'd, then stop now */
+	    if(!cur->context) return SASL_NOMECH;
+	    break;
+	}
+    }
+    
     if (plug == &external_server_mech) {
 	/* Special case for the external mechanism */
 	if (conn->props.min_ssf > conn->external.ssf
-	    || ! conn->external.auth_id)
+	    || ! conn->external.auth_id) {
+	    sasl_seterror(conn, SASL_NOLOG,
+			  "External SSF not good enough");
 	    return 0;
-    } else {
-	sasl_ssf_t minssf;
-
+	}
+    } else {	
 	if (conn->props.min_ssf < conn->external.ssf) {
 	    minssf = 0;
 	} else {
@@ -962,13 +901,56 @@ static int mech_permitted(sasl_conn_t *conn,
 	}
 
 	/* Generic mechanism */
-	if (plug->max_ssf < minssf)
+	if (plug->max_ssf < minssf) {
+	    sasl_seterror(conn, SASL_NOLOG,
+			  "mech %s is too weak", plug->mech_name);
 	    return 0; /* too weak */
+	}
+	
+    }
+
+    context = NULL;
+    if(plug->mech_avail
+       && plug->mech_avail(plug->glob_context,
+			   s_conn->sparams, (void **)&context) != SASL_OK ) {
+	/* Mark this mech as no good for this connection */
+	cur = sasl_ALLOC(sizeof(context_list_t));
+	if(!cur) {
+	    MEMERROR(conn);
+	    return 0;
+	}
+	cur->context = NULL;
+	cur->mech = mech;
+	cur->next = s_conn->mech_contexts;
+	s_conn->mech_contexts = cur;
+
+	/* Error should be set by mech_avail call */
+	return 0;
+    } else if(context) {
+	/* Save this context */
+	cur = sasl_ALLOC(sizeof(context_list_t));
+	if(!cur) {
+	    MEMERROR(conn);
+	    return 0;
+	}
+	cur->context = context;
+	cur->mech = mech;
+	cur->next = s_conn->mech_contexts;
+	s_conn->mech_contexts = cur;
+    }
+    
+    /* Generic mechanism */
+    if (plug->max_ssf < minssf) {
+	sasl_seterror(conn, SASL_NOLOG, "too weak");
+	return 0; /* too weak */
     }
 
     /* if there are no users in the secrets database we can't use this 
        mechanism */
-    if (mech->condition == SASL_NOUSER) return 0;
+    if (mech->condition == SASL_NOUSER) {
+	sasl_seterror(conn, 0, "no users in secrets db");
+	return 0;
+    }
     
     /* security properties---if there are any flags that differ and are
        in what the connection are requesting, then fail */
@@ -984,6 +966,17 @@ static int mech_permitted(sasl_conn_t *conn,
 
     /* do we want to special case SASL_SEC_PASS_CREDENTIALS? nah.. */
     if (((myflags ^ plug->security_flags) & myflags) != 0) {
+	sasl_seterror(conn, SASL_NOLOG,
+		      "security flags do not match required");
+	return 0;
+    }
+
+    /* Check Features */
+    if(plug->features & SASL_FEAT_GETSECRET) {
+	/* We no longer support sasl_server_{get,put}secret */
+	sasl_seterror(conn, 0,
+		      "mech %s requires unprovided secret facility",
+		      plug->mech_name);
 	return 0;
     }
 
@@ -995,55 +988,54 @@ static int mech_permitted(sasl_conn_t *conn,
  *
  */
 
-static int do_authorization(sasl_server_conn_t *s_conn, const char **errstr)
+static int do_authorization(sasl_server_conn_t *s_conn)
 {
     int ret;
     sasl_authorize_t *authproc;
     void *auth_context;
-    const char *canonuser;
     
     /* now let's see if authname is allowed to proxy for username! */
     
     /* check the proxy callback */
     if (_sasl_getcallback(&s_conn->base, SASL_CB_PROXY_POLICY,
 			  &authproc, &auth_context) != SASL_OK) {
-	return SASL_NOAUTHZ;
-    }
-    ret = authproc(auth_context, s_conn->base.oparams.authid,
-		   s_conn->base.oparams.user, &canonuser, errstr);
-    
-    if (ret == SASL_OK && canonuser != NULL) {
-	if (s_conn->base.oparams.user != NULL)
-	    sasl_FREE(s_conn->base.oparams.user);
-	s_conn->base.oparams.user = (char *) canonuser;
+	INTERROR(&s_conn->base, SASL_NOAUTHZ);
     }
 
-    return ret;
+    ret = authproc(&(s_conn->base), auth_context,
+		   s_conn->base.oparams.user, s_conn->base.oparams.ulen,
+		   s_conn->base.oparams.authid, s_conn->base.oparams.alen,
+		   s_conn->user_realm,
+		   (s_conn->user_realm ? strlen(s_conn->user_realm) : 0),
+		   s_conn->sparams->propctx);
+
+    RETURN(&s_conn->base, ret);
 }
 
 
 /* start a mechanism exchange within a connection context
  *  mech           -- the mechanism name client requested
- *  clientin       -- client initial response, NULL if empty
+ *  clientin       -- client initial response (NUL terminated), NULL if empty
  *  clientinlen    -- length of initial response
- *  serverout      -- initial server challenge, NULL if done
+ *  serverout      -- initial server challenge, NULL if done 
+ *                    (library handles freeing this string)
  *  serveroutlen   -- length of initial server challenge
  * output:
  *  pconn          -- the connection negotiation state on success
- *  errstr         -- set to string to send to user on failure
  *
- * Same returns as sasl_server_step()
+ * Same returns as sasl_server_step() or
+ * SASL_NOMECH if mechanism not available.
  */
 int sasl_server_start(sasl_conn_t *conn,
 		      const char *mech,
 		      const char *clientin,
 		      unsigned clientinlen,
-		      char **serverout,
-		      unsigned *serveroutlen,
-		      const char **errstr)
+		      const char **serverout,
+		      unsigned *serveroutlen)
 {
     sasl_server_conn_t *s_conn=(sasl_server_conn_t *) conn;
     int result;
+    context_list_t *cur, **prev;
 
     /* make sure mech is valid mechanism
        if not return appropriate error */
@@ -1051,11 +1043,10 @@ int sasl_server_start(sasl_conn_t *conn,
     m=mechlist->mech_list;
 
     /* check parameters */
-    if ((conn == NULL) || (mech==NULL) || ((clientin==NULL) && (clientinlen>0)))
-	return SASL_BADPARAM;
-
-    if (errstr)
-	*errstr = NULL;
+    if(!conn) return SASL_BADPARAM;
+    
+    if (!mech || ((clientin==NULL) && (clientinlen>0)))
+	PARAMERROR(conn);
 
     while (m!=NULL)
     {
@@ -1067,6 +1058,7 @@ int sasl_server_start(sasl_conn_t *conn,
     }
   
     if (m==NULL) {
+	sasl_seterror(conn, 0, "Couldn't find mech %s", mech);
 	result = SASL_NOMECH;
 	goto done;
     }
@@ -1080,18 +1072,25 @@ int sasl_server_start(sasl_conn_t *conn,
     if (m->condition == SASL_CONTINUE) {
 	sasl_server_plug_init_t *entry_point;
 	void *library = NULL;
-	const sasl_server_plug_t *pluglist;
+	sasl_server_plug_t *pluglist;
 	int version, plugcount;
 	int l = 0;
 
 	/* need to load this plugin */
-	result = _sasl_get_plugin(m->u.f, "sasl_server_plug_init",
+	result = _sasl_get_plugin(m->f,
 		    _sasl_find_verifyfile_callback(global_callbacks.callbacks),
-				  (void **) &entry_point, &library);
+				  &library);
+
+	if (result == SASL_OK) {
+	    result = _sasl_locate_entry(library, "sasl_server_plug_init",
+					(void **)&entry_point);
+	}
+
 	if (result == SASL_OK) {
 	    result = entry_point(mechlist->utils, SASL_SERVER_PLUG_VERSION,
 				 &version, &pluglist, &plugcount);
 	}
+
 	if (result == SASL_OK) {
 	    /* find the correct mechanism in this plugin */
 	    for (l = 0; l < plugcount; l++) {
@@ -1107,8 +1106,8 @@ int sasl_server_start(sasl_conn_t *conn,
 	    if ((pluglist[l].max_ssf != m->plug->max_ssf) ||
 		(pluglist[l].security_flags != m->plug->security_flags)) {
 		_sasl_log(conn, SASL_LOG_ERR, 
-			  pluglist[l].mech_name, SASL_NOMECH, 0, 
-			  "security parameters don't match mechlist file");
+			  "%s: security parameters don't match mechlist file",
+			  pluglist[l].mech_name);
 		result = SASL_NOMECH;
 	    }
 	}
@@ -1117,51 +1116,92 @@ int sasl_server_start(sasl_conn_t *conn,
 	    sasl_FREE((sasl_server_plug_t *) m->plug);
 	    m->plug = &pluglist[l];
 	    m->condition = SASL_OK;
-	    m->u.library = library;
 	}
 
 	if (result != SASL_OK) {
-	    if (library) {
-		/* won't be using you after all */
-		_sasl_done_with_plugin(library);
+	    /* The library will eventually be freed, don't sweat it */
+	    RETURN(conn, result);
+	}
+    }
+
+    /* We used to setup sparams HERE, but now it's done
+       inside of mech_permitted (which is called above) */
+    prev = &s_conn->mech_contexts;
+    for(cur = *prev; cur; prev=&cur->next,cur=cur->next) {
+	if(cur->mech == m) {
+	    if(!cur->context) {
+		sasl_seterror(conn, 0,
+			      "Got past mech_permitted with a disallowed mech!");
+		return SASL_NOMECH;
 	    }
-	    return result;
+	    /* If we find it, we need to pull cur out of the
+	       list so it won't be freed later! */
+	    (*prev)->next = cur->next;
+	    conn->context = cur->context;
+	    sasl_FREE(cur);
 	}
     }
 
     s_conn->mech = m;
-
-    /* call the security layer given by mech */
-    s_conn->sparams->serverFQDN=conn->serverFQDN;
-    s_conn->sparams->service=conn->service;
-    s_conn->sparams->user_realm=s_conn->user_realm;
-    s_conn->sparams->props=conn->props;
-    s_conn->sparams->external_ssf=conn->external.ssf;
-
-    result = s_conn->mech->plug->mech_new(s_conn->mech->plug->glob_context,
-					  s_conn->sparams,
-					  NULL,
-					  0,
-					  &(conn->context),
-					  errstr);
-
-    if (result == SASL_OK) {
-	result = s_conn->mech->plug->mech_step(conn->context,
-					       s_conn->sparams,
-					       clientin,
-					       clientinlen,
-					       serverout,
-					       (int *) serveroutlen,
-					       &conn->oparams,
-					       errstr);
+    
+    if(!conn->context) {
+	/* Note that we don't hand over a new challenge */
+	result = s_conn->mech->plug->mech_new(s_conn->mech->plug->glob_context,
+					      s_conn->sparams,
+					      NULL,
+					      0,
+					      &(conn->context));
+    } else {
+	/* the work was already done by mech_avail! */
+	result = SASL_OK;
     }
-   
+    
     if (result == SASL_OK) {
-	result = do_authorization(s_conn, errstr);
+	if(clientin &&
+	   (s_conn->mech->plug->features &
+	    (SASL_FEAT_WANT_CLIENT_FIRST | SASL_FEAT_INTERNAL_CLIENT_FIRST))) {
+	    /* both protocol & mech did client-send-first */
+	    result = sasl_server_step(conn,
+				      clientin, clientinlen,
+				      serverout, serveroutlen);
+	} else if (clientin) {
+	    /* Remote sent first, but mechanism does not support it.
+	     * RFC 2222 says we fail at this point. */
+	    sasl_seterror(conn, 0,
+			  "Remote sent first but mech does not allow it.");
+	    result = SASL_BADPROT;
+	} else {
+	    /* protocol CAN do client-send-first, but no data arrived */
+	    /* OR protocol can't do client-send-first */
+	    if(!(s_conn->mech->plug->features & SASL_FEAT_WANT_CLIENT_FIRST) ||
+	    (s_conn->mech->plug->features & SASL_FEAT_INTERNAL_CLIENT_FIRST)) {
+		/* Mech wants server-first, so let them have it */
+		/* or the send-first situation is handled internally
+		 *  by the mechanism */
+		result = sasl_server_step(conn,
+					  clientin, clientinlen,
+					  serverout, serveroutlen);
+	    } else {
+		/* Mech wants client first anyway, so we should do that */
+		*serverout = "";
+		*serveroutlen = 0;
+		result = SASL_CONTINUE;
+	    }
+	}	 
     }
 
  done:
-    return result;
+    if(   result != SASL_OK
+       && result != SASL_CONTINUE
+       && result != SASL_INTERACT) {
+	if(conn->context) {
+	    s_conn->mech->plug->mech_dispose(conn->context,
+					     s_conn->sparams->utils);
+	    conn->context = NULL;
+	}
+    }
+    
+    RETURN(conn,result);
 }
 
 
@@ -1170,8 +1210,7 @@ int sasl_server_start(sasl_conn_t *conn,
  *                      NULL on first step if no optional client step
  *  outputlen & output -- set to the server data to transmit
  *                        to the client in the next step
- *  errstr           -- set to a more text error message from
- *                    a lower level mechanism on failure
+ *                        (library handles freeing this)
  *
  * returns:
  *  SASL_OK        -- exchange is complete.
@@ -1186,34 +1225,70 @@ int sasl_server_start(sasl_conn_t *conn,
 int sasl_server_step(sasl_conn_t *conn,
 		     const char *clientin,
 		     unsigned clientinlen,
-		     char **serverout,
-		     unsigned *serveroutlen,
-		     const char **errstr)
+		     const char **serverout,
+		     unsigned *serveroutlen)
 {
     int ret;
     sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;  /* cast */
 
     /* check parameters */
+    if (!conn) return SASL_BADPARAM;
     if ((clientin==NULL) && (clientinlen>0))
-	return SASL_BADPARAM;
+	PARAMERROR(conn);
 
-    if (errstr)
-	*errstr = NULL;
+    /* If we've already done the last send, return! */
+    if(s_conn->sent_last == 1) {
+	return SASL_OK;
+    }
 
     ret = s_conn->mech->plug->mech_step(conn->context,
 					s_conn->sparams,
 					clientin,
 					clientinlen,
 					serverout,
-					(int *) serveroutlen,
-					&conn->oparams,
-					errstr);
+					serveroutlen,
+					&conn->oparams);
 
     if (ret == SASL_OK) {
-	ret = do_authorization(s_conn, errstr);
+	ret = do_authorization(s_conn);
     }
 
-    return ret;
+    if (ret == SASL_OK) {
+	/* if we're done, we need to watch out for the following:
+	 * 1. the mech does server-send-last
+	 * 2. the protocol does not
+	 *
+	 * in this case, return SASL_CONTINUE and remember we are done.
+	 */
+	if(!(conn->flags & SASL_SUCCESS_DATA)
+	   && (s_conn->mech->plug->features & SASL_FEAT_WANT_SERVER_LAST)) {
+	    s_conn->sent_last = 1;
+	    ret = SASL_CONTINUE;
+	}
+	if(!conn->oparams.maxoutbuf) {
+	    conn->oparams.maxoutbuf = conn->props.maxbufsize;
+	}
+
+	/* If authorization id is not the same as authenticationid, get
+	 * the real auxprops */
+	if(strcmp(conn->oparams.user, conn->oparams.authid)) {
+	    prop_clear(s_conn->sparams->propctx,0);
+	    _sasl_auxprop_lookup(s_conn->sparams, 0,
+				 conn->oparams.user, conn->oparams.ulen);
+	}	
+    }
+    
+    if(   ret != SASL_OK
+       && ret != SASL_CONTINUE
+       && ret != SASL_INTERACT) {
+	if(conn->context) {
+	    s_conn->mech->plug->mech_dispose(conn->context,
+					     s_conn->sparams->utils);
+	    conn->context = NULL;
+	}
+    }
+
+    RETURN(conn, ret);
 }
 
 /* returns the length of all the mechanisms
@@ -1240,7 +1315,8 @@ static unsigned mech_names_len()
  *  sep           -- appended between mechanisms
  *  suffix        -- appended to end of result
  * results:
- *  result        -- NUL terminated allocated result, caller must free
+ *  result        -- NUL terminated allocated result, only good until
+ *                   next call to sasl_listmech
  *  plen          -- gets length of result (excluding NUL), may be NULL
  *  pcount        -- gets number of mechanisms, may be NULL
  *
@@ -1253,27 +1329,29 @@ static unsigned mech_names_len()
 /*
  * The default behavior is to seperate with spaces if sep==NULL
  */
-
 int sasl_listmech(sasl_conn_t *conn,
 		  const char *user __attribute__((unused)),
 		  const char *prefix,
 		  const char *sep,
 		  const char *suffix,
-		  char **result,
+		  const char **result,
 		  unsigned *plen,
-		  unsigned *pcount)
+		  int *pcount)
 {
+  sasl_server_conn_t *s_conn = (sasl_server_conn_t *)conn;
   int lup;
-  mechanism_t *listptr;  
+  mechanism_t *listptr;
+  int ret;
   int resultlen;
   int flag;
   const char *mysep;
 
   /* if there hasn't been a sasl_sever_init() fail */
-  if (_sasl_server_active==0) return SASL_FAIL;
-
-  if (! conn || ! result)
-    return SASL_FAIL;
+  if (_sasl_server_active==0) return SASL_NOTINIT;
+  if (!conn) return SASL_BADPARAM;
+  
+  if (! result)
+      PARAMERROR(conn);
 
   if (plen != NULL)
       *plen = 0;
@@ -1286,24 +1364,22 @@ int sasl_listmech(sasl_conn_t *conn,
       mysep = " ";
   }
 
-  if (! mechlist)
-    return SASL_FAIL;
-
-  if (mechlist->mech_length <= 0)
-    return SASL_NOMECH;
+  if (! mechlist || mechlist->mech_length <= 0)
+      INTERROR(conn, SASL_NOMECH);
 
   resultlen = (prefix ? strlen(prefix) : 0)
             + (strlen(mysep) * (mechlist->mech_length - 1))
 	    + mech_names_len()
             + (suffix ? strlen(suffix) : 0)
 	    + 1;
-  *result=sasl_ALLOC(resultlen);
-  if ((*result)==NULL) return SASL_NOMEM;
+  ret = _buf_alloc(&s_conn->mechlist_buf,
+		   &s_conn->mechlist_buf_len, resultlen);
+  if(ret != SASL_OK) MEMERROR(conn);
 
   if (prefix)
-    strcpy (*result,prefix);
+    strcpy (s_conn->mechlist_buf,prefix);
   else
-    **result = '\0';
+    *(s_conn->mechlist_buf) = '\0';
 
   listptr = mechlist->mech_list;  
    
@@ -1317,23 +1393,25 @@ int sasl_listmech(sasl_conn_t *conn,
 
 	  /* print seperator */
 	  if (flag) {
-	      strcat(*result, mysep);
+	      strcat(s_conn->mechlist_buf, mysep);
 	  } else {
 	      flag = 1;
 	  }
 
 	  /* now print the mechanism name */
-	  strcat(*result, listptr->plug->mech_name);
+	  strcat(s_conn->mechlist_buf, listptr->plug->mech_name);
       }
 
       listptr = listptr->next;
   }
 
   if (suffix)
-      strcat(*result,suffix);
+      strcat(s_conn->mechlist_buf,suffix);
 
   if (plen!=NULL)
-      *plen=strlen(*result);
+      *plen=strlen(s_conn->mechlist_buf);
+
+  *result = s_conn->mechlist_buf;
 
   return SASL_OK;
   
@@ -1347,81 +1425,260 @@ static int is_mech(const char *t, const char *m)
 }
 
 /* returns OK if it's valid */
-static int _sasl_checkpass(sasl_conn_t *conn,
-			   const char *mech, const char *service,
-			   const char *user, const char *pass,
-			   const char **errstr)
+static int _sasl_checkpass(sasl_conn_t *conn, const char *service,
+			   const char *user, const char *pass)
 {
     sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;
-    int result = SASL_NOMECH;
+    int result;
+    sasl_getopt_t *getopt;
+    sasl_server_userdb_checkpass_t *checkpass_cb;
+    void *context;
+    const char *mech;
     struct sasl_verify_password_s *v;
 
-    if (mech == NULL) mech = DEFAULT_PLAIN_MECHANISM;
+    /* call userdb callback function, if available */
+    result = _sasl_getcallback(conn, SASL_CB_SERVER_USERDB_CHECKPASS,
+			       &checkpass_cb, &context);
+    if(result == SASL_OK && checkpass_cb) {
+	result = checkpass_cb(conn, context, user, pass, strlen(pass),
+			      s_conn->sparams->propctx);
+	if(result == SASL_OK)
+	    return SASL_OK;
+    }
+
+    /* figure out how to check (i.e. auxprop or saslauthd or pwcheck) */
+    if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context)
+            == SASL_OK) {
+        getopt(context, NULL, "pwcheck_method", &mech, NULL);
+    }
+
+    if(!mech) mech = DEFAULT_CHECKPASS_MECH;
+
+    result = SASL_NOMECH;
+
     for (v = _sasl_verify_password; v->name; v++) {
-	if (is_mech(mech, v->name)) {
-	    result = v->verify(conn, user, pass, 
-			       service, s_conn->user_realm, errstr);
+	if(is_mech(mech, v->name)) {
+	    result = v->verify(conn, user, pass, service, s_conn->user_realm);
 	    break;
 	}
     }
 
     if (result == SASL_NOMECH) {
 	/* no mechanism available ?!? */
-	_sasl_log(conn, SASL_LOG_ERR, NULL, 0, 0,
-		  "unrecognized plaintext verifier %s", mech);
+	_sasl_log(conn, SASL_LOG_ERR, "unkwnown password verifier %s", mech);
     }
 
-    return result;
+    if (result != SASL_OK)
+	sasl_seterror(conn, SASL_NOLOG, "checkpass failed");
+
+    RETURN(conn, result);
 }
 
-
 /* check if a plaintext password is valid
- * if user is NULL, check if plaintext is enabled
+ *   if user is NULL, check if plaintext passwords are enabled
  * inputs:
- *  user         -- user to query in current user_realm
- *  userlen      -- length of username, 0 = strlen(user)
- *  pass         -- plaintext password to check
- *  passlen      -- length of password, 0 = strlen(pass)
- * outputs:
- *  errstr       -- set to error message for use in protocols
+ *  user          -- user to query in current user_domain
+ *  userlen       -- length of username, 0 = strlen(user)
+ *  pass          -- plaintext password to check
+ *  passlen       -- length of password, 0 = strlen(pass)
  * returns 
- *  SASL_OK      -- success
- *  SASL_NOMECH  -- user found, but no verifier
- *  SASL_NOUSER  -- user not found
+ *  SASL_OK       -- success
+ *  SASL_NOMECH   -- mechanism not supported
+ *  SASL_NOVERIFY -- user found, but no verifier
+ *  SASL_NOUSER   -- user not found
  */
 int sasl_checkpass(sasl_conn_t *conn,
 		   const char *user,
 		   unsigned userlen __attribute__((unused)),
 		   const char *pass,
-		   unsigned passlen,
-		   const char **errstr)
+		   unsigned passlen)
 {
-    const char *mech = NULL;
-    int result = SASL_NOMECH;
-    sasl_getopt_t *getopt;
-    void *context;
+    int result;
+    
+    if (_sasl_server_active==0) return SASL_NOTINIT;
+    
+    /* check if it's just a query if we are enabled */
+    if (!user)
+	return SASL_OK;
 
+    if (!conn) return SASL_BADPARAM;
+    
     /* check params */
-    if (_sasl_server_active==0) return SASL_FAIL;
-    if ((conn == NULL) || (user == NULL) || (pass == NULL)) return SASL_BADPARAM;
+    if (pass == NULL)
+	PARAMERROR(conn);
 
-    if (user == NULL) return SASL_NOUSER;
-
-    /* figure out how to check (i.e. PAM or /etc/passwd or kerberos or etc...) */
-    if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context)
-	    == SASL_OK) {
-	getopt(context, NULL, "pwcheck_method", &mech, NULL);
-    }
-
-    if (errstr != NULL) { *errstr = NULL; }
-    result = _sasl_checkpass(conn, mech, conn->service, user, pass, errstr);
+    result = _sasl_checkpass(conn, conn->service, user, pass);
 
     if (result == SASL_OK) {
-	result = _sasl_strdup(user, &(conn->oparams.authid), NULL);
-	if (result != SASL_OK) return result;
+	strncpy(conn->authid_buf, user, CANON_BUF_SIZE);
+	conn->oparams.authid = conn->authid_buf;
       
-	_sasl_transition(conn, pass, passlen);
+	result = _sasl_transition(conn, pass, passlen);
     }
 
-    return result;
+    RETURN(conn,result);
 }
+
+/* check if a user exists on server
+ *  conn          -- connection context (may be NULL, used to hold last error)
+ *  service       -- registered name of the service using SASL (e.g. "imap")
+ *  user_realm    -- permits multiple user realms on server, NULL = default
+ *  user          -- NUL terminated user name
+ *
+ * returns:
+ *  SASL_OK       -- success
+ *  SASL_DISABLED -- account disabled [FIXME: currently not detected]
+ *  SASL_NOUSER   -- user not found
+ *  SASL_NOVERIFY -- user found, but no usable mechanism [FIXME: not supported]
+ *  SASL_NOMECH   -- no mechanisms enabled
+ */
+int sasl_user_exists(sasl_conn_t *conn,
+		     const char *service,
+		     const char *user_realm,
+		     const char *user) 
+{
+    int result=SASL_NOMECH;
+    const char *mech;
+    void *context;
+    sasl_getopt_t *getopt;
+    struct sasl_verify_password_s *v;
+    
+    /* check params */
+    if (_sasl_server_active==0) return SASL_NOTINIT;
+    if (!conn) return SASL_BADPARAM;
+    if (!user || conn->type != SASL_CONN_SERVER) 
+	PARAMERROR(conn);
+
+    if(!service) service = conn->service;
+    
+    /* figure out how to check (i.e. auxprop or saslauthd or pwcheck) */
+    if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context)
+            == SASL_OK) {
+        getopt(context, NULL, "pwcheck_method", &mech, NULL);
+    }
+
+    if(!mech) mech = DEFAULT_CHECKPASS_MECH;
+
+    result = SASL_NOMECH;
+
+    for (v = _sasl_verify_password; v->name; v++) {
+	if(is_mech(mech, v->name)) {
+	    result = v->verify(conn, user, NULL, service, user_realm);
+	    break;
+	}
+    }
+
+    /* Screen out the SASL_BADPARAM response
+     * we'll get from not giving a password */
+    if(result == SASL_BADPARAM) {
+	result = SASL_OK;
+    }
+
+    if (result == SASL_NOMECH) {
+	/* no mechanism available ?!? */
+	_sasl_log(conn, SASL_LOG_ERR, "no plaintext password verifier?");
+	sasl_seterror(conn, SASL_NOLOG, "no plaintext password verifier?");
+    }
+
+    RETURN(conn, result);
+}
+
+/* check if an apop exchange is valid
+ *  (note this is an optional part of the SASL API)
+ *  if challenge is NULL, just check if APOP is enabled
+ * inputs:
+ *  challenge     -- challenge which was sent to client
+ *  challen       -- length of challenge, 0 = strlen(challenge)
+ *  response      -- client response, "<user> <digest>" (RFC 1939)
+ *  resplen       -- length of response, 0 = strlen(response)
+ * returns 
+ *  SASL_OK       -- success
+ *  SASL_BADAUTH  -- authentication failed
+ *  SASL_BADPARAM -- missing challenge
+ *  SASL_BADPROT  -- protocol error (e.g., response in wrong format)
+ *  SASL_NOVERIFY -- user found, but no verifier
+ *  SASL_NOMECH   -- mechanism not supported
+ *  SASL_NOUSER   -- user not found
+ */
+int sasl_checkapop(sasl_conn_t *conn,
+#ifdef DO_SASL_CHECKAPOP
+ 		   const char *challenge,
+ 		   unsigned challen __attribute__((unused)),
+ 		   const char *response,
+ 		   unsigned resplen __attribute__((unused)))
+#else
+ 		   const char *challenge __attribute__((unused)),
+ 		   unsigned challen __attribute__((unused)),
+ 		   const char *response __attribute__((unused)),
+ 		   unsigned resplen __attribute__((unused)))
+#endif
+{
+#ifdef DO_SASL_CHECKAPOP
+    sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;
+    char *user, *user_end;
+    const char *password_request[] = { SASL_AUX_PASSWORD, NULL };
+    size_t user_len;
+    int result;
+
+    if (_sasl_server_active==0)
+	return SASL_NOTINIT;
+
+    /* check if it's just a query if we are enabled */
+    if(!challenge)
+	return SASL_OK;
+
+    /* check params */
+    if (!conn) return SASL_BADPARAM;
+    if (!response)
+	PARAMERROR(conn);
+
+    /* Parse out username and digest.
+     *
+     * Per RFC 1939, response must be "<user> <digest>", where
+     * <digest> is a 16-octet value which is sent in hexadecimal
+     * format, using lower-case ASCII characters.
+     */
+    user_end = strrchr(response, ' ');
+    if (!user_end || strspn(user_end + 1, "0123456789abcdef") != 32) 
+    {
+        sasl_seterror(conn, 0, "Bad Digest");
+        RETURN(conn,SASL_BADPROT);
+    }
+ 
+    user_len = (size_t)(user_end - response);
+    user = sasl_ALLOC(user_len + 1);
+    memcpy(user, response, user_len);
+    user[user_len] = '\0';
+
+    result = prop_request(s_conn->sparams->propctx, password_request);
+    if(result != SASL_OK)
+        RETURN(conn, result);
+
+    /* Cannonify it */
+    result = _sasl_canon_user(conn,
+			   user, user_len,
+			   user, user_len,
+			   0, &(conn->oparams));
+
+    sasl_FREE(user);
+
+    if(result != SASL_OK) RETURN(conn, result);
+
+    /* Do APOP verification */
+    result = _sasl_auxprop_verify_apop(conn, conn->oparams.user,
+	challenge, user_end + 1, s_conn->user_realm);
+
+    /* If verification failed, we don't want to encourage getprop to work */
+    if(result != SASL_OK) {
+	conn->oparams.user = NULL;
+	conn->oparams.authid = NULL;
+    }
+
+    RETURN(conn, result);
+#else /* sasl_checkapop was disabled at compile time */
+    sasl_seterror(conn, SASL_NOLOG,
+	"sasl_checkapop called, but was disabled at compile time");
+    RETURN(conn, SASL_NOMECH);
+#endif /* DO_SASL_CHECKAPOP */
+}
+ 

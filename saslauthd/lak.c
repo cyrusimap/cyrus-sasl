@@ -694,9 +694,8 @@ static int lak_bind(LAK *lak, char flag, const char *bind_dn, const char *passwo
 	rc = ldap_simple_bind_s(lak->ld, bind_dn, password);
 	if (rc != LDAP_SUCCESS) {
 	    syslog((flag == LAK_BIND_ANONYMOUS ? LOG_WARNING : LOG_DEBUG)|LOG_AUTH,
-		   "ldap_simple_bind(%s%s) failed (%s)",
-		   (flag == LAK_BIND_ANONYMOUS) ? "" : "as ",
-		   (flag == LAK_BIND_ANONYMOUS) ? "anonymous bind" : bind_dn,
+		   "ldap_simple_bind() failed as %s (%s)",
+		   (!bind_dn || bind_dn[0] == '\0') ? "anonymous" : bind_dn,
 		   ldap_err2string(rc));
 	    lak->bind_status = LAK_NOT_BOUND;
 	    return LAK_FAIL;

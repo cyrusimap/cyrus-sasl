@@ -340,15 +340,11 @@ client_continue_step(void *conn_context,
     }
   }
   
-  if (! user) {
-    user = "anonymous";
-    userlen = strlen(user);
+  if (!user) {
+      user = "anonymous";
+      userlen = strlen(user);
   }
   
-  VL(("anonymous: user=%s\n",user));
-
-
-
   memset(hostname, 0, sizeof(hostname));
   gethostname(hostname, sizeof(hostname));
   hostname[sizeof(hostname)-1] = '\0';
@@ -380,9 +376,6 @@ client_continue_step(void *conn_context,
 
   oparams->realm=NULL;
   oparams->param_version=0;
-
-  /* free memory */
-  if (user) params->utils->free(user);
 
   text->state = 2;
 

@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.18 2002/01/10 22:12:08 rjs3 Exp $
+ * $Id: testsuite.c,v 1.19 2002/01/16 15:55:51 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1888,6 +1888,15 @@ const sasl_security_properties_t force_des = {
     NULL	    
 };
 
+const sasl_security_properties_t force_rc4_56 = {
+    0,
+    56,
+    8192,
+    0,
+    NULL,
+    NULL	    
+};
+
 const sasl_security_properties_t force_3des = {
     0,
     112,
@@ -2017,14 +2026,15 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
     const char *txstring = "THIS IS A TEST";
     const char *out, *out2;
     char *tmp;
-    const sasl_security_properties_t *test_props[6] =
+    const sasl_security_properties_t *test_props[7] =
                                           { &security_props,
 					    &force_3des,
+					    &force_rc4_56,
 					    &force_des,
 					    &int_only,
 					    &no_int,
 					    &disable_seclayer };
-    const unsigned num_properties = 6;
+    const unsigned num_properties = 7;
     unsigned i;
     const sasl_ssf_t *this_ssf;
     unsigned outlen = 0, outlen2 = 0, totlen = 0;

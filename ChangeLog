@@ -1,3 +1,10 @@
+2002-01-16  Ken Murchison <ken@oceana.com>
+	* plugins/srp.c: fixed layer decoding to handle multiple packets
+	* plugins/srp.c: plugged memory leaks (now passes testsuite)
+	* plugins/srp.c: more logging
+	* plugins/srp.c: lots of other nits, bug fixes
+	* utils/testsuite.c: added SSF=0/56 test
+
 2002-01-14  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* saslauthd/auth_krb4.c (auth_krb4): fix tf_name memory leak,
 	  and other efficency fixes

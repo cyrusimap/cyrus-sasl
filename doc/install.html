@@ -2,7 +2,7 @@
                       "http://www.w3.org/TR/html4/loose.dtd"> 
 <html><head>
 <title>Cyrus SASLv2 INSTALL Documentation</title>
-<!-- $Id: install.html,v 1.16 2003/10/07 18:09:23 ken3 Exp $ -->
+<!-- $Id: install.html,v 1.17 2004/01/07 19:11:19 rjs3 Exp $ -->
 </head>
 <body>
 <h1>Installation Procedure</h1>
@@ -66,7 +66,7 @@ perform user verification?
 Kerberos infroastructure.</li>
   <li>The shared secret mechanisms will need an auxprop
 plugin backend.</li>
-  <li>The plaintext mechanisms can make do with saslauthd
+  <li>The plaintext mechanisms can make do with saslauthd, Courier authdaemond (not included),
 *or* by using an auxprop plugin backend.</li>
   <li>To use Kerberos and Plaintext, you'll likely want to use saslauthd
 with a kerberos module for plaintext authentication.  To use Shared Secret
@@ -187,7 +187,7 @@ document.
 and <tt>auxprop_plugin</tt> match the decisions you made about your
 authentication infrastructure.  (For example, if you are using
 saslauthd as a password verifier, you'll want to be sure to set
-<tt>pwcheck_method: saslauthd</tt>.
+<tt>pwcheck_method: saslauthd</tt>).
 
 <p>If you are using saslauthd, you will want to arrange for
 <tt>saslauthd -a pam</tt> (or ldap, or kerberos4, etc) to be run

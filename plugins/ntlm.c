@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.12 2003/09/02 16:04:52 ken3 Exp $
+ * $Id: ntlm.c,v 1.13 2003/09/02 16:37:05 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -70,7 +70,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.12 2003/09/02 16:04:52 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.13 2003/09/02 16:37:05 ken3 Exp $";
 
 #define NTLM_SIGNATURE		"NTLMSSP"
 
@@ -353,7 +353,7 @@ static unsigned char *V2(unsigned char *V2, const char *passwd,
     int len;
 
     /* Allocate enough space for the unicode target */
-    len = strlen(authid) + strlen(target);
+    len = strlen(authid) + xstrlen(target);
     if (_plug_buf_alloc(utils, buf, buflen, 2 * len + 1) != SASL_OK) {
 	SETERROR(utils, "cannot allocate NTLMv2 hash");
 	*result = SASL_NOMEM;
@@ -365,12 +365,11 @@ static unsigned char *V2(unsigned char *V2, const char *passwd,
 	/* Use the tail end of the buffer for ucase() conversion */
 	upper = *buf + len;
 	strcpy(upper, authid);
-	strcat(upper, target);
+	if (target) strcat(upper, target);
 	ucase(upper, len);
 	to_unicode(*buf, upper, len);
 
-	HMAC(EVP_md5(), hash, MD4_DIGEST_LENGTH,
-	     *buf, 2 * len, hash, &len);
+	HMAC(EVP_md5(), hash, MD4_DIGEST_LENGTH, *buf, 2 * len, hash, &len);
 
 	/* V2 = HMAC-MD5(NTLMv2hash, challenge + blob) + blob */
 	HMAC_Init(&ctx, hash, len, EVP_md5());
@@ -1323,11 +1322,6 @@ static int ntlm_server_mech_step2(server_context_t *text,
 			   (u_char *) response, clientinlen);
     if (result != SASL_OK) goto cleanup;
 
-    sparams->utils->log(NULL, SASL_LOG_DEBUG,
-			"client user: %s", authid);
-    sparams->utils->log(NULL, SASL_LOG_DEBUG,
-			"client domain: %s", domain);
-
     /* require at least one response and an authid */
     if ((!lm_resp && !nt_resp) ||
 	(lm_resp && lm_resp_len < NTLM_RESP_LENGTH) ||
@@ -1337,6 +1331,11 @@ static int ntlm_server_mech_step2(server_context_t *text,
 	result = SASL_BADPROT;
 	goto cleanup;
     }
+
+    sparams->utils->log(NULL, SASL_LOG_DEBUG,
+			"client user: %s", authid);
+    if (domain) sparams->utils->log(NULL, SASL_LOG_DEBUG,
+				    "client domain: %s", domain);
 
     if (text->sock == -1) {
 	/* verify the response internally */

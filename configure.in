@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.193 2004/05/21 15:43:40 rjs3 Exp $
+dnl $Id: configure.in,v 1.194 2004/05/27 19:18:59 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -707,8 +707,60 @@ case "$with_pgsql" in
 esac
 AC_SUBST(LIB_PGSQL)
 
-if test "$sql" = yes -a "$with_pgsql" = no -a "$with_mysql" = no; then
-    AC_ERROR([--enable-sql chosen but neither Postgres nor MySQL found])
+dnl SQLite
+AC_ARG_WITH(sqlite,  [  --with-sqlite=PATH       use SQLite from PATH ],
+  with_sqlite=$withval,
+  with_sqlite=$sql)
+
+# find location of library 
+# presuing if one given then correct
+if test "${with_sqlite}" = "yes"; then
+  with_sqlite=notfound
+  for sqliteloc in lib
+  do
+    if test -f ${prefix}/${sqliteloc}/libsqlite.a; then
+      with_sqlite="${prefix}"
+      break
+    elif test -f /usr/local/${sqliteloc}/libsqlite.a; then
+      with_sqlite="/usr/local"
+      break
+    elif test -f /usr/${sqliteloc}/libsqlite.a; then
+      with_sqlite="/usr"
+      break
+    fi
+  done
+fi
+
+LIB_SQLITE=""
+
+case "$with_sqlite" in
+    no) true;;
+    notfound) AC_WARN([SQLite Library not found]); true;;
+    *)
+     if test -d ${with_sqlite}/lib; then
+         LIB_SQLITE="-L${with_sqlite}/lib -R${with_sqlite}/lib"
+     else
+         LIB_SQLITE="-L${with_sqlite} -R${with_sqlite}"
+     fi
+
+     LIB_SQLITE_DIR=$LIB_SQLITE
+     LIB_SQLITE="$LIB_SQLITE -lsqlite"
+
+     if test -d ${with_sqlite}/include; then
+         CPPFLAGS="${CPPFLAGS} -I${with_sqlite}/include"
+     else
+         CPPFLAGS="${CPPFLAGS} -I${with_sqlite}"
+     fi
+       AC_CHECK_LIB(sqlite, sqlite_open, AC_DEFINE(HAVE_SQLITE,[],
+	   [Do we have SQLite support?]),
+           [AC_WARN([SQLite Library sqlite does not work])
+	    with_sqlite=no], $LIB_SQLITE_DIR);;
+         
+esac
+AC_SUBST(LIB_SQLITE)
+
+if test "$sql" = yes -a "$with_pgsql" = no -a "$with_mysql" = no -a "$with_sqlite" = no; then
+    AC_ERROR([--enable-sql chosen but neither Postgres nor MySQL nor SQLite found])
 fi
 
 if test "$enable_shared" = yes; then

@@ -192,109 +192,6 @@ static int      htoi(unsigned char *hexin, int *res);
 static unsigned char *COLON = (unsigned char *) ":";
 
 void
-tmp_rc4_init(rc4_context_t *text,
-         const unsigned char *key,
-         unsigned keylen)
-{
-  int i, j;
-
-  /* fill in linearly s0=0 s1=1... */
-  for (i=0;i<256;i++)
-    text->sbox[i]=i;
-
-  j=0;
-  for (i=0; i<256; i++)
-  {
-    unsigned char tmp;
-    /* j = (j + Si + Ki) mod 256 */
-    j=(j+text->sbox[i]+key[i%keylen])%256;
-
-    /* swap Si and Sj */
-    tmp=text->sbox[i];
-    text->sbox[i]=text->sbox[j];
-    text->sbox[j]=tmp;
-  }
-
-  /* counters initialized to 0 */
-  text->i=0;
-  text->j=0;
-}
-
-void
-tmp_rc4_encrypt(rc4_context_t *text,
-            const char *input,
-            char *output,
-            unsigned len)
-{
-  int tmp;
-  int i=text->i;
-  int j=text->j;
-  int t;
-  int K;
-  const char *input_end = input + len;
-
-  while (input < input_end)
-  {
-    i=(i+1) %256;
-
-    j=(j + text->sbox[i] ) %256;
-
-    /* swap Si and Sj */
-    tmp=text->sbox[i];
-    text->sbox[i]=text->sbox[j];
-    text->sbox[j]=tmp;
-  
-    t=( text->sbox[i] + text->sbox[j]) %256;
-    
-    K=text->sbox[t];
-
-    /* byte K is Xor'ed with plaintext */
-    *output++ = *input++ ^ K;
-  }
-
-  text->i=i;
-  text->j=j;
-}
-
-void
-tmp_rc4_decrypt(rc4_context_t *text,
-            const char *input,
-            char *output,
-            unsigned len)
-{
-  int tmp;
-  int i=text->i;
-  int j=text->j;
-  int t;
-  int K;
-  const char *input_end = input + len;
-
-  while (input < input_end)
-  {
-    i=(i+1) %256;
-
-    j=(j + text->sbox[i] ) %256;
-
-    /* swap Si and Sj */
-    tmp=text->sbox[i];
-    text->sbox[i]=text->sbox[j];
-    text->sbox[j]=tmp;
-  
-    t=( text->sbox[i] + text->sbox[j]) %256;
-    
-    K=text->sbox[t];
-
-    /* byte K is Xor'ed with plaintext */
-    *output++ = *input++ ^ K;
-  }
-
-  text->i=i;
-  text->j=j;
-}
-
-
-
-void
 CvtHex(
        IN HASH Bin,
        OUT HASHHEX Hex
@@ -1185,14 +1082,21 @@ init_rc4(void *v,
 	 int keylen)
 {
   context_t *text = (context_t *) v;
+  char enckey[16];
+  char deckey[16];
+  MD5_CTX ctx;
+
+  
+
+
   text->rc4_enc_context=(rc4_context_t *) text->malloc(sizeof(rc4_context_t));
   if (text->rc4_enc_context==NULL) return SASL_NOMEM;
 
   text->rc4_dec_context=(rc4_context_t *) text->malloc(sizeof(rc4_context_t));
   if (text->rc4_dec_context==NULL) return SASL_NOMEM;
 
-  tmp_rc4_init(text->rc4_enc_context, key, keylen);
-  tmp_rc4_init(text->rc4_dec_context, key, keylen);
+  rc4_init(text->rc4_enc_context, key, keylen);
+  rc4_init(text->rc4_dec_context, key, keylen);
 
   return SASL_OK;
 }
@@ -1207,7 +1111,7 @@ dec_rc4(context_t *text,
   *output = (char *) text->malloc(inputlen);
   if (*output == NULL) return SASL_NOMEM;
   *outputlen = inputlen;
-  tmp_rc4_decrypt(text->rc4_dec_context, input, *output, inputlen);
+  rc4_decrypt(text->rc4_dec_context, input, *output, inputlen);
   return SASL_OK;
 }
 
@@ -1219,7 +1123,7 @@ enc_rc4(context_t *text,
 	unsigned *outputlen)
 {
   *outputlen = inputlen;
-  tmp_rc4_encrypt(text->rc4_enc_context, input, *output, inputlen);
+  rc4_encrypt(text->rc4_enc_context, input, *output, inputlen);
   return SASL_OK;
 }
 

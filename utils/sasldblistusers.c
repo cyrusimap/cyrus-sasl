@@ -91,16 +91,15 @@ int listusers(const char *path, listcb_t *cb)
 	char *authid = dkey.dptr;
 	char *realm  = dkey.dptr+strlen(authid)+1;
 	char *tmp    = realm + strlen(realm)+1;
-	char *mech;
+	char mech[1024];
 
-	mech = (char *) malloc(dkey.dsize+1);
-	memset(mech,'\0',dkey.dsize+1);
 	memcpy(mech, tmp, dkey.dsize - (tmp - ((char *)dkey.dptr)));
+	mech[dkey.dsize - (tmp - ((char *)dkey.dptr))] = '\0';
 
-	/* don't check return values */
-	cb(authid,realm,mech);
-
-	free(mech);
+	if (*authid) {
+	    /* don't check return values */
+	    cb(authid,realm,mech);
+	}
 
 	nextkey=gdbm_nextkey(indb, dkey);
 	dkey=nextkey;
@@ -134,16 +133,15 @@ int listusers(const char *path, listcb_t *cb)
 	char *authid = dkey.dptr;
 	char *realm  = dkey.dptr+strlen(authid)+1;
 	char *tmp    = realm + strlen(realm)+1;
-	char *mech;
+	char mech[1024];
 
-	mech = (char *) malloc(dkey.dsize+1);
-	memset(mech,'\0',dkey.dsize+1);
 	memcpy(mech, tmp, dkey.dsize - (tmp - ((char *)dkey.dptr)));
+	mech[dkey.dsize - (tmp - ((char *)dkey.dptr))] = '\0';
 
-	/* don't check return values */
-	cb(authid,realm,mech);
-
-	free(mech);
+	if (*authid) {
+	    /* don't check return values */
+	    cb(authid,realm,mech);
+	}
 
 	nextkey=dbm_nextkey(indb);
 	dkey=nextkey;
@@ -239,20 +237,17 @@ int listusers(const char *path, listcb_t *cb)
 	char *authid = key.data;
 	char *realm  = ((char *)key.data)+strlen(authid)+1;
 	char *tmp    = realm + strlen(realm)+1;
-	char *mech;
+	char mech[1024];
 
-	mech = (char *) malloc(key.size+1);
-	memset(mech,'\0',key.size+1);
-	memcpy(mech, tmp, key.size - (tmp - ((char *)key.data)));
+	memcpy(mech, tmp, dkey.dsize - (tmp - ((char *)dkey.dptr)));
+	mech[dkey.dsize - (tmp - ((char *)dkey.dptr))] = '\0';
 
-	/* don't check return values */
-	cb(authid,realm,mech);
+	if (*authid) {
+	    /* don't check return values */
+	    cb(authid,realm,mech);
+	}
 
-	free(mech);
-	
-	result = cursor->c_get(cursor, &key, &data,
-			       DB_NEXT);
-
+	result = cursor->c_get(cursor, &key, &data, DB_NEXT);
     }
 
     if (result != DB_NOTFOUND) {

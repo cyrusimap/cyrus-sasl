@@ -1,3 +1,9 @@
+2003-12-06  Ken Murchison <ken@oceana.com>
+	* lib/checkpw.c, lib/server.c,
+	  plugins/cram.c, plugins/digestmd5.c, plugins/ntlm.c,
+	  plugins/otp.c, plugins/srp.c: erase the plaintext password
+	  property from the context when we're done with it
+
 2003-12-01  Ken Murchison <ken@oceana.com>
 	* doc/draft-ietf-sasl-crammd5-01.txt: added
 	* doc/draft-ietf-sasl-gssapi-00.txt: added

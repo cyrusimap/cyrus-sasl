@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.66 2003/09/09 15:38:13 ken3 Exp $
+ * $Id: checkpw.c,v 1.67 2003/12/07 00:34:07 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -215,6 +215,10 @@ static int auxprop_verify_password(sasl_conn_t *conn,
 	ret = SASL_BADAUTH;
     }
 
+    /* erase the plaintext password */
+    sconn->sparams->utils->prop_erase(sconn->sparams->propctx,
+				      password_request[0]);
+
  done:
     if (userid) sasl_FREE(userid);
     if (realm)  sasl_FREE(realm);
@@ -267,6 +271,10 @@ int _sasl_auxprop_verify_apop(sasl_conn_t *conn,
     _sasl_MD5Update(&ctx, auxprop_values[0].values[0],
 		    strlen(auxprop_values[0].values[0]));
     _sasl_MD5Final(digest, &ctx);
+
+    /* erase the plaintext password */
+    sconn->sparams->utils->prop_erase(sconn->sparams->propctx,
+				      password_request[0]);
 
     /* convert digest from binary to ASCII hex */
     for (i = 0; i < 16; i++)

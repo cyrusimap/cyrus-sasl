@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.18 2003/11/03 18:25:25 ken3 Exp $
+ * $Id: ntlm.c,v 1.19 2003/12/07 00:34:09 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -94,7 +94,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.18 2003/11/03 18:25:25 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.19 2003/12/07 00:34:09 ken3 Exp $";
 
 #ifdef WIN32
 static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);
@@ -1540,6 +1540,9 @@ static int ntlm_server_mech_step2(server_context_t *text,
 	
 	password->len = pass_len;
 	strncpy(password->data, auxprop_values[0].values[0], pass_len + 1);
+
+	/* erase the plaintext password */
+	sparams->utils->prop_erase(sparams->propctx, password_request[0]);
 
 	/* calculate our own response(s) and compare with client's */
 	result = SASL_OK;

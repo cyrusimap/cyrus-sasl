@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.52 2003/11/03 18:25:25 ken3 Exp $
+ * $Id: srp.c,v 1.53 2003/12/07 00:34:09 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -98,7 +98,7 @@ typedef unsigned short uint32;
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: srp.c,v 1.52 2003/11/03 18:25:25 ken3 Exp $";
+static const char plugin_id[] = "$Id: srp.c,v 1.53 2003/12/07 00:34:09 ken3 Exp $";
 
 /* Size limit of cipher block size */
 #define SRP_MAXBLOCKSIZE 16
@@ -1930,7 +1930,8 @@ static int srp_server_mech_step1(context_t *text,
 	goto cleanup;
     }    
     
-    params->utils->prop_clear(params->propctx, 1);
+    /* erase the plaintext password */
+    params->utils->prop_erase(params->propctx, password_request[1]);
     
     /* Calculate B */
     result = CalculateB(text, &text->v, &text->N, &text->g,

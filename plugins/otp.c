@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.30 2003/11/03 18:25:25 ken3 Exp $
+ * $Id: otp.c,v 1.31 2003/12/07 00:34:09 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -73,7 +73,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: otp.c,v 1.30 2003/11/03 18:25:25 ken3 Exp $";
+static const char plugin_id[] = "$Id: otp.c,v 1.31 2003/12/07 00:34:09 ken3 Exp $";
 
 #define OTP_SEQUENCE_MAX	9999
 #define OTP_SEQUENCE_DEFAULT	499
@@ -1026,8 +1026,6 @@ static int otp_server_mech_step1(server_context_t *text,
 				    "don't have a OTP secret");
 	    return SASL_FAIL;
 	}
-	
-	params->utils->prop_clear(params->propctx, 1);
 	
 	text->timestamp = time(0);
     }

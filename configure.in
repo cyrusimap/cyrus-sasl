@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.74 2000/02/24 01:36:21 leg Exp $
+dnl $Id: configure.in,v 1.75 2000/02/27 20:39:04 leg Exp $
 dnl
 dnl         Copyright 1998 by Carnegie Mellon University
 dnl
@@ -216,7 +216,7 @@ AC_CHECK_LIB(dl, dlopen, SASL_DL_LIB="-ldl", SASL_DL_LIB="")
 AC_SUBST(SASL_DL_LIB)
 
 dnl See if we can provide a default logging function...
-AC_CHECK_FUNCS(vsyslog)
+AC_CHECK_FUNCS(syslog)
 
 LIB_CRYPT=""
 AC_CHECK_FUNC(crypt, cmu_have_crypt=yes,
@@ -583,7 +583,7 @@ AC_SUBST(LIB_RC4)
 
 AC_HEADER_DIRENT
 AC_HEADER_STDC
-AC_CHECK_FUNCS(strchr memcpy getspnam gettimeofday)
+AC_CHECK_FUNCS(strchr memcpy getpwnam getspnam gettimeofday)
 
 dnl check for getsubopt
 sasl_cv_getsubopt=no
@@ -608,7 +608,7 @@ AC_SUBST(SNPRINTFOBJS)
 LTLIBOBJS=`echo "$LIBOBJS" | sed 's/\.o/.lo/g'`
 AC_SUBST(LTLIBOBJS)
 
-AC_CHECK_HEADERS(getopt.h unistd.h crypt.h shadow.h)
+AC_CHECK_HEADERS(getopt.h unistd.h crypt.h pwd.h shadow.h)
 AC_C_CONST
 AC_C_INLINE
 

@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.23 2004/03/09 17:35:31 rjs3 Exp $
+ * $Id: ntlm.c,v 1.24 2004/03/09 18:02:30 rjs3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -94,7 +94,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.23 2004/03/09 17:35:31 rjs3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.24 2004/03/09 18:02:30 rjs3 Exp $";
 
 #ifdef WIN32
 static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);
@@ -857,7 +857,7 @@ static int smb_connect_server(const sasl_utils_t *utils, const char *client,
     if (s < 0) {
 	if (getnameinfo(ai->ai_addr, ai->ai_addrlen, NULL, 0,
 			pbuf, sizeof(pbuf), NI_NUMERICSERV) != 0) {
-		snprintf(pbuf, sizeof(pbuf), "<unknown>");
+		strcpy(pbuf, "unknown");
 	}
 	utils->log(NULL, SASL_LOG_ERR, "NTLM: couldn't connect to %s/%s",
 		   ai->ai_canonname ? ai->ai_canonname : server, pbuf);

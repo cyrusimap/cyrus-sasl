@@ -1,5 +1,11 @@
 1998-11-29  Rob Earhart  <rob+@andrew.cmu.edu>
 
+	* plugins/plain.c: now attempts to look up userid and authid as
+ 	well as password via callbacks, and sets callback ids
+ 	appropriately for SASL_INTERACT.  Uses authorization callback.
+  	Revamped parser to not copy data onto stack and to use
+ 	arbitrary-length data.
+
 	* lib/server.c: removed gdbm/ndbm code and the whole SASL_DB_TYPE
  	nonsense; replaced with linkage against _sasl_db_getsecret and
  	_sasl_db_putsecret

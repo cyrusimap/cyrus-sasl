@@ -62,6 +62,12 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 /* do we have PAM for plaintext password checking? */
 #undef HAVE_PAM
 
+/* what flavor of GSSAPI are we using? */
+#undef HAVE_GSS_C_NT_HOSTBASED_SERVICE
+
+/* do we have gssapi.h or gssapi/gssapi.h? */
+#undef HAVE_GSSAPI_H
+
 /* do we have getsubopt()? */
 #undef HAVE_GETSUBOPT
 

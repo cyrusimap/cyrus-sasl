@@ -1,17 +1,23 @@
+1999-11-11  Larry Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/kerberos4.c (new_text): fixed the type to what is
+	actually used
+
 Thu Nov 11 00:10:33 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
-	* lib/checkpw.c: patches from Ronald Guilmette to minimize
-	warnings in kerboers code
+	* lib/checkpw.c: patches from Ronald Guilmette (rfg@monkeys.com)
+	to minimize warnings in kerberos code
 
 	* plugins/kerberos4.c: ditto
 
 1999-11-10  Timothy L Martin  <tmartin@andrew.cmu.edu>
 
-	* lib/checkpw.c (parseuser): Added patches from Claus
+	* lib/checkpw.c (parseuser): Added patches from Claus Assmann
+	(ca+sasl@sendmail.org); fixes segfault
 
 1999-11-06  Timothy L Martin  <tmartin@andrew.cmu.edu>
 
-	* configure.in (SASL_DB_LIB): added support for berkeley db. Hopefully this doesn't fuck anything up
+	* configure.in (SASL_DB_LIB): added support for berkeley db.
 
 	* utils/saslpasswd.c (main): eliminated stupid printf's
 
@@ -19,7 +25,8 @@ Thu Nov 11 00:10:33 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/server.c (sasl_checkpass): failing if passed in null
 
-	* lib/checkpw.c (_sasl_sasldb_set_pass): if getting secret failed was faulting
+	* lib/checkpw.c (_sasl_sasldb_set_pass): if getting secret failed
+	was faulting
 
 1999-11-02  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 

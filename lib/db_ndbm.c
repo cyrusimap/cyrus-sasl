@@ -76,6 +76,9 @@ getsecret(void *context __attribute__((unused)),
   size_t key_len;
   DBM *db;
   datum dkey, dvalue;
+  void *cntxt;
+  sasl_getopt_t *getopt;
+  const char *path = SASL_DB_PATH;
 
   if (! mechanism || ! auth_identity || ! secret || ! realm || ! db_ok)
     return SASL_FAIL;
@@ -85,7 +88,15 @@ getsecret(void *context __attribute__((unused)),
   if (result != SASL_OK)
     return result;
 
-  db = dbm_open(SASL_DB_PATH, O_RDONLY, S_IRUSR | S_IWUSR);
+  if (_sasl_getcallback(conn, SASL_CB_GETOPT,
+                        &getopt, &cntxt) == SASL_OK) {
+      const char *p;
+      if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK 
+	  && p != NULL && *p != 0) {
+          path = p;
+      }
+  }
+  db = dbm_open(path, O_RDONLY, S_IRUSR | S_IWUSR);
   if (! db) {
     return SASL_FAIL;
   }
@@ -134,6 +145,9 @@ putsecret(void *context __attribute__((unused)),
   size_t key_len;
   DBM *db;
   datum dkey;
+  void *cntxt;
+  sasl_getopt_t *getopt;
+  const char *path = SASL_DB_PATH;
 
   if (! mechanism || ! auth_identity || ! realm)
     return SASL_FAIL;

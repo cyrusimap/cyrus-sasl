@@ -710,11 +710,11 @@ _sasl_getcallback(sasl_conn_t * conn,
     return SASL_OK;
   case SASL_CB_SERVER_GETSECRET:
     *pproc = _sasl_server_getsecret_hook;
-    *pcontext = NULL;
+    *pcontext = conn;
     return SASL_OK;
   case SASL_CB_SERVER_PUTSECRET:
     *pproc = _sasl_server_putsecret_hook;
-    *pcontext = NULL;
+    *pcontext = conn;
     return SASL_OK;
   case SASL_CB_VERIFYFILE:
     *pproc = & _sasl_verifyfile;

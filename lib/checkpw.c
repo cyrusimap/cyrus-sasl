@@ -517,8 +517,6 @@ static int parseuser(char **user, char **realm, const char *user_realm,
 		ret = _sasl_strdup(input, user, NULL);
 	    }
 	} else {
-	    int i;
-
 	    r++;
 	    ret = _sasl_strdup(r, realm, NULL);
 	    *--r = '\0';
@@ -740,8 +738,7 @@ int _sasl_pwcheck_verify_password(sasl_conn_t *conn,
     int r;
     struct iovec iov[10];
     static char response[1024];
-    unsigned int start;
-    int n;
+    int start, n;
     char pwpath[1024];
     sasl_getopt_t *getopt;
     void *context;

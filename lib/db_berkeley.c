@@ -109,7 +109,6 @@ getsecret(void *context __attribute__((unused)),
   size_t key_len;
   DBT dbkey, data;
   DB *mbdb;
-  int lup;
 
   /* check parameters */
   if (! mechanism || ! auth_identity || ! secret || ! realm || ! db_ok)
@@ -238,8 +237,6 @@ putsecret(void *context __attribute__((unused)),
   }
 
 
-
- cleanup:
 
   berkeleydb_close(mbdb);
 

@@ -29,6 +29,8 @@ saslpasswd \- set a user's sasl password
 .RB [ -p ]
 .RB [ -d ]
 .RB [ -c ]
+.RB [ -u\ domain ]
+.RB [ -a\ appname ]
 .B userid
 .SH DESCRIPTION
 .I saslpasswd
@@ -52,5 +54,15 @@ is mutually exclusive with the
 Deletes the entry for the user.  This is mutually exclusive with the
 .B -c
 (create user) flag.
+.TP
+.B -u domain
+use
+.B domain
+for user domain (realm).
+.TP
+.B -a appname
+use
+.B appname
+as application name.
 .SH SEE ALSO
 rfc2222 \- Simple Authentication and Security Layer (SASL)

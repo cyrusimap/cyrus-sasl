@@ -25,7 +25,13 @@ SOFTWARE.
 ******************************************************************/
 
 #include <config.h>
+
+#ifdef HAVE_GSSAPI_H
 #include <gssapi.h>
+#else
+#include <gssapi/gssapi.h>
+#endif
+
 #ifdef WIN32
 #include <winsock.h>
 #else
@@ -46,8 +52,9 @@ SOFTWARE.
 # include "saslgssapi.h"
 #endif /* WIN32 */
 
-#ifndef GSS_NT_SERVICE_NAME
+#ifndef HAVE_GSS_C_NT_HOSTBASED_SERVICE
 extern gss_OID gss_nt_service_name;
+#define GSS_C_NT_HOSTBASED_SERVICE gss_nt_service_name
 #endif
 
 /* GSSAPI SASL Mechanism by Leif Johansson <leifj@matematik.su.se>
@@ -452,11 +459,7 @@ sasl_gss_server_step (void *conn_context,
 	  
 	  maj_stat = gss_import_name (&min_stat,
 				      &name_token,
-#ifdef GSS_C_NT_HOSTBASED_SERVICE
 				      GSS_C_NT_HOSTBASED_SERVICE,
-#else
-				      gss_nt_service_name,
-#endif
 				      &text->server_name);
 	  
 	  params->utils->free(name_token.value);
@@ -1009,11 +1012,7 @@ sasl_gss_client_step (void *conn_context,
 	    DEBUG((stderr,"name: %s\n",(char *)name_token.value)); /* */
 	    maj_stat = gss_import_name (&min_stat,
 					&name_token,
-#ifdef GSS_C_NT_HOSTBASED_SERVICE
 					GSS_C_NT_HOSTBASED_SERVICE,
-#else
-					gss_nt_service_name,
-#endif
 					&text->server_name);
 	    
 	    params->utils->free(name_token.value);

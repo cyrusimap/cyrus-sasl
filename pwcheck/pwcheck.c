@@ -1,5 +1,5 @@
 /* pwcheck.c -- Unix pwcheck daemon
-   $Id: pwcheck.c,v 1.2 1999/10/28 18:02:19 leg Exp $
+   $Id: pwcheck.c,v 1.3 1999/11/15 06:30:41 leg Exp $
 Copyright 1998, 1999 Carnegie Mellon University
 
                       All Rights Reserved
@@ -97,8 +97,7 @@ main()
     }
 }
 
-void newclient(c)
-int c;
+void newclient(int c)
 {
     char request[1024];
     int start, n;
@@ -137,11 +136,7 @@ sendreply:
  * Keep calling the write() system call with 'fd', 'buf', and 'nbyte'
  * until all the data is written out or an error occurs.
  */
-int 
-retry_write(fd, buf, nbyte)
-int fd;
-const char *buf;
-unsigned nbyte;
+int retry_write(int fd, const char *buf, unsigned nbyte)
 {
     int n;
     int written = 0;

@@ -75,6 +75,10 @@ getsecret(void *context __attribute__((unused)),
   size_t key_len;
   GDBM_FILE db;
   datum gkey, gvalue;  
+  void *cntxt;
+  sasl_getopt_t *getopt;
+  const char *path = SASL_DB_PATH;
+  sasl_conn_t *conn = context;
 
   if (! mechanism || ! auth_identity || ! secret || ! realm || ! db_ok)
     return SASL_FAIL;
@@ -84,7 +88,14 @@ getsecret(void *context __attribute__((unused)),
   if (result != SASL_OK)
     return result;
 
-  db = gdbm_open(SASL_DB_PATH, 0, GDBM_READER, S_IRUSR | S_IWUSR, NULL);
+  if (_sasl_getcallback(conn, SASL_CB_GETOPT,
+                        &getopt, &cntxt) == SASL_OK) {
+      const char *p;
+      if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK && p != NULL && *p != 0) {
+          path = p;
+      }
+  }
+  db = gdbm_open(path, 0, GDBM_READER, S_IRUSR | S_IWUSR, NULL);
   if (! db) {
     result = SASL_FAIL;
     goto cleanup;
@@ -130,6 +141,10 @@ putsecret(void *context __attribute__((unused)),
   size_t key_len;
   GDBM_FILE db;
   datum gkey;
+  void *cntxt;
+  sasl_getopt_t *getopt;
+  const char *path = SASL_DB_PATH;
+  sasl_conn_t *conn = context;
 
   if (! mechanism || ! auth_identity || ! realm)
       return SASL_FAIL;
@@ -139,9 +154,14 @@ putsecret(void *context __attribute__((unused)),
   if (result != SASL_OK)
     return result;
 
-
-
-  db = gdbm_open(SASL_DB_PATH, 0, GDBM_WRCREAT, S_IRUSR | S_IWUSR, NULL);
+  if (_sasl_getcallback(conn, SASL_CB_GETOPT,
+                        &getopt, &cntxt) == SASL_OK) {
+      const char *p;
+      if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK && p != NULL && *p != 0) {
+          path = p;
+      }
+  }
+  db = gdbm_open(path, 0, GDBM_WRCREAT, S_IRUSR | S_IWUSR, NULL);
   if (! db) {
     VL(("error opening password file. Do you have write permissions?\n"));
     result = SASL_FAIL;

@@ -196,6 +196,7 @@ main(int argc, char *argv[])
       break;
     default:
       flag_error = 1;
+      break;
     }
 
   if (optind != argc - 1)

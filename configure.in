@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl
+dnl $Id: configure.in,v 1.52 1999/11/15 06:30:36 leg Exp $
 dnl
 dnl         Copyright 1998 by Carnegie Mellon University
 dnl
@@ -140,35 +140,35 @@ case "$dblib" in
 				dblib="no")
 	;;
   auto_detect)
-	dnl How about berkeley db?
+        dnl How about berkeley db?
 	AC_CHECK_HEADER(db.h,
-			AC_CHECK_LIB(db, db_open,SASL_DB_LIB="-ldb"; dblib="berkeley",dblib="no"),
-			dblib="no")
-
-
+			AC_CHECK_LIB(db, db_open,SASL_DB_LIB="-ldb"; 
+                                        dblib="berkeley", dblib="no"),
+			    dblib="no")
 	if test "$dblib" = no; then
-		dnl How about ndbm?
-		AC_CHECK_HEADER(ndbm.h, 
-				AC_CHECK_LIB(ndbm, dbm_open,
-					     dblib="ndbm"; SASL_DB_LIB="-lndbm",
-				   	     dblib="weird"),
-				dblib="no")
-		if test "$dblib" = "weird"; then
-			dnl Is ndbm in the standard library?
-			AC_CHECK_FUNC(dbm_open, dblib="ndbm", dblib="no")
-		fi
-		if test "$dblib" = no; then
-			dnl Can we use gdbm?
-			AC_CHECK_HEADER(gdbm.h,
-					AC_CHECK_LIB(gdbm, gdbm_open, dblib="gdbm";
-						     SASL_DB_LIB="-lgdbm", dblib="no"),
-					dblib="no")
-		fi
+	  dnl How about ndbm?
+	  AC_CHECK_HEADER(ndbm.h, 
+		AC_CHECK_LIB(ndbm, dbm_open,
+			     dblib="ndbm"; SASL_DB_LIB="-lndbm",
+		   	     dblib="weird"),
+		   dblib="no")
+	  if test "$dblib" = "weird"; then
+	    dnl Is ndbm in the standard library?
+            AC_CHECK_FUNC(dbm_open, dblib="ndbm", dblib="no")
+	  fi
+
+	  if test "$dblib" = no; then
+            dnl Can we use gdbm?
+   	    AC_CHECK_HEADER(gdbm.h,
+		AC_CHECK_LIB(gdbm, gdbm_open, dblib="gdbm";
+					     SASL_DB_LIB="-lgdbm", dblib="no"),
+  			     dblib="no")
+	  fi
 	fi
 	;;
   *)
 	AC_MSG_WARN([Bad DB library implementation specified;])
-	AC_MSG_WARN([Use either "gdbm" or "ndbm"])
+	AC_ERROR([Use either \"berkeley\" or \"gdbm\" or \"ndbm\"])
 	dblib=no
 	;;
 esac
@@ -371,7 +371,8 @@ if test "$gssapi" != no; then
      CPPFLAGS="$CPPFLAGS -I$gssapi/include"
      LDFLAGS="$LDFLAGS -L$gssapi/lib"
   fi
-  AC_CHECK_HEADER(gssapi.h,,AC_WARN(Disabling GSSAPI); gssapi=no)
+  AC_CHECK_HEADER(gssapi.h, AC_DEFINE(HAVE_GSSAPI_H),
+    AC_CHECK_HEADER(gssapi/gssapi.h,, AC_WARN(Disabling GSSAPI); gssapi=no))
 fi
 
 if test "$gssapi" != no; then
@@ -380,6 +381,9 @@ if test "$gssapi" != no; then
   dnl Heimdal Kerberos 5 (http://www.pdc.kth.se/heimdal)
   dnl
   dnl The choice is reflected in GSSAPIBASE_LIBS
+  dnl we might need libdb
+  AC_CHECK_LIB(dbopen, db)
+
   gss_impl="mit";
   AC_CHECK_LIB(resolv,res_search)
   if test -d ${gssapi}; then 
@@ -402,6 +406,14 @@ if test "$gssapi" != no; then
      AC_WARN(Disabling GSSAPI)
   fi
 
+fi
+
+if test "$ac_cv_header_gssapi_h" = "yes"; then
+  AC_EGREP_HEADER(GSS_C_NT_HOSTBASED_SERVICE, gssapi.h,
+    AC_DEFINE(HAVE_GSS_C_NT_HOSTBASED_SERVICE))
+elif test "$ac_cv_header_gssapi_gssapi_h"; then
+  AC_EGREP_HEADER(GSS_C_NT_HOSTBASED_SERVICE, gssapi/gssapi.h,
+    AC_DEFINE(HAVE_GSS_C_NT_HOSTBASED_SERVICE))
 fi
 
 GSSAPI_LIBS=""

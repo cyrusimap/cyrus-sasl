@@ -89,6 +89,52 @@ typedef struct context {
 #define SASL_GSSAPI_STATE_SSFREQ  3
 #define SASL_GSSAPI_STATE_AUTHENTICATED    4
 
+static void
+sasl_gss_disperr(context_t *context, char **outp, 
+		 OM_uint32 code, int type)
+{
+     OM_uint32 maj_stat, min_stat;
+     gss_buffer_desc msg;
+     OM_uint32 msg_ctx;
+     char *out = *outp;
+     
+     msg_ctx = 0;
+     while (1) {
+	  maj_stat = gss_display_status(&min_stat, code,
+				       type, GSS_C_NULL_OID,
+				       &msg_ctx, &msg);
+	  out = context->realloc((void *) out,
+				     strlen(out) + msg.length + 3);
+	  if (out != NULL) {
+	      strcat(out, (char *) msg.value);
+	      strcat(out, "; ");
+	  }
+	  (void) gss_release_buffer(&min_stat, &msg);
+	  
+	  if (!msg_ctx)
+	       break;
+     }
+
+     *outp = out;
+}
+
+static void
+sasl_gss_set_error(context_t *context, const char **errstr, char *huh,
+		   OM_uint32 maj_stat, OM_uint32 min_stat)
+{
+    char *out;
+
+    if (!errstr) { return; }
+
+    out = context->malloc(strlen(huh) + 15);
+    if (out) {
+	sprintf(out, "GSSAPI: %s: ", huh);
+	sasl_gss_disperr(context, &out, maj_stat, GSS_C_GSS_CODE);
+	sasl_gss_disperr(context, &out, min_stat, GSS_C_MECH_CODE);
+    }
+    *errstr = out;
+}
+
 static int 
 sasl_gss_encode(void *context, const char *input, unsigned inputlen,
 		char **output, unsigned *outputlen, int privacy)
@@ -361,7 +407,7 @@ sasl_gss_server_step (void *conn_context,
 		      char **serverout,
 		      int *serveroutlen,
 		      sasl_out_params_t *oparams,
-		      const char **errstr __attribute__((unused)))
+		      const char **errstr)
 {
   context_t *text = (context_t *)conn_context;
   gss_buffer_t input_token, output_token;
@@ -410,11 +456,12 @@ sasl_gss_server_step (void *conn_context,
 	  
 	  params->utils->free(name_token.value);
 	  
-	  if (GSS_ERROR(maj_stat))
-	    {
+	  if (GSS_ERROR(maj_stat)) {
+	      sasl_gss_set_error(text, errstr, "gss_import_name",
+				 maj_stat, min_stat);
 	      sasl_gss_free_context_contents(text);
 	      return SASL_FAIL;
-	    }
+	  }
 	  
 	  maj_stat = gss_acquire_cred(&min_stat, 
 				      text->server_name,
@@ -425,11 +472,12 @@ sasl_gss_server_step (void *conn_context,
 				      NULL, 
 				      NULL);
 	  
-	  if (GSS_ERROR(maj_stat))
-	    {
+	  if (GSS_ERROR(maj_stat)) {
+	      sasl_gss_set_error(text, errstr, "gss_acquire_cred",
+				 maj_stat, min_stat);
 	      sasl_gss_free_context_contents(text);
 	      return SASL_FAIL;
-	    }
+	  }
 	}
       
       if(clientinlen)
@@ -453,13 +501,14 @@ sasl_gss_server_step (void *conn_context,
 				NULL,
 				NULL);
       
-      if (GSS_ERROR(maj_stat))
-	{
+      if (GSS_ERROR(maj_stat)) {
+	  sasl_gss_set_error(text, errstr, "gss_accept_sec_context",
+			     maj_stat, min_stat);
 	  if (output_token->value)
 	    params->utils->free(output_token->value);
 	  sasl_gss_free_context_contents(text);
 	  return SASL_FAIL;
-	}
+      }
       
       if (serverout && output_token->length)
 	*serverout = output_token->value;
@@ -490,13 +539,14 @@ sasl_gss_server_step (void *conn_context,
 				     &name_token,
 				     NULL);
 
-	if (GSS_ERROR(maj_stat))
-	  {
+	if (GSS_ERROR(maj_stat)) {
+	    sasl_gss_set_error(text, errstr, "gss_display_name",
+			       maj_stat, min_stat);
 	    if (name_token.value)
-	      params->utils->free(name_token.value);
+		params->utils->free(name_token.value);
 	    sasl_gss_free_context_contents(text);
 	    return SASL_BADAUTH;
-	  }
+	}
 
 	oparams->authid = (char *)name_token.value;
 
@@ -516,13 +566,14 @@ sasl_gss_server_step (void *conn_context,
 			     NULL,
 			     output_token);
 	
-	if (GSS_ERROR(maj_stat))
-	  {
+	if (GSS_ERROR(maj_stat)) {
+	    sasl_gss_set_error(text, errstr, "gss_wrap",
+			       maj_stat, min_stat);
 	    if (output_token->value)
-	      params->utils->free(output_token->value);
+		params->utils->free(output_token->value);
 	    sasl_gss_free_context_contents(text);
 	    return SASL_FAIL;
-	  }
+	}
 	
 	if (serverout && output_token->length)
 	  *serverout = output_token->value;
@@ -530,7 +581,8 @@ sasl_gss_server_step (void *conn_context,
 	  *serveroutlen = output_token->length;
 	
 	DEBUG((stderr,"Sending %d bytes (ssfcap) to client\n",*serveroutlen));
-	text->state = SASL_GSSAPI_STATE_SSFREQ; /* Wait for ssf request and authid */
+        /* Wait for ssf request and authid */
+	text->state = SASL_GSSAPI_STATE_SSFREQ; 
 	
 	return SASL_CONTINUE;
 	
@@ -548,13 +600,14 @@ sasl_gss_server_step (void *conn_context,
 			       NULL,
 			       NULL);
 	
-	if (GSS_ERROR(maj_stat))
-	  {
+	if (GSS_ERROR(maj_stat)) {
+	    sasl_gss_set_error(text, errstr, "gss_unwrap",
+			       maj_stat, min_stat);
 	    if (output_token->value)
-	      params->utils->free(output_token->value);
+		params->utils->free(output_token->value);
 	    sasl_gss_free_context_contents(text);
 	    return SASL_FAIL;
-	  }
+	}
 	
 	text->ssf = (int)(((char *)(output_token->value))[0]);
 	if (text->ssf==1)  /* no encryption */
@@ -579,28 +632,28 @@ sasl_gss_server_step (void *conn_context,
 	    return SASL_FAIL;
 	  }
 	DEBUG ((stderr,"Got %d bytes from client\n",output_token->length));
-	if (output_token->length > 4)
-	  {
-	    char *user = (char *)params->utils->malloc( (output_token->length - 3) * sizeof(char));
+	if (output_token->length > 4) {
+	    char *user = (char *)params->utils->malloc(
+		(output_token->length - 3) * sizeof(char));
 	    
-	    if (user == NULL)
-	      {
+	    if (user == NULL) {
 		sasl_gss_free_context_contents(text);
 		return SASL_NOMEM;
-	      }
+	    }
 	    
-	    memcpy(user,((char *)real_output_token.value)+4,output_token->length - 4);
-	    *(user + output_token->length - 3) = '\0';
+	    memcpy(user, ((char *) output_token->value) + 4,
+		   output_token->length - 4);
+	    user[output_token->length - 4] = '\0';
 	    
 	    DEBUG((stderr,"Got user %s\n",user));
 
-	    memcpy(&oparams->maxoutbuf,((char *)real_output_token.value)+1,sizeof(unsigned));
+	    memcpy(&oparams->maxoutbuf,((char *) real_output_token.value) + 1,
+		   sizeof(unsigned));
 	    oparams->maxoutbuf = ntohl(oparams->maxoutbuf);
 	    oparams->user = user;
-	  }
+	}
 	
 	params->utils->free(output_token->value);
-	/* XXX Must check for authorization here! */
 	
 	text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
 	

@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.108 2005/02/25 18:39:51 mel Exp $
+ * $Id: common.c,v 1.109 2005/03/01 22:28:30 shadow Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1026,11 +1026,20 @@ _sasl_conn_getopt(void *context,
 
 #ifdef HAVE_SYSLOG
 /* this is the default logging */
-static int _sasl_syslog(void *context __attribute__((unused)),
+static int _sasl_syslog(void *context,
 			int priority,
 			const char *message)
 {
     int syslog_priority;
+    sasl_server_conn_t *sconn;
+
+    if (context) {
+	if (((sasl_conn_t *)context)->type == SASL_CONN_SERVER) {
+	    sconn = (sasl_server_conn_t *)context;
+	    if (sconn->sparams->log_level < priority) 
+		return SASL_OK;
+	}
+    }
 
     /* set syslog priority */
     switch(priority) {

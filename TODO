@@ -6,6 +6,9 @@ C
 ) Zero all sensitive data after use
 ) Better/FASTER random numbers (init time is pretty miserable)
 ) Test suite
+) Configuration directory support -- multiple files which, together,
+  determine the security parameters and available mechanisms on a per-protocol
+  and per-application basis.
 
 Documentation
 ~~~~~~~~~~
@@ -30,7 +33,3 @@ ABI
 	- /usr/lib32/sasl?
 	- /usr/lib/sasl/{ABI}?
 ) Standardize the plugin ABI
-
-Political
-~~~~~~~~~~
-Release an I-D for the Java SASL stuff.

@@ -92,14 +92,15 @@
  * as extern.  (Technically, we don't even have to do that.) */
 #ifdef WIN32
 # ifdef LIBSASL_EXPORTS
-#  define LIBSASL_API __declspec(dllexport)
+#  define LIBSASL_API __stdcall __declspec(dllexport)
 # else /* LIBSASL_EXPORTS */
-#  define LIBSASL_API __declspec(dllimport)
+#  define LIBSASL_API __stdcall __declspec(dllimport)
 # endif /* LIBSASL_EXPORTS */
-LIBSASL_API int _sasl_debug;
 #else /* WIN32 */
 # define LIBSASL_API extern
 #endif /* WIN32 */
+
+extern int _sasl_debug;
 
 /*************
  * Basic API *
@@ -250,10 +251,8 @@ typedef int sasl_getopt_t(void *context, const char *plugin_name,
  *  log operations they perform.
  * inputs:
  *  context     -- logging context from the callback record
- *  plugin_name -- name of the plugin doing the logging (NULL = middleware)
  *  priority    -- logging priority; see above
- *  format      -- printf-style format string for logging
- *  ...         -- extra logging parameters
+ *  message     -- message to log
  * returns:
  *  SASL_OK     -- no error
  *  SASL_FAIL   -- error
@@ -261,6 +260,7 @@ typedef int sasl_getopt_t(void *context, const char *plugin_name,
 typedef int sasl_log_t(void *context,
 		       int priority,
 		       const char *message);
+
 #define SASL_CB_LOG	     2
 
 /* client/user interaction callbacks:
@@ -579,7 +579,7 @@ LIBSASL_API void sasl_free_secret(sasl_secret_t **);
  *  SASL_BADVERS   -- Mechanism version mismatch
  */
 LIBSASL_API int sasl_server_init(const sasl_callback_t *callbacks,
-		     const char *appname);
+				 const char *appname);
 
 
 /* create context for a single SASL connection
@@ -673,6 +673,7 @@ LIBSASL_API int sasl_server_step(sasl_conn_t *conn,
 		     const char **errstr);
 
 /* check if a plaintext password is valid
+ * if user is NULL, check if plaintext is enabled
  * inputs:
  *  user         -- user to query in current user_domain
  *  userlen      -- length of username, 0 = strlen(user)
@@ -686,11 +687,11 @@ LIBSASL_API int sasl_server_step(sasl_conn_t *conn,
  *  SASL_NOUSER  -- user not found
  */
 LIBSASL_API int sasl_checkpass(sasl_conn_t *conn,
-                   const char *user,
-		   unsigned userlen,
-		   const char *pass,
-		   unsigned passlen,
-		   const char **errstr);
+			       const char *user,
+			       unsigned userlen,
+			       const char *pass,
+			       unsigned passlen,
+			       const char **errstr);
 
 /* check if a user exists on server
  *  service       -- registered name of the service using SASL (e.g. "imap")

@@ -59,9 +59,6 @@ typedef struct sasl_utils {
     /* property function */
     sasl_getprop_t *getprop;
 
-    /* callback function */
-    sasl_getcallback_t *getcallback;
-    
     /* allocation functions: */
     sasl_malloc_t *malloc;
     sasl_calloc_t *calloc;
@@ -94,14 +91,17 @@ typedef struct sasl_utils {
     void (*rand)(sasl_rand_t *rpool, char *buf, unsigned len);
     void (*churn)(sasl_rand_t *rpool, const char *data, unsigned len);
 
+    /* callback function */
+    sasl_getcallback_t *getcallback;
+
     /* logging */
-    void (*log)(sasl_conn_t *conn,
-		int priotity,
-		const char *plugin_name,
-		int sasl_error,	/* %z */
-		int errno,	/* %m */
-		const char *format,
-		...);
+    int (*log)(sasl_conn_t *conn,
+	       int priority,
+	       const char *plugin_name,
+	       int sasl_error,	/* %z */
+	       int errno,	/* %m */
+	       const char *format,
+	       ...);
 } sasl_utils_t;
 
 /* NOPLAINTEXT     -- don't permit mechanisms susceptible to simple

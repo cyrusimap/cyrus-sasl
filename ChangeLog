@@ -5,6 +5,7 @@
 	  with upgrading instructions in preparation for release.
 	* doc/, /: Documentation reorganization, convert README and INSTALL to
 	  HTML format.
+	* Bumped appropriate version numbers, Ready for 2.0.5-BETA
 
 2001-12-04  Ken Murchison <ken@oceana.com>
 	* acconfig.h, configure.in:

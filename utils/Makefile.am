@@ -85,7 +85,7 @@ libsfsasl2_la_LIBADD = sfsasl.lo
 libsfsasl2_la_LDFLAGS = -version-info 1:0:0 -export-dynamic -rpath $(libdir)
 
 INCLUDES=-I$(top_srcdir)/include
-EXTRA_DIST = saslpasswd.8 sasldblistusers.8 sfsasl.h sfsasl.c smtptest.c testsuite.c
+EXTRA_DIST = saslpasswd2.8 sasldblistusers2.8 sfsasl.h sfsasl.c smtptest.c testsuite.c
 
 sfsasl.lo: sfsasl.c
 	$(LIBTOOL) --mode=compile $(COMPILE) @SFIO_INC_FLAGS@ -c $(srcdir)/sfsasl.c

@@ -13,7 +13,7 @@
 
 # Makefile.am for SASL documentation
 # Rob Earhart
-# $Id: Makefile,v 1.1 2001/12/04 17:46:41 rjs3 Exp $
+# $Id: Makefile,v 1.2 2001/12/04 18:03:02 rjs3 Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -104,12 +104,10 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 host_alias = i686-pc-linux-gnu
 host_triplet = i686-pc-linux-gnu
-AS = @AS@
 AWK = gawk
 CC = gcc
 CPP = gcc -E
 DIRS = 
-DLLTOOL = @DLLTOOL@
 DMALLOC_LIBS = 
 GETADDRINFOOBJS = 
 GETNAMEINFOOBJS = 
@@ -120,7 +118,8 @@ JAVAC = javac
 JAVADOC = javadoc
 JAVAH = javah
 JAVAROOT = ..
-JAVA_INCLUDES =  -I/usr/local/include -I/usr/local/include/DPS -I/usr/local/include/afs -I/usr/local/include/X11 -I/usr/local/include/X11/ICE -I/usr/local/include/X11/PEX5 -I/usr/local/include/X11/PM -I/usr/local/include/X11/SM -I/usr/local/include/X11/Xaw -I/usr/local/include/X11/Xmu -I/usr/local/include/X11/X11 -I/usr/local/include/X11/Xaw3d -I/usr/local/include/X11/bitmaps -I/usr/local/include/X11/extensions -I/usr/local/include/X11/fonts -I/usr/local/include/X11/fonts/codeconv -I/usr/local/include/X11/pixmaps -I/usr/local/include/X11/pixmaps/pixmaps -I/usr/local/include/X11/pixmaps/pixmaps/xpm3icons -I/usr/local/include/X11/pixmaps/xpm3icons -I/usr/local/include/X11/Xft -I/usr/local/include/Xm -I/usr/local/include/GL -I/usr/local/include/kpathsea -I/usr/local/include/java -I/usr/local/include/java/linux -I/usr/local/include/maple -I/usr/local/include/Mesa-3.0 -I/usr/local/include/Mesa-3.0/GL -I/usr/local/include/Mrm -I/usr/local/include/sasl -I/usr/local/include/ams -I/usr/local/include/atk -I/usr/local/include/readline -I/usr/local/include/cyrus -I/usr/local/include/IIOP -I/usr/local/include/ORBitutil -I/usr/local/include/depot -I/usr/local/include/ss -I/usr/local/include/g++-3 -I/usr/local/include/g++-3/std -I/usr/local/include/rx -I/usr/local/include/libnet -I/usr/local/include/mysql -I/usr/local/include/openssl -I/usr/local/include/kadm5 -I/usr/local/include/pgsql -I/usr/local/include/pgsql/lib -I/usr/local/include/pgsql/libpq -I/usr/local/include/pgsql/libpq++ -I/usr/local/include/sfio -I/usr/local/include/snap3 -I/usr/local/include/SDL -I/usr/local/include/gck -I/usr/local/include/stage -I/usr/local/include/uil -I/usr/local/include/zephyr -I/usr/local/include/imap -I/usr/local/include/zip -I/usr/local/include/ORBitservices -I/usr/local/include/gconf -I/usr/local/include/orb -I/usr/local/include/gdk-pixbuf -I/usr/local/include/gnome-xml -I/usr/local/include/xmms -I/usr/local/include/gimp-print -I/usr/local/include/glade -I/usr/local/include/glib-1.2 -I/usr/local/include/glibtop -I/usr/local/include/zvt -I/usr/local/include/gtk-1.2 -I/usr/local/include/gtk-1.2/gdk -I/usr/local/include/gtk-1.2/gtk -I/usr/local/include/gtk-xmhtml -I/usr/local/include/libIDL -I/usr/local/include/libart_lgpl -I/usr/local/include/libgimp -I/usr/local/include/libgnome -I/usr/local/include/libgnomeui -I/usr/local/include/libgnomevfs -I/usr/local/include/libgnorba -I/usr/local/include/ucd-snmp -I/usr/local/include/liboaf -I/usr/local/include/freetype2 -I/usr/local/include/freetype2/freetype -I/usr/local/include/freetype2/freetype/config -I/usr/local/include/freetype2/freetype/cache -I/usr/local/include/freetype2/freetype/internal -I/usr/local/include/libxml -I/include
+JAVA_INCLUDES =  -I/usr/local/include -I/usr/local/include/DPS -I/usr/local/include/GL -I/usr/local/include/IIOP -I/usr/local/include/X11 -I/usr/local/include/X11/bitmaps -I/usr/local/include/X11/ICE -I/usr/local/include/X11/PEX5 -I/usr/local/include/X11/PM -I/usr/local/include/X11/SM -I/usr/local/include/X11/X11 -I/usr/local/include/X11/Xaw -I/usr/local/include/X11/Xaw3d -I/usr/local/include/X11/Xmu -I/usr/local/include/X11/pixmaps -I/usr/local/include/X11/pixmaps/pixmaps -I/usr/local/include/X11/pixmaps/pixmaps/xpm3icons -I/usr/local/include/X11/pixmaps/xpm3icons -I/usr/local/include/X11/extensions -I/usr/local/include/X11/fonts -I/usr/local/include/X11/fonts/codeconv -I/usr/local/include/X11/Xft -I/usr/local/include/Mrm -I/usr/local/include/Mesa-3.0 -I/usr/local/include/Mesa-3.0/GL -I/usr/local/include/Xm -I/usr/local/include/ORBitservices -I/usr/local/include/ORBitutil -I/usr/local/include/afs -I/usr/local/include/SDL -I/usr/local/include/ams -I/usr/local/include/asn.1 -I/usr/local/include/atk -I/usr/local/include/cyrus -I/usr/local/include/depot -I/usr/local/include/g++-3 -I/usr/local/include/g++-3/std -I/usr/local/include/gck -I/usr/local/include/rx -I/usr/local/include/gdk-pixbuf -I/usr/local/include/glade -I/usr/local/include/glib-1.2 -I/usr/local/include/glibtop -I/usr/local/include/imap -I/usr/local/include/gtk-1.2 -I/usr/local/include/gtk-1.2/gdk -I/usr/local/include/gtk-1.2/gtk -I/usr/local/include/gnome-xml -I/usr/local/include/gssapi -I/usr/local/include/gtk-xmhtml -I/usr/local/include/java -I/usr/local/include/java/linux -I/usr/local/include/kadm5 -I/usr/local/include/kerberosIV -I/usr/local/include/kpathsea -I/usr/local/include/libIDL -I/usr/local/include/libart_lgpl -I/usr/local/include/libgimp -I/usr/local/include/libgnome -I/usr/local/include/libgnomeui -I/usr/local/include/libgnorba -I/usr/local/include/libnet -I/usr/local/include/maple -I/usr/local/include/mysql -I/usr/local/include/openssl -I/usr/local/include/orb -I/usr/local/include/readline -I/usr/local/include/ss -I/usr/local/include/sfio -I/usr/local/include/snap3 -I/usr/local/include/stage -I/usr/local/include/uil -I/usr/local/include/ucd-snmp -I/usr/local/include/freetype2 -I/usr/local/include/freetype2/freetype -I/usr/local/include/freetype2/freetype/config -I/usr/local/include/freetype2/freetype/cache -I/usr/local/include/freetype2/freetype/internal -I/usr/local/include/xmms -I/usr/local/include/zephyr -I/usr/local/include/zip -I/usr/local/include/zvt -I/usr/local/include/gconf -I/usr/local/include/libgnomevfs -I/usr/local/include/liboaf -I/usr/local/include/pgsql -I/usr/local/include/pgsql/lib -I/usr/local/include/pgsql/libpq -I/usr/local/include/pgsql/libpq++ -I/usr/local/include/gimp-print -I/usr/local/include/libxml -I/include
+LD = /usr/bin/ld
 LIBOBJS = 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
 LIB_CRYPT = -lcrypt
@@ -135,7 +134,6 @@ LTLIBOBJS =
 LTSNPRINTFOBJS = 
 MAKEINFO = makeinfo
 NM = /usr/bin/nm -B
-OBJDUMP = @OBJDUMP@
 OTP_LIBS = 
 PACKAGE = cyrus-sasl
 PLAIN_LIBS = -lcrypt
@@ -162,15 +160,15 @@ SFIO_LIB_FLAGS = -L/usr/local/lib/sfio -lsfio
 SMTPTEST_PROGRAM = smtptest
 SNPRINTFOBJS = 
 SRP_LIBS = 
-VERSION = 2.0.4-BETA
+VERSION = 2.0.5-BETA
 plugindir = /usr/local/lib/sasl2
 
-EXTRA_DIST = rfc1321.txt 		rfc1939.txt 		rfc2104.txt 		rfc2195.txt 		rfc2222.txt 		rfc2243.txt 		rfc2245.txt 		rfc2289.txt 		rfc2444.txt 		rfc2595.txt 		rfc2831.txt 		rfc2945.txt 		rfc3174.txt 		draft-burdis-cat-srp-sasl-05.txt 		draft-ietf-cat-sasl-gssapi-05.txt 		draft-myers-saslrev-01.txt 		draft-sasl-login.txt 		programming.html 		sysadmin.html 		gssapi.html 		advanced.html 		options.html 		plugprog.html 		appconvert.html 		macosx.html 		index.html 
+EXTRA_DIST = rfc1321.txt 		rfc1939.txt 		rfc2104.txt 		rfc2195.txt 		rfc2222.txt 		rfc2243.txt 		rfc2245.txt 		rfc2289.txt 		rfc2444.txt 		rfc2595.txt 		rfc2831.txt 		rfc2945.txt 		rfc3174.txt 		testing.txt 		draft-burdis-cat-srp-sasl-05.txt 		draft-ietf-cat-sasl-gssapi-05.txt 		draft-myers-saslrev-01.txt 		draft-sasl-login.txt 		programming.html 		sysadmin.html 		gssapi.html 		advanced.html 		options.html 		plugprog.html 		appconvert.html 		macosx.html 		readme.html 		upgrading.html 		index.html 		install.html 		TODO 		ONEWS
 
 mkinstalldirs = $(SHELL) $(top_srcdir)/config/mkinstalldirs
 CONFIG_HEADER = ../config.h
 CONFIG_CLEAN_FILES = 
-DIST_COMMON =  Makefile.am Makefile.in
+DIST_COMMON =  Makefile.am Makefile.in TODO
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)

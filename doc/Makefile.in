@@ -12,7 +12,7 @@
 
 # Makefile.am for SASL documentation
 # Rob Earhart
-# $Id: Makefile.in,v 1.1 2001/12/04 17:46:41 rjs3 Exp $
+# $Id: Makefile.in,v 1.2 2001/12/04 18:03:02 rjs3 Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.

@@ -1,3 +1,7 @@
+2002-06-20  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/auxprop.c: Make "cound not find auxprop plugin" warning
+	  log at LOG_DEBUG
+
 2002-06-19  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/digestmd5.c: create layer keys for integrity as
 	  well as privacy

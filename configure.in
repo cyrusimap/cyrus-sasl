@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.160 2003/05/15 18:28:43 rjs3 Exp $
+dnl $Id: configure.in,v 1.161 2003/05/30 22:49:41 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -837,7 +837,7 @@ AC_CHECK_FUNCS(gethostname getdomainname getpwnam getspnam gettimeofday inet_ato
 if test $enable_cmulocal = yes; then
     AC_WARN([enabling CMU local kludges])
     AC_DEFINE(KRB4_IGNORE_IP_ADDRESS)
-    AC_DEFINE_UNQUOTED(PREFER_MECH, "KERBEROS_V4")
+    AC_DEFINE_UNQUOTED(PREFER_MECH, "GSSAPI")
 fi
 
 AC_EGREP_HEADER(sockaddr_storage, sys/socket.h, [

@@ -31,7 +31,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_ldap.c,v 1.3 2002/05/03 19:54:55 rjs3 Exp $"
+#ident "$Id: auth_ldap.c,v 1.4 2002/05/03 19:55:21 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -44,7 +44,7 @@
 
 # define RETURN(x) {return strdup(x);}
 
-/* FUNCTION: auth_dce */
+/* FUNCTION: auth_ldap */
 
 #ifdef AUTH_LDAP
 

@@ -1914,28 +1914,96 @@ server_continue_step(void *conn_context,
     char           *challenge = NULL;
     char           *realm;
     unsigned char  *nonce;
-
-
-#ifdef WITH_RC4
-#ifdef WITH_DES
-    char           *qop = "auth,auth-int,auth-conf";
-    char           *cipheropts="3des,des,rc4,rc4-40,rc4-56";
-#else
-    char           *qop = "auth,auth-int,auth-conf";
-    char           *cipheropts="rc4,rc4-40,rc4-56";
-#endif /* WITH_DES */
-#else
-#ifdef WITH_DES
-    char           *qop = "auth,auth-int,auth-conf";
-    char           *cipheropts="3des,des";
-#else
-    char           *qop = "auth,auth-int";
-    char           *cipheropts="";
-#endif /* WITH_DES */
-#endif /* WITH_RC4 */
-
     char           *charset = "utf-8";
 
+    char qop[1024], cipheropts[1024];
+    sasl_ssf_t requiressf, limitssf;
+    int added_conf = 0;
+
+    if (sparams->props.max_ssf < sparams->external_ssf) {
+	limitssf = 0;
+    } else {
+	limitssf = sparams->props.max_ssf - sparams->external_ssf;
+    }
+    if (sparams->props.min_ssf < sparams->external_ssf) {
+	requiressf = 0;
+    } else {
+	requiressf = sparams->props.min_ssf - sparams->external_ssf;
+    }
+
+    /* what options should we offer the client? */
+    qop[0] = '\0';
+    cipheropts[0] = '\0';
+    if (requiressf == 0) {
+	if (*qop) strcat(qop, ",");
+	strcat(qop, "auth");
+    }
+    if (requiressf <= 1 && limitssf >= 1) {
+	if (*qop) strcat(qop, ",");
+	strcat(qop, "auth-int");
+    }
+
+#ifdef WITH_RC4
+    if (requiressf <= 40 && limitssf >= 40) { /* allow rc4-40? */
+	if (!added_conf) {
+	    if (*qop) strcat(qop, ",");
+	    strcat(qop, "auth-conf");
+	    added_conf = 1;
+	}
+	if (*cipheropts) strcat(cipheropts, ",");
+	strcat(cipheropts, "rc4-40");
+    }
+#endif
+#ifdef WITH_DES
+    if (requiressf <= 55 && limitssf >= 55) { /* allow des? */
+	if (!added_conf) {
+	    if (*qop) strcat(qop, ",");
+	    strcat(qop, "auth-conf");
+	    added_conf = 1;
+	}
+	if (*cipheropts) strcat(cipheropts, ",");
+	strcat(cipheropts, "des");
+    }
+#endif
+#ifdef WITH_RC4
+    if (requiressf <= 56 && limitssf >= 56) { /* allow rc4-56? */
+	if (!added_conf) {
+	    if (*qop) strcat(qop, ",");
+	    strcat(qop, "auth-conf");
+	    added_conf = 1;
+	}
+	if (*cipheropts) strcat(cipheropts, ",");
+	strcat(cipheropts, "rc4-56");
+    }
+#endif
+#ifdef WITH_DES
+    if (requiressf <= 112 && limitssf >= 112) { /* allow 3des? */
+	if (!added_conf) {
+	    if (*qop) strcat(qop, ",");
+	    strcat(qop, "auth-conf");
+	    added_conf = 1;
+	}
+	if (*cipheropts) strcat(cipheropts, ",");
+	strcat(cipheropts, "3des");
+    }
+#endif
+#ifdef WITH_RC4
+    if (requiressf <= 128 && limitssf >= 128) { /* allow rc4 128 */
+	if (!added_conf) {
+	    if (*qop) strcat(qop, ",");
+	    strcat(qop, "auth-conf");
+	    added_conf = 1;
+	}
+	if (*cipheropts) strcat(cipheropts, ",");
+	strcat(cipheropts, "rc4");
+    }
+#endif
+
+    if (*qop == '\0') {
+	/* we didn't allow anything?!? we'll return SASL_TOOWEAK, since
+	 that's close enough */
+	return SASL_TOOWEAK;
+    }
 
     /*
      * digest-challenge  = 1#( realm | nonce | qop-options | stale | maxbuf |
@@ -3251,7 +3319,6 @@ c_continue_step(void *conn_context,
     char           *charset = NULL;
     int             result = SASL_FAIL;
     char           *client_response = NULL;
-    sasl_security_properties_t secprops;
     int             external;
     int             user_result = SASL_OK;
     int             auth_result = SASL_OK;
@@ -3266,6 +3333,10 @@ c_continue_step(void *conn_context,
     in[serverinlen] = 0;
 
     in_start = in;
+
+    if (params->props.min_ssf > params->props.max_ssf) {
+	return SASL_BADPARAM;
+    }
 
     /* parse what we got */
     while (in[0] != '\0') {
@@ -3496,14 +3567,8 @@ c_continue_step(void *conn_context,
 
 
     /* get requested ssf */
-    secprops = params->props;
     external = params->external_ssf;
     /*    VL(("external ssf=%d\n", external));*/
-    if ((int)params->props.min_ssf > 56 + external) {
-	return SASL_TOOWEAK;
-    } else if (params->props.min_ssf > params->props.max_ssf) {
-	return SASL_BADPARAM;
-    }
 
     params->utils->free(qop);
 
@@ -3511,10 +3576,11 @@ c_continue_step(void *conn_context,
     need = params->props.max_ssf - external;
     musthave = params->props.min_ssf - external;
 
+    /* we now go searching for an option that gives us at least "musthave"
+       and at most "need" bits of ssf */
     if ((need > 1) &&
 	((protection & DIGEST_PRIVACY) == DIGEST_PRIVACY)) {
 	/* let's find an encryption scheme that we like */
-
       oparams->encode = &privacy_encode; 
       oparams->decode = &privacy_decode;
       qop = "auth-conf";
@@ -3523,104 +3589,105 @@ c_continue_step(void *conn_context,
       /* Client request encryption, server supports it */
       /* encryption */
 #ifdef WITH_RC4
-      if ((need>=128)  && (musthave <=128) && 
+      if ((need >= 128) && (musthave <= 128) && 
 	  ((ciphers & CIPHER_RC4) == CIPHER_RC4)) { /* rc4 */
-	VL(("Trying to use rc4"));
-	cipher = "rc4";
-	text->cipher_enc=(cipher_function_t *) &enc_rc4; /* uses same function both ways */
-	text->cipher_dec=(cipher_function_t *) &dec_rc4;
-	text->cipher_init=&init_rc4;
-	oparams->mech_ssf = 128;
-	n=16;
+	  VL(("Trying to use rc4"));
+	  cipher = "rc4";
+				/* uses same function both ways */
+	  text->cipher_enc = (cipher_function_t *) &enc_rc4; 
+	  text->cipher_dec = (cipher_function_t *) &dec_rc4;
+	  text->cipher_init = &init_rc4;
+	  oparams->mech_ssf = 128;
+	  n=16;
 #else
       if (0) {
 #endif /* WITH_RC4 */
 
 #ifdef WITH_DES
-      } else if ((need>=112) && (musthave <=112) &&
+      } else if ((need >= 112) && (musthave <= 112) &&
 		 ((ciphers & CIPHER_3DES) == CIPHER_3DES)) {
-	VL(("Trying to use 3des"));
-	cipher = "3des";
-	text->cipher_enc=(cipher_function_t *) &enc_3des;
-	text->cipher_dec=(cipher_function_t *) &dec_3des;
-	text->cipher_init=(cipher_init_t *) &init_3des;
-	oparams->mech_ssf = 112; 
-	n=16; /* number of bits to use for privacy key */
+	  VL(("Trying to use 3des"));
+	  cipher = "3des";
+	  text->cipher_enc = (cipher_function_t *) &enc_3des;
+	  text->cipher_dec = (cipher_function_t *) &dec_3des;
+	  text->cipher_init = (cipher_init_t *) &init_3des;
+	  oparams->mech_ssf = 112; 
+	  n=16; /* number of bits to use for privacy key */
 #endif /* WITH_DES */
 
 #ifdef WITH_RC4
       } else if ((need>=56) && (musthave <=56) &&
 		 ((ciphers & CIPHER_RC456) == CIPHER_RC456)) { /* rc4-56 */
- 	VL(("Trying to use rc4-56"));
- 	cipher = "rc4-56";
- 	text->cipher_enc=(cipher_function_t *) &enc_rc4;
- 	text->cipher_dec=(cipher_function_t *) &dec_rc4;
- 	text->cipher_init=&init_rc4;
- 	oparams->mech_ssf = 56;
- 	n = 7;
+	  VL(("Trying to use rc4-56"));
+	  cipher = "rc4-56";
+	  text->cipher_enc=(cipher_function_t *) &enc_rc4;
+	  text->cipher_dec=(cipher_function_t *) &dec_rc4;
+	  text->cipher_init=&init_rc4;
+	  oparams->mech_ssf = 56;
+	  n = 7;
 #endif /* WITH_RC4 */
 
 #ifdef WITH_DES
       } else if ((need>=55) && (musthave <=55) &&
 		 ((ciphers & CIPHER_DES) == CIPHER_DES)) { /* des */
-	VL(("Trying to use des"));
-	cipher = "des";
-	text->cipher_enc=(cipher_function_t *) &enc_des;
-	text->cipher_dec=(cipher_function_t *) &dec_des;
-	text->cipher_init=(cipher_init_t *) &init_des;
-	oparams->mech_ssf = 55; 
-	n=16;
+	  VL(("Trying to use des"));
+	  cipher = "des";
+	  text->cipher_enc=(cipher_function_t *) &enc_des;
+	  text->cipher_dec=(cipher_function_t *) &dec_des;
+	  text->cipher_init=(cipher_init_t *) &init_des;
+	  oparams->mech_ssf = 55; 
+	  n=16;
 #endif /* WITH_DES */
 
 #ifdef WITH_RC4
       } else if ((need>=40) && (musthave <=40) &&
 		 ((ciphers & CIPHER_RC440) == CIPHER_RC440)) { /* rc4-40 */
- 	VL(("Trying to use rc4-40"));
- 	cipher = "rc4-40";
- 	text->cipher_enc=(cipher_function_t *) &enc_rc4;
+	  VL(("Trying to use rc4-40"));
+	  cipher = "rc4-40";
+	  text->cipher_enc=(cipher_function_t *) &enc_rc4;
  	text->cipher_dec=(cipher_function_t *) &dec_rc4;
  	text->cipher_init=&init_rc4;
  	oparams->mech_ssf = 40;
  	n = 5;
- 
 #endif /* WITH_RC4 */
-
       } else {
-	/* should try integrity or plain */
-	VL(("No good privacy layers\n"));
-	qop=NULL;
+	  /* should try integrity or plain */
+	  VL(("No good privacy layers\n"));
+	  qop=NULL;
       }
     }
 
-    if (qop==NULL)
-    {
-      if ((need >= 1) && (musthave <=1) &&
-	  ((protection & DIGEST_INTEGRITY) == DIGEST_INTEGRITY)) {
-	/* integrity */
-	oparams->encode = &integrity_encode;
-	oparams->decode = &integrity_decode;
-	oparams->mech_ssf = 1;
-	qop = "auth-int";
-	VL(("Using integrity layer\n"));
-      } else if (musthave <=0) {
-	/* no layer */
-	oparams->encode = NULL;
-	oparams->decode = NULL;
-	oparams->mech_ssf = 0;
-	qop = "auth";
-	VL(("Using no layer\n"));
+    if (qop==NULL) {
+	/* we failed to find an encryption layer we liked;
+	   can we use integrity or nothing? */
 
-	/* See if server supports not having a layer */
-	if ((protection & DIGEST_NOLAYER) != DIGEST_NOLAYER) {
-	  VL(("Server doesn't support \"no layer\"\n"));
-	  result = SASL_FAIL;
-	  goto FreeAllocatedMem;
+	if ((need >= 1) && (musthave <= 1) &&
+	    ((protection & DIGEST_INTEGRITY) == DIGEST_INTEGRITY)) {
+	    /* integrity */
+	    oparams->encode = &integrity_encode;
+	    oparams->decode = &integrity_decode;
+	    oparams->mech_ssf = 1;
+	    qop = "auth-int";
+	    VL(("Using integrity layer\n"));
+	} else if (musthave <= 0) {
+	    /* no layer */
+	    oparams->encode = NULL;
+	    oparams->decode = NULL;
+	    oparams->mech_ssf = 0;
+	    qop = "auth";
+	    VL(("Using no layer\n"));
+	    
+	    /* See if server supports not having a layer */
+	    if ((protection & DIGEST_NOLAYER) != DIGEST_NOLAYER) {
+		VL(("Server doesn't support \"no layer\"\n"));
+		result = SASL_FAIL;
+		goto FreeAllocatedMem;
+	    }
+	} else {
+	    VL(("Can't find an acceptable layer\n"));
+	    result = SASL_TOOWEAK;
+	    goto FreeAllocatedMem;
 	}
-      } else {
-	  VL(("Can't find an acceptable layer\n"));
-	  result = SASL_FAIL;
-	  goto FreeAllocatedMem;
-      }
     }
 
     /* get nonce XXX have to clean up after self if fail */

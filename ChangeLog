@@ -1,3 +1,19 @@
+2005-02-01  Alexey Melnikov <alexey.melnikov@isode.com>
+	* win32/include/config.h: Updated to match gai.h changes.
+	* win32/include/config.h: added define for the OTP plugin.
+
+2005-01-27  Derrick Brashear <shadow@andrew.cmu.edu>
+	* configure.in, include/gai.h: move AI_NUMERICHOSTS definitions
+	  to config.h because gai.h is not always included.
+
+2005-01-10  Derrick Brashear <shadow@andrew.cmu.edu>
+	* saslauthd/auth_krb5.c, saslauthd/auth_krb4.c,
+	  saslauthd/krbtf.h (added), saslauthd/krbtf.c (added),
+	  saslauthd/cfile.h (added), saslauthd/cfile.c (added),
+	  saslauthd/Makefile.am: Kerberos V4/V5 alternate keytab
+	  in saslauthd, plus common code merging (from David Eckhardt
+	  via Dale Moore)
+
 2004-12-08  Alexey Melnikov <alexey.melnikov@isode.com>
 	* doc/windows.html: Updated as per recent build changes.
 	* plugins/ntlm.c: Fixed NTLM build on Windows,

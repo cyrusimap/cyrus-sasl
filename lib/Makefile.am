@@ -1,6 +1,6 @@
 # Makefile.am for the SASL library
 # Rob Earhart
-# $Id: Makefile.am,v 1.42 2001/08/03 22:06:26 rbraun Exp $
+# $Id: Makefile.am,v 1.43 2001/08/10 17:06:35 rjs3 Exp $
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -62,4 +62,6 @@ install-exec-hook:
 	$(mkinstalldirs) $(framedir)/Versions/A
 	ln -fs $(libdir)/libsasl.dylib $(framedir)/Versions/A/SASL
 	cd $(framedir) ; ln -fs Versions/A/SASL .
+else
+install-exec-hook:
 endif

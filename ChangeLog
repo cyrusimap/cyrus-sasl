@@ -3,6 +3,9 @@
 	* saslauthd/Makefile.am: mkinstalldirs correctly for saslauthd.8
 	  (Amos Gouaux <amos@utdallas.edu>)
 
+	* lib/Makefile.am: supply empty install-exec-hook if not compiling
+	  for Mac OS X
+
 2001-08-08  Rob Siemborski <rjs3+@andrew.cmu.edu>
 
 	* saslauthd/Makefile.am: Also link PLAIN_LIBS

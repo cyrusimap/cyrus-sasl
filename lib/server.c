@@ -357,15 +357,18 @@ static int add_plugin(void *p, void *library) {
 
   result = entry_point(mechlist->utils, SASL_SERVER_PLUG_VERSION, &version,
 		       &pluglist, &plugcount);
-  if (version != SASL_SERVER_PLUG_VERSION)
-  {
-    VL(("Version mismatch\n"));
-    result = SASL_FAIL;
-  }
+
   if (result != SASL_OK)
   {
     VL(("entry_point error %i\n",result));
     return result;
+  }
+
+  /* Make sure plugin is using the same SASL version as us */
+  if (version > SASL_SERVER_PLUG_VERSION)
+  {
+    VL(("Version mismatch\n"));
+    result = SASL_FAIL;
   }
 
   for (lupe=0;lupe< plugcount ;lupe++)

@@ -255,7 +255,7 @@ c_continue_step(void *conn_context __attribute__((unused)),
   } else {
     /* Try to get the callback... */
     result = params->utils->getcallback(params->utils->conn,
-					SASL_CB_USER,
+					SASL_CB_AUTHNAME,
 					&getuser_cb,
 					&getuser_context);
     switch (result) {
@@ -266,7 +266,7 @@ c_continue_step(void *conn_context __attribute__((unused)),
 	if (! *prompt_need)
 	  return SASL_FAIL;
 	memset(*prompt_need, 0, sizeof(sasl_interact_t) * 2);
-	(*prompt_need)[0].id = SASL_CB_USER;
+	(*prompt_need)[0].id = SASL_CB_AUTHNAME;
 	(*prompt_need)[0].prompt = "Anonymous Identification";
 	(*prompt_need)[0].defresult = "";
 	(*prompt_need)[1].id = SASL_CB_LIST_END;
@@ -275,17 +275,15 @@ c_continue_step(void *conn_context __attribute__((unused)),
     case SASL_OK:
       if (! getuser_cb
 	  || (getuser_cb(getuser_context,
-			 SASL_CB_USER,
+			 SASL_CB_AUTHNAME,
 			 &user,
 			 &userlen)
 	      != SASL_OK)) {
-	/* We just lose. */
-	return SASL_FAIL;
+	/* Use default */
       }
       break;
     default:
-      /* We just lose. */
-      return result;
+      /* Use default */
     }
   }
   
@@ -293,8 +291,6 @@ c_continue_step(void *conn_context __attribute__((unused)),
     user = "anonymous";
   
   VL(("anonymous: user=%s\n",user));
-
-
 
   userlen = strlen(user);
 
@@ -314,8 +310,6 @@ c_continue_step(void *conn_context __attribute__((unused)),
   strcpy(*clientout + userlen + 1, hostname);
 
   VL(("anonymous: out=%s\n", *clientout));
-
-
 
   oparams->doneflag = 1;
   oparams->mech_ssf=0;
@@ -338,7 +332,6 @@ c_continue_step(void *conn_context __attribute__((unused)),
 }
 
 static const long client_required_prompts[] = {
-  SASL_CB_USER,
   SASL_CB_LIST_END
 };
 

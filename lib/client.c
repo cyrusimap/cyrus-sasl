@@ -422,7 +422,7 @@ int have_prompts(sasl_conn_t *conn,
 		 const sasl_client_plug_t *mech)
 {
   static const long default_prompts[] = {
-    SASL_CB_USER,
+    SASL_CB_AUTHNAME,
     SASL_CB_PASS,
     SASL_CB_LIST_END
   };

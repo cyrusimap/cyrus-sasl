@@ -1,3 +1,15 @@
+1999-03-07  Timothy L Martin  <tmartin+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c: client and server can't send challenges >2048 bytes now
+
+1999-03-05  Timothy L Martin  <tmartin+@andrew.cmu.edu>
+
+	* plugins/plain.c: uses callbacks and interactions now (tested)
+
+	* plugins/cram.c: uses callbacks and interactions now (tested)
+
+	* plugins/anonymous.c (c_continue_step): fencepost error corrected
+
 1999-03-04  Rob Earhart  <rob+@andrew.cmu.edu>
 
 	* plugins/kerberos4.c (client_continue_step): changed ssf

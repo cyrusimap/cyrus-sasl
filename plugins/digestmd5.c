@@ -130,6 +130,9 @@ typedef struct context
   /* Server MaxBuf for Client or Client MaxBuf For Server */
   unsigned int maxbuf; 
 
+  unsigned char *authid;
+  sasl_secret_t *password;
+
 } context_t;
 
 #define IN
@@ -146,7 +149,7 @@ static char *
 		      unsigned char *cnonce,
 		      char *qop,
 		      unsigned char *digesturi,
-		      unsigned char *passwd,
+		      sasl_secret_t *passwd,
 		      bool     IsUTF8,
                       OUT char **response_value);
 
@@ -245,7 +248,7 @@ MD5_UTF8_8859_1 (IN sasl_utils_t * utils,
 static void DigestCalcSecret(IN sasl_utils_t *utils,
 			     IN unsigned char * pszUserName,
 			     IN unsigned char * pszRealm,
-			     IN unsigned char * pszPassword,
+			     IN sasl_secret_t * pszPassword,
 			     IN bool IsUTF8,
 			     OUT HASH HA1)
 {
@@ -267,10 +270,10 @@ static void DigestCalcSecret(IN sasl_utils_t *utils,
 
 
   if (IsUTF8)
-    utils->MD5Update (&Md5Ctx, pszPassword, strlen ((char *) pszPassword));
+    utils->MD5Update (&Md5Ctx, pszPassword->data, pszPassword->len);
   else
-    MD5_UTF8_8859_1 (utils, &Md5Ctx, pszPassword,
-		     strlen ((char *) pszPassword));
+    MD5_UTF8_8859_1 (utils, &Md5Ctx, pszPassword->data,
+		     pszPassword->len);
 
   utils->MD5Final(HA1, &Md5Ctx);
 }
@@ -281,7 +284,7 @@ void DigestCalcHA1(IN context_t *text,
 		   IN sasl_utils_t *utils,			    
 		   IN unsigned char * pszUserName,
 		   IN unsigned char * pszRealm,
-		   IN unsigned char * pszPassword,
+		   IN sasl_secret_t * pszPassword,
 		   IN unsigned char * pszNonce,
 		   IN unsigned char * pszCNonce,
 		   IN bool IsUTF8,
@@ -391,7 +394,7 @@ static char *calculate_response(context_t *text,
 				unsigned char *cnonce,
 				char *qop,
 				unsigned char *digesturi,				
-				unsigned char *passwd,
+				sasl_secret_t *passwd,
 				IN bool IsUTF8,
 				OUT char **response_value)
 {
@@ -715,7 +718,7 @@ void get_pair(char **in, char **name, char **value)
 }
 
 /* copy a string */
-static int sasl_strdup(sasl_utils_t *utils, const char *in, char **out, int *outlen)
+static int digest_strdup(sasl_utils_t *utils, const char *in, char **out, int *outlen)
 {
   size_t len = strlen(in);
   if (outlen) *outlen = len;
@@ -872,8 +875,8 @@ static int integrity_decode(void *context,
     unsigned lup;
 
     printf("needsize=%i\n",text->needsize);
-    for (lup=0;lup<inputlen;lup++)
-      printf("%i --- %i\n",lup,input[lup]);
+    /*    for (lup=0;lup<inputlen;lup++)
+	  printf("%i --- %i\n",lup,input[lup]);*/
   
     if (text->needsize>0) /* 4 bytes for how long message is */
     {
@@ -1098,15 +1101,18 @@ static int server_continue_step (void *conn_context,
       //  return SASL_FAIL;*/
 
 
-      /*
-       * The size of a digest-challenge MUST be less than 2048
-       * bytes.!!!
-       */
 
 
       *serverout = challenge;
       *serveroutlen=strlen(*serverout);
-      
+
+
+      /*
+       * The size of a digest-challenge MUST be less than 2048
+       * bytes.!!!
+       */     
+      if (*serveroutlen>2048) return SASL_FAIL;
+
       text->noncelen = strlen((char *) nonce);
       text->nonce = nonce;
 
@@ -1114,7 +1120,7 @@ static int server_continue_step (void *conn_context,
 
       text->state=2;
 
-      sasl_strdup (sparams->utils, realm, (char **) &text->realm, NULL);
+      digest_strdup (sparams->utils, realm, (char **) &text->realm, NULL);
 
       /*
        * sparams->utils->free(realm);
@@ -1179,8 +1185,6 @@ char *response_auth = NULL;
 
     in_start = in;
 
-    oparams->encode=NULL; /* default values */
-    oparams->decode=NULL;
 
     /* parse what we got */
     while (in[0]!='\0')
@@ -1203,11 +1207,11 @@ char *response_auth = NULL;
 
       if (strcmp(name,"username")==0) {
 
-	sasl_strdup(sparams->utils, value, &username, NULL);
+	digest_strdup(sparams->utils, value, &username, NULL);
 
       } else if (strcmp(name,"cnonce")==0) {
 
-	sasl_strdup(sparams->utils, value,(char **) &cnonce, NULL);
+	digest_strdup(sparams->utils, value,(char **) &cnonce, NULL);
 
       } else if (strcmp(name,"nc")==0) {
 
@@ -1217,7 +1221,7 @@ char *response_auth = NULL;
 	  goto FreeAllMem;
 	}
 
-	sasl_strdup(sparams->utils, value,(char **) &ncvalue, NULL);
+	digest_strdup(sparams->utils, value,(char **) &ncvalue, NULL);
 	
       } else if (strcmp(name,"realm")==0) {
 
@@ -1229,7 +1233,7 @@ char *response_auth = NULL;
 	} else {
 	  gotrealm = TRUE;
 	}
-	sasl_strdup(sparams->utils, value, &realm, NULL);
+	digest_strdup(sparams->utils, value, &realm, NULL);
 		  
       } else if (strcmp(name,"nonce")==0) {
 
@@ -1244,7 +1248,7 @@ char *response_auth = NULL;
 
       } else if (strcmp(name,"qop")==0) {
 	
-	sasl_strdup(sparams->utils, value, &qop, NULL);
+	digest_strdup(sparams->utils, value, &qop, NULL);
 
 	if (strcmp(qop,"auth-conf")==0)
 	{
@@ -1271,15 +1275,15 @@ char *response_auth = NULL;
 
 	/*XXX: verify digest-uri format*/
 	/*digest-uri-value  = serv-type "/" host [ "/" serv-name ]*/
-	sasl_strdup(sparams->utils, value, &digesturi, NULL);
+	digest_strdup(sparams->utils, value, &digesturi, NULL);
 
       } else if (strcmp(name,"response")==0) {
 
-	sasl_strdup(sparams->utils, value, &response, NULL);
+	digest_strdup(sparams->utils, value, &response, NULL);
 
       } else if (strcmp(name,"cipher")==0) {
 
-	sasl_strdup(sparams->utils, value, &cipher, NULL);
+	digest_strdup(sparams->utils, value, &cipher, NULL);
 
       } else if (strcmp(name,"maxbuf")==0) {
 
@@ -1297,7 +1301,7 @@ char *response_auth = NULL;
 	  VL (("Invalid maxbuf parameter received from client\n"));
 	  goto FreeAllMem;
 	}
-	sasl_strdup(sparams->utils, value, &maxbufstr, NULL);
+	digest_strdup(sparams->utils, value, &maxbufstr, NULL);
 
       } else if (strcmp(name,"charset")==0) {
 
@@ -1307,7 +1311,7 @@ char *response_auth = NULL;
 	  result = SASL_FAIL;
 	  goto FreeAllMem;
 	}
-	sasl_strdup (sparams->utils, value, &charset, NULL);
+	digest_strdup (sparams->utils, value, &charset, NULL);
 
       } else {
         VL (("unrecognized pair: ignoring\n"));
@@ -1473,13 +1477,13 @@ char *response_auth = NULL;
      */
 
     VL(("1\n"));
-    if (sasl_strdup(sparams->utils, realm, &oparams->realm, NULL)==SASL_NOMEM)
+    if (digest_strdup(sparams->utils, realm, &oparams->realm, NULL)==SASL_NOMEM)
     {
       result = SASL_NOMEM;
       goto FreeAllMem;
     }
     VL(("1\n"));
-    if (sasl_strdup(sparams->utils, username, &oparams->user, NULL)==SASL_NOMEM)
+    if (digest_strdup(sparams->utils, username, &oparams->user, NULL)==SASL_NOMEM)
     {
       sparams->utils->free (oparams->realm);
       oparams->realm = NULL;
@@ -1487,7 +1491,7 @@ char *response_auth = NULL;
       goto FreeAllMem;
     }
     VL(("1\n"));
-    if (sasl_strdup(sparams->utils, username, &oparams->authid, NULL)==SASL_NOMEM)
+    if (digest_strdup(sparams->utils, username, &oparams->authid, NULL)==SASL_NOMEM)
     {
       sparams->utils->free (oparams->realm);
       oparams->realm = NULL;
@@ -1503,9 +1507,6 @@ char *response_auth = NULL;
     oparams->mech_ssf=0; /*1 - only integrity support*/
     oparams->maxoutbuf=client_maxbuf; 
   
-    oparams->encode=NULL;
-    oparams->decode=NULL;
-
     oparams->param_version=0;
 
     text->seqnum=0;     /* for integrity/privacy */
@@ -1513,9 +1514,6 @@ char *response_auth = NULL;
     text->hmac_md5=sparams->utils->hmac_md5;
     text->malloc=sparams->utils->malloc;
     text->free=sparams->utils->free;
-
-    oparams->encode=&integrity_encode;
-    oparams->decode=&integrity_decode;
 
     /* used by layers */
     text->size=-1; 
@@ -1557,6 +1555,12 @@ char *response_auth = NULL;
 
       *serverout = response_auth;
       *serveroutlen = strlen (response_auth);
+
+      if (*serveroutlen>2048)
+      { 
+	result=SASL_FAIL;
+	goto FreeAllMem;
+      }
 
       result = SASL_CONTINUE;
 #else
@@ -1612,7 +1616,9 @@ FreeAllMem:
 
 #ifdef SEND_REATH_RESPONSE
   if (text->state == 3)
-    {				/* Send additional information for
+    {
+      VL (("Digest-MD5 Step 3\n"));
+				/* Send additional information for
 				 * reauthentication */
       if (clientinlen != 0)
       {
@@ -1732,6 +1738,9 @@ static int c_start(void *glob_context __attribute__((unused)),
   text= params->utils->malloc(sizeof(context_t));
   if (text==NULL) return SASL_NOMEM;
 
+  text->authid=NULL;
+  text->password=NULL;
+
   text->state=1;  
   *conn=text;
 
@@ -1739,45 +1748,6 @@ static int c_start(void *glob_context __attribute__((unused)),
 }
 
 
-static int get_username(sasl_client_params_t *params,
-			char **username,
-			sasl_out_params_t *oparams)
-{
-  int result;
-  sasl_getsimple_t *getuser_cb;
-  void *getuser_context;
-
-  /* Try to get the callback... */
-  result = params->utils->getcallback(params->utils->conn,
-				      SASL_CB_USER,
-				      &getuser_cb,
-				      &getuser_context);
-  switch (result) 
-    {
-    case SASL_INTERACT:
-      return SASL_INTERACT;
-    case SASL_OK:
-      if (! getuser_cb)
-	return SASL_FAIL;
-      result = getuser_cb(getuser_context,
-			  SASL_CB_USER,
-			  username,
-			  NULL);
-      if (result != SASL_OK)
-	return result;
-      if (*username) {
-	oparams->user = params->utils->malloc(strlen(*username) + 1);
-	if (! oparams->user)
-	  return SASL_NOMEM;
-	strcpy(oparams->user, *username);
-      }
-      break;
-    default:
-      /* sucess */
-    }
-
-  return result;
-}
 
 
 static int htoi(unsigned char *hexin, int *res)
@@ -1828,6 +1798,214 @@ static int htoi(unsigned char *hexin, int *res)
   return SASL_OK;
 }
 
+/* 
+ * Trys to find the prompt with the lookingfor id in the prompt list
+ * Returns it if found. NULL otherwise
+ */
+
+static sasl_interact_t *find_prompt(sasl_interact_t *promptlist,
+				    unsigned int lookingfor)
+{
+  if (promptlist==NULL) return NULL;
+
+  while (promptlist->id!=SASL_CB_LIST_END)
+  {
+    if (promptlist->id==lookingfor)
+      return promptlist;
+
+    promptlist+=sizeof(sasl_interact_t);
+  }
+
+  return NULL;
+}
+
+static int get_authid(sasl_client_params_t *params,
+		      char **authid,
+		      sasl_interact_t **prompt_need)
+{
+
+  int result;
+  sasl_getsimple_t *getauth_cb;
+  void *getauth_context;
+  sasl_interact_t *prompt;
+
+  /* see if we were given the authname in the prompt */
+  prompt=find_prompt(*prompt_need,SASL_CB_AUTHNAME);
+  if (prompt!=NULL)
+  {
+    /* copy it */
+    *authid=params->utils->malloc(strlen(prompt->result)+1);
+    if ((*authid)==NULL) return SASL_NOMEM;
+
+    strcpy(*authid, prompt->result);
+    return SASL_OK;
+  }
+
+  /* Try to get the callback... */
+  result = params->utils->getcallback(params->utils->conn,
+				      SASL_CB_AUTHNAME,
+				      &getauth_cb,
+				      &getauth_context);
+  switch (result)
+    {
+    case SASL_INTERACT:
+      return SASL_INTERACT;
+    case SASL_OK:
+      if (! getauth_cb)
+	return SASL_FAIL;
+      result = getauth_cb(getauth_context,
+			  SASL_CB_AUTHNAME,
+			  (const char **)authid,
+			  NULL);
+      if (result != SASL_OK)
+	return result;
+
+      break;
+    default:
+      /* sucess */
+      break;
+    }
+
+  return result;
+
+}
+
+
+static int get_password(sasl_client_params_t *params,
+		      sasl_secret_t **password,
+		      sasl_interact_t **prompt_need)
+{
+
+  int result;
+  sasl_getsecret_t *getpass_cb;
+  void *getpass_context;
+  sasl_interact_t *prompt;
+
+  /* see if we were given the password in the prompt */
+  prompt=find_prompt(*prompt_need,SASL_CB_PASS);
+  if (prompt!=NULL)
+  {
+    /* We prompted, and got.*/
+	
+    if (! prompt->result)
+      return SASL_FAIL;
+
+    /* copy what we got into a secret_t */
+    *password = (sasl_secret_t *) params->utils->malloc(sizeof(sasl_secret_t)+
+						       prompt->len+1);
+    if (! *password) return SASL_NOMEM;
+
+    (*password)->len=prompt->len;
+    memcpy((*password)->data, prompt->result, prompt->len);
+    (*password)->data[(*password)->len]=0;
+
+    return SASL_OK;
+  }
+
+
+  /* Try to get the callback... */
+  result = params->utils->getcallback(params->utils->conn,
+				      SASL_CB_PASS,
+				      &getpass_cb,
+				      &getpass_context);
+
+  switch (result)
+    {
+    case SASL_INTERACT:      
+      return SASL_INTERACT;
+    case SASL_OK:
+      if (! getpass_cb)
+	return SASL_FAIL;
+      result = getpass_cb(params->utils->conn,
+			  getpass_context,
+			  SASL_CB_PASS,
+			  password);
+      if (result != SASL_OK)
+	return result;
+
+      break;
+    default:
+      /* sucess */
+      break;
+    }
+
+  return result;
+}
+
+static void free_prompts(sasl_client_params_t *params,
+			sasl_interact_t *prompts)
+{
+  sasl_interact_t *ptr=prompts;
+  if (ptr==NULL) return;
+
+  do
+  {
+    /* xxx might be freeing static memory. is this ok? */
+    if (ptr->result!=NULL)
+      params->utils->free(ptr->result);
+
+    ptr+=sizeof(sasl_interact_t);
+  } while(ptr->id!=SASL_CB_LIST_END);
+
+  params->utils->free(prompts);
+  prompts=NULL;
+}
+
+/*
+ * Make the necessary prompts
+ */
+
+static int make_prompts(sasl_client_params_t *params,
+			sasl_interact_t **prompts_res,
+			int auth_res,
+			int pass_res)
+{
+  int num=1;
+  sasl_interact_t *prompts;
+
+  if (auth_res==SASL_INTERACT) num++;
+  if (pass_res==SASL_INTERACT) num++;
+
+  if (num==1) return SASL_FAIL;
+
+  prompts=params->utils->malloc(sizeof(sasl_interact_t)*num);
+  if ((prompts) ==NULL) return SASL_NOMEM;
+  *prompts_res=prompts;
+
+  if (auth_res==SASL_INTERACT)
+  {
+    /* We weren't able to get the callback; let's try a SASL_INTERACT */
+    (prompts)->id=SASL_CB_AUTHNAME;
+    (prompts)->challenge="Authorization Name";
+    (prompts)->prompt="Please enter your authorization name";
+    (prompts)->defresult=NULL;
+
+    VL(("authid callback added\n"));
+    prompts+=sizeof(sasl_interact_t);
+  }
+
+  if (pass_res==SASL_INTERACT)
+  {
+    /* We weren't able to get the callback; let's try a SASL_INTERACT */
+    (prompts)->id=SASL_CB_PASS;
+    (prompts)->challenge="Password";
+    (prompts)->prompt="Please enter your password";
+    (prompts)->defresult=NULL;
+
+    VL(("password callback added\n"));
+    prompts+=sizeof(sasl_interact_t);
+  }
+
+
+  /* add the ending one */
+  (prompts)->id=SASL_CB_LIST_END;
+  (prompts)->challenge=NULL;
+  (prompts)->prompt   =NULL;
+  (prompts)->defresult=NULL;
+
+  return SASL_OK;
+}
+
 
 static int c_continue_step (void *conn_context,
 	      sasl_client_params_t *params,
@@ -1865,7 +2043,6 @@ static int c_continue_step (void *conn_context,
   if (text->state==2)
   {
     unsigned char *digesturi = NULL;
-    unsigned char *username = NULL;
 
     unsigned char *nonce = NULL;
     unsigned char *ncvalue = (unsigned char *) "00000001"; 
@@ -1878,7 +2055,6 @@ static int c_continue_step (void *conn_context,
     char *response = NULL;
 
     char *realm = NULL;
-    unsigned char *passwd = NULL;
 
     unsigned int server_maxbuf = 65536;
 
@@ -1899,37 +2075,66 @@ static int c_continue_step (void *conn_context,
     sasl_security_properties_t secprops;
     int external;
 
+    int auth_result=SASL_OK;
+    int pass_result=SASL_OK;
+
+    VL (("Digest-MD5 Step 2\n"));
+
+    /* first thing: let's get authname and password
+       this is the same code as cram-md5 so change
+       both accordingly */
+
+    
+    /* try to get the userid */
+    if (text->authid==NULL)
+    {
+      VL (("Trying to get authid\n"));
+      auth_result=get_authid(params,
+			     &text->authid,
+			     prompt_need);
+
+      if ((auth_result!=SASL_OK) && (auth_result!=SASL_INTERACT))
+	return auth_result;
+
+    }
+
+    /* try to get the password */
+    if (text->password==NULL)
+    {
+      VL (("Trying to get password\n"));
+      pass_result=get_password(params,
+			  &text->password,
+			  prompt_need);
+      
+      if ((pass_result!=SASL_OK) && (pass_result!=SASL_INTERACT))
+	return pass_result;
+    }
+
+    
+    /* free prompts we got */
+    free_prompts(params,*prompt_need);
+
+    /* if there are prompts not filled in */
+    if ((auth_result==SASL_INTERACT) ||
+	(pass_result==SASL_INTERACT))
+    {
+      /* make the prompt list */
+      int result=make_prompts(params,prompt_need,
+			      auth_result, pass_result);
+      if (result!=SASL_OK) return result;
+      
+      VL(("returning prompt(s)\n"));
+      return SASL_INTERACT;
+    }
+
 
     /* can we mess with serverin? copy it to be safe */
     /* char *in=serverin; //char *in=*serverin;???*/
 
-    VL (("Digest-MD5 Step 2\n"));
-     /*printf ("; serverin length is %d\n",serverinlen);*/
-
-    /* need to prompt for password */
-    if (*prompt_need==NULL)
-    {
-      *prompt_need=params->utils->malloc(sizeof(sasl_interact_t));
-      if ((*prompt_need) ==NULL) return SASL_NOMEM; /*nothing allocated!!!*/
-      (*prompt_need)->id=1;
-      (*prompt_need)->challenge="password";
-      (*prompt_need)->prompt="Please enter your password";
-      (*prompt_need)->defresult="";
-
-      return SASL_INTERACT;
-    }
-
-    sasl_strdup(params->utils, 
-	   (*prompt_need)->result, 
-	   (char **) &passwd, NULL);
 
     /*printf ("c_start step 2 : password is \"%s\"\n", passwd);*/
 
     /*params->utils->free((void *) (*prompt_need)->result); //This doesn't work!!!*/
-
-    /* free prompt */
-    params->utils->free(*prompt_need);
-    (*prompt_need)=NULL;
 
 
     in = params->utils->malloc(serverinlen+1);
@@ -1951,14 +2156,14 @@ static int c_continue_step (void *conn_context,
       if (strcmp(name,"realm")==0)
       {
 
-	sasl_strdup(params->utils, value,&realm, NULL);
+	digest_strdup(params->utils, value,&realm, NULL);
 
       } else if (strcmp(name,"nonce")==0) {
 
-	sasl_strdup(params->utils, value,(char **) &nonce, NULL);
+	digest_strdup(params->utils, value,(char **) &nonce, NULL);
 
       } else if (strcmp(name,"qop")==0) {
-	      sasl_strdup (params->utils, value, &qop_list, NULL);
+	      digest_strdup (params->utils, value, &qop_list, NULL);
 
 	      xxx = qop_list;
 	      while (1)
@@ -2057,17 +2262,6 @@ static int c_continue_step (void *conn_context,
 
     /* (username | realm | nonce | cnonce | nonce-count | qop
         digest-uri | response | maxbuf | charset | auth-param ) */
-
-    /* get username */
-    result=get_username(params,&username,oparams);
-
-    if (result!=SASL_OK)
-    {
-      VL(("Error getting Username\n"));
-      return result;
-    }
-
-     VL (("c_start step 2 : username got : \"%s\"",username));
 
 
     /* get requested ssf */
@@ -2170,20 +2364,20 @@ static int c_continue_step (void *conn_context,
     /* response */
     response=calculate_response(text,
 				params->utils,
-				username,
+				text->authid,
 				(unsigned char *) realm,
 				nonce, 
 				ncvalue,
 				cnonce,
 				qop,
 				digesturi,
-				passwd,
+				text->password,
 				IsUTF8,
 				&text->response_value);
 
     VL (("Constructing challenge\n"));
 
-    if (add_to_challenge(params->utils, &client_response,"username", username, true)!=SASL_OK)
+    if (add_to_challenge(params->utils, &client_response,"username", text->authid, true)!=SASL_OK)
 	{
       result = SASL_FAIL;
 	  goto FreeAllocatedMem;
@@ -2249,24 +2443,29 @@ static int c_continue_step (void *conn_context,
 
     *clientout = client_response;
     *clientoutlen = strlen(client_response);
+    if (*clientoutlen>2048)
+    { 
+      result=SASL_FAIL;
+      goto FreeAllocatedMem;
+    }
 
 	result = SASL_OK;
 
 	text->state=3;
 
-      if (sasl_strdup (params->utils, realm, &oparams->realm, NULL) == SASL_NOMEM)
+      if (digest_strdup (params->utils, realm, &oparams->realm, NULL) == SASL_NOMEM)
 	{
 	  result = SASL_NOMEM;
 	  goto FreeAllocatedMem;
 	}
-      if (sasl_strdup (params->utils, (char *) username, &oparams->user, NULL) == SASL_NOMEM)
+      if (digest_strdup (params->utils, (char *) text->authid, &oparams->user, NULL) == SASL_NOMEM)
 	{
 	  params->utils->free (oparams->realm);
 	  oparams->realm = NULL;
 	  result = SASL_NOMEM;
 	  goto FreeAllocatedMem;
 	}
-      if (sasl_strdup (params->utils, (char *) username, &oparams->authid, NULL) == SASL_NOMEM)
+      if (digest_strdup (params->utils, (char *) text->authid, &oparams->authid, NULL) == SASL_NOMEM)
 	{
 	  params->utils->free (oparams->realm);
 	  oparams->realm = NULL;
@@ -2307,7 +2506,7 @@ static int c_continue_step (void *conn_context,
 FreeAllocatedMem:
     params->utils->free(response); /*!!!*/
 
-	params->utils->free(passwd);
+	params->utils->free(text->password);
 	params->utils->free (in_start);
 
 	/*They wasn't malloc-ated
@@ -2385,10 +2584,7 @@ FreeAllocatedMem:
 	}
 
       params->utils->free (in_start);
-
-
-      
-
+     
       return SASL_FAIL;
     }
 #endif
@@ -2396,13 +2592,20 @@ FreeAllocatedMem:
   return SASL_FAIL; /* should never get here */
 }
 
+static const long client_required_prompts[] = {
+  SASL_CB_AUTHNAME,
+  SASL_CB_PASS,
+  SASL_CB_LIST_END
+};
+
+
 const sasl_client_plug_t client_plugins[] = 
 {
   {
     "DIGEST-MD5",
     1 /*???*/, /* max ssf */
     0,
-    NULL,
+    client_required_prompts,
     NULL,
     &c_start,
     &c_continue_step,

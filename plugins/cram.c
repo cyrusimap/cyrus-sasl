@@ -449,10 +449,14 @@ setpass(void *glob_context __attribute__((unused)),
 
 
   /* We're actually constructing a SCRAM secret... */
-  return putsecret(putsecret_context,
+  result=putsecret(putsecret_context,
 		   "CRAM-MD5",
 		   user,
 		   sec);
+
+  /* clean up sensitive info */
+  /* wish we could call free secret here */
+  
 }
 
 static const sasl_server_plug_t plugins[] = 
@@ -576,6 +580,7 @@ static int get_authid(sasl_client_params_t *params,
       break;
     default:
       /* sucess */
+      break;
     }
 
   return result;
@@ -638,6 +643,7 @@ static int get_password(sasl_client_params_t *params,
       break;
     default:
       /* sucess */
+      break;
     }
 
   return result;

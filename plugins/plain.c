@@ -413,8 +413,11 @@ static int get_userid(sasl_client_params_t *params,
   prompt=find_prompt(*prompt_need,SASL_CB_USER);
   if (prompt!=NULL)
   {
-    /* xxx we don't need to copy it right? */
-    *userid=prompt->result;
+    /* copy it */
+    *userid=params->utils->malloc(strlen(prompt->result)+1);
+    if ((*userid)==NULL) return SASL_NOMEM;
+
+    strcpy(*userid, prompt->result);
     return SASL_OK;
   }
 
@@ -440,6 +443,7 @@ static int get_userid(sasl_client_params_t *params,
       break;
     default:
       /* sucess */
+      break;
     }
 
   return result;
@@ -459,8 +463,11 @@ static int get_authid(sasl_client_params_t *params,
   prompt=find_prompt(*prompt_need,SASL_CB_AUTHNAME);
   if (prompt!=NULL)
   {
-    /* xxx we don't need to copy it right? */
-    *authid=prompt->result;
+    /* copy it */
+    *authid=params->utils->malloc(strlen(prompt->result)+1);
+    if ((*authid)==NULL) return SASL_NOMEM;
+
+    strcpy(*authid, prompt->result);
     return SASL_OK;
   }
 
@@ -486,6 +493,7 @@ static int get_authid(sasl_client_params_t *params,
       break;
     default:
       /* sucess */
+      break;
     }
 
   return result;
@@ -549,6 +557,7 @@ static int get_password(sasl_client_params_t *params,
       break;
     default:
       /* sucess */
+      break;
     }
 
   return result;

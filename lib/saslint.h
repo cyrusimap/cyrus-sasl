@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.53 2004/05/20 16:55:21 rjs3 Exp $
+ * $Id: saslint.h,v 1.54 2004/07/06 13:42:23 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -218,6 +218,7 @@ typedef struct context_list
 typedef struct sasl_server_conn {
     sasl_conn_t base; /* parts common to server + client */
 
+    char *appname; /* application name buffer (for sparams) */
     char *user_realm; /* domain the user authenticating is in */
     int sent_last; /* Have we already done the last send? */
     int authenticated;

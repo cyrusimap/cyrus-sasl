@@ -46,6 +46,17 @@
 #include <config.h>
 #include <sasl.h>
 
+int _sasl_get_plugin(const char *file,
+		     const char *entryname,
+		     const sasl_callback_t *getpath_callback,
+		     const sasl_callback_t *verifyfile_callback,
+		     void **entrypoint,
+		     void **library)
+{
+    /* not supported */
+    return SASL_FAIL;
+}
+
 /* gets the list of mechanisms */
 int _sasl_get_mech_list(const char *entryname,
 			const sasl_callback_t *getpath_cb,

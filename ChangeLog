@@ -1,3 +1,7 @@
+2002-10-09  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/client.c: Allow plaintext mechanisms under an external security
+	  layer.
+
 2002-10-07  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* sample/server.c: Fix some IPV6 defines
 	  (Marshall Rose <mrose@dbc.mtview.ca.us>)

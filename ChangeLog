@@ -1,3 +1,6 @@
+2003-12-11  Rolf Braun <rbraun@andrew.cmu.edu>
+	* Several MacOS X Fixes
+
 2003-12-06  Ken Murchison <ken@oceana.com>
 	* lib/checkpw.c, lib/server.c,
 	  plugins/cram.c, plugins/digestmd5.c, plugins/ntlm.c,

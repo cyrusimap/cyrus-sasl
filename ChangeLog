@@ -1,3 +1,7 @@
+2002-04-15  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/gssapi.c: fix how name_token and name_without_realm are
+	  freed.
+
 2002-04-12  Ken Murchison <ken@oceana.com>
 	* doc/draft-melnikov-rfc2831bis-00.txt: added
 	* doc/draft-myers-saslrev-02.txt: moved TOC

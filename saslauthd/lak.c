@@ -878,7 +878,7 @@ static int lak_add_result(LAK *lak, LDAPMessage *entry, const char *attr, LAK_RE
 
 	lres->attribute = strdup(attr);
 	if (lres->attribute == NULL) {
-		ldap_value_free(vals);
+		lak_free_result(vals);
 		return LAK_NOMEM;
 	}
 

@@ -12,7 +12,6 @@
 
 # Makefile.am for the pwcheck daemon
 # Larry Greenfield
-# $Id: Makefile.in,v 1.13 1999/12/02 19:12:06 leg Exp $
 #
 #         Copyright 1999 by Carnegie Mellon University
 #

@@ -78,7 +78,7 @@
  * END HISTORY */
 
 #ifdef __GNUC__
-#ident "$Id: saslauthd-doors.c,v 1.1 2002/04/25 14:46:05 leg Exp $"
+#ident "$Id: saslauthd-doors.c,v 1.2 2002/04/25 15:10:19 leg Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -98,7 +98,7 @@
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <fcntl.h>
-#include <doors.h>
+#include <door.h>
 
 #include "mechanisms.h"
 #include "globals.h"
@@ -157,6 +157,10 @@ main(
     int	count;				/* loop counter */
     char *cwd;				/* current working directory path */
     int dfd; /* door file descriptor */
+    int lfd,alfd=0;      		/* master lock file descriptor */
+    char *lockfile;			/* master lock file name       */
+    struct flock lockinfo;		/* fcntl locking on lockfile   */
+    int rc;
 
 #if defined(AUTH_SIA)
     /*
@@ -303,6 +307,8 @@ main(
 
     /* if we are running in debug mode, do not fork and exit */	
     if (!debug) {
+	pid_t pid;
+
 	/* fork/exec/setsid into a new process group */
 	count = 5;
 	while (count--) {
@@ -339,21 +345,25 @@ main(
 	    exit(1);
 	}
 	
-	s = open("/dev/null", O_RDWR, 0);
-	if (s == -1) {
-	    rc = errno;
-	    syslog(LOG_ERR, "FATAL: /dev/null: %m");
-	    fprintf(stderr, "saslauthd: ");
-	    errno = rc;
-	    perror("/dev/null");
-	    exit(1);
-	    
-	}
-	dup2(s, fileno(stdin));
-	dup2(s, fileno(stdout));
-	dup2(s, fileno(stderr));
-	if (s > 2) {
-	    close(s);
+	{
+	    int s;
+
+	    s = open("/dev/null", O_RDWR, 0);
+	    if (s == -1) {
+		rc = errno;
+		syslog(LOG_ERR, "FATAL: /dev/null: %m");
+		fprintf(stderr, "saslauthd: ");
+		errno = rc;
+		perror("/dev/null");
+		exit(1);
+		
+	    }
+	    dup2(s, fileno(stdin));
+	    dup2(s, fileno(stdout));
+	    dup2(s, fileno(stderr));
+	    if (s > 2) {
+		close(s);
+	    }
 	}
     } /* end if(!debug) */
 
@@ -547,16 +557,18 @@ door_request(void *cookie, char *data, size_t datasize,
 					/* will keep banging on the door long*/
 					/* enough for someone to take action.*/
 
-	errorcondition = 1;
+	error_condition = 1;
     }
 	    
-    if ((*login == '\0') || (*password == '\0')) {
-	error_condition = 1;
-	syslog(LOG_NOTICE, "null login/password received");
-	reply = strdup("NO Null login/password (saslauthd)");
-    } else {
-	if (debug) {
-	    syslog(LOG_DEBUG, "authenticating %s", login);
+    if (!error_condition) {
+	if ((*login == '\0') || (*password == '\0')) {
+	    error_condition = 1;
+	    syslog(LOG_NOTICE, "null login/password received");
+	    reply = strdup("NO Null login/password (saslauthd)");
+	} else {
+	    if (debug) {
+		syslog(LOG_DEBUG, "authenticating %s", login);
+	    }
 	}
     }
 
@@ -685,3 +697,117 @@ sigchld_ignore (
 }
 
 /* END FUNCTION: sigchld_ignore */
+/* FUNCTION: retry_read */
+
+/* SYNOPSIS
+ * Keep calling the read() system call with 'fd', 'buf', and 'nbyte'
+ * until all the data is read in or an error occurs.
+ * END SYNOPSIS */
+int retry_read(int fd, void *buf, unsigned nbyte)
+{
+    int n;
+    int nread = 0;
+
+    if (nbyte == 0) return 0;
+
+    for (;;) {
+	n = read(fd, buf, nbyte);
+	if (n == 0) {
+	    /* end of file */
+	    return -1;
+	}
+	if (n == -1) {
+	    if (errno == EINTR) continue;
+	    return -1;
+	}
+
+	nread += n;
+
+	if (n >= (int) nbyte) return nread;
+
+	buf += n;
+	nbyte -= n;
+    }
+}
+
+/* END FUNCTION: retry_read */
+
+/* FUNCTION: retry_writev */
+
+/* SYNOPSIS
+ * Keep calling the writev() system call with 'fd', 'iov', and 'iovcnt'
+ * until all the data is written out or an error occurs.
+ * END SYNOPSIS */
+
+int				/* R: bytes written, or -1 on error */
+retry_writev (
+  /* PARAMETERS */
+  int fd,				/* I: fd to write on */
+  struct iovec *iov,			/* U: iovec array base
+					 *    modified as data written */
+  int iovcnt				/* I: number of iovec entries */
+  /* END PARAMETERS */
+  )
+{
+    /* VARIABLES */
+    int n;				/* return value from writev() */
+    int i;				/* loop counter */
+    int written;			/* bytes written so far */
+    static int iov_max;			/* max number of iovec entries */
+    /* END VARIABLES */
+
+    /* initialization */
+#ifdef MAXIOV
+    iov_max = MAXIOV;
+#else /* ! MAXIOV */
+# ifdef IOV_MAX
+    iov_max = IOV_MAX;
+# else /* ! IOV_MAX */
+    iov_max = 8192;
+# endif /* ! IOV_MAX */
+#endif /* ! MAXIOV */
+    written = 0;
+    
+    for (;;) {
+
+	while (iovcnt && iov[0].iov_len == 0) {
+	    iov++;
+	    iovcnt--;
+	}
+
+	if (!iovcnt) {
+	    return written;
+	}
+
+	n = writev(fd, iov, iovcnt > iov_max ? iov_max : iovcnt);
+	if (n == -1) {
+	    if (errno == EINVAL && iov_max > 10) {
+		iov_max /= 2;
+		continue;
+	    }
+	    if (errno == EINTR) {
+		continue;
+	    }
+	    return -1;
+	} else {
+	    written += n;
+	}
+
+	for (i = 0; i < iovcnt; i++) {
+	    if (iov[i].iov_len > (unsigned) n) {
+		iov[i].iov_base = (char *)iov[i].iov_base + n;
+		iov[i].iov_len -= n;
+		break;
+	    }
+	    n -= iov[i].iov_len;
+	    iov[i].iov_len = 0;
+	}
+
+	if (i == iovcnt) {
+	    return written;
+	}
+    }
+    /* NOTREACHED */
+}
+
+/* END FUNCTION: retry_writev */

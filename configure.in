@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.151 2002/10/14 19:40:40 rjs3 Exp $
+dnl $Id: configure.in,v 1.152 2002/10/30 16:25:09 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -85,7 +85,7 @@ dnl let's just link against local.  otherwise we never find anything useful.
 if test "$ac_cv_prog_gcc" = yes; then
   dnl xxx we should add -W at some point (but that might scare people)
   CFLAGS="-Wall ${CFLAGS}"
-  GCC_VERSION=`gcc -v 2>&1 | sed -n -e '/version/s/.*version \([[0-9]]\)\..*/\1/p'`
+  GCC_VERSION=`$CC -v 2>&1 | sed -n -e '/version/s/.*version \([[0-9]]\)\..*/\1/p'`
   if test "$GCC_VERSION" != "3"; then
     CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
   fi

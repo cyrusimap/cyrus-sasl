@@ -20,7 +20,7 @@ dnl named.  arg.
 	CYRUS_BERKELEY_DB_CHK()
 	CPPFLAGS="${CPPFLAGS} ${BDB_INCADD}"
 	SASL_DB_INC=$BDB_INCADD
-	SASL_DB_LIB="-l${dbname}"
+	SASL_DB_LIB="${BDB_LIBADD}"
 	;;
   gdbm)
 	AC_ARG_WITH(with-gdbm,[  --with-gdbm=PATH        use gdbm from PATH],
@@ -77,7 +77,7 @@ dnl named.  arg.
 	  dnl we took Berkeley
 	  CPPFLAGS="${CPPFLAGS} ${BDB_INCADD}"
 	  SASL_DB_INC=$BDB_INCADD
-          SASL_DB_LIB="-l${dbname}"
+          SASL_DB_LIB="${BDB_LIBADD}"
 	fi
 	;;
   none)

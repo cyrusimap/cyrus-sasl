@@ -1,7 +1,6 @@
 # Makefile.am for the SASL plugins
-# Rob Siemborski
 # Rob Earhart
-# $Id: Makefile.am,v 1.43 2001/12/05 21:41:07 ken3 Exp $
+#
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -46,100 +45,60 @@
 
 # Library version info - here at the top, for sanity
 # CURRENT:REVISION:AGE
-plain_version = 1:5:0
-anonymous_version = 1:5:0
-kerberos4_version = 1:5:0
-crammd5_version = 1:5:0
-gssapiv2_version = 1:5:0
-digestmd5_version = 1:5:0
-login_version = 1:5:0
-sasldb_version = 1:5:0
-srp_version = 1:5:0
-otp_version = 1:5:0
+plain_version = 1:16:0
+anonymous_version = 1:17:0
+kerberos4_version = 1:18:0
+crammd5_version = 1:19:0
+scrammd5_version = 1:8:0
+gssapiv2_version = 1:19:0
+digestmd5_version = 0:20:0
+login_version = 0:7:0
+srp_version = 0:2:0
+# x509_version = 0:0:0
 
-INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/lib
-LDFLAGS = @LDFLAGS@ -module -export-dynamic -rpath $(plugindir)
+INCLUDES=-I$(top_srcdir)/include
 
-COMPAT_OBJS = @LTGETADDRINFOOBJS@ @LTGETNAMEINFOOBJS@ @LTSNPRINTFOBJS@
-
-EXTRA_DIST = makeinit.sh
-noinst_SCRIPTS = makeinit.sh
+LDFLAGS = @LDFLAGS@ -export-dynamic -rpath $(plugindir) -module
 
 plugindir = @plugindir@
 
-common_sources = plugin_common.c plugin_common.h
-
-sasldir = $(prefix)/lib/sasl2
+sasldir = $(prefix)/lib/sasl
 sasl_LTLIBRARIES = @SASL_MECHS@
-EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la \
-	libgssapiv2.la libdigestmd5.la liblogin.la libsrp.la libotp.la \
-	libsasldb.la
+EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la libscrammd5.la libgssapiv2.la libdigestmd5.la liblogin.la libsrp.la
 
-libplain_la_SOURCES = plain.c plain_init.c $(common_sources)
+libplain_la_SOURCES = plain.c
 libplain_la_LDFLAGS = -version-info $(plain_version)
-libplain_la_DEPENDENCIES = $(COMPAT_OBJS)
-libplain_la_LIBADD = $(PLAIN_LIBS) $(COMPAT_OBJS)
+libplain_la_LIBADD = $(PLAIN_LIBS)
 
-libanonymous_la_SOURCES = anonymous.c anonymous_init.c $(common_sources)
+libanonymous_la_SOURCES = anonymous.c
 libanonymous_la_LDFLAGS = -version-info $(anonymous_version)
-libanonymous_la_DEPENDENCIES = $(COMPAT_OBJS)
-libanonymous_la_LIBADD = $(COMPAT_OBJS)
 
-libkerberos4_la_SOURCES = kerberos4.c kerberos4_init.c $(common_sources)
+libkerberos4_la_SOURCES = kerberos4.c
 libkerberos4_la_LDFLAGS = -version-info $(kerberos4_version)
-libkerberos4_la_DEPENDENCIES = $(COMPAT_OBJS)
-libkerberos4_la_LIBADD = $(SASL_KRB_LIB) $(LIB_SOCKET) $(COMPAT_OBJS)
+libkerberos4_la_LIBADD = $(SASL_KRB_LIB) $(LIB_SOCKET)
 
-libgssapiv2_la_SOURCES = gssapi.c gssapiv2_init.c $(common_sources)
+libgssapiv2_la_SOURCES = gssapi.c
 libgssapiv2_la_LDFLAGS = -version-info $(gssapiv2_version)
-libgssapiv2_la_DEPENDENCIES = $(COMPAT_OBJS)
-libgssapiv2_la_LIBADD = $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS)
+libgssapiv2_la_LIBADD = $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET)
 
-libcrammd5_la_SOURCES = cram.c crammd5_init.c $(common_sources)
+libcrammd5_la_SOURCES = cram.c
 libcrammd5_la_LDFLAGS = -version-info $(crammd5_version)
-libcrammd5_la_DEPENDENCIES = $(COMPAT_OBJS)
-libcrammd5_la_LIBADD = $(COMPAT_OBJS)
 
-libdigestmd5_la_SOURCES = digestmd5.c digestmd5_init.c $(common_sources)
+libscrammd5_la_SOURCES = scram.c
+libscrammd5_la_LDFLAGS = -version-info $(scrammd5_version)
+
+libdigestmd5_la_SOURCES = digestmd5.c
 libdigestmd5_la_LDFLAGS = -version-info $(digestmd5_version)
-libdigestmd5_la_DEPENDENCIES = $(COMPAT_OBJS)
-libdigestmd5_la_LIBADD = $(LIB_DES) $(LIB_SOCKET) $(COMPAT_OBJS)
+libdigestmd5_la_LIBADD = $(LIB_DES) $(LIB_SOCKET)
 
-liblogin_la_SOURCES = login.c login_init.c $(common_sources)
+liblogin_la_SOURCES = login.c
 liblogin_la_LDFLAGS = -version-info $(login_version)
-liblogin_la_DEPENDENCIES = $(COMPAT_OBJS)
-liblogin_la_LIBADD = $(PLAIN_LIBS) $(COMPAT_OBJS)
+liblogin_la_LIBADD = $(PLAIN_LIBS)
 
-libsrp_la_SOURCES = srp.c srp_init.c $(common_sources)
+libsrp_la_SOURCES = srp.c
 libsrp_la_LDFLAGS = -version-info $(srp_version)
-libsrp_la_DEPENDENCIES = $(COMPAT_OBJS)
-libsrp_la_LIBADD = $(SRP_LIBS) $(COMPAT_OBJS)
+libsrp_la_LIBADD = $(SRP_LIBS)
 
-libotp_la_SOURCES = otp.c otp_init.c $(common_sources)
-libotp_la_LDFLAGS = -version-info $(otp_version)
-libotp_la_DEPENDENCIES = $(COMPAT_OBJS)
-libotp_la_LIBADD = $(OTP_LIBS) $(COMPAT_OBJS)
-
-# Auxprop Plugins
-libsasldb_la_SOURCES = sasldb.c sasldb_init.c $(common_sources)
-libsasldb_la_LDFLAGS = -version-info $(sasldb_version)
-libsasldb_la_DEPENDENCIES = $(COMPAT_OBJS)
-libsasldb_la_LIBADD = ../sasldb/libsasldb.la $(SASL_DB_LIB) $(COMPAT_OBJS)
-
-# Instructions for making the _init files
-
-init_src=anonymous_init.c crammd5_init.c digestmd5_init.c gssapiv2_init.c \
-kerberos4_init.c login_init.c plain_init.c srp_init.c otp_init.c sasldb_init.c
-
-CLEANFILES=$(init_src)
-
-${init_src}: $(srcdir)/makeinit.sh
-	$(SHELL) $(srcdir)/makeinit.sh
-
-# Compatibility function build rules (they build in lib/)
-$(COMPAT_OBJS):
-	rm -f $(COMPAT_OBJS)
-	cd ../lib; $(MAKE) $(COMPAT_OBJS)
-	for file in $(COMPAT_OBJS); do ln -s ../lib/$$file .; done
-
-
+# libx509_la_SOURCES = x509.c
+# libx509_la_LDFLAGS = -version-info $(x509_version)
+# libx509_la_LIBADD = $(X509_LIBS)

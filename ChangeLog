@@ -1,3 +1,7 @@
+2002-06-10  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* sasldb/Makefile.am: fix handling of allockey (only include it once)
+	* plugins/kerberos4.c: fix a reference count leak
+
 2002-05-28  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/LDAP_SASLAUTHD, saslauthd/saslauthd.mdoc:
 	  Update documentation for LDAP and Saslauthd as per

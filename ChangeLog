@@ -1,3 +1,6 @@
+2004-03-29  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* sample/server.c: Ensure that len has a value
+
 2004-03-25  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/saslauthd-main.c: add -r option to saslauthd for combining
 	  user and realm into user@realm (for the userid).  Based on a patch

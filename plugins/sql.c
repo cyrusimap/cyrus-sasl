@@ -7,7 +7,7 @@
 ** Simon Loader -- original mysql plugin
 ** Patrick Welche -- original pgsql plugin
 **
-** $Id: sql.c,v 1.27 2004/06/30 19:31:11 rjs3 Exp $
+** $Id: sql.c,v 1.28 2004/11/24 18:09:00 ken3 Exp $
 **
 */
 
@@ -335,8 +335,11 @@ static void _pgsql_close(void *conn)
 #ifdef HAVE_SQLITE
 #include <sqlite.h>
 
-static void *_sqlite_open(char *host, char *port, int usessl,
-			  const char *user, const char *password,
+static void *_sqlite_open(char *host __attribute__((unused)),
+			  char *port __attribute__((unused)),
+			  int usessl __attribute__((unused)),
+			  const char *user __attribute__((unused)),
+			  const char *password __attribute__((unused)),
 			  const char *database, const sasl_utils_t *utils)
 {
     int rc;
@@ -376,8 +379,9 @@ static int _sqlite_escape_str(char *to, const char *from)
     return 0;
 }
 
-static int sqlite_my_callback(void *pArg, int argc, char **argv,
-			      char **columnNames)
+static int sqlite_my_callback(void *pArg, int argc __attribute__((unused)),
+			      char **argv,
+			      char **columnNames __attribute__((unused)))
 {
     char **result = (char**)pArg;
 

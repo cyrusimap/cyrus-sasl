@@ -1,4 +1,7 @@
 2004-11-24  Ken Murchison <ken@oceana.com>
+	* plugins/sql.c: squashed unused parameter warnings
+
+2004-11-24  Ken Murchison <ken@oceana.com>
 	* plugins/passdss.c: added; PASSDSS-3DES-1 implementation
 	* configure.in, plugins/Makefile.am, plugins/makeinit.sh:
 	  added support for PASSDSS

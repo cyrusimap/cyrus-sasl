@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.82 2003/11/11 16:26:08 ken3 Exp $
+ * $Id: gssapi.c,v 1.83 2003/12/15 20:04:12 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.82 2003/11/11 16:26:08 ken3 Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.83 2003/12/15 20:04:12 rjs3 Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -565,7 +565,7 @@ gssapi_server_mech_step(void *conn_context,
     context_t *text = (context_t *)conn_context;
     gss_buffer_t input_token, output_token;
     gss_buffer_desc real_input_token, real_output_token;
-    OM_uint32 maj_stat, min_stat;
+    OM_uint32 maj_stat = 0, min_stat = 0;
     OM_uint32 max_input;
     gss_buffer_desc name_token;
     int ret;
@@ -1133,7 +1133,7 @@ static int gssapi_client_mech_step(void *conn_context,
     context_t *text = (context_t *)conn_context;
     gss_buffer_t input_token, output_token;
     gss_buffer_desc real_input_token, real_output_token;
-    OM_uint32 maj_stat, min_stat;
+    OM_uint32 maj_stat = 0, min_stat = 0;
     gss_buffer_desc name_token;
     int ret;
     OM_uint32 req_flags, out_req_flags;

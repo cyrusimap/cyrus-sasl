@@ -9,7 +9,7 @@
 
     <h3>NOTE: This is a work in progress. Any contributions would be <i>very</i> appreciated</h3>
 
-    <ul>Contents
+    <ul><h2>Contents</h2>
 
       <li><a href="#intro">Boring Intro Stuff</a>
 	<ul>
@@ -25,67 +25,82 @@
 
 	  <li><a href="#sasl_rescue">SASL to the rescue!</a>
 	</ul>
-      <li>Briefly
+      <li><a href="#briefly">Briefly</a>
 	<ul>
 
-	  <li>What is the Cyrus SASL library good for?
+	  <li><a href="#what_good_for">What is the Cyrus SASL library good for?</a>
 
-	  <li> What does the Cyrus SASL library do?
+	  <li><a href="#what_do">What does the Cyrus SASL library do?</a>
 
-	  <li> What doesn't the Cyrus SASL library do?
+	  <li><a href="#what_doesnt">What doesn't the Cyrus SASL library do?</a>
 	</ul>
-      <li>Client-only Section
+      <li><a href="#client_only">Client-only Section</a>
 	<ul>
 
-	  <li>A typical interaction from the client's perspective
+	  <li><a href="#client_typical">A typical interaction from the client's perspective</a>
 
-	  <li>How does this look in code?
+	  <li><a href="#client_code">How does this look in code?</a>
 
-	  <li>sasl_client_init
+	  <li><a href="#sasl_client_init">sasl_client_init</a>
 
-	  <li>sasl_client_new
+	  <li><a href="#sasl_client_new">sasl_client_new</a>
 
-	  <li>sasl_client_start
+	  <li><a href="#sasl_client_start">sasl_client_start</a>
 
-	  <li>sasl_client_step
-
-	</ul>
-
-      <li>Server-only Section
-	<ul>
-
-	  <li>A typical interaction from the server's perspective
-
-	  <li>How does this look in code?
-
-	  <li>sasl_server_init
-	    
-	  <li>sasl_server_new
-	    
-	  <li>sasl_server_start
-
-	  <li>sasl_server_step
-	    
-	  <li>sasl_listmech
-
-	  <li>sasl_checkpass
+	  <li><a href="#sasl_client_step">sasl_client_step</a>
 
 	</ul>
 
-      <li>Common Section
+      <li><a href="#server_section">Server-only Section</a>
 	<ul>
-	  <li>Callbacks and Interactions
-	    
-	  <li>sasl_encode
 
-	  <li>sasl_decode
+	  <li><a href="#server_typical">A typical interaction from the server's perspective</a>
+
+	  <li><a href="#server_code">How does this look in code?</a>
+
+	  <li><a href="#sasl_server_init">sasl_server_init</a>
+	    
+	  <li><a href="#sasl_server_new">sasl_server_new</a>
+	    
+	  <li><a href="#sasl_server_start">sasl_server_start</a>
+
+	  <li><a href="#sasl_server_step">sasl_server_step</a>
+	    
+	  <li><a href="#sasl_listmech">sasl_listmech</a>
+
+	  <li><a href="#sasl_checkpass">sasl_checkpass</a>
+
+	</ul>
+
+      <li><a href="#common_section">Common Section</a>
+	<ul>
+	  <li><a href="#callbacks_interactions">Callbacks and Interaction</a>
+	    
+	  <li><a href="#sasl_encode">sasl_encode</a>
+
+	  <li><a href="#sasl_decode">sasl_decode</a>
 	    
 
 	  </ul>
 
-
-      <li>Example applications that come with the Cyrus SASL library
+      <li><a href="#example_section">Example applications that come with the Cyrus SASL library</a>
 	<ul>
+	  <li><a href="#sample_client"><tt>sample-client</tt> and <tt>sample-server</tt></a>
+
+	  <li><a href="#cyrus_imapd">Cyrus imapd v1.6.0 or later</a>
+	  <li><a href="#imtest"><tt>imtest</tt>, from cyrus imapd 1.6.0 or later</a>
+	</ul>
+
+      <li><a href="#random_things">Miscelaneous Information</a>
+	<ul>
+	  <li><a href="#empty_exchanges">Empty exchanges</a>
+	</ul>
+
+      <li><a href="#not_implemented">What's not implemented</a>
+	<ul>
+	  <li><a href="#credentials">Credentials</a>
+	  <li><a href="#secrets">Secrets</a>
+	  <li><a href="#idle">Idle</a>
 	</ul>
 
 
@@ -195,9 +210,9 @@
    just sends data in binary via bind requests. The Cyrus SASL library
    has utility base64 encode and decode routines to help with this.
     
-<h2>Client-only Section</h2>
+<a name="client_section"><h2>Client-only Section</h2></a>
     
-    <h3>A typical interaction from the client's perspective</h3>
+    <a name="client_typical"><h3>A typical interaction from the client's perspective</h3></a>
     
     <ol>
     <li>A client makes a few calls (explained later) to initialize SASL. 
@@ -214,7 +229,7 @@
     <li>repeat the last 4 steps until the server tells you that the authentication is completed
     </ol>
 
-    <h3>How does this look in code</h3>
+    <a name="client_code"><h3>How does this look in code</h3></a>
     <pre>
 	    int result;
 
@@ -344,96 +359,11 @@
 
     <h3>sasl_client_step</h3>
 
-    <h3>Callbacks and Interactions</h3>
-
-    When you start the application and call sasl_client_init() you
-    must specify for what data you support callbacks and/or
-    interactions. These are for the library getting information needed
-    for authentication from the application. This is needed for things
-    like authentication name and password. If you do not declare
-    supporting a callback you will not be able to use mechanisms that
-    need that data. A callback is for when you have the information
-    before you start the authentication. The SASL library calls a
-    function you specify and your function fills in the requested
-    information. For example if you had the userid of the user already
-    for some reason. An interaction is usually for things you support
-    but will need to ask the user for
-    (e.g. password). sasl_client_start() or sasl_client_step() will
-    return SASL_INTERACT. This will be a list of sasl_interact_t's
-    which contain a human readable string you can prompt the user
-    with, a possible computer readable string, and a default
-    result. The nice thing about interactions is you get them all at
-    once so if you had a GUI application you could bring up a dialog
-    box asking for authentication name and password together instead
-    of one at a time.
-
-    <pre>
-
-    For a detailed description of what each of the callback types are see the sasl.h file.
-    
-    Here are some brief explanations:
-    SASL_CB_AUTHNAME - the name of the user authenticating
-    SASL_CB_USER - the name of the user acting for. 
-    (for example postman delivering mail for tmartin might have an AUTHNAME of postman and
-     a USER of tmartin)
-    SASL_CB_PASS - password for AUTHNAME
-    SASL_CB_GETREALM - Realm of the server
-    
-    An example of a way to handle callbacks:
-
-    
-    /* callbacks we support. This is a global variable at the 
-       top of the program */
-    static sasl_callback_t callbacks[] = {
-    {
-      SASL_CB_GETREALM, NULL, NULL  /* we'll just use an interaction if this comes up */
-    }, {
-      SASL_CB_USER, NULL, NULL      /* we'll just use an interaction if this comes up */
-    }, {
-      SASL_CB_AUTHNAME, &getauthname_func, NULL /* A mechanism should call getauthname_func
-                                                   if it needs the authentication name */
-    }, { 
-      SASL_CB_PASS, &getsecret_func, NULL      /* Call getsecret_func if need secret */
-    }, {
-      SASL_CB_LIST_END, NULL, NULL
-    }
-    };
 
 
-    static int getsecret_func(sasl_conn_t *conn,
-	  void *context __attribute__((unused)),
-	  int id,
-	  sasl_secret_t **psecret)
-    {
-       [ask the user for their secret]
+<a name="server_section"><h2>Server-only Section</h2></a>
 
-       [allocate psecret and insert the secret]
-
-      return SASL_OK;
-    }
-
-    static int getauthname_func(void *context,
-                                int id,
-                                const char **result,
-                                unsigned *len)
-    {
-       if (id!=SASL_CB_AUTHNAME) return SASL_FAIL;
-
-       [fill in result and len]
-
-       return SASL_OK;
-     }
-
-    
-    in the main program somewhere
-    
-    sasl_client_init(callbacks);
-
-    </pre>
-
-<h2>Server-only Section</h2>
-
-    <h3>A typical interaction from the server's perspective</h3>
+    <a name="server_typical"><h3>A typical interaction from the server's perspective</h3></a>
 
     The server makes a few Cyrus SASL calls for initialization. When
     it gets a new connection it should make a new context for that
@@ -444,7 +374,7 @@
     and keep around the context afterwards for encoding and decoding
     the layers.
     
-    <h3>How does this look in code?</h3>
+    <a name="server_code"><h3>How does this look in code?</h3></a>
 
     Initialization (done once). The application name is used for
     reading configuration information.
@@ -561,7 +491,7 @@
 
     </pre></tt>
 
-    <h3>sasl_server_init</h3>
+    <a name="sasl_server_init"><h3>sasl_server_init</h3></a>
 
     int sasl_server_init(const sasl_callback_t *callbacks,
                          const char *appname);
@@ -582,7 +512,7 @@
     authentication mechanisms are loaded.
     
     
-    <h3>sasl_server_new</h3>
+    <a name="sasl_server_new"><h3>sasl_server_new</h3></a>
 
     int sasl_server_new(const char *service,
 			const char *serverFQDN,
@@ -609,7 +539,7 @@
     application supports security layers. 0 otherwise.
     </ul>
 	
-    <h3>sasl_server_start</h3>
+    <a name="sasl_server_start"><h3>sasl_server_start</h3></a>
     <pre>
      int sasl_server_start(sasl_conn_t *conn,
 			  const char *mech,
@@ -619,12 +549,71 @@
 			  unsigned *serveroutlen,
 			  const char **errstr);
     </pre>
+    
+    <ul>Paramaters:
+      <li>conn - The context for the connection
 
+      <li>mech - The authentication mechanism the client wishes to try
+      (e.g. <tt>KERBEROS_V4</tt>)
+
+      <li>clientin - Initial client challenge bytes. Note: some
+      protocols do not allow this.  If this is the case passing NULL
+      is valid
+
+      <li>clientinlen - The length of the challenge. 0 is there is none.
+
+      <li>serverout - allocated and filled in by the function. These are the bytes that should be encoded as per the protocol and sent over the network back to the client.
+
+      <li>serveroutlen - length of bytes to send to client
+
+      <li>errstr - string possibly filled in on error
+    </ul>
+
+    This function begins the authentication process with a client. If
+    the program returns SASL_CONTINUE that means <tt>serverout</tt>
+    should be sent to the client. If SASL_OK is returned that means
+    authentication is complete and the application should tell the
+    client the authentication was sucessful. Any other return code
+    means the authentication failed and the client should be notified
+    of this.
     
 
-    <h3>sasl_server_step</h3>
+    <a name="sasl_server_step"><h3>sasl_server_step</h3></a>
+
+    <pre>
+    int sasl_server_step(sasl_conn_t *conn,
+		         const char *clientin,
+		         unsigned clientinlen,
+		         char **serverout,
+		         unsigned *serveroutlen,
+		         const char **errstr);
+    </pre>
+
+    <ul>Paramaters:
+      <li>conn - The context for the connection
+
+      <li>clientin - Data sent by the client.
+
+      <li>clientinlen - The length of the client data. Note that this may be 0
+
+      <li>serverout - allocated and filled in by the function. These
+      are the bytes that should be encoded as per the protocol and
+      sent over the network back to the client.
+
+      <li>serveroutlen - length of bytes to send to client. Note that this may be 0
+
+      <li>errstr - string possibly filled in on error
+    </ul>
+
+    This function preforms a step of the authentication. This may need
+    to be called an arbitrary number of times. If the program returns
+    SASL_CONTINUE that means <tt>serverout</tt> should be sent to the
+    client. If SASL_OK is returned that means authentication is
+    complete and the application should tell the client the
+    authentication was sucessful. Any other return code means the
+    authentication failed and the client should be notified of this.
     
-    <h3>sasl_listmech</h3>
+    <a name="sasl_listmech"><h3>sasl_listmech</h3></a>
     <pre>
     int sasl_listmech(sasl_conn_t *conn,
 		      const char *user,
@@ -651,7 +640,7 @@
     mechanisms supported by the server. This string is often needed
     for a capability statement.
 
-    <h3>sasl_checkpass</h3>
+    <a name="sasl_checkpass"><h3>sasl_checkpass</h3></a>
 
     <pre>
     int sasl_checkpass(sasl_conn_t *conn,
@@ -676,59 +665,147 @@
     where this might be used. Note that this has no relationship to
     the PLAIN mechanism but it does check the password the same way in
     the Cyrus SASL library.
+
+<a name="common_section"><h2>Common Section</h2></a>
+
+    <a name="callbacks_interactions"><h3>Callbacks and Interactions</h3></a>
+
+    When the application starts and calls sasl_client_init() you must
+    specify for what data you support callbacks and/or
+    interactions. These are for the library getting information needed
+    for authentication from the application. This is needed for things
+    like authentication name and password. If you do not declare
+    supporting a callback you will not be able to use mechanisms that
+    need that data. A callback is for when you have the information
+    before you start the authentication. The SASL library calls a
+    function you specify and your function fills in the requested
+    information. For example if you had the userid of the user already
+    for some reason. An interaction is usually for things you support
+    but will need to ask the user for
+    (e.g. password). sasl_client_start() or sasl_client_step() will
+    return SASL_INTERACT. This will be a list of sasl_interact_t's
+    which contain a human readable string you can prompt the user
+    with, a possible computer readable string, and a default
+    result. The nice thing about interactions is you get them all at
+    once so if you had a GUI application you could bring up a dialog
+    box asking for authentication name and password together instead
+    of one at a time.
+
+    <pre>
+
+    For a detailed description of what each of the callback types are see the sasl.h file.
+    
+    Here are some brief explanations:
+    SASL_CB_AUTHNAME - the name of the user authenticating
+    SASL_CB_USER - the name of the user acting for. 
+    (for example postman delivering mail for tmartin might have an AUTHNAME of postman and
+     a USER of tmartin)
+    SASL_CB_PASS - password for AUTHNAME
+    SASL_CB_GETREALM - Realm of the server
+    
+    An example of a way to handle callbacks:
+
+    
+    /* callbacks we support. This is a global variable at the 
+       top of the program */
+    static sasl_callback_t callbacks[] = {
+    {
+      SASL_CB_GETREALM, NULL, NULL  /* we'll just use an interaction if this comes up */
+    }, {
+      SASL_CB_USER, NULL, NULL      /* we'll just use an interaction if this comes up */
+    }, {
+      SASL_CB_AUTHNAME, &getauthname_func, NULL /* A mechanism should call getauthname_func
+                                                   if it needs the authentication name */
+    }, { 
+      SASL_CB_PASS, &getsecret_func, NULL      /* Call getsecret_func if need secret */
+    }, {
+      SASL_CB_LIST_END, NULL, NULL
+    }
+    };
+
+
+    static int getsecret_func(sasl_conn_t *conn,
+	  void *context __attribute__((unused)),
+	  int id,
+	  sasl_secret_t **psecret)
+    {
+       [ask the user for their secret]
+
+       [allocate psecret and insert the secret]
+
+      return SASL_OK;
+    }
+
+    static int getauthname_func(void *context,
+                                int id,
+                                const char **result,
+                                unsigned *len)
+    {
+       if (id!=SASL_CB_AUTHNAME) return SASL_FAIL;
+
+       [fill in result and len]
+
+       return SASL_OK;
+     }
+
+    
+    in the main program somewhere
+    
+    sasl_client_init(callbacks);
+
+    </pre>
 	
 
-<h2>Example applications that come with the Cyrus SASL library</h2>
+<a name="example_section"><h2>Example applications that come with the Cyrus SASL library</h2></a>
 
-<h3><tt>sample-client</tt> and <tt>sample-server</tt></h3>
+<a name="sample_client"><h3><tt>sample-client</tt> and <tt>sample-server</tt></h3></a>
 
 The sample client and server included with this distribution were
-really written to help debug mechanisms.  They base64 encode all the
-data and print it out on standard output.
+initially written to help debug mechanisms.  They base64 encode all
+the data and print it out on standard output.
 
-<p>Make sure that you set the IP addresses on the command line (some
+<p>Make sure that the IP addresses are set on the command line (some
 mechanisms depend on this).
 
-<p>Also, sometimes you'll get "<tt>realm: Information not available</tt>"
-sort of messages; this is due to the fact that some mechanisms don't
-support realms and therefore never set it.
+<p>Also, sometimes you will receive a get "<tt>realm: Information not
+available</tt>" message, or similar; this is due to the fact that some
+mechanisms do not support realms and therefore never set it.
 
-<h3>Cyrus imapd v1.6.0 or later</h3>
+<a name="cyrus_imapd"><h3>Cyrus imapd v1.6.0 or later</h3></a>
 
-The Cyrus IMAP server now incorporates SASL for all it's
+The Cyrus IMAP server now incorporates SASL for all its
 authentication needs.  It is a good example of a fairly large server
 application.  Also of interest is the prot layer, included in
 libcyrus.  This is a stdio-like interface that automatically takes
 care of layers using a simple "<tt>prot_setsasl()</tt>" call.
 
-<p>It also sets a <tt>SASL_CB_PROXY_POLICY</tt> callback, which should
+<p>Cyrus Imapd also sets a <tt>SASL_CB_PROXY_POLICY</tt> callback, which should
 be of interest to many applications.
 
-<h3><tt>imtest</tt>, from cyrus imapd 1.6.0 or later</h3>
+<a name="imtest"><h3><tt>imtest</tt>, from cyrus imapd 1.6.0 or later</h3></a>
 
-<tt>imtest</tt> is an application included with Cyrus imapd.  It is a very
-simple IMAP client, but should be of interest to people who are
-writing applications.  It also uses the prot layer, but it is easy to
+<tt>imtest</tt> is an application included with Cyrus imapd.  It is a
+very simple IMAP client, but should be of interest to those writing
+applications.  It also uses the prot layer, but it is easy to
 incorporate similar support without using the prot layer.
 
-<h2>Random things</h2>
+<a name="random_things"><h2>Miscelaneous Information</h2></a>
 
-<h3>Empty exchanges</h3>
+<a name="empty_exchanges"><h3>Empty exchanges</h3></a>
 
-Some SASL mechanisms intentionally send no data; your application
-should be prepared to either send or receive an empty exchange.  The
-SASL profile for the protocol should define how to send an empty
-string; make sure you send an empty string when requested to, and when
-you receive an empty string make sure that the "<tt>inlength</tt>" you
-pass in is 0.
+Some SASL mechanisms intentionally send no data; an application should
+be prepared to either send or receive an empty exchange.  The SASL
+profile for the protocol should define how to send an empty string;
+make sure to send an empty string when requested, and when receiving
+an empty string make sure that the "<tt>inlength</tt>" passed in is 0.
 
-<h2>What's not implemented</h2>
+<a name="not_implemented"><h2>What's not implemented</h2></a>
 
-Some parts of this API aren't implemented by this implementation.  A
+Some parts of this API are not implemented by this implementation.  A
 brief outline of these features (and what might come of them) is in
 this section.
 
-<h3>Credentials</h3>
+<a name="credentials"><h3>Credentials</h3></a>
 
 None of the modules support passing credentials.  In the future, we
 hope to add credential passing to the modules that support it (most
@@ -741,7 +818,7 @@ The functions <tt>sasl_cred_install()</tt> and
 likely that you'll need the Cyrus SASL library on both sides of the
 connection to make it work.
 
-<h3>Secrets</h3>
+<a name="secrets"><h3>Secrets</h3></a>
 
 <tt>sasl_client_auth()</tt> is unimplemented.  It is unclear what this
 is intended for.  If we implement it, it will probably be for
@@ -750,7 +827,7 @@ generating secrets for fast reauthentication.
 <p>The "<tt>secret</tt>" parameter to <tt>sasl_client_start()</tt> is
 unused.  It is likely that we will use this for fast reauthentication.
 
-<h3>Idle</h3>
+<a name="idle"><h3>Idle</h3></a>
 
 While the implementation & plugins correctly implement the idle calls,
 none of them currently do anything.
@@ -760,7 +837,7 @@ none of them currently do anything.
     <address><a href="mailto:tmartin+@andrew.cmu.edu">Timothy L Martin</a></address>
 <!-- Created: Wed Aug 18 13:05:55 EDT 1999 -->
 <!-- hhmts start -->
-Last modified: Fri Aug 20 17:11:29 EDT 1999
+Last modified: Fri Aug 20 18:37:32 EDT 1999
 <!-- hhmts end -->
   </body>
 </html>

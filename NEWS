@@ -1,3 +1,11 @@
+New in 2.1.14
+-------------
+* OS X 10.2 support
+* Support for the Sun SEAM GSSAPI implementation
+* Support for MySQL 4
+* A number of build fixes
+* Other minor bugfixes
+
 New in 2.1.13
 -------------
 * Add a configure option to allow specification of what /dev/random to use.

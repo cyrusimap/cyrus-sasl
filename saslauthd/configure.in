@@ -14,7 +14,7 @@ AC_ARG_WITH(saslauthd, [  --with-saslauthd=DIR    enable use of the saslauth dae
   AC_DEFINE_UNQUOTED(PATH_SASLAUTHD_RUNDIR, "$with_saslauthd")
 AM_CONDITIONAL(SASLAUTHD, test "$with_saslauthd" != no)
 
-AM_INIT_AUTOMAKE(saslauthd,2.1.13)
+AM_INIT_AUTOMAKE(saslauthd,2.1.14)
 CMU_INIT_AUTOMAKE
 
 dnl Checks for programs.

@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.42 1999/07/30 23:42:52 leg Exp $
+ * $Id: server.c,v 1.43 1999/08/09 15:59:01 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -1036,24 +1036,29 @@ static int _sasl_checkpass(sasl_conn_t *conn,
 #ifdef HAVE_PAM
     if (!strcmp(mech, "PAM")) {
 	result = _sasl_PAM_verify_password(conn, user, pass, service, NULL);
-    }
+    } else
 #endif
 #ifndef SASL_MINIMAL_SERVER
     if (!strcmp(mech, "passwd")) {
 	result = _sasl_passwd_verify_password(conn, user, pass, NULL);
-    }
+    } else
 #endif //SASL_MINIMAL_SERVER
     if (!strcmp(mech, "shadow")) {
 	result = _sasl_shadow_verify_password(conn, user, pass, NULL);
-    }
+    } else
 
 #ifdef HAVE_KRB
     if (!strcmp(mech, "kerberos_v4")) {
 	/* check against krb */
 	result = _sasl_kerberos_verify_password(conn, user, pass, 
 						service, NULL);
-    }
+    } else
 #endif
+
+    if (!strcmp(mech, "sasldb")) {
+	/* check sasl database */
+	result = _sasl_sasldb_verify_password(conn, user, pass, NULL);
+    }
 
     return result;
 }

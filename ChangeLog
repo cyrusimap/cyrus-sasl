@@ -1,3 +1,18 @@
+1999-08-08  Larry Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/saslint.h (_sasl_sasldb_verify_password): added prototype
+
+	* lib/server.c (_sasl_checkpass): added sasldb option; inserted
+	else's
+
+	* lib/checkpw.c (_sasl_kerberos_verify_password): added
+	userid/password NULL checks & set reply to NULL
+	(_sasl_shadow_verify_password): ditto
+	(_sasl_passwd_verify_password): ditto
+	(_sasl_PAM_verify_password): set reply to NULL
+	(_sasl_sasldb_verify_password): created; checks the sasl database
+	with "PLAIN"
+
 Wed Jul 21 23:35:15 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/server.c (load_config): small fixes (cosmetic & free'ing
@@ -423,7 +438,8 @@ Tue Jun 15 15:21:05 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 1999-03-19  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
-	* plugins/cram.c: Doesn't store passwords in /etc/sasldb in clear. tested
+	* plugins/cram.c: Doesn't store passwords in /etc/sasldb in
+	clear. tested
 	
 1999-03-18  Rob Earhart  <rob+@andrew.cmu.edu>
 

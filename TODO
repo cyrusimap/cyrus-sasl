@@ -32,7 +32,7 @@ Digest-MD5
 Kerberos_V4
 ~~~~~~~~~~~
 ) Needs to check timestamps for replay attacks
-) client never sets realm
+) client never sets realm - how to handle different realm
 
 GSSAPI
 ~~~~~~
@@ -40,10 +40,13 @@ GSSAPI
 
 Plain
 ~~~~~
+) How do I set sasldb?  What if I don't want plaintext passwords in sasldb?
+) any way to handle realms?
 
 Cram-MD5
 ~~~~~~~~
 ) needs snprintf support
+) any way to handle realms?
 
 Database stuff
 ~~~~~~~~~~~~~~

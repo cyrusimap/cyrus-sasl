@@ -203,6 +203,11 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
     sasl_getopt_t *getopt;
     void *context;
 
+    if (!userid || !password) {
+	return SASL_BADPARAM;
+    }
+    if (reply) { *reply = NULL; }
+
     /* check to see if the user configured a srvtab */
     if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context) 
 	== SASL_OK) {
@@ -281,6 +286,11 @@ int _sasl_shadow_verify_password(sasl_conn_t *conn __attribute__((unused)),
   char *salt;
   char *crypted;
 
+  if (!userid || !password) {
+      return SASL_BADPARAM;
+  }
+  if (reply) { *reply = NULL; }
+
   /* Let's attempt the shadow password file, and see if that gets
    * us anywhere. */
   struct spwd *spwd = getspnam(userid);
@@ -302,11 +312,16 @@ int _sasl_shadow_verify_password(sasl_conn_t *conn __attribute__((unused)),
 int _sasl_passwd_verify_password(sasl_conn_t *conn __attribute__((unused)),
 				 const char *userid,
 				 const char *password,
-				 const char **reply __attribute__((unused)) )
+				 const char **reply)
 {
   struct passwd *pwd;
   char *salt;
   char *crypted;
+
+  if (!userid || !password) {
+      return SASL_BADPARAM;
+  }
+  if (reply) { *reply = NULL; }
 
   pwd=getpwnam(userid);
   if (pwd==NULL) return SASL_NOUSER;
@@ -381,7 +396,7 @@ static struct pam_conv my_conv = {
 int _sasl_PAM_verify_password(sasl_conn_t *conn __attribute__((unused)),
 			      const char *userid, const char *password,
 			      const char *service,
-			      const char **reply __attribute__((unused)) )
+			      const char **reply)
 {
     pam_handle_t *pamh;
     struct sasl_pam_data pd;
@@ -390,6 +405,7 @@ int _sasl_PAM_verify_password(sasl_conn_t *conn __attribute__((unused)),
     if (!userid || !password) {
 	return SASL_BADPARAM;
     }
+    if (reply) { *reply = NULL; }
 
     my_conv.appdata_ptr = &pd;
 
@@ -415,4 +431,41 @@ pam_err:
 
 #endif /* HAVE_PAM */
 
+int _sasl_sasldb_verify_password(sasl_conn_t *conn,
+				 const char *userid, const char *passwd,
+				 const char **reply)
+{
+    sasl_server_getsecret_t *getsec;
+    void *context;
+    int ret;
+    sasl_secret_t *secret;
+
+    if (!userid || !password) {
+	return SASL_BADPARAM;
+    }
+    if (reply) { *reply = NULL; }
+    ret = _sasl_getcallback(conn, SASL_CB_SERVER_GETSECRET, &getsec, &context);
+    if (ret != SASL_OK) {
+	return ret;
+    }
+
+    ret = getsec(context, "PLAIN", userid, &secret);
+    if (ret != SASL_OK) {
+	return ret;
+    }
+
+    if (strlen(passwd) != secret->len) {
+	sasl_free_secret(secret);
+	return SASL_BADAUTH;
+    }
+
+    if (!strcmp(passwd, secret->data)) {
+	ret = SASL_OK;
+    } else {
+	ret = SASL_BADAUTH;
+    }
+
+    sasl_free_secret(secret);
+    return ret;
+}
 

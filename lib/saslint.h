@@ -192,5 +192,9 @@ extern int _sasl_PAM_verify_password(sasl_conn_t *conn,
 				     const char *password, 
 				     const char *service,
 				     const char **reply);
+extern int _sasl_sasldb_verify_password(sasl_conn_t *conn,
+					const char *userid, 
+					const char *passwd,
+					const char **reply);
 
 #endif /* SASLINT_H */

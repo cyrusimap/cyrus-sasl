@@ -2,7 +2,7 @@
 	* plugins/kerberos4.c: Fix a race condition during mutex allocation
 
 2002-03-04  Rob Siemborski <rjs3+@andrew.cmu.edu>
-	* lib/checkpw.c: Stopp logging "authentication failed" message
+	* lib/checkpw.c: Stop logging "authentication failed" message
 	* plugins/gssapi.c: Reduce log level of "gss_accept_context" message
 
 2002-02-27  Rob Siemborski <rjs3+@andrew.cmu.edu>

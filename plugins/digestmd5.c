@@ -1077,7 +1077,7 @@ dec_rc4(context_t *text,
 	char **output,
 	unsigned *outputlen)
 {
-  *output = (char *) text->malloc(len);
+  *output = (char *) text->malloc(inputlen);
   if (*output == NULL) return SASL_NOMEM;
   *outputlen = inputlen;
   rc4_decrypt(&text->rc4_context, input, *output, inputlen);

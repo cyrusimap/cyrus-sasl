@@ -859,7 +859,6 @@ static int dec_3des(context_t *text,
 {
   int len;
   int lup;
-  int tmp;
 
   if (inputlen%8==0)
     len=inputlen;
@@ -874,7 +873,7 @@ static int dec_3des(context_t *text,
   for (lup=0;lup<len;lup+=8)
   {
     /* decrypt with 1st key */
-    tmp=des_ecb_encrypt((des_cblock *)(input+lup),
+    des_ecb_encrypt((des_cblock *)(input+lup),
 		    (des_cblock *) ((*output)+lup),
 		    text->keysched_dec,
 		    DES_DECRYPT);
@@ -979,7 +978,6 @@ static int dec_des(context_t *text,
 {
   int len;
   int lup;
-  int tmp;
 
   if (inputlen%8==0)
     len=inputlen;
@@ -994,7 +992,7 @@ static int dec_des(context_t *text,
   for (lup=0;lup<len;lup+=8)
   {
     /* decrypt with 1st key */
-    tmp=des_ecb_encrypt((des_cblock *)(input+lup),
+    des_ecb_encrypt((des_cblock *)(input+lup),
 		    (des_cblock *) ((*output)+lup),
 		    text->keysched_dec,
 		    DES_DECRYPT);

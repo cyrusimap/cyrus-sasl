@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.123 2002/05/03 16:45:22 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.124 2002/05/03 17:15:33 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -103,7 +103,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.123 2002/05/03 16:45:22 rjs3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.124 2002/05/03 17:15:33 ken3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -151,10 +151,22 @@ enum Context_type { SERVER = 0, CLIENT = 1 };
 typedef struct rc4_context_s rc4_context_t;
 #endif
 
+typedef struct global_context {
+    time_t timestamp;
+    char *username;
+    unsigned char *nonce;
+    unsigned int nonce_count;
+    unsigned char *cnonce;
+    char *realm;
+} global_context_t;
+
 /* context that stores info */
 typedef struct context {
     int state;			/* state in the authentication we are in */
     enum Context_type i_am;	/* are we the client or server? */
+    
+    global_context_t *global;
+    int stale;
     
     sasl_ssf_t limitssf, requiressf; /* application defined bounds, for the
 					server */
@@ -1639,6 +1651,25 @@ digestmd5_common_mech_dispose(void *conn_context, const sasl_utils_t * utils)
     utils->free(conn_context);
 }
 
+static void
+clear_global_context(global_context_t *glob_context, const sasl_utils_t *utils)
+{
+    if (glob_context->username) utils->free(glob_context->username);
+    if (glob_context->nonce) utils->free(glob_context->nonce);
+    if (glob_context->cnonce) utils->free(glob_context->cnonce);
+    if (glob_context->realm) utils->free(glob_context->realm);
+
+    memset(glob_context, 0, sizeof(global_context_t));
+}
+
+static void
+digestmd5_common_mech_free(void *glob_context, const sasl_utils_t *utils)
+{
+    global_context_t *glob_text = (global_context_t *) glob_context;
+    
+    clear_global_context(glob_text, utils);
+}
+
 /*****************************  Server Section  *****************************/
 
 static void
@@ -1768,8 +1799,7 @@ get_realm(sasl_server_params_t * params,
 /*
  * Convert hex string to int
  */
-static int
-htoi(unsigned char *hexin, int *res)
+static int htoi(unsigned char *hexin, unsigned int *res)
 {
     int             lup, inlen;
     inlen = strlen((char *) hexin);
@@ -1817,7 +1847,7 @@ htoi(unsigned char *hexin, int *res)
     return SASL_OK;
 }
 
-static int digestmd5_server_mech_new(void *glob_context __attribute__((unused)),
+static int digestmd5_server_mech_new(void *glob_context,
 				     sasl_server_params_t * sparams,
 				     const char *challenge __attribute__((unused)),
 				     unsigned challen __attribute__((unused)),
@@ -1833,6 +1863,7 @@ static int digestmd5_server_mech_new(void *glob_context __attribute__((unused)),
     
     text->state = 1;
     text->i_am = SERVER;
+    text->global = glob_context;
     
     *conn_context = text;
     return SASL_OK;
@@ -1856,21 +1887,8 @@ digestmd5_server_mech_step1(context_t *text,
     unsigned       resplen;
     int added_conf = 0;
     
-    /* We don't implement fast-reauth, so we just ignore whatever they sent */
-    
     /* get realm */
     result = get_realm(sparams, &realm);
-    
-    if (sparams->props.max_ssf < sparams->external_ssf) {
-	text->limitssf = 0;
-    } else {
-	text->limitssf = sparams->props.max_ssf - sparams->external_ssf;
-    }
-    if (sparams->props.min_ssf < sparams->external_ssf) {
-	text->requiressf = 0;
-    } else {
-	text->requiressf = sparams->props.min_ssf - sparams->external_ssf;
-    }
     
     /* what options should we offer the client? */
     qop[0] = '\0';
@@ -1925,7 +1943,7 @@ digestmd5_server_mech_step1(context_t *text,
     sprintf(text->out_buf, "nonce=\"%s\"", nonce);
     
     /* add to challenge; if we chose not to specify a realm, we won't
-     * end one to the client */
+     * send one to the client */
     if (realm && add_to_challenge(sparams->utils,
 				  &text->out_buf, &text->out_buf_len, &resplen,
 				  "realm", (unsigned char *) realm,
@@ -1966,7 +1984,14 @@ digestmd5_server_mech_step1(context_t *text,
 	    }
 	}
     
-    /* "stale" not used in initial authentication */
+    /* "stale" is true if a reauth failed because of a nonce timeout */
+    if (text->stale &&
+	add_to_challenge(sparams->utils,
+			 &text->out_buf, &text->out_buf_len, &resplen,
+			 "stale", "true", FALSE) != SASL_OK) {
+	SETERROR(sparams->utils, "internal error: add_to_challenge failed");
+	return SASL_FAIL;
+    }
     
     /*
      * maxbuf A number indicating the size of the largest buffer the server
@@ -2004,10 +2029,6 @@ digestmd5_server_mech_step1(context_t *text,
 	return SASL_FAIL;
     }
     
-    /* FIXME: this copy is wholy inefficient */
-    *serveroutlen = strlen(text->out_buf);
-    *serverout = text->out_buf;
-    
     /*
      * The size of a digest-challenge MUST be less than 2048 bytes!!!
      */
@@ -2016,18 +2037,19 @@ digestmd5_server_mech_step1(context_t *text,
 		 "internal error: challenge larger than 2048 bytes");
 	return SASL_FAIL;
     }
-    
-    text->noncelen = strlen((char *) nonce);
-    text->nonce = nonce;
-    
-    text->last_ncvalue = 0;	/* Next must be "nc=00000001" */
-    
-    _plug_strdup(sparams->utils, realm, (char **) &text->realm, NULL);
+
+    text->global->timestamp = time(0);
+    text->global->nonce = nonce;
+    text->global->nonce_count = 1;
+   _plug_strdup(sparams->utils, realm, &text->global->realm, NULL);
     
     /*
      * sparams->utils->free(realm); - Not malloc'ated!!! No free(...)!!!
      * sparams->utils->free(nonce); Nonce is saved!!! Do not free it!!!
      */
+    
+    *serveroutlen = strlen(text->out_buf);
+    *serverout = text->out_buf;
     
     text->state = 2;
     
@@ -2053,7 +2075,7 @@ digestmd5_server_mech_step2(context_t *text,
     char           *realm = NULL;
     unsigned char  *cnonce = NULL;
     unsigned char  *ncvalue = NULL;
-    int             noncecount;
+    unsigned int   noncecount;
     char           *qop = NULL;
     char           *digesturi = NULL;
     char           *response = NULL;
@@ -2104,15 +2126,37 @@ digestmd5_server_mech_step2(context_t *text,
 	 */
 	
 	if (strcasecmp(name, "username") == 0) {
+	    if (text->global->username &&
+		(strcmp(value, text->global->username) != 0)) {
+		SETERROR(sparams->utils,
+			 "username changed: authentication aborted");
+		result = SASL_FAIL;
+		goto FreeAllMem;
+	    }
+
 	    _plug_strdup(sparams->utils, value, &username, NULL);
 	} else if (strcasecmp(name, "authzid") == 0) {
 	    _plug_strdup(sparams->utils, value, &authorization_id, NULL);
 	} else if (strcasecmp(name, "cnonce") == 0) {
+	    if (text->global->cnonce &&
+		(strcmp(value, text->global->cnonce) != 0)) {
+		SETERROR(sparams->utils,
+			 "cnonce changed: authentication aborted");
+		result = SASL_FAIL;
+		goto FreeAllMem;
+	    }
+
 	    _plug_strdup(sparams->utils, value, (char **) &cnonce, NULL);
 	} else if (strcasecmp(name, "nc") == 0) {
 	    if (htoi((unsigned char *) value, &noncecount) != SASL_OK) {
 		SETERROR(sparams->utils,
 			 "error converting hex to int");
+		result = SASL_BADAUTH;
+		goto FreeAllMem;
+	    }
+	    else if (noncecount != text->global->nonce_count) {
+		SETERROR(sparams->utils,
+			 "incorrect nonce-count: authentication aborted");
 		result = SASL_BADAUTH;
 		goto FreeAllMem;
 	    }
@@ -2123,7 +2167,8 @@ digestmd5_server_mech_step2(context_t *text,
 			 "duplicate realm: authentication aborted");
 		result = SASL_FAIL;
 		goto FreeAllMem;
-	    } else if (text->realm && (strcmp(value, text->realm) != 0)) {
+	    } else if (text->global->realm &&
+		       (strcmp(value, text->global->realm) != 0)) {
 		SETERROR(sparams->utils,
 			 "realm changed: authentication aborted");
 		result = SASL_FAIL;
@@ -2132,7 +2177,7 @@ digestmd5_server_mech_step2(context_t *text,
 	    
 	    _plug_strdup(sparams->utils, value, &realm, NULL);
 	} else if (strcasecmp(name, "nonce") == 0) {
-	    if (strcmp(value, (char *) text->nonce) != 0) {
+	    if (strcmp(value, (char *) text->global->nonce) != 0) {
 		/*
 		 * Nonce changed: Abort authentication!!!
 		 */
@@ -2339,8 +2384,8 @@ digestmd5_server_mech_step2(context_t *text,
 	{
 	    HASH HA1;
 	    
-	    DigestCalcSecret(sparams->utils,
-			     username, text->realm, sec->data, sec->len, HA1);
+	    DigestCalcSecret(sparams->utils, username,
+			     text->global->realm, sec->data, sec->len, HA1);
 	    
 	    /*
 	     * A1 = { H( { username-value, ":", realm-value, ":", passwd } ),
@@ -2364,7 +2409,7 @@ digestmd5_server_mech_step2(context_t *text,
     
     serverresponse = create_response(text,
 				     sparams->utils,
-				     text->nonce,
+				     text->global->nonce,
 				     ncvalue,
 				     cnonce,
 				     qop,
@@ -2385,7 +2430,15 @@ digestmd5_server_mech_step2(context_t *text,
 		 "client response doesn't match what we generated");
 	result = SASL_BADAUTH;
 	
-	/* FIXME stuff for reauth */
+	goto FreeAllMem;
+    }
+
+    /* see if our nonce expired */
+    if (time(0) - text->global->timestamp > 86400 /* 24 hours */) {
+	SETERROR(sparams->utils, "server nonce expired");
+	text->stale = 1;
+	result = SASL_BADAUTH;
+
 	goto FreeAllMem;
     }
     
@@ -2457,14 +2510,30 @@ digestmd5_server_mech_step2(context_t *text,
 	
 	sprintf(text->out_buf, "rspauth=%s", text->response_value);
 	
-	*serveroutlen = strlen(text->out_buf);
-	*serverout = text->out_buf;
-	
 	/* self check */
-	if (*serveroutlen > 2048) {
+	if (strlen(text->out_buf) > 2048) {
 	    result = SASL_FAIL;
 	    goto FreeAllMem;
 	}
+
+	/* increment the nonce count */
+	text->global->nonce_count++;
+
+	/* setup for a potential reauth */
+	text->global->timestamp = time(0);
+
+	if (!text->global->username) {
+	    text->global->username = username;
+	    username = NULL;
+	}
+	if (!text->global->cnonce) {
+	    text->global->cnonce = cnonce;
+	    cnonce = NULL;
+	}
+	
+	*serveroutlen = strlen(text->out_buf);
+	*serverout = text->out_buf;
+	
 	result = SASL_OK;
     }
     
@@ -2521,6 +2590,36 @@ digestmd5_server_mech_step(void *conn_context,
     switch (text->state) {
 	
     case 1:
+	/* setup SSF limits */
+	if (sparams->props.max_ssf < sparams->external_ssf) {
+	    text->limitssf = 0;
+	} else {
+	    text->limitssf = sparams->props.max_ssf - sparams->external_ssf;
+	}
+	if (sparams->props.min_ssf < sparams->external_ssf) {
+	    text->requiressf = 0;
+	} else {
+	    text->requiressf = sparams->props.min_ssf - sparams->external_ssf;
+	}
+
+	/* should we attempt reauth? */
+	if (clientinlen && text->global->nonce && text->global->cnonce) {
+	    if (digestmd5_server_mech_step2(text, sparams,
+					    clientin, clientinlen,
+					    serverout, serveroutlen,
+					    oparams) == SASL_OK)
+		return SASL_OK;
+	    else
+		sparams->utils->log(NULL, SASL_LOG_WARN,
+				    "DIGEST-MD5 reauth failed\n");
+	}
+	
+	/* re-initialize everything for a fresh start */
+	*serverout = NULL;
+	*serveroutlen = 0;
+	memset(oparams, 0, sizeof(sasl_out_params_t));
+	clear_global_context(text->global, sparams->utils);
+
 	return digestmd5_server_mech_step1(text, sparams,
 					   clientin, clientinlen,
 					   serverout, serveroutlen, oparams);
@@ -2558,7 +2657,7 @@ static sasl_server_plug_t digestmd5_server_plugins[] =
 	&digestmd5_server_mech_new,	/* mech_new */
 	&digestmd5_server_mech_step,	/* mech_step */
 	&digestmd5_common_mech_dispose,	/* mech_dispose */
-	NULL,				/* mech_free */
+	&digestmd5_common_mech_free,	/* mech_free */
 	NULL,				/* setpass */
 	NULL,				/* user_query */
 	NULL,				/* idle */
@@ -2567,19 +2666,28 @@ static sasl_server_plug_t digestmd5_server_plugins[] =
     }
 };
 
-int digestmd5_server_plug_init(sasl_utils_t * utils __attribute__((unused)),
-			       int maxversion __attribute__((unused)),
+int digestmd5_server_plug_init(sasl_utils_t *utils,
+			       int maxversion,
 			       int *out_version,
-			       sasl_server_plug_t ** pluglist,
+			       sasl_server_plug_t **pluglist,
 			       int *plugcount) 
 {
+    global_context_t *glob_text;
+
     if (maxversion < SASL_SERVER_PLUG_VERSION)
 	return SASL_BADVERS;
-    
-    *pluglist = digestmd5_server_plugins;
-    
-    *plugcount = 1;
+
+    /* holds global state are in */
+    glob_text = utils->malloc(sizeof(global_context_t));
+    if (glob_text == NULL)
+	return SASL_NOMEM;
+    memset(glob_text, 0, sizeof(global_context_t));
+
+    digestmd5_server_plugins[0].glob_context = glob_text;
+
     *out_version = SASL_SERVER_PLUG_VERSION;
+    *pluglist = digestmd5_server_plugins;
+    *plugcount = 1;
     
     return SASL_OK;
 }
@@ -3537,5 +3645,3 @@ int digestmd5_client_plug_init(sasl_utils_t * utils __attribute__((unused)),
     
     return SASL_OK;
 }
-
-

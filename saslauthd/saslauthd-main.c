@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
 	int 		rc;
 	int 		x;
 	struct flock	lockinfo;
-	char            *auth_mech_name;
+	char            *auth_mech_name = NULL;
 
 	SET_AUTH_PARAMETERS(argc, argv);
 

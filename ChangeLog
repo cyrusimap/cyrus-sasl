@@ -1,5 +1,8 @@
 2000-03-11  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
+	* plugins/cram.c: same username hack as for PLAIN (default to
+	serverFQDN)
+
 	* utils/sasldblistusers.c: eliminate malloc/free.  mechnames are
 	always short.
 

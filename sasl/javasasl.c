@@ -1054,16 +1054,21 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_CommonConn_jni_1sasl_1decode
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
   signed char *in = (*env)->GetByteArrayElements(env, jarr, 0);
   char *out;
-  unsigned int outlen;
+  unsigned int outlen=9;
   int inlen=jlen;
   int result;
   jbyteArray arr;
+
+  /*  printf("inlen=%i!!!\n",inlen);
+      printf("in=%s!!!\n",in);*/
 
   result=sasl_decode(conn, (const char *) in, inlen, &out, &outlen);
   if (result!=SASL_OK)
     throwexception(env,result);
 
-
+  /*  printf("outlen=%i!!!\n",outlen);
+  for (lup=0;lup<outlen;lup++)
+  printf("out=%c %i\n",out[lup],out[lup]);*/
   arr=(*env)->NewByteArray(env,outlen);
   (*env)->SetByteArrayRegion(env,arr, 0, outlen, (signed char *) out);
 

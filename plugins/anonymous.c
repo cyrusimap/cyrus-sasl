@@ -82,6 +82,9 @@ server_continue_step (void *conn_context __attribute__((unused)),
       || !oparams)
     return SASL_BADPARAM;
 
+  if (clientinlen < 0)
+      return SASL_BADPARAM;
+
   if (errstr)
       *errstr = NULL;
 

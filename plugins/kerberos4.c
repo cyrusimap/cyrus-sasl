@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.48 2000/01/27 20:03:19 leg Exp $
+ * $Id: kerberos4.c,v 1.49 2000/02/23 01:16:14 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -40,6 +40,8 @@ SOFTWARE.
 #include <sasl.h>
 #include <saslutil.h>
 #include <saslplug.h>
+
+#define VL(x) printf x
 
 #ifdef WIN32
 /* This must be after sasl.h, saslutil.h */
@@ -908,6 +910,11 @@ static int client_continue_step (void *conn_context,
 	VL(("No service set\n"));
 	return SASL_BADPARAM;
     }
+    if (params->service==NULL)
+    {
+      VL(("No service set\n"));
+      return SASL_BADAUTH;
+    }
 
     text->realm=krb_realmofhost(params->serverFQDN);
     text->hostname=(char *) params->serverFQDN;
@@ -1161,11 +1168,19 @@ static int client_continue_step (void *conn_context,
     /* nothing more to do; should be authenticated */
     result = params->utils->getprop(params->utils->conn,
                           SASL_IP_LOCAL, (void **)&(text->ip_local));
-    if (result != SASL_OK) return result;
+    if (result != SASL_OK)
+    {
+	VL(("Unable to get SASL_IP_LOCAL (local IP address)\n"));
+	return result;
+    }
 
     result = params->utils->getprop(params->utils->conn,
                           SASL_IP_REMOTE, (void **)&(text->ip_remote));
-    if (result != SASL_OK) return result;
+    if (result != SASL_OK)
+    {
+	VL(("Unable to get SASL_IP_REMOTE (IP address of server we're contacting)\n"));
+	return result;
+    }
 
     oparams->authid =
       params->utils->malloc(strlen(text->credentials.pname)

@@ -66,11 +66,6 @@ extern gss_OID gss_nt_service_name;
  *
  * Important contributions from Sam Hartman <hartmans@fundsxpress.com>.
  */
-#if 0
-#define DEBUG(x) fprintf x
-#else
-#define DEBUG(x) {}
-#endif
 
 #define GSSAPI_VERSION (3)
 
@@ -431,7 +426,9 @@ sasl_gss_server_step (void *conn_context,
   output_token = &real_output_token;
   output_token->value = NULL; output_token->length = 0;
   input_token->value = NULL; input_token->length = 0;
-  
+
+  if (clientinlen < 0) return SASL_BADPARAM;
+
   switch (text->state)
     {
     case SASL_GSSAPI_STATE_AUTHNEG:
@@ -495,7 +492,7 @@ sasl_gss_server_step (void *conn_context,
 	  real_input_token.length = clientinlen;
 	}
       
-      DEBUG((stderr,"sasl_gss_server_step: AUTHNEG\n"));
+      VL(("sasl_gss_server_step: AUTHNEG\n"));
 
       maj_stat =
 	gss_accept_sec_context (&min_stat,
@@ -526,7 +523,7 @@ sasl_gss_server_step (void *conn_context,
       
       if (maj_stat == GSS_S_COMPLETE)
 	{
-	  DEBUG ((stderr,"GSS_S_COMPLETE\n"));
+	  VL (("GSS_S_COMPLETE\n"));
 	  text->state = SASL_GSSAPI_STATE_SSFCAP; /* Switch to ssf negotiation */
 	}
       
@@ -536,8 +533,11 @@ sasl_gss_server_step (void *conn_context,
       {
 	unsigned char sasldata[4];
 	gss_buffer_desc name_token;
+	gss_buffer_desc name_without_realm;
+	gss_name_t without;
+	int equal;
 	
-	DEBUG((stderr,"sasl_gss_server_step: SSFCAP\n"));
+	VL(("sasl_gss_server_step: SSFCAP\n"));
 
 	name_token.value = NULL;
 	
@@ -557,7 +557,61 @@ sasl_gss_server_step (void *conn_context,
 	    return SASL_BADAUTH;
 	}
 
-	oparams->authid = (char *)name_token.value;
+	/* If the id contains a realm get the identifier for the user
+	   without the realm and see if it's the same id (i.e. 
+	   tmartin == tmartin@ANDREW.CMU.EDU. If this is the case we just want
+	   to return the id (i.e. just "tmartin: */
+	if (strchr((char *)name_token.value, (int) '@')!=NULL)
+	{
+	    name_without_realm.value = (char *) params->utils->malloc(strlen(name_token.value)+1);
+	    if (name_without_realm.value == NULL) return SASL_NOMEM;
+
+	    strcpy(name_without_realm.value, name_token.value);
+
+	    /* cut off string at '@' */
+	    (strchr(name_without_realm.value,'@'))[0] = '\0';
+
+	    name_without_realm.length = strlen( (char *) name_without_realm.value );
+
+	    maj_stat = gss_import_name (&min_stat,
+					&name_without_realm,
+					GSS_C_NULL_OID,
+					&without);
+	    if (GSS_ERROR(maj_stat)) {
+		sasl_gss_set_error(text, errstr, "gss_display_name",
+				   maj_stat, min_stat);
+		if (name_token.value)
+		    params->utils->free(name_token.value);
+		sasl_gss_free_context_contents(text);
+		return SASL_BADAUTH;
+	    }
+
+	    maj_stat = gss_compare_name(&min_stat,
+					text->client_name,
+					without,
+					&equal);
+	    if (GSS_ERROR(maj_stat)) {
+		sasl_gss_set_error(text, errstr, "gss_display_name",
+				   maj_stat, min_stat);
+		if (name_token.value)
+		    params->utils->free(name_token.value);
+		sasl_gss_free_context_contents(text);
+		return SASL_BADAUTH;
+	    }
+
+	    printf("equal = %d\n",equal);
+	} else {
+	    equal = 0;
+	}
+
+	if (equal == 1) /* xxx True doesn't seem to exist in gssapi.h */
+	{
+	    oparams->authid = (char *)name_without_realm.value;
+	} else {
+	    oparams->authid = (char *)name_token.value;	    
+	}
+	
+	printf("authid = %s\n",oparams->authid);
 
 	/* we have to decide what sort of encryption/integrity/etc.,
 	   we support */
@@ -612,7 +666,7 @@ sasl_gss_server_step (void *conn_context,
 	if (serveroutlen)
 	  *serveroutlen = output_token->length;
 	
-	DEBUG((stderr,"Sending %d bytes (ssfcap) to client\n",*serveroutlen));
+	VL(("Sending %d bytes (ssfcap) to client\n",*serveroutlen));
         /* Wait for ssf request and authid */
 	text->state = SASL_GSSAPI_STATE_SSFREQ; 
 	
@@ -666,7 +720,7 @@ sasl_gss_server_step (void *conn_context,
 	    sasl_gss_free_context_contents(text);
 	    return SASL_FAIL;
 	}
-	DEBUG ((stderr,"Got %d bytes from client\n",output_token->length));
+	VL (("Got %d bytes from client\n",output_token->length));
 	if (output_token->length > 4) {
 	    char *user = (char *)params->utils->malloc(
 		(output_token->length - 3) * sizeof(char));
@@ -680,14 +734,14 @@ sasl_gss_server_step (void *conn_context,
 		   output_token->length - 4);
 	    user[output_token->length - 4] = '\0';
 	    
-	    DEBUG((stderr,"Got user %s\n",user));
+	    VL(("Got user %s\n",user));
 
 	    memcpy(&oparams->maxoutbuf,((char *) real_output_token.value) + 1,
 		   sizeof(unsigned));
 	    oparams->maxoutbuf = ntohl(oparams->maxoutbuf);
 	    oparams->user = user;
 	}
-	
+
 	params->utils->free(output_token->value);
 	
 	text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
@@ -998,12 +1052,12 @@ sasl_gss_client_step (void *conn_context,
 	if (oparams->user==NULL)
 	  {
 	    int auth_result = SASL_OK;
-	    DEBUG ((stderr,"Trying to get userid\n"));
+	    VL (("Trying to get userid\n"));
 	    auth_result=get_userid(params,
 				   &oparams->user,
 				   prompt_need);
 	    
-	    DEBUG ((stderr,"Userid: %s\n",oparams->user));
+	    VL (("Userid: %s\n",oparams->user));
 
 	    if ((auth_result!=SASL_OK) && (auth_result!=SASL_INTERACT))
 	      {
@@ -1039,7 +1093,7 @@ sasl_gss_client_step (void *conn_context,
 	    if (params->serverFQDN == NULL || strlen(params->serverFQDN) == 0)
 	      return SASL_FAIL;
 	    sprintf(name_token.value,"%s@%s", params->service, params->serverFQDN);
-	    DEBUG((stderr,"name: %s\n",(char *)name_token.value)); /* */
+	    VL(("name: %s\n",(char *)name_token.value)); /* */
 	    maj_stat = gss_import_name (&min_stat,
 					&name_token,
 					GSS_C_NT_HOSTBASED_SERVICE,
@@ -1099,7 +1153,7 @@ sasl_gss_client_step (void *conn_context,
 
 	if (maj_stat == GSS_S_COMPLETE)
 	  {
-	    DEBUG((stderr,"GSS_S_COMPLETE\n"));
+	    VL(("GSS_S_COMPLETE\n"));
 	    text->state = SASL_GSSAPI_STATE_SSFCAP; /* Switch to ssf negotiation */
 	  }
 	
@@ -1119,7 +1173,7 @@ sasl_gss_client_step (void *conn_context,
 	    real_input_token.length = serverinlen;
 	  }
 	else
-	  DEBUG((stderr,"no data from server\n"));
+	  VL(("no data from server\n"));
 	    
 	maj_stat = gss_unwrap (&min_stat,
 			       text->gss_ctx,
@@ -1155,21 +1209,21 @@ sasl_gss_client_step (void *conn_context,
 	    oparams->decode = &sasl_gss_decode;
 	    oparams->mech_ssf = 56;
 	    mychoice = 4;
-	    DEBUG ((stderr,"Using encryption layer\n"));
+	    VL (("Using encryption layer\n"));
 	} else if (allowed >= 1 && need <= 1 && (serverhas & 2)) {
 	    /* integrity */
 	    oparams->encode = &sasl_gss_integrity_encode;
 	    oparams->decode = &sasl_gss_decode;
 	    oparams->mech_ssf = 1;
 	    mychoice = 2;
-	    DEBUG ((stderr,"Using integrity layer\n"));
+	    VL (("Using integrity layer\n"));
 	} else if (need <= 0 && (serverhas & 1)) {
 	    /* no layer */
 	    oparams->encode = NULL;
 	    oparams->decode = NULL;
 	    oparams->mech_ssf = 0;
 	    mychoice = 1;
-	    DEBUG ((stderr,"Using no layer\n"));
+	    VL (("Using no layer\n"));
 	} else {
 	    /* there's no appropriate layering for us! */
 	    sasl_gss_free_context_contents(text);
@@ -1187,7 +1241,7 @@ sasl_gss_client_step (void *conn_context,
 	    sasl_gss_free_context_contents(text);
 	    return SASL_NOMEM;
 	  }
-	DEBUG((stderr,"user: %s,buflen=%d\n",oparams->user,input_token->length));
+	VL(("user: %s,buflen=%d\n",oparams->user,input_token->length));
 	memcpy((char *)input_token->value+4,oparams->user,alen);
 	
 	

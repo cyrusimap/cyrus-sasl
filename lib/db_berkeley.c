@@ -1,6 +1,6 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Tim Martin
- * $Id: db_berkeley.c,v 1.8 1999/11/28 07:13:23 leg Exp $
+ * $Id: db_berkeley.c,v 1.9 2000/02/23 01:16:13 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -58,7 +58,9 @@ static int berkeleydb_open(sasl_conn_t *conn, DB **mbdb)
 	}
     }
 
-#if DB_VERSION_MAJOR > 2
+#if DB_VERSION_MAJOR < 3
+    ret = db_open(path, DB_HASH, DB_CREATE, 0664, NULL, NULL, mbdb);
+#else /* DB_VERSION_MAJOR < 3 */
     ret = db_create(mbdb, NULL, 0);
     if (ret == 0 && *mbdb != NULL)
     {
@@ -69,9 +71,7 @@ static int berkeleydb_open(sasl_conn_t *conn, DB **mbdb)
 		    *mbdb = NULL;
 	    }
     }
-#else /* DB_VERSION_MAJOR > 2 */
-    ret = db_open(path, DB_HASH, DB_CREATE, 0664, NULL, NULL, mbdb);
-#endif /* DB_VERSION_MAJOR > 2 */
+#endif /* DB_VERSION_MAJOR < 3 */
 
     if (ret != 0) {
 	_sasl_log (NULL, SASL_LOG_ERR, NULL,

@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.64 1999/12/31 04:39:50 leg Exp $
+ * $Id: server.c,v 1.65 2000/02/23 01:16:13 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -566,6 +566,24 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
   return result;
 }
 
+/*
+ * Verify that all the callbacks are valid
+ */
+
+static int verify_server_callbacks(const sasl_callback_t *callbacks)
+{
+    if (callbacks == NULL) return SASL_OK;
+
+    while (callbacks->id != SASL_CB_LIST_END)
+    {
+	if (callbacks->proc==NULL) return SASL_FAIL;
+
+	callbacks++;
+    }
+
+    return SASL_OK;
+}
+
 /* initialize server drivers, done once per process
  *  callbacks      -- base callbacks for all server connections
  *  appname        -- name of calling application (for lower level logging)
@@ -584,11 +602,15 @@ int sasl_server_init(const sasl_callback_t *callbacks,
   int ret;
   const sasl_callback_t *vf;
 
-  _sasl_server_cleanup_hook = &server_done;
-  _sasl_server_idle_hook = &server_idle;
+  /* we require the appname to be non-null */
+  if (appname==NULL) return SASL_BADPARAM;
 
   _sasl_server_getsecret_hook = _sasl_db_getsecret;
   _sasl_server_putsecret_hook = _sasl_db_putsecret;
+
+  /* verify that the callbacks look ok */
+  ret = verify_server_callbacks(callbacks);
+  if (ret!=SASL_OK) return ret;
 
   global_callbacks.callbacks = callbacks;
   global_callbacks.appname = appname;
@@ -618,6 +640,14 @@ int sasl_server_init(const sasl_callback_t *callbacks,
 			  _sasl_find_getpath_callback(callbacks),
 			  _sasl_find_verifyfile_callback(callbacks),
 			  &add_plugin);
+
+  
+  if (ret == SASL_OK)
+  {
+      /* cleanup_hook shows if we're active or not. sasl_done() sets it back to null */
+      _sasl_server_cleanup_hook = &server_done;
+      _sasl_server_idle_hook = &server_idle;
+  }
 
   return ret;
 }
@@ -1002,6 +1032,9 @@ int sasl_listmech(sasl_conn_t *conn,
   int resultlen;
   int flag;
   const char *mysep;
+
+  /* if there hasn't been a sasl_sever_init() fail */
+  if (_sasl_server_cleanup_hook==NULL) return SASL_FAIL;
 
   if (! conn || ! result)
     return SASL_FAIL;

@@ -1,3 +1,17 @@
+2000-02-22  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* plugins/gssapi.c (sasl_gss_server_step): don't return realm for authid
+	(sasl_gss_client_step): switched all DEBUG's to VL's
+
+	* lib/common.c (_sasl_proxy_policy): make sure errstr non-null
+
+	* plugins/cram.c (server_continue_step): don't allow any length except zero first time
+
+	* plugins/anonymous.c (server_continue_step): don't allow negative length
+2000-01-24  Timothy L Martin  <tmartin+@andrew.cmu.edu>
+
+	* lib/client.c (sasl_client_start): check params
+
 2000-01-21  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
 	* sample/sample-client.c (main): always send data from client->server even if length zero

@@ -1,6 +1,6 @@
 /* Plain SASL plugin
  * Tim Martin 
- * $Id: plain.c,v 1.36 1999/10/25 18:45:32 leg Exp $
+ * $Id: plain.c,v 1.37 2000/02/23 01:16:14 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -141,7 +141,7 @@ static
 int verify_password(sasl_server_params_t *params, 
 		    const char *user, const char *pass)
 {
-    const char *mech;
+    const char *mech = NULL;
     int result;
     
     params->utils->getopt(params->utils->getopt_context, "PLAIN",
@@ -158,6 +158,8 @@ int verify_password(sasl_server_params_t *params,
 #endif /* HAVE_KRB */
 #endif /* HAVE_PAM */
     }
+
+    VL(("Checking password with %s mechanism\n",mech));
 
     result = params->utils->checkpass(params->utils->conn,
 				      mech, params->service, user, pass);
@@ -228,7 +230,10 @@ server_continue_step (void *conn_context,
       ++lup;
 
     if (lup >= clientinlen)
-      return SASL_BADPROT;
+    {
+	VL(("Can only find author (no password)\n"));
+	return SASL_BADPROT;
+    }
 
     /* get authen */
     ++lup;
@@ -237,7 +242,10 @@ server_continue_step (void *conn_context,
       ++lup;
 
     if (lup >= clientinlen)
-      return SASL_BADPROT;
+    {
+	VL(("Can only find author/en (no password) \n"));
+	return SASL_BADPROT;
+    }
 
     /* get password */
     lup++;
@@ -268,7 +276,12 @@ server_continue_step (void *conn_context,
     params->utils->free(passcopy);
 
     if (result != SASL_OK)
-      return result;
+    {
+	VL(("Password verification failed\n"));
+	return result;
+    }
+
+    VL(("Password verified A-ok\n"));
 
     if (! author || !*author)
       author = authen;

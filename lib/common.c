@@ -169,6 +169,10 @@ void sasl_done(void)
 
   if (_sasl_client_cleanup_hook)
     _sasl_client_cleanup_hook();
+
+  /* in case of another init/done */
+  _sasl_server_cleanup_hook = NULL;
+  _sasl_client_cleanup_hook = NULL;
 }
 
 /* fills in the base sasl_conn_t info */
@@ -629,7 +633,9 @@ _sasl_proxy_policy(void *context __attribute__((unused)),
     *user = NULL;
     if (!auth_identity || !requested_user || 
 	(strcmp(auth_identity, requested_user) != 0)) {
-	*errstr = "Requested identity not authenticated identity";
+	printf("%s vs %s\n",auth_identity, requested_user);
+	if (errstr)
+	    *errstr = "Requested identity not authenticated identity";
 	return SASL_BADAUTH;
     }
 

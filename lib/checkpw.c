@@ -554,21 +554,26 @@ int _sasl_sasldb_verify_password(sasl_conn_t *conn,
     sasl_secret_t *construct = NULL;
     char *userid, *realm;
 
+    VL(("Verifying password via sasldb\n"));
+
     if (!userstr || !passwd) {
 	return SASL_BADPARAM;
     }
     if (reply) { *reply = NULL; }
     ret = parseuser(&userid, &realm, user_realm, conn->serverFQDN, userstr);
     if (ret != SASL_OK) {
+	VL(("Error parsing user\n"));
 	return ret;
     }
     ret = _sasl_getcallback(conn, SASL_CB_SERVER_GETSECRET, &getsec, &context);
     if (ret != SASL_OK) {
+	VL(("Error getting getsecret callback\n"));
 	return ret;
     }
 
     ret = getsec(context, "PLAIN", userid, realm, &secret);
     if (ret != SASL_OK) {
+	VL(("Error getting PLAIN secret for user %s in realm %s from db\n",userid, realm));
 	return ret;
     }
 
@@ -581,8 +586,10 @@ int _sasl_sasldb_verify_password(sasl_conn_t *conn,
     }
 
     if (!memcmp(secret->data, construct->data, secret->len)) {
+	VL(("Password verified!\n"));
 	ret = SASL_OK;
     } else {
+	VL(("Passwords do not match"));
 	ret = SASL_BADAUTH;
     }
 

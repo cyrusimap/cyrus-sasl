@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.45 1999/12/23 22:48:19 leg Exp $
+ * $Id: cram.c,v 1.46 2000/02/23 01:16:13 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -355,6 +355,14 @@ static int server_continue_step (void *conn_context,
      * primary host
      */
     VL(("CRAM-MD5 step 1\n"));
+
+    /* we shouldn't have received anything */
+    if (clientinlen!=0)
+    {
+	if (errstr)
+	    *errstr = "CRAM-MD5 does not accpet inital data";
+	return SASL_FAIL;
+    }
 
     /* get time and a random number for the nonce */
     time=gettime(sparams);

@@ -511,6 +511,13 @@ int sasl_client_start(sasl_conn_t *conn,
     size_t list_len;
     sasl_ssf_t bestssf = 0, minssf = 0;
 
+    /* verify parameters */
+    if (list == NULL)
+    {
+	return SASL_BADPARAM;
+    }
+
+
     VL(("in sasl_client_start\n"));
 
     /* if prompt_need != NULL we've already been here

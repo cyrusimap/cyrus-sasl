@@ -72,6 +72,7 @@ int main(void)
 	return xxx_main(argc,argv);
 }
 #define main xxx_main
+#endif
 
 #ifdef HAVE_GETOPT_H
 #include <getopt.h>

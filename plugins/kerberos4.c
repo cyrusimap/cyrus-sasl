@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.97 2004/02/06 17:23:51 rjs3 Exp $
+ * $Id: kerberos4.c,v 1.98 2004/09/02 15:24:01 shadow Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -115,7 +115,7 @@ extern int gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: kerberos4.c,v 1.97 2004/02/06 17:23:51 rjs3 Exp $";
+static const char plugin_id[] = "$Id: kerberos4.c,v 1.98 2004/09/02 15:24:01 shadow Exp $";
 
 #ifndef KEYFILE
 #define KEYFILE "/etc/srvtab";
@@ -237,6 +237,10 @@ static int kerberosv4_encode(void *context,
     KRB_LOCK_MUTEX(text->utils);
     
     if (text->sec_type == KRB_SEC_ENCRYPTION) {
+	/* Type incompatibility on 4th arg probably means you're
+	   building against krb4 in MIT krb5, but got the OpenSSL
+	   headers in your way. You need to not use openssl/des.h with
+	   MIT kerberos. */
 	len=krb_mk_priv(inblob->data, (text->encode_buf+4),
 			inblob->curlen,  text->init_keysched, 
 			&text->session, &text->ip_local,

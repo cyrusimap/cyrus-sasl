@@ -67,7 +67,7 @@ testsuite_LDADD = $(all_sasl_libs) @DMALLOC_LIBS@
 CLEANFILES=$(EXTRA_PROGRAMS)
 
 testsuitestatic_SOURCES = testsuite.c
-testsuitestatic_LDADD = $(all_sasl_static_libs) @DMALLOC_LIBS@
+testsuitestatic_LDADD = $(all_sasl_static_libs) @DMALLOC_LIBS@ @SASL_DL_LIB@
 testsuitestatic_DEPENDENCIES = ../lib/.libs/libsasl2.a
 
 smtptest_SOURCES =

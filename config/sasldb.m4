@@ -103,15 +103,15 @@ SASL_DB_MANS="saslpasswd2.8 sasldblistusers2.8"
 case "$dblib" in
   gdbm) 
     SASL_MECHS="$SASL_MECHS libsasldb.la"
-    AC_DEFINE(SASL_GDBM)
+    AC_DEFINE(SASL_GDBM,[],[Use GDBM for SASLdb])
     ;;
   ndbm)
     SASL_MECHS="$SASL_MECHS libsasldb.la"
-    AC_DEFINE(SASL_NDBM)
+    AC_DEFINE(SASL_NDBM,[],[Use NDBM for SASLdb])
     ;;
   berkeley)
     SASL_MECHS="$SASL_MECHS libsasldb.la"
-    AC_DEFINE(SASL_BERKELEYDB)
+    AC_DEFINE(SASL_BERKELEYDB,[],[Use BerkeleyDB for SASLdb])
     ;;
   *)
     AC_MSG_WARN([Disabling SASL authentication database support])
@@ -128,7 +128,7 @@ esac
 if test "$enable_static" = yes; then
     if test "$dblib" != "none"; then
       SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/sasldb.o $SASL_DB_BACKEND_STATIC"
-      AC_DEFINE(STATIC_SASLDB)
+      AC_DEFINE(STATIC_SASLDB,[],[Link SASLdb Staticly])
     else
       SASL_STATIC_OBJS="$SASL_STATIC_OBJS $SASL_DB_BACKEND_STATIC"
     fi
@@ -148,4 +148,4 @@ AC_ARG_WITH(dbpath, [  --with-dbpath=PATH      set the DB path to use [/etc/sasl
   dbpath=/etc/sasldb2)
 AC_MSG_CHECKING(DB path to use)
 AC_MSG_RESULT($dbpath)
-AC_DEFINE_UNQUOTED(SASL_DB_PATH, "$dbpath")])
+AC_DEFINE_UNQUOTED(SASL_DB_PATH, "$dbpath", [Path to default SASLdb database])])

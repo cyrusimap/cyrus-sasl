@@ -1,6 +1,6 @@
 # Makefile.am for the SASL library
 # Rob Earhart
-# $Id: Makefile.am,v 1.73 2003/09/24 19:36:07 rjs3 Exp $
+# $Id: Makefile.am,v 1.74 2003/10/08 20:24:10 rjs3 Exp $
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -51,10 +51,10 @@ noinst_LIBRARIES = @SASL_STATIC_LIBS@
 libsasl2_a_SOURCES=
 
 common_headers = saslint.h
-common_sources = auxprop.c canonusr.c checkpw.c client.c common.c config.c external.c md5.c saslutil.c server.c seterror.c dlopen.c
+common_sources = auxprop.c canonusr.c checkpw.c client.c common.c config.c external.c md5.c saslutil.c server.c seterror.c dlopen.c ../plugins/plugin_common.c
 
-LTLIBOBJS = @LTLIBOBJS@ plugin_common.lo
-LIBOBJS = @LIBOBJS@ plugin_common.o
+LTLIBOBJS = @LTLIBOBJS@
+LIBOBJS = @LIBOBJS@
 
 lib_LTLIBRARIES = libsasl2.la
 
@@ -62,14 +62,6 @@ libsasl2_la_SOURCES = $(common_sources) $(common_headers)
 libsasl2_la_LDFLAGS = -version-info $(sasl_version)
 libsasl2_la_DEPENDENCIES = $(LTLIBOBJS)
 libsasl2_la_LIBADD = $(LTLIBOBJS) $(SASL_DL_LIB) $(LIB_SOCKET)
-
-plugin_common.lo: plugin_common.o
-	rm -f plugin_common.lo
-	ln -s $(top_builddir)/plugins/plugin_common.lo plugin_common.lo
-
-plugin_common.o:
-	rm -f plugin_common.o
-	ln -s $(top_builddir)/plugins/plugin_common.o plugin_common.o
 
 if MACOSX
 framedir = /Library/Frameworks/SASL2.framework
@@ -97,4 +89,5 @@ libsasl2.a: libsasl2.la $(SASL_STATIC_OBJS)
 	esac; done; dependency_libs=""; done; \
 	sed -e "/^dependency_libs=/s%=.*%='$${depdirs}$${deplibs}'%" \
 	libsasl2.la >TMP.$$ && mv TMP.$$ libsasl2.la
-	@touch $@
+	rm -f $@
+	ln -s .libs/$@ $@

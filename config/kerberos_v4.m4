@@ -14,7 +14,7 @@ if test "$with_des" != no; then
 
   dnl check for openssl installing -lcrypto, then make vanilla check
   AC_CHECK_LIB(crypto, des_cbc_encrypt, [
-      AC_CHECK_HEADER(openssl/des.h, [AC_DEFINE(WITH_SSL_DES)
+      AC_CHECK_HEADER(openssl/des.h, [AC_DEFINE(WITH_SSL_DES,[],[Use OpenSSL DES Implementation])
                                      LIB_DES="-lcrypto";
                                      with_des=yes],
                      with_des=no)],
@@ -23,7 +23,7 @@ if test "$with_des" != no; then
   dnl same test again, different symbol name
   if test "$with_des" = no; then
     AC_CHECK_LIB(crypto, DES_cbc_encrypt, [
-      AC_CHECK_HEADER(openssl/des.h, [AC_DEFINE(WITH_SSL_DES)
+      AC_CHECK_HEADER(openssl/des.h, [AC_DEFINE(WITH_SSL_DES,[],[Use OpenSSL DES Implementation])
                                      LIB_DES="-lcrypto";
                                      with_des=yes],
                      with_des=no)],
@@ -56,7 +56,7 @@ if test "$with_des" != no; then
                  cmu_have_rsaref=no)
 
     AC_CHECK_LIB(crypto, des_cbc_encrypt, [
-	AC_CHECK_HEADER(openssl/des.h, [AC_DEFINE(WITH_SSL_DES)
+	AC_CHECK_HEADER(openssl/des.h, [AC_DEFINE(WITH_SSL_DES,[],[Use OpenSSL DES Implementation])
 					LIB_DES="-lcrypto";
 					with_des=yes],
 			with_des=no)], 
@@ -65,7 +65,7 @@ if test "$with_des" != no; then
 fi
 
 if test "$with_des" != no; then
-  AC_DEFINE(WITH_DES)
+  AC_DEFINE(WITH_DES,[],[Use DES])
 fi
 
 AC_SUBST(LIB_DES)
@@ -139,8 +139,8 @@ AC_DEFUN(SASL_KERBEROS_V4_CHK, [
     AC_MSG_RESULT(enabled)
     SASL_MECHS="$SASL_MECHS libkerberos4.la"
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/kerberos4.o"
-    AC_DEFINE(STATIC_KERBEROS4)
-    AC_DEFINE(HAVE_KRB)
+    AC_DEFINE(STATIC_KERBEROS4,[],[User KERBEROS_V4 Staticly])
+    AC_DEFINE(HAVE_KRB,[],[Do we have Kerberos 4 Support?])
     SASL_KRB_LIB="$SASL_KRB_LIB $LIB_DES $COM_ERR"
   else
     AC_MSG_RESULT(disabled)

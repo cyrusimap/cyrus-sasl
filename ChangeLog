@@ -1,3 +1,6 @@
+2003-10-08  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* Support for autoconf 2.54, automake 1.7
+
 2003-10-07  Ken Murchison <ken@oceana.com>
 	* plugins/sql.c: removed sql_delete - don't DELETE rows from the
 	  table, just set the properties to NULL;

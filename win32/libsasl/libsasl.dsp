@@ -103,6 +103,10 @@ SOURCE=..\..\lib\common.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\lib\db_none.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\libsasl.cpp
 # End Source File
 # Begin Source File
@@ -175,6 +179,10 @@ SOURCE=..\..\include\winconfig.h
 
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # End Group
+# Begin Source File
+
+SOURCE=..\..\ChangeLog
+# End Source File
 # Begin Source File
 
 SOURCE=.\ReadMe.txt

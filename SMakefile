@@ -42,6 +42,11 @@ esac
 
 MAKE=gmake
 LNCOMMAND="${SRCDIR}/configure --with-staticsasl --prefix=/usr/local --enable-cmulocal --with-sfio=/usr/local --enable-java ${LNEXTRA} --with-saslauthd=/var/run/saslauthd --enable-login --enable-srp --disable-otp --disable-checkapop --enable-krb4 --with-dblib=none --with-authdaemond"
-INSTCOMMAND="rm -rf ${DESTDIR}/*; ${MAKE} DESTDIR=${DESTDIR} install; echo 'usr/local /' > ${DESTDIR}/depot.conf; echo '~delete sbin/smtptest' >> ${DESTDIR}/depot.conf"
+INSTCOMMAND="rm -rf ${DESTDIR}/*; \
+	${MAKE} DESTDIR=${DESTDIR} install; \
+	echo 'usr/local /' > ${DESTDIR}/depot.conf; \
+	echo '~delete sbin/smtptest' >> ${DESTDIR}/depot.conf; \
+	mkdir ${DESTDIR}/usr/local/lib/java/lib; \
+	/usr/local/bin/jar cf ${DESTDIR}/usr/local/lib/java/lib/sasl.jar -C ${DESTDIR}/usr/local/lib/java/classes/sasl ."
 
 export CC CFLAGS CPPFLAGS LIBS

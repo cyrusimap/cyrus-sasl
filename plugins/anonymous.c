@@ -1,7 +1,7 @@
 /* Anonymous SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: anonymous.c,v 1.40 2001/12/07 03:22:56 rjs3 Exp $
+ * $Id: anonymous.c,v 1.41 2002/02/05 23:37:34 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -349,7 +349,7 @@ anonymous_client_mech_step(void *conn_context,
   gethostname(hostname, sizeof(hostname));
   hostname[sizeof(hostname)-1] = '\0';
   
-  *clientoutlen = userlen + strlen(hostname) + 2;
+  *clientoutlen = userlen + strlen(hostname) + 1;
 
   result = _plug_buf_alloc(cparams->utils, &text->out_buf,
 			   &text->out_buf_len, *clientoutlen);

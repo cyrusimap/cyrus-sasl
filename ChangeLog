@@ -1,5 +1,9 @@
 2002-01-09  Ken Murchison <ken@oceana.com>
 	* plugins/otp.c: fixed security_flags
+	* plugins/srp.c: corrected integrity layer encoding
+	* plugins/srp.c: finished maxbuffersize handling
+	* plugins/srp.c: fixed security_flags
+	* doc/index.html: added reference to SRP paper
 
 2002-01-09  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* lib/common.c (sasl_decode): Removed maxoutbuf check

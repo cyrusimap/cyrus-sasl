@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.16 2002/01/07 20:18:41 ken3 Exp $
+ * $Id: srp.c,v 1.17 2002/01/09 21:59:48 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -258,7 +258,7 @@ layer_encode(void *context,
 {
   context_t *text = (context_t *) context;
   int hashlen = 0;
-  char hashdata[EVP_MAX_MD_SIZE];
+  char hashdata[EVP_MAX_MD_SIZE+1]; /* 1 for os() count */
   int tmpnum;
   int ret;
   char *input;
@@ -269,10 +269,12 @@ layer_encode(void *context,
 
   ret = _plug_iovec_to_buf(text->utils, invec, numiov, &text->enc_in_buf);
   if(ret != SASL_OK) return ret;
-  
+
   input = text->enc_in_buf->data;
   inputlen = text->enc_in_buf->curlen;
 
+  text->utils->log(NULL, SASL_LOG_DEBUG, "layer_encode: in = %d", inputlen);
+  
   if (text->enabled & BIT_CONFIDENTIALITY) {
       EVP_CIPHER_CTX ctx;
       unsigned char IV[EVP_MAX_IV_LENGTH];
@@ -334,12 +336,16 @@ layer_encode(void *context,
 	  text->seqnum_out++;
       }
     
-      HMAC_Final(&hmac_ctx, hashdata, &hashlen);
+      HMAC_Final(&hmac_ctx, hashdata+1, &hashlen);
+      hashdata[0] = hashlen++ & 0xFF; /* set octet count */
+/*      hashlen++;*/
   }
 
   /* 4 for length + input size + hashlen for integrity (could be zero) */
   *outputlen = 4 + inputlen + hashlen;
 
+  text->utils->log(NULL, SASL_LOG_DEBUG, "layer_encode: out = %d", *outputlen);
+  
   *output = text->utils->malloc(*outputlen);
   if (!*output) return SASL_NOMEM;
   
@@ -365,15 +371,17 @@ decode(context_t *text,
     int hashlen = 0;
     char *decdata = NULL;
 
+    text->utils->log(NULL, SASL_LOG_DEBUG, "decode: in = %d", inputlen);
+
     if (text->enabled & BIT_INTEGRITY) {
 	int tmpnum;
-	char hashdata[EVP_MAX_MD_SIZE];
+	char hashdata[EVP_MAX_MD_SIZE]; /* 1 for os() count */
 	int i;
 	HMAC_CTX hmac_ctx;
 
 	HMAC_Init(&hmac_ctx, text->K, text->Klen, text->hmac_md);
 
-	hashlen = EVP_MD_size(text->hmac_md);
+	hashlen = EVP_MD_size(text->hmac_md) + 1;
 
 	if ((int)inputlen < hashlen) {
 	    text->utils->log(NULL, SASL_LOG_ERR,
@@ -392,7 +400,8 @@ decode(context_t *text,
 	    text->seqnum_in ++;
 	}
 	
-	HMAC_Final(&hmac_ctx, hashdata, NULL);
+	HMAC_Final(&hmac_ctx, hashdata+1, NULL);
+	hashdata[0] = (hashlen-1) & 0xFF; /* set octet count */
 
 	/* compare to hash given */
 	for (i = 0; i < hashlen; i++) {
@@ -453,6 +462,8 @@ decode(context_t *text,
 	*outputlen = inputlen - hashlen;
     }
 
+    text->utils->log(NULL, SASL_LOG_DEBUG, "decode: out = %d", *outputlen);
+
     *output = text->utils->malloc(*outputlen);
     if (!*output) return SASL_NOMEM;
 
@@ -476,6 +487,8 @@ layer_decode(void *context,
     const char *extra;
     unsigned int extralen=0;
     int r;
+
+    text->utils->log(NULL, SASL_LOG_DEBUG, "layer_decode: in = %d", inputlen);
 
     if (text->needsize>0) { /* 4 bytes for how long message is */
 	/* if less than 4 bytes just copy those we have into text->size */
@@ -561,6 +574,8 @@ layer_decode(void *context,
 	}
     }
     
+    text->utils->log(NULL, SASL_LOG_DEBUG, "layer_decode: out = %d", *outputlen);
+
     return SASL_OK;
 }
 
@@ -1546,6 +1561,7 @@ ParseOptions(const sasl_utils_t *utils, char *in, srp_options_t *out,
     int r;
 
     memset(out, 0, sizeof(srp_options_t));
+    out->maxbufsize = MAXBUFFERSIZE;
 
     while (in) {
 	char *opt;
@@ -1640,6 +1656,18 @@ OptionsToString(const sasl_utils_t *utils, srp_options_t *opts, char **out)
 	optlist++;
     }
     
+    if ((opts->integrity || opts->confidentiality) &&
+	opts->maxbufsize < MAXBUFFERSIZE) {
+	alloced += strlen(OPTION_MAXBUFFERSIZE)+10+1;
+	ret = utils->realloc(ret, alloced);
+	if (!ret) return SASL_NOMEM;
+
+	if (!first) strcat(ret, ",");
+	strcat(ret, OPTION_MAXBUFFERSIZE);
+	sprintf(ret+strlen(ret), "%lu", opts->maxbufsize);
+	first = 0;
+    }
+
     *out = ret;
     return SASL_OK;
 }
@@ -1654,6 +1682,11 @@ CreateServerOptions(const sasl_utils_t *utils,
 
     /* zero out options */
     memset(&opts,0,sizeof(srp_options_t));
+
+    /* Add maxbuffersize */
+    opts.maxbufsize = MAXBUFFERSIZE;
+    if (props->maxbufsize && props->maxbufsize < opts.maxbufsize)
+	opts.maxbufsize = props->maxbufsize;
 
     /* Add integrity options */
     optlist = integrity_options;
@@ -1696,6 +1729,11 @@ CreateClientOpts(sasl_client_params_t *params,
 
     /* zero out output */
     memset(out, 0, sizeof(srp_options_t));
+
+    /* Add maxbuffersize */
+    out->maxbufsize = MAXBUFFERSIZE;
+    if (params->props.maxbufsize && params->props.maxbufsize < out->maxbufsize)
+	out->maxbufsize = params->props.maxbufsize;
 
     /* get requested ssf */
     external = params->external_ssf;
@@ -1804,7 +1842,7 @@ SetOptions(srp_options_t *opts,
     
     oparams->encode = &layer_encode;
     oparams->decode = &layer_decode;
-    oparams->maxoutbuf = opts->maxbufsize ? opts->maxbufsize : MAXBUFFERSIZE;
+    oparams->maxoutbuf = opts->maxbufsize - 4; /* account for eos() count */
 
     if (opts->replay_detection) {
 	text->enabled |= BIT_REPLAY_DETECTION;
@@ -1828,6 +1866,9 @@ SetOptions(srp_options_t *opts,
 
 	oparams->mech_ssf = iopt->ssf;
 	text->hmac_md = EVP_get_digestbyname(iopt->evp_name);
+
+	/* account for os() */
+	oparams->maxoutbuf -= (EVP_MD_size(text->hmac_md) + 1);
     }
 
     if (opts->confidentiality) {
@@ -2504,7 +2545,7 @@ server_step3(context_t *text,
 	     unsigned clientinlen,
 	     const char **serverout,
 	     unsigned *serveroutlen,
-	     sasl_out_params_t *oparams __attribute__((unused)))
+	     sasl_out_params_t *oparams)
 {
     char *data;
     int datalen;
@@ -2916,7 +2957,11 @@ static sasl_server_plug_t srp_server_plugins[] =
   {
     "SRP-SHA-1",		/* mech_name */
     0,				/* max_ssf */
-    SASL_SEC_NOPLAINTEXT,	/* security_flags */
+    SASL_SEC_NOPLAINTEXT
+    | SASL_SEC_NOANONYMOUS
+    | SASL_SEC_NOACTIVE
+    | SASL_SEC_NODICTIONARY
+    | SASL_SEC_FORWARD_SECRECY,	/* security_flags */
     SASL_FEAT_WANT_CLIENT_FIRST,/* features */
     NULL,			/* glob_context */
     &srp_sha1_server_mech_new,	/* mech_new */
@@ -2937,7 +2982,11 @@ static sasl_server_plug_t srp_server_plugins[] =
   {
     "SRP-RIPEMD-160",	        /* mech_name */
     0,				/* max_ssf */
-    SASL_SEC_NOPLAINTEXT,	/* security_flags */
+    SASL_SEC_NOPLAINTEXT
+    | SASL_SEC_NOANONYMOUS
+    | SASL_SEC_NOACTIVE
+    | SASL_SEC_NODICTIONARY
+    | SASL_SEC_FORWARD_SECRECY,	/* security_flags */
     SASL_FEAT_WANT_CLIENT_FIRST,/* features */
     NULL,			/* glob_context */
     &srp_rmd160_server_mech_new,/* mech_new */
@@ -2957,7 +3006,11 @@ static sasl_server_plug_t srp_server_plugins[] =
   {
     "SRP-MD5",			/* mech_name */
     0,				/* max_ssf */
-    SASL_SEC_NOPLAINTEXT,	/* security_flags */
+    SASL_SEC_NOPLAINTEXT
+    | SASL_SEC_NOANONYMOUS
+    | SASL_SEC_NOACTIVE
+    | SASL_SEC_NODICTIONARY
+    | SASL_SEC_FORWARD_SECRECY,	/* security_flags */
     SASL_FEAT_WANT_CLIENT_FIRST,/* features */
     NULL,			/* glob_context */
     &srp_md5_server_mech_new,	/* mech_new */
@@ -3365,12 +3418,12 @@ static int make_prompts(sasl_client_params_t *params,
 static int
 client_step1(context_t *text,
 	     sasl_client_params_t *params,
-	     const char *serverin  __attribute__((unused)),
+	     const char *serverin __attribute__((unused)),
 	     unsigned serverinlen,
 	     sasl_interact_t **prompt_need,
 	     const char **clientout,
 	     unsigned *clientoutlen,
-	     sasl_out_params_t *oparams  __attribute__((unused)))
+	     sasl_out_params_t *oparams)
 {
     int auth_result=SASL_OK;
     int pass_result=SASL_OK;
@@ -3499,7 +3552,7 @@ client_step2(context_t *text,
 	     sasl_interact_t **prompt_need __attribute__((unused)),
 	     const char **clientout,
 	     unsigned *clientoutlen,
-	     sasl_out_params_t *oparams __attribute__((unused)))
+	     sasl_out_params_t *oparams)
 {
     char *data;
     int datalen;
@@ -3601,6 +3654,13 @@ client_step2(context_t *text,
 	goto done;
     }
       
+    r = SetOptions(&text->client_opts, text, params->utils, oparams);
+    if (r) {
+	params->utils->seterror(params->utils->conn, 0, 
+				"Error setting options");
+	goto done;
+    }
+
     /* Send out:
      *
      * A - client's public key
@@ -3658,7 +3718,7 @@ client_step3(context_t *text,
 	     sasl_interact_t **prompt_need __attribute__((unused)),
 	     const char **clientout,
 	     unsigned *clientoutlen,
-	     sasl_out_params_t *oparams)
+	     sasl_out_params_t *oparams __attribute__((unused)))
 {
     char *data;
     int datalen;
@@ -3693,9 +3753,6 @@ client_step3(context_t *text,
     r = CalculateK_client(text, text->salt, text->saltlen, text->authid, 
 			  text->password->data, text->password->len,
 			  &text->K, &text->Klen);
-    if (r) return r;
-
-    r = SetOptions(&text->client_opts, text, params->utils, oparams);
     if (r) return r;
 
     /* Now calculate M1 (client evidence)
@@ -3867,7 +3924,11 @@ static sasl_client_plug_t srp_client_plugins[] =
   {
     "SRP-SHA-1",   	        /* mech_name */
     0,				/* max_ssf */
-    SASL_SEC_NOPLAINTEXT,	/* security_flags */
+    SASL_SEC_NOPLAINTEXT
+    | SASL_SEC_NOANONYMOUS
+    | SASL_SEC_NOACTIVE
+    | SASL_SEC_NODICTIONARY
+    | SASL_SEC_FORWARD_SECRECY,	/* security_flags */
     SASL_FEAT_WANT_CLIENT_FIRST,/* features */
     NULL,			/* required_prompts */
     NULL,			/* glob_context */
@@ -3883,7 +3944,11 @@ static sasl_client_plug_t srp_client_plugins[] =
   {
     "SRP-RIPEMD-160",   	/* mech_name */
     0,				/* max_ssf */
-    SASL_SEC_NOPLAINTEXT,	/* security_flags */
+    SASL_SEC_NOPLAINTEXT
+    | SASL_SEC_NOANONYMOUS
+    | SASL_SEC_NOACTIVE
+    | SASL_SEC_NODICTIONARY
+    | SASL_SEC_FORWARD_SECRECY,	/* security_flags */
     SASL_FEAT_WANT_CLIENT_FIRST,/* features */
     NULL,			/* required_prompts */
     NULL,			/* glob_context */
@@ -3898,7 +3963,11 @@ static sasl_client_plug_t srp_client_plugins[] =
   {
     "SRP-MD5",   	        /* mech_name */
     0,				/* max_ssf */
-    SASL_SEC_NOPLAINTEXT,	/* security_flags */
+    SASL_SEC_NOPLAINTEXT
+    | SASL_SEC_NOANONYMOUS
+    | SASL_SEC_NOACTIVE
+    | SASL_SEC_NODICTIONARY
+    | SASL_SEC_FORWARD_SECRECY,	/* security_flags */
     SASL_FEAT_WANT_CLIENT_FIRST,/* features */
     NULL,			/* required_prompts */
     NULL,			/* glob_context */

@@ -76,7 +76,7 @@ int sasl_config_init(const char *filename)
 	if (!*p || *p == '#') continue;
 
 	key = p;
-	while (*p && (isalnum((int) *p) || *p == '-')) {
+	while (*p && (isalnum((int) *p) || *p == '-' || *p == '_')) {
 	    if (isupper((int) *p)) *p = tolower(*p);
 	    p++;
 	}

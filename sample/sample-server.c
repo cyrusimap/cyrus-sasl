@@ -146,7 +146,7 @@ getpath(void *context __attribute__((unused)),
     if (! *path)
       return SASL_NOMEM;
   } else
-    *path = NULL;
+    *path = strdup("/usr/lib/sasl");
 
   return SASL_OK;
 }

@@ -489,7 +489,7 @@ server_idle(sasl_conn_t *conn)
 static int load_config(const sasl_callback_t *verifyfile_cb)
 {
   int result;
-  char *path_to_config=NULL;
+  char *path_to_config=NULL, *c;
   char *config_filename=NULL;
   int len;
   const sasl_callback_t *getpath_cb=NULL;
@@ -504,6 +504,10 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
 						  &path_to_config);
   if (result!=SASL_OK) return result;
   if (path_to_config == NULL) path_to_config = "";
+
+  if ((c = strchr(path_to_config, ':'))) {
+      *c = '\0';
+  }
 
   /* length = length of path + '/' + length of appname + ".conf" + 1
      for '\0' */
@@ -523,7 +527,8 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
 
   /* Ask the application if it's safe to use this file */
   result = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(verifyfile_cb->context,
-							config_filename);	  
+							config_filename);
+
   /* returns continue if this file is to be skipped */
   
   /* returns SASL_CONTINUE if doesn't exist
@@ -533,6 +538,7 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
     result=sasl_config_init(config_filename);
 
   sasl_FREE(config_filename);
+  sasl_FREE(path_to_config);
 
   return result;
 }
@@ -1002,7 +1008,7 @@ static int _sasl_checkpass(const char *mech, const char *service,
 
 #ifdef HAVE_PAM
     if (!strcmp(mech, "PAM")) {
-	result = _sasl_PAM_verify_password(user, pass, NULL);
+	result = _sasl_PAM_verify_password(user, pass, service, NULL);
     }
 #endif
 

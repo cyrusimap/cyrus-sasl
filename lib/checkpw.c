@@ -362,6 +362,7 @@ static struct pam_conv my_conv = {
 };
 
 int _sasl_PAM_verify_password(const char *userid, const char *password,
+			      const char *service,
 			      const char **reply __attribute__((unused)) )
 {
     pam_handle_t *pamh;
@@ -378,7 +379,7 @@ int _sasl_PAM_verify_password(const char *userid, const char *password,
     pd.password = password;
     pd.pam_error = 0;
 
-    pam_error = pam_start("SASL", userid, &my_conv, &pamh);
+    pam_error = pam_start(service, userid, &my_conv, &pamh);
     if (pam_error != PAM_SUCCESS) {
 	goto pam_err;
     }

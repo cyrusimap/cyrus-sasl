@@ -173,6 +173,9 @@ extern int _sasl_kerberos_verify_password(const char *user,
 					  const char *passwd,
 					  const char *service,
 					  const char **reply);
-extern int _sasl_PAM_verify_password(const char *userid,const char *password, const char **reply);
+extern int _sasl_PAM_verify_password(const char *userid,
+				     const char *password, 
+				     const char *service,
+				     const char **reply);
 
 #endif /* SASLINT_H */

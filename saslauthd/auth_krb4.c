@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb4.c,v 1.9 2003/02/03 17:09:11 rjs3 Exp $"
+#ident "$Id: auth_krb4.c,v 1.10 2003/12/12 00:43:04 rbraun Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -72,6 +72,12 @@ static char default_realm[REALM_SZ];
 #define TF_NAME_LEN 128
 #define TF_DIR "/.tf"			/* Private tickets directory,   */
 					/* relative to mux directory    */
+
+/* Kerberos for Macintosh doesn't define this, so we will. (Thanks Fink!) */
+#ifndef KRB_TICKET_GRANTING_TICKET
+#define KRB_TICKET_GRANTING_TICKET "krbtgt"
+#endif /* !defined(KRB_TICKET_GRANTING_TICKET) */
+
 
 /* FUNCTION: auth_krb4_init */
 

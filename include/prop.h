@@ -51,7 +51,7 @@
 #  define LIBSASL_VAR  __declspec(dllimport)
 # endif /* LIBSASL_EXPORTS */
 #else /* WIN32 */
-# define LIBSASL_VAR
+# define LIBSASL_VAR extern
 #endif /* WIN32 */
 
 /* the resulting structure for property values

@@ -12,22 +12,24 @@ if test "$with_des" != no; then
     LDFLAGS="$LDFLAGS -L${with_des}/lib"
   fi
 
-  dnl check for openssl installing -lcrypto, then make vanilla check
-  AC_CHECK_LIB(crypto, des_cbc_encrypt, [
-      AC_CHECK_HEADER(openssl/des.h, [AC_DEFINE(WITH_SSL_DES,[],[Use OpenSSL DES Implementation])
-                                     LIB_DES="-lcrypto";
-                                     with_des=yes],
-                     with_des=no)],
-      with_des=no, $LIB_RSAREF)
+  if test "$with_openssl" != no; then
+    dnl check for openssl installing -lcrypto, then make vanilla check
+    AC_CHECK_LIB(crypto, des_cbc_encrypt, [
+        AC_CHECK_HEADER(openssl/des.h, [AC_DEFINE(WITH_SSL_DES,[],[Use OpenSSL DES Implementation])
+                                       LIB_DES="-lcrypto";
+                                       with_des=yes],
+                       with_des=no)],
+        with_des=no, $LIB_RSAREF)
 
-  dnl same test again, different symbol name
-  if test "$with_des" = no; then
-    AC_CHECK_LIB(crypto, DES_cbc_encrypt, [
-      AC_CHECK_HEADER(openssl/des.h, [AC_DEFINE(WITH_SSL_DES,[],[Use OpenSSL DES Implementation])
-                                     LIB_DES="-lcrypto";
-                                     with_des=yes],
-                     with_des=no)],
-      with_des=no, $LIB_RSAREF)
+    dnl same test again, different symbol name
+    if test "$with_des" = no; then
+      AC_CHECK_LIB(crypto, DES_cbc_encrypt, [
+        AC_CHECK_HEADER(openssl/des.h, [AC_DEFINE(WITH_SSL_DES,[],[Use OpenSSL DES Implementation])
+                                       LIB_DES="-lcrypto";
+                                       with_des=yes],
+                       with_des=no)],
+        with_des=no, $LIB_RSAREF)
+    fi
   fi
 
   if test "$with_des" = no; then

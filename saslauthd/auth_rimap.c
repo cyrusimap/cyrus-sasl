@@ -53,7 +53,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_rimap.c,v 1.7 2003/03/28 19:59:23 rjs3 Exp $"
+#ident "$Id: auth_rimap.c,v 1.8 2003/12/12 00:43:04 rbraun Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -126,7 +126,9 @@ sig_null (
 	syslog(LOG_WARNING, "auth_rimap: unexpected signal %d", sig);
 	break;
     }
-#if RETSIGTYPE == void
+#ifdef __APPLE__
+    return;
+#elsif RETSIGTYPE == void
     return;
 #else
     return 0;

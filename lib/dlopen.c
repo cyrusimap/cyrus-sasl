@@ -1,6 +1,6 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Earhart
- * $Id: dlopen.c,v 1.1 1998/11/16 20:06:37 rob Exp $
+ * $Id: dlopen.c,v 1.2 1998/11/17 00:50:23 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -24,7 +24,9 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif /* HAVE_CONFIG_H */
 #include <string.h>
 #include <dlfcn.h>
 #include <stdlib.h>

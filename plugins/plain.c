@@ -1,6 +1,6 @@
 /* Plain SASL plugin
  * Tim Martin 
- * $Id: plain.c,v 1.2 1998/11/16 21:59:19 rob Exp $
+ * $Id: plain.c,v 1.3 1998/11/17 00:50:27 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -24,7 +24,9 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif /* HAVE_CONFIG_H */
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>

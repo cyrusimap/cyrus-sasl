@@ -1,6 +1,6 @@
 /* test.c - SASL tester
  * Tim Martin
- * $Id: test.c,v 1.1 1998/11/16 20:06:37 rob Exp $
+ * $Id: test.c,v 1.2 1998/11/17 00:50:24 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -25,9 +25,10 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
 OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ******************************************************************/
 
-
-#include <netdb.h>
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif /* HAVE_CONFIG_H */
+#include <netdb.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/param.h>

@@ -1,6 +1,6 @@
 /* javasasl.c--Java SASL JNI implementation
  * Tim Martin
- * $Id: javasasl.c,v 1.2 1998/11/16 23:03:21 tmartin Exp $
+ * $Id: javasasl.c,v 1.3 1998/11/17 00:50:28 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -25,7 +25,9 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
 OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ******************************************************************/
 
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif /* HAVE_CONFIG_H */
 #include <stdio.h>
 #include <sasl.h>
 #include <saslutil.h>

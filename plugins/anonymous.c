@@ -1,6 +1,6 @@
 /* Anonymous SASL plugin
  * Tim Martin 
- * $Id: anonymous.c,v 1.2 1998/11/16 21:59:19 rob Exp $
+ * $Id: anonymous.c,v 1.3 1998/11/17 00:50:24 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -24,7 +24,9 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif /* HAVE_CONFIG_H */
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>

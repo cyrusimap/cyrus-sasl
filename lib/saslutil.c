@@ -1,6 +1,6 @@
 /* saslutil.c
  * Tim Martin 5/20/98
- * $Id: saslutil.c,v 1.2 1998/11/16 21:59:19 rob Exp $
+ * $Id: saslutil.c,v 1.3 1998/11/17 00:50:23 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -24,8 +24,10 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
-#include <stdio.h>
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif /* HAVE_CONFIG_H */
+#include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>

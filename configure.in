@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.2 1998/11/16 20:31:16 rob Exp $
+dnl $Id: configure.in,v 1.3 1998/11/17 00:50:21 rob Exp $
 dnl
 dnl
 dnl         Copyright 1998 by Carnegie Mellon University
@@ -23,7 +23,7 @@ dnl WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
 dnl ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 dnl SOFTWARE.
 dnl
-AC_REVISION($Id: configure.in,v 1.2 1998/11/16 20:31:16 rob Exp $)
+AC_REVISION($Id: configure.in,v 1.3 1998/11/17 00:50:21 rob Exp $)
 AC_INIT(lib/saslint.h)
 AC_CONFIG_AUX_DIR(config)
 AM_CONFIG_HEADER(config.h)
@@ -162,6 +162,14 @@ if test "$dblib" = "no"; then
 else
   AC_DEFINE_UNQUOTED(SASL_DB_TYPE, $dblib)
 fi
+SASL_DB_LIB="$dblib"
+AC_SUBST(SASL_DB_LIB)
+
+AC_CHECK_LIB(dl, dlopen, SASL_DL_LIB="-ldl", SASL_DL_LIB="")
+AC_SUBST(SASL_DL_LIB)
+
+dnl See if we can provide a default logging function...
+AC_CHECK_FUNCS(vsyslog)
 
 
 dnl CRAM-MD5

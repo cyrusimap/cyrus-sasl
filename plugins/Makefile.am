@@ -1,6 +1,6 @@
 # Makefile.am for the SASL plugins
 # Rob Earhart
-# $Id: Makefile.am,v 1.2 1998/11/16 21:59:19 rob Exp $
+# $Id: Makefile.am,v 1.3 1998/11/17 00:50:24 rob Exp $
 #
 #
 #         Copyright 1998 by Carnegie Mellon University
@@ -34,6 +34,8 @@ gssapiv2_version = 1:0:0
 
 INCLUDES=-I$(top_srcdir)/include
 
+LDFLAGS = @LDFLAGS@ -export-dynamic -rpath $(plugindir)
+
 plugindir = @plugindir@
 
 sasldir = $(prefix)/lib/sasl
@@ -41,19 +43,21 @@ sasl_LTLIBRARIES = @SASL_MECHS@
 EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la libscrammd5.la libgssapiv2.la
 
 libplain_la_SOURCES = plain.c
-libplain_la_LDFLAGS = -export-dynamic -version-info $(plain_version) -rpath $(plugindir) $(LDFLAGS)
+libplain_la_LDFLAGS = -version-info $(plain_version)
 
 libanonymous_la_SOURCES = anonymous.c
-libanonymous_la_LDFLAGS = -export-dynamic -version-info $(anonymous_version) -rpath $(plugindir) $(LDFLAGS)
+libanonymous_la_LDFLAGS = -version-info $(anonymous_version)
 
 libkerberos4_la_SOURCES = kerberos4.c
-libkerberos4_la_LDFLAGS = -export-dynamic -version-info $(kerberos4_version) -rpath $(plugindir) $(LDFLAGS) -lkrb -ldes
+libkerberos4_la_LDFLAGS = -version-info $(kerberos4_version)
+libkerberos4_la_LIBADD = -lkrb -ldes
 
 libgssapiv2_la_SOURCES = gssapi.c
-libgssapiv2_la_LDFLAGS = -export-dynamic -version-info $(gssapiv2_version) -rpath $(plugindir) $(LDFLAGS) $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS)
+libgssapiv2_la_LDFLAGS = -version-info $(gssapiv2_version)
+libgssapiv2_la_LIBADD = $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS)
 
 libcrammd5_la_SOURCES = cram.c
-libcrammd5_la_LDFLAGS = -export-dynamic -version-info $(crammd5_version) -rpath $(plugindir) $(LDFLAGS)
+libcrammd5_la_LDFLAGS = -version-info $(crammd5_version)
 
 libscrammd5_la_SOURCES = scram.c
-libscrammd5_la_LDFLAGS = -export-dynamic -version-info $(scrammd5_version) -rpath $(plugindir) $(LDFLAGS)
+libscrammd5_la_LDFLAGS = -version-info $(scrammd5_version)

@@ -1,6 +1,6 @@
 /* common.c - Functions that are common to server and clinet
  * Tim Martin
- * $Id: common.c,v 1.1 1998/11/16 20:06:37 rob Exp $
+ * $Id: common.c,v 1.2 1998/11/17 00:50:22 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -24,12 +24,16 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif /* HAVE_CONFIG_H */
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
+#ifdef HAVE_VSYSLOG
 #include <syslog.h>
+#endif
 #include <stdarg.h>
 #include "sasl.h"
 #include "saslint.h"
@@ -477,6 +481,7 @@ _sasl_conn_getopt(void *context,
 			     len);
 }
 
+#ifdef HAVE_VSYSLOG
 static int
 _sasl_log(void *context __attribute__((unused)),
 	  const char *plugin_name,
@@ -527,6 +532,7 @@ _sasl_log(void *context __attribute__((unused)),
 
   return SASL_OK;
 }
+#endif				/* HAVE_VSYSLOG */
 
 static int
 _sasl_getcallback(sasl_conn_t * conn,
@@ -572,10 +578,12 @@ _sasl_getcallback(sasl_conn_t * conn,
 
   /* Otherwise, see if the library provides a default callback. */
   switch (callbackid) {
+#ifdef HAVE_VSYSLOG
   case SASL_CB_LOG:
     *pproc = (int (*)()) &_sasl_log;
     *pcontext = NULL;
     break;
+#endif /* HAVE_VSYSLOG */
   case SASL_CB_SERVER_GETSECRET:
     *pproc = _sasl_server_getsecret_hook;
     *pcontext = NULL;
@@ -588,7 +596,10 @@ _sasl_getcallback(sasl_conn_t * conn,
     return SASL_FAIL;
   }
 
-  return SASL_OK;
+  if (*pproc)
+    return SASL_OK;
+  else
+    return SASL_FAIL;
 }
 
 sasl_utils_t *

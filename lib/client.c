@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: client.c,v 1.1 1998/11/16 20:06:37 rob Exp $
+ * $Id: client.c,v 1.2 1998/11/17 00:50:22 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -24,9 +24,10 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif /* HAVE_CONFIG_H */
 #include <stdio.h>
-#include <dlfcn.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <ctype.h>
@@ -104,7 +105,7 @@ static void client_done(void) {
     cprevm=cm;
     cm=cm->next;
     if (cprevm->library!=NULL)
-      dlclose(cprevm->library);
+      _sasl_done_with_plugin(cprevm->library);
     sasl_FREE(cprevm);    
   }
   sasl_FREE(cmechlist->mutex);

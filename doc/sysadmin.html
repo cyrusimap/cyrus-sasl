@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.34 2002/08/13 19:10:33 rjs3 Exp $ -->
+<!-- $Id: sysadmin.html,v 1.35 2002/09/16 18:57:22 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -124,12 +124,24 @@ a large number of mechanisms.
 <dt><i>saslauthd</i>
 
 <dd> contacts the <tt>saslauthd</tt> daemon to to check passwords
-using a variety of mechanisms.  More information can be found in
-<tt>saslauthd(8)</tt>.  Once you configure <tt>saslauthd</tt>, there
-is a <tt>testsaslauthd</tt> program that can be built with <tt>make
-testsaslauthd</tt> in the <tt>saslauthd</tt> subdirectory of the
-source that can be used to check that <tt>saslauthd</tt> daemon is
-installed and running properly.<p>
+using a variety of mechanisms.  More information about the various invocations
+of saslauthd can be can be found in <tt>saslauthd(8)</tt>.  Generally you
+want something like <tt>saslauthd -a pam</tt>.  If plaintext authentications
+seem to be taking some time under load, increasing the value of the <tt>-n</tt>
+parameter can help.<p>
+
+Once you configure (and start) <tt>saslauthd</tt>,
+there is a <tt>testsaslauthd</tt>
+program that can be built with <tt>make testsaslauthd</tt> in the
+<tt>saslauthd</tt> subdirectory of the source.  This can be used to check that
+that the <tt>saslauthd</tt> daemon is installed and running properly.
+An invocation like <tt>testsaslauthd -u rjs3 -p 1234</tt> with appropriate
+values for the username and password should do the trick.<p>
+
+If you are using the PAM method to verify passwords with saslauthd, keep in
+mind that your PAM configuration will need to be configured for each service
+name that is using saslauthd for authentication. Common service names
+are &quot;imap&quot;, &quot;sieve&quot;, and &quot;smtp&quot;.
 
 <dt><i>pwcheck</i><dd> checks passwords with the use of a separate,
   helper daemon.  This feature is for backwards-compatibility

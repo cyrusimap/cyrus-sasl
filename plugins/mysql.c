@@ -3,7 +3,7 @@
 ** mysql Auxprop plugin
 **   by Simon Loader
 **
-** $Id: mysql.c,v 1.7 2002/07/07 05:59:20 rjs3 Exp $
+** $Id: mysql.c,v 1.8 2002/09/11 14:21:00 rjs3 Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -327,7 +327,7 @@ static void mysql_auxprop_lookup(void *glob_context,
 				cur_host);
 	sock = mysql_connect(&mysql,cur_host,settings->mysql_user,
 			     settings->mysql_passwd);
-	if (!sock) break;
+	if (sock) break;
 	
 	cur_host = db_host;
     }

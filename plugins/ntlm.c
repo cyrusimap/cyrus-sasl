@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.7 2003/08/25 00:43:45 ken3 Exp $
+ * $Id: ntlm.c,v 1.8 2003/08/26 00:10:35 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -68,7 +68,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.7 2003/08/25 00:43:45 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.8 2003/08/26 00:10:35 ken3 Exp $";
 
 #define NTLM_SIGNATURE		"NTLMSSP"
 
@@ -230,7 +230,7 @@ static int unload_buffer(const sasl_utils_t *utils, ntlm_buffer_t *buf,
 	UINT32_FROM_INTEL(buf->offset, offset);
 
 	/* sanity check */
-	if ((offset + len) > msglen) return SASL_BADPROT;
+	if (offset > msglen || len > (msglen - offset)) return SASL_BADPROT;
 
 	if (unicode) {
 	    len /= 2;

@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_shadow.c,v 1.2 2001/01/04 21:20:45 leg Exp $"
+#ident "$Id: auth_shadow.c,v 1.3 2001/01/29 20:47:03 esys Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -96,7 +96,7 @@ auth_shadow (
     char *cpw;				/* pointer to crypt() result */
     /* END VARIABLES */
 
-#  define RETURN(x) { endpwent(); endspent(); return strdup(x); }
+#  define RETURN(x) return strdup(x)
 
     /*
      * "Magic" password field entries for SunOS.
@@ -114,6 +114,7 @@ auth_shadow (
 #  define SHADOW_PW_EPERM  "*NP*"	/* insufficient database perms */
 
     pw = getpwnam(login);
+    endpwent();
     if (pw == NULL) {
 	if (debug) {
 	    syslog(LOG_DEBUG, "DEBUG: auth_shadow: getpwnam(%s) returned NULL", login);
@@ -124,6 +125,7 @@ auth_shadow (
     today = (long)time(NULL)/(24L*60*60);
 
     sp = getspnam(login);
+    endspent();
 
     if (sp == NULL) {
 	if (debug) {

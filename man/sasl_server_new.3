@@ -15,7 +15,7 @@
 .\" the source, must acknowledge the copyright and authors of this work.
 .\"
 .\"
-.TH sasl_server_new "26 March 2000" SASL "SASL man pages"
+.TH sasl_server_new "16 May 2001" SASL "SASL man pages"
 .SH NAME
 sasl_server_new \- Create a new server authentication object
 
@@ -25,8 +25,8 @@ sasl_server_new \- Create a new server authentication object
 .B #include <sasl.h>
 .sp
 .BI "int sasl_server_new(const char " *service ", "
-.BI "			 const char " *local_domain ", "
-.BI "			 const char " *user_domain ", "
+.BI "			 const char " *serverFQDN ", "
+.BI "			 const char " *user_realm ", "
 .BI "			 const sasl_callback_t " *callbacks ", "
 .BI "			 int " secflags ", "
 .BI "			 sasl_conn_t ** " pconn ");"
@@ -41,26 +41,53 @@ integrity/encyption layers after authentication.
 .PP
 .I service
 is the registered name of the service (usually the protocol name) using SASL (e.g. "imap").
-.I local_domain
-is the domain that the server wish to support
-.I user_domain
-is the domain of the user agent. This is usually not necessary
-.I secflags
-XXX security flags (see above)
-.I pconn
-is the conection context allocated by the library. This structure will
-be used for all future SASL calls for this connection.
 .PP
+.I serverFQDN
+is the fully qualified server domain name.  NULL means use gethostname().  This is useful for multi-homed servers.
+.PP
+.I user_realm
+is the domain of the user agent. This is usually not necessary (NULL is default)
+.PP
+.I secflags
+are security flags (see below)
+.PP
+.I pconn
+is a pointer to the conection context allocated by the library. This
+structure will be used for all future SASL calls for this connection.
+.PP
+
+.B Security Flags
+.PP
+Security flags that may be passed to
+.B sasl_server_new()
+include
+.TP 0.8i
+.B NOPLAINTEXT
+Don't permit mechanisms susceptible to simple passive attack (e.g., PLAIN, LOGIN)
+.TP 0.8i
+.B NOACTIVE
+Protection from active (non-dictionary) attacks during authentication exchange.
+Authenticates server.
+.TP 0.8i
+.B NODICTIONARY
+Don't permit mechanisms susceptible to passive dictionary attack
+.TP 0.8i
+.B FORWARD_SECURITY
+Require forward secrecy between sessions. (breaking one won't help break next)
+.TP 0.8i
+.B PASS_CREDENTIALS
+Require mechanisms which pass client credentials, and allow mechanisms which can pass credentials to do so.
 
 .SH "RETURN VALUE"
 
-sasl_server_new returns an integer which corresponds to one of the
+.B sasl_server_new()
+returns an integer which corresponds to one of the
 following codes. SASL_OK is the only one that indicates success. All
 others indicate errors and should either be handled or the
 authentication session should be quit.
 
-
 .SH ERRORS
+The following error codes may be returned:
 .TP 0.8i
 .B SASL_OK
 Success
@@ -69,14 +96,12 @@ Success
 Mechanism version mismatch
 .TP 0.8i
 .B SASL_BADPARAM
-error in config file
+Error in config file
 .TP 0.8i
 .B SASL_NOMEM
-not enough memory to complete operation
+Not enough memory to complete operation
 
 .SH "CONFORMING TO"
 RFC 2222
 .SH "SEE ALSO"
-.BR other sasl stuff
-.BR 
-.BR 
+sasl(3), sasl_server_init(3), sasl_server_start(3), sasl_server_step(3), sasl_setprop(3)

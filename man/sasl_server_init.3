@@ -32,13 +32,16 @@ sasl_server_init \- SASL server authentication initialization
 
 .B sasl_server_init()
 initializes SASL. It must be called before any calls to
-sasl_server_start. This call initializes all SASL mechanism drivers
+sasl_server_start, and only once per process.
+This call initializes all SASL mechanism drivers
 (e.g. authentication mechanisms). These are usually found in the
 /usr/lib/sasl directory but the directory may be overriden with the
-SASL_PATH enviornment variable. The
+SASL_PATH enviornment variable.
+.PP
 .I callbacks
-parameter specifies the base callbacks for all client connections. See
+specifies the base callbacks for all client connections. See
 the sasl_callbacks man page for more information.
+.PP
 .I appname
 is the name of the application. It is used for where to find the
 default configuration file.
@@ -51,7 +54,6 @@ following codes. SASL_OK is the only one that indicates success. All
 others indicate errors and should either be handled or the
 authentication session should be quit.
 
-
 .SH ERRORS
 .TP 0.8i
 .B SASL_OK
@@ -61,14 +63,12 @@ Success
 Mechanism version mismatch
 .TP 0.8i
 .B SASL_BADPARAM
-error in config file
+Error in config file
 .TP 0.8i
 .B SASL_NOMEM
-not enough memory to complete operation
+Not enough memory to complete operation
 
 .SH "CONFORMING TO"
 RFC 2222
 .SH "SEE ALSO"
-.BR other sasl stuff
-.BR 
-.BR 
+sasl(3), sasl_callbacks(3), sasl_server_new(3), sasl_server_start(3), sasl_server_step(3)

@@ -51,12 +51,16 @@ and call sasl_client_start again with identical parameters (the
 prompt_need parameter will be the same pointer as before but filled in
 by the application).
 
+.PP
 .I mechlist
 is a list of mechanisms the server has available. Punctuation if ignored.
+.PP
 .I secret
 is the secret from a previous session. This parameter is optional. If SASL_INTERACT is returned 
+.PP
 .I prompt_need
 is filled in with a list of prompts needed to continue. On sucess
+.PP
 .I clientout
 and
 .I clientoutlen
@@ -65,10 +69,9 @@ server. This is allocated by the library and it is the job of the
 client to send it over the network to the server and free it when it
 is no longer needed. Any protocal specific encoding (such as base64
 encoding) necessary needs to be done by the client. On sucess
+.PP
 .I mech
 contains the name of the chosen SASL mechanism.
-
-.PP
 
 .SH "RETURN VALUE"
 
@@ -77,28 +80,27 @@ following codes. SASL_CONTINUE indicates sucess and that there are
 more steps needed in the authentication. All other return codes
 indicate errors and should either be handled or the authentication
 session should be quit.
-
-
 .SH ERRORS
 .TP 0.8i
+.B SASL_OK
+Success. 
+.TP 0.8i
 .B SASL_CONTINUE
-Success. keep going.
+Success. Keep going.
 .TP 0.8i
 .B SASL_INTERACT
-user interaction needed to fill in prompt_need list
+User interaction needed to fill in prompt_need list
 .TP 0.8i
 .B SASL_BADVERS
 Mechanism version mismatch
 .TP 0.8i
 .B SASL_BADPARAM
-error in config file
+Error in config file
 .TP 0.8i
 .B SASL_NOMEM
-not enough memory to complete operation
+Not enough memory to complete operation
 
 .SH "CONFORMING TO"
 RFC 2222
 .SH "SEE ALSO"
-.BR other sasl stuff
-.BR 
-.BR 
+sasl(3), sasl_callbacks(3), sasl_client_init(3), sasl_client_new(3), sasl_client_step(3)

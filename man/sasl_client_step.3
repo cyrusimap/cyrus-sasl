@@ -52,10 +52,13 @@ by the application).
 
 .I conn
 is the SASL connection context
+.PP
 .I serverin
 is the data given by the server (decoded if the protocol encodes requests sent over the wire)
+.PP
 .I serverinlen
 is the length of serverin
+.PP
 .I clientout
 and
 .I clientoutlen
@@ -64,7 +67,6 @@ server. This is allocated by the library and it is the job of the
 client to send it over the network to the server and free it when it
 is no longer needed. Any protocal specific encoding (such as base64
 encoding) necessary needs to be done by the client.
-.PP
 
 .SH "RETURN VALUE"
 
@@ -89,14 +91,12 @@ user interaction needed to fill in prompt_need list
 Mechanism version mismatch
 .TP 0.8i
 .B SASL_BADPARAM
-error in config file
+Error in config file
 .TP 0.8i
 .B SASL_NOMEM
-not enough memory to complete operation
+Not enough memory to complete operation
 
 .SH "CONFORMING TO"
 RFC 2222
 .SH "SEE ALSO"
-.BR other sasl stuff
-.BR 
-.BR 
+sasl(3), sasl_callbacks(3), sasl_client_init(3), sasl_client_new(3), sasl_client_start(3)

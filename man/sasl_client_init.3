@@ -34,13 +34,11 @@ initializes SASL. It must be called before any calls to
 sasl_client_start. This call initializes all SASL client drivers
 (e.g. authentication mechanisms). These are usually found in the
 /usr/lib/sasl directory but the directory may be overriden with the
-SASL_PATH enviornment variable. The
-.I callbacks
-parameter specifies the base callbacks for all client connections. See the sasl_callbacks man page for more information
+SASL_PATH enviornment variable.
 .PP
-
+.I callbacks
+specifies the base callbacks for all client connections. See the sasl_callbacks man page for more information
 .SH "RETURN VALUE"
-
 sasl_client_init returns an integer which corresponds to one of the
 following codes. SASL_OK is the only one that indicates success. All
 others indicate errors and should either be handled or the
@@ -56,14 +54,12 @@ Success
 Mechanism version mismatch
 .TP 0.8i
 .B SASL_BADPARAM
-error in config file
+Error in config file
 .TP 0.8i
 .B SASL_NOMEM
-not enough memory to complete operation
+Not enough memory to complete operation
 
 .SH "CONFORMING TO"
 RFC 2222
 .SH "SEE ALSO"
-.BR other sasl stuff
-.BR 
-.BR 
+sasl(3), sasl_callbacks(3), sasl_client_new(3), sasl_client_start(3), sasl_client_step(3)

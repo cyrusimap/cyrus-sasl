@@ -1,3 +1,8 @@
+2004-07-15  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* configure.in, plugins/gssapi.c: Wrap all GSS calls
+	  in mutexes when required by the implementation.
+	  (based on a patch by Simon Wilkinson <simon@sxw.org.uk>)
+
 2004-07-06  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/digestmd5.c: Fix potential buffer overflow, call
 	  add_to_challenge in 2 more places (Alexey Melnikov

@@ -185,6 +185,7 @@ dnl Checks for library functions.
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS(gethostname mkdir socket strdup)
 AC_CHECK_FUNCS(getspnam getuserpw, break)
+AC_CHECK_FUNCS(strlcat strlcpy)
 
 dnl Check for getaddrinfo
 GETADDRINFOOBJS=""

@@ -64,6 +64,10 @@
 #undef WITH_DES
 #undef WITH_SSL_DES
 
+/* String Copying */
+#undef HAVE_STRLCPY
+#undef HAVE_STRLCAT
+
 /* Things SASLAUTHd doesn't really care about */
 #undef HAVE_SASLAUTHD
 #undef STATIC_GSSAPIV2
@@ -160,6 +164,16 @@ struct iovec {
 
 #ifndef NI_WITHSCOPEID
 #define NI_WITHSCOPEID  0
+#endif
+
+/* handy string manipulation functions */
+#ifndef HAVE_STRLCPY
+extern size_t saslauthd_strlcpy(char *dst, const char *src, size_t len);
+#define strlcpy(x,y,z) saslauthd_strlcpy((x),(y),(z))
+#endif
+#ifndef HAVE_STRLCAT
+extern size_t saslauthd_strlcat(char *dst, const char *src, size_t len);
+#define strlcat(x,y,z) saslauthd_strlcat((x),(y),(z))
 #endif
 
 #endif

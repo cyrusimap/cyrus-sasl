@@ -1,6 +1,6 @@
 /* sample-server.c -- sample SASL server
  * Rob Earhart
- * $Id: sample-server.c,v 1.26 2003/02/13 19:56:06 rjs3 Exp $
+ * $Id: sample-server.c,v 1.27 2003/03/19 16:53:18 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -576,13 +576,13 @@ main(int argc, char *argv[])
   if (result != SASL_OK)
     sasldebug(result, "username", NULL);
   else
-    printf("Username: %s\n", data);
+    printf("Username: %s\n", data ? data : "(NULL)");
 
   result = sasl_getprop(conn, SASL_DEFUSERREALM, (const void **)&data);
   if (result != SASL_OK)
     sasldebug(result, "realm", NULL);
   else
-    printf("Realm: %s\n", data);
+    printf("Realm: %s\n", data ? data : "(NULL)");
 
   result = sasl_getprop(conn, SASL_SSF, (const void **)&ssf);
   if (result != SASL_OK)

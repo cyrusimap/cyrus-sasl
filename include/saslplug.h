@@ -105,7 +105,8 @@ typedef struct sasl_utils {
     /* current CMU hack.  DO NOT USE EXCEPT IN PLAIN */
     int (*checkpass)(sasl_conn_t *conn,
 		     const char *mech, const char *service,
-		     const char *user, const char *pass);
+		     const char *user, const char *pass, 
+		     const char **errstr);
 
     /* callback function */
     sasl_getcallback_t *getcallback;

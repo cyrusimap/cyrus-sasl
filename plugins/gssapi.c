@@ -71,6 +71,12 @@
 #include <saslutil.h>
 #include <saslplug.h>
 
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
+#include <errno.h>
+
 #ifdef WIN32
 /* This must be after sasl.h */
 # include "saslgssapi.h"
@@ -887,6 +893,7 @@ sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
 {
 #ifdef HAVE_GSSKRB5_REGISTER_ACCEPTOR_IDENTITY
     const char *keytab;
+    char keytab_path[1024];
     unsigned int rl;
 #endif
 
@@ -906,7 +913,9 @@ sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
 	    return SASL_FAIL;
 	}
 
-	gsskrb5_register_acceptor_identity(keytab);
+	strncpy(keytab_path, keytab, 1024);
+	
+	gsskrb5_register_acceptor_identity(keytab_path);
     }
 #endif
 

@@ -1,5 +1,5 @@
 /* COPYRIGHT
- * Copyright (c) 1997-2000 Messaging Direct Ltd.
+ * Copyright (c) 1997 Messaging Direct Ltd.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,61 +25,4 @@
  * DAMAGE.
  * END COPYRIGHT */
 
-/* SYNOPSIS
- * mechanisms[] contains the NULL terminated list of supported
- * authentication drivers.
- * END SYNOPSIS */
-
-#ifdef __GNUC__
-#ident "$Id: mechanisms.c,v 1.3 2001/07/24 17:11:28 rjs3 Exp $"
-#endif
-
-/* PUBLIC DEPENDENCIES */
-#include "mechanisms.h"
-
-#ifdef AUTH_DCE
-# include "auth_dce.h"
-#endif /* AUTH_DCE */
-#ifdef AUTH_SHADOW
-# include "auth_shadow.h"
-#endif /* AUTH_SHADOW */
-#ifdef AUTH_SIA
-# include "auth_sia.h"
-#endif /* AUTH_SIA */
-#include "auth_krb4.h"
-#include "auth_krb5.h"
-#include "auth_getpwent.h"
-#include "auth_rimap.h"
-#ifdef AUTH_PAM
-# include "auth_pam.h"
-#endif
-/* END PUBLIC DEPENDENCIES */
-
-authmech_t mechanisms[] =
-{
-#ifdef NOTYET
-    {	"sasldb",	0,			auth_sasldb },
-#endif
-#ifdef AUTH_DCE
-    {	"dce",		0,			auth_dce },
-#endif /* AUTH_DCE */
-    {	"getpwent",	0,			auth_getpwent },
-#ifdef AUTH_KRB4
-    {	"kerberos4",	auth_krb4_init,		auth_krb4 },
-#endif /* AUTH_KRB4 */
-#ifdef AUTH_KRB5
-    {	"kerberos5",	0,			auth_krb5 },
-#endif /* AUTH_KRB5 */
-#ifdef AUTH_PAM
-    {	"pam",		0,			auth_pam },
-#endif /* AUTH_PAM */
-    {	"rimap",	auth_rimap_init,	auth_rimap },
-#ifdef AUTH_SHADOW
-    {	"shadow",	0,			auth_shadow },
-#endif /* AUTH_SHADOW */
-#ifdef AUTH_SIA
-    {   "sia",		0,			auth_sia },
-#endif /* AUTH_SIA */
-    {	0,		0,			0 }
-};
-
+char *auth_krb5(const char *, const char *);

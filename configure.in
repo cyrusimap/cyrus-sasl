@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.107 2001/07/23 15:52:14 rjs3 Exp $
+dnl $Id: configure.in,v 1.108 2001/07/24 17:11:24 rjs3 Exp $
 dnl
 dnl Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -509,16 +509,19 @@ if test "$gssapi" != no; then
      LDFLAGS="$LDFLAGS -L$gssapi/lib"
   fi
 
-  AC_CHECK_LIB(roken,base64_decode,gss_impl="heimdal",, $LIB_CRYPT)
+# the base64_decode check fails because libroken has dependencies
+# FIXME: this is probabally non-optimal as well
+  AC_CHECK_LIB(krb5,krb5_vlog,gss_impl="heimdal",,)
+#  AC_CHECK_LIB(roken,base64_decode,gss_impl="heimdal",, $LIB_CRYPT)
 
   if test -d ${gssapi}; then
-     GSSAPIBASE_LIBS="-L$gssapi"
+     GSSAPIBASE_LIBS="-L$gssapi/lib"
   fi
 
   if test "$gss_impl" = mit; then
-     GSSAPIBASE_LIBS="$GSSAPIBASE_LIBS/lib -lgssapi_krb5 -lkrb5 -lk5crypto -lcom_err"
+     GSSAPIBASE_LIBS="$GSSAPIBASE_LIBS -lgssapi_krb5 -lkrb5 -lk5crypto -lcom_err"
   elif test "$gss_impl" = "heimdal"; then
-     GSSAPIBASE_LIBS="$GSSAPIBASE_LIBS/lib -lgssapi -lkrb5 -ldes -lasn1 -lroken ${LIB_CRYPT} -lcom_err"
+     GSSAPIBASE_LIBS="$GSSAPIBASE_LIBS -lgssapi -lkrb5 -ldes -lasn1 -lroken ${LIB_CRYPT} -lcom_err"
   else
      gssapi="no"
      AC_WARN(Disabling GSSAPI)

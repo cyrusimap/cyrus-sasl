@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.122 2002/05/03 15:40:44 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.123 2002/05/03 16:45:22 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -103,7 +103,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.122 2002/05/03 15:40:44 rjs3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.123 2002/05/03 16:45:22 rjs3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -751,16 +751,16 @@ static int dec_des(void *v,
     int p,padding = 0;
     
 
-#ifdef WITH_SSL_DES  /* OpenSSL has a broken des_cbc_encrypt */
-    des_ncbc_encrypt((void *) input,
-#else
-     des_cbc_encrypt((void *) input,
-#endif
-		     (void *) output,
-		     inputlen,
-		     text->keysched_dec,
-		     &text->ivec_dec,
-		     DES_DECRYPT);
+    des_cbc_encrypt((void *) input,
+		    (void *) output,
+		    inputlen,
+		    text->keysched_dec,
+		    &text->ivec_dec,
+		    DES_DECRYPT);
+
+    /* Update the ivec (des_cbc_encrypt implementations tend to be broken in
+       this way) */
+    memcpy(text->ivec_dec, input + (inputlen - 8), 8);
     
     /* now chop off the padding */
     padding = output[inputlen - 11];
@@ -805,16 +805,16 @@ static int enc_des(void *v,
 
   len=inputlen+paddinglen+10;
 
-#ifdef WITH_SSL_DES  /* OpenSSL has a broken des_cbc_encrypt */
-  des_ncbc_encrypt((void *) output,
-#else
-   des_cbc_encrypt((void *) output,
-#endif
-		   (void *) output,
-		   len,
-		   text->keysched_enc,
-		   &text->ivec_enc,
-		   DES_ENCRYPT);
+  des_cbc_encrypt((void *) output,
+		  (void *) output,
+		  len,
+		  text->keysched_enc,
+		  &text->ivec_enc,
+		  DES_ENCRYPT);
+
+  /* Update the ivec (des_cbc_encrypt implementations tend to be broken in
+     this way) */
+  memcpy(text->ivec_enc, output + (len - 8), 8);
 
   *outputlen=len;
 

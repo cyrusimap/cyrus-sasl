@@ -1,6 +1,9 @@
 2004-02-18  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* doc/NTMakefile, NTMakefile: nmake install support
 	  for doc/ (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+	* plugins/digestmd5.c: Check that digest-uri is only sent once
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+	* utils/Makefile.am: add LIB_PGSQL to static link line
 
 2004-02-17  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* win32/include/config.h: caddr_t might be already defined

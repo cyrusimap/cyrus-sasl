@@ -1,3 +1,10 @@
+2001-12-04  Ken Murchison <ken@oceana.com>
+	* acconfig.h, configure.in: dependency checking for SRP
+	* acconfig.h, configure.in:
+	* plugins/srp.c: made srp_setpass() a compile-time option (default=off)
+	* plugins/srp.c: use auxprop to fetch cmusaslsecretSRP/userPassword
+	* plugins/srp.c: code cleanup
+
 2001-12-04  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* utils/Makefile.am, config/sasldb.m4: Build sasldblistusers2
 	  and saslpasswd2.  Default database now /etc/sasldb2

@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.4 2001/12/04 16:18:24 ken3 Exp $
+ * $Id: srp.c,v 1.5 2001/12/04 21:42:20 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -51,10 +51,7 @@
 #include <gmp.h>
 
 #ifdef WITH_SHA1
-# ifdef WITH_SSL_SHA1
-#  include <openssl/sha.h>
-# else /* any other SHA1? */
-# endif
+#include <openssl/sha.h>
 #endif /* WITH_SHA1 */
 
 #include <sasl.h>
@@ -101,12 +98,8 @@ typedef void (*srp_hash_final_t)(const sasl_utils_t *utils,
 #define OPTION_REPLAY_DETECTION	"replay detection"
 #define OPTION_INTEGRITY	"integrity="
 #define OPTION_CONFIDENTIALITY	"confidentiality="
-
-/* Forward decl */
-static int
-ReadUserInfo(const sasl_utils_t *utils, char *authid, char *realm,
-	     const char *propName,
-	     mpz_t *N, mpz_t *g, char **salt, int *saltlen, mpz_t *v);
+#define OPTION_MANDATORY	"mandatory="
+#define OPTION_MAXBUFFERSIZE	"maxbuffersize="
 
 
 /***************** SHA1 Hash Functions ****************/
@@ -241,6 +234,7 @@ srp_hmac_md5Final(const sasl_utils_t *utils, char *outdata, void *context)
     utils->free(ctx);
 }
 
+
 /******************** Options *************************/
 
 typedef struct layer_option_s {
@@ -284,8 +278,6 @@ typedef struct context_s {
     mpz_t N;
     mpz_t g;
 
-    mpz_t S; /* shared secret */
-
     mpz_t v; /* verifier */
 
     mpz_t b;
@@ -313,7 +305,7 @@ typedef struct context_s {
     char *salt;
     int saltlen;
 
-    const char *propName; /* property name in sasldb */
+    const char *mech_name; /* used for propName in sasldb */
 
     /* Hash functions */
     int               HashLen;
@@ -348,6 +340,7 @@ typedef struct context_s {
     int needsize;
 
 } context_t;
+
 
 /*******************************************
  *	Layer Functions	 	           *
@@ -572,50 +565,6 @@ layer_decode(void *context,
  *	Helper Functions		   *
  *                                         *
  *******************************************/
-
-/* Dispose of a SRP context (could be server or client)
- *
- *
- */ 
-static void srp_both_mech_dispose(void *conn_context,
-				  const sasl_utils_t *utils)
-{
-  context_t *text = conn_context;
-
-  if (!text)
-    return;
-
-  mpz_clear(text->N);
-  mpz_clear(text->g);
-  mpz_clear(text->S);
-  mpz_clear(text->v);
-  mpz_clear(text->b);
-  mpz_clear(text->B);
-  mpz_clear(text->a);
-  mpz_clear(text->A);
-
-  if (text->K)                utils->free(text->K);
-  if (text->M1)               utils->free(text->M1);
-
-  if (text->authid)           utils->free(text->authid);
-  if (text->userid)           utils->free(text->userid);
-  if (text->realm)            utils->free(text->realm);
-  if (text->password)         _plug_free_secret(utils, &(text->password));
-  if (text->salt)             utils->free(text->salt);
-
-  if (text->client_options)   utils->free(text->client_options);
-  if (text->server_options)   utils->free(text->server_options);
-  if (text->buffer)           utils->free(text->buffer);
-
-  utils->free(text);
-}
-
-static void srp_both_mech_free(void *global_context,
-			       const sasl_utils_t *utils)
-{
-    if(global_context) utils->free(global_context);  
-}
-
 
 /* copy a string */
 static int
@@ -1843,6 +1792,49 @@ SetOptions(srp_options_t *opts,
 }
 
 
+/* Dispose of a SRP context (could be server or client)
+ *
+ *
+ */ 
+static void srp_both_mech_dispose(void *conn_context,
+				  const sasl_utils_t *utils)
+{
+  context_t *text = conn_context;
+
+  if (!text)
+    return;
+
+  mpz_clear(text->N);
+  mpz_clear(text->g);
+  mpz_clear(text->v);
+  mpz_clear(text->b);
+  mpz_clear(text->B);
+  mpz_clear(text->a);
+  mpz_clear(text->A);
+
+  if (text->K)                utils->free(text->K);
+  if (text->M1)               utils->free(text->M1);
+
+  if (text->authid)           utils->free(text->authid);
+  if (text->userid)           utils->free(text->userid);
+  if (text->realm)            utils->free(text->realm);
+  if (text->password)         _plug_free_secret(utils, &(text->password));
+  if (text->salt)             utils->free(text->salt);
+
+  if (text->client_options)   utils->free(text->client_options);
+  if (text->server_options)   utils->free(text->server_options);
+  if (text->buffer)           utils->free(text->buffer);
+
+  utils->free(text);
+}
+
+static void srp_both_mech_free(void *global_context,
+			       const sasl_utils_t *utils)
+{
+    if(global_context) utils->free(global_context);  
+}
+
+
 #ifdef WITH_SHA1
 static int
 srp_sha1_server_mech_new(void *glob_context __attribute__((unused)),
@@ -1868,7 +1860,7 @@ srp_sha1_server_mech_new(void *glob_context __attribute__((unused)),
 
   text->state = 1;
   text->utils = params->utils;
-  text->propName = "SRP-SHA-160";
+  text->mech_name  = "SRP-SHA-160";
   text->HashLen    = srp_sha1Len(text->utils);
   text->HashInit   = srp_sha1Init;
   text->HashUpdate = srp_sha1Update;
@@ -1904,7 +1896,7 @@ srp_md5_server_mech_new(void *glob_context __attribute__((unused)),
 
   text->state = 1;
   text->utils = params->utils;
-  text->propName = "SRP-MD5-120";
+  text->mech_name  = "SRP-MD5-120";
   text->HashLen    = srp_md5Len(text->utils);
   text->HashInit   = srp_md5Init;
   text->HashUpdate = srp_md5Update;
@@ -1934,6 +1926,38 @@ static int generate_N_and_g(mpz_t N, mpz_t g)
     mpz_set_ui (g, 2);
 
     return SASL_OK;
+}
+
+static int
+CalculateV(context_t *text,
+	   mpz_t N, mpz_t g,
+	   const char *user,
+	   const char *pass, unsigned passlen,
+	   mpz_t *v, char **salt, int *saltlen)
+{
+    mpz_t x;
+    int r;    
+
+    /* generate <salt> */    
+    *salt = (char *)text->utils->malloc(SRP_SALT_SIZE);
+    if (!*salt) return SASL_NOMEM;
+    *saltlen = sizeof(salt);
+    text->utils->rand(text->utils->rpool, *salt, *saltlen);
+
+    r = CalculateX(text, *salt, *saltlen, user, pass, passlen, &x);
+    if (r) {
+	text->utils->seterror(text->utils->conn, 0, 
+			      "Error calculating 'x'");
+      return r;
+    }
+
+    /* v = g^x % N */
+    mpz_init(*v);
+    mpz_powm (*v, g, x, N);
+
+    mpz_clear(x);
+
+    return r;   
 }
 
 static int
@@ -1981,13 +2005,57 @@ ServerCalculateK(context_t *text, mpz_t v,
 }
 
 static int
+ParseUserSecret(const sasl_utils_t *utils, char *secret, size_t seclen,
+		mpz_t *v, char **salt, int *saltlen)
+{
+    int r;
+    char *data;
+    int datalen;
+
+    /* The secret data is stored as suggested in RFC 2945:
+     *
+     *  v    - mpi
+     *  salt - os 
+     */
+    r = UnBuffer(secret, seclen, &data, &datalen);
+    if (r) {
+      utils->seterror(utils->conn, 0, 
+		      "Error UnBuffering secret data");
+      return r;
+    }
+
+    r = GetMPI(data, datalen, v, &data, &datalen);
+    if (r) {
+      utils->seterror(utils->conn, 0, 
+		      "Error parsing out 'v'");
+      return r;
+    }
+
+    r = GetOS(utils, data, datalen, salt, saltlen, &data, &datalen);
+    if (r) {
+      utils->seterror(utils->conn, 0, 
+		      "Error parsing out salt");
+      return r;
+    }
+
+    if (datalen != 0) {
+      utils->seterror(utils->conn, 0, 
+		      "Extra data in request step 2");
+      r = SASL_FAIL;
+    }
+
+    return r;
+}
+
+
+static int
 server_step1(context_t *text,
 	     sasl_server_params_t *params,
 	     const char *clientin,
 	     unsigned clientinlen,
 	     const char **serverout,
 	     unsigned *serveroutlen,
-	     sasl_out_params_t *oparams __attribute__((unused)))
+	     sasl_out_params_t *oparams)
 {
     char *data;
     int datalen;
@@ -2002,6 +2070,11 @@ server_step1(context_t *text,
     int utf8Llen;
     char *realm = NULL;
     char *user = NULL;
+    char propName[100];
+    const char *password_request[] = { SASL_AUX_PASSWORD,
+				       propName,
+				       NULL };
+    struct propval auxprop_values[3];
 
     /* if nothing we send nothing and except data next time */
     if ((clientinlen == 0) && (text->state == 1)) {
@@ -2045,14 +2118,77 @@ server_step1(context_t *text,
       goto fail;
     }
 
-    /* Get user data */
-    r = ReadUserInfo(params->utils, user, realm, text->propName,
-		     &text->N, &text->g, &text->salt, &text->saltlen,
-		     &text->v);
+    /* Generate N and g */
+    r = generate_N_and_g(text->N, text->g);
     if (r) {
-	/* readuserinfo sets error, if any */
+	text->utils->seterror(text->utils->conn, 0, 
+		      "Error calculating N and g");
+	return r;
+    }
+
+    /* Get user secret */
+    sprintf(propName, "cmusaslsecret%s", text->mech_name);
+    r = params->utils->prop_request(params->propctx, password_request);
+    if (r != SASL_OK) goto fail;
+
+    /* this will trigger the getting of the aux properties
+     *
+     * XXX  we don't have the authzid yet, so just use authid for now
+     */
+    r = params->canon_user(params->utils->conn,
+			   user, 0, user, 0, 0, oparams);
+    if (r != SASL_OK) goto fail;
+
+    r = params->utils->prop_getnames(params->propctx, password_request,
+				     auxprop_values);
+    if (r < 0 ||
+	((!auxprop_values[0].name || !auxprop_values[0].values) &&
+	 (!auxprop_values[1].name || !auxprop_values[1].values))) {
+	/* We didn't find this username */
+	params->utils->seterror(params->utils->conn,0,
+				"no secret in database");
+	r = SASL_NOUSER;
 	goto fail;
     }
+
+    if (auxprop_values[1].name && auxprop_values[1].values) {
+	/* We have a precomputed verifier */
+	r = ParseUserSecret(params->utils,
+			    (char*) auxprop_values[1].values[0],
+			    auxprop_values[1].valsize,
+			    &text->v, &text->salt, &text->saltlen);
+	
+	if (r) {
+	    /* ParseUserSecret sets error, if any */
+	    goto fail;
+	}
+    } else if (auxprop_values[0].name && auxprop_values[0].values) {
+	/* We only have the password -- calculate the verifier */
+	int len = strlen(auxprop_values[0].values[0]);
+	if (len == 0) {
+	    params->utils->seterror(params->utils->conn,0,
+				    "empty secret");
+	    r = SASL_FAIL;
+	    goto fail;
+	}
+
+	r = CalculateV(text, text->N, text->g, user,
+		   auxprop_values[0].values[0], len,
+		   &text->v, &text->salt, &text->saltlen);
+	if (r) {
+	    params->utils->seterror(params->utils->conn, 0, 
+				    "Error calculating v");
+	    goto fail;
+	}
+    } else {
+	params->utils->seterror(params->utils->conn, 0,
+				"Have neither type of secret");
+	r = SASL_FAIL;
+	goto fail;
+    }    
+
+    params->utils->prop_clear(params->propctx, 1);
+
 
     r = CreateServerOptions(params->utils, &params->props,
 			    &text->server_options);
@@ -2131,7 +2267,7 @@ server_step2(context_t *text,
 	     unsigned clientinlen,
 	     const char **serverout,
 	     unsigned *serveroutlen,
-	     sasl_out_params_t *oparams __attribute__((unused)))
+	     sasl_out_params_t *oparams)
 {
     char *data;
     int datalen;
@@ -2170,6 +2306,13 @@ server_step2(context_t *text,
       return r;
     }
 
+    /* XXX - canon_user() needs to fixed or authzid needs to be moved
+     * into initial client request
+     */
+    r = params->canon_user(params->utils->conn,
+			   text->authid, 0, text->userid, 0, 0, oparams);
+    if (r != SASL_OK) return r;
+    
     r = GetUTF8(params->utils, data, datalen, &text->client_options,
 		&data, &datalen);
     if (r) {
@@ -2385,17 +2528,6 @@ server_step4(context_t *text,
     /* Set oparams */
     oparams->doneflag=1;
 
-    oparams->authid = text->authid;
-    text->authid = NULL; /* set to null so we don't free */
-    oparams->user = text->userid; /* set username */
-    text->userid = NULL; /* set to null so we don't free */
-
-    // xxx ghomsy:
-    // Realm is no longer a member of sasl_out_params_t
-    // why??
-
-    //    oparams->realm = NULL;
-    
     oparams->param_version = 0;
 
     *serverout = NULL;
@@ -2447,193 +2579,7 @@ srp_server_mech_step(void *conn_context,
 }
 
 
-static int
-ReadUserInfo(const sasl_utils_t *utils, char *authid, char *realm,
-	     const char *propName,
-	     mpz_t *N, mpz_t *g, char **salt, int *saltlen, mpz_t *v)
-{
-    char secret[8192];
-    size_t seclen;
-    int r;
-    char *data;
-    int datalen;
-
-    /* fetch the secret using the sasldb interface */
-    r = (*_sasldb_getdata)(utils, utils->conn,
-			   authid, realm, propName,
-			   secret, sizeof(secret), &seclen);
-
-    if (r) {
-      utils->seterror(utils->conn, 0, 
-		      "unable to get user's secret");
-      return r;
-    }
-
-    /* The secret data is encoded just like data we send over the wire. It has
-     *
-     *  salt - os 
-     *  N    - mpi
-     *  g    - mpi
-     *  v    - mpi
-     */
-    r = UnBuffer(secret, seclen, &data, &datalen);
-    if (r) {
-      utils->seterror(utils->conn, 0, 
-		      "Error UnBuffering secret data");
-      return r;
-    }
-
-    r = GetOS(utils, data, datalen, salt, saltlen, &data, &datalen);
-    if (r) {
-      utils->seterror(utils->conn, 0, 
-		      "Error parsing out salt");
-      return r;
-    }
-
-    r = GetMPI(data, datalen, N, &data, &datalen);
-    if (r) {
-      utils->seterror(utils->conn, 0, 
-		      "Error parsing out 'N'");
-      return r;
-    }
-
-    r = GetMPI(data, datalen, g, &data, &datalen);
-    if (r) {
-      utils->seterror(utils->conn, 0, 
-		      "Error parsing out 'g'");
-      return r;
-    }
-
-    r = GetMPI(data, datalen, v, &data, &datalen);
-    if (r) {
-      utils->seterror(utils->conn, 0, 
-		      "Error parsing out 'v'");
-      return r;
-    }
-
-    if (datalen != 0) {
-      utils->seterror(utils->conn, 0, 
-		      "Extra data in request step 2");
-      r = SASL_FAIL;
-    }
-
-    return r;
-}
-
-static int
-GetSaveInfo(context_t *text,
-	    const char *user,
-	    const char *pass, unsigned passlen,
-	    sasl_secret_t **sec)
-{
-    mpz_t N;
-    mpz_t g;
-    mpz_t v;
-    mpz_t x;
-    char salt[SRP_SALT_SIZE];
-    int saltlen;
-    int r;    
-    char *osSalt = NULL;
-    int osSaltlen;
-    char *mpiN = NULL;
-    int mpiNlen;
-    char *mpig = NULL;
-    int mpiglen;
-    char *mpiv = NULL;
-    int mpivlen;    
-    const char *buffer = NULL;
-    int bufferlen;
-
-    /* generate <salt> */    
-    saltlen = sizeof(salt);
-    text->utils->rand(text->utils->rpool, salt, saltlen);
-
-    r = generate_N_and_g(N, g);
-    if (r) {
-	text->utils->seterror(text->utils->conn, 0, 
-		      "Error calculating N and g");
-	return r;
-    }
-
-    r = CalculateX(text, salt, saltlen, user, pass, passlen, &x);
-    if (r) {
-	text->utils->seterror(text->utils->conn, 0, 
-			      "Error calculating 'x'");
-      return r;
-    }
-
-    /* v = g^x % N */
-    mpz_init(v);
-    mpz_powm (v, g, x, N);
-
-    /*
-     * We need to save:
-     *  salt
-     *  N
-     *  g
-     *  v
-     */
-
-    r = MakeOS(text->utils, salt, saltlen, &osSalt, &osSaltlen);
-    if (r) {
-	text->utils->seterror(text->utils->conn, 0, 
-			      "Error turning salt into 'os' string");
-	goto end;
-    }
-    
-    r = MakeMPI(text->utils, N, &mpiN, &mpiNlen);
-    if (r) {
-	text->utils->seterror(text->utils->conn, 0, 
-			      "Error turning 'N' into 'mpi' string");
-	goto end;
-    }
-
-    r = MakeMPI(text->utils, g, &mpig, &mpiglen);
-    if (r) {
-	text->utils->seterror(text->utils->conn, 0, 
-			      "Error turning 'g' into 'mpi' string");
-	goto end;
-    }
-    
-    r = MakeMPI(text->utils, v, &mpiv, &mpivlen);
-    if (r) {
-	text->utils->seterror(text->utils->conn, 0, 
-			      "Error turning 'N' into 'mpi' string");
-	goto end;
-    }
-
-    r = MakeBuffer(text->utils, osSalt, osSaltlen, mpiN, mpiNlen,
-		   mpig, mpiglen, mpiv, mpivlen, &buffer, &bufferlen);
-    if (r) {
-	text->utils->seterror(text->utils->conn, 0, 
-			      "Error putting all the data together in step 2");
-	goto end;
-    }    
-    
-    /* Put 'buffer' into sasl_secret_t */
-    *sec = text->utils->malloc(sizeof(sasl_secret_t)+bufferlen+1);
-    if (!*sec) {
-	r = SASL_NOMEM;
-	goto end;
-    }
-    memcpy((*sec)->data, buffer, bufferlen);
-    (*sec)->len = bufferlen;    
-
-    /* Clean everything up */
- end:
-    if (osSalt) text->utils->free(osSalt);
-    if (mpiN)   text->utils->free(mpiN);
-    if (mpig)   text->utils->free(mpig);
-    if (mpiv)   text->utils->free(mpiv);
-    if (buffer) text->utils->free((void *) buffer);
-    mpz_clear(N);
-    mpz_clear(g);
-    mpz_clear(v);
-    mpz_clear(x);
-
-    return r;   
-}
-
+#ifdef DO_SRP_SETPASS
 static int
 srp_setpass(context_t *text,
 	    sasl_server_params_t *sparams,
@@ -2645,7 +2591,8 @@ srp_setpass(context_t *text,
     int r;
     char *user = NULL;
     char *realm = NULL;
-    sasl_secret_t *sec;
+    sasl_secret_t *sec = NULL;
+    char propName[100];
 
     r = parseuser(sparams->utils, &user, &realm, sparams->user_realm,
 		       sparams->serverFQDN, userstr);
@@ -2658,17 +2605,86 @@ srp_setpass(context_t *text,
     if ((flags & SASL_SET_DISABLE) || pass == NULL) {
 	sec = NULL;
     } else {
-      r = GetSaveInfo(text, user, pass, passlen, &sec);
+	mpz_t N;
+	mpz_t g;
+	mpz_t v;
+	char *salt;
+	int saltlen;
+	char *mpiv = NULL;
+	int mpivlen;    
+	char *osSalt = NULL;
+	int osSaltlen;
+	const char *buffer = NULL;
+	int bufferlen;
+
+	r = generate_N_and_g(N, g);
 	if (r) {
-	  sparams->utils->seterror(sparams->utils->conn, 0, 
-				   "Error creating data for SRP to save");
-	  return r;
+	    text->utils->seterror(text->utils->conn, 0, 
+				  "Error calculating N and g");
+	    return r;
 	}
+
+	r = CalculateV(text, N, g, user, pass, passlen, &v, &salt, &saltlen);
+	if (r) {
+	    text->utils->seterror(text->utils->conn, 0, 
+				  "Error calculating v");
+	    return r;
+	}
+
+	/* The secret data is stored as suggested in RFC 2945:
+	 *
+	 *  v    - mpi
+	 *  salt - os 
+	 */
+
+	r = MakeMPI(text->utils, v, &mpiv, &mpivlen);
+	if (r) {
+	    text->utils->seterror(text->utils->conn, 0, 
+				  "Error turning 'N' into 'mpi' string");
+	    goto end;
+	}
+
+	r = MakeOS(text->utils, salt, saltlen, &osSalt, &osSaltlen);
+	if (r) {
+	    text->utils->seterror(text->utils->conn, 0, 
+				  "Error turning salt into 'os' string");
+	    goto end;
+	}
+
+	r = MakeBuffer(text->utils, mpiv, mpivlen, osSalt, osSaltlen,
+		       NULL, 0, NULL, 0, &buffer, &bufferlen);
+
+	if (r) {
+	    text->utils->seterror(text->utils->conn, 0, 
+				  "Error putting all the data together in step 2");
+	    goto end;
+	}
+    
+	/* Put 'buffer' into sasl_secret_t */
+	sec = text->utils->malloc(sizeof(sasl_secret_t)+bufferlen+1);
+	if (!sec) {
+	    r = SASL_NOMEM;
+	    goto end;
+	}
+	memcpy(sec->data, buffer, bufferlen);
+	sec->len = bufferlen;    
+
+	/* Clean everything up */
+ end:
+	if (mpiv)   text->utils->free(mpiv);
+	if (osSalt) text->utils->free(osSalt);
+	if (buffer) text->utils->free((void *) buffer);
+	mpz_clear(N);
+	mpz_clear(g);
+	mpz_clear(v);
+
+	if (r) return r;
     }
 
     /* do the store */
+    sprintf(propName, "cmusaslsecret%s", text->mech_name);
     r = (*_sasldb_putdata)(sparams->utils, sparams->utils->conn,
-			   user, realm, text->propName, sec->data, sec->len);
+			   user, realm, propName, sec->data, sec->len);
 
     if (r) {
       sparams->utils->seterror(sparams->utils->conn, 0, 
@@ -2701,7 +2717,7 @@ srp_sha1_setpass(void *glob_context __attribute__((unused)),
     context_t text;
 
     text.utils = sparams->utils;
-    text.propName = "SRP-SHA-160";
+    text.mech_name  = "SRP-SHA-160";
     text.HashLen    = srp_sha1Len(text.utils);
     text.HashInit   = srp_sha1Init;
     text.HashUpdate = srp_sha1Update;
@@ -2725,7 +2741,7 @@ srp_md5_setpass(void *glob_context __attribute__((unused)),
     context_t text;
 
     text.utils = sparams->utils;
-    text.propName = "SRP-MD5-120";
+    text.mech_name  = "SRP-MD5-120";
     text.HashLen    = srp_md5Len(text.utils);
     text.HashInit   = srp_md5Init;
     text.HashUpdate = srp_md5Update;
@@ -2734,7 +2750,7 @@ srp_md5_setpass(void *glob_context __attribute__((unused)),
     return srp_setpass(&text, sparams, userstr,
 		       pass, passlen, flags);
 }
-
+#endif /* DO_SRP_SETPASS */
 
 static const sasl_server_plug_t srp_server_plugins[] = 
 {
@@ -2749,7 +2765,11 @@ static const sasl_server_plug_t srp_server_plugins[] =
     &srp_server_mech_step,	/* mech_step */
     &srp_both_mech_dispose,	/* mech_dispose */
     &srp_both_mech_free,	/* mech_free */
+#if DO_SRP_SETPASS
     &srp_sha1_setpass,		/* setpass */
+#else
+    NULL,
+#endif
     NULL,			/* user_query */
     NULL,			/* idle */
     NULL,			/* mech avail */
@@ -2766,7 +2786,11 @@ static const sasl_server_plug_t srp_server_plugins[] =
     &srp_server_mech_step,	/* mech_step */
     &srp_both_mech_dispose,	/* mech_dispose */
     &srp_both_mech_free,	/* mech_free */
+#if DO_SRP_SETPASS
     &srp_md5_setpass,		/* setpass */
+#else
+    NULL,
+#endif
     NULL,			/* user_query */
     NULL,			/* idle */
     NULL,			/* mech avail */

@@ -1,11 +1,11 @@
 /* This is a proposed C API for support of SASL
  *
- *********************************IMPORTANT******************************
- * send email to chris.newman@innosoft.com and sasl-bugs@andrew.cmu.edu *
- * if you need to add new error codes, callback types, property values, *
- * etc.   It is important to keep the multiple implementations of this  *
- * API from diverging.                                                  *
- *********************************IMPORTANT******************************
+ *********************************IMPORTANT*******************************
+ * send email to chris.newman@innosoft.com and cyrus-bugs@andrew.cmu.edu *
+ * if you need to add new error codes, callback types, property values,  *
+ * etc.   It is important to keep the multiple implementations of this   *
+ * API from diverging.                                                   *
+ *********************************IMPORTANT*******************************
  *
  * Basic Type Summary:
  *  sasl_conn_t       Context for a SASL connection negotiation

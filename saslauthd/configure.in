@@ -107,10 +107,15 @@ AC_SUBST(LIB_PAM)
 AC_CHECK_LIB(resolv, inet_aton)
 
 AC_MSG_CHECKING(to include experimental LDAP support)
-AC_ARG_WITH(ldap, [  --with-ldap             use LDAP (experimental) [no] ],
+AC_ARG_WITH(ldap, [  --with-ldap=DIR         use LDAP (in DIR) (experimental) [no] ],
 	with_ldap=$withval,
 	with_ldap=no)
 AC_MSG_RESULT($with_ldap)
+
+if test -d $with_ldap; then
+    CPPFLAGS="$CPPFLAGS -I${with_ldap}/include"
+    LDFLAGS="$LDFLAGS -L${with_ldap}/lib"
+fi
 
 LDAP_LIBS=""
 if test "$with_ldap" != no; then

@@ -1,3 +1,6 @@
+2002-05-09  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/configure.in: --with-ldap now takes a path
+
 2002-05-08  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/acconfig.h, auth_ldap.c, configure.in, lak.c, lak.h:
 	  Misc compile/portability fixes (mostly header-related)

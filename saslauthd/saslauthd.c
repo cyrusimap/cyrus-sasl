@@ -78,7 +78,7 @@
  * END HISTORY */
 
 #ifdef __GNUC__
-#ident "$Id: saslauthd.c,v 1.7 2002/01/05 20:54:17 leg Exp $"
+#ident "$Id: saslauthd.c,v 1.8 2002/01/07 20:31:24 leg Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -745,9 +745,9 @@ do_request
     /* write the response out the socket */
     count = htons(strlen(reply));
 
-    iov[0].iov_base = &count;
+    iov[0].iov_base = (void *) &count;
     iov[0].iov_len = sizeof(count);
-    iov[1].iov_base = (void*) reply;
+    iov[1].iov_base = (void *) reply;
     iov[1].iov_len = strlen(reply);
 
     rc = retry_writev(out, iov, 2);

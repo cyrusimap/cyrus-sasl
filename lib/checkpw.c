@@ -52,9 +52,9 @@ SOFTWARE.
 #include <sys/types.h>
 #include <ctype.h>
 
-#ifndef SASL_MINIMAL_SERVER
+#ifdef HAVE_PWD_H
 #include <pwd.h>
-#endif /* SASL_MINIMAL_SERVER */
+#endif /* HAVE_PWD_H */
 #ifdef HAVE_CRYPT_H
 #ifndef HAVE_KRB
 #include <crypt.h>
@@ -207,9 +207,13 @@ static int use_key(char *user __attribute__((unused)),
  * 0 for failure.  On failure, 'reply' is filled in with a pointer to
  * the reason.
  */
-int _sasl_kerberos_verify_password(sasl_conn_t *conn,
-				   const char *user, const char *passwd,
-				   const char *service, const char **reply)
+static int kerberos_verify_password(sasl_conn_t *conn,
+				    const char *user, 
+				    const char *passwd,
+				    const char *service, 
+				    const char *user_realm 
+				               __attribute__((unused)), 
+				    const char **reply)
 {
     int result;
     des_cblock key;
@@ -285,7 +289,8 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
     }
     strcpy(instance, "*");
 
-    result = krb_rd_req(&authent, (char *) service, instance, 0L, &kdata, srvtab); 
+    result = krb_rd_req(&authent, (char *) service, instance, 0L, &kdata, 
+			srvtab); 
 
     memset(&authent, 0, sizeof(authent));
     memset(kdata.session, 0, sizeof(kdata.session));
@@ -311,15 +316,15 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
 
 #endif /* HAVE_KRB */
 
-#ifndef SASL_MINIMAL_SERVER
-
-int _sasl_shadow_verify_password(sasl_conn_t *conn __attribute__((unused)),
-				 const char *userid,
-				 const char *password,
-				 const char **reply __attribute__((unused)) )
-{
 #ifdef HAVE_GETSPNAM
-
+static int shadow_verify_password(sasl_conn_t *conn __attribute__((unused)),
+				  const char *userid,
+				  const char *password,
+				  const char *service __attribute__((unused)),
+				  const char *user_realm 
+				               __attribute__((unused)), 
+				  const char **reply)
+{
   char *salt;
   char *crypted;
   struct spwd *spwd;
@@ -338,17 +343,17 @@ int _sasl_shadow_verify_password(sasl_conn_t *conn __attribute__((unused)),
     return SASL_BADAUTH;	/* we lose. */
 
   return SASL_OK;
-
-#else  /* HAVE_GETSPNAM */
-  return SASL_FAIL;
-#endif
-
 }
+#endif /* HAVE_GETSPNAM */
 
-int _sasl_passwd_verify_password(sasl_conn_t *conn __attribute__((unused)),
-				 const char *userid,
-				 const char *password,
-				 const char **reply)
+#ifdef HAVE_GETPWNAM
+static int passwd_verify_password(sasl_conn_t *conn __attribute__((unused)),
+				  const char *userid,
+				  const char *password,
+				  const char *service __attribute__((unused)),
+				  const char *user_realm 
+				               __attribute__((unused)), 
+				  const char **reply)
 {
   struct passwd *pwd;
   char *salt;
@@ -371,7 +376,8 @@ int _sasl_passwd_verify_password(sasl_conn_t *conn __attribute__((unused)),
 
   return SASL_BADAUTH;
 }
-#endif /* SASL_MINIMAL_SERVER */
+#endif /* HAVE_GETPWNAM */
+
 #ifdef HAVE_PAM
 struct sasl_pam_data {
     const char *userid;
@@ -434,10 +440,12 @@ static struct pam_conv my_conv = {
     NULL			/* appdata_ptr */
 };
 
-int _sasl_PAM_verify_password(sasl_conn_t *conn __attribute__((unused)),
-			      const char *userid, const char *password,
-			      const char *service,
-			      const char **reply)
+static int pam_verify_password(sasl_conn_t *conn __attribute__((unused)),
+			       const char *userid, 
+			       const char *password,
+			       const char *service,
+			       const char *user_realm __attribute__((unused)), 
+			       const char **reply)
 {
     pam_handle_t *pamh;
     struct sasl_pam_data pd;
@@ -553,9 +561,12 @@ static int parseuser(char **user, char **realm, const char *user_realm,
     return ret;
 }
 
-int _sasl_sasldb_verify_password(sasl_conn_t *conn,
-				 const char *userstr, const char *passwd,
-				 const char *user_realm, const char **reply)
+static int sasldb_verify_password(sasl_conn_t *conn,
+				  const char *userstr,
+				  const char *passwd,
+				  const char *service __attribute__((unused)),
+				  const char *user_realm, 
+				  const char **reply)
 {
     sasl_server_getsecret_t *getsec;
     void *context;
@@ -564,26 +575,24 @@ int _sasl_sasldb_verify_password(sasl_conn_t *conn,
     sasl_secret_t *construct = NULL;
     char *userid, *realm;
 
-    VL(("Verifying password via sasldb\n"));
-
+    if (reply) { *reply = NULL; }
     if (!userstr || !passwd) {
 	return SASL_BADPARAM;
     }
-    if (reply) { *reply = NULL; }
     ret = parseuser(&userid, &realm, user_realm, conn->serverFQDN, userstr);
     if (ret != SASL_OK) {
-	VL(("Error parsing user\n"));
+	/* error parsing user */
 	return ret;
     }
     ret = _sasl_getcallback(conn, SASL_CB_SERVER_GETSECRET, &getsec, &context);
     if (ret != SASL_OK) {
-	VL(("Error getting getsecret callback\n"));
+	/* error getting getsecret callback */
 	return ret;
     }
 
     ret = getsec(context, "PLAIN", userid, realm, &secret);
     if (ret != SASL_OK) {
-	VL(("Error getting PLAIN secret for user %s in realm %s from db\n",userid, realm));
+	/* error getting PLAIN secret */
 	return ret;
     }
 
@@ -596,10 +605,10 @@ int _sasl_sasldb_verify_password(sasl_conn_t *conn,
     }
 
     if (!memcmp(secret->data, construct->data, secret->len)) {
-	VL(("Password verified!\n"));
+	/* password verified! */
 	ret = SASL_OK;
     } else {
-	VL(("Passwords do not match"));
+	/* passwords do not match */
 	ret = SASL_BADAUTH;
     }
 
@@ -681,7 +690,8 @@ int _sasl_sasldb_set_pass(sasl_conn_t *conn,
 	if (sec) {
 	    sasl_free_secret(&sec);
 	}
-    } else {
+    } else { 
+	/* SASL_SET_DISABLE specified */
 	sasl_server_putsecret_t *putsec;
 	void *context;
 
@@ -689,6 +699,10 @@ int _sasl_sasldb_set_pass(sasl_conn_t *conn,
 				&putsec, &context);
 	if (ret == SASL_OK) {
 	    ret = putsec(context, "PLAIN", userid, realm, NULL);
+	}
+	if (ret != SASL_OK) {
+	    _sasl_log(conn, SASL_LOG_ERR, NULL, ret, 0,
+		      "failed to disable account for %s: %z", userid);
 	}
     }
 
@@ -756,9 +770,13 @@ static int retry_writev(int fd, struct iovec *iov, int iovcnt)
 
 
 /* pwcheck daemon-authenticated login */
-int _sasl_pwcheck_verify_password(sasl_conn_t *conn,
-				  const char *userid, const char *passwd,
-				  const char **reply)
+static int pwcheck_verify_password(sasl_conn_t *conn,
+				   const char *userid, 
+				   const char *passwd,
+				   const char *service __attribute__((unused)),
+				   const char *user_realm 
+				               __attribute__((unused)), 
+				   const char **reply)
 {
     int s;
     struct sockaddr_un srvaddr;
@@ -813,3 +831,23 @@ int _sasl_pwcheck_verify_password(sasl_conn_t *conn,
 }
 
 #endif
+
+struct sasl_verify_password_s _sasl_verify_password[] = {
+    { "sasldb", &sasldb_verify_password },
+#ifdef HAVE_KRB
+    { "kerberos_v4", &kerberos_verify_password },
+#endif
+#ifdef HAVE_GETSPNAM
+    { "shadow", &shadow_verify_password },
+#endif
+#ifdef HAVE_GETPWNAM
+    { "passwd", &passwd_verify_password },
+#endif
+#ifdef HAVE_PAM
+    { "pam", &pam_verify_password },
+#endif
+#ifdef HAVE_PWCHECK
+    { "pwcheck", &pwcheck_verify_password },
+#endif
+    { NULL, NULL }
+};

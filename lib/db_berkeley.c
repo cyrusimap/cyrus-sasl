@@ -1,6 +1,6 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Tim Martin
- * $Id: db_berkeley.c,v 1.13 2000/05/08 17:40:12 leg Exp $
+ * $Id: db_berkeley.c,v 1.14 2000/05/08 17:56:21 leg Exp $
  */
 
 /* 
@@ -78,7 +78,7 @@ static int berkeleydb_open(sasl_conn_t *conn, int rdwr, DB **mbdb)
     }
 
     if (rdwr) flags = DB_CREATE;
-    else flags = DB_RDONLY
+    else flags = DB_RDONLY;
 #if DB_VERSION_MAJOR < 3
     ret = db_open(path, DB_HASH, flags, 0664, NULL, NULL, mbdb);
 #else /* DB_VERSION_MAJOR < 3 */

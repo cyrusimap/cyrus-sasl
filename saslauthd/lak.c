@@ -592,7 +592,7 @@ static int lak_connect(LAK *lak)
 
 	rc = ldap_initialize(&lak->ld, lak->conf->servers);
 	if (rc != LDAP_SUCCESS) {
-		syslog(LOG_ERR|LOG_AUTH, "ldap_initialize failed", lak->conf->servers);
+		syslog(LOG_ERR|LOG_AUTH, "ldap_initialize failed (%s)", lak->conf->servers);
 		return LAK_FAIL;
 	}
 

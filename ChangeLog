@@ -1,4 +1,7 @@
 2004-06-16  Ken Murchison <ken@oceana.com>
+	* lib/server.c: use better errors codes for mech_permitted()
+
+2004-06-16  Ken Murchison <ken@oceana.com>
 	* plugins/srp.c: don't used the parsed authid for calculations
 	  (Alexey Melnikov <alexey.melnikov@isode.com>)
 

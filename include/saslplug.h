@@ -821,7 +821,7 @@ typedef struct sasl_auxprop_plug {
 			   const char *user, unsigned ulen);
 
     /* name of the auxprop plugin */
-    void *name;
+    char *name;
 
     /* for additions which don't require a version upgrade; set to 0 */
     void (*spare_fptr1)();

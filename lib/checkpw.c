@@ -230,7 +230,8 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
     /* check to see if the user configured a srvtab */
     if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context) 
 	== SASL_OK) {
-	getopt(context, NULL, "srvtab", (const char **)&srvtab, NULL);
+	getopt(context, NULL, "srvtab", (const char **) &srvtab, NULL);
+
 	if (!srvtab) srvtab = "";
     }
 
@@ -241,7 +242,7 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
     krb_set_tkt_string(tfname);
 
     /* First try Kerberos string-to-key */
-    des_string_to_key((char *)passwd, &key);
+    des_string_to_key((char *) passwd, key);
     
     result = krb_get_in_tkt((char *)user, "", realm,
 			    "krbtgt", realm, 1, use_key, NULL, &key);
@@ -267,7 +268,9 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
     /* Check validity of returned ticket */
     gethostname(hostname, sizeof(hostname));
     strcpy(phost, krb_get_phost(hostname));
-    result = krb_mk_req(&authent, (char *)service, phost, realm, 0);
+
+    result = krb_mk_req(&authent, (char *) service, phost, realm, 0);
+
     if (result != 0) {
 	memset(&authent, 0, sizeof(authent));
 	dest_tkt();
@@ -275,7 +278,9 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
 	return SASL_FAIL;
     }
     strcpy(instance, "*");
-    result = krb_rd_req(&authent, (char *)service, instance, 0L, &kdata, srvtab); 
+
+    result = krb_rd_req(&authent, (char *) service, instance, 0L, &kdata, srvtab); 
+
     memset(&authent, 0, sizeof(authent));
     memset(kdata.session, 0, sizeof(kdata.session));
     if (result != 0 || strcmp(kdata.pname, user) != 0 || kdata.pinst[0] ||

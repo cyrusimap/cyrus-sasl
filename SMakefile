@@ -33,7 +33,7 @@ case `uname` in
 
   SunOS) CC="gcc"
 	 CFLAGS="${CFLAGS} -O2 -g"
-	 LNEXTRA=" --with-javabase=/usr/java/"
+	 LNEXTRA=" --with-javabase=/usr/java/ --with-ipctype=doors"
 #	 CC="cc"
 #	 if test "${WASH_CYRUS_DEBUG}" = "t"; then
 #	   CFLAGS="${CFLAGS} -xs -g"

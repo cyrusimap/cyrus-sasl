@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Options for Cyrus SASL</title>
-<!-- $Id: options.html,v 1.20 2003/09/02 16:04:52 ken3 Exp $ -->
+<!-- $Id: options.html,v 1.21 2003/09/10 18:35:33 mnigrosh Exp $ -->
 </HEAD>
 <BODY>
 <h1>Options for Cyrus SASL</h1>
@@ -117,6 +117,7 @@ dependant)</TD>
 <DT>sql_hostnames <DD> comma separated host[:port] list
 <DT>sql_database <DD>database to connect to
 <DT>sql_statement <DD> select statement to use
+<DT>sql_insert <DD> insert statement to use
 <DT>sql_verbose <DD>if set, the plugin will print select statement
 to syslog)
 <DT>sql_usessl <DD>if set, the plugin will make a secured connection to
@@ -139,6 +140,22 @@ respectively. For example:
      select userPassword from user_table where username = 'bovik' and realm = 'madoka.surf.org.uk'
 </pre>
 
+<p>Similarly, the insert statment in the option <tt>sql_insert</tt> is
+parsed for place holders, with the addition of <tt>%i</tt>, which 
+represents the value of the property requested.
+For example:
+
+<pre>
+    sql_insert: INSERT INTO user_table(username, realm, password) VALUES ('%u', '%r', '%i')
+</pre>
+
+   would generate the following statement to SQL for user "bovik" in
+   realm "madoka.surf.org.uk" with password "wert":
+
+<pre>
+     INSERT INTO user_table(username, realm, password) VALUES ('bovik', 'madoka.surf.org.uk', 'wert');
+
+</pre>
 <font color=red>DO NOT put quotes around the statement but do around
 the arguments %r, %u, etc.</font>
 
@@ -153,6 +170,11 @@ the arguments %r, %u, etc.</font>
 <DT><tt>%r</tt> <DD>the realm which could be the kerbros realm, the
      FQDN of the computer the sasl app is on or what ever is after the
      @ on a username.  (read the realm documentation)
+</DL>
+
+<DT><tt>%i</tt> <DD>the value of the property requested, which could be
+     anything, depending on the property itself, but is generally a 
+     password for an insert statement
 </DL>
 
 <p>All substitutions do not have to be used. For instance, 

@@ -214,7 +214,7 @@ sasl_gss_integrity_encode(void *context, const char *input, unsigned inputlen,
   return sasl_gss_encode(context,input,inputlen,output,outputlen,0);
 }
 
-#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+#define myMIN(a,b) (((a) < (b)) ? (a) : (b))
 
 static int 
 sasl_gss_decode(void *context, const char *input, unsigned inputlen,
@@ -232,7 +232,7 @@ sasl_gss_decode(void *context, const char *input, unsigned inputlen,
     /* first we need to extract a packet */
     if (text->needsize > 0) {
 	/* how long is it? */
-	int tocopy = MIN(text->needsize, inputlen);
+	int tocopy = myMIN(text->needsize, inputlen);
 
 	memcpy(text->sizebuf + 4 - text->needsize, input, tocopy);
 	text->needsize -= tocopy;
@@ -535,6 +535,7 @@ sasl_gss_server_step (void *conn_context,
       {
 	unsigned char sasldata[4];
 	gss_buffer_desc name_token;
+	int limitssf, requiressf;
 	
 	DEBUG((stderr,"sasl_gss_server_step: SSFCAP\n"));
 
@@ -558,7 +559,30 @@ sasl_gss_server_step (void *conn_context,
 
 	oparams->authid = (char *)name_token.value;
 
-	sasldata[0] = 1 | 2 | 4;
+	/* we have to decide what sort of encryption/integrity/etc.,
+	   we support */
+	if (params->props.max_ssf < params->external_ssf) {
+	    limitssf = 0;
+	} else {
+	    limitssf = params->props.max_ssf - params->external_ssf;
+	}
+	if (params->props.min_ssf < params->external_ssf) {
+	    requiressf = 0;
+	} else {
+	    requiressf = params->props.min_ssf - params->external_ssf;
+	}
+
+	sasldata[0] = 0;
+	if (requiressf == 0) {
+	    sasldata[0] |= 1; /* authentication */
+	}
+	if (requiressf <= 1 && limitssf >= 1) {
+	    sasldata[0] |= 2;
+	}
+	if (requiressf <= 56 && limitssf >= 56) {
+	    sasldata[0] |= 4;
+	}
+
 	sasldata[1] = 0x0F; /* XXX use something non-artificial */
 	sasldata[2] = 0xFF;
 	sasldata[3] = 0xFF;

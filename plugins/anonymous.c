@@ -46,9 +46,14 @@
 #include <saslplug.h>
 
 #include <stdio.h>
+#include <string.h> 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+
+#ifdef macintosh 
+#include <sasl_anonymous_plugin_decl.h> 
+#endif 
 
 #ifdef WIN32
 /* This must be after sasl.h, saslutil.h */

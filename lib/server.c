@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.86 2001/06/20 10:07:55 n3liw Exp $
+ * $Id: server.c,v 1.87 2001/06/20 11:45:17 n3liw Exp $
  */
 
 /* 
@@ -50,7 +50,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
-$ifndef MACPORT
+#ifndef MACPORT
 #include <sys/types.h>
 #include <sys/stat.h>
 #endif MACPORT

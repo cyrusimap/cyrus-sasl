@@ -27,8 +27,8 @@ SUBDIRS=include lib plugins utils doc man @DIRS@
 
 dist-hook:
 	@for dir in config cmulocal sample win32; do		\
-	  if test ! -d $(distdir)/$dir; then			\
-	    (set -x; cp -r -p $(top_srcdir)/$dir $(distdir));	\
+	  if test ! -d $(distdir)/$$dir; then			\
+	    (set -x; cp -r -p $(top_srcdir)/$$dir $(distdir));	\
 	  fi;							\
 	done
 	@find $(distdir) -name CVS -print | xargs -t rm -rf

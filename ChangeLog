@@ -11,6 +11,7 @@
 	  (based on patch from Leena Heino <Leena.Heino@uta.fi>)
 	* config/sasldb.m4: Actually use results of Berkeley DB tests
 	  (Leena Heino <Leena.Heino@uta.fi>)
+	* Ready for 2.1.12
 
 2003-01-31  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* Ready for 2.1.11

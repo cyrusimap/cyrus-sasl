@@ -1,3 +1,8 @@
+New in 2.1.12
+-------------
+* Distribute in Solaris tar (not GNU tar format)
+* Fix a number of build/configure related issues.
+
 New in 2.1.11
 -------------
 * Add the fastbind auth method to the saslauthd LDAP module.

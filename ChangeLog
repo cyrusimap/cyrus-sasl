@@ -1,10 +1,15 @@
+2003-07-25  Ken Murchison <ken@oceana.com>
+	* lib/server.c, plugins/login.c, plugins/plain.c: better handling
+	  of auto_transition -- doesn't try to transition from auxprop to
+	  auxprop
+
 2003-07-25  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* cmulocal/sasl2.m4, saslauthd/mechanisms.h: Improved
 	  GSSAPI detection (don't default to MIT, require HAVE_KRB5_H
 	  for the kerberos5 saslauthd module)
 	  (Rainer Orth <ro@TechFak.Uni-Bielefeld.DE>)
 
-2003-07-21  Ken Murchison <ken@oceana.com>
+2003-07-24  Ken Murchison <ken@oceana.com>
 	* plugins/srp.c: updated security layer code to be closer to draft -08
 
 2003-07-23  Rob Siemborksi <rjs3@andrew.cmu.edu>

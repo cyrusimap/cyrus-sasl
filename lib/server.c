@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.125 2003/07/17 19:22:27 ken3 Exp $
+ * $Id: server.c,v 1.126 2003/07/25 16:11:14 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -762,6 +762,9 @@ _sasl_transition(sasl_conn_t * conn,
     if (flags || *dotrans == '1' || *dotrans == 'y' ||
 	(*dotrans == 'o' && dotrans[1] == 'n') || *dotrans == 't') {
 	/* ok, it's on! */
+	_sasl_log(conn, SASL_LOG_NOTE, 
+		  "transitioning user %s to auxprop database",
+		  conn->oparams.authid);
 	result = sasl_setpass(conn,
 			      conn->oparams.authid,
 			      pass,
@@ -1524,9 +1527,9 @@ static int is_mech(const char *t, const char *m)
 /* returns OK if it's valid */
 static int _sasl_checkpass(sasl_conn_t *conn,
 			   const char *user,
-			   unsigned userlen __attribute__((unused)),
+			   unsigned userlen,
 			   const char *pass,
-			   unsigned passlen __attribute__((unused)))
+			   unsigned passlen)
 {
     sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;
     int result;
@@ -1537,11 +1540,14 @@ static int _sasl_checkpass(sasl_conn_t *conn,
     struct sasl_verify_password_s *v;
     const char *service = conn->service;
 
+    if (!userlen) userlen = strlen(user);
+    if (!passlen) passlen = strlen(pass);
+
     /* call userdb callback function, if available */
     result = _sasl_getcallback(conn, SASL_CB_SERVER_USERDB_CHECKPASS,
 			       &checkpass_cb, &context);
     if(result == SASL_OK && checkpass_cb) {
-	result = checkpass_cb(conn, context, user, pass, strlen(pass),
+	result = checkpass_cb(conn, context, user, pass, passlen,
 			      s_conn->sparams->propctx);
 	if(result == SASL_OK)
 	    return SASL_OK;
@@ -1571,6 +1577,9 @@ static int _sasl_checkpass(sasl_conn_t *conn,
 	    while (*mech && !isspace((int) *mech)) mech++;
 	    while (*mech && isspace((int) *mech)) mech++;
 	}
+	else if (!is_mech(mech, "auxprop")) {
+	    _sasl_transition(conn, pass, passlen);
+	}
     }
 
     if (result == SASL_NOMECH) {
@@ -1599,7 +1608,7 @@ static int _sasl_checkpass(sasl_conn_t *conn,
  */
 int sasl_checkpass(sasl_conn_t *conn,
 		   const char *user,
-		   unsigned userlen __attribute__((unused)),
+		   unsigned userlen,
 		   const char *pass,
 		   unsigned passlen)
 {
@@ -1618,17 +1627,14 @@ int sasl_checkpass(sasl_conn_t *conn,
 	PARAMERROR(conn);
 
     /* canonicalize the username */
-    result = _sasl_canon_user(conn, user, 0,
+    result = _sasl_canon_user(conn, user, userlen,
 			      SASL_CU_AUTHID | SASL_CU_AUTHZID,
 			      &(conn->oparams));
     if(result != SASL_OK) RETURN(conn, result);
     user = conn->oparams.user;
 
     /* Check the password */
-    result = _sasl_checkpass(conn, user, strlen(user), pass, strlen(pass));
-
-    if (result == SASL_OK)      
-	result = _sasl_transition(conn, pass, passlen);
+    result = _sasl_checkpass(conn, user, userlen, pass, passlen);
 
     RETURN(conn,result);
 }

@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.117 2002/04/27 14:55:27 ken3 Exp $
+ * $Id: digestmd5.c,v 1.118 2002/04/28 05:02:29 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1882,7 +1882,8 @@ digestmd5_both_mech_dispose(void *conn_context, const sasl_utils_t * utils)
   if (text->nonce) utils->free(text->nonce);
   if (text->response_value) utils->free(text->response_value);
 
-  if (text->realm) utils->free(text->realm);
+  /* no need to free realm for CLIENT, it's just the interaction result */
+  if ((text->i_am == SERVER) && text->realm) utils->free(text->realm);
   if (text->realm_chal) utils->free(text->realm_chal);
   /* no need to free authid, it's just the interaction result */
   /* no need to free userid, it's just the interaction result */
@@ -2720,69 +2721,6 @@ htoi(unsigned char *hexin, int *res)
   return SASL_OK;
 }
 
-static int
-c_get_realm(sasl_client_params_t * params,
-	    char ** myrealm,
-	    char ** realms,
-	    sasl_interact_t ** prompt_need)
-{
-    int result;
-    sasl_getrealm_t *getrealm_cb;
-    void *getrealm_context;
-    sasl_interact_t *prompt;
-    char *tmp;
-
-    prompt = _plug_find_prompt(prompt_need, SASL_CB_GETREALM);
-    if (prompt != NULL) {
-	if (!prompt->result) {
-	    return SASL_BADPARAM;
-	}
-
-	/* copy it */
-	*myrealm=params->utils->malloc(prompt->len+1);
-	if ((*myrealm)==NULL) return SASL_NOMEM;
-
-	strncpy(*myrealm, prompt->result, prompt->len+1);
-	return SASL_OK;
-    }
-
-    /* ok, let's use a callback? */
-    result = params->utils->getcallback(params->utils->conn,
-					SASL_CB_GETREALM,
-					&getrealm_cb,
-					&getrealm_context);
-    switch (result) {
-    case SASL_INTERACT:
-	return SASL_INTERACT;
-    case SASL_OK:
-	if (!getrealm_cb)
-	    return SASL_FAIL;
-	result = getrealm_cb(getrealm_context,
-			     SASL_CB_GETREALM,
-			     (const char **) realms,
-			     (const char **) &tmp);
-	if (result != SASL_OK) {
-	    return result;
-	}
-	if (!tmp) return SASL_BADPARAM;
-
-	*myrealm = params->utils->malloc(strlen(tmp)+1);
-	if ((*myrealm) == NULL) return SASL_NOMEM;
-	strcpy(*myrealm, tmp);
-	break;
-    default:
-       /* Fake the realm, if we can. */
-       if(params->serverFQDN) {
-           *myrealm = params->utils->malloc(strlen(params->serverFQDN) + 1);
-           if(!*myrealm) return SASL_NOMEM;
-           strcpy(*myrealm, params->serverFQDN);
-           result = SASL_OK;
-       }
-       break;
-    }
-    return result;
-}
-
 
 static int
 digestmd5_client_mech_step(void *conn_context,
@@ -3031,7 +2969,7 @@ digestmd5_client_mech_step(void *conn_context,
 
     /* try to get the authid */
     if (text->authid == NULL) {
-      auth_result = _plug_get_authid(params,
+      auth_result = _plug_get_authid(params->utils,
 				     (const char **) &text->authid,
 				     prompt_need);
 
@@ -3044,7 +2982,7 @@ digestmd5_client_mech_step(void *conn_context,
 
     /* try to get the userid */
     if (text->userid == NULL) {
-      user_result = _plug_get_userid(params,
+      user_result = _plug_get_userid(params->utils,
 				     (const char **) &text->userid,
 				     prompt_need);
 
@@ -3057,8 +2995,8 @@ digestmd5_client_mech_step(void *conn_context,
 
     /* try to get the password */
     if (text->password == NULL) {
-      pass_result = _plug_get_secret(params, &text->password,
-				     &text->free_password, prompt_need);
+      pass_result = _plug_get_password(params->utils, &text->password,
+				       &text->free_password, prompt_need);
       if ((pass_result != SASL_OK) && (pass_result != SASL_INTERACT))
       {
 	result = pass_result;
@@ -3068,19 +3006,21 @@ digestmd5_client_mech_step(void *conn_context,
     /* try to get the realm, if needed */
     if (nrealm == 1 && text->realm == NULL) {
       /* only one choice! */
-      if (_plug_strdup(params->utils, realm[0], 
-			&text->realm, NULL) == SASL_NOMEM) {
-	result = SASL_NOMEM;
-	goto FreeAllocatedMem;
-      }
+	text->realm = realm[0];
     }
     if (text->realm == NULL) {
-	realm_result = c_get_realm(params, &text->realm, realm,
-				   prompt_need);
+	realm_result = _plug_get_realm(params->utils, (const char **) realm,
+				       (const char **) &text->realm,
+				       prompt_need);
 
 	if ((realm_result != SASL_OK) && (realm_result != SASL_INTERACT)) {
-	    result = realm_result;
-	    goto FreeAllocatedMem;
+	    /* Fake the realm, if we can. */
+	    if (params->serverFQDN) {
+		text->realm = (char *) params->serverFQDN;
+	    } else {
+		result = realm_result;
+		goto FreeAllocatedMem;
+	    }
 	}
 	/* if realm_result == SASL_OK, text->realm has been filled in */
     }
@@ -3136,6 +3076,9 @@ digestmd5_client_mech_step(void *conn_context,
 	  
 	  params->utils->free(realm);
       }
+
+      /* need to NULL the realm for the next pass */
+      text->realm = NULL;
 
       if (result != SASL_OK)
 	return result;

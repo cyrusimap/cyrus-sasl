@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.15 2002/04/27 05:41:15 ken3 Exp $
+ * $Id: otp.c,v 1.16 2002/04/28 05:02:32 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -180,52 +180,6 @@ static int otp_client_mech_new(void *glob_context __attribute__((unused)),
 
     return SASL_OK;
 }
-
-static int get_otpassword(sasl_client_params_t *params,
-			  const char *challenge,
-			  const char **password,
-			  sasl_interact_t **prompt_need)
-{
-
-  int result;
-  sasl_chalprompt_t *getecho_cb;
-  void *getecho_context;
-  sasl_interact_t *prompt;
-
-  /* see if we were given the password in the prompt */
-  prompt=_plug_find_prompt(prompt_need,SASL_CB_ECHOPROMPT);
-  if (prompt!=NULL)
-  {
-      /* We prompted, and got.*/
-	
-      if (! prompt->result) {
-	  SETERROR(params->utils, "OTP: Unexpectedly missing a prompt result");
-	  return SASL_FAIL;
-      }
-      
-      *password = prompt->result;
-
-      return SASL_OK;
-  }
-
-
-  /* Try to get the callback... */
-  result = params->utils->getcallback(params->utils->conn,
-				      SASL_CB_ECHOPROMPT,
-				      &getecho_cb,
-				      &getecho_context);
-
-  if (result == SASL_OK && getecho_cb)
-    result = getecho_cb(getecho_context,
-			SASL_CB_ECHOPROMPT,
-			challenge,
-			"Please enter your one-time password", NULL,
-			password,
-			NULL);
-
-  return result;
-}
-
 
 /* Convert the binary data into ASCII hex */
 void bin2hex(unsigned char *bin, int binlen, char *hex)
@@ -437,7 +391,7 @@ static int otp_client_mech_step(void *conn_context,
     /* try to get the authid */    
     if (oparams->authid==NULL)
     {
-      auth_result=_plug_get_authid(params, &authid, prompt_need);
+      auth_result=_plug_get_authid(params->utils, &authid, prompt_need);
 
       if ((auth_result!=SASL_OK) && (auth_result!=SASL_INTERACT))
 	return auth_result;
@@ -446,7 +400,7 @@ static int otp_client_mech_step(void *conn_context,
     /* try to get the userid */
     if (oparams->user==NULL)
     {
-      user_result=_plug_get_userid(params, &user, prompt_need);
+      user_result=_plug_get_userid(params->utils, &user, prompt_need);
 
       /* Fallback to authid */
       if ((user_result!=SASL_OK) && (user_result!=SASL_INTERACT)) {
@@ -527,15 +481,17 @@ static int otp_client_mech_step(void *conn_context,
     challenge[serverinlen] = '\0';
 
     /* try to get the one-time password */
-    echo_result=get_otpassword(params, challenge,
-			       (const char **) &response, prompt_need);
+    echo_result=_plug_challenge_prompt(params->utils, SASL_CB_ECHOPROMPT,
+				       challenge,
+				       "Please enter your one-time password",
+				       (const char **) &response, prompt_need);
 
     if ((echo_result!=SASL_OK) && (echo_result!=SASL_INTERACT)) {
 	/*
 	 * try to get the secret pass-phrase
 	 */
-	pass_result=_plug_get_secret(params, &text->password,
-				     &text->free_password, prompt_need);
+	pass_result=_plug_get_password(params->utils, &text->password,
+				       &text->free_password, prompt_need);
       
 	if ((pass_result!=SASL_OK) && (pass_result!=SASL_INTERACT))
 	    return pass_result;

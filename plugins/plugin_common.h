@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.h,v 1.6 2002/04/27 05:41:15 ken3 Exp $
+ * $Id: plugin_common.h,v 1.7 2002/04/28 05:02:33 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -127,14 +127,22 @@ void _plug_free_secret(const sasl_utils_t *utils, sasl_secret_t **secret);
 sasl_interact_t *_plug_find_prompt(sasl_interact_t **promptlist,
 				   unsigned int lookingfor);
 
-#define _plug_get_authid(params, result, prompt_need) \
-	_plug_get_simple(params, SASL_CB_AUTHNAME, result, prompt_need)
-#define _plug_get_userid(params, result, prompt_need) \
-	_plug_get_simple(params, SASL_CB_USER, result, prompt_need)
-int _plug_get_simple(sasl_client_params_t *params, unsigned int id,
+#define _plug_get_userid(utils, result, prompt_need) \
+	_plug_get_simple(utils, SASL_CB_USER, result, prompt_need)
+#define _plug_get_authid(utils, result, prompt_need) \
+	_plug_get_simple(utils, SASL_CB_AUTHNAME, result, prompt_need)
+int _plug_get_simple(const sasl_utils_t *utils, unsigned int id,
 		     const char **result, sasl_interact_t **prompt_need);
-int _plug_get_secret(sasl_client_params_t *params, sasl_secret_t **secret,
-		     unsigned int *iscopy, sasl_interact_t **prompt_need);
+
+int _plug_get_password(const sasl_utils_t *utils, sasl_secret_t **secret,
+		       unsigned int *iscopy, sasl_interact_t **prompt_need);
+
+int _plug_challenge_prompt(const sasl_utils_t *utils, unsigned int id,
+			   const char *challenge, const char *promptstr,
+			   const char **result, sasl_interact_t **prompt_need);
+
+int _plug_get_realm(const sasl_utils_t *utils, const char **availrealms,
+		    const char **realm, sasl_interact_t **prompt_need);
 
 int _plug_make_prompts(const sasl_utils_t *utils,
 		       sasl_interact_t **prompts_res,

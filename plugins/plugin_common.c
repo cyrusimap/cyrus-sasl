@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.c,v 1.5 2002/04/27 05:41:15 ken3 Exp $
+ * $Id: plugin_common.c,v 1.6 2002/04/28 05:02:33 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -316,35 +316,39 @@ sasl_interact_t *_plug_find_prompt(sasl_interact_t **promptlist,
 /*
  * Retrieve the simple string given by the callback id.
  */
-int _plug_get_simple(sasl_client_params_t *params, unsigned int id,
+int _plug_get_simple(const sasl_utils_t *utils, unsigned int id,
 		     const char **result, sasl_interact_t **prompt_need)
 {
 
     int ret;
-    sasl_getsimple_t *getsimple_cb;
-    void *getsimple_context;
+    sasl_getsimple_t *simple_cb;
+    void *simple_context;
     sasl_interact_t *prompt;
 
     /* see if we were given the result in the prompt */
-    prompt=_plug_find_prompt(prompt_need, id);
+    prompt = _plug_find_prompt(prompt_need, id);
     if (prompt != NULL) {
-	    if (!prompt->result) {
-		return SASL_BADPARAM;
-	    }
-
-	    *result = prompt->result;
-	    return SASL_OK;
+	/* We prompted, and got.*/
+	
+	if (!prompt->result) {
+	    SETERROR(utils, "Unexpectedly missing a prompt result");
+	    return SASL_BADPARAM;
 	}
+
+	*result = prompt->result;
+	return SASL_OK;
+    }
   
     /* Try to get the callback... */
-    ret = params->utils->getcallback(params->utils->conn, id,
-				     &getsimple_cb, &getsimple_context);
-    if (ret == SASL_OK && getsimple_cb) {
-	ret = getsimple_cb(getsimple_context, id, result, NULL);
+    ret = utils->getcallback(utils->conn, id, &simple_cb, &simple_context);
+
+    if (ret == SASL_OK && simple_cb) {
+	ret = simple_cb(simple_context, id, result, NULL);
 	if (ret != SASL_OK)
 	    return ret;
+
 	if (!*result) {
-	    PARAMERROR( params->utils );
+	    PARAMERROR(utils);
 	    return SASL_BADPARAM;
 	}
     }
@@ -353,40 +357,39 @@ int _plug_get_simple(sasl_client_params_t *params, unsigned int id,
 }
 
 /*
- * Retrieve a user secret.
+ * Retrieve the user password.
  */
-int _plug_get_secret(sasl_client_params_t *params, sasl_secret_t **secret,
-		     unsigned int *iscopy, sasl_interact_t **prompt_need)
+int _plug_get_password(const sasl_utils_t *utils, sasl_secret_t **password,
+		       unsigned int *iscopy, sasl_interact_t **prompt_need)
 {
     int ret;
-    sasl_getsecret_t *getsecret_cb;
-    void *getsecret_context;
+    sasl_getsecret_t *pass_cb;
+    void *pass_context;
     sasl_interact_t *prompt;
 
     *iscopy = 0;
 
     /* see if we were given the password in the prompt */
-    prompt=_plug_find_prompt(prompt_need,SASL_CB_PASS);
-    if (prompt!=NULL) {
+    prompt = _plug_find_prompt(prompt_need, SASL_CB_PASS);
+    if (prompt != NULL) {
 	/* We prompted, and got.*/
 	
-	if (! prompt->result) {
-	    SETERROR(params->utils, "Unexpectedly missing a prompt result");
-	    return SASL_FAIL;
+	if (!prompt->result) {
+	    SETERROR(utils, "Unexpectedly missing a prompt result");
+	    return SASL_BADPARAM;
 	}
       
 	/* copy what we got into a secret_t */
-	*secret =
-	    (sasl_secret_t *) params->utils->malloc(sizeof(sasl_secret_t)+
-						    prompt->len+1);
-	if (!*secret) {
-	    MEMERROR( params->utils );
+	*password = (sasl_secret_t *) utils->malloc(sizeof(sasl_secret_t) +
+						    prompt->len + 1);
+	if (!*password) {
+	    MEMERROR(utils);
 	    return SASL_NOMEM;
 	}
       
-	(*secret)->len=prompt->len;
-	memcpy((*secret)->data, prompt->result, prompt->len);
-	(*secret)->data[(*secret)->len]=0;
+	(*password)->len=prompt->len;
+	memcpy((*password)->data, prompt->result, prompt->len);
+	(*password)->data[(*password)->len]=0;
 
 	*iscopy = 1;
 
@@ -394,20 +397,108 @@ int _plug_get_secret(sasl_client_params_t *params, sasl_secret_t **secret,
     }
 
     /* Try to get the callback... */
-    ret = params->utils->getcallback(params->utils->conn, SASL_CB_PASS,
-				   &getsecret_cb, &getsecret_context);
+    ret = utils->getcallback(utils->conn, SASL_CB_PASS,
+			     &pass_cb, &pass_context);
 
-    if (ret == SASL_OK && getsecret_cb) {
-	ret = getsecret_cb(params->utils->conn, getsecret_context,
-			 SASL_CB_PASS, secret);
+    if (ret == SASL_OK && pass_cb) {
+	ret = pass_cb(utils->conn, pass_context, SASL_CB_PASS, password);
 	if (ret != SASL_OK)
 	    return ret;
-	if (!*secret) {
-	    PARAMERROR( params->utils );
+
+	if (!*password) {
+	    PARAMERROR(utils);
 	    return SASL_BADPARAM;
 	}
     }
 
+    return ret;
+}
+
+/*
+ * Retrieve the string given by the challenge prompt id.
+ */
+int _plug_challenge_prompt(const sasl_utils_t *utils, unsigned int id,
+			   const char *challenge, const char *promptstr,
+			   const char **result, sasl_interact_t **prompt_need)
+{
+    int ret;
+    sasl_chalprompt_t *chalprompt_cb;
+    void *chalprompt_context;
+    sasl_interact_t *prompt;
+
+    /* see if we were given the password in the prompt */
+    prompt = _plug_find_prompt(prompt_need, id);
+    if (prompt != NULL) {
+	/* We prompted, and got.*/
+	
+	if (!prompt->result) {
+	    SETERROR(utils, "Unexpectedly missing a prompt result");
+	    return SASL_BADPARAM;
+	}
+      
+	*result = prompt->result;
+	return SASL_OK;
+    }
+
+    /* Try to get the callback... */
+    ret = utils->getcallback(utils->conn, id,
+			     &chalprompt_cb, &chalprompt_context);
+
+    if (ret == SASL_OK && chalprompt_cb) {
+	ret = chalprompt_cb(chalprompt_context, id,
+			    challenge, promptstr, NULL, result, NULL);
+	if (ret != SASL_OK)
+	    return ret;
+
+	if (!*result) {
+	    PARAMERROR(utils);
+	    return SASL_BADPARAM;
+	}
+    }
+
+    return ret;
+}
+
+/*
+ * Retrieve the client realm.
+ */
+int _plug_get_realm(const sasl_utils_t *utils, const char **availrealms,
+		    const char **realm, sasl_interact_t **prompt_need)
+{
+    int ret;
+    sasl_getrealm_t *realm_cb;
+    void *realm_context;
+    sasl_interact_t *prompt;
+
+    /* see if we were given the result in the prompt */
+    prompt = _plug_find_prompt(prompt_need, SASL_CB_GETREALM);
+    if (prompt != NULL) {
+	/* We prompted, and got.*/
+	
+	if (!prompt->result) {
+	    SETERROR(utils, "Unexpectedly missing a prompt result");
+	    return SASL_BADPARAM;
+	}
+
+	*realm = prompt->result;
+	return SASL_OK;
+    }
+
+    /* Try to get the callback... */
+    ret = utils->getcallback(utils->conn, SASL_CB_GETREALM,
+			     &realm_cb, &realm_context);
+
+    if (ret == SASL_OK && realm_cb) {
+	ret = realm_cb(realm_context, SASL_CB_GETREALM, availrealms, realm);
+	if (ret != SASL_OK)
+	    return ret;
+
+	if (!*realm) {
+	    PARAMERROR(utils);
+	    return SASL_BADPARAM;
+	}
+    }
+  
     return ret;
 }
 

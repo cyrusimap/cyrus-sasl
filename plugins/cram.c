@@ -1,7 +1,7 @@
 /* CRAM-MD5 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: cram.c,v 1.69 2002/04/27 05:41:13 ken3 Exp $
+ * $Id: cram.c,v 1.70 2002/04/28 05:02:28 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -610,7 +610,7 @@ static int crammd5_client_mech_step(void *conn_context,
     /* try to get the userid */
     if (text->authid==NULL)
     {
-      auth_result=_plug_get_authid(params, &text->authid, prompt_need);
+      auth_result=_plug_get_authid(params->utils, &text->authid, prompt_need);
 
       if ((auth_result!=SASL_OK) && (auth_result!=SASL_INTERACT))
 	return auth_result;
@@ -619,8 +619,8 @@ static int crammd5_client_mech_step(void *conn_context,
     /* try to get the password */
     if (text->password==NULL)
     {
-      pass_result=_plug_get_secret(params, &text->password,
-				   &text->free_password, prompt_need);
+      pass_result=_plug_get_password(params->utils, &text->password,
+				     &text->free_password, prompt_need);
       
       if ((pass_result!=SASL_OK) && (pass_result!=SASL_INTERACT))
 	return pass_result;

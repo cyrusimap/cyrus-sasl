@@ -1,7 +1,7 @@
 /* Plain SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: plain.c,v 1.53 2002/04/27 05:41:15 ken3 Exp $
+ * $Id: plain.c,v 1.54 2002/04/28 05:02:33 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -359,9 +359,7 @@ static int plain_client_mech_step(void *conn_context,
 
     /* try to get the authid */    
     if (oparams->authid==NULL) {
-      auth_result=_plug_get_authid(params,
-				   &authid,
-				   prompt_need);
+      auth_result=_plug_get_authid(params->utils, &authid, prompt_need);
 
       if ((auth_result!=SASL_OK) && (auth_result!=SASL_INTERACT))
 	return auth_result;
@@ -369,9 +367,7 @@ static int plain_client_mech_step(void *conn_context,
 
     /* try to get the userid */
     if (oparams->user==NULL) {
-      user_result=_plug_get_userid(params,
-				   &user,
-				   prompt_need);
+      user_result=_plug_get_userid(params->utils, &user, prompt_need);
 
       /* Fallback to authid */
       if ((user_result!=SASL_OK) && (user_result!=SASL_INTERACT)) {
@@ -381,8 +377,8 @@ static int plain_client_mech_step(void *conn_context,
 
     /* try to get the password */
     if (text->password==NULL) {
-	pass_result=_plug_get_secret(params, &text->password,
-				     &text->free_password, prompt_need);
+	pass_result=_plug_get_password(params->utils, &text->password,
+				       &text->free_password, prompt_need);
       
       if ((pass_result!=SASL_OK) && (pass_result!=SASL_INTERACT))
 	return pass_result;

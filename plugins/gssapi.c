@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.61 2002/04/27 05:41:14 ken3 Exp $
+ * $Id: gssapi.c,v 1.62 2002/04/28 05:02:29 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1173,7 +1173,8 @@ gssapi_client_mech_step(void *conn_context,
 	  {
 	    int user_result = SASL_OK;
 
-	    user_result=_plug_get_userid(params, &text->u.user, prompt_need);
+	    user_result=_plug_get_userid(params->utils, &text->u.user,
+					 prompt_need);
 
 	    if ((user_result!=SASL_OK) && (user_result!=SASL_INTERACT))
 	      {

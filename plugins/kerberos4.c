@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.81 2002/04/27 05:41:14 ken3 Exp $
+ * $Id: kerberos4.c,v 1.82 2002/04/28 05:02:32 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1072,7 +1072,8 @@ static int kerberosv4_client_mech_step(void *conn_context,
 
 	/* try to get the authid */
 	if (text->user == NULL) {
-	    user_result = _plug_get_userid(cparams, &text->user, prompt_need);
+	    user_result = _plug_get_userid(cparams->utils, &text->user,
+					   prompt_need);
 
 	    if (user_result != SASL_OK && user_result != SASL_INTERACT)
 		return user_result;

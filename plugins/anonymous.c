@@ -1,7 +1,7 @@
 /* Anonymous SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: anonymous.c,v 1.44 2002/04/27 05:41:13 ken3 Exp $
+ * $Id: anonymous.c,v 1.45 2002/04/28 05:02:28 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -293,7 +293,7 @@ anonymous_client_mech_step(void *conn_context,
 
   /* try to get the authid */
   if (user == NULL) {
-      auth_result = _plug_get_authid(cparams, &user, prompt_need);
+      auth_result = _plug_get_authid(cparams->utils, &user, prompt_need);
 
       if ((auth_result != SASL_OK) && (auth_result != SASL_INTERACT))
 	  return auth_result;

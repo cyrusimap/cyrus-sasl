@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: external.c,v 1.9 2002/04/27 05:41:13 ken3 Exp $
+ * $Id: external.c,v 1.10 2002/04/28 05:02:28 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -236,7 +236,7 @@ external_client_step(void *conn_context,
 
   /* try to get the userid */
   if (user == NULL) {
-      user_result = _plug_get_userid(params, &user, prompt_need);
+      user_result = _plug_get_userid(params->utils, &user, prompt_need);
 
       if ((user_result != SASL_OK) && (user_result != SASL_INTERACT))
 	  return user_result;

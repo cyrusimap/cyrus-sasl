@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.35 2002/04/27 05:41:15 ken3 Exp $
+ * $Id: srp.c,v 1.36 2002/04/28 05:02:33 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -3130,7 +3130,7 @@ static int client_step1(context_t *text,
     /* try to get the authid */
     if (text->authid==NULL)
     {
-	auth_result = _plug_get_authid(params, &authid, prompt_need);
+	auth_result = _plug_get_authid(params->utils, &authid, prompt_need);
 	  
 	if ((auth_result!=SASL_OK) && (auth_result!=SASL_INTERACT))
 	    return auth_result;	  
@@ -3138,7 +3138,7 @@ static int client_step1(context_t *text,
 
     /* try to get the userid */
     if (text->userid == NULL) {
-      user_result = _plug_get_userid(params, &userid, prompt_need);
+      user_result = _plug_get_userid(params->utils, &userid, prompt_need);
 
       if ((user_result != SASL_OK) && (user_result != SASL_INTERACT))
       {
@@ -3149,8 +3149,8 @@ static int client_step1(context_t *text,
     /* try to get the password */
     if (text->password==NULL)
     {
-	pass_result=_plug_get_secret(params, &text->password,
-				     &text->free_password, prompt_need);
+	pass_result=_plug_get_password(params->utils, &text->password,
+				       &text->free_password, prompt_need);
 	
 	if ((pass_result!=SASL_OK) && (pass_result!=SASL_INTERACT))
 	    return pass_result;

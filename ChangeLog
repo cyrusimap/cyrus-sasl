@@ -1,3 +1,9 @@
+2002-04-28  Ken Murchison <ken@oceana.com>
+	* plugins/plugin_common.[ch], anonymous.c, cram.c, digestmd5.c,
+	  gssapi.c, kerberosv4.c, login.c, otp.c, plain.c, srp.c,
+	  lib/external.c:finalize movement of callback/interaction stuff
+	  into plugin_common
+
 2002-04-27  Ken Murchison <ken@oceana.com>
 	* plugins/plugin_common.[ch], anonymous.c, cram.c, digestmd5.c,
 	  gssapi.c, kerberosv4.c, login.c, otp.c, plain.c, srp.c,

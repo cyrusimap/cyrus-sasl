@@ -1,5 +1,7 @@
 2000-01-01  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
+	* version 1.5.14 released
+
 	* configure.in: added login foo, disabled by default
 
 	* plugins/Makefile.am: added login foo

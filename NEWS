@@ -1,5 +1,8 @@
 New in 1.5.14
 -------------
+* Upgraded to libtool 1.3.4.
+* External SSF handled more uniformly, and handle min/max SSF requests
+  correctly.
 * Unsupported LOGIN plugin added, by Rainer Schoepf <schoepf@uni-mainz.de>.
   Please don't enable it unless you know you need it.
 

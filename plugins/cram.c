@@ -177,6 +177,11 @@ static char * randomdigits(sasl_server_params_t *sparams)
   return ret;
 }
 
+/*
+ * Returns the current time (or part of it) in string form
+ *  maximum length=15
+ */
+
 static char *gettime(sasl_server_params_t *sparams)
 {
   char *ret;
@@ -185,7 +190,10 @@ static char *gettime(sasl_server_params_t *sparams)
   t=time(NULL);
   ret= sparams->utils->malloc(15);
   if (ret==NULL) return NULL;
-  sprintf(ret,"%lu",t);
+  
+  /* the bottom bits are really the only random ones so if
+     we overflow we don't want to loose them */
+  snprintf(ret,15,"%lu",t%(0xFFFFFF));
   
   return ret;
 }
@@ -214,7 +222,7 @@ static char *make_hashed(sasl_secret_t *sec, char *nonce, int noncelen,
 			 void *inparams)
 {
   char secret[65];
-  unsigned char digest[1024];  
+  unsigned char digest[24];  
   int lup;
   char *in16;
 
@@ -237,7 +245,7 @@ static char *make_hashed(sasl_secret_t *sec, char *nonce, int noncelen,
   VL(("secret=[%s] %lu\n",secret,sec->len));
   VL(("nonce=[%s] %i\n",nonce, noncelen));
 
-  /* do the hmac md5 hash */
+  /* do the hmac md5 hash output 128 bits */
   params->utils->hmac_md5((unsigned char *) nonce,noncelen,
 			  (unsigned char *) secret,64,digest);
 
@@ -280,11 +288,11 @@ static int server_continue_step (void *conn_context,
     if ((time==NULL) || (randdigits==NULL)) return SASL_NOMEM;
 
     /* allocate some space for the nonce */
-    *serverout=sparams->utils->malloc(1024);
+    *serverout=sparams->utils->malloc(200);
     if (*serverout==NULL) return SASL_NOMEM;
 
     /* create the nonce */
-    sprintf((char *)*serverout,"<%s.%s@%s>",randdigits,time,
+    snprintf((char *)*serverout,200,"<%s.%s@%s>",randdigits,time,
 	    sparams->local_domain);
 
     /* free stuff */
@@ -312,7 +320,6 @@ static int server_continue_step (void *conn_context,
     char *userid=NULL;
     sasl_secret_t *sec=NULL;
     int lup,pos;
-    /*    int len=sizeof(MD5_CTX);*/
     int result;
     sasl_server_getsecret_t *getsecret;
     void *getsecret_context;
@@ -391,8 +398,10 @@ static int server_continue_step (void *conn_context,
 
     VL(("[%s] vs [%s]\n",in16,clientin+pos+1));
 
-    /* if same then verified */
-    if (strcmp(in16,clientin+pos+1)!=0)
+    /* if same then verified 
+     *  - we know in16 is null terminated but clientin might not be
+     */    
+    if (strncmp(in16,clientin+pos+1,strlen(in16))!=0)
     {
       /* free string and wipe out sensetive data */
       free_string(sparams->utils,&in16);
@@ -551,15 +560,12 @@ int sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
   return SASL_OK;
 }
 
-/* put in sasl_wrongmech */
+
 static int c_start(void *glob_context __attribute__((unused)), 
 		 sasl_client_params_t *params,
 		 void **conn)
 {
   context_t *text;
-
-/* should be no client data
-   if there is then ignore it i guess */
 
   /* holds state are in */
     text= params->utils->malloc(sizeof(context_t));
@@ -832,6 +838,7 @@ static int c_continue_step (void *conn_context,
     char *in16;
     int auth_result=SASL_OK;
     int pass_result=SASL_OK;
+    int maxsize;
 
     /* try to get the userid */
     if (text->authid==NULL)
@@ -880,7 +887,6 @@ static int c_continue_step (void *conn_context,
      * digest (keyed md5 where key is passwd)
      */
 
-    /* make nonce */
     in16=make_hashed(text->password,(char *) serverin, serverinlen, params);
 
     if (in16==NULL) return SASL_FAIL;
@@ -888,10 +894,11 @@ static int c_continue_step (void *conn_context,
     VL(("authid=[%s]\n",text->authid));
     VL(("in16=[%s]\n",in16));
 
-    *clientout=params->utils->malloc(32+1+strlen(text->authid)+1000);
+    maxsize=32+1+strlen(text->authid)+30;
+    *clientout=params->utils->malloc(maxsize);
     if ((*clientout) == NULL) return SASL_NOMEM;
 
-    sprintf((char *)*clientout,"%s %s",text->authid,in16);
+    snprintf((char *)*clientout,maxsize ,"%s %s",text->authid,in16);
 
     /* get rid of private information */
     free_string(params->utils, &in16);

@@ -134,8 +134,8 @@ typedef struct context {
 
   /* function pointers */
   void            (*hmac_md5) (const unsigned char *text, int text_len,
-		                      const unsigned char *key, int key_len,
-			                       unsigned char[16]);
+			       const unsigned char *key, int key_len,
+			       unsigned char[16]);
   sasl_malloc_t  *malloc;
   sasl_free_t    *free;
 
@@ -170,12 +170,14 @@ typedef struct context {
 #endif /* WITH_RC4 */
 }               context_t;
 
-/* this is from the ... world */
+/* this is from the rpc world */
 #define IN
 #define OUT
 
 
 static int      htoi(unsigned char *hexin, int *res);
+
+/* xxx these should be different but then we need to do lots of other stuff */
 
 #define MAGIC_IC "Digest session key to client-to-server signing key magic constant"
 #define MAGIC_IS "Digest session key to client-to-server signing key magic constant"
@@ -1010,6 +1012,7 @@ static int dec_des(context_t *text,
 		    DES_DECRYPT);
   }
 
+  /* xxx this is wrong */
   while( (*output)[(*outputlen)-1]==0)
     (*outputlen)--;
 
@@ -1206,6 +1209,7 @@ privacy_decode(void *context,
     unsigned char *macmid;
     int tmpnum;
     int lup;
+    unsigned char *tmpbuf;
 
     if (text->needsize>0) /* 4 bytes for how long message is */
     {
@@ -1234,7 +1238,7 @@ privacy_decode(void *context,
 	   0xFFFFFF, but not 0xFFFF 
 	   -this is according to john myers at least
 	*/
-	if (text->size>0xFFFF) return SASL_FAIL; /* too big probably error */
+	if (text->size>0xFFFFFF) return SASL_FAIL; /* too big probably error */
 	
 	text->buffer=text->malloc(text->size+5);
 	if (text->buffer == NULL) return SASL_NOMEM;
@@ -1290,20 +1294,26 @@ privacy_decode(void *context,
     text->hmac_md5(text->Ki, HASHLEN,
 		   param2, (*outputlen) + 4, digest);
 
-    macmid=(char *)malloc(MAC_SIZE+2);
+    macmid=(char *)malloc(MAC_SIZE+12);
 
 
     /* MAC foo */
-    text->cipher_dec(text, (text->buffer)+text->size-12, MAC_SIZE,
-		     (char **) &macmid, &tmpnum);
+  text->cipher_enc(text, digest, MAC_SIZE,
+		   &macmid, &tmpnum);
 
-		     
-    for (lup=0;lup<MAC_SIZE;lup++)
-      if (macmid[lup]!=digest[lup])
-      {
-	VL(("CMAC doesn't match!\n"));
-	return SASL_FAIL;
-      }
+  /*    text->cipher_dec(text, (text->buffer)+text->size-(MAC_SIZE+4), MAC_SIZE,
+	(char **) &macmid, &tmpnum);*/
+
+      /*      printf("%i. %i %i\n",lup,macmid[lup],((unsigned char *)(text->buffer)+text->size-(MAC_SIZE+4))[lup]);*/
+
+  tmpbuf=((unsigned char *)(text->buffer)+text->size-(MAC_SIZE+4));
+
+  for (lup=0;lup<MAC_SIZE;lup++)
+    if (macmid[lup]!=tmpbuf[lup])
+    {
+      VL(("CMAC doesn't match!\n"));
+      return SASL_FAIL;
+    }
     
     text->free(macmid);
     text->free(text->buffer);
@@ -1776,7 +1786,7 @@ server_continue_step(void *conn_context,
 
     char           *maxbufstr = NULL;
 
-    unsigned int    client_maxbuf = 65536;	/* xxx is this right??? */
+    unsigned int    client_maxbuf = 2096;	/* xxx is this right??? */
     int             maxbuf_count = 0;	/* How many maxbuf instaces was found */
 
     char           *charset = NULL;
@@ -2708,7 +2718,7 @@ c_continue_step(void *conn_context,
 
     char           *realm = NULL;
 
-    unsigned int    server_maxbuf = 65536;
+    unsigned int    server_maxbuf = 2096;
 
     int             maxbuf_count = 0;
 

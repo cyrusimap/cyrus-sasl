@@ -1,0 +1,157 @@
+/* config.c -- Configuration routines
+ # Copyright 1998 Carnegie Mellon University
+ # 
+ # No warranties, either expressed or implied, are made regarding the
+ # operation, use, or results of the software.
+ #
+ # Permission to use, copy, modify and distribute this software and its
+ # documentation is hereby granted for non-commercial purposes only
+ # provided that this copyright notice appears in all copies and in
+ # supporting documentation.
+ #
+ # Permission is also granted to Internet Service Providers and others
+ # entities to use the software for internal purposes.
+ #
+ # The distribution, modification or sale of a product which uses or is
+ # based on the software, in whole or in part, for commercial purposes or
+ # benefits requires specific, additional permission from:
+ #
+ #  Office of Technology Transfer
+ #  Carnegie Mellon University
+ #  5000 Forbes Avenue
+ #  Pittsburgh, PA  15213-3890
+ #  (412) 268-4387, fax: (412) 268-7395
+ #  tech-transfer@andrew.cmu.edu
+ *
+ */
+
+/*
+ * Current Valid keys:
+ *
+ * PlainMech: <string>
+ *
+ *
+ */
+
+
+#include "sasl.h"
+#include "saslint.h"
+
+#include <stdio.h>
+#include <ctype.h>
+#include <syslog.h>
+#include <com_err.h>
+
+struct configlist {
+    char *key;
+    char *value;
+};
+
+static struct configlist *configlist;
+static int nconfiglist;
+
+#define CONFIGLISTGROWSIZE 10 /* 100 */
+
+int sasl_config_init(const char *filename)
+{
+    FILE *infile;
+    int lineno = 0;
+    int alloced = 0;
+    char buf[4096];
+    char *p, *key;
+    int result;
+
+    nconfiglist=0;
+
+    infile = fopen(filename, "r");
+    if (!infile) {
+      return SASL_CONTINUE;
+    }
+    
+    while (fgets(buf, sizeof(buf), infile)) {
+	lineno++;
+
+	VL(("reading config file lineno=%i\n",lineno));
+
+	if (buf[strlen(buf)-1] == '\n') buf[strlen(buf)-1] = '\0';
+	for (p = buf; *p && isspace((int) *p); p++);
+	if (!*p || *p == '#') continue;
+
+	key = p;
+	while (*p && (isalnum((int) *p) || *p == '-')) {
+	    if (isupper((int) *p)) *p = tolower(*p);
+	    p++;
+	}
+	if (*p != ':') {
+	  return SASL_FAIL;
+	}
+	*p++ = '\0';
+
+	while (*p && isspace((int) *p)) p++;
+	
+	if (!*p) {
+	  return SASL_FAIL;
+	}
+
+	if (nconfiglist == alloced) {
+	    alloced += CONFIGLISTGROWSIZE;
+	    configlist=sasl_REALLOC((char *)configlist, alloced*sizeof(struct configlist));
+	    if (configlist==NULL) return SASL_NOMEM;
+	}
+
+
+
+	result = _sasl_strdup(key,
+			      &(configlist[nconfiglist].key),
+			      NULL);
+	if (result!=SASL_OK) return result;
+	result = _sasl_strdup(p,
+			      &(configlist[nconfiglist].value),
+			      NULL);
+	if (result!=SASL_OK) return result;
+
+	nconfiglist++;
+    }
+    fclose(infile);
+
+    return SASL_OK;
+}
+
+const char *sasl_config_getstring(const char *key,const char *def)
+{
+    int opt;
+
+    for (opt = 0; opt < nconfiglist; opt++) {
+	if (*key == configlist[opt].key[0] &&
+	    !strcmp(key, configlist[opt].key))
+	  return configlist[opt].value;
+    }
+    return def;
+}
+
+int sasl_config_getint(const char *key,int def)
+{
+    const char *val = sasl_config_getstring(key, (char *)0);
+
+    if (!val) return def;
+    if (!isdigit((int) *val) && (*val != '-' || !isdigit((int) val[1]))) return def;
+    return atoi(val);
+}
+
+int sasl_config_getswitch(const char *key,int def)
+{
+    const char *val = sasl_config_getstring(key, (char *)0);
+
+    if (!val) return def;
+
+    if (*val == '0' || *val == 'n' ||
+	(*val == 'o' && val[1] == 'f') || *val == 'f') {
+	return 0;
+    }
+    else if (*val == '1' || *val == 'y' ||
+	     (*val == 'o' && val[1] == 'n') || *val == 't') {
+	return 1;
+    }
+    return def;
+}
+

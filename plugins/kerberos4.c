@@ -84,35 +84,34 @@ extern int gethostname(char *, int);
 typedef struct context {
   int state;
 
-  unsigned long challenge;
+  unsigned long challenge;         /* this is the challenge (32 bit int) used for the authentication */
 
-  char *service;
+  char *service;                   /* kerberos service */
   char instance[ANAME_SZ];
   char pname[ANAME_SZ];
   char pinst[INST_SZ];
   char prealm[REALM_SZ];
-  char *hostname;
-  char *realm;
-  char *auth;
-  unsigned long ip;
+  char *hostname;                  /* hostname */
+  char *realm;                     /* kerberos realm */
+  char *auth;                      /* */
   
   CREDENTIALS credentials;
 
-  des_cblock key;     /* session key */
-  des_cblock session; /* session key */
+  des_cblock key;                  /* session key */
+  des_cblock session;              /* session key */
 
-  des_key_schedule init_keysched;   /* key schedule for initialization */
-  des_key_schedule enc_keysched;    /* encryption key schedule */
-  des_key_schedule dec_keysched;    /* decryption key schedule */
+  des_key_schedule init_keysched;  /* key schedule for initialization */
+  des_key_schedule enc_keysched;   /* encryption key schedule */
+  des_key_schedule dec_keysched;   /* decryption key schedule */
 
 
-  struct sockaddr_in ip_local;
-  struct sockaddr_in ip_remote;
+  struct sockaddr_in ip_local;     /* local ip address and port. needed for layers */
+  struct sockaddr_in ip_remote;    /* remote ip address and port. needed for layers */
 
-  sasl_malloc_t *malloc;
-  sasl_free_t *free;
+  sasl_malloc_t *malloc;           /* encode and decode need these */
+  sasl_free_t *free;               /* encode and decode need these */
 
-  char *buffer;
+  char *buffer;                    /* used for layers */
   char sizebuf[4];
   int cursize;
   int size;
@@ -432,7 +431,6 @@ static void dispose(void *conn_context, sasl_utils_t *utils)
 static void mech_free(void *global_context, sasl_utils_t *utils)
 {
 
-  utils->free(global_context);  
 }
 
 static int cando_sec(sasl_security_properties_t *props,
@@ -756,7 +754,6 @@ int sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
   return SASL_OK;
 }
 
-/* put in sasl_wrongmech */
 static int client_start(void *glob_context __attribute__((unused)), 
 		 sasl_client_params_t *params,
 		 void **conn)
@@ -1126,6 +1123,7 @@ static int client_continue_step (void *conn_context,
 }
 
 static const long client_required_prompts[] = {
+  SASL_CB_AUTH,
   SASL_CB_LIST_END
 };
 

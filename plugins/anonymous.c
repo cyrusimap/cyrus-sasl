@@ -46,7 +46,7 @@ static const char anonymous_id[] = "anonymous";
 #endif
 
 static int
-start(void *glob_context __attribute__((unused)),
+server_start(void *glob_context __attribute__((unused)),
       sasl_server_params_t *sparams __attribute__((unused)),
       const char *challenge __attribute__((unused)),
       int challen __attribute__((unused)),
@@ -65,7 +65,7 @@ start(void *glob_context __attribute__((unused)),
 }
 
 static int
-continue_step (void *conn_context __attribute__((unused)),
+server_continue_step (void *conn_context __attribute__((unused)),
 	       sasl_server_params_t *sparams,
 	       const char *clientin,
 	       int clientinlen,
@@ -161,8 +161,8 @@ static const sasl_server_plug_t plugins[] =
     0,				/* max_ssf */
     0,				/* security_flags */
     NULL,			/* glob_context */
-    &start,			/* mech_new */
-    &continue_step,		/* mech_step */
+    &server_start,		/* mech_new */
+    &server_continue_step,	/* mech_step */
     NULL,			/* mech_dispose */
     NULL,			/* mech_free */
     NULL,			/* setpass */
@@ -193,7 +193,7 @@ int sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
 
 /* put in sasl_wrongmech */
 static int
-c_start(void *glob_context __attribute__((unused)),
+client_start(void *glob_context __attribute__((unused)),
 	sasl_client_params_t *params __attribute__((unused)),
 	void **conn)
 {
@@ -206,7 +206,7 @@ c_start(void *glob_context __attribute__((unused)),
 }
 
 static int
-c_continue_step(void *conn_context __attribute__((unused)),
+client_continue_step(void *conn_context __attribute__((unused)),
 		sasl_client_params_t *params,
 		const char *serverin __attribute__((unused)),
 		int serverinlen,
@@ -328,6 +328,7 @@ c_continue_step(void *conn_context __attribute__((unused)),
 }
 
 static const long client_required_prompts[] = {
+  SASL_CB_AUTHNAME,
   SASL_CB_LIST_END
 };
 
@@ -339,8 +340,8 @@ static const sasl_client_plug_t client_plugins[] =
     0,				/* security_flags */
     client_required_prompts,	/* required_prompts */
     NULL,			/* glob_context */
-    &c_start,			/* mech_new */
-    &c_continue_step,		/* mech_step */
+    &client_start,		/* mech_new */
+    &client_continue_step,	/* mech_step */
     NULL,			/* mech_dispose */
     NULL,			/* mech_free */
     NULL,			/* auth_create */

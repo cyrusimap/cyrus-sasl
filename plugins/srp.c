@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.6 2001/12/05 21:41:07 ken3 Exp $
+ * $Id: srp.c,v 1.7 2001/12/07 18:52:04 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -51,11 +51,12 @@
 /* for big number support */
 #include <gmp.h>
 
-#ifdef WITH_SHA1
-#include <openssl/sha.h>
-#endif /* WITH_SHA1 */
+/* for digest and encryption support */
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
 
 #include <sasl.h>
+#define MD5_H  /* suppress internal MD5 */
 #include <saslplug.h>
 
 #include "plugin_common.h"
@@ -84,15 +85,6 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 /* How many bytes big should the salt be? */
 #define SRP_SALT_SIZE 16
 
-/* Generic Hash function definitions */
-typedef int  (*srp_hash_len_t)(const sasl_utils_t *utils);
-typedef int  (*srp_hash_init_t)(const sasl_utils_t *utils,
-				char *key, int keylen, void **ctx);
-typedef void (*srp_hash_update_t)(const sasl_utils_t *utils,
-				  void *ctx, char *data, int datalen);
-typedef void (*srp_hash_final_t)(const sasl_utils_t *utils,
-				 char *outdata, void *ctx);
-
 #define OPTION_REPLAY_DETECTION	"replay detection"
 #define OPTION_INTEGRITY	"integrity="
 #define OPTION_CONFIDENTIALITY	"confidentiality="
@@ -100,271 +92,26 @@ typedef void (*srp_hash_final_t)(const sasl_utils_t *utils,
 #define OPTION_MAXBUFFERSIZE	"maxbuffersize="
 
 
-/***************** SHA1 Hash Functions ****************/
-
-#ifdef WITH_SHA1
-static int
-srp_sha1Len(const sasl_utils_t *utils __attribute__((unused)))
-{
-    return 20;
-}
-
-static int
-srp_sha1Init(const sasl_utils_t *utils __attribute__((unused)),
-	     char *key __attribute__((unused)),
-	     int keylen __attribute__((unused)), void **ctx)
-{
-    SHA_CTX *ret;
-
-    ret = utils->malloc(sizeof(SHA_CTX));
-    if (!ret) return SASL_NOMEM;
-
-    SHA1_Init(ret);
-
-    *ctx = ret;
-
-    return SASL_OK;
-}
-
-static void
-srp_sha1Update(const sasl_utils_t *utils __attribute__((unused)),
-	       void *context, char *data, int datalen)
-{
-    SHA_CTX *ctx = (SHA_CTX *)context;
-
-    SHA1_Update(ctx, data, datalen);    
-}
-
-static void
-srp_sha1Final(const sasl_utils_t *utils __attribute__((unused)),
-	      char *outdata, void *context)
-{
-    SHA_CTX *ctx = (SHA_CTX *)context;
-
-    SHA1_Final(outdata, ctx);
-
-    utils->free(ctx);
-}
-
-/***************** SHA1 Hash Functions for Integrity Layer ****************/
-
-typedef struct HMAC_SHA_CTX_s {
-    SHA_CTX ictx, octx;
-} HMAC_SHA_CTX;
-
-static int
-srp_hmac_sha1Len(const sasl_utils_t *utils __attribute__((unused)))
-{
-    return 20;
-}
-
-static int
-srp_hmac_sha1Init(const sasl_utils_t *utils, char *key, int keylen, void **ctx)
-{
-    HMAC_SHA_CTX *ret;
-    unsigned char k_ipad[65];    /* inner padding -
-				  * key XORd with ipad
-				  */
-    unsigned char k_opad[65];    /* outer padding -
-				  * key XORd with opad
-				  */
-    unsigned char tk[20];
-    int i;
-
-    ret = utils->malloc(sizeof(HMAC_SHA_CTX));
-    if (!ret) return SASL_NOMEM;
-
-    /* if key is longer than 64 bytes reset it to key=SHA1(key) */
-    if (keylen > 64) {
-    
-	SHA_CTX      tctx;
-
-	SHA1_Init(&tctx);
-	SHA1_Update(&tctx, key, keylen);
-	SHA1_Final(tk, &tctx);
-
-	key = tk;
-	keylen = 20;
-    } 
-
-    /*
-     * the HMAC_SHA1 transform looks like:
-     *
-     * SHA1(K XOR opad, SHA1(K XOR ipad, text))
-     *
-     * where K is an n byte key
-     * ipad is the byte 0x36 repeated 64 times
-     * opad is the byte 0x5c repeated 64 times
-     * and text is the data being protected
-     */
-
-    /* start out by storing key in pads */
-    memset(k_ipad, '\0', sizeof k_ipad);
-    memset(k_opad, '\0', sizeof k_opad);
-    memcpy(k_ipad, key, keylen);
-    memcpy(k_opad, key, keylen);
-
-    /* XOR key with ipad and opad values */
-    for (i=0; i<64; i++) {
-	k_ipad[i] ^= 0x36;
-	k_opad[i] ^= 0x5c;
-    }
-
-    SHA1_Init(&ret->ictx);                   /* init inner context */
-    SHA1_Update(&ret->ictx, k_ipad, 64);     /* apply inner pad */
-
-    SHA1_Init(&ret->octx);                   /* init outer context */
-    SHA1_Update(&ret->octx, k_opad, 64);     /* apply outer pad */
-
-    /* scrub the pads and key context (if used) */
-    memset(&k_ipad, 0, sizeof(k_ipad));
-    memset(&k_opad, 0, sizeof(k_opad));
-    memset(&tk, 0, sizeof(tk));
-
-    /* and we're done. */
-    *ctx = ret;
-
-    return SASL_OK;
-}
-
-static void
-srp_hmac_sha1Update(const sasl_utils_t *utils __attribute__((unused)),
-		    void *context, char *data, int datalen)
-{
-    HMAC_SHA_CTX *ctx = (HMAC_SHA_CTX *)context;
-
-    SHA1_Update(&ctx->ictx, data, datalen);    
-}
-
-static void
-srp_hmac_sha1Final(const sasl_utils_t *utils, char *outdata, void *context)
-{
-    HMAC_SHA_CTX *ctx = (HMAC_SHA_CTX *)context;
-
-    SHA1_Final(outdata, &ctx->ictx);  /* Finalize inner sha1 */
-    SHA1_Update(&ctx->octx, outdata, 20); /* Update outer ctx */
-    SHA1_Final(outdata, &ctx->octx); /* Finalize outer sha1 */
-
-    utils->free(ctx);
-}
-#endif /* WITH_SHA1 */
-
-
-/***************** MD5 Hash Functions ****************/
-
-static int
-srp_md5Len(const sasl_utils_t *utils __attribute__((unused)))
-{
-    return 16;
-}
-
-static int
-srp_md5Init(const sasl_utils_t *utils, char *key __attribute__((unused)),
-	    int keylen __attribute__((unused)), void **ctx)
-{
-    MD5_CTX *ret;
-
-    ret = utils->malloc(sizeof(MD5_CTX));
-    if (!ret) return SASL_NOMEM;
-
-    utils->MD5Init(ret);
-
-    *ctx = ret;
-
-    return SASL_OK;
-}
-
-static void
-srp_md5Update(const sasl_utils_t *utils, void *context, char *data,
-	      int datalen)
-{
-    MD5_CTX *ctx = (MD5_CTX *)context;
-
-    utils->MD5Update(ctx, data, datalen);    
-}
-
-static void
-srp_md5Final(const sasl_utils_t *utils, char *outdata, void *context)
-{
-    MD5_CTX *ctx = (MD5_CTX *)context;
-
-    utils->MD5Final(outdata, ctx);
-
-    utils->free(ctx);
-}
-
-/***************** MD5 Hash Functions for Integrity Layer ****************/
-
-static int
-srp_hmac_md5Len(const sasl_utils_t *utils __attribute__((unused)))
-{
-    return 16;
-}
-
-static int
-srp_hmac_md5Init(const sasl_utils_t *utils, char *key, int keylen, void **ctx)
-{
-    HMAC_MD5_CTX *ret;
-
-    ret = utils->malloc(sizeof(HMAC_MD5_CTX));
-    if (!ret) return SASL_NOMEM;
-
-    utils->hmac_md5_init(ret, key, keylen);
-
-    *ctx = ret;
-
-    return SASL_OK;
-}
-
-static void
-srp_hmac_md5Update(const sasl_utils_t *utils, void *context, char *data,
-		   int datalen)
-{
-    HMAC_MD5_CTX *ctx = (HMAC_MD5_CTX *)context;
-
-    utils->MD5Update(&ctx->ictx, data, datalen);    
-}
-
-static void
-srp_hmac_md5Final(const sasl_utils_t *utils, char *outdata, void *context)
-{
-    HMAC_MD5_CTX *ctx = (HMAC_MD5_CTX *)context;
-
-    utils->hmac_md5_final(outdata, ctx);
-
-    utils->free(ctx);
-}
-
-
 /******************** Options *************************/
 
 typedef struct layer_option_s {
-    char *name;
+    const char *name;
     int bit;
     int ssf;
-
-    srp_hash_len_t    HashLen;
-    srp_hash_init_t   HashInit;
-    srp_hash_update_t HashUpdate;
-    srp_hash_final_t  HashFinal;
-
+    const char *openssl_name;
 } layer_option_t;
 
 static layer_option_t integrity_options[] = {
-    /* can't advertise integrity w/o HMAC_SHA-160 */
-#ifdef WITH_SHA1
-    {"HMAC-SHA-160", 0x1, 0,	&srp_hmac_sha1Len,	&srp_hmac_sha1Init,
-     &srp_hmac_sha1Update,	&srp_hmac_sha1Final},
-    {"HMAC-MD5-120", 0x2, 0,	&srp_hmac_md5Len,	&srp_hmac_md5Init,
-     &srp_hmac_md5Update,	&srp_hmac_md5Final},
-#endif /* WITH_SHA1 */
-    {NULL,       0x0, 0,	NULL,			NULL,
-     NULL,			NULL}
+    /* can't advertise integrity w/o HMAC-SHA-1 */
+    {"HMAC-SHA-1",	0x1, 0,	"sha1"},
+    {"HMAC-RIPEMD-160",	0x2, 0,	"rmd160"},
+    {"HMAC-MD5",	0x4, 0,	"md5"},
+    {NULL,		0x0, 0,	NULL}
 };
 
 static layer_option_t confidentiality_options[] = {
     /* nothing yet */
-    {NULL,       0x0, 0,        NULL,         NULL,           NULL,          NULL}
+    {NULL,		0x0, 0,	NULL}
 };
 
 
@@ -413,13 +160,9 @@ typedef struct context_s {
 
     const char *mech_name; /* used for propName in sasldb */
 
-    /* Hash functions */
-    int               HashLen;
-    srp_hash_init_t   HashInit;
-    srp_hash_update_t HashUpdate;
-    srp_hash_final_t  HashFinal;
-
     /* used by hash functions */
+    const EVP_MD *md;
+    const EVP_MD *hmac_md;
     const sasl_utils_t *utils;
 
     /* Layer foo */
@@ -428,12 +171,6 @@ typedef struct context_s {
 
     int seqnum_out;
     int seqnum_in;
-
-    /* Intergrity layer hash functions */
-    int               IntegHashLen;
-    srp_hash_init_t   IntegHashInit;
-    srp_hash_update_t IntegHashUpdate;
-    srp_hash_final_t  IntegHashFinal;
 
     /* encode and decode need these */
     char *buffer;                    
@@ -463,7 +200,7 @@ layer_encode(void *context,
 {
   context_t      *text = (context_t *) context;
   int hashlen = 0;
-  char hashdata[text->IntegHashLen]; /* xxx */
+  char hashdata[EVP_MAX_MD_SIZE];
   int tmpnum;
   int ret;
   char *input;
@@ -478,21 +215,20 @@ layer_encode(void *context,
   inputlen = text->enc_in_buf->curlen;
 
   if (text->enabled_integrity_layer) {
-    void *hmac_ctx = NULL;
+      HMAC_CTX hmac_ctx;
 
-    text->IntegHashInit(text->utils, text->K, text->Klen, &hmac_ctx);
+      HMAC_Init(&hmac_ctx, text->K, text->Klen, text->hmac_md);
 
-    text->IntegHashUpdate(text->utils, hmac_ctx, input, inputlen);
+      HMAC_Update(&hmac_ctx, input, inputlen);
 
-    if (text->enabled_replay_detection) {
-      tmpnum = htonl(text->seqnum_out);
-      text->IntegHashUpdate(text->utils, hmac_ctx, (char *) &tmpnum, 4);
+      if (text->enabled_replay_detection) {
+	  tmpnum = htonl(text->seqnum_out);
+	  HMAC_Update(&hmac_ctx, (char *) &tmpnum, 4);
       
-      text->seqnum_out++;	  
-    }
+	  text->seqnum_out++;
+      }
     
-    text->IntegHashFinal(text->utils, hashdata, hmac_ctx);
-    hashlen = text->IntegHashLen; /* xxx */
+      HMAC_Final(&hmac_ctx, hashdata, &hashlen);
   }
 
   /* 4 for length + input size + hashlen for integrity (could be zero) */
@@ -522,13 +258,13 @@ decode(context_t *text,
 
     if (text->enabled_integrity_layer) {
 	int tmpnum;
-	char hashdata[text->IntegHashLen];
+	char hashdata[EVP_MAX_MD_SIZE];
 	int i;
-	void *hmac_ctx = NULL;
+	HMAC_CTX hmac_ctx;
 
-	text->IntegHashInit(text->utils, text->K, text->Klen, &hmac_ctx);
+	HMAC_Init(&hmac_ctx, text->K, text->Klen, text->hmac_md);
 
-	hashlen = text->IntegHashLen; /* xxx */
+	hashlen = EVP_MD_size(text->hmac_md);
 
 	if ((int)inputlen < hashlen) {
 	    text->utils->log(NULL, SASL_LOG_ERR,
@@ -538,18 +274,16 @@ decode(context_t *text,
 	}
 
 	/* create my version of the hash */
-	text->IntegHashUpdate(text->utils, hmac_ctx,
-			      (char *)input, inputlen - hashlen);
+	HMAC_Update(&hmac_ctx, (char *)input, inputlen - hashlen);
 
 	if (text->enabled_replay_detection) {
 	    tmpnum = htonl(text->seqnum_in);
-	    text->IntegHashUpdate(text->utils, hmac_ctx,
-				  (char *) &tmpnum, 4);
+	    HMAC_Update(&hmac_ctx, (char *) &tmpnum, 4);
 	    
 	    text->seqnum_in ++;
 	}
 	
-	text->IntegHashFinal(text->utils, hashdata, hmac_ctx);
+	HMAC_Final(&hmac_ctx, hashdata, NULL);
 
 	/* compare to hash given */
 	for (i = 0; i < hashlen; i++) {
@@ -1146,32 +880,33 @@ GetRandBigInt(mpz_t out)
  *
  */
 static void
-HashData(context_t *text, char *in, int inlen, unsigned char outhash[])
+HashData(context_t *text, char *in, int inlen,
+	 unsigned char outhash[], int *outlen)
 {
-    void *ctx;
+    EVP_MD_CTX mdctx;
 
-    text->HashInit(text->utils, NULL, 0, &ctx);
-    text->HashUpdate(text->utils, ctx, in, inlen);
-    text->HashFinal(text->utils, outhash, ctx);
+    EVP_DigestInit(&mdctx, text->md);
+    EVP_DigestUpdate(&mdctx, in, inlen);
+    EVP_DigestFinal(&mdctx, outhash, outlen);
 }
 
 /* Call the hash function on the data of a BigInt
  *
  */
 static int
-HashBigInt(context_t *text, mpz_t in, unsigned char outhash[])
+HashBigInt(context_t *text, mpz_t in, unsigned char outhash[], int *outlen)
 {
     int r;
     char buf[4096];
     int buflen;
-    void *ctx;
+    EVP_MD_CTX mdctx;
     
     r = BigIntToBytes(in, buf, sizeof(buf)-1, &buflen);
     if (r) return r;
 
-    text->HashInit(text->utils, NULL, 0, &ctx);
-    text->HashUpdate(text->utils, ctx, buf, buflen);
-    text->HashFinal(text->utils, outhash, ctx);
+    EVP_DigestInit(&mdctx, text->md);
+    EVP_DigestUpdate(&mdctx, buf, buflen);
+    EVP_DigestFinal(&mdctx, outhash, outlen);
 
     return 0;
 }
@@ -1188,10 +923,11 @@ HashInterleaveBigInt(context_t *text, mpz_t num, char **out, int *outlen)
     int i;
     int offset;
     int j;
-    void *mdEven;
-    void *mdOdd;
-    unsigned char Evenb[text->HashLen];
-    unsigned char Oddb[text->HashLen];
+    EVP_MD_CTX mdEven;
+    EVP_MD_CTX mdOdd;
+    unsigned char Evenb[EVP_MAX_MD_SIZE];
+    unsigned char Oddb[EVP_MAX_MD_SIZE];
+    int hashlen;
 
     /* make bigint into bytes */
     r = BigIntToBytes(num, buf, sizeof(buf)-1, &buflen);
@@ -1206,25 +942,25 @@ HashInterleaveBigInt(context_t *text, mpz_t num, char **out, int *outlen)
 	
     klen = (limit - offset) / 2;
 
-    text->HashInit(text->utils, NULL, 0, &mdEven);
-    text->HashInit(text->utils, NULL, 0, &mdOdd);
+    EVP_DigestInit(&mdEven, text->md);
+    EVP_DigestInit(&mdOdd, text->md);
 
     j = limit - 1;
     for (i = 0; i < klen; i++) {
-	text->HashUpdate(text->utils, mdEven, buf + j, 1);
+	EVP_DigestUpdate(&mdEven, buf + j, 1);
 	j--;
-	text->HashUpdate(text->utils, mdOdd, buf + j, 1);
+	EVP_DigestUpdate(&mdOdd, buf + j, 1);
 	j--;
     }
 
-    text->HashFinal(text->utils, Evenb, mdEven);
-    text->HashFinal(text->utils, Oddb, mdOdd);
+    EVP_DigestFinal(&mdEven, Evenb, NULL);
+    EVP_DigestFinal(&mdEven, Oddb, &hashlen);
 
-    *out = text->utils->malloc(2 * text->HashLen);
+    *outlen = 2 * hashlen;
+    *out = text->utils->malloc(*outlen);
     if (!*out) return SASL_NOMEM;
-    *outlen = 2 * text->HashLen;
       
-    for (i = 0, j = 0; i < text->HashLen; i++)
+    for (i = 0, j = 0; i < hashlen; i++)
     {
 	(*out)[j++] = Evenb[i];
 	(*out)[j++] = Oddb[i];
@@ -1247,30 +983,31 @@ CalculateX(context_t *text,
 	   int passlen, 
 	   mpz_t *x)
 {
-    void *ctx;
-    char hash[text->HashLen];
+    EVP_MD_CTX mdctx;
+    char hash[EVP_MAX_MD_SIZE];
+    int hashlen;
 
     /* x = H(salt | H(user | ':' | pass))
      *
      */      
 
-    text->HashInit(text->utils, NULL, 0, &ctx);
+    EVP_DigestInit(&mdctx, text->md);
 
-    text->HashUpdate(text->utils, ctx, (char*) user, strlen(user));
-    text->HashUpdate(text->utils, ctx, ":", 1);
-    text->HashUpdate(text->utils, ctx, (char*) pass, passlen);
+    EVP_DigestUpdate(&mdctx, (char*) user, strlen(user));
+    EVP_DigestUpdate(&mdctx, ":", 1);
+    EVP_DigestUpdate(&mdctx, (char*) pass, passlen);
 
-    text->HashFinal(text->utils, hash, ctx);
+    EVP_DigestFinal(&mdctx, hash, &hashlen);
 
 
-    text->HashInit(text->utils, NULL, 0, &ctx);
+    EVP_DigestInit(&mdctx, text->md);
 
-    text->HashUpdate(text->utils, ctx, (char*) salt, saltlen);
-    text->HashUpdate(text->utils, ctx, hash, text->HashLen);
+    EVP_DigestUpdate(&mdctx, (char*) salt, saltlen);
+    EVP_DigestUpdate(&mdctx, hash, hashlen);
 
-    text->HashFinal(text->utils, hash, ctx);
+    EVP_DigestFinal(&mdctx, hash, &hashlen);
 
-    DataToBigInt(hash, text->HashLen, x);
+    DataToBigInt(hash, hashlen, x);
 
     return SASL_OK;
 }
@@ -1294,7 +1031,7 @@ CalculateK_client(context_t *text,
 		  int *keylen)
 {
     int r;
-    unsigned char hash[text->HashLen];
+    unsigned char hash[EVP_MAX_MD_SIZE];
     mpz_t x;
     mpz_t u;
     mpz_t aux;
@@ -1314,7 +1051,7 @@ CalculateK_client(context_t *text,
     mpz_sub(base, text->B, gx);
 
     /* u is first 32 bits of B hashed; MSB first */
-    r = HashBigInt(text, text->B, hash);
+    r = HashBigInt(text, text->B, hash, NULL);
     if (r) return r;
     mpz_init(u);
     DataToBigInt(hash, 4, &u);
@@ -1367,11 +1104,11 @@ CalculateM1(context_t *text,
 {
     int i;
     int r;
-    unsigned char p1a[text->HashLen];
-    unsigned char p1b[text->HashLen];
-    unsigned char p1[text->HashLen];
+    unsigned char p1a[EVP_MAX_MD_SIZE];
+    unsigned char p1b[EVP_MAX_MD_SIZE];
+    unsigned char p1[EVP_MAX_MD_SIZE];
     int p1len;
-    char p2[text->HashLen];
+    char p2[EVP_MAX_MD_SIZE];
     int p2len;
     char *p3;
     int p3len;
@@ -1381,26 +1118,24 @@ CalculateM1(context_t *text,
     int p5len;
     char *p6;
     int p6len;
-    char p7[text->HashLen];
+    char p7[EVP_MAX_MD_SIZE];
     int p7len;
     char *tot;
     int totlen = 0;
     char *totp;
 
     /* p1) bytes(H( bytes(N) )) ^ bytes( H( bytes(g) )) */
-    r = HashBigInt(text, N, p1a);
+    r = HashBigInt(text, N, p1a, NULL);
     if (r) return r;
-    r = HashBigInt(text, g, p1b);
+    r = HashBigInt(text, g, p1b, &p1len);
     if (r) return r;
 
-    for (i = 0; i < text->HashLen; i++) {
+    for (i = 0; i < p1len; i++) {
 	p1[i] = (p1a[i] ^ p1b[i]);
     }
-    p1len = text->HashLen;
 
     /* p2) bytes(H( bytes(U) )) */
-    HashData(text, U, strlen(U), p2);
-    p2len = text->HashLen;
+    HashData(text, U, strlen(U), p2, &p2len);
 
     /* p3) bytes(s) */
     p3 = salt;
@@ -1419,8 +1154,7 @@ CalculateM1(context_t *text,
     p6len = Klen;
 
     /* p7) bytes(H( bytes(L) )) */
-    HashData(text, L, strlen(L), p7);
-    p7len = text->HashLen;
+    HashData(text, L, strlen(L), p7, &p7len);
 
     /* merge p1-p7 together */
     totlen = p1len + p2len + p3len + p4len + p5len + p6len + p7len;
@@ -1438,14 +1172,13 @@ CalculateM1(context_t *text,
     memcpy(totp, p7, p7len); totp+=p7len;
 
     /* do the hash over the whole thing */
-    *out = text->utils->malloc(text->HashLen);
+    *out = text->utils->malloc(EVP_MAX_MD_SIZE);
     if (!*out) {
 	text->utils->free(tot);
 	return SASL_NOMEM;
     }
-    *outlen = text->HashLen;
 
-    HashData(text, tot, totlen, *out);
+    HashData(text, tot, totlen, *out, outlen);
     text->utils->free(tot);
 
     return SASL_OK;
@@ -1485,11 +1218,11 @@ CalculateM2(context_t *text,
     int p2len;
     char *p3;
     int p3len;
-    char p4[text->HashLen];
+    char p4[EVP_MAX_MD_SIZE];
     int p4len;
-    char p5[text->HashLen];
+    char p5[EVP_MAX_MD_SIZE];
     int p5len;
-    char p6[text->HashLen];
+    char p6[EVP_MAX_MD_SIZE];
     int p6len;
     char *tot;
     int totlen = 0;
@@ -1508,16 +1241,13 @@ CalculateM2(context_t *text,
     p3len = Klen;
 	
     /* p4) bytes(H( bytes(U) )) */
-    HashData(text, U, strlen(U), p4);
-    p4len = text->HashLen;
+    HashData(text, U, strlen(U), p4, &p4len);
 
     /* p5) bytes(H( bytes(I) )) */
-    HashData(text, I, strlen(I), p5);
-    p5len = text->HashLen;
+    HashData(text, I, strlen(I), p5, &p5len);
 
     /* p6) bytes(H( bytes(o) )) */
-    HashData(text, o, strlen(o), p6);
-    p6len = text->HashLen;
+    HashData(text, o, strlen(o), p6, &p6len);
 
     /* merge p1-p6 together */
     totlen = p1len + p2len + p3len + p4len + p5len + p6len;
@@ -1534,14 +1264,13 @@ CalculateM2(context_t *text,
     memcpy(totp, p6, p6len); totp+=p6len;
 
     /* do the hash over the whole thing */
-    *out = text->utils->malloc(text->HashLen);
+    *out = text->utils->malloc(EVP_MAX_MD_SIZE);
     if (!*out) {
 	return SASL_NOMEM;
 	text->utils->free(tot);
     }
-    *outlen = text->HashLen;
 
-    HashData(text, tot, totlen, *out);
+    HashData(text, tot, totlen, *out, outlen);
     text->utils->free(tot);
 
     return SASL_OK;
@@ -1898,10 +1627,7 @@ SetOptions(srp_options_t *opts,
 	    return SASL_FAIL;
 	}
 
-	text->IntegHashLen    = iopt->HashLen(utils);
-	text->IntegHashInit   = iopt->HashInit;
-	text->IntegHashUpdate = iopt->HashUpdate;
-	text->IntegHashFinal  = iopt->HashFinal;
+	text->hmac_md = EVP_get_digestbyname(iopt->openssl_name);
     }
 
     /* conf foo */
@@ -1944,6 +1670,8 @@ static void srp_both_mech_dispose(void *conn_context,
   if (text->buffer)           utils->free(text->buffer);
 
   utils->free(text);
+
+  EVP_cleanup();
 }
 
 static void srp_both_mech_free(void *global_context,
@@ -1953,7 +1681,6 @@ static void srp_both_mech_free(void *global_context,
 }
 
 
-#ifdef WITH_SHA1
 static int
 srp_sha1_server_mech_new(void *glob_context __attribute__((unused)),
 			 sasl_server_params_t *params,
@@ -1963,7 +1690,6 @@ srp_sha1_server_mech_new(void *glob_context __attribute__((unused)),
 {
   context_t *text;
 
-  /* holds state are in */
   if (!conn)
       return SASL_BADPARAM;
 
@@ -1978,17 +1704,44 @@ srp_sha1_server_mech_new(void *glob_context __attribute__((unused)),
 
   text->state = 1;
   text->utils = params->utils;
-  text->mech_name  = "SRP-SHA-160";
-  text->HashLen    = srp_sha1Len(text->utils);
-  text->HashInit   = srp_sha1Init;
-  text->HashUpdate = srp_sha1Update;
-  text->HashFinal  = srp_sha1Final;
+  text->mech_name  = "SRP-SHA-1";
+  text->md = EVP_get_digestbyname("sha1");
 
   *conn=text;
 
   return SASL_OK;
 }
-#endif /* WITH_SHA1 */
+
+static int
+srp_rmd160_server_mech_new(void *glob_context __attribute__((unused)),
+			   sasl_server_params_t *params,
+			   const char *challenge __attribute__((unused)),
+			   unsigned challen __attribute__((unused)),
+			   void **conn)
+{
+  context_t *text;
+
+  if (!conn)
+      return SASL_BADPARAM;
+
+  /* holds state are in */
+  text = params->utils->malloc(sizeof(context_t));
+  if (text==NULL) {
+      MEMERROR(params->utils);
+      return SASL_NOMEM;
+  }
+
+  memset(text, 0, sizeof(context_t));
+
+  text->state = 1;
+  text->utils = params->utils;
+  text->mech_name  = "SRP-RIPEMD-160";
+  text->md = EVP_get_digestbyname("rmd160");
+
+  *conn=text;
+
+  return SASL_OK;
+}
 
 static int
 srp_md5_server_mech_new(void *glob_context __attribute__((unused)),
@@ -1999,7 +1752,6 @@ srp_md5_server_mech_new(void *glob_context __attribute__((unused)),
 {
   context_t *text;
 
-  /* holds state are in */
   if (!conn)
       return SASL_BADPARAM;
 
@@ -2014,11 +1766,8 @@ srp_md5_server_mech_new(void *glob_context __attribute__((unused)),
 
   text->state = 1;
   text->utils = params->utils;
-  text->mech_name  = "SRP-MD5-120";
-  text->HashLen    = srp_md5Len(text->utils);
-  text->HashInit   = srp_md5Init;
-  text->HashUpdate = srp_md5Update;
-  text->HashFinal  = srp_md5Final;
+  text->mech_name  = "SRP-MD5";
+  text->md = EVP_get_digestbyname("md5");
 
   *conn=text;
 
@@ -2083,7 +1832,7 @@ ServerCalculateK(context_t *text, mpz_t v,
 		 mpz_t N, mpz_t g, mpz_t b, mpz_t B, mpz_t A,
 		 char **key, int *keylen)
 {
-    unsigned char hash[text->HashLen];
+    unsigned char hash[EVP_MAX_MD_SIZE];
     mpz_t u;
     mpz_t S;
     int r;
@@ -2102,7 +1851,7 @@ ServerCalculateK(context_t *text, mpz_t v,
      */
 
     /* u is first 32 bits of B hashed; MSB first */
-    r = HashBigInt(text, B, hash);
+    r = HashBigInt(text, B, hash, NULL);
     if (r) return r;
 
     mpz_init(u);
@@ -2249,12 +1998,9 @@ server_step1(context_t *text,
     r = params->utils->prop_request(params->propctx, password_request);
     if (r != SASL_OK) goto fail;
 
-    /* this will trigger the getting of the aux properties
-     *
-     * XXX  we don't have the authzid yet, so just use authid for now
-     */
+    /* this will trigger the getting of the aux properties */
     r = params->canon_user(params->utils->conn,
-			   user, 0, user, 0, 0, oparams);
+			   user, 0, SASL_CU_AUTHID, oparams);
     if (r != SASL_OK) goto fail;
 
     r = params->utils->prop_getnames(params->propctx, password_request,
@@ -2424,11 +2170,8 @@ server_step2(context_t *text,
       return r;
     }
 
-    /* XXX - canon_user() needs to fixed or authzid needs to be moved
-     * into initial client request
-     */
     r = params->canon_user(params->utils->conn,
-			   text->authid, 0, text->userid, 0, 0, oparams);
+			   text->userid, 0, SASL_CU_AUTHZID, oparams);
     if (r != SASL_OK) return r;
     
     r = GetUTF8(params->utils, data, datalen, &text->client_options,
@@ -2825,7 +2568,6 @@ srp_setpass(context_t *text,
     return r;
 }
 
-#ifdef WITH_SHA1
 static int
 srp_sha1_setpass(void *glob_context __attribute__((unused)),
 		 sasl_server_params_t *sparams,
@@ -2839,16 +2581,32 @@ srp_sha1_setpass(void *glob_context __attribute__((unused)),
     context_t text;
 
     text.utils = sparams->utils;
-    text.mech_name  = "SRP-SHA-160";
-    text.HashLen    = srp_sha1Len(text.utils);
-    text.HashInit   = srp_sha1Init;
-    text.HashUpdate = srp_sha1Update;
-    text.HashFinal  = srp_sha1Final;
+    text.mech_name  = "SRP-SHA-1";
+    text.md = EVP_get_digestbyname("sha1");
 
     return srp_setpass(&text, sparams, userstr,
 		       pass, passlen, flags);
 }
-#endif /* WITH_SHA1 */
+
+static int
+srp_cmd160_setpass(void *glob_context __attribute__((unused)),
+		   sasl_server_params_t *sparams,
+		   const char *userstr,
+		   const char *pass,
+		   unsigned passlen,
+		   const char *oldpass __attribute__((unused)),
+		   unsigned oldpasslen __attribute__((unused)),
+		   unsigned flags)
+{
+    context_t text;
+
+    text.utils = sparams->utils;
+    text.mech_name  = "SRP-RIPEMD-160";
+    text.md = EVP_get_digestbyname("rmd160");
+
+    return srp_setpass(&text, sparams, userstr,
+		       pass, passlen, flags);
+}
 
 static int
 srp_md5_setpass(void *glob_context __attribute__((unused)),
@@ -2863,22 +2621,39 @@ srp_md5_setpass(void *glob_context __attribute__((unused)),
     context_t text;
 
     text.utils = sparams->utils;
-    text.mech_name  = "SRP-MD5-120";
-    text.HashLen    = srp_md5Len(text.utils);
-    text.HashInit   = srp_md5Init;
-    text.HashUpdate = srp_md5Update;
-    text.HashFinal  = srp_md5Final;
+    text.mech_name  = "SRP-MD5";
+    text.md = EVP_get_digestbyname("sha1");
 
     return srp_setpass(&text, sparams, userstr,
 		       pass, passlen, flags);
 }
 #endif /* DO_SRP_SETPASS */
 
+static int srp_sha1_mech_avail(void *glob_context __attribute__((unused)),
+			       sasl_server_params_t *sparams __attribute__((unused)),
+			       void **conn_context __attribute__((unused))) 
+{
+    return (EVP_get_digestbyname("sha1") ? SASL_OK : SASL_NOMECH);
+}
+
+static int srp_rmd160_mech_avail(void *glob_context __attribute__((unused)),
+				 sasl_server_params_t *sparams __attribute__((unused)),
+				 void **conn_context __attribute__((unused))) 
+{
+    return (EVP_get_digestbyname("rmd160") ? SASL_OK : SASL_NOMECH);
+}
+
+static int srp_md5_mech_avail(void *glob_context __attribute__((unused)),
+			      sasl_server_params_t *sparams __attribute__((unused)),
+			      void **conn_context __attribute__((unused))) 
+{
+    return (EVP_get_digestbyname("md5") ? SASL_OK : SASL_NOMECH);
+}
+
 static const sasl_server_plug_t srp_server_plugins[] = 
 {
-#ifdef WITH_SHA1
   {
-    "SRP-SHA-160",	        /* mech_name */
+    "SRP-SHA-1",		/* mech_name */
     0,				/* max_ssf */
     SASL_SEC_NOPLAINTEXT,	/* security_flags */
     SASL_FEAT_WANT_CLIENT_FIRST,/* features */
@@ -2894,12 +2669,32 @@ static const sasl_server_plug_t srp_server_plugins[] =
 #endif
     NULL,			/* user_query */
     NULL,			/* idle */
-    NULL,			/* mech avail */
+    &srp_sha1_mech_avail,	/* mech avail */
     NULL			/* spare */
   },
-#endif /* WITH_SHA1 */
+  /* XXX  May need aliases for SHA-1 here */
   {
-    "SRP-MD5-120",	        /* mech_name */
+    "SRP-RIPEMD-160",	        /* mech_name */
+    0,				/* max_ssf */
+    SASL_SEC_NOPLAINTEXT,	/* security_flags */
+    SASL_FEAT_WANT_CLIENT_FIRST,/* features */
+    NULL,			/* glob_context */
+    &srp_rmd160_server_mech_new,/* mech_new */
+    &srp_server_mech_step,	/* mech_step */
+    &srp_both_mech_dispose,	/* mech_dispose */
+    &srp_both_mech_free,	/* mech_free */
+#if DO_SRP_SETPASS
+    &srp_rmd160_setpass,	/* setpass */
+#else
+    NULL,
+#endif
+    NULL,			/* user_query */
+    NULL,			/* idle */
+    &srp_rmd160_mech_avail,	/* mech avail */
+    NULL			/* spare */
+  },
+  {
+    "SRP-MD5",	        /* mech_name */
     0,				/* max_ssf */
     SASL_SEC_NOPLAINTEXT,	/* security_flags */
     SASL_FEAT_WANT_CLIENT_FIRST,/* features */
@@ -2915,7 +2710,7 @@ static const sasl_server_plug_t srp_server_plugins[] =
 #endif
     NULL,			/* user_query */
     NULL,			/* idle */
-    NULL,			/* mech avail */
+    &srp_md5_mech_avail,	/* mech avail */
     NULL			/* spare */
   }
 };
@@ -2931,6 +2726,8 @@ int srp_server_plug_init(const sasl_utils_t *utils __attribute__((unused)),
 	SETERROR(utils, "SRP version mismatch");
 	return SASL_BADVERS;
     }
+
+    OpenSSL_add_all_algorithms();
 
 #ifdef DO_SRP_SETPASS
     /* Do we have database support? */
@@ -2949,12 +2746,15 @@ int srp_server_plug_init(const sasl_utils_t *utils __attribute__((unused)),
 }
 
 /* put in sasl_wrongmech */
-#ifdef WITH_SHA1
 static int srp_sha1_client_mech_new(void *glob_context __attribute__((unused)),
 			       sasl_client_params_t *params,
 			       void **conn)
 {
+    const EVP_MD *md;
     context_t *text;
+
+    if ((md = EVP_get_digestbyname("sha1")) == NULL)
+	return SASL_NOMECH;
 
     /* holds state are in */
     text = params->utils->malloc(sizeof(context_t));
@@ -2967,22 +2767,49 @@ static int srp_sha1_client_mech_new(void *glob_context __attribute__((unused)),
 
     text->state=1;
     text->utils = params->utils;
-    text->HashLen    = srp_sha1Len(text->utils);
-    text->HashInit   = srp_sha1Init;
-    text->HashUpdate = srp_sha1Update;
-    text->HashFinal  = srp_sha1Final;
+    text->md = md;
+    *conn=text;
+
+    return SASL_OK;
+}
+
+static int srp_rmd160_client_mech_new(void *glob_context __attribute__((unused)),
+				      sasl_client_params_t *params,
+				      void **conn)
+{
+    const EVP_MD *md;
+    context_t *text;
+
+    if ((md = EVP_get_digestbyname("sha1")) == NULL)
+	return SASL_NOMECH;
+
+    /* holds state are in */
+    text = params->utils->malloc(sizeof(context_t));
+    if (text==NULL) {
+	MEMERROR( params->utils );
+	return SASL_NOMEM;
+    }
+    
+    memset(text, 0, sizeof(context_t));
+
+    text->state=1;
+    text->utils = params->utils;
+    text->md = md;
 
     *conn=text;
 
     return SASL_OK;
 }
-#endif /* WITH_SHA1 */
 
 static int srp_md5_client_mech_new(void *glob_context __attribute__((unused)),
 			       sasl_client_params_t *params,
 			       void **conn)
 {
+    const EVP_MD *md;
     context_t *text;
+
+    if ((md = EVP_get_digestbyname("sha1")) == NULL)
+	return SASL_NOMECH;
 
     /* holds state are in */
     text = params->utils->malloc(sizeof(context_t));
@@ -2995,10 +2822,7 @@ static int srp_md5_client_mech_new(void *glob_context __attribute__((unused)),
 
     text->state=1;
     text->utils = params->utils;
-    text->HashLen    = srp_md5Len(text->utils);
-    text->HashInit   = srp_md5Init;
-    text->HashUpdate = srp_md5Update;
-    text->HashFinal  = srp_md5Final;
+    text->md = md;
 
     *conn=text;
 
@@ -3256,7 +3080,7 @@ client_step1(context_t *text,
     int utf8Ulen;
 
     /* Expect: 
-     *   absolutly nothing
+     *   absolutely nothing
      * 
      */
     if (serverinlen > 0) {
@@ -3318,6 +3142,11 @@ client_step1(context_t *text,
 	
 	return SASL_INTERACT;
     }
+
+    params->canon_user(params->utils->conn, text->authid, 0,
+		       SASL_CU_AUTHID, oparams);
+    params->canon_user(params->utils->conn, text->userid, 0,
+		       SASL_CU_AUTHZID, oparams);
 
     /* send authentication identity 
      * { utf8(U) }
@@ -3685,9 +3514,8 @@ srp_client_mech_step(void *conn_context,
 
 static const sasl_client_plug_t srp_client_plugins[] = 
 {
-#ifdef WITH_SHA1
   {
-    "SRP-SHA-160",   	        /* mech_name */
+    "SRP-SHA-1",   	        /* mech_name */
     0,				/* max_ssf */
     SASL_SEC_NOPLAINTEXT,	/* security_flags */
     SASL_FEAT_WANT_CLIENT_FIRST,/* features */
@@ -3701,9 +3529,24 @@ static const sasl_client_plug_t srp_client_plugins[] =
     NULL,			/* spare1 */
     NULL			/* spare2 */
   },
-#endif /* WITH_SHA1 */
+  /* XXX  May need aliases for SHA-1 here */
   {
-    "SRP-MD5-120",   	        /* mech_name */
+    "SRP-RIPEMD-160",   	/* mech_name */
+    0,				/* max_ssf */
+    SASL_SEC_NOPLAINTEXT,	/* security_flags */
+    SASL_FEAT_WANT_CLIENT_FIRST,/* features */
+    NULL,			/* required_prompts */
+    NULL,			/* glob_context */
+    &srp_rmd160_client_mech_new,/* mech_new */
+    &srp_client_mech_step,	/* mech_step */
+    &srp_both_mech_dispose,	/* mech_dispose */
+    &srp_both_mech_free,	/* mech_free */
+    NULL,			/* idle */
+    NULL,			/* spare1 */
+    NULL			/* spare2 */
+  },
+  {
+    "SRP-MD5",   	        /* mech_name */
     0,				/* max_ssf */
     SASL_SEC_NOPLAINTEXT,	/* security_flags */
     SASL_FEAT_WANT_CLIENT_FIRST,/* features */
@@ -3730,6 +3573,8 @@ int srp_client_plug_init(const sasl_utils_t *utils __attribute__((unused)),
 	SETERROR(utils, "SRP version mismatch");
 	return SASL_BADVERS;
     }
+
+    OpenSSL_add_all_algorithms();
 
     *pluglist=srp_client_plugins;
 

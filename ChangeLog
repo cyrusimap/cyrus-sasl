@@ -1,3 +1,12 @@
+2001-12-07  Ken Murchison <ken@oceana.com>
+	* configure.in: SRP now requires OpenSSL
+	* plugins/srp.c: migrated to OpenSSL's MDA/cipher abstraction API 
+	* plugins/srp.c: added RIPEMD-160 support
+	* plugins/srp.c: using "standard ACSII names" for MDA-names as
+	  documented by [SCAN] (until determined otherwise)
+	* plugins/srp.c: using updated canon_user API to allow separate
+	  canonicalization of authid and authzid.
+
 2001-12-06  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* lib/canonusr.c: Better logging when desired plugin is not found.
 	* lib/checkpw.c: spelling error fixed.

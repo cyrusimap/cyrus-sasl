@@ -2,6 +2,9 @@
 
 	* backport of auth_krb5.c from SASLv2
 	* backport of improved gssapi configure.in checks
+	* corrected FreeBSD-related configure checking of Berkeley DB
+	  as well as treatment of libcom_err
+	  (from Scot W. Hetzel <scot@genroco.com>)
 
 2001-07-23  Rob Siemborski <rjs3+@andrew.cmu.edu>
 

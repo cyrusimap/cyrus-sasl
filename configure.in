@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.108 2001/07/24 17:11:24 rjs3 Exp $
+dnl $Id: configure.in,v 1.109 2001/07/24 19:17:43 rjs3 Exp $
 dnl
 dnl Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -143,34 +143,34 @@ AC_ARG_WITH(dblib, [  --with-dblib=DBLIB      set the DB library to use [berkele
   dblib=auto_detect)
 SASL_DB_LIB=""
 
+dnl this is unbelievably painful due to confusion over what db-3 should be
+dnl named and where the db-3 header file is located.  arg.
+AC_DEFUN(BERKELEY_DB_CHK_LIB,
+[      for dbname in db-3.2 db3.2 db-3.1 db3.1 db-3 db3 db
+         do
+           AC_CHECK_LIB($dbname, db_create, SASL_DB_LIB="-l$dbname";
+             dblib="berkeley"; break, dblib="no")
+         done
+       if test "$dblib" = "no"; then
+         AC_CHECK_LIB(db, db_open, SASL_DB_LIB="-ldb";
+           dblib="berkeley"; dbname=db,
+           dblib="no")
+       fi
+])
 
 AC_DEFUN(BERKELEY_DB_CHK,
-[	AC_CHECK_HEADER(db.h,
-			AC_CHECK_LIB(db-3, db_create, SASL_DB_LIB="-ldb-3";
-			   dblib="berkeley",
-			AC_CHECK_LIB(db, db_create, SASL_DB_LIB="-ldb";
-			   dblib="berkeley",
-			AC_CHECK_LIB(db, db_open, SASL_DB_LIB="-ldb"; 
-			   dblib="berkeley",
-                        dblib="no"))),
-dnl FreeBSD puts it in a wierd place
-		AC_CHECK_HEADER(db3/db.h,
-			AC_CHECK_LIB(db-3, db_create, SASL_DB_LIB="-ldb-3";
-			   AC_DEFINE(HAVE_DB3_DB_H)
-			   dblib="berkeley",
-			AC_CHECK_LIB(db, db_create, SASL_DB_LIB="-ldb";
-			   AC_DEFINE(HAVE_DB3_DB_H)
-			   dblib="berkeley",
-			AC_CHECK_LIB(db, db_open, SASL_DB_LIB="-ldb"; 
-			   AC_DEFINE(HAVE_DB3_DB_H)
-			   dblib="berkeley",
-                        dblib="no"))),
-			dblib="no"))
+[      dnl FreeBSD puts it in a wierd place
+       AC_CHECK_HEADER(db3/db.h,
+                       BERKELEY_DB_CHK_LIB()
+                       if test "$dblib" = "berkeley"; then
+                         AC_DEFINE(HAVE_DB3_DB_H)
+                       fi,
+               AC_CHECK_HEADER(db.h,
+                       	       BERKELEY_DB_CHK_LIB(),
+                               dblib="no"))
 ])
 
 case "$dblib" in
-dnl this is unbelievably painful due to confusion over what db-3 should be
-dnl named.  arg.
   berkeley)
 	BERKELEY_DB_CHK()
 	;;
@@ -370,6 +370,11 @@ AC_ARG_WITH(des, [  --with-des=DIR          with DES (look in DIR) [yes] ],
 
 LIB_DES=""
 if test "$with_des" != no; then
+  case "$host_os" in
+	freebsd*)
+	    COM_ERR="-lcom_err"
+	;;
+  esac
   if test -d $with_des; then
     CPPFLAGS="$CPPFLAGS -I${with_des}/include"
     LDFLAGS="$LDFLAGS -L${with_des}/lib"

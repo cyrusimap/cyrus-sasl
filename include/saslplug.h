@@ -17,6 +17,10 @@
 #include "prop.h"
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* callback to lookup a sasl_callback_t for a connection
  * input:
  *  conn        -- the connection to lookup a callback for
@@ -855,5 +859,9 @@ typedef int sasl_auxprop_init_t(const sasl_utils_t *utils,
  */
 LIBSASL_API int sasl_auxprop_add_plugin(const char *plugname,
 					sasl_auxprop_init_t *auxpropfunc);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SASLPLUG_H */

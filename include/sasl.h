@@ -230,6 +230,9 @@ typedef struct sasl_secret {
  */
 typedef struct sasl_rand_s sasl_rand_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /****************************
  * Configure Basic Services *
@@ -1178,5 +1181,9 @@ LIBSASL_API int sasl_encodev(sasl_conn_t *conn,
 LIBSASL_API int sasl_decode(sasl_conn_t *conn,
 			    const char *input, unsigned inputlen,
 			    const char **output, unsigned *outputlen);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SASL_H */

@@ -8,6 +8,10 @@
 #include "sasl.h"
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* base64 decode
  *  in     -- input data
  *  inlen  -- length of input data
@@ -77,5 +81,9 @@ LIBSASL_API void sasl_erasebuffer(char *pass, unsigned len);
 LIBSASL_API int getopt(int argc, char **argv, char *optstring);
 LIBSASL_API char * getpass(const char *prompt);
 #endif /* WIN32 */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SASLUTIL_H */

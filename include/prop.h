@@ -40,6 +40,10 @@ struct propval {
 #define PROP_DEFAULT 4		/* default number of propvals to assume */
 struct propctx;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* create a property context
  *  estimate -- an estimate of the storage needed for requests & responses
  *              0 will use module default
@@ -144,5 +148,8 @@ int prop_set(struct propctx *ctx, const char *name,
 int prop_setvals(struct propctx *ctx, const char *name,
 		 const char **values);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* PROP_H */

@@ -42,7 +42,7 @@ javasasl_JAVA = Sasl.java GenericClient.java \
 CLASSES = $(javasasl_JAVA:.java=.class)
 
 lib_LTLIBRARIES = libjavasasl.la
-libjavasasl_la_SOURCES = javasasl.c
+libjavasasl_la_SOURCES = javasasl.h javasasl.c
 libjavasasl_la_LDFLAGS = -export_dynamic -lsasl -version-info $(javasasl_version) $(wildcard ../lib/*.lo)
 BUILT_SOURCES = javasasl.h $(CLASSES)
 
@@ -54,7 +54,7 @@ javasasl.h: $(CLASSES)
 # force build of class files
 $(CLASSES): classjavasasl.stamp
 
-install-data-local:
+#install-data-local:
 # xxx broken
 #	$(mkinstalldirs) $(javahtmldir)
 #	$(CLASSPATH_ENV) $(JAVADOC) -d $(javahtmldir) sasl

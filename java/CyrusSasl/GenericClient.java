@@ -173,4 +173,7 @@ public class GenericClient extends GenericCommon implements SaslClient
 	return new SaslOutputStream(dest,this);
     }
 
+    public byte[] createInitialResponse(){
+	return initial_response;
+    }
 }

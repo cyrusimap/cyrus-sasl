@@ -1,7 +1,7 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Siemborski
  * Rob Earhart
- * $Id: dlopen.c,v 1.40 2002/04/17 18:55:03 rjs3 Exp $
+ * $Id: dlopen.c,v 1.41 2002/08/19 16:39:18 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -47,11 +47,13 @@
 #ifndef __hpux
 #include <dlfcn.h>
 #endif /* !__hpux */
+
 #include <stdlib.h>
 #include <errno.h>
 #include <stdio.h>
 #include <limits.h>
 #include <sys/param.h>
+
 #include <sasl.h>
 #include "saslint.h"
 
@@ -232,7 +234,7 @@ static int _parse_la(const char *prefix, const char *in, char *out)
     char line[MAX_LINE];
     char *ntmp = NULL;
 
-    if(!in || !out || !prefix) return SASL_BADPARAM;
+    if(!in || !out || !prefix || out == in) return SASL_BADPARAM;
 
     /* Set this so we can detect failure */
     *out = '\0';
@@ -254,7 +256,8 @@ static int _parse_la(const char *prefix, const char *in, char *out)
 		return SASL_FAIL;
 	    }
 	}
-	if(out != in) strncpy(out, in, PATH_MAX);
+	strcpy(out, prefix);
+	strcat(out, in);
 	return SASL_OK;
     }
 

@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.141 2002/09/18 22:08:39 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.142 2002/11/22 17:28:57 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -76,11 +76,8 @@
 
 #include "plugin_common.h"
 
-#ifdef WIN32
-/* This must be after sasl.h, saslutil.h */
-#include "saslDIGESTMD5.h"
-#else /* Unix */
-extern int      strcasecmp(const char *s1, const char *s2);
+#ifndef WIN32
+extern int strcasecmp(const char *s1, const char *s2);
 #endif /* end WIN32 */
 
 #ifdef macintosh
@@ -103,7 +100,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.141 2002/09/18 22:08:39 rjs3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.142 2002/11/22 17:28:57 leg Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */

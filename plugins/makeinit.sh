@@ -22,6 +22,24 @@ echo "
 #include <sasl_${mech}_plugin_decl.h>
 #endif
 
+#ifdef WIN32
+BOOL APIENTRY DllMain( HANDLE hModule, 
+                       DWORD  ul_reason_for_call, 
+                       LPVOID lpReserved
+					 )
+{
+    switch (ul_reason_for_call)
+	{
+		case DLL_PROCESS_ATTACH:
+		case DLL_THREAD_ATTACH:
+		case DLL_THREAD_DETACH:
+		case DLL_PROCESS_DETACH:
+			break;
+    }
+    return TRUE;
+}
+#endif
+
 SASL_CLIENT_PLUG_INIT( $mech )
 SASL_SERVER_PLUG_INIT( $mech )
 " > ${mech}_init.c
@@ -46,6 +64,24 @@ echo "
 #include <saslutil.h>
 
 #include \"plugin_common.h\"
+
+#ifdef WIN32
+BOOL APIENTRY DllMain( HANDLE hModule, 
+                       DWORD  ul_reason_for_call, 
+                       LPVOID lpReserved
+					 )
+{
+    switch (ul_reason_for_call)
+	{
+		case DLL_PROCESS_ATTACH:
+		case DLL_THREAD_ATTACH:
+		case DLL_THREAD_DETACH:
+		case DLL_PROCESS_DETACH:
+			break;
+    }
+    return TRUE;
+}
+#endif
 
 SASL_AUXPROP_PLUG_INIT( $mech )
 " > ${mech}_init.c

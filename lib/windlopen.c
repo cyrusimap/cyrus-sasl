@@ -1,6 +1,6 @@
 /* windlopen.c--Windows dynamic loader interface
  * Ryan Troll
- * $Id: windlopen.c,v 1.13 2002/11/22 02:05:44 leg Exp $
+ * $Id: windlopen.c,v 1.14 2002/11/22 17:28:55 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -70,8 +70,6 @@ int _sasl_locate_entry(void *library,
 		       const char *entryname,
 		       void **entry_point) 
 {
-	char myentryname[1024];
-
     if(entryname == NULL) {
 	_sasl_log(NULL, SASL_LOG_ERR,
 		  "no entryname in _sasl_locate_entry");
@@ -90,9 +88,7 @@ int _sasl_locate_entry(void *library,
 	return SASL_BADPARAM;
     }
 
-	snprintf(myentryname, sizeof(myentryname), "%s", entryname);
-
-    *entry_point = GetProcAddress(library, myentryname);
+    *entry_point = GetProcAddress(library, entryname);
 
     if (*entry_point == NULL) {
 #if 0 /* This message appears to confuse people */

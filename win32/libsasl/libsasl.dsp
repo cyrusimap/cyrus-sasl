@@ -158,11 +158,6 @@ SOURCE=..\..\lib\seterror.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\StdAfx.cpp
-# ADD CPP /Yc"stdafx.h"
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\lib\windlopen.c
 # End Source File
 # End Group
@@ -195,6 +190,10 @@ SOURCE=..\..\plugins\plugin_common.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\prop.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\sasl.h
 # End Source File
 # Begin Source File
@@ -208,10 +207,6 @@ SOURCE=..\..\include\saslplug.h
 # Begin Source File
 
 SOURCE=..\..\include\saslutil.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\StdAfx.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"

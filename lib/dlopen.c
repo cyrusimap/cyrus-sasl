@@ -158,7 +158,8 @@ int _sasl_get_plugin(const char *file,
     int flag;
     void *library;
     void *entry_point;
-#if __OpenBSD__
+/* rbraun@andrew 6 jul 2001 - mac os x needs this kludge too */
+#if __OpenBSD__ || __APPLE__
     char adj_entryname[1024];
 #else
 #define adj_entryname entryname
@@ -179,7 +180,7 @@ int _sasl_get_plugin(const char *file,
 	return SASL_FAIL;
     }
 
-#if __OpenBSD__
+#if __OpenBSD__ || __APPLE__
     snprintf(adj_entryname, sizeof adj_entryname, "_%s", entryname);
 #endif
 

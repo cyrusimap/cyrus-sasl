@@ -77,6 +77,9 @@
 /* Do we have kerberos for plaintext password checking? */
 #undef HAVE_KRB
 
+/* are we using mit kerberos for macintosh as our krb4 implementation? */
+#undef HAVE_MIT_KFM
+
 /* do we have SIA for plaintext password checking? */
 #undef HAVE_SIA
 
@@ -163,6 +166,12 @@
 #endif
 
 #define SASL_PATH_ENV_VAR "SASL_PATH"
+
+#ifdef HAVE_MIT_KFM
+#define get_krb_err_txt(X) "Unknown Kerberos 4 error"
+#else
+#define get_krb_err_txt(X) (krb_err_txt[(X)])
+#endif
 
 #include <stdlib.h>
 #include <sys/types.h>

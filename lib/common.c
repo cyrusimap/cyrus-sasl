@@ -1011,9 +1011,9 @@ _sasl_alloc_utils(sasl_conn_t *conn,
   utils->mutex_unlock = _sasl_mutex_utils.unlock;
   utils->mutex_dispose = _sasl_mutex_utils.dispose;
   
-  utils->MD5Init  = &MD5Init;
-  utils->MD5Update= &MD5Update;
-  utils->MD5Final = &MD5Final;
+  utils->MD5Init  = &_sasl_MD5Init;
+  utils->MD5Update= &_sasl_MD5Update;
+  utils->MD5Final = &_sasl_MD5Final;
   utils->hmac_md5 = &hmac_md5;
   utils->hmac_md5_init = &hmac_md5_init;
   utils->hmac_md5_final = &hmac_md5_final;

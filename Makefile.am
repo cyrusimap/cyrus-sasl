@@ -62,14 +62,20 @@ JAV = java
 else
 JAV =
 endif
+if MACOSX
+INSTALLOSX = install-exec-local-osx
+else
+INSTALLOSX =
+endif
 
 SUBDIRS=include lib plugins utils doc man $(PWC) $(SAM) $(JAV) $(SAD)
-EXTRA_DIST=config cmulocal win32 testing.txt
+EXTRA_DIST=config cmulocal win32 testing.txt mac_only_files.sit.hqx dlcompat-20010505
 
 dist-hook:
 	@find $(distdir) -name CVS -print | xargs -t rm -rf
 
-install-exec-local:
+framedir = /Library/Frameworks/SASL.framework
+install-exec-local: $(INSTALLOSX)
 	@if test "$(plugindir)" != "$(prefix)/lib/sasl"; then \
 	  echo "********************************************************"; \
 	  echo "* WARNING:"; \
@@ -87,3 +93,10 @@ install-exec-local:
 	  echo "* the library should use."; \
 	  echo "********************************************************"; \
 	fi
+install-exec-local-osx:
+	$(mkinstalldirs) $(framedir)/Versions/A/Headers
+	$(mkinstalldirs) $(framedir)/Versions/A/Resources
+	cd $(framedir)/Versions ; ln -fs A Current
+	cd $(framedir) ; ln -fs Versions/A/Headers .
+	cd $(framedir) ; ln -fs Versions/A/Resources .
+	$(INSTALL_DATA) $(srcdir)/config/Info.plist $(framedir)/Versions/A/Resources

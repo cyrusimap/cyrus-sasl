@@ -29,9 +29,15 @@ typedef struct {
   unsigned char buffer[64];                         /* input buffer */
 } MD5_CTX;
 
-void MD5Init PROTO_LIST ((MD5_CTX *));
-void MD5Update PROTO_LIST
+#ifndef __APPLE__
+#define _sasl_MD5Init MD5Init
+#define _sasl_MD5Update MD5Update
+#define _sasl_MD5Final MD5Final
+#endif
+
+void _sasl_MD5Init PROTO_LIST ((MD5_CTX *));
+void _sasl_MD5Update PROTO_LIST
   ((MD5_CTX *, unsigned char *, unsigned int));
-void MD5Final PROTO_LIST ((unsigned char [16], MD5_CTX *));
+void _sasl_MD5Final PROTO_LIST ((unsigned char [16], MD5_CTX *));
 
 void hmac_md5 PROTO_LIST ((unsigned char *, int, unsigned char *, int, caddr_t));

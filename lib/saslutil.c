@@ -359,6 +359,13 @@ static void randinit(sasl_rand_t *rpool)
     if (!rpool->initialized) {
 	getranddata(rpool->pool);
 	rpool->initialized = 1;
+
+#ifdef __APPLE__
+    {
+	long *foo = (long *)rpool->pool;
+	srandom(*foo);
+    }
+#endif
     }
 }
 
@@ -370,7 +377,11 @@ void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
     
     /* init if necessary */
     randinit(rpool);
-    
+
+#ifdef __APPLE__
+    for (lup=0;lup<len;lup++)
+	buf[lup] = (char) (random() >> 8);
+#else
 #if (defined(WIN32)||defined(macintosh))
     for (lup=0;lup<len;lup++)
 	buf[lup] = (char) (rand() >> 8);
@@ -378,6 +389,7 @@ void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
     for (lup=0; lup<len; lup++)
 	buf[lup] = (char) (jrand48(rpool->pool) >> 8);
 #endif /* WIN32 */
+#endif
 }
 
 /* this function is just a bad idea all around, since we're not trying to

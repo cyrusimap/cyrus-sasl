@@ -58,7 +58,7 @@ srp_version = 0:1:0
 
 INCLUDES=-I$(top_srcdir)/include
 
-LDFLAGS = @LDFLAGS@ -export-dynamic -rpath $(plugindir)
+LDFLAGS = @LDFLAGS@ -export-dynamic -rpath $(plugindir) -module
 
 plugindir = @plugindir@
 

@@ -4,6 +4,62 @@
 	* utils/saslpasswd.c (main, good_getopt): support for sasldb files
 	  that aren't /etc/sasldb	
 
+2001-08-03  Rolf Braun <rbraun+@andrew.cmu.edu>
+
+	* Mac OS X support, and Carbon for Mac OS 9
+
+	* updated ltconfig and ltmain.sh
+	* lib/saslutil.c: use random() on OS X
+
+	* lib/md5.c:
+	* include/md5.h:
+	* lib/checkpw.c:
+	* lib/common.c:
+	  MD5 symbols prefixed with _sasl_ on OS X, which avoids symbol
+	  conflicts with libdes when using Apple's strict linker
+	  (on other platforms, these #define to the usual MD5 symbols)
+
+	* dlcompat-20010505:
+	  dlcompat included for OS X support, compiles separately
+	* lib/dlopen.c: prefix symbols with underscore on OS X, as on OpenBSD
+	* plugins/Makefile.am: need to supply -module to libtool for
+	  some platforms (including Mac OS X)
+
+	* acconfig.h:
+	* configure.in:
+	  look for libdes524 when libdes doesn't exist.
+	  look for libkrb4 when libkrb doesn't exist, 
+	    and assume it's MIT Kerberos for Macintosh 4.0
+
+	* plugins/kerberos4.c:
+	* lib/checkpw.c:
+	* acconfig.h:
+	  define new macro get_krb_err_txt(), and make it look
+	  up from the array krb_err_txt[] in most situations.
+	  when MIT Kerberos for Macintosh 4.0 is detected, make
+	  it return a bogus generic error.
+
+	* plugins/kerberos4.c:
+	  define KEYFILE to "/etc/srvtab" if not already defined
+	  by the kerberos 4 headers (needed for MIT KfM 4.0)
+
+	* doc/macosx.html: added this
+	* README: point Mac OS X users to doc/macosx.html
+	* doc/Makefile.am: add doc/macosx.html to distfiles
+
+	* Makefile.am:
+	* lib/Makefile.am:
+	* include/Makefile.am:
+	* config/Info.plist:
+	* configure.in:
+	  when building on Mac OS X, install a framework
+	  in /Library/Frameworks
+
+	* mac_only_files.sit.hqx: included Carbon projects for
+	  the existing Mac OS 9 stuff, and added the OS X CFM glue
+	  to support the Carbon SASL api against the unix backend
+	  also added this to distfiles
+
 2001-07-27  Rob Siemborski <rjs3+@andrew.cmu.edu>
 
 	* include/sasl.h: updated comments of sasl_client_new

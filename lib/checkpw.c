@@ -300,7 +300,7 @@ static int kerberos_verify_password(sasl_conn_t *conn,
     memset(key, 0, sizeof(key));
 
     if (result != 0) {
-	if (reply) *reply = krb_err_txt[result];
+	if (reply) *reply = get_krb_err_txt(result);
 	result = SASL_FAIL;
 	goto fini;
     }
@@ -313,7 +313,7 @@ static int kerberos_verify_password(sasl_conn_t *conn,
 
     if (result != 0) {
 	memset(&authent, 0, sizeof(authent));
-	if (reply) *reply = krb_err_txt[result];
+	if (reply) *reply = get_krb_err_txt(result);
 	result = SASL_FAIL;
 	goto fini;
     }
@@ -327,7 +327,7 @@ static int kerberos_verify_password(sasl_conn_t *conn,
     if (result != 0 || strcmp(kdata.pname, user) != 0 || kdata.pinst[0] ||
 	strcmp(kdata.prealm, realm) != 0) {
 	if (result != 0) {
-	    if (reply) *reply = krb_err_txt[result];
+	    if (reply) *reply = get_krb_err_txt(result);
 	}
 	else {
 	    if (reply) *reply = "Kerberos ID does not match user name";
@@ -749,13 +749,13 @@ static int _sasl_make_plain_secret(const char *salt,
 	return SASL_NOMEM;
     }
 
-    MD5Init(&ctx);
-    MD5Update(&ctx, salt, 16);
-    MD5Update(&ctx, "sasldb", 6);
-    MD5Update(&ctx, passwd, passlen);
+    _sasl_MD5Init(&ctx);
+    _sasl_MD5Update(&ctx, salt, 16);
+    _sasl_MD5Update(&ctx, "sasldb", 6);
+    _sasl_MD5Update(&ctx, passwd, passlen);
     memcpy((*secret)->data, salt, 16);
     memcpy((*secret)->data + 16, "\0", 1);
-    MD5Final((*secret)->data + 17, &ctx);
+    _sasl_MD5Final((*secret)->data + 17, &ctx);
     (*secret)->len = sec_len;
     
     return SASL_OK;

@@ -1,4 +1,4 @@
-$Id: README,v 1.26 2001/07/20 21:28:25 rjs3 Exp $
+$Id: README,v 1.27 2001/08/03 22:05:27 rbraun Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication. See RFC 2222 for more
@@ -100,6 +100,10 @@ use the OpenSSL version of RC4, available from <http://www.openssl.org/>.
 The library uses the environment variable SASL_PATH to locate the
 directory where the mechanisms are; this should be a colon-seperated
 list of directories containing plugins.
+
+INSTALLATION ON MAC OS X
+------------------------
+Please read the file doc/macosx.html
 
 CONFIGURATION
 -------------

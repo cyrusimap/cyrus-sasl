@@ -1,6 +1,6 @@
 # Makefile.am for the SASL library
 # Rob Earhart
-# $Id: Makefile.am,v 1.41 2001/03/29 21:58:49 leg Exp $
+# $Id: Makefile.am,v 1.42 2001/08/03 22:06:26 rbraun Exp $
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -56,3 +56,10 @@ libsasl_la_DEPENDENCIES = $(SASL_DB_BACKEND) @LTLIBOBJS@
 libsasl_la_LIBADD = @LTLIBOBJS@ $(SASL_DB_BACKEND) $(SASL_DB_LIB) $(SASL_DL_LIB) $(PLAIN_LIBS) $(LIB_SOCKET)
 # PLAIN_LIBS are linked in for sasl_checkpass
 
+if MACOSX
+framedir = /Library/Frameworks/SASL.framework
+install-exec-hook:
+	$(mkinstalldirs) $(framedir)/Versions/A
+	ln -fs $(libdir)/libsasl.dylib $(framedir)/Versions/A/SASL
+	cd $(framedir) ; ln -fs Versions/A/SASL .
+endif

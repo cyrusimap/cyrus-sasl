@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.110 2001/07/24 21:43:33 rjs3 Exp $
+dnl $Id: configure.in,v 1.111 2001/08/03 22:05:28 rbraun Exp $
 dnl
 dnl Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -376,7 +376,10 @@ if test "$with_des" != no; then
   fi
   AC_CHECK_LIB(des, des_pcbc_encrypt, [LIB_DES="-ldes";
 				       with_des=yes], with_des=no)
-
+  if test "$with_des" = no; then
+    AC_CHECK_LIB(des524, des_pcbc_encrypt, [LIB_DES="-ldes524";
+				       with_des=yes], with_des=no)
+  fi
   if test "$with_des" = no; then
     dnl if openssl is around, we might be able to use that for des
 
@@ -396,12 +399,10 @@ if test "$with_des" != no; then
   fi
 fi
 
-
-
-if test "$with_des" != no; then
-  AC_DEFINE(WITH_DES)
-  LIB_DES="-ldes"
-fi
+dnl if test "$with_des" != no; then
+dnl   AC_DEFINE(WITH_DES)
+dnl  LIB_DES="-ldes"
+dnl fi
 
 AC_SUBST(LIB_DES)
 
@@ -466,9 +467,24 @@ if test "$krb4" != no; then
     AC_WARN(No DES library found for Kerberos V4 support)
     krb4=no
   fi
+dnl check for MIT Kerberos for Macintosh 4 on Mac OS X
+  if test "$krb4" = "no"; then
+    if test "$with_des" != "no"; then
+	AC_CHECK_HEADER(krb.h,
+	  AC_CHECK_LIB(krb4, krb_mk_priv, krb4=kfm, krb4=no))
+    fi
+  fi
 fi
 
 AC_MSG_CHECKING(KERBEROS_V4)
+if test "$krb4" = kfm; then
+  AC_MSG_RESULT(MIT KfM 4.0)
+  SASL_MECHS="$SASL_MECHS libkerberos4.la"
+  AC_DEFINE(HAVE_KRB)
+  SASL_KRB_LIB="-lkrb4 -ldes524"
+  AC_SUBST(SASL_KRB_LIB)
+  AC_DEFINE(HAVE_MIT_KFM)
+else
 if test "$krb4" != no; then
   AC_MSG_RESULT(enabled)
   SASL_MECHS="$SASL_MECHS libkerberos4.la"
@@ -477,6 +493,7 @@ if test "$krb4" != no; then
   AC_SUBST(SASL_KRB_LIB)
 else
   AC_MSG_RESULT(disabled)
+fi
 fi
 
 dnl GSSAPI
@@ -647,6 +664,14 @@ AC_ARG_WITH(rc4, [  --with-rc4=DIR          use internal rc4 routines [yes] ],
 if test "$with_rc4" != no; then
     AC_DEFINE(WITH_RC4)
 fi
+
+building_for_macosx=no
+case "$host_os" in
+        darwin*)
+            building_for_macosx=yes
+        ;;
+esac
+AM_CONDITIONAL(MACOSX, test "$building_for_macosx" = yes)
 
 AC_HEADER_DIRENT
 AC_HEADER_STDC

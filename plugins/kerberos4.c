@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.68 2001/06/20 11:36:09 n3liw Exp $
+ * $Id: kerberos4.c,v 1.69 2001/08/03 22:06:28 rbraun Exp $
  */
 /* 
  * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -117,6 +117,10 @@ extern int gethostname(char *, int);
 
 #define KRB_DES_SECURITY_BITS (56)
 #define KRB_INTEGRITY_BITS (1)
+
+#ifndef KEYFILE
+#define KEYFILE "/etc/srvtab"
+#endif
 
 typedef struct context {
   int state;
@@ -497,7 +501,6 @@ server_start(void *glob_context __attribute__((unused)),
 }
 #endif
 
-
 static void dispose(void *conn_context, sasl_utils_t *utils)
 {
     context_t *text = (context_t *) conn_context;
@@ -634,7 +637,7 @@ static int server_continue_step (void *conn_context,
 	VL(("krb_rd_req failed service=%s instance=%s error code=%i\n",
 	    sparams->service, text->instance,result));
 	if (errstr)
-	    *errstr = krb_err_txt[result];
+	    *errstr = get_krb_err_txt(result);
 	return SASL_BADAUTH;
     }
 
@@ -877,7 +880,7 @@ int sasl_server_plug_init(sasl_utils_t *utils,
     utils->getopt(utils->getopt_context, "KERBEROS_V4", "srvtab", &ret, &rl);
 
     if (ret == NULL) {
-	ret = KEYFILE;
+	ret = "/etc/srvtab";
 	rl = strlen(ret);
     }
     srvtab = utils->malloc(sizeof(char) * (rl + 1));
@@ -1016,7 +1019,7 @@ static int client_continue_step (void *conn_context,
 	    params->utils->log(NULL, SASL_LOG_ERR, "KERBEROS_V4", 
 			       SASL_FAIL, 0, 
 			       "krb_mk_req() failed: %s (%d)",
-			       krb_err_txt[result], result);
+			       get_krb_err_txt(result), result);
 	    return SASL_FAIL;
 	}
     
@@ -1140,7 +1143,7 @@ static int client_continue_step (void *conn_context,
 	    params->utils->log(NULL, SASL_LOG_ERR, "KERBEROS_V4", 
 			       SASL_BADAUTH, 0, 
 			       "krb_get_cred() failed: %s (%d)",
-			       krb_err_txt[result], result);
+			       get_krb_err_txt(result), result);
 	    return SASL_BADAUTH;
 	}
 #endif

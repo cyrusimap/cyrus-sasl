@@ -1,6 +1,6 @@
 /* Plain SASL plugin
  * Tim Martin 
- * $Id: plain.c,v 1.34 1999/07/23 18:58:59 leg Exp $
+ * $Id: plain.c,v 1.35 1999/08/16 21:13:03 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -256,7 +256,8 @@ server_continue_step (void *conn_context,
     passcopy = params->utils->malloc(password_len + 1);    
     if (passcopy == NULL) return SASL_NOMEM;
 
-    strcpy(passcopy, password);
+    strncpy(passcopy, password, password_len);
+    passcopy[password_len] = '\0';
 
     /* verify password - return sasl_ok on success*/    
     result = verify_password(params, authen, passcopy);

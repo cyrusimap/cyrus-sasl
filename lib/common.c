@@ -724,7 +724,7 @@ _sasl_getcallback(sasl_conn_t * conn,
   /* Unable to find a callback... */
   *pproc = NULL;
   *pcontext = NULL;
-  return SASL_OK;
+  return SASL_FAIL;
 }
 
 /* checks size of buffer and resizes if needed */

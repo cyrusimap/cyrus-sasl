@@ -1,3 +1,20 @@
+Mon Aug 16 14:52:27 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/plain.c (server_continue_step): fixed a bug with
+	null-terminating the password
+
+	* lib/common.c (_sasl_getcallback): if it can't find a callback,
+	it returns SASL_FAIL, not SASL_OK.  is there any reason for it to
+	return SASL_OK?
+
+	* plugins/digestmd5.c (c_continue_step): we can get multiple
+	realms in the challenge; added use of realm callback
+
+Sat Aug 14 19:13:19 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c: updated to alexey's latest version
+	support for DIGEST_DRAFT_2 dropped
+
 Fri Aug 13 00:54:29 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* doc/sysadmin.html: updated to reflect sasldb pwcheck_method

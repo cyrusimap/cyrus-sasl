@@ -1,3 +1,7 @@
+2000-01-13  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* version 1.5.15 released
+
 2000-01-06  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* configure.in: now detects berkeley db 3.x

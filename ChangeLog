@@ -3,6 +3,8 @@
 	  and saslpasswd2.  Default database now /etc/sasldb2
 	* INSTALL, README, doc/index.html, doc/upgrading.html: Update
 	  with upgrading instructions in preparation for release.
+	* doc/, /: Documentation reorganization, convert README and INSTALL to
+	  HTML format.
 
 2001-12-04  Ken Murchison <ken@oceana.com>
 	* acconfig.h, configure.in:

@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.17 2000/07/13 02:59:51 leg Exp $ -->
+<!-- $Id: sysadmin.html,v 1.18 2001/01/09 02:37:08 leg Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -369,6 +369,19 @@ passwords?
 <p><b>A:</b> Try using the "pwcheck" daemon and setting
 "pwcheck_method" to "pwcheck".  You'll have to run <tt>configure</tt>
 with the <tt>--with-pwcheck</tt> option.
+
+<p>
+<dt><b>Q:</b> I want to use Berkeley DB, but it's installed in
+<tt>/usr/local/BerkeleyDB.3.1</tt> and <tt>configure</tt> can't find
+it.
+<dd>
+<p><b>A:</b> Try setting "CPPFLAGS" and "LDFLAGS" environment
+variables before running <tt>configure</tt>, like so:
+<pre>
+env CPPFLAGS="-I/usr/local/BerkeleyDB.3.1/include" \
+  LDFLAGS="-L/usr/local/BerkeleyDB.3.1/lib -R/usr/local/BerkeleyDB.3.1/lib" \
+  ./configure --with-dblib=berkeley 
+</pre>
 
 <p>
 <dt><b>Q:</b> Is there a mailing list to discuss the Cyrus SASL

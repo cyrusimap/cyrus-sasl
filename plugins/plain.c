@@ -1,7 +1,7 @@
 /* Plain SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: plain.c,v 1.58 2002/07/30 17:06:22 rjs3 Exp $
+ * $Id: plain.c,v 1.59 2002/11/22 17:33:36 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -51,18 +51,13 @@
 
 #include "plugin_common.h"
 
-#ifdef WIN32
-/* This must be after sasl.h */
-# include "saslPLAIN.h"
-#endif /* WIN32 */
-
 #ifdef macintosh 
 #include <sasl_plain_plugin_decl.h> 
 #endif 
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: plain.c,v 1.58 2002/07/30 17:06:22 rjs3 Exp $";
+static const char plugin_id[] = "$Id: plain.c,v 1.59 2002/11/22 17:33:36 leg Exp $";
 
 /*****************************  Server Section  *****************************/
 

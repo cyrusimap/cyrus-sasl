@@ -2,7 +2,7 @@
  * Rob Siemborski (SASLv2 Conversion)
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.22 2002/06/17 16:24:35 rjs3 Exp $
+ * $Id: login.c,v 1.23 2002/11/22 17:33:36 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -52,14 +52,9 @@
 
 #include "plugin_common.h"
 
-#ifdef WIN32
-/* This must be after sasl.h */
-# include "saslLOGIN.h"
-#endif /* WIN32 */
-
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: login.c,v 1.22 2002/06/17 16:24:35 rjs3 Exp $";
+static const char plugin_id[] = "$Id: login.c,v 1.23 2002/11/22 17:33:36 leg Exp $";
 
 /*****************************  Server Section  *****************************/
 

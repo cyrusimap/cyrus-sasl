@@ -1,4 +1,4 @@
-/* $Id: server.c,v 1.3 2002/09/03 15:11:59 rjs3 Exp $ */
+/* $Id: server.c,v 1.4 2002/10/07 05:04:05 rjs3 Exp $ */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
  *
@@ -61,8 +61,14 @@
 
 #include "common.h"
 
+#if !defined(IPV6_BINDV6ONLY) && defined(IN6P_IPV6_V6ONLY)
+#define IPV6_BINDV6ONLY IN6P_BINDV6ONLY
+#endif
 #if !defined(IPV6_V6ONLY) && defined(IPV6_BINDV6ONLY)
 #define	IPV6_V6ONLY	IPV6_BINDV6ONLY
+#endif
+#ifndef IPV6_BINDV6ONLY
+#undef      IPV6_V6ONLY
 #endif
 
 /* create a socket listening on port 'port' */

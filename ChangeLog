@@ -1,3 +1,7 @@
+2002-10-07  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* sample/server.c: Fix some IPV6 defines
+	  (Marshall Rose <mrose@dbc.mtview.ca.us>)
+
 2002-10-02  Ken Murchison <ken@oceana.com>
 	* lib/checkpw.c: return SASL_NOUSER when we can't find APOP secret
 	* lib/server.c: plug APOP memory leak and consolidate canonification

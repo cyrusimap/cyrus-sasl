@@ -170,33 +170,19 @@ extern int sasl_config_getint(const char *key,int def);
 extern int sasl_config_getswitch(const char *key,int def);
 
 /* clear password checking declarations (checkpw.c) */
-extern int _sasl_passwd_verify_password(sasl_conn_t *conn,
-					const char *userid,
-					const char *password,
-					const char **reply);
-extern int _sasl_shadow_verify_password(sasl_conn_t *conn,
-					const char *userid,
-					const char *password,
-					const char **reply);
-extern int _sasl_kerberos_verify_password(sasl_conn_t *conn,
-					  const char *user,
-					  const char *passwd,
-					  const char *service,
-					  const char **reply);
-extern int _sasl_PAM_verify_password(sasl_conn_t *conn,
-				     const char *userid,
-				     const char *password, 
-				     const char *service,
-				     const char **reply);
-extern int _sasl_sasldb_verify_password(sasl_conn_t *conn,
-					const char *userid, 
-					const char *passwd,
-					const char *user_realm,
-					const char **reply);
-extern int _sasl_pwcheck_verify_password(sasl_conn_t *conn,
-					 const char *userid,
-					 const char *passwd,
-					 const char **reply);
+typedef int sasl_plaintext_verifier(sasl_conn_t *conn,
+				    const char *userid,
+				    const char *passwd,
+				    const char *service,
+				    const char *user_realm,
+				    const char **reply);
+struct sasl_verify_password_s {
+    char *name;
+    sasl_plaintext_verifier *verify;
+};
+
+extern struct sasl_verify_password_s _sasl_verify_password[];
+
 extern int _sasl_sasldb_set_pass(sasl_conn_t *conn,
 				 const char *user, 
 				 const char *pass,

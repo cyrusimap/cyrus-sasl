@@ -42,24 +42,51 @@
 #
 ################################################################
 
-sbin_PROGRAMS = saslpasswd sasldblistusers
-man_MANS = saslpasswd.8 sasldblistusers.8
-saslpasswd_LDADD = ../lib/libsasl.la
-sasldblistusers_LDADD = $(SASL_DB_LIB)
+all_sasl_libs = ../lib/libsasl2.la $(SASL_DB_LIB) $(LIB_SOCKET)
+all_sasl_static_libs = ../lib/libsasl2.a $(SASL_DB_LIB) $(LIB_SOCKET) $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(SASL_KRB_LIB) $(LIB_DES) $(PLAIN_LIBS) $(SRP_LIBS)
 
-noinst_PROGRAMS = dbconverter-1.5.9
-dbconverter_1_5_9_LDADD = ../lib/libsasl.la $(SASL_DB_LIB)
+sbin_PROGRAMS = @SASL_DB_UTILS@ @SMTPTEST_PROGRAM@
+EXTRA_PROGRAMS = saslpasswd sasldblistusers testsuite testsuitestatic smtptest
 
-EXTRA_PROGRAMS = testsuite
-testsuite_LDADD = ../lib/libsasl.la $(SASL_DB_LIB) $(LIB_SOCKET)
+noinst_PROGRAMS = dbconverter-2
 
-include_HEADERS = @SASL_UTIL_HEADERS_EXTRA@
+man_MANS = @SASL_DB_MANS@
+EXTRA_MANS = saslpasswd.8 sasldblistusers.8
+
+saslpasswd_LDADD = $(all_sasl_libs) ../sasldb/libsasldb.la
+sasldblistusers_LDADD = $(all_sasl_libs) ../sasldb/libsasldb.la
+dbconverter_2_LDADD = $(all_sasl_libs) ../sasldb/libsasldb.la
+
+testsuite_LDADD = $(all_sasl_libs) @DMALLOC_LIBS@
+
+CLEANFILES=$(EXTRA_PROGRAMS)
+
+testsuitestatic_SOURCES = testsuite.c
+testsuitestatic_LDADD = $(all_sasl_static_libs) @DMALLOC_LIBS@
+testsuitestatic_DEPENDENCIES = ../lib/libsasl2.a
+
+smtptest_SOURCES =
+smtptest_DEPENDENCIES = ./smtptest.lo ./libsfsasl2.la
+smtptest_LDADD = ./smtptest.lo ./libsfsasl2.la @SFIO_LIB_FLAGS@ @DMALLOC_LIBS@ $(all_sasl_libs)
+
+saslincludedir = $(includedir)/sasl
+
+saslinclude_HEADERS = @SASL_UTIL_HEADERS_EXTRA@
 EXTRA_HEADERS = sfsasl.h
 
+# Note: we explicitly do *not* link to libsfio, as people will need to
+# link to that anyway if they want to use this. 
 lib_LTLIBRARIES = @SASL_UTIL_LIBS_EXTRA@
-EXTRA_LTLIBRARIES = libsfsasl.la
-libsfsasl_la_SOURCES = sfsasl.c
-libsfsasl_la_LDFLAGS = -version-info 0:0:0 -export-dynamic -rpath $(libdir)
+EXTRA_LTLIBRARIES = libsfsasl2.la
+libsfsasl2_la_SOURCES = 
+libsfsasl2_la_LIBADD = sfsasl.lo
+libsfsasl2_la_LDFLAGS = -version-info 1:0:0 -export-dynamic -rpath $(libdir)
 
 INCLUDES=-I$(top_srcdir)/include
-EXTRA_DIST = saslpasswd.8 sasldblistusers.8 sfsasl.h dbconverter-1.5.5.c testsuite.c
+EXTRA_DIST = saslpasswd.8 sasldblistusers.8 sfsasl.h sfsasl.c smtptest.c testsuite.c
+
+sfsasl.lo: sfsasl.c
+	$(LIBTOOL) --mode=compile $(COMPILE) @SFIO_INC_FLAGS@ -c $(srcdir)/sfsasl.c
+
+smtptest.lo: smtptest.c
+	$(LIBTOOL) --mode=compile $(COMPILE) @SFIO_INC_FLAGS@ -c $(srcdir)/smtptest.c

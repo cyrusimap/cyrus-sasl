@@ -32,12 +32,10 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_getpwent.c,v 1.3 2001/01/04 21:20:45 leg Exp $"
+#ident "$Id: auth_getpwent.c,v 1.4 2001/12/04 02:06:54 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
-#include <config.h>
-
 #include <unistd.h>
 #include <string.h>
 #include <pwd.h>
@@ -54,7 +52,9 @@ char *					/* R: allocated response string */
 auth_getpwent (
   /* PARAMETERS */
   const char *login,			/* I: plaintext authenticator */
-  const char *password			/* I: plaintext password */
+  const char *password,			/* I: plaintext password */
+  const char *service __attribute__((unused)),
+  const char *realm __attribute__((unused))
   /* END PARAMETERS */
   )
 {
@@ -69,7 +69,7 @@ auth_getpwent (
 	RETURN("NO");
     }
 
-    if (strcmp(pw->pw_passwd, crypt(password, pw->pw_passwd))) {
+    if (strcmp(pw->pw_passwd, (const char *)crypt(password, pw->pw_passwd))) {
 	RETURN("NO");
     }
 

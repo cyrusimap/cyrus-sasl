@@ -1,20 +1,43 @@
-.\" Hey Emacs! This file is -*- nroff -*- source.
-.\"
-.\" This manpage is Copyright (C) 1999 Tim Martin
-.\"
-.\" Permission is granted to make and distribute verbatim copies of this
-.\" manual provided the copyright notice and this permission notice are
-.\" preserved on all copies.
-.\"
-.\" Permission is granted to copy and distribute modified versions of this
-.\" manual under the conditions for verbatim copying, provided that the
-.\" entire resulting derived work is distributed under the terms of a
-.\" permission notice identical to this one
+.\" -*- nroff -*-
 .\" 
-.\" Formatted or processed versions of this manual, if unaccompanied by
-.\" the source, must acknowledge the copyright and authors of this work.
+.\" Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 .\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
 .\"
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer. 
+.\"
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"    notice, this list of conditions and the following disclaimer in
+.\"    the documentation and/or other materials provided with the
+.\"    distribution.
+.\"
+.\" 3. The name "Carnegie Mellon University" must not be used to
+.\"    endorse or promote products derived from this software without
+.\"    prior written permission. For permission or any other legal
+.\"    details, please contact  
+.\"      Office of Technology Transfer
+.\"      Carnegie Mellon University
+.\"      5000 Forbes Avenue
+.\"      Pittsburgh, PA  15213-3890
+.\"      (412) 268-4387, fax: (412) 268-7395
+.\"      tech-transfer@andrew.cmu.edu
+.\"
+.\" 4. Redistributions of any form whatsoever must retain the following
+.\"    acknowledgment:
+.\"    "This product includes software developed by Computing Services
+.\"     at Carnegie Mellon University (http://www.cmu.edu/computing/)."
+.\"
+.\" CARNEGIE MELLON UNIVERSITY DISCLAIMS ALL WARRANTIES WITH REGARD TO
+.\" THIS SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+.\" AND FITNESS, IN NO EVENT SHALL CARNEGIE MELLON UNIVERSITY BE LIABLE
+.\" FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+.\" WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN
+.\" AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING
+.\" OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\" 
 .TH sasl_server_new "16 May 2001" SASL "SASL man pages"
 .SH NAME
 sasl_server_new \- Create a new server authentication object
@@ -22,13 +45,15 @@ sasl_server_new \- Create a new server authentication object
 
 .SH SYNOPSIS
 .nf
-.B #include <sasl.h>
+.B #include <sasl/sasl.h>
 .sp
 .BI "int sasl_server_new(const char " *service ", "
 .BI "			 const char " *serverFQDN ", "
 .BI "			 const char " *user_realm ", "
+.BI "			 const char " *iplocalport ", "
+.BI "			 const char " *ipremoteport ", "
 .BI "			 const sasl_callback_t " *callbacks ", "
-.BI "			 int " secflags ", "
+.BI "			 unsigned " secflags ", "
 .BI "			 sasl_conn_t ** " pconn ");"
 
 .fi
@@ -47,6 +72,17 @@ is the fully qualified server domain name.  NULL means use gethostname().  This 
 .PP
 .I user_realm
 is the domain of the user agent. This is usually not necessary (NULL is default)
+.PP
+.I iplocalport
+is the IP and port of the local side of the connection, or NULL.  If
+iplocalport is NULL it will disable mechanisms that require IP address
+information.  This strings must be in one of the following formats:
+"a.b.c.d;port" (IPv4), "e:f:g:h:i:j:k:l;port" (IPv6),
+or "e:f:g:h:i:j:a.b.c.d;port" (IPv6)
+.PP
+.I ipremoteport
+is the IP and port of the remote side of the connection, or NULL (see
+iplocalport)
 .PP
 .I secflags
 are security flags (see below)
@@ -82,26 +118,11 @@ Require mechanisms which pass client credentials, and allow mechanisms which can
 
 .B sasl_server_new()
 returns an integer which corresponds to one of the
-following codes. SASL_OK is the only one that indicates success. All
+SASL error codes. SASL_OK is the only one that indicates success. All
 others indicate errors and should either be handled or the
 authentication session should be quit.
-
-.SH ERRORS
-The following error codes may be returned:
-.TP 0.8i
-.B SASL_OK
-Success
-.TP 0.8i
-.B SASL_BADVERS
-Mechanism version mismatch
-.TP 0.8i
-.B SASL_BADPARAM
-Error in config file
-.TP 0.8i
-.B SASL_NOMEM
-Not enough memory to complete operation
 
 .SH "CONFORMING TO"
 RFC 2222
 .SH "SEE ALSO"
-sasl(3), sasl_server_init(3), sasl_server_start(3), sasl_server_step(3), sasl_setprop(3)
+sasl(3), sasl_errors(3), sasl_server_init(3), sasl_server_start(3), sasl_server_step(3), sasl_setprop(3)

@@ -1,10 +1,10 @@
 /* CRAM-MD5 SASL plugin
+ * Rob Siemborski
  * Tim Martin 
- * $Id: cram.c,v 1.58 2001/06/20 11:55:37 n3liw Exp $
+ * $Id: cram.c,v 1.59 2001/12/04 02:06:46 rjs3 Exp $
  */
-
 /* 
- * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,10 +52,12 @@
 #include <sys/stat.h>
 #endif
 #include <fcntl.h>
+
 #include <sasl.h>
 #include <saslplug.h>
 #include <saslutil.h>
-#include <assert.h>
+
+#include "plugin_common.h"
 
 #ifdef macintosh
 #include <sasl_cram_plugin_decl.h>
@@ -68,134 +70,71 @@
 
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
 
-#define CRAM_MD5_VERSION (3)
-
 #ifdef L_DEFAULT_GUARD
 # undef L_DEFAULT_GUARD
 # define L_DEFAULT_GUARD (1)
 #endif
 
-/* global: if we've already set a pass entry */
-static int mydb_initialized = 0;
-
 typedef struct context {
 
-  int state;    /* holds state are in */
-  char *msgid;  /* timestamp used for md5 transforms */
-  int msgidlen;
+    int state;    /* holds state are in */
+    char *msgid;  /* timestamp used for md5 transforms */
+    int msgidlen;
 
-  int secretlen;
+    int secretlen;
 
-  char *authid;
-  sasl_secret_t *password;
+    char *authid;
+    sasl_secret_t *password;
+
+    char *out_buf;
+    unsigned out_buf_len;
 
 } context_t;
 
-static int start(void *glob_context __attribute__((unused)),
-		 sasl_server_params_t *sparams,
-		 const char *challenge __attribute__((unused)),
-		 int challen __attribute__((unused)),
-		 void **conn,
-		 const char **errstr)
+static int crammd5_server_mech_new(void *glob_context __attribute__((unused)),
+				   sasl_server_params_t *sparams,
+				   const char *challenge __attribute__((unused)),
+				   unsigned challen __attribute__((unused)),
+				   void **conn)
 {
   context_t *text;
 
-  if (errstr)
-    *errstr = NULL;
-
   text= sparams->utils->malloc(sizeof(context_t));
-  if (text==NULL) return SASL_NOMEM;
+  if (text==NULL) {
+      MEMERROR( sparams->utils );
+      return SASL_NOMEM;
+  }
+
+  memset(text, 0, sizeof(context_t));
+
   text->state=1;
 
-  /* not used on server side */
-  text->authid=NULL;
-  text->password=NULL;
-  text->msgid = NULL;
-  
   *conn=text;
 
   return SASL_OK;
 }
 
-
-static void free_secret(sasl_utils_t *utils,
-			sasl_secret_t **secret)
+static void crammd5_both_mech_dispose(void *conn_context,
+				      const sasl_utils_t *utils)
 {
-  size_t lup;
+  context_t *text=(context_t *)conn_context;
 
-  VL(("Freeing secret\n"));
+  if(!text) return;
 
-  if (secret==NULL) return;
-  if (*secret==NULL) return;
-
-  /* overwrite the memory */
-  for (lup=0;lup<(*secret)->len;lup++)
-    (*secret)->data[lup]='X';
-
-  (*secret)->len=0;
-
-  utils->free(*secret);
-
-  *secret=NULL;
-}
-
-/* copy a string */
-static int
-cram_strdup(sasl_utils_t * utils, const char *in, char **out, int *outlen)
-{
-  size_t len = strlen(in);
-
-  if (outlen!=NULL) {
-      *outlen = len;
-  }
-
-  *out = utils->malloc(len + 1);
-  if (!*out) {
-      return SASL_NOMEM;
-  }
-
-  strcpy((char *) *out, in);
-  return SASL_OK;
-}
-
-static void free_string(sasl_utils_t *utils,
-			char **str)
-{
-  size_t lup;
-  size_t len;
-  VL(("Freeing string\n"));
-
-  if (str==NULL) return;
-  if (*str==NULL) return;
-
-  len=strlen(*str);
-
-  /* overwrite the memory */
-  for (lup=0;lup<len;lup++)
-    (*str)[lup]='\0';
-
-  utils->free(*str);
-
-  *str=NULL;
-}
-
-static void dispose(void *conn_context, sasl_utils_t *utils)
-{
-  context_t *text;
-  text=conn_context;
+  if(text->out_buf) utils->free(text->out_buf);
 
   /* get rid of all sensetive info */
-  free_string(utils,&(text->msgid));
-  free_string(utils,&(text->authid));
-  free_secret(utils,&(text->password));
+  _plug_free_string(utils,&(text->msgid));
+  _plug_free_string(utils,&(text->authid));
+  _plug_free_secret(utils,&(text->password));
 
   utils->free(text);
 }
 
-static void mech_free(void *global_context, sasl_utils_t *utils)
+static void crammd5_both_mech_free(void *global_context,
+				   const sasl_utils_t *utils)
 {
-
-  utils->free(global_context);  
+    if(global_context) utils->free(global_context);  
 }
 
 static char * randomdigits(sasl_server_params_t *sparams)
@@ -218,27 +157,27 @@ static char * randomdigits(sasl_server_params_t *sparams)
 }
 
 /* returns the realm we should pretend to be in */
-static int parseuser(sasl_utils_t *utils,
+static int parseuser(const sasl_utils_t *utils,
 		     char **user, char **realm, const char *user_realm, 
 		     const char *serverFQDN, const char *input)
 {
     int ret;
     char *r;
 
-    assert(user);
-    assert(realm);
-    assert(serverFQDN);
-    assert(input);
+    if(!user || !realm || !serverFQDN || !input) {
+	PARAMERROR( utils );
+	return SASL_BADPARAM;
+    }
 
     if (!user_realm) {
-	ret = cram_strdup(utils, serverFQDN, realm, NULL);
+	ret = _plug_strdup(utils, serverFQDN, realm, NULL);
 	if (ret == SASL_OK) {
-	    ret = cram_strdup(utils, input, user, NULL);
+	    ret = _plug_strdup(utils, input, user, NULL);
 	}
     } else if (user_realm[0]) {
-	ret = cram_strdup(utils, user_realm, realm, NULL);
+	ret = _plug_strdup(utils, user_realm, realm, NULL);
 	if (ret == SASL_OK) {
-	    ret = cram_strdup(utils, input, user, NULL);
+	    ret = _plug_strdup(utils, input, user, NULL);
 	}
     } else {
 	/* otherwise, we gotta get it from the user */
@@ -246,15 +185,15 @@ static int parseuser(sasl_utils_t *utils,
 	if (!r) {
 	    /* hmmm, the user didn't specify a realm */
 	    /* we'll default to the serverFQDN */
-	    ret = cram_strdup(utils, serverFQDN, realm, NULL);
+	    ret = _plug_strdup(utils, serverFQDN, realm, NULL);
 	    if (ret == SASL_OK) {
-		ret = cram_strdup(utils, input, user, NULL);
+		ret = _plug_strdup(utils, input, user, NULL);
 	    }
 	} else {
 	    int i;
 
 	    r++;
-	    ret = cram_strdup(utils, r, realm, NULL);
+	    ret = _plug_strdup(utils, r, realm, NULL);
 	    *user = utils->malloc(r - input + 1);
 	    if (*user) {
 		for (i = 0; input[i] != '@'; i++) {
@@ -262,6 +201,7 @@ static int parseuser(sasl_utils_t *utils,
 		}
 		(*user)[i] = '\0';
 	    } else {
+		MEMERROR( utils );
 		ret = SASL_NOMEM;
 	    }
 	}
@@ -293,7 +233,7 @@ static char *gettime(sasl_server_params_t *sparams)
 /* convert a string of 8bit chars to it's representation in hex
  * using lowercase letters
  */
-static char *convert16(unsigned char *in, int inlen, sasl_utils_t *utils)
+static char *convert16(unsigned char *in, int inlen, const sasl_utils_t *utils)
 {
   static char hex[]="0123456789abcdef";
   int lup;
@@ -311,7 +251,7 @@ static char *convert16(unsigned char *in, int inlen, sasl_utils_t *utils)
 }
 
 static char *make_hashed(sasl_secret_t *sec, char *nonce, int noncelen, 
-			 sasl_utils_t *utils)
+			 const sasl_utils_t *utils)
 {
   char secret[65];
   unsigned char digest[24];  
@@ -332,9 +272,6 @@ static char *make_hashed(sasl_secret_t *sec, char *nonce, int noncelen,
     memcpy(secret, sec->data, 64);
   }
 
-  VL(("secret=[%s] %lu\n",secret,sec->len));
-  VL(("nonce=[%s] %i\n",nonce, noncelen));
-
   /* do the hmac md5 hash output 128 bits */
   utils->hmac_md5((unsigned char *) nonce,noncelen,
 		  (unsigned char *) secret,64,digest);
@@ -347,65 +284,70 @@ static char *make_hashed(sasl_secret_t *sec, char *nonce, int noncelen,
 }
 
 
-static int server_continue_step (void *conn_context,
-				 sasl_server_params_t *sparams,
-				 const char *clientin,
-				 int clientinlen,
-				 char **serverout,
-				 int *serveroutlen,
-				 sasl_out_params_t *oparams,
-				 const char **errstr)
+static int crammd5_server_mech_step (void *conn_context,
+				     sasl_server_params_t *sparams,
+				     const char *clientin,
+				     unsigned clientinlen,
+				     const char **serverout,
+				     unsigned *serveroutlen,
+				     sasl_out_params_t *oparams)
 {
   context_t *text;
   text=conn_context;
 
-  if (errstr) *errstr = NULL;
-  if (clientinlen < 0) return SASL_BADPARAM;
+  /* this should be well more than is ever needed */
+  if (clientinlen > 1024) {
+	SETERROR(sparams->utils, "CRAM-MD5 input longer than 1024 bytes");
+	return SASL_BADPROT;
+  }
 
   if (text->state==1)
   {    
     char *time, *randdigits;
-    /* arbitrary string of random digits 
-     * time stamp
-     * primary host
-     */
-    VL(("CRAM-MD5 step 1\n"));
-
+    int result;
+    
     /* we shouldn't have received anything */
     if (clientinlen!=0)
     {
-	if (errstr)
-	    *errstr = "CRAM-MD5 does not accpet inital data";
-	return SASL_FAIL;
+	SETERROR(sparams->utils, "CRAM-MD5 does not accpet inital data");
+	return SASL_BADPROT;
     }
 
     /* get time and a random number for the nonce */
     time=gettime(sparams);
     randdigits=randomdigits(sparams);
-    if ((time==NULL) || (randdigits==NULL)) return SASL_NOMEM;
+    if ((time==NULL) || (randdigits==NULL)) {
+	MEMERROR( sparams->utils );
+	return SASL_NOMEM;
+    }
 
     /* allocate some space for the nonce */
-    *serverout=sparams->utils->malloc(200+1);
-    if (*serverout==NULL) return SASL_NOMEM;
+    result = _plug_buf_alloc(sparams->utils, &(text->out_buf),
+			     &(text->out_buf_len), 200+1);
+    if(result != SASL_OK) return result;
 
     /* create the nonce */
-    snprintf((char *)*serverout,200,"<%s.%s@%s>",randdigits,time,
+    snprintf(text->out_buf,200,"<%s.%s@%s>",randdigits,time,
 	    sparams->serverFQDN);
 
+    *serverout = text->out_buf;
+    *serveroutlen=strlen(*serverout);
+    
     /* free stuff */
     sparams->utils->free(time);    
     sparams->utils->free(randdigits);    
     
-    *serveroutlen=strlen(*serverout);
     text->msgidlen=*serveroutlen;
 
     /* save nonce so we can check against it later */
     text->msgid=sparams->utils->malloc((*serveroutlen)+1);
-    if (text->msgid==NULL) return SASL_NOMEM;
+    if (text->msgid==NULL) {
+	MEMERROR(sparams->utils);
+	return SASL_NOMEM;
+    }
+    
     memcpy(text->msgid,*serverout,*serveroutlen);
     text->msgid[ *serveroutlen ] ='\0';
-
-    VL(("nonce=[%s]\n",text->msgid));
 
     text->state=2;
     return SASL_CONTINUE;
@@ -417,18 +359,18 @@ static int server_continue_step (void *conn_context,
     char *userid = NULL;
     char *realm = NULL;
     char *authstr = NULL;
-    sasl_secret_t *sec=NULL;
-    int lup,pos;
+    sasl_secret_t *sec = NULL;
+    int lup,pos,len;
     int result = SASL_FAIL;
-    sasl_server_getsecret_t *getsecret;
-    void *getsecret_context;
-
+    const char *password_request[] = { SASL_AUX_PASSWORD,
+				       "cmusaslsecretCRAM-MD5",
+				       NULL };
+    struct propval auxprop_values[3];
     HMAC_MD5_CTX tmphmac;
+    HMAC_MD5_STATE md5state;
+    int clear_md5state = 0;
     char *digest_str = NULL;
     UINT4 digest[4];
-
-    VL(("CRAM-MD5 Step 2\n"));
-    VL(("Clientin: %s\n",clientin));
 
     /* extract userid; everything before last space*/
     pos=clientinlen-1;
@@ -436,12 +378,16 @@ static int server_continue_step (void *conn_context,
 	pos--;
     }
     if (pos<=0) {
-	if (errstr) *errstr = "need authentication name";
+        SETERROR( sparams->utils,"need authentication name");
 	return SASL_BADPROT;
     }
 
     authstr=(char *) sparams->utils->malloc(pos+1);
-    if (authstr == NULL) return SASL_NOMEM;
+    if (authstr == NULL) {
+	MEMERROR( sparams->utils);
+	return SASL_NOMEM;
+    }
+    
     /* copy authstr out */
     for (lup = 0; lup < pos; lup++) {
 	authstr[lup] = clientin[lup];
@@ -451,52 +397,65 @@ static int server_continue_step (void *conn_context,
     result = parseuser(sparams->utils, &userid, &realm, sparams->user_realm,
 	      sparams->serverFQDN, authstr);
     sparams->utils->free(authstr);
-    if (result != SASL_OK) {
+    if (result != SASL_OK) goto done;
+
+    result = sparams->utils->prop_request(sparams->propctx, password_request);
+    if (result != SASL_OK) goto done;
+
+    /* this will trigger the getting of the aux properties */
+    result = sparams->canon_user(sparams->utils->conn,
+				 userid, 0, userid, 0, 0, oparams);
+    if(result != SASL_OK) goto done;
+
+    result = sparams->utils->prop_getnames(sparams->propctx, password_request,
+					   auxprop_values);
+    if(result < 0 ||
+       ((!auxprop_values[0].name || !auxprop_values[0].values) &&
+	(!auxprop_values[1].name || !auxprop_values[1].values))) {
+	/* We didn't find this username */
+	sparams->utils->seterror(sparams->utils->conn,0,
+				 "no secret in database");
+	result = SASL_NOUSER;
 	goto done;
     }
 
-    /* get callback so we can request the secret */
-    result = sparams->utils->getcallback(sparams->utils->conn,
-					 SASL_CB_SERVER_GETSECRET,
-					 &getsecret,
-					 &getsecret_context);
-    if (result != SASL_OK) {
-	VL(("result = %i trying to get secret callback\n",result));
-	goto done;
-    }
-    if (! getsecret) {
-	VL(("Received NULL getsecret callback\n"));
-	result = SASL_FAIL;
-	goto done;
-    }
+    if(auxprop_values[0].name && auxprop_values[0].values) {
+	len = strlen(auxprop_values[0].values[0]);
+	if (len == 0) {
+	    sparams->utils->seterror(sparams->utils->conn,0,
+				     "empty secret");
+	    result = SASL_FAIL;
+	    goto done;
+	}
+	
+	sec = sparams->utils->malloc(sizeof(sasl_secret_t) + len);
+	if(!sec) goto done;
+	
+	sec->len = len;
+	strncpy(sec->data, auxprop_values[0].values[0], len + 1);   
 
-    /* We use the user's CRAM secret which is kinda 1/2 way thru the
-       hmac */
-    /* Request secret */
-    result = getsecret(getsecret_context, "CRAM-MD5", userid, realm, &sec);
-    if (result == SASL_NOUSER || !sec) {
-      if (errstr) *errstr = "no secret in database";
-      result = SASL_NOUSER;
-      goto done;
-    }
-    if (result != SASL_OK) {
-	goto done;
-    }
-
-    if (sec->len != sizeof(HMAC_MD5_STATE)) {
-      if (errstr) *errstr = "secret database corruption";
-      result = SASL_FAIL;
-      goto done;
-    }
-
+	clear_md5state = 1;
+	/* Do precalculation on plaintext secret */
+	sparams->utils->hmac_md5_precalc(&md5state, /* OUT */
+					 sec->data,
+					 sec->len);
+    } else if (auxprop_values[1].name && auxprop_values[1].values) {
+	/* We have a precomputed secret */
+	memcpy(&md5state, auxprop_values[1].values[0], sizeof(HMAC_MD5_STATE));
+    } else {
+	sparams->utils->seterror(sparams->utils->conn, 0,
+				 "Have neither type of secret");
+	return SASL_FAIL;
+    }    
+    
     /* ok this is annoying:
-       so we stored this half-way hmac transform instead of the plaintext
+       so we have this half-way hmac transform instead of the plaintext
        that means we half to:
-       -import it back into the md5 context
+       -import it back into a md5 context
        -do an md5update with the nonce 
        -finalize it
     */
-    sparams->utils->hmac_md5_import(&tmphmac, (HMAC_MD5_STATE *) sec->data);
+    sparams->utils->hmac_md5_import(&tmphmac, (HMAC_MD5_STATE *) &md5state);
     sparams->utils->MD5Update(&(tmphmac.ictx),
 			      (const unsigned char *)text->msgid,
 			      text->msgidlen);
@@ -509,32 +468,18 @@ static int server_continue_step (void *conn_context,
      *  - we know digest_str is null terminated but clientin might not be
      */
     if (strncmp(digest_str,clientin+pos+1,strlen(digest_str))!=0) {
-	if (errstr) {
-	    *errstr = "incorrect digest response";
-	}	
+	sparams->utils->seterror(sparams->utils->conn, 0,
+				 "incorrect digest response");
 	result = SASL_BADAUTH;
 	goto done;
     }
-    VL(("Succeeded!\n"));
 
     /* nothing more to do; authenticated 
-     * set oparams information
+     * set oparams information (canon_user was called before) 
      */
     oparams->doneflag=1;
-
-    oparams->user = userid; /* set username */
-    userid = NULL; /* set to null so we don't free */
-    oparams->realm = realm;
-    realm = NULL; /* set to null so we don't free */
-    
-    result = cram_strdup(sparams->utils, oparams->user, &(oparams->authid), NULL);
-    if (result!=SASL_OK) {
-	goto done;
-    }
-
     oparams->mech_ssf = 0;
     oparams->maxoutbuf = 0;
-  
     oparams->encode = NULL;
     oparams->decode = NULL;
     oparams->param_version = 0;
@@ -547,247 +492,34 @@ static int server_continue_step (void *conn_context,
 
     if (userid) sparams->utils->free(userid);
     if (realm)  sparams->utils->free(realm);
-    if (sec) free_secret(sparams->utils, &sec);
+    if (sec) {
+	memset(sec->data, 0, sec->len);
+	sparams->utils->free(sec);
+    }
     if (digest_str)  sparams->utils->free(digest_str);
-
+    if (clear_md5state) memset(&md5state, 0, sizeof(md5state));
+    
     text->state = 3; /* if called again will fail */
 
     return result;
   }
 
-
+  SETERROR( sparams->utils, "Reached unreachable point in CRAM plugin");
   return SASL_FAIL; /* should never get here */
 }
 
-/*
- * See if there's at least one CRAM secret in the database
- *
- * Note: this function is duplicated in multiple plugins. If you fix
- * something here please update the other files
- */
-
-static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
-{
-  sasl_secret_t *sec=NULL;
-  int result;
-  sasl_server_getsecret_t *getsecret;
-  void *getsecret_context;
-  long version = -1;
-
-  /* get callback so we can request the secret */
-  result = utils->getcallback(utils->conn,
-				       SASL_CB_SERVER_GETSECRET,
-				       &getsecret,
-				       &getsecret_context);
-  if (result != SASL_OK) {
-    VL(("result = %i trying to get secret callback\n",result));
-    return result;
-  }
-
-  if (! getsecret) {
-    VL(("Received NULL getsecret callback\n"));
-    return SASL_FAIL;
-  }
-
-  /* Request "magic" secret */
-  result = getsecret(getsecret_context, mech_name, "", "", &sec);
-  if (result == SASL_NOUSER || result == SASL_FAIL) {
-      return result;
-  }
-
-  /* check version */
-  if (sec != NULL) {
-      if (sec->len >= 4) {
-	  memcpy(&version, sec->data, 4); 
-	  version = ntohl(version);
-      }
-      free(sec);
-  }
-
-  if (version != CRAM_MD5_VERSION) {
-      utils->log(utils->conn,
-		 0,
-		 mech_name,
-		 SASL_FAIL,
-		 0,
-		 "CRAM-MD5 secrets database has incompatible version (%ld). My version (%d)",
-		 version, CRAM_MD5_VERSION);
-
-      return SASL_FAIL;
-  }
-
-  mydb_initialized = 1;
-
-  return SASL_OK;
-}
-
-/*
- * Put a DUMMY entry in the db to show that there is at least one CRAM entry in the db
- *
- * Note: this function is duplicated in multiple plugins. If you fix
- * something here please update the other files
- */
-static int mechanism_fill_db(char *mech_name, sasl_server_params_t *sparams)
-{
-  int result;
-  sasl_server_putsecret_t *putsecret;
-  void *putsecret_context;
-  sasl_secret_t *sec = NULL;
-  long version;
-
-  /* don't do this again if it's already set */
-  if (mydb_initialized == 1)
-  {
-      return SASL_OK;
-  }
-
-  /* get the callback for saving to the password db */
-  result = sparams->utils->getcallback(sparams->utils->conn,
-				       SASL_CB_SERVER_PUTSECRET,
-				       &putsecret,
-				       &putsecret_context);
-  if (result != SASL_OK) {
-    return result;
-  }
-
-  /* allocate a secret structure that we're going to save to disk */  
-  sec=(sasl_secret_t *) sparams->utils->malloc(sizeof(sasl_secret_t)+
-					       4);
-  if (sec == NULL) {
-    result = SASL_NOMEM;
-    return result;
-  }
-  
-  /* set the size */
-  sec->len = 4;
-
-  /* and insert the data */
-  version = htonl(CRAM_MD5_VERSION);
-  memcpy(sec->data, &version, 4);
-
-  /* do the store */
-  result = putsecret(putsecret_context,
-		     mech_name, 
-		     "",
-		     "",
-		     sec);
-
-  if (result == SASL_OK)
-  {
-      mydb_initialized = 1;
-  }
-
-  return result;
-}
-
-static int
-setpass(void *glob_context __attribute__((unused)),
-	sasl_server_params_t *sparams,
-	const char *userstr,
-	const char *pass,
-	unsigned passlen,
-	int flags __attribute__((unused)),
-	const char **errstr)
-{
-    int result;
-    sasl_server_putsecret_t *putsecret;
-    void *putsecret_context;
-    char *user = NULL;
-    char *realm = NULL;
-
-    /* These need to be zero'ed out at the end */
-    HMAC_MD5_STATE *md5state = NULL;
-    sasl_secret_t *sec = NULL;
-
-    if (errstr) {
-	*errstr = NULL;
-    }
-
-    result = parseuser(sparams->utils, &user, &realm, sparams->user_realm,
-		       sparams->serverFQDN, userstr);
-    if (result != SASL_OK) {
-	return result;
-    }
-
-    if ((flags & SASL_SET_DISABLE) || pass == NULL) {
-	sec = NULL;
-    } else {
-	/* allocate the struct for the precalculation */
-	md5state = (HMAC_MD5_STATE *) 
-	    sparams->utils->malloc(sizeof(HMAC_MD5_STATE));
-	if (md5state == NULL) {
-	    result = SASL_NOMEM;
-	    goto cleanup;
-	}
-
-	/* do the precalculation. this is what we're going to save to disk */
-	sparams->utils->hmac_md5_precalc(md5state, /* OUT */
-					 (const unsigned char *) pass,     /* IN */
-					 passlen); /* IN */
-	
-	/* allocate a secret structure that we're going to save to disk */  
-	sec=(sasl_secret_t *) sparams->utils->malloc(sizeof(sasl_secret_t)+
-						     sizeof(HMAC_MD5_STATE));
-	if (sec == NULL) {
-	    result = SASL_NOMEM;
-	    goto cleanup;
-	}
-      
-	/* set the size */
-	sec->len = sizeof(HMAC_MD5_STATE);
-	/* and insert the data */
-	memcpy(sec->data,md5state, sizeof(HMAC_MD5_STATE));
-    }
-
-    /* get the callback for saving to the password db */
-    result = sparams->utils->getcallback(sparams->utils->conn,
-					 SASL_CB_SERVER_PUTSECRET,
-					 &putsecret,
-					 &putsecret_context);
-    if (result != SASL_OK) {
-	goto cleanup;
-    }
-
-    /* do the store */
-    result = putsecret(putsecret_context,
-		       "CRAM-MD5", 
-		       user,
-		       realm,
-		       sec);
-
-    if (result != SASL_OK) {
-	goto cleanup;
-    }
-
-    /* put entry in db to say we have at least one user */
-    result = mechanism_fill_db("CRAM-MD5", sparams);
-
- cleanup:
-    if (sec) {
-	memset(sec, 0, sizeof(sasl_secret_t) + sizeof(HMAC_MD5_STATE));
-	sparams->utils->free(sec);
-    }
-    if (md5state) {
-	memset(md5state, 0, sizeof(md5state));
-	sparams->utils->free(md5state);
-    }
-    if (user) 	sparams->utils->free(user);
-    if (realm) 	sparams->utils->free(realm);
-    return result;
-}
-
-static const sasl_server_plug_t plugins[] = 
+static sasl_server_plug_t crammd5_server_plugins[] = 
 {
   {
     "CRAM-MD5",
     0,
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
+    0,
     NULL,
-    &start,
-    &server_continue_step,
-    &dispose,
-    &mech_free,
-    &setpass,
+    &crammd5_server_mech_new,
+    &crammd5_server_mech_step,
+    &crammd5_both_mech_dispose,
+    &crammd5_both_mech_free,
     NULL,
     NULL,
     NULL,
@@ -796,46 +528,46 @@ static const sasl_server_plug_t plugins[] =
   }
 };
 
-int sasl_server_plug_init(sasl_utils_t *utils,
-			  int maxversion,
-			  int *out_version,
-			  const sasl_server_plug_t **pluglist,
-			  int *plugcount)
+int crammd5_server_plug_init(const sasl_utils_t *utils,
+				 int maxversion,
+				 int *out_version,
+				 sasl_server_plug_t **pluglist,
+				 int *plugcount)
 {
-  if (maxversion<CRAM_MD5_VERSION)
-    return SASL_BADVERS;
+    if (maxversion<SASL_SERVER_PLUG_VERSION) {
+	SETERROR( utils, "CRAM version mismatch");
+	return SASL_BADVERS;
+    }
 
-  /* make sure there is a cram entry */
+    /* make sure there is a cram entry */
+    
+    *pluglist=crammd5_server_plugins;
 
-  *pluglist=plugins;
-
-  *plugcount=1;  
-  *out_version=CRAM_MD5_VERSION;
-
-  if ( mechanism_db_filled("CRAM-MD5",utils) != SASL_OK)
-    return SASL_NOUSER;
-
-  return SASL_OK;
+    *plugcount=1;  
+    *out_version=SASL_SERVER_PLUG_VERSION;
+    
+    return SASL_OK;
 }
 
-
-static int c_start(void *glob_context __attribute__((unused)), 
-		 sasl_client_params_t *params,
-		 void **conn)
+static int crammd5_client_mech_new(void *glob_context __attribute__((unused)), 
+				   sasl_client_params_t *params,
+				   void **conn)
 {
-  context_t *text;
+    context_t *text;
 
-  /* holds state are in */
+    /* holds state are in */
     text= params->utils->malloc(sizeof(context_t));
-    if (text==NULL) return SASL_NOMEM;
+    if (text==NULL) {
+	MEMERROR(params->utils);
+	return SASL_NOMEM;
+    }
+
+    memset(text, 0, sizeof(context_t));
     text->state=1;  
-    text->authid=NULL;
-    text->password=NULL;
-    text->msgid=NULL;
 
-  *conn=text;
+    *conn=text;
 
-  return SASL_OK;
+    return SASL_OK;
 }
 
 /* 
@@ -876,8 +608,10 @@ static int get_authid(sasl_client_params_t *params,
   {
     /* copy it */
     *authid=params->utils->malloc(prompt->len+1);
-    if ((*authid)==NULL) return SASL_NOMEM;
-
+    if ((*authid)==NULL) {
+	MEMERROR( params->utils );
+	return SASL_NOMEM;
+    }
     strncpy(*authid, prompt->result, prompt->len+1);
     return SASL_OK;
   }
@@ -890,29 +624,35 @@ static int get_authid(sasl_client_params_t *params,
   switch (result)
     {
     case SASL_INTERACT:
-      return SASL_INTERACT;
-
+	return SASL_INTERACT;
+      
     case SASL_OK:
-      if (! getauth_cb)
-	  return SASL_FAIL;
-      result = getauth_cb(getauth_context,
-			  SASL_CB_AUTHNAME,
-			  (const char **)&ptr,
-			  NULL);
-      if (result != SASL_OK)
-	  return result;
+	if (! getauth_cb){
+	    SETERROR(params->utils, "no getauth_cb in CRAM plugin");
+	    return SASL_FAIL;
+	}
+	
+	result = getauth_cb(getauth_context,
+			    SASL_CB_AUTHNAME,
+			    (const char **)&ptr,
+			    NULL);
+	if (result != SASL_OK)
+	    return result;
 
-      *authid=params->utils->malloc(strlen(ptr)+1);
-      if ((*authid)==NULL) return SASL_NOMEM;
-      strcpy(*authid, ptr);
-      break;
+	*authid=params->utils->malloc(strlen(ptr)+1);
+	if ((*authid)==NULL) {
+	    MEMERROR( params->utils );
+	    return SASL_NOMEM;
+	}
+	
+	strcpy(*authid, ptr);
+	break;
 
     default:
-      break;
+	break;
     }
 
   return result;
-
 }
 
 
@@ -932,21 +672,22 @@ static int get_password(sasl_client_params_t *params,
   {
     /* We prompted, and got.*/
 	
-    if (! prompt->result)
-      return SASL_FAIL;
+      if (! prompt->result) {
+	  SETERROR(params->utils, "no prompt->result in CRAM plugin");
+	  return SASL_FAIL;
+      }
 
-    /* copy what we got into a secret_t */
-    *password = (sasl_secret_t *) params->utils->malloc(sizeof(sasl_secret_t)+
-						       prompt->len+1);
-    if (! *password) return SASL_NOMEM;
+      /* copy what we got into a secret_t */
+      *password = (sasl_secret_t *) params->utils->malloc(sizeof(sasl_secret_t)+
+							  prompt->len+1);
+      if (! *password) return SASL_NOMEM;
 
-    (*password)->len=prompt->len;
-    memcpy((*password)->data, prompt->result, prompt->len);
-    (*password)->data[(*password)->len]=0;
+      (*password)->len=prompt->len;
+      memcpy((*password)->data, prompt->result, prompt->len);
+      (*password)->data[(*password)->len]=0;
 
-    return SASL_OK;
+      return SASL_OK;
   }
-
 
   /* Try to get the callback... */
   result = params->utils->getcallback(params->utils->conn,
@@ -957,49 +698,32 @@ static int get_password(sasl_client_params_t *params,
   switch (result)
     {
     case SASL_INTERACT:      
-      return SASL_INTERACT;
+	return SASL_INTERACT;
     case SASL_OK:
-      if (! getpass_cb)
-	return SASL_FAIL;
-      result = getpass_cb(params->utils->conn,
-			  getpass_context,
-			  SASL_CB_PASS,
-			  password);
-      if (result != SASL_OK)
-	return result;
+	if (! getpass_cb) {
+	    SETERROR(params->utils, "No getpass_cb in CRAM plugin");
+	    return SASL_FAIL;
+	}
+	
+	result = getpass_cb(params->utils->conn,
+			    getpass_context,
+			    SASL_CB_PASS,
+			    password);
+	if (result != SASL_OK)
+	    return result;
 
-      break;
+	break;
     default:
-      /* sucess */
-      break;
+	/* sucess */
+	break;
     }
 
   return result;
 }
 
-static void free_prompts(sasl_client_params_t *params,
-			sasl_interact_t *prompts)
-{
-  sasl_interact_t *ptr=prompts;
-  if (ptr==NULL) return;
-
-  do
-  {
-    /* xxx might be freeing static memory. is this ok? */
-    if (ptr->result!=NULL)
-      params->utils->free(ptr->result);
-
-    ptr++;
-  } while(ptr->id!=SASL_CB_LIST_END);
-
-  params->utils->free(prompts);
-  prompts=NULL;
-}
-
 /*
  * Make the necessary prompts
  */
-
 static int make_prompts(sasl_client_params_t *params,
 			sasl_interact_t **prompts_res,
 			int auth_res,
@@ -1011,10 +735,17 @@ static int make_prompts(sasl_client_params_t *params,
   if (auth_res==SASL_INTERACT) num++;
   if (pass_res==SASL_INTERACT) num++;
 
-  if (num==1) return SASL_FAIL;
+  if (num==1) {
+      SETERROR(params->utils, "no prompts to make in CRAM make_prompts");
+      return SASL_FAIL;
+  }
 
   prompts=params->utils->malloc(sizeof(sasl_interact_t)*num);
-  if ((prompts) ==NULL) return SASL_NOMEM;
+  if ((prompts) ==NULL) {
+      MEMERROR( params->utils );
+      return SASL_NOMEM;
+  }
+  
   *prompts_res=prompts;
 
   if (auth_res==SASL_INTERACT)
@@ -1025,7 +756,6 @@ static int make_prompts(sasl_client_params_t *params,
     (prompts)->prompt="Please enter your authentication name";
     (prompts)->defresult=NULL;
 
-    VL(("authid callback added\n"));
     prompts++;
   }
 
@@ -1037,7 +767,6 @@ static int make_prompts(sasl_client_params_t *params,
     (prompts)->prompt="Please enter your password";
     (prompts)->defresult=NULL;
 
-    VL(("password callback added\n"));
     prompts++;
   }
 
@@ -1051,59 +780,47 @@ static int make_prompts(sasl_client_params_t *params,
   return SASL_OK;
 }
 
-static int c_continue_step (void *conn_context,
-	      sasl_client_params_t *params,
-	      const char *serverin,
-	      int serverinlen,
-	      sasl_interact_t **prompt_need,
-	      char **clientout,
-	      int *clientoutlen,
-	      sasl_out_params_t *oparams)
+static int crammd5_client_mech_step(void *conn_context,
+				    sasl_client_params_t *params,
+				    const char *serverin,
+				    unsigned serverinlen,
+				    sasl_interact_t **prompt_need,
+				    const char **clientout,
+				    unsigned *clientoutlen,
+				    sasl_out_params_t *oparams)
 {
   context_t *text;
   text=conn_context;
 
-  oparams->mech_ssf=0;
-  oparams->maxoutbuf=0; /* no clue what this should be */
-  oparams->encode=NULL;
-  oparams->decode=NULL;
-  oparams->user=NULL;
-  oparams->authid=NULL;
-  oparams->realm=NULL;
-  oparams->param_version=0;
-
   /* doesn't really matter how the server responds */
-
-  if (text->state==1)
+  if (text->state == 1)
   {     
     sasl_security_properties_t secprops;
     unsigned int external;
 
-    /*    text->msgid=params->utils->malloc(1);
-    if (text->msgid==NULL) return SASL_NOMEM;
-    text->msgidlen=0;
-
-    text->msgid[0]='\0';*/
-
-    if (clientout) {
-	*clientout=NULL;
-	*clientoutlen=0;
-    }
+    *clientout=NULL;
+    *clientoutlen=0;
 
     /* check if sec layer strong enough */
     secprops=params->props;
     external=params->external_ssf;
 
-    if (secprops.min_ssf>0+external)
-      return SASL_TOOWEAK;
+    if (secprops.min_ssf>0+external) {
+	SETERROR( params->utils, "whoops! looks like someone wanted SSF out of the CRAM plugin");
+	return SASL_TOOWEAK;
+    }
 
     text->state=2;
-    return SASL_CONTINUE;
+
+    /* (server always goes first for CRAM) */
+    if(serverinlen == 0)
+	return SASL_CONTINUE;
   }
 
   if (text->state==2)
   {
     char *in16;
+    int result;
     int auth_result=SASL_OK;
     int pass_result=SASL_OK;
     int maxsize;
@@ -1111,20 +828,17 @@ static int c_continue_step (void *conn_context,
     /* try to get the userid */
     if (text->authid==NULL)
     {
-      VL (("Trying to get authid\n"));
       auth_result=get_authid(params,
 			     &text->authid,
 			     prompt_need);
 
       if ((auth_result!=SASL_OK) && (auth_result!=SASL_INTERACT))
 	return auth_result;
-
     }
 
     /* try to get the password */
     if (text->password==NULL)
     {
-      VL (("Trying to get password\n"));
       pass_result=get_password(params,
 			  &text->password,
 			  prompt_need);
@@ -1132,10 +846,9 @@ static int c_continue_step (void *conn_context,
       if ((pass_result!=SASL_OK) && (pass_result!=SASL_INTERACT))
 	return pass_result;
     }
-
     
     /* free prompts we got */
-    if (prompt_need) free_prompts(params,*prompt_need);
+    if (prompt_need && *prompt_need) params->utils->free(*prompt_need);
 
     /* if there are prompts not filled in */
     if ((auth_result==SASL_INTERACT) ||
@@ -1146,7 +859,6 @@ static int c_continue_step (void *conn_context,
 			      auth_result, pass_result);
       if (result!=SASL_OK) return result;
       
-      VL(("returning prompt(s)\n"));
       return SASL_INTERACT;
     }
 
@@ -1155,89 +867,89 @@ static int c_continue_step (void *conn_context,
      * digest (keyed md5 where key is passwd)
      */
 
+    /* First check for absurd lengths */
+    if(serverinlen > 1024) {
+	params->utils->seterror(params->utils->conn, 0,
+				"CRAM-MD5 input longer than 1024 bytes");
+	return SASL_BADPROT;
+    }
+
     in16=make_hashed(text->password,(char *) serverin, serverinlen,
 		     params->utils);
 
-    if (in16==NULL) return SASL_FAIL;
-
-    VL(("authid=[%s]\n",text->authid));
-    VL(("in16=[%s]\n",in16));
+    if (in16==NULL) {
+	SETERROR(params->utils, "whoops, make_hashed failed us this time");
+	return SASL_FAIL;
+    }
 
     maxsize=32+1+strlen(text->authid)+30;
-    *clientout=params->utils->malloc(maxsize);
-    if ((*clientout) == NULL) return SASL_NOMEM;
+    result = _plug_buf_alloc(params->utils, &(text->out_buf),
+			     &(text->out_buf_len), maxsize);
+    if(result != SASL_OK) return result;
 
-    snprintf((char *)*clientout,maxsize ,"%s %s",text->authid,in16);
+    snprintf(text->out_buf, maxsize, "%s %s", text->authid, in16);
 
     /* get rid of private information */
-    free_string(params->utils, &in16);
+    _plug_free_string(params->utils, &in16);
 
-    *clientoutlen=strlen(*clientout);
+    *clientout = text->out_buf;
+    *clientoutlen = strlen(*clientout);
 
     /*nothing more to do; authenticated */
     oparams->doneflag=1;
-    oparams->mech_ssf = 0;
 
-    if (cram_strdup(params->utils, text->authid, &(oparams->authid), NULL)!=SASL_OK)
-	return SASL_NOMEM;
-
-    if (cram_strdup(params->utils, text->authid, &(oparams->user), NULL)!=SASL_OK)
-	return SASL_NOMEM;
-
-    VL(("clientout looks like=%s %i\n",*clientout,*clientoutlen));
+    result = params->canon_user(params->utils->conn, text->authid, 0,
+				text->authid, 0, 0, oparams);
+    if(result != SASL_OK) return result;
 
     text->state++; /* fail if called again */
 
-    return SASL_CONTINUE;
+    oparams->mech_ssf=0;
+    oparams->maxoutbuf=0;
+    oparams->encode=NULL;
+    oparams->decode=NULL;
+    oparams->param_version=0;
+
+    return SASL_OK;
   }
 
-  if (text->state == 3)
-  {
-      *clientout = NULL;
-      *clientoutlen = 0;
-      VL(("Verify we're done step"));
-      text->state++;
-      return SASL_OK;      
-  }
-
+  SETERROR(params->utils, "CRAM-MD5 says: \"WERT\"");
   return SASL_FAIL; /* should never get here */
 }
 
-static const long client_required_prompts[] = {
-  SASL_CB_AUTHNAME,
-  SASL_CB_PASS,
-  SASL_CB_LIST_END
-};
-
-static const sasl_client_plug_t client_plugins[] = 
+static sasl_client_plug_t crammd5_client_plugins[] = 
 {
   {
     "CRAM-MD5",
     0,
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
-    client_required_prompts,
+    0,
     NULL,
-    &c_start,
-    &c_continue_step,
-    &dispose,
-    &mech_free,
+    NULL,
+    &crammd5_client_mech_new,
+    &crammd5_client_mech_step,
+    &crammd5_both_mech_dispose,
+    &crammd5_both_mech_free,
+    NULL,
     NULL,
     NULL
   }
 };
 
-int sasl_client_plug_init(sasl_utils_t *utils __attribute__((unused)),
-			  int maxversion,
-			  int *out_version,
-			  const sasl_client_plug_t **pluglist,
-			  int *plugcount)
+int crammd5_client_plug_init(const sasl_utils_t *utils,
+				 int maxversion,
+				 int *out_version,
+				 sasl_client_plug_t **pluglist,
+				 int *plugcount)
 {
-  if (maxversion<CRAM_MD5_VERSION)
-    return SASL_BADVERS;
+    if (maxversion<SASL_CLIENT_PLUG_VERSION) {
+	SETERROR( utils, "CRAM version mismatch");
+	return SASL_BADVERS;
+    }
 
-  *pluglist=client_plugins;
-  *plugcount=1;
-  *out_version=CRAM_MD5_VERSION;
+    *pluglist=crammd5_client_plugins;
+    *plugcount=1;
+    *out_version=SASL_CLIENT_PLUG_VERSION;
 
-  return SASL_OK;
+    return SASL_OK;
 }

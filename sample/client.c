@@ -1,5 +1,6 @@
+/* $Id: client.c,v 1.2 2001/12/04 02:06:52 rjs3 Exp $ */
 /* 
- * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -194,43 +195,30 @@ static sasl_callback_t callbacks[] = {
 
 int getconn(const char *host, const char *port)
 {
-    char servername[1024];
-    struct servent *serv;
-    struct sockaddr_in sin;
-    struct hostent *hp;
-    int sock;
+    struct addrinfo hints, *ai, *r;
+    int err, sock = -1;
 
-    strncpy(servername, host, sizeof(servername) - 1);
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = PF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
 
-    /* map hostname -> IP */
-    if ((hp = gethostbyname(servername)) == NULL) {
-	perror("gethostbyname");
+    if ((err = getaddrinfo(host, port, &hints, &ai)) != 0) {
+	fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(err));
 	exit(EX_UNAVAILABLE);
     }
 
-    /* map port -> num */
-    serv = getservbyname(port, "tcp");
-    if (serv) {
-	sin.sin_port = serv->s_port;
-    } else {
-	sin.sin_port = htons(atoi(port));
-	if (sin.sin_port == 0) {
-	    fprintf(stderr, "port '%s' unknown\n", port);
-	    exit(EX_USAGE);
-	}
+    for (r = ai; r; r = r->ai_next) {
+	sock = socket(r->ai_family, r->ai_socktype, r->ai_protocol);
+	if (sock < 0)
+	    continue;
+	if (connect(sock, r->ai_addr, r->ai_addrlen) >= 0)
+	    break;
+	close(sock);
+	sock = -1;
     }
 
-    sin.sin_family = AF_INET;
-    memcpy(&sin.sin_addr, hp->h_addr, hp->h_length);
-
-    /* connect */
-    sock = socket(AF_INET, SOCK_STREAM, 0);
+    freeaddrinfo(ai);
     if (sock < 0) {
-	perror("socket");
-	exit(EX_OSERR);
-    }
-    
-    if (connect(sock, (struct sockaddr *) &sin, sizeof (sin)) < 0) {
 	perror("connect");
 	exit(EX_UNAVAILABLE);
     }
@@ -243,7 +231,7 @@ char *mech;
 int mysasl_negotiate(FILE *in, FILE *out, sasl_conn_t *conn)
 {
     char buf[8192];
-    char *data;
+    const char *data;
     const char *chosenmech;
     int len;
     int r, c;
@@ -263,17 +251,25 @@ int mysasl_negotiate(FILE *in, FILE *out, sasl_conn_t *conn)
 	mech = buf;
     }
 
-    r = sasl_client_start(conn, mech, NULL, NULL, &data, &len, &chosenmech);
+    r = sasl_client_start(conn, mech, NULL, &data, &len, &chosenmech);
     if (r != SASL_OK && r != SASL_CONTINUE) {
-	saslerr(r, "starting SASL negotiation", NULL);
+	saslerr(r, "starting SASL negotiation");
+	printf("\n%s\n", sasl_errdetail(conn));
 	return -1;
     }
     
     dprintf(1, "using mechanism %s\n", chosenmech);
 
-    /* we send two strings; the mechanism chosen and the initial response */
+    /* we send up to 3 strings;
+       the mechanism chosen, the presence of initial response,
+       and optionally the initial response */
     send_string(out, chosenmech, strlen(chosenmech));
-    send_string(out, data, len);
+    if(data) {
+	send_string(out, "Y", 1);
+	send_string(out, data, len);
+    } else {
+	send_string(out, "N", 1);
+    }
 
     for (;;) {
 	dprintf(2, "waiting for server reply...\n");
@@ -297,14 +293,14 @@ int mysasl_negotiate(FILE *in, FILE *out, sasl_conn_t *conn)
 
 	r = sasl_client_step(conn, buf, len, NULL, &data, &len);
 	if (r != SASL_OK && r != SASL_CONTINUE) {
-	    saslerr(r, "performing SASL negotiation", NULL);
+	    saslerr(r, "performing SASL negotiation");
+	    printf("\n%s\n", sasl_errdetail(conn));
 	    return -1;
 	}
 
 	if (data) {
 	    dprintf(2, "sending response length %d...\n", len);
 	    send_string(out, data, len);
-	    free(data);
 	} else {
 	    dprintf(2, "sending null response...\n");
 	    send_string(out, "", 0);
@@ -331,13 +327,16 @@ int main(int argc, char *argv[])
     int c;
     char *host = "localhost";
     char *port = "12345";
+    char localaddr[NI_MAXHOST + NI_MAXSERV],
+	remoteaddr[NI_MAXHOST + NI_MAXSERV];
     char *service = "rcmd";
+    char hbuf[NI_MAXHOST], pbuf[NI_MAXSERV];
     int r;
     sasl_conn_t *conn;
     FILE *in, *out;
     int fd;
-    struct sockaddr_in localaddr, remoteaddr;
     int salen;
+    struct sockaddr_storage local_ip, remote_ip;
 
     while ((c = getopt(argc, argv, "p:s:m:")) != EOF) {
 	switch(c) {
@@ -368,15 +367,35 @@ int main(int argc, char *argv[])
 
     /* initialize the sasl library */
     r = sasl_client_init(callbacks);
-    if (r != SASL_OK) saslfail(r, "initializing libsasl", NULL);
+    if (r != SASL_OK) saslfail(r, "initializing libsasl");
 
     /* connect to remote server */
     fd = getconn(host, port);
 
+    /* set ip addresses */
+    salen = sizeof(local_ip);
+    if (getsockname(fd, (struct sockaddr *)&local_ip, &salen) < 0) {
+	perror("getsockname");
+    }
+
+    getnameinfo((struct sockaddr *)&local_ip, salen,
+		hbuf, sizeof(hbuf), pbuf, sizeof(pbuf),
+		NI_NUMERICHOST | NI_WITHSCOPEID | NI_NUMERICSERV);
+    snprintf(localaddr, sizeof(localaddr), "%s;%s", hbuf, pbuf);
+
+    salen = sizeof(remote_ip);
+    if (getpeername(fd, (struct sockaddr *)&remote_ip, &salen) < 0) {
+	perror("getpeername");
+    }
+
+    getnameinfo((struct sockaddr *)&remote_ip, salen,
+		hbuf, sizeof(hbuf), pbuf, sizeof(pbuf),
+		NI_NUMERICHOST | NI_WITHSCOPEID | NI_NUMERICSERV);
+    snprintf(remoteaddr, sizeof(remoteaddr), "%s;%s", hbuf, pbuf);
+
     /* client new connection */
-    r = sasl_client_new(service, host, NULL, 
-			SASL_SECURITY_LAYER, &conn);
-    if (r != SASL_OK) saslfail(r, "allocating connection state", NULL);
+    r = sasl_client_new(service, host, localaddr, remoteaddr, NULL, 0, &conn);
+    if (r != SASL_OK) saslfail(r, "allocating connection state");
 
     /* set external properties here
        sasl_setprop(conn, SASL_SSF_EXTERNAL, &extprops); */
@@ -384,21 +403,6 @@ int main(int argc, char *argv[])
     /* set required security properties here
        sasl_setprop(conn, SASL_SEC_PROPS, &secprops); */
 
-    /* set ip addresses */
-    salen = sizeof(localaddr);
-    if (getsockname(fd, (struct sockaddr *)&localaddr, &salen) < 0) {
-	perror("getsockname");
-    }
-    salen = sizeof(remoteaddr);
-    if (getpeername(fd, (struct sockaddr *)&remoteaddr, &salen) < 0) {
-	perror("getpeername");
-    }
-
-    r = sasl_setprop(conn, SASL_IP_LOCAL, &localaddr);
-    if (r != SASL_OK) saslfail(r, "setting local IP address", NULL);
-    r = sasl_setprop(conn, SASL_IP_REMOTE, &remoteaddr);
-    if (r != SASL_OK) saslfail(r, "setting local IP address", NULL);
-    
     in = fdopen(fd, "r");
     out = fdopen(fd, "w");
 

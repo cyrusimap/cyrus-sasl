@@ -26,18 +26,18 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: mechanisms.h,v 1.3 2001/07/24 17:11:28 rjs3 Exp $"
+#ident "$Id: mechanisms.h,v 1.4 2001/12/04 02:06:55 rjs3 Exp $"
 #endif
 
-#include <config.h>
-
+#include "saslauthd.h"
 
 /* PUBLIC DEPENDENCIES */
 /* Authentication mechanism dispatch table definition */
 typedef struct {
     char *name;				/* name of the mechanism */
     int (*initialize)(void);		/* initialization function */
-    char *(*authenticate)(const char *, const char *); /* authentication
+    char *(*authenticate)(const char *, const char *,
+			  const char *, const char *); /* authentication
 							  function */
 } authmech_t;
 

@@ -1,8 +1,10 @@
 /* SRP SASL plugin
+ * Ken Murchison
  * Tim Martin  3/17/00
+ * $Id: srp.c,v 1.3 2001/12/04 02:06:49 rjs3 Exp $
  */
 /* 
- * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,92 +44,240 @@
  */
 
 #include <config.h>
-#include <sasl.h>
-#include <saslplug.h>
-
 #include <assert.h>
 #include <ctype.h>
 
 /* for big number support */
 #include <gmp.h>
 
-/* for SHA1 support */
-#include <openssl/sha.h>
+#ifdef WITH_SHA1
+# ifdef WITH_SSL_SHA1
+#  include <openssl/sha.h>
+# else /* any other SHA1? */
+# endif
+#endif /* WITH_SHA1 */
+
+#include <sasl.h>
+#include <saslplug.h>
+
+#include "plugin_common.h"
+#include "../sasldb/sasldb.h"
 
 #ifdef WIN32
 /* This must be after sasl.h, saslutil.h */
-/* xxx  # include "saslANONYMOUS.h" */
+#include "saslSRP.h"
 #endif
+
+#ifdef macintosh
+#include <sasl_srp_plugin_decl.h>
+#endif 
 
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
 
-#define SRP_VERSION (3)
+#undef L_DEFAULT_GUARD
+#define L_DEFAULT_GUARD (0)
 
-#ifdef L_DEFAULT_GUARD
-# undef L_DEFAULT_GUARD
-# define L_DEFAULT_GUARD (0)
-#endif
-
-/* security bits */
-#define SRP_SUPPORTS_INTEGRITY 1
-#define SRP_SUPPORTS_SEQUENCENUMBERS 2
-#define SRP_SUPPORTS_CONFIDENTIALITY 4
-
-
-#define HASHLEN SHA_DIGEST_LENGTH
-#define MAXBIGNUMLEN 1024
+#define SRP_VERSION (5)
 
 /* Size of N in bits */
 #define BITSFORN 128
 /* Size of diffie-hellman secrets a and b */
 #define BITSFORab 64
+/* How many bytes big should the salt be? */
+#define SRP_SALT_SIZE 16
 
-
+#include <stdio.h>
 #define VL(x) printf x
 
-/* global: if we've already set a pass entry */
-static int mydb_initialized = 0;
+/* Generic Hash function definitions */
+typedef int  (*srp_hash_len_t)(const sasl_utils_t *utils);
+typedef int  (*srp_hash_init_t)(const sasl_utils_t *utils,
+				char *key, int keylen, void **ctx);
+typedef void (*srp_hash_update_t)(const sasl_utils_t *utils,
+				  void *ctx, char *data, int datalen);
+typedef void (*srp_hash_final_t)(const sasl_utils_t *utils,
+				 char *outdata, void *ctx);
 
-typedef struct netstring_s {
+#define OPTION_REPLAY_DETECTION	"replay detection"
+#define OPTION_INTEGRITY	"integrity="
+#define OPTION_CONFIDENTIALITY	"confidentiality="
 
-    int size;
-    
-    char data[1]; /* allocate to size you need */
-
-} netstring_t;
-
-/* doesn't contain netstring formatting */
-typedef struct netdata_s {
-
-    int size;
-    
-    char data[1]; /* allocate to size you need */
-
-} netdata_t;
-
+/* Forward decl */
+static int
+ReadUserInfo(const sasl_utils_t *utils, char *authid, char *realm,
+	     const char *propName,
+	     mpz_t *N, mpz_t *g, char **salt, int *saltlen, mpz_t *v);
 
 
-typedef struct hash_s {
+/***************** SHA1 Hash Functions ****************/
 
-    unsigned char data[SHA_DIGEST_LENGTH];
-    int len;
+#ifdef WITH_SHA1
+static int
+srp_sha1Len(const sasl_utils_t *utils __attribute__((unused)))
+{
+    return 20;
+}
 
-} hash_t;
+static int
+srp_sha1Init(const sasl_utils_t *utils __attribute__((unused)),
+	     char *key __attribute__((unused)),
+	     int keylen __attribute__((unused)), void **ctx)
+{
+    SHA_CTX *ret;
 
-typedef struct interleaved_s {
+    ret = utils->malloc(sizeof(SHA_CTX));
+    if (!ret) return SASL_NOMEM;
 
-    unsigned char data[SHA_DIGEST_LENGTH*2];
+    SHA1_Init(ret);
 
-} interleaved_t;
+    *ctx = ret;
 
-typedef struct savedinfo_s {
+    return SASL_OK;
+}
 
-    char salt[16];
+static void
+srp_sha1Update(const sasl_utils_t *utils __attribute__((unused)),
+	       void *context, char *data, int datalen)
+{
+    SHA_CTX *ctx = (SHA_CTX *)context;
 
-    mpz_t verifier;
+    SHA1_Update(ctx, data, datalen);    
+}
 
-} savedinfo_t;
+static void
+srp_sha1Final(const sasl_utils_t *utils __attribute__((unused)),
+	      char *outdata, void *context)
+{
+    SHA_CTX *ctx = (SHA_CTX *)context;
 
+    SHA1_Final(outdata, ctx);
+
+    utils->free(ctx);
+}
+#endif /* WITH_SHA1 */
+
+/***************** MD5 Hash Functions ****************/
+
+static int
+srp_md5Len(const sasl_utils_t *utils __attribute__((unused)))
+{
+    return 16;
+}
+
+static int
+srp_md5Init(const sasl_utils_t *utils, char *key __attribute__((unused)),
+	    int keylen __attribute__((unused)), void **ctx)
+{
+    MD5_CTX *ret;
+
+    ret = utils->malloc(sizeof(MD5_CTX));
+    if (!ret) return SASL_NOMEM;
+
+    utils->MD5Init(ret);
+
+    *ctx = ret;
+
+    return SASL_OK;
+}
+
+static void
+srp_md5Update(const sasl_utils_t *utils, void *context, char *data,
+	      int datalen)
+{
+    MD5_CTX *ctx = (MD5_CTX *)context;
+
+    utils->MD5Update(ctx, data, datalen);    
+}
+
+static void
+srp_md5Final(const sasl_utils_t *utils, char *outdata, void *context)
+{
+    MD5_CTX *ctx = (MD5_CTX *)context;
+
+    utils->MD5Final(outdata, ctx);
+
+    utils->free(ctx);
+}
+
+/***************** MD5 Hash Functions for Integrity Layer ****************/
+
+static int
+srp_hmac_md5Len(const sasl_utils_t *utils __attribute__((unused)))
+{
+    return 16;
+}
+
+static int
+srp_hmac_md5Init(const sasl_utils_t *utils, char *key, int keylen, void **ctx)
+{
+    HMAC_MD5_CTX *ret;
+
+    ret = utils->malloc(sizeof(HMAC_MD5_CTX));
+    if (!ret) return SASL_NOMEM;
+
+    utils->hmac_md5_init(ret, key, keylen);
+
+    *ctx = ret;
+
+    return SASL_OK;
+}
+
+static void
+srp_hmac_md5Update(const sasl_utils_t *utils, void *context, char *data,
+		   int datalen)
+{
+    HMAC_MD5_CTX *ctx = (HMAC_MD5_CTX *)context;
+
+    utils->MD5Update(&ctx->ictx, data, datalen);    
+}
+
+static void
+srp_hmac_md5Final(const sasl_utils_t *utils, char *outdata, void *context)
+{
+    HMAC_MD5_CTX *ctx = (HMAC_MD5_CTX *)context;
+
+    utils->hmac_md5_final(outdata, ctx);
+
+    utils->free(ctx);
+}
+
+/******************** Options *************************/
+
+typedef struct layer_option_s {
+    char *name;
+    int bit;
+    int ssf;
+
+    srp_hash_len_t    HashLen;
+    srp_hash_init_t   HashInit;
+    srp_hash_update_t HashUpdate;
+    srp_hash_final_t  HashFinal;
+
+} layer_option_t;
+
+static layer_option_t integrity_options[] = {
+    {"hmac-md5", 0x1, 0,	&srp_hmac_md5Len,	&srp_hmac_md5Init,
+     &srp_hmac_md5Update,	&srp_hmac_md5Final},
+    {NULL,       0x0, 0,	NULL,			NULL,
+     NULL,			NULL}
+};
+
+static layer_option_t confidentiality_options[] = {
+    /* nothing yet */
+    {NULL,       0x0, 0,        NULL,         NULL,           NULL,          NULL}
+};
+
+
+typedef struct srp_options_s {
+
+    int replay_detection;
+
+    int integrity;
+    int confidentiality;
+
+} srp_options_t;
+
+/* The main SRP context */
 typedef struct context_s {
     int state;
 
@@ -144,52 +294,332 @@ typedef struct context_s {
     mpz_t a;
     mpz_t A;
 
-    interleaved_t sharedsecretK;
+    char *K;
+    int Klen;
 
-    char *authid;
+    char *M1;
+    int M1len;
+
+    char *authid; /* authentication id */
+    char *userid; /* authorization id */
     char *realm;
     sasl_secret_t *password;
 
-    unsigned char client_options;
-    unsigned char server_options;
+    char *client_options;
+    char *server_options;
 
-    hash_t M1; /* client needs to save between steps 3 and 4 */
-    savedinfo_t *sinfo;
+    srp_options_t client_opts;
+
+    char *salt;
+    int saltlen;
+
+    const char *propName; /* property name in sasldb */
+
+    /* Hash functions */
+    int               HashLen;
+    srp_hash_init_t   HashInit;
+    srp_hash_update_t HashUpdate;
+    srp_hash_final_t  HashFinal;
+
+    /* used by hash functions */
+    const sasl_utils_t *utils;
+
+    /* Layer foo */
+    int enabled_integrity_layer;
+    int enabled_replay_detection;
+
+    int seqnum_out;
+    int seqnum_in;
+
+    /* Intergrity layer hash functions */
+    int               IntegHashLen;
+    srp_hash_init_t   IntegHashInit;
+    srp_hash_update_t IntegHashUpdate;
+    srp_hash_final_t  IntegHashFinal;
+
+    /* encode and decode need these */
+    char *buffer;                    
+    int bufsize;
+    buffer_info_t * enc_in_buf;
+
+    char sizebuf[4];
+    int cursize;
+    int size;
+    int needsize;
 
 } context_t;
 
+/*******************************************
+ *	Layer Functions	 	           *
+ *                                         *
+ *******************************************/
 
-/* forward declarations */
-static int create_public_server(mpz_t g, mpz_t N, mpz_t v,
-				mpz_t b, mpz_t B);
 
-static char frombits(unsigned int i)
+static int
+layer_encode(void *context,
+		 const struct iovec *invec,
+		 unsigned numiov,
+		 const char **output,
+		 unsigned *outputlen)
 {
-    assert(i <= 15);
+  context_t      *text = (context_t *) context;
+  int hashlen = 0;
+  char hashdata[text->IntegHashLen]; /* xxx */
+  int tmpnum;
+  int ret;
+  char *input;
+  unsigned inputlen;
 
-    if (i<=9) return '0'+i;
+  assert(numiov > 0);
 
-    return 'a'+ (i-10);
+  ret = _plug_iovec_to_buf(text->utils, invec, numiov, &text->enc_in_buf);
+  if(ret != SASL_OK) return ret;
+  
+  input = text->enc_in_buf->data;
+  inputlen = text->enc_in_buf->curlen;
+
+  if (text->enabled_integrity_layer) {
+    void *hmac_ctx = NULL;
+
+    text->IntegHashInit(text->utils, text->K, text->Klen, &hmac_ctx);
+
+    text->IntegHashUpdate(text->utils, hmac_ctx, input, inputlen);
+
+    if (text->enabled_replay_detection) {
+      tmpnum = htonl(text->seqnum_out);
+      text->IntegHashUpdate(text->utils, hmac_ctx, (char *) &tmpnum, 4);
+      
+      text->seqnum_out++;	  
+    }
+    
+    text->IntegHashFinal(text->utils, hashdata, hmac_ctx);
+    hashlen = text->IntegHashLen; /* xxx */
+  }
+
+  /* 4 for length + input size + hashlen for integrity (could be zero) */
+  *outputlen = 4 + inputlen + hashlen;
+
+  *output = text->utils->malloc(*outputlen);
+  if (!*output) return SASL_NOMEM;
+  
+  tmpnum = inputlen+hashlen;
+  tmpnum = htonl(tmpnum);
+  memcpy( (char *) *output,     &tmpnum, 4);
+  memcpy( (char *) (*output)+4, input, inputlen);
+  memcpy( (char *) (*output)+4+inputlen, hashdata, hashlen);
+  
+  return SASL_OK;
 }
 
-static int tobits(char c)
+
+static int
+decode(context_t *text,
+       const char *input,
+       unsigned inputlen,
+       const char **output,
+       unsigned *outputlen)
 {
-    if ((int) isdigit(c))
-	return c-'0';
+    int hashlen = 0;
 
-    if ((c>='a') && (c<='f'))
-	return c-'a'+10;
+    if (text->enabled_integrity_layer) {
+	int tmpnum;
+	char hashdata[text->IntegHashLen];
+	int i;
+	void *hmac_ctx = NULL;
 
-    if ((c>='A') && (c<='F'))
-	return c-'A'+10;
+	text->IntegHashInit(text->utils, text->K, text->Klen, &hmac_ctx);
 
-    return 0;
+	hashlen = text->IntegHashLen; /* xxx */
+
+	if ((int)inputlen < hashlen) {
+	    VL(("Input is smaller than hash length: %d vs %d\n",inputlen, hashlen));
+	    return SASL_FAIL;
+	}
+
+	/* create my version of the hash */
+	text->IntegHashUpdate(text->utils, hmac_ctx,
+			      (char *)input, inputlen - hashlen);
+
+	if (text->enabled_replay_detection) {
+	    tmpnum = htonl(text->seqnum_in);
+	    text->IntegHashUpdate(text->utils, hmac_ctx,
+				  (char *) &tmpnum, 4);
+	    
+	    text->seqnum_in ++;
+	}
+	
+	text->IntegHashFinal(text->utils, hashdata, hmac_ctx);
+
+	/* compare to hash given */
+	for (i = 0; i < hashlen; i++) {
+	    if (hashdata[i] != input[inputlen - hashlen + i]) {
+		VL(("Hash is incorrect\n"));
+		return SASL_FAIL;
+	    }
+	}
+    }
+
+    *output = text->utils->malloc(inputlen - hashlen);
+    if (!*output) return SASL_NOMEM;
+
+    *outputlen = inputlen - hashlen;
+    memcpy( (char *) *output, input, *outputlen);
+
+    return SASL_OK;
+}
+
+static int
+layer_decode(void *context,
+	     const char *input,
+	     unsigned inputlen,
+	     const char **output,
+	     unsigned *outputlen)
+{
+    int tocopy;
+    unsigned diff;
+    context_t *text=context;
+    const char *extra;
+    unsigned int extralen=0;
+    int r;
+
+    if (text->needsize>0) { /* 4 bytes for how long message is */
+	/* if less than 4 bytes just copy those we have into text->size */
+	if (inputlen<4) 
+	    tocopy=inputlen;
+	else
+	  tocopy=4;
+      
+	if (tocopy>text->needsize)
+	    tocopy=text->needsize;
+
+	memcpy(text->sizebuf+4-text->needsize, input, tocopy);
+	text->needsize-=tocopy;
+	
+	input+=tocopy;
+	inputlen-=tocopy;
+
+	if (text->needsize==0) /* got all of size */
+	{
+	    memcpy(&(text->size), text->sizebuf, 4);
+	    text->cursize=0;
+	    text->size=ntohl(text->size);
+	    
+	    /* too big? */
+	    if ((text->size>0xFFFF) || (text->size < 0)) {
+		VL(("Size out of range: %d\n",text->size));
+		return SASL_FAIL;
+	    }
+	    
+	    if (text->bufsize < text->size + 5) {
+		text->buffer = text->utils->realloc(text->buffer,
+						    text->size + 5);
+		text->bufsize = text->size + 5;
+	    }
+	    if (text->buffer == NULL) return SASL_NOMEM;
+	}
+	*outputlen=0;
+	*output=NULL;
+	if (inputlen==0) /* have to wait until next time for data */
+	    return SASL_OK;
+	
+	if (text->size==0)  /* should never happen */
+	    return SASL_FAIL;
+    }
+    
+    diff=text->size - text->cursize; /* bytes need for full message */
+    
+    if (! text->buffer)
+	return SASL_FAIL;
+    
+    if (inputlen < diff) { /* not enough for a decode */
+	memcpy(text->buffer+text->cursize, input, inputlen);
+	text->cursize+=inputlen;
+	*outputlen=0;
+	*output=NULL;
+	return SASL_OK;
+    } else {
+	memcpy(text->buffer+text->cursize, input, diff);
+	input+=diff;      
+	inputlen-=diff;
+    }
+
+    /* We have enough data to return something */
+    r = decode(text, text->buffer, text->size, output, outputlen);
+    if (r) return r;
+
+    text->size = -1;
+    text->needsize = 4;
+
+    /* if received more than the end of a packet */
+    if (inputlen!=0) {
+	extra = NULL;
+	layer_decode(text, input, inputlen,
+		       &extra, &extralen);
+	if (extra != NULL) {
+	    /* if received 2 packets merge them together */
+	    *output = text->utils->realloc( (char *) *output,
+					    *outputlen+extralen);
+	    memcpy( (char *) *output + *outputlen, extra, extralen); 
+	    *outputlen += extralen;
+	    text->utils->free( (char *) extra);
+	}
+    }
+    
+    return SASL_OK;
+}
+
+/*******************************************
+ *	Helper Functions		   *
+ *                                         *
+ *******************************************/
+
+/* Dispose of a SRP context (could be server or client)
+ *
+ *
+ */ 
+static void srp_both_mech_dispose(void *conn_context,
+				  const sasl_utils_t *utils)
+{
+  context_t *text = conn_context;
+
+  if (!text)
+    return;
+
+  mpz_clear(text->N);
+  mpz_clear(text->g);
+  mpz_clear(text->S);
+  mpz_clear(text->v);
+  mpz_clear(text->b);
+  mpz_clear(text->B);
+  mpz_clear(text->a);
+  mpz_clear(text->A);
+
+  if (text->K)                utils->free(text->K);
+  if (text->M1)               utils->free(text->M1);
+
+  if (text->authid)           utils->free(text->authid);
+  if (text->userid)           utils->free(text->userid);
+  if (text->realm)            utils->free(text->realm);
+  if (text->password)         _plug_free_secret(utils, &(text->password));
+  if (text->salt)             utils->free(text->salt);
+
+  if (text->client_options)   utils->free(text->client_options);
+  if (text->server_options)   utils->free(text->server_options);
+  if (text->buffer)           utils->free(text->buffer);
+
+  utils->free(text);
+}
+
+static void srp_both_mech_free(void *global_context,
+			       const sasl_utils_t *utils)
+{
+    if(global_context) utils->free(global_context);  
 }
 
 
 /* copy a string */
 static int
-srp_strdup(sasl_utils_t * utils, const char *in, char **out, int *outlen)
+srp_strdup(const sasl_utils_t * utils, const char *in, char **out, int *outlen)
 {
   size_t len = strlen(in);
 
@@ -206,215 +636,8 @@ srp_strdup(sasl_utils_t * utils, const char *in, char **out, int *outlen)
   return SASL_OK;
 }
 
-static netdata_t *create_netdata_bigint(mpz_t n, sasl_utils_t *utils)
-{
-    int size;
-    netdata_t *ret;
-    int prefixlen=0;
-    int lup;
-    char *str;
-
-    size = mpz_sizeinbase (n, 16);
-
-    str = (char *) utils->malloc(size+10);
-    if (!str) return NULL;
-    mpz_get_str (str, 16, n);
-
-    ret = (netdata_t *) utils->malloc(sizeof(netdata_t)+20+size);
-    if (!ret) return NULL;
-
-    if (size%2!=0) {
-	ret->data[0]=tobits(str[0]);
-	size--;
-	str++;
-	prefixlen=1;
-    }
-
-    for (lup=0;lup<size/2;lup++)
-    {
-	ret->data[prefixlen+lup] = (tobits(str[lup*2]) << 4);
-	ret->data[prefixlen+lup] |= tobits(str[lup*2+1]);
-    }
-
-    ret->size = prefixlen+(size/2);
-
-    return ret;
-}
-
-static netstring_t *create_netstring_bigint(mpz_t n, sasl_utils_t *utils)
-{
-    int size;
-    int prefixlen;
-    netstring_t *ret;
-    int lup;
-    char *str;
-
-    size = mpz_sizeinbase (n, 16);
-
-    str = (char *) utils->malloc(size+10);
-    if (!str) return NULL;
-    mpz_get_str (str, 16, n);
-
-    ret = (netstring_t *) utils->malloc(sizeof(netstring_t)+20+size);
-    if (!ret) return NULL;
-
-    sprintf(ret->data,"%d:",(size+1)/2);
-    prefixlen = strlen(ret->data);
-
-    if (size%2!=0) {
-	ret->data[prefixlen]=tobits(str[0]);
-	size--;
-	str++;
-	prefixlen++;
-    }
-
-    for (lup=0;lup<size/2;lup++)
-    {
-	ret->data[prefixlen+lup] = (tobits(str[lup*2]) << 4);
-	ret->data[prefixlen+lup] |= tobits(str[lup*2+1]);
-    }
-
-    ret->data[prefixlen+size/2] = ',';
-    ret->data[prefixlen+(size/2)+1] = '\0';
-
-    ret->size = prefixlen+(size/2)+1;
-
-    return ret;
-}
-
-/*
- * Create a netstring from a character array
- */
-
-static netstring_t *create_netstring_str(char *str, int len, sasl_utils_t *utils)
-{
-    netstring_t *ret;
-    int prefixlen;
-
-    ret = (netstring_t *) utils->malloc(sizeof(netstring_t)+10+len);
-
-    sprintf(ret->data,"%d:",len);
-    prefixlen = strlen(ret->data);
-
-    memcpy(ret->data+prefixlen,str,len);
-
-    ret->data[prefixlen+len]=',';
-    ret->data[prefixlen+len+1]='\0';
-
-    ret->size = prefixlen+len+1;
-
-    return ret;
-}
-
-static void Hash(unsigned char *data, unsigned long len, hash_t *hash)
-{
-    SHA_CTX c;
-
-    SHA1_Init(&c);
-
-    SHA1_Update(&c,data,len);
-
-    SHA1_Final(&(hash->data[0]),&c);
-    
-    hash->len = SHA_DIGEST_LENGTH; 
-
-    /*    int lup;
-
-    memset(hash->data, 'z', sizeof(hash->data));
-
-    if (len > SHA_DIGEST_LENGTH) len = SHA_DIGEST_LENGTH;
-
-    for (lup=0;lup<(int)len;lup++)
-	hash->data[lup] = data[lup];
-
-	hash->len = SHA_DIGEST_LENGTH;*/
-}
-
-static int Hash_bigint(mpz_t num, hash_t *hash, sasl_utils_t *utils)
-{ 
-    int size;
-    int lup;
-    char *str;
-    char *data;
-
-    size = mpz_sizeinbase (num, 16);
-    
-    str = (char *) utils->malloc(size+10);
-    if (!str) return SASL_NOMEM;
-    mpz_get_str (str, 16, num);
-    
-    data = (char *) utils->malloc(size+10);
-    if (!data) return SASL_NOMEM;
-
-    for (lup=0;lup<size/2;lup++)
-    {
-	data[lup] = (tobits(str[lup*2]) << 4);
-	data[lup] = tobits(str[lup*2+1]);
-    }
-
-    Hash(data, size/2, hash);
-
-    utils->free(str);
-    utils->free(data);
-
-    return SASL_OK;
-}
-
-static int SHA_Interleave(mpz_t num, interleaved_t *inter, sasl_utils_t *utils)
-{
-    netstring_t *tmpns;
-    char *T;
-    int Tlen;
-    char *E, *F;
-    int lup;
-    hash_t G;
-    hash_t H;
-
-    tmpns = create_netstring_bigint(num, utils);
-    if (!tmpns) return SASL_NOMEM;
-    
-    /* removing leading zeros is already done right? */
-
-    /* if odd kill first byte */
-    T = tmpns->data;
-    Tlen = tmpns->size;
-    if (Tlen % 2 !=0) { T++; Tlen--; }
-
-    E = (char *) utils->malloc(Tlen/2+1);
-    if (!E) return SASL_NOMEM;
-    F = (char *) utils->malloc(Tlen/2+1);
-    if (!F) return SASL_NOMEM;
-
-    /* E gets even bytes. F gets odd */
-    for (lup=0;lup<Tlen/2;lup++)
-    {
-	E[lup]=T[lup*2];
-	F[lup]=T[lup*2+1];
-    }
-
-    utils->free(tmpns);
-
-    /* hash E and F into G and H*/
-    Hash(E,Tlen/2, &G);
-    Hash(F,Tlen/2, &H);
-
-    utils->free(E);
-    utils->free(F);
-
-    /* interleave hashes into 'inter' */
-    for (lup=0;lup<HASHLEN*2;lup++)
-    {
-	if (lup%2 == 0)
-	    inter->data[lup]=G.data[lup/2];
-	else
-	    inter->data[lup]=H.data[(lup-1)/2];		
-    }
-
-    return SASL_OK;
-}
-
 /* returns the realm we should pretend to be in */
-static int parseuser(sasl_utils_t *utils,
+static int parseuser(const sasl_utils_t *utils,
 		     char **user, char **realm, const char *user_realm, 
 		     const char *serverFQDN, const char *input)
 {
@@ -466,15 +689,1167 @@ static int parseuser(sasl_utils_t *utils,
     return ret;
 }
 
+#define MAX_BUFFER_LEN 2147483643
+#define MAX_UTF8_LEN 65535
+#define MAX_OS_LEN 255
 
+
+/*
+ * Make a SRP buffer
+ *
+ * in1 must exist but the rest may be NULL
+ *
+ */
+static int
+MakeBuffer(const sasl_utils_t *utils, 
+	   char *in1, int in1len,
+	   char *in2, int in2len,
+	   char *in3, int in3len,
+	   char *in4, int in4len,
+	   const char **out,
+	   unsigned *outlen)
+{
+    int len;
+    int inbyteorder;
+    char *out2;
+
+    if (!in1) {
+	VL(("At least one buffer must be active\n"));
+	return SASL_FAIL;
+    }
+
+    len = in1len + in2len + in3len + in4len;
+
+    if (len > MAX_BUFFER_LEN) {
+	VL(("String too long to create SRP buffer string\n"));
+	return SASL_FAIL;
+    }
+
+    out2 = utils->malloc(len + 4);
+    if (!out2) return SASL_NOMEM;
+
+    /* put length in */
+    inbyteorder = htonl(len);
+    memcpy(out2, &inbyteorder, 4);
+
+    /* copy in data */
+    memcpy((out2)+4, in1, in1len);
+
+    if (in2len)
+	memcpy((out2)+4+in1len, in2, in2len);
+
+    if (in3len)
+	memcpy((out2)+4+in1len+in2len, in3, in3len);
+
+    if (in4len)
+	memcpy((out2)+4+in1len+in2len+in3len, in4, in4len);
+
+    *outlen = len + 4;
+
+    *out = out2;
+
+    return SASL_OK;
+}
+
+/* Un'buffer' a string
+ *
+ * 'out' becomes a pointer into 'in' not an allocation
+ */
+static int
+UnBuffer(char *in, int inlen, char **out, int *outlen)
+{
+    int lenbyteorder;
+    int len;
+
+    if ((!in) || (inlen < 4)) {
+	VL(("Buffer is not big enough to be SRP buffer: %d\n", inlen));
+	return SASL_FAIL;
+    }
+
+    /* get the length */
+    memcpy(&lenbyteorder, in, 4);
+    len = ntohl(lenbyteorder);
+
+    /* make sure it's right */
+    if (len + 4 != inlen) {
+	VL(("SRP Buffer isn't of the right length\n"));
+	return SASL_FAIL;
+    }
+
+    *out = in+4;
+    *outlen = len;
+    
+    return SASL_OK;
+}
 
 static int
-server_start(void *glob_context __attribute__((unused)),
-             sasl_server_params_t *params,
-	     const char *challenge __attribute__((unused)),
-	     int challen __attribute__((unused)),
-	     void **conn,
-	     const char **errstr)
+MakeUTF8(const sasl_utils_t *utils,
+	 char *in,
+	 char **out,
+	 int *outlen)
+{
+    int llen;
+    short len;
+    short inbyteorder;
+
+    if (!in) {
+	VL(("Can't create utf8 string from null"));
+	return SASL_FAIL;
+    }
+
+    /* xxx actual utf8 conversion */
+
+    llen = strlen(in);
+
+    if (llen > MAX_UTF8_LEN) {
+	VL(("String too long to create utf8 string\n"));
+	return SASL_FAIL;
+    }
+    len = (short)llen;
+
+    *out = utils->malloc(len+2);
+    if (!*out) return SASL_NOMEM;
+
+    /* put in len */
+    inbyteorder = htons(len);
+    memcpy(*out, &inbyteorder, 2);
+
+    /* put in data */
+    memcpy((*out)+2, in, len);
+
+    *outlen = len+2;
+
+    return SASL_OK;
+}
+
+static int
+GetUTF8(const sasl_utils_t *utils, char *data, int datalen,
+	char **outstr, char **left, int *leftlen)
+{
+    short lenbyteorder;
+    int len;
+
+    if ((!data) || (datalen < 2)) {
+	VL(("Buffer is not big enough to be SRP UTF8\n"));
+	return SASL_FAIL;
+    }
+
+    /* get the length */
+    memcpy(&lenbyteorder, data, 2);
+    len = ntohs(lenbyteorder);
+
+    /* make sure it's right */
+    if (len + 2 > datalen) {
+	VL(("Not enough data for this SRP UTF8\n"));
+	return SASL_FAIL;
+    }
+
+    *outstr = (char *)utils->malloc(len+1);
+    if (!*outstr) return SASL_NOMEM;
+
+    memcpy(*outstr, data+2, len);
+    (*outstr)[len] = '\0';
+    
+    *left = data+len+2;
+    *leftlen = datalen - (len+2);
+
+    return SASL_OK;
+}
+
+static int
+MakeOS(const sasl_utils_t *utils,
+       char *in, 
+       int inlen,
+       char **out,
+       int *outlen)
+{
+    if (!in) {
+	VL(("Can't create SRP os string from null"));
+	return SASL_FAIL;
+    }
+
+    if (inlen > MAX_OS_LEN) {
+	VL(("String too long to create SRP os string\n"));
+	return SASL_FAIL;
+    }
+
+    *out = utils->malloc(inlen+1);
+    if (!*out) return SASL_NOMEM;
+
+    /* put in len */
+    (*out)[0] = inlen & 0xFF;
+
+    /* put in data */
+    memcpy((*out)+1, in, inlen);
+
+    *outlen = inlen+1;
+
+    return SASL_OK;
+}
+
+static int
+GetOS(const sasl_utils_t *utils, char *data, int datalen,
+      char **outstr, int *outlen, char **left, int *leftlen)
+{
+    int len;
+
+    if ((!data) || (datalen < 1)) {
+	VL(("Buffer is not big enough to be SRP os\n"));
+	return SASL_FAIL;
+    }
+
+    /* get the length */
+    len = (unsigned char)data[0];
+
+    /* make sure it's right */
+    if (len + 1 > datalen) {
+	VL(("Not enough data for this SRP os\n"));
+	return SASL_FAIL;
+    }
+
+    *outstr = (char *)utils->malloc(len+1);
+    if (!*outstr) return SASL_NOMEM;
+
+    memcpy(*outstr, data+1, len);
+    (*outstr)[len] = '\0';
+
+    *outlen = len;
+    
+    *left = data+len+1;
+    *leftlen = datalen - (len+1);
+
+    return SASL_OK;
+}
+
+static int 
+tobits(char c)
+{
+    if ((int) isdigit(c))
+	return c-'0';
+
+    if ((c>='a') && (c<='f'))
+	return c-'a'+10;
+
+    if ((c>='A') && (c<='F'))
+	return c-'A'+10;
+
+    return 0;
+}
+
+/* Convert a big integer to it's byte representation
+ *
+ *
+ */
+static int
+BigIntToBytes(mpz_t num, char *out, int maxoutlen, int *outlen)
+{
+    char buf[4096];
+    char *bufp = buf;
+    int len;
+    int prefixlen = 0;
+    int i;
+
+    len = mpz_sizeinbase (num, 16);
+
+    if (len > maxoutlen) return SASL_FAIL;
+
+    mpz_get_str (buf, 16, num);
+
+    if (len%2!=0) {
+	out[0]=tobits(*bufp);
+	bufp++;
+	len--;
+	prefixlen=1;
+    }
+
+    for (i=0; i< len/2; i++ )
+    {
+	out[prefixlen+i] = (tobits(*bufp) << 4);
+	bufp++;
+	out[prefixlen+i] |= tobits(*bufp);
+	bufp++;
+    }
+
+    *outlen = prefixlen+(len/2);
+
+    return SASL_OK;    
+}
+
+static int
+MakeMPI(const sasl_utils_t *utils,
+	mpz_t num,
+	char **out,
+	int *outlen)
+{
+    int shortlen;
+    int len;
+    short inbyteorder;
+    int alloclen;
+    int r;
+
+    alloclen = mpz_sizeinbase (num, 16);
+   
+    *out = utils->malloc(alloclen+2);
+    if (!*out) return SASL_NOMEM;
+
+    r = BigIntToBytes(num, (*out)+2, alloclen, &len);
+    if (r) {
+	utils->free(*out);
+	return r;
+    }
+
+    *outlen = 2+len;
+
+    /* put in len */
+    shortlen = len;
+    inbyteorder = htons(shortlen);
+    memcpy(*out, &inbyteorder, 2);
+
+    return SASL_OK;
+}
+
+static char 
+frombits(unsigned int i)
+{
+    assert(i <= 15);
+
+    if (i<=9) return '0'+i;
+
+    return 'a'+ (i-10);
+}
+
+static void
+DataToBigInt(unsigned char *in, int inlen, mpz_t *outnum)
+{
+    int i;
+    char buf[4096];
+
+    mpz_init(*outnum);    
+
+    memset(buf, '\0', sizeof(buf));
+
+    for (i = 0; i < inlen; i++) 
+    {
+	buf[i*2]   = frombits(in[i] >> 4);
+	buf[i*2+1] = frombits(in[i] & 15);
+    }
+    
+    mpz_set_str (*outnum, buf, 16);
+}
+
+static int
+GetMPI(unsigned char *data, int datalen, mpz_t *outnum,
+       char **left, int *leftlen)
+{
+
+
+    short lenbyteorder;
+    int len;
+
+    if ((!data) || (datalen < 2)) {
+	VL(("Buffer is not big enough to be SRP MPI: %d\n", datalen));
+	return SASL_FAIL;
+    }
+
+    /* get the length */
+    memcpy(&lenbyteorder, data, 2);
+    len = ntohs(lenbyteorder);
+
+    /* make sure it's right */
+    if (len + 2 > datalen) {
+	VL(("Not enough data for this SRP MPI: we have %d; it say it's %d\n",datalen, len+2));
+	return SASL_FAIL;
+    }
+
+    DataToBigInt(data+2, len, outnum);
+
+    *left = data+len+2;
+    *leftlen = datalen - (len+2);
+
+    return SASL_OK;
+}
+
+static void
+GetRandBigInt(mpz_t out)
+{
+    mpz_init(out);
+
+    /* xxx likely should use sasl random funcs */
+    mpz_random(out, BITSFORab/(8*sizeof(int)));
+}
+
+/* Call the hash function on the data of a BigInt
+ *
+ */
+static void
+HashData(context_t *text, char *in, int inlen, unsigned char outhash[])
+{
+    void *ctx;
+
+    text->HashInit(text->utils, NULL, 0, &ctx);
+    text->HashUpdate(text->utils, ctx, in, inlen);
+    text->HashFinal(text->utils, outhash, ctx);
+}
+
+/* Call the hash function on the data of a BigInt
+ *
+ */
+static int
+HashBigInt(context_t *text, mpz_t in, unsigned char outhash[])
+{
+    int r;
+    char buf[4096];
+    int buflen;
+    void *ctx;
+    
+    r = BigIntToBytes(in, buf, sizeof(buf)-1, &buflen);
+    if (r) return r;
+
+    text->HashInit(text->utils, NULL, 0, &ctx);
+    text->HashUpdate(text->utils, ctx, buf, buflen);
+    text->HashFinal(text->utils, outhash, ctx);
+
+    return 0;
+}
+
+static int
+HashInterleaveBigInt(context_t *text, mpz_t num, char **out, int *outlen)
+{
+    int r;
+    char buf[4096];
+    int buflen;
+
+    int klen;
+    int limit;
+    int i;
+    int offset;
+    int j;
+    void *mdEven;
+    void *mdOdd;
+    unsigned char Evenb[text->HashLen];
+    unsigned char Oddb[text->HashLen];
+
+    /* make bigint into bytes */
+    r = BigIntToBytes(num, buf, sizeof(buf)-1, &buflen);
+    if (r) return r;
+
+    limit = buflen;
+
+    /* skip by leading zero's */
+    for (offset = 0; offset < limit && buf[offset] == 0x00; offset++) {
+	/* nada */
+    }
+	
+    klen = (limit - offset) / 2;
+
+    text->HashInit(text->utils, NULL, 0, &mdEven);
+    text->HashInit(text->utils, NULL, 0, &mdOdd);
+
+    j = limit - 1;
+    for (i = 0; i < klen; i++) {
+	text->HashUpdate(text->utils, mdEven, buf + j, 1);
+	j--;
+	text->HashUpdate(text->utils, mdOdd, buf + j, 1);
+	j--;
+    }
+
+    text->HashFinal(text->utils, Evenb, mdEven);
+    text->HashFinal(text->utils, Oddb, mdOdd);
+
+    *out = text->utils->malloc(2 * text->HashLen);
+    if (!*out) return SASL_NOMEM;
+    *outlen = 2 * text->HashLen;
+      
+    for (i = 0, j = 0; i < text->HashLen; i++)
+    {
+	(*out)[j++] = Evenb[i];
+	(*out)[j++] = Oddb[i];
+    }
+
+    return SASL_OK;
+}
+
+
+/*
+ * Calculate 'x' which is needed to calculate 'K'
+ *
+ */
+static int
+CalculateX(context_t *text,
+	   const char *salt, 
+	   int saltlen, 
+	   const char *user, 
+	   const char *pass, 
+	   int passlen, 
+	   mpz_t *x)
+{
+    void *ctx;
+    char hash[text->HashLen];
+
+    /* x = H(salt | H(user | ':' | pass))
+     *
+     */      
+
+    text->HashInit(text->utils, NULL, 0, &ctx);
+
+    text->HashUpdate(text->utils, ctx, (char*) user, strlen(user));
+    text->HashUpdate(text->utils, ctx, ":", 1);
+    text->HashUpdate(text->utils, ctx, (char*) pass, passlen);
+
+    text->HashFinal(text->utils, hash, ctx);
+
+
+    text->HashInit(text->utils, NULL, 0, &ctx);
+
+    text->HashUpdate(text->utils, ctx, (char*) salt, saltlen);
+    text->HashUpdate(text->utils, ctx, hash, text->HashLen);
+
+    text->HashFinal(text->utils, hash, ctx);
+
+    DataToBigInt(hash, text->HashLen, x);
+
+    return SASL_OK;
+}
+
+/* Calculate shared context key K
+ *
+ * User:  x = H(s, password)
+ * User:  S = (B - g^x) ^ (a + ux) % N
+ *                  
+ * User:  K = Hi(S)
+ *
+ */
+static int
+CalculateK_client(context_t *text,
+		  char *salt,
+		  int saltlen,
+		  char *user,
+		  char *pass,
+		  int passlen,
+		  char **key,
+		  int *keylen)
+{
+    int r;
+    unsigned char hash[text->HashLen];
+    mpz_t x;
+    mpz_t u;
+    mpz_t aux;
+    mpz_t gx;
+    mpz_t base;
+    mpz_t S;
+
+    r = CalculateX(text, salt, saltlen, user, pass, passlen, &x);
+    if (r) return r;
+
+    /* gx = g^x */
+    mpz_init(gx);
+    mpz_powm (gx, text->g, x, text->N);
+
+    /* base = B - gx */
+    mpz_init(base);
+    mpz_sub(base, text->B, gx);
+
+    /* u is first 32 bits of B hashed; MSB first */
+    r = HashBigInt(text, text->B, hash);
+    if (r) return r;
+    mpz_init(u);
+    DataToBigInt(hash, 4, &u);
+
+    /* a + ux */
+    mpz_init(aux);
+    mpz_mul(aux, u, x);
+    mpz_add(aux, aux, text->a);
+
+    /* S = base^aux % N */
+    mpz_init(S);
+    mpz_powm (S, base, aux, text->N);
+
+    /* K = Hi(S) */
+    r = HashInterleaveBigInt(text, S, key, keylen);
+    if (r) return r;
+
+    return SASL_OK;
+}
+
+
+
+/*
+ *  H(
+ *            bytes(H( bytes(N) )) ^ bytes( H( bytes(g) )))
+ *          | bytes(H( bytes(U) ))
+ *          | bytes(s)
+ *          | bytes(H( bytes(L) ))
+ *          | bytes(A)
+ *          | bytes(B)
+ *          | bytes(K)
+ *      )
+ *
+ * H() is the result of digesting the designated input/data with the
+ * underlying Message Digest Algorithm function (see Section 1).
+ *
+ * ^ is the bitwise XOR operator.
+ */
+static int
+CalculateM1(context_t *text,
+	    mpz_t N,
+	    mpz_t g,
+	    char *U,     /* username */
+	    char *salt, int saltlen,  /* salt */
+	    char *L,     /* server's options */
+	    mpz_t A,     /* client's public key */
+	    mpz_t B,     /* server's public key */
+	    char *K, int Klen,
+	    char **out, int *outlen)
+{
+    int i;
+    int r;
+    unsigned char p1a[text->HashLen];
+    unsigned char p1b[text->HashLen];
+    unsigned char p1[text->HashLen];
+    int p1len;
+    char p2[text->HashLen];
+    int p2len;
+    char *p3;
+    int p3len;
+    char p4[1024];
+    int p4len;
+    char p5[1024];
+    int p5len;
+    char *p6;
+    int p6len;
+    char p7[text->HashLen];
+    int p7len;
+    char *tot;
+    int totlen = 0;
+    char *totp;
+
+    /* p1) bytes(H( bytes(N) )) ^ bytes( H( bytes(g) )) */
+    r = HashBigInt(text, N, p1a);
+    if (r) return r;
+    r = HashBigInt(text, g, p1b);
+    if (r) return r;
+
+    for (i = 0; i < text->HashLen; i++) {
+	p1[i] = (p1a[i] ^ p1b[i]);
+    }
+    p1len = text->HashLen;
+
+    /* p2) bytes(H( bytes(U) )) */
+    HashData(text, U, strlen(U), p2);
+    p2len = text->HashLen;
+
+    /* p3) bytes(s) */
+    p3 = salt;
+    p3len = saltlen;
+
+    /* p4) bytes(A) */
+    r = BigIntToBytes(A, p4, sizeof(p4), &p4len);
+    if (r) return r;
+    
+    /* p5) bytes(B) */
+    r = BigIntToBytes(B, p5, sizeof(p5), &p5len);
+    if (r) return r;
+
+    /* p6) bytes(K) */
+    p6 = K;
+    p6len = Klen;
+
+    /* p7) bytes(H( bytes(L) )) */
+    HashData(text, L, strlen(L), p7);
+    p7len = text->HashLen;
+
+    /* merge p1-p7 together */
+    totlen = p1len + p2len + p3len + p4len + p5len + p6len + p7len;
+    tot = text->utils->malloc(totlen);
+    if (!tot) return SASL_NOMEM;
+
+    totp = tot;
+
+    memcpy(totp, p1, p1len); totp+=p1len;
+    memcpy(totp, p2, p2len); totp+=p2len;
+    memcpy(totp, p3, p3len); totp+=p3len;
+    memcpy(totp, p4, p4len); totp+=p4len;
+    memcpy(totp, p5, p5len); totp+=p5len;
+    memcpy(totp, p6, p6len); totp+=p6len;
+    memcpy(totp, p7, p7len); totp+=p7len;
+
+    /* do the hash over the whole thing */
+    *out = text->utils->malloc(text->HashLen);
+    if (!*out) {
+	text->utils->free(tot);
+	return SASL_NOMEM;
+    }
+    *outlen = text->HashLen;
+
+    HashData(text, tot, totlen, *out);
+    text->utils->free(tot);
+
+    return SASL_OK;
+}
+
+/*
+ *          H(
+ *                  bytes(A)
+ *                | bytes(H( bytes(U) ))
+ *                | bytes(H( bytes(I) ))
+ *                | bytes(H( bytes(o) ))
+ *                | bytes(M1)
+ *                | bytes(K)
+ *            )
+ *
+ *
+ *where: 
+ *
+ * H() is the result of digesting the designated input/data with the
+ * underlying Message Digest Algorithm function (see Section 1)
+ *
+ */
+static int
+CalculateM2(context_t *text,
+	    mpz_t A,
+	    char *U,
+	    char *I,
+	    char *o,
+	    char *M1, int M1len,
+	    char *K, int Klen,
+	    char **out, int *outlen)
+{
+    int r;
+    unsigned char p1[1024];
+    int p1len;
+    char *p2;
+    int p2len;
+    char *p3;
+    int p3len;
+    char p4[text->HashLen];
+    int p4len;
+    char p5[text->HashLen];
+    int p5len;
+    char p6[text->HashLen];
+    int p6len;
+    char *tot;
+    int totlen = 0;
+    char *totp;
+
+    /* p1) bytes(A) */
+    r = BigIntToBytes(A, p1, sizeof(p1), &p1len);
+    if (r) return r;    
+
+    /* p2) bytes(M1) */
+    p2 = M1;
+    p2len = M1len;
+    
+    /* p3) bytes(K) */
+    p3 = K;
+    p3len = Klen;
+	
+    /* p4) bytes(H( bytes(U) )) */
+    HashData(text, U, strlen(U), p4);
+    p4len = text->HashLen;
+
+    /* p5) bytes(H( bytes(I) )) */
+    HashData(text, I, strlen(I), p5);
+    p5len = text->HashLen;
+
+    /* p6) bytes(H( bytes(o) )) */
+    HashData(text, o, strlen(o), p6);
+    p6len = text->HashLen;
+
+    /* merge p1-p6 together */
+    totlen = p1len + p2len + p3len + p4len + p5len + p6len;
+    tot = text->utils->malloc(totlen);
+    if (!tot) return SASL_NOMEM;
+
+    totp = tot;
+
+    memcpy(totp, p1, p1len); totp+=p1len;
+    memcpy(totp, p2, p2len); totp+=p2len;
+    memcpy(totp, p3, p3len); totp+=p3len;
+    memcpy(totp, p4, p4len); totp+=p4len;
+    memcpy(totp, p5, p5len); totp+=p5len;
+    memcpy(totp, p6, p6len); totp+=p6len;
+
+    /* do the hash over the whole thing */
+    *out = text->utils->malloc(text->HashLen);
+    if (!*out) {
+	return SASL_NOMEM;
+	text->utils->free(tot);
+    }
+    *outlen = text->HashLen;
+
+    HashData(text, tot, totlen, *out);
+    text->utils->free(tot);
+
+    return SASL_OK;
+}
+
+/* Parse an option out of an option string
+ * Place found option in 'option'
+ * 'nextptr' points to rest of string or NULL if at end
+ */
+static int
+ParseOption(const sasl_utils_t *utils, char *in, char **option, char **nextptr)
+{
+    char *comma;
+    int len;
+    int i;
+
+    if (strlen(in) == 0) {
+	*option = NULL;
+	return SASL_OK;
+    }
+
+    comma = strchr(in,',');    
+    if (comma == NULL) comma = in + strlen(in);
+
+    len = comma - in;
+
+    *option = utils->malloc(len + 1);
+    if (!*option) return SASL_NOMEM;
+
+    /* lowercase string */
+    for (i = 0; i < len; i++) {
+	(*option)[i] = tolower((int)in[i]);
+    }
+    (*option)[len] = '\0';
+
+    if (*comma) {
+	*nextptr = comma+1;
+    } else {
+	*nextptr = NULL;
+    }
+
+    return SASL_OK;
+}
+
+static int
+FindBit(char *name, layer_option_t *opts)
+{
+    while (opts->name) {
+	VL(("Looking for [%s] this is [%s]\n",name,opts->name));
+	if (strcmp(name, opts->name)==0) {
+	    return opts->bit;
+	}
+
+	opts++;
+    }
+
+    return 0;
+}
+
+static layer_option_t *
+FindOptionFromBit(int bit, layer_option_t *opts)
+{
+    while (opts->name) {
+	if (opts->bit == bit) {
+	    return opts;
+	}
+
+	opts++;
+    }
+
+    return NULL;
+}
+
+static int
+ParseOptionString(char *str, srp_options_t *opts)
+{
+    if (strcmp(str,OPTION_REPLAY_DETECTION)==0) {
+	if (opts->replay_detection) {
+	    VL(("Replay Detection option appears twice\n"));
+	    return SASL_FAIL;
+	}
+	opts->replay_detection = 1;
+    } else if (strncmp(str,OPTION_INTEGRITY,strlen(OPTION_INTEGRITY))==0) {
+
+	int bit = FindBit(str+strlen(OPTION_INTEGRITY), integrity_options);
+
+	if (bit == 0) return SASL_OK;
+
+	if (bit & opts->integrity) {
+	    VL(("Option %s exists multiple times\n",str));
+	    return SASL_FAIL;
+	}
+
+	opts->integrity = opts->integrity | bit;
+
+    } else if (strncmp(str,OPTION_CONFIDENTIALITY,
+		       strlen(OPTION_CONFIDENTIALITY))==0) {
+
+	int bit = FindBit(str+strlen(OPTION_CONFIDENTIALITY),
+			  confidentiality_options);
+	if (bit == 0) return SASL_OK;
+
+	if (bit & opts->confidentiality) {
+	    VL(("Option %s exists multiple times\n",str));
+	    return SASL_FAIL;
+	}
+
+	opts->confidentiality = opts->confidentiality | bit;
+
+    } else {
+	VL(("Option not undersood: %s\n",str));
+	return SASL_FAIL;
+    }
+
+    return SASL_OK;
+}
+
+static int
+ParseOptions(const sasl_utils_t *utils, char *in, srp_options_t *out)
+{
+    int r;
+
+    memset(out, 0, sizeof(srp_options_t));
+
+    while (in) {
+	char *opt;
+
+	r = ParseOption(utils, in, &opt, &in);
+	if (r) return r;
+
+	if (opt == NULL) return SASL_OK;
+
+	VL(("Got option: [%s]\n",opt));
+
+	r = ParseOptionString(opt, out);
+	if (r) return r;
+    }
+
+    return SASL_OK;
+}
+
+static layer_option_t *
+FindBest(int available, layer_option_t *opts)
+{
+    while (opts->name) {
+	VL(("FindBest %d %d\n",available, opts->bit));
+
+	if (available & opts->bit) {
+	    return opts;
+	}
+
+	opts++;
+    }
+
+    return NULL;
+}
+
+static int
+OptionsToString(const sasl_utils_t *utils, srp_options_t *opts, char **out)
+{
+    char *ret = NULL;
+    int alloced = 0;
+    int first = 1;
+    layer_option_t *optlist;
+
+    ret = utils->malloc(1);
+    if (!ret) return SASL_NOMEM;
+    alloced = 1;
+    ret[0] = '\0';
+
+    if (opts->replay_detection) {
+	alloced += strlen(OPTION_REPLAY_DETECTION)+1;
+	ret = utils->realloc(ret, alloced);
+	if (!ret) return SASL_NOMEM;
+
+	if (!first) strcat(ret, ",");
+	strcat(ret, OPTION_REPLAY_DETECTION);
+	first = 0;
+    }
+
+    optlist = integrity_options;
+    while(optlist->name) {
+	if (opts->integrity & optlist->bit) {
+	    alloced += strlen(OPTION_INTEGRITY)+strlen(optlist->name)+1;
+	    ret = utils->realloc(ret, alloced);
+	    if (!ret) return SASL_NOMEM;
+
+	    if (!first) strcat(ret, ",");
+	    strcat(ret, OPTION_INTEGRITY);
+	    strcat(ret, optlist->name);
+	    first = 0;
+	}
+
+	optlist++;
+    }
+
+    optlist = confidentiality_options;
+    while(optlist->name) {
+	if (opts->confidentiality & optlist->bit) {
+	    alloced += strlen(OPTION_CONFIDENTIALITY)+strlen(optlist->name)+1;
+	    ret = utils->realloc(ret, alloced);
+	    if (!ret) return SASL_NOMEM;
+
+	    if (!first) strcat(ret, ",");
+	    strcat(ret, OPTION_CONFIDENTIALITY);
+	    strcat(ret, optlist->name);
+	    first = 0;
+	}
+
+	optlist++;
+    }
+    
+    *out = ret;
+    return SASL_OK;
+}
+
+static int
+CreateServerOptions(const sasl_utils_t *utils,
+		    sasl_security_properties_t *props,
+		    char **out)
+{
+    srp_options_t opts;
+    layer_option_t *optlist;
+
+    /* zero out options */
+    memset(&opts,0,sizeof(srp_options_t));
+
+    /* Add integrity options */
+    optlist = integrity_options;
+    while(optlist->name) {
+	if ((props->min_ssf <= 1) && (props->max_ssf >= 1)) {
+	    opts.integrity |= optlist->bit;
+	}
+	optlist++;
+    }
+
+    /* if we set any integrity options we can advertise replay detection */
+    if (opts.integrity) {
+	opts.replay_detection = 1;
+    }
+
+    /* Add integrity options */
+    optlist = confidentiality_options;
+    while(optlist->name) {
+	if (((int)props->min_ssf <= optlist->ssf) &&
+	    ((int)props->max_ssf >= optlist->ssf)) {
+	    opts.confidentiality |= optlist->bit;
+	}
+	optlist++;
+    }
+
+    return OptionsToString(utils, &opts, out);
+}
+		    
+
+static int
+CreateClientOpts(sasl_client_params_t *params, 
+		 srp_options_t *available, 
+		 srp_options_t *out)
+{
+    int external;
+    int limit;
+    int musthave;
+
+    /* zero out output */
+    memset(out, 0, sizeof(srp_options_t));
+
+    /* get requested ssf */
+    external = params->external_ssf;
+
+    /* what do we _need_?  how much is too much? */
+    if ((int)params->props.max_ssf > external) {
+	limit = params->props.max_ssf - external;
+    } else {
+	limit = 0;
+    }
+    if ((int)params->props.min_ssf > external) {
+	musthave = params->props.min_ssf - external;
+    } else {
+	musthave = 0;
+    }
+
+    /* we now go searching for an option that gives us at least "musthave"
+       and at most "limit" bits of ssf. */
+    if ((limit > 1) && (available->confidentiality)) {
+	VL(("xxx No good privacy layers\n"));
+	return SASL_FAIL;
+    }
+
+    VL(("Available integrity = %d\n",available->integrity));
+
+    if ((limit >= 1) && (musthave <= 1) && (available->integrity)) {
+	/* integrity */
+	layer_option_t *iopt;
+	
+	iopt = FindBest(available->integrity, integrity_options);
+	
+	if (iopt) {
+	    out->integrity = iopt->bit;
+	    return SASL_OK;
+	}
+    }
+
+    if (musthave <= 0) { /* xxx how do we know if server doesn't support no layer??? */
+	/* no layer */
+	return SASL_OK;
+
+    }
+
+    
+    VL(("Can't find an acceptable layer\n"));
+    return SASL_TOOWEAK;
+}
+
+/* Set the options (called my client and server)
+ *
+ * Set up variables/hashes/that sorta thing so layers
+ * will operate properly
+ */
+static int
+SetOptions(srp_options_t *opts,
+	   context_t *text,
+	   const sasl_utils_t *utils,
+	   sasl_out_params_t *oparams)
+{
+    text->size=-1;
+    text->needsize=4;
+
+    if ((opts->integrity == 0) && (opts->confidentiality == 0)) {
+	oparams->encode = NULL;
+	oparams->decode = NULL;
+	oparams->mech_ssf = 0;
+	VL(("Using no layer\n"));	
+	return SASL_OK;
+    }
+    
+    oparams->encode = &layer_encode;
+    oparams->decode = &layer_decode;
+
+    text->enabled_replay_detection = opts->replay_detection;
+
+    if (opts->integrity) {
+	layer_option_t *iopt;
+
+	text->enabled_integrity_layer = 1;
+	oparams->mech_ssf = 1;
+
+	iopt = FindOptionFromBit(opts->integrity, integrity_options);
+	if (!iopt) {
+	    VL(("Unable to find integrity layer option now\n"));
+	    return SASL_FAIL;
+	}
+
+	text->IntegHashLen    = iopt->HashLen(utils);
+	text->IntegHashInit   = iopt->HashInit;
+	text->IntegHashUpdate = iopt->HashUpdate;
+	text->IntegHashFinal  = iopt->HashFinal;
+    }
+
+    /* conf foo */
+
+    return SASL_OK;
+}
+
+
+#ifdef WITH_SHA1
+static int
+srp_sha1_server_mech_new(void *glob_context __attribute__((unused)),
+			 sasl_server_params_t *params,
+			 const char *challenge __attribute__((unused)),
+			 unsigned challen __attribute__((unused)),
+			 void **conn)
 {
   context_t *text;
 
@@ -484,530 +1859,562 @@ server_start(void *glob_context __attribute__((unused)),
 
   /* holds state are in */
   text = params->utils->malloc(sizeof(context_t));
-  if (text==NULL) return SASL_NOMEM;
+  if (text==NULL) {
+      MEMERROR(params->utils);
+      return SASL_NOMEM;
+  }
 
-  memset(text, '\0', sizeof(context_t));
-  text->state=1;
+  memset(text, 0, sizeof(context_t));
+
+  text->state = 1;
+  text->utils = params->utils;
+  text->propName = "SRP-SHA-160";
+  text->HashLen    = srp_sha1Len(text->utils);
+  text->HashInit   = srp_sha1Init;
+  text->HashUpdate = srp_sha1Update;
+  text->HashFinal  = srp_sha1Final;
+
   *conn=text;
-  
-  if (errstr)
-      *errstr = NULL;
+
+  return SASL_OK;
+}
+#endif /* WITH_SHA1 */
+
+static int
+srp_md5_server_mech_new(void *glob_context __attribute__((unused)),
+			sasl_server_params_t *params,
+			const char *challenge __attribute__((unused)),
+			unsigned challen __attribute__((unused)),
+			void **conn)
+{
+  context_t *text;
+
+  /* holds state are in */
+  if (!conn)
+      return SASL_BADPARAM;
+
+  /* holds state are in */
+  text = params->utils->malloc(sizeof(context_t));
+  if (text==NULL) {
+      MEMERROR(params->utils);
+      return SASL_NOMEM;
+  }
+
+  memset(text, 0, sizeof(context_t));
+
+  text->state = 1;
+  text->utils = params->utils;
+  text->propName = "SRP-MD5-120";
+  text->HashLen    = srp_md5Len(text->utils);
+  text->HashInit   = srp_md5Init;
+  text->HashUpdate = srp_md5Update;
+  text->HashFinal  = srp_md5Final;
+
+  *conn=text;
 
   return SASL_OK;
 }
 
 
-static int bigint_fromstr(unsigned char *data, int len, sasl_utils_t *utils, mpz_t ret)
+/* N in base16 */
+#define BIGN_STRING "AC6BDB41324A9A9BF166DE5E1389582FAF72B6651987EE07FC3192943DB56050A37329CBB4A099ED8193E0757767A13DD52312AB4B03310DCD7F48A9DA04FD50E8083969EDB767B0CF6095179A163AB3661A05FBD5FAAAE82918A9962F0B93B855F97993EC975EEAA80D740ADBF4FF747359D041D5C33EA71D281E446B14773BCA97B43A23FB801676BD207A436C6481F1D2B9078717461A5B9D32E688F87748544523B524B0D57D5EA77A2775D2ECFA032CFBDBF52FB3786160279004E57AE6AF874E7303CE53299CCC041C7BC308D82A5698F3A8D0C38271AE35F8E9DBFBB694B5C803D89F7AE435DE236D525F54759B65E372FCD68EF20FA7111F9E4AFF73"
+
+/* A large safe prime (N = 2q+1, where q is prime)
+ * All arithmetic is done modulo N
+ */
+static int generate_N_and_g(mpz_t N, mpz_t g)
 {
-    char *str;
-    int lup;
-
-    mpz_init(ret);
-
-    /* convert to base 16 */
-    str = (char *) utils->malloc(len*2+10);
-    if (!str) return SASL_NOMEM;
-
-    for (lup=0;lup<len;lup++)
-    {
-	str[lup*2]   = frombits(data[lup] >> 4);
-	str[lup*2+1] = frombits(data[lup] & 15);
-    }
+    int result;
     
-    str[lup*2]='\0';
+    mpz_init(N);
+    result = mpz_set_str (N, BIGN_STRING, 16);
+    if (result) return SASL_FAIL;
 
-    mpz_set_str (ret, str, 16);
-
-    utils->free(str);
+    mpz_init(g);
+    mpz_set_ui (g, 2);
 
     return SASL_OK;
 }
 
-static int bigint_fromnetdata(netdata_t *ns, sasl_utils_t *utils, mpz_t ret)
+static int
+ServerCalculateK(context_t *text, mpz_t v,
+		 mpz_t N, mpz_t g, mpz_t b, mpz_t B, mpz_t A,
+		 char **key, int *keylen)
 {
-    return bigint_fromstr(ns->data, ns->size, utils,ret);
-}
+    unsigned char hash[text->HashLen];
+    mpz_t u;
+    mpz_t S;
+    int r;
 
+    /* B = (v + g^b) % N */
+    mpz_init(B);
 
-/* The probability of a
-   false positive is (1/4)**REPS.  A reasonable value of reps is 25. */
-#define REPS 25
+    mpz_powm(B, g, b, N);
+    mpz_add(B, B, v);
+    mpz_mod(B, B, N);
 
-static int old_generate_N(mpz_t N,mpz_t bigg)
-{
-    mpz_t try;
-    mpz_t exp;
-    mpz_t res;
-    int g;
-    mpz_t z;
-    int bad_g;
-
-    mpz_init(try);
-    mpz_init(z);
-    mpz_init(N);
-   
-
-    do {
-
-	do {
-	    mpz_random(try, BITSFORN/(8*sizeof(int))); 
-	} while (mpz_probab_prime_p(try,REPS)!=1);
-
-	/* N = 2q+1 where q = try */
-	mpz_mul_ui( z, try, 2);
-	mpz_add_ui( N, z, 1);
-
-    } while (mpz_probab_prime_p(N,REPS)!=1);
-
-    /* Calculate the generator g */
-    mpz_init(exp);
-    mpz_init(bigg);
-    mpz_init(res);
-    g=1;
-
-    do {
-	bad_g = 0;
-	g++; /* starts at 2 */
-	mpz_set_ui (bigg, g);
-
-	if (g>100) return SASL_FAIL;
-	    
-	/* g^((p-1)/q) % p ==>  g^((z/q)) % N for q=2,try */
-	/* if equals 1 for either q then g is bad */
-
-	/* 2 */
-	mpz_tdiv_q_ui(exp,z,2);	
-
-	mpz_powm (res, bigg, exp, N);      
-	if ((mpz_size (res) ==1) && (mpz_get_ui (res)==1)) {
-	    bad_g = 1;
-	}
-
-	/* try */
-	mpz_tdiv_q(exp,z,try);	
-
-	mpz_powm (res, bigg, exp, N);      
-	if ((mpz_size (res) ==1) && (mpz_get_ui (res)==1)) {
-	    bad_g = 1;
-	}
-	
-	
-    } while (bad_g == 1);
-    
-    mpz_set_ui (N, 100);
-    mpz_set_ui (bigg, 2);
-
-    return SASL_FAIL;
-}
-
-
-/* A large safe prime (N = 2q+1, where q is prime) All arithmetic is done modulo N */
-static int generate_N_and_g(mpz_t N,mpz_t bigg)
-{
-
-#define BIGNUM "3Kn/YYiomHkFkfM1x4kayR125MGkzpLUDy3y14FlTMwYnhZkjrMXnoC2TcFAecNlU5kFzgcpKYUbBOPZFRtyf3"
-    {
-	char dec[4000];
-	int declen;
-	int lup;
-
-	lup = sasl_decode64(BIGNUM,strlen(BIGNUM),dec,&declen);
-
-	printf("error = %d\n",lup);
-
-	printf("len = %d\n",strlen(BIGNUM));
-	printf("declen = %d\n",declen);
-
-	/*	for (lup=0;lup<declen;lup++) {
-	    printf("%d %d\n",lup,dec[lup]);
-	    }*/
-
-	for (lup=0;lup<10;lup++) {
-	    printf("%c",frombits( (dec[lup] >> 4) & 15));
-	    printf("%c",frombits( dec[lup] & 15));
-	}
-	printf("\n");
-
-
-    }
-
-    /*
-     * 512 bits
-     *  N = dca9ff6188a898790591
-     *  g = 2
+    /* calculate K
+     *
+     * Host:  S = (Av^u) ^ b % N             (computes session key)
+     * Host:  K = Hi(S)
      */
 
-    {
-	int result;
+    /* u is first 32 bits of B hashed; MSB first */
+    r = HashBigInt(text, B, hash);
+    if (r) return r;
 
-	mpz_init(N);
-	result = mpz_set_str (N, "dca9ff6188a898790591", 16);
-	if (result) return SASL_FAIL;
-	mpz_init(bigg);
-	mpz_set_ui (bigg, 2);
-    }
+    mpz_init(u);
+    DataToBigInt(hash, 4, &u);
 
-    return SASL_OK;
-}
+    mpz_init(S);
+    mpz_powm(S, v, u, N);
+    mpz_mul(S, S, A);
+    mpz_mod(S, S, N);
 
-static void merge_netstrings(sasl_utils_t *utils,
-			     netstring_t *ns1,netstring_t *ns2,netstring_t *ns3,
-			     char **out, int *outlen)
-{
-    int totallen;
-    char lenstr[30];
-    char *tmp;
+    mpz_powm(S, S, b, N);
 
-    /* calculate total length of strings */
-    totallen = 0;
-    if (ns1)
-	totallen+=ns1->size;
-    if (ns2)
-	totallen+=ns2->size;
-    if (ns3)
-	totallen+=ns3->size;
-
-    snprintf(lenstr,sizeof(lenstr),"%d:",totallen);
-    
-    *outlen = strlen(lenstr) + totallen + 1;
-    *out = utils->malloc(*outlen);
-    
-    tmp = *out;
-    memcpy(tmp,lenstr, strlen(lenstr));
-    tmp+=strlen(lenstr);
-
-    if (ns1) {
-	memcpy( tmp, ns1->data, ns1->size);
-	tmp+=ns1->size;
-    }
-    if (ns2) {
-	memcpy( tmp, ns2->data, ns2->size);
-	tmp+=ns2->size;
-    }
-    if (ns3) {
-	memcpy( tmp, ns3->data, ns3->size);
-	tmp+=ns3->size;
-    }
-    tmp[0]=',';
-}
-
-static int checkvalid_netstring(char *in, int inlen, char **datastart, int *datalen)
-{
-    char lenstr[20];
-    int pos = 0;
-    
-    /* see how big it says it is */
-    while ((pos<inlen) && (pos < (int) sizeof(lenstr)) && (isdigit((int) in[pos]))) {
-	lenstr[pos] = in[pos];
-	pos++;
-    }
-    
-    if (pos == 0) {
-	VL (("netstring doesn't contain length indicator\n"));
-	return SASL_FAIL;
-    }
-
-    lenstr[pos]='\0';
-
-    (*datalen) = strtol(lenstr, NULL, 10);
-
-    if (errno == ERANGE) {
-	VL(("Underflow or overflow occured\n"));
-	return SASL_FAIL;
-    }
-
-    if ((*datalen) < 0) {
-	VL(("Negative netstring length\n"));
-	return SASL_FAIL;
-    }
-
-    if (inlen < pos+1+(*datalen)+1) {
-	VL(("Netsrring wrong size (%d vs %d)\n", inlen, pos+1+(*datalen)+1));
-	return SASL_FAIL;
-    }
-    
-    if (in[pos]!=':') {
-	VL(("Netstring missing required colon\n"));
-	return SASL_FAIL;
-    }
-
-    if (in[pos+(*datalen)+1]!=',') {
-	VL(("Netstring missing required comma\n"));
-	return SASL_FAIL;
-    }
-
-    *datastart = in+pos+1;
+    /* K = Hi(S) */
+    r = HashInterleaveBigInt(text, S, key, keylen);
+    if (r) return r;
 
     return SASL_OK;
 }
 
-static int split_netstrings(sasl_utils_t *utils,
-			    netdata_t **nd1, netdata_t **nd2, netdata_t **nd3,
-			    char *in, int inlen)
+static int
+server_step1(context_t *text,
+	     sasl_server_params_t *params,
+	     const char *clientin,
+	     unsigned clientinlen,
+	     const char **serverout,
+	     unsigned *serveroutlen,
+	     sasl_out_params_t *oparams __attribute__((unused)))
 {
-    char *datastart, *ns_str;
-    int datalen, ns_len;
-    int result;
+    char *data;
+    int datalen;
+    int r;    
+    char *mpiN = NULL;
+    int mpiNlen;
+    char *mpig = NULL;
+    int mpiglen;
+    char *osS = NULL;
+    int osSlen;
+    char *utf8L = NULL;
+    int utf8Llen;
+    char *realm = NULL;
+    char *user = NULL;
 
-    /*    int lup;
-    
-        for (lup=0;lup<inlen;lup++)
-    {
-	if (isalnum(in[lup]))
-	    printf("%d %c %d\n",lup,in[lup],in[lup]);
-	else
-	    printf("%d ? %d\n",lup,in[lup]);
-	    } */
-
-    result = checkvalid_netstring(in, inlen, &datastart, &datalen);
-    if (result!=SASL_OK) return result;
-
-    if (nd1) {
-	result = checkvalid_netstring(datastart, datalen, &ns_str, &ns_len);
-	if (result!=SASL_OK) return result;
-
-	*nd1 = utils->malloc(sizeof(netstring_t)+ns_len+1);
-	if (!*nd1) return SASL_NOMEM;
-
-	(*nd1)->size = ns_len;
-	memcpy((*nd1)->data, ns_str, ns_len);
-	(*nd1)->data[ns_len] = '\0';
-
-	datastart = ns_str+ns_len+1;
+    /* if nothing we send nothing and except data next time */
+    if ((clientinlen == 0) && (text->state == 1)) {
+	text->state++;
+	*serverout = NULL;
+	*serveroutlen = 0;
+	return SASL_CONTINUE;
     }
 
-    if (nd2) {
-
-	result = checkvalid_netstring(datastart, datalen, &ns_str, &ns_len);
-	if (result!=SASL_OK) return result;
-
-	*nd2 = utils->malloc(sizeof(netstring_t)+ns_len+1);
-	if (!*nd2) return SASL_NOMEM;
-
-	(*nd2)->size = ns_len;
-	memcpy((*nd2)->data, ns_str, ns_len);
-	(*nd2)->data[ns_len] = '\0';
-
-	datastart = ns_str+ns_len+1;
-    }
-
-    if (nd3) {
-	result = checkvalid_netstring(datastart, datalen, &ns_str, &ns_len);
-	if (result!=SASL_OK) return result;
-
-	*nd3 = utils->malloc(sizeof(netstring_t)+ns_len+1);
-	if (!*nd3) return SASL_NOMEM;
-
-	(*nd3)->size = ns_len;
-	memcpy((*nd3)->data, ns_str, ns_len);
-	(*nd3)->data[ns_len] = '\0';
-
-	datastart = ns_str+ns_len+1;
-    }
-
-    VL(("netstring split worked\n"));
-    
-    return SASL_OK;
-}
-
-static int calculate_server_evidence(char *authname,
-				     mpz_t A,
-				     unsigned char client_options,
-				     hash_t *M1,
-				     interleaved_t *K,
-				     hash_t *out,
-				     sasl_utils_t *utils)
-{
-    char *concatstr;
-    int len;
-    char *M2;
-    netdata_t *tmpnd;
-
-    tmpnd = create_netdata_bigint(A, utils);
-    if (tmpnd==NULL) return SASL_NOMEM;
-
-    len = strlen(authname) + tmpnd->size + 1 + HASHLEN + sizeof(K->data);
-
-    concatstr = (char *) utils->malloc(len+1);
-    if (!concatstr) return SASL_NOMEM;
-
-    /* Server calculate evidence M2
-     * M2 = H(U | A | o | M1 | K)
-    */
-
-    M2 = (char *) concatstr;
-    
-    /* add U (authname) */
-    memcpy(M2, authname, strlen(authname));
-    M2+=strlen(authname);
-
-    /* append A */
-    memcpy(M2,tmpnd->data, tmpnd->size);
-    M2+=tmpnd->size;
-    utils->free(tmpnd);    
-
-    /* append o (options) */
-    M2[0] = client_options;
-    M2+=1;
-
-    /* append M1 */
-    memcpy(M2, M1->data, sizeof(M1->data));
-    M2+=sizeof(M1->data);
-
-    /* append K */
-    memcpy(M2, K->data, sizeof(K->data));
-    
-    Hash(concatstr, len, out);
-
-    return SASL_OK;
-}
-
-static int calculate_client_evidence(mpz_t N, mpz_t g,
-				     char *salt, int saltlen,
-				     unsigned char server_options,
-				     mpz_t A, mpz_t B,
-				     interleaved_t *K,
-				     hash_t *out,
-				     sasl_utils_t *utils)
-{
-    hash_t Hn;
-    hash_t Hg;
-    char concatstr[HASHLEN+MAXBIGNUMLEN+1+MAXBIGNUMLEN+MAXBIGNUMLEN+HASHLEN*2];
-    char *M1;
-    int lup;
-    netdata_t *tmpnd;
-
-    /* Client calculate evidence M1
-       M1 = H(H(N) XOR H(g) | s | Z | A | B | K)
-    */
-
-    Hash_bigint(N, &Hn, utils);
-    Hash_bigint(g, &Hg, utils);
-    
-    /* Hn XOR Hg into Hn*/
-    for (lup=0;lup<HASHLEN;lup++)
-	Hn.data[lup]=Hn.data[lup]^Hg.data[lup];
-
-    M1 = (char *) concatstr;
-    memcpy(M1,Hn.data, HASHLEN);
-    M1+=HASHLEN;
-    
-
-    /* append salt */
-    memcpy(M1,salt, saltlen);
-    M1+=saltlen;
-
-    /* append Z (options) */
-    M1[0] = server_options;
-    M1+=1;
-
-    /* append A */
-    tmpnd = create_netdata_bigint(A, utils);
-    if (tmpnd==NULL) return SASL_NOMEM;
-    memcpy(M1,tmpnd->data, tmpnd->size);
-    M1+=tmpnd->size;
-    utils->free(tmpnd);
-
-    /* append B */
-    tmpnd = create_netdata_bigint(B, utils);
-    if (tmpnd==NULL) return SASL_NOMEM;
-    memcpy(M1,tmpnd->data, tmpnd->size);
-    M1+=tmpnd->size;
-    utils->free(tmpnd);
-
-    /* append K */
-    memcpy(M1, K->data, sizeof(K->data));
-    M1+=sizeof(K->data);
-
-    Hash(concatstr, M1-concatstr, out);
-
-    return SASL_OK;
-}
-
-
-
-
-static int get_salt_and_verifier(const char *userid, const char *realm,
-				 sasl_utils_t *utils, savedinfo_t **sinfo,
-				 const char **errstr)
-{
-    sasl_server_getsecret_t *getsecret;
-    void *getsecret_context;
-    sasl_secret_t *sec=NULL;
-    int result;
-    int saltlen=16;
-    char *vstr;
-    int vlen;
-
-    /* get callback so we can request the secret */
-    result = utils->getcallback(utils->conn,
-				SASL_CB_SERVER_GETSECRET,
-				&getsecret,
-				&getsecret_context);
-    if (result != SASL_OK) {
-	VL(("result = %i trying to get secret callback\n",result));
-	return result;
-    }
-    if (! getsecret) {
-	VL(("Received NULL getsecret callback\n"));
-	return SASL_FAIL;
-    }
-
-    /* Request secret */
-    result = getsecret(getsecret_context, "SRP", userid, realm, &sec);
-    if (result == SASL_NOUSER || !sec) {
-      if (errstr) *errstr = "no secret in database";
-      return SASL_NOUSER;
-    }
-    if (result != SASL_OK) {
-	return result;
-    }
-
-    if (sec->len < saltlen) {
-	VL(("Secret database corruption (size %d)\n",sec->len));
-	if (errstr) *errstr = "secret database corruption";
-	return SASL_FAIL;
-    }
-
-    /* data is in format
+    /* Expect:
      *
-     * salt - series of bytes
-     * verifier - netstring
-     */    
-    *sinfo = (savedinfo_t *) utils->malloc(sizeof(savedinfo_t));
-    if (!*sinfo) return SASL_NOMEM;
-
-    saltlen = sizeof( (*sinfo)->salt);
-
-    memcpy( (*sinfo)->salt, sec->data, saltlen);
-
-    result = checkvalid_netstring((char *) sec->data+saltlen,sec->len-saltlen, &vstr, &vlen);
-    if (result!=SASL_OK) {
-	VL(("Invalid netstring saved. Database corrupted\n"));
-	return result;          
+     * { utf8(U) }
+     *
+     */
+    r = UnBuffer((char *) clientin, clientinlen, &data, &datalen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+			      "Error 'unbuffer'ing input for step 1");
+      return r;
     }
 
-    result = bigint_fromstr(vstr, vlen, utils, (*sinfo)->verifier);
-    if (result!=SASL_OK) {
-	VL(("Unable to make bigint from string\n"));
-	return result;
+    r = GetUTF8(params->utils, data, datalen, &text->authid, &data, &datalen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+			      "Error getting UTF8 string from input");
+      return r;
+    }
+
+    if (datalen != 0) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Extra data to SRP step 1");
+      return SASL_FAIL;
+    }
+
+    /* Get the realm */
+    r = parseuser(params->utils, &user, &realm, params->user_realm,
+    		  params->serverFQDN, text->authid);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error getting realm");
+      goto fail;
+    }
+
+    /* Get user data */
+    r = ReadUserInfo(params->utils, user, realm, text->propName,
+		     &text->N, &text->g, &text->salt, &text->saltlen,
+		     &text->v);
+    if (r) {
+	/* readuserinfo sets error, if any */
+	goto fail;
+    }
+
+    r = CreateServerOptions(params->utils, &params->props,
+			    &text->server_options);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error creating server options");
+      goto fail;
+    }
+
+    /* Send out:
+     *
+     * N - safe prime modulus
+     * g - generator
+     * s - salt
+     * L - server options (available layers etc)
+     *
+     * { mpi(N) mpi(g) os(s) utf8(L) }
+     *
+     */
+    
+    r = MakeMPI(params->utils, text->N, &mpiN, &mpiNlen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error creating 'mpi' string for N");
+      goto fail;
     }
     
+    r = MakeMPI(params->utils, text->g, &mpig, &mpiglen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error creating 'mpi' string for g");
+      goto fail;
+    }
+    
+    r = MakeOS(params->utils, text->salt, text->saltlen, &osS, &osSlen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error turning salt into 'os' string");
+      goto fail;
+    }
+    
+    r = MakeUTF8(params->utils, text->server_options, &utf8L, &utf8Llen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error creating 'UTF8' string for L (server options)");
+      goto fail;
+    }
+    
+    r = MakeBuffer(params->utils, mpiN, mpiNlen, mpig, mpiglen, osS, osSlen,
+		   utf8L, utf8Llen, serverout, serveroutlen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error creating SRP buffer from data in step 1");
+      goto fail;
+    }
+
+    r = SASL_CONTINUE;
+    text->state++;
+
+ fail:
+
+    if (user)   params->utils->free(user);
+    if (realm)  params->utils->free(realm);
+    if (mpiN)   params->utils->free(mpiN);
+    if (mpig)   params->utils->free(mpig);
+    if (osS)    params->utils->free(osS);
+    if (utf8L)  params->utils->free(utf8L);
+
+    return r;
+}
+
+static int
+server_step2(context_t *text,
+	     sasl_server_params_t *params,
+	     const char *clientin,
+	     unsigned clientinlen,
+	     const char **serverout,
+	     unsigned *serveroutlen,
+	     sasl_out_params_t *oparams __attribute__((unused)))
+{
+    char *data;
+    int datalen;
+    int r;    
+    char *mpiB = NULL;
+    int mpiBlen;
+    srp_options_t client_opts;
+
+    /* Expect:
+     *
+     * A - client's public key
+     * I - authorization
+     * o - client option list
+     *
+     * { mpi(A) utf8(I) utf8(o) }
+     *
+     */
+    r = UnBuffer((char *) clientin, clientinlen, &data, &datalen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error UnBuffering input in step 2");
+      return r;
+    }
+
+    r = GetMPI(data, datalen, &text->A, &data, &datalen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error parsing out 'A'");
+      return r;
+    }
+
+    r = GetUTF8(params->utils, data, datalen, &text->userid, &data, &datalen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error parsing out userid");
+      return r;
+    }
+
+    r = GetUTF8(params->utils, data, datalen, &text->client_options,
+		&data, &datalen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error parsing out client options 'o'");
+      return r;
+    }
+
+    if (datalen != 0) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Extra data in request step 2");
+      return SASL_FAIL;
+    }
+
+    /* Generate b */
+    GetRandBigInt(text->b);
+
+    /* Calculate K (and B) */
+    r = ServerCalculateK(text, text->v,
+			 text->N, text->g, text->b, text->B, text->A,
+			 &text->K, &text->Klen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error calculating K");
+      return r;
+    }
+
+    /* parse client options */
+    r = ParseOptions(params->utils, text->client_options, &client_opts);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error parsing user's options");
+      return r;
+    }
+
+    r = SetOptions(&client_opts, text, params->utils, oparams);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error setting options");
+      return r;   
+    }
+
+    /* Send out:
+     *
+     * B - server's public key
+     *
+     * { mpi(B) }
+     */
+
+    
+    r = MakeMPI(params->utils, text->B, &mpiB, &mpiBlen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error turning 'B' into 'mpi' string");
+      goto end;
+    }
+    
+    r = MakeBuffer(params->utils, mpiB, mpiBlen, NULL, 0, NULL, 0, NULL, 0,
+		   serverout, serveroutlen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error putting all the data together in step 2");
+      goto end;
+    }
+    
+    text->state ++;
+    r = SASL_CONTINUE;
+
+ end:
+    if (mpiB)    params->utils->free(mpiB);
+
+    return r;
+}
+
+
+static int
+server_step3(context_t *text,
+	     sasl_server_params_t *params,
+	     const char *clientin,
+	     unsigned clientinlen,
+	     const char **serverout,
+	     unsigned *serveroutlen,
+	     sasl_out_params_t *oparams __attribute__((unused)))
+{
+    char *data;
+    int datalen;
+    int r;    
+    char *M1 = NULL;
+    int M1len;
+    char *myM1 = NULL;
+    int myM1len;
+    char *M2 = NULL;
+    int M2len;
+    int i;
+    char *osM2 = NULL;
+    int osM2len;
+    
+    /* Expect:
+     *
+     * M1 = client evidence
+     *
+     * { os(M1) }
+     *
+     */
+    r = UnBuffer((char *) clientin, clientinlen, &data, &datalen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error parsing input buffer in step 3");
+      goto end;
+    }
+
+    r = GetOS(params->utils, data, datalen, &M1,&M1len, &data, &datalen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error getting 'os' M1 (client evidenice)");
+      goto end;
+    }
+
+    if (datalen != 0) {
+      r = SASL_FAIL;
+      params->utils->seterror(params->utils->conn, 0, 
+	"Extra data in input SRP step 3");
+      goto end;
+    }
+
+    /* See if M1 is correct */
+    r = CalculateM1(text, text->N, text->g, text->authid,
+		    text->salt, text->saltlen,
+		    text->server_options, text->A, text->B,
+		    text->K, text->Klen, &myM1, &myM1len);
+    if (r) {	
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error calculating M1");
+      goto end;
+    }
+
+    if (myM1len != M1len) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"M1 lengths do not match");
+      VL(("M1 lengths do not match: %d vs %d",M1len, myM1len));
+      goto end;
+    }
+
+    for (i = 0; i < myM1len; i++) {
+	if (myM1[i] != M1[i]) {
+	    params->utils->seterror(params->utils->conn, 0, 
+				    "client evidence does not match what we "
+				    "calculated. Probably a password error");
+	    r = SASL_BADAUTH;
+	    goto end;
+	}
+    }
+
+    /* calculate M2 to send */
+    r = CalculateM2(text, text->A, text->authid, text->userid,
+		    text->client_options, myM1, myM1len, text->K, text->Klen,
+		    &M2, &M2len);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error calculating M2 (server evidence)");
+      goto end;
+    }
+    
+    /* Send out:
+     *
+     * M2 = server evidence
+     *
+     * { os(M2) }
+     */
+    
+    r = MakeOS(params->utils, M2, M2len, &osM2, &osM2len);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error making 'os' string from M2 (server evidence)");
+      goto end;
+    }
+    
+    r = MakeBuffer(params->utils, osM2, osM2len, NULL, 0, NULL, 0, NULL, 0,
+		   serverout, serveroutlen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error making output buffer in SRP step 3");
+      goto end;
+    }
+    
+    text->state ++;
+    r = SASL_CONTINUE;
+ end:
+
+    if (osM2)   params->utils->free(osM2);
+    if (M2)     params->utils->free(M2);
+    if (myM1)   params->utils->free(myM1);
+    if (M1)     params->utils->free(M1);
+
+    return r;    
+}
+
+static int
+server_step4(context_t *text,
+	     sasl_server_params_t *params,
+	     const char *clientin __attribute__((unused)),
+	     unsigned clientinlen,
+	     const char **serverout,
+	     unsigned *serveroutlen,
+	     sasl_out_params_t *oparams)
+{
+    if (clientinlen > 0) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Data is not valid in SRP step 4");
+      return SASL_FAIL;
+    }
+
+    /* Set oparams */
+    oparams->doneflag=1;
+
+    oparams->authid = text->authid;
+    text->authid = NULL; /* set to null so we don't free */
+    oparams->user = text->userid; /* set username */
+    text->userid = NULL; /* set to null so we don't free */
+
+    // xxx ghomsy:
+    // Realm is no longer a member of sasl_out_params_t
+    // why??
+
+    //    oparams->realm = NULL;
+    
+    oparams->param_version = 0;
+
+    *serverout = NULL;
+    *serveroutlen = 0;
+
+    text->state++;
     return SASL_OK;
 }
 
 
 static int
-server_continue_step (void *conn_context,
-	       sasl_server_params_t *sparams,
-	       const char *clientin,
-	       int clientinlen,
-	       char **serverout,
-	       int *serveroutlen,
-	       sasl_out_params_t *oparams,
-	       const char **errstr)
+srp_server_mech_step(void *conn_context,
+		     sasl_server_params_t *sparams,
+		     const char *clientin,
+		     unsigned clientinlen,
+		     const char **serverout,
+		     unsigned *serveroutlen,
+		     sasl_out_params_t *oparams)
 {
-  int result;
   context_t *text = (context_t *) conn_context;
 
   if (!sparams
@@ -1016,581 +2423,436 @@ server_continue_step (void *conn_context,
       || !oparams)
     return SASL_BADPARAM;
 
-  if (clientinlen < 0)
-      return SASL_BADPARAM;
+  sparams->utils->log(NULL, SASL_LOG_ERR, "SRP server step %d\n",text->state);
 
-  if (errstr)
-      *errstr = NULL;
-
-  VL(("SRP server step %d\n",text->state));
-
-  if (text->state == 1) {
-      netstring_t *ns1;
-      netstring_t *ns2;
-      netstring_t *ns3;
-
-      /* Server sends N, g, and Z */
-
-      /*
-       * N  - A large safe prime (N = 2q+1, where q is prime) All arithmetic is done modulo N 
-       * g  - generator
-       */
-
-       /* generate N and g */
-       result = generate_N_and_g(text->N,text->g);
-       if (result!=SASL_OK) return result;
-
-       /* set Z */
-       /* xxx everything off right now */
-       text->server_options = 0;
-       
-       ns1 = create_netstring_bigint(text->N,sparams->utils);
-       ns2 = create_netstring_bigint(text->g,sparams->utils);
-       ns3 = create_netstring_str(&(text->server_options),1,sparams->utils);
-
-       /* put them all together */
-       merge_netstrings(sparams->utils,ns1,ns2,ns3, serverout, serveroutlen);
-
-       text->state = 2;
-
-       return SASL_CONTINUE;
-  }
-  if (text->state == 2) {
-      netdata_t *nd1=NULL;
-      netdata_t *nd2=NULL;
-      netdata_t *nd3=NULL;
-
-      netstring_t *ns1=NULL;
-      netstring_t *ns2=NULL;
-      int result;
-      hash_t hashedB;
-      unsigned int u;
-      mpz_t x;
-
-      /* We received:
-       *
-       * U - authname 
-       * A - client's public key
-       * o - options
-       */
-
-      result = split_netstrings(sparams->utils, &nd1,&nd2,&nd3,
-				(char *) clientin, clientinlen);
-      if (result!=SASL_OK) return result;
-
-      result = bigint_fromnetdata(nd2,sparams->utils ,text->A);
-      if (result!=SASL_OK) return result;
-
-      printf("server A: ");
-      mpz_out_str (stdout, 10, text->A);
-      printf("\n");
-
-      if (nd3->size!=1) {
-	  VL(("Options is wrong size\n"));
+  switch(text->state)
+      {
+      case 1:
+	  return server_step1(text, sparams, clientin, clientinlen,
+			      serverout, serveroutlen, oparams);
+      case 2:
+	  return server_step2(text, sparams, clientin, clientinlen,
+			      serverout, serveroutlen, oparams);
+      case 3:
+	  return server_step3(text, sparams, clientin, clientinlen,
+			      serverout, serveroutlen, oparams);
+      case 4:
+	  return server_step4(text, sparams, clientin, clientinlen,
+			      serverout, serveroutlen, oparams);
+      default:
+	  sparams->utils->seterror(sparams->utils->conn, 0,
+				   "Invalid SRP server step");
 	  return SASL_FAIL;
       }
-      text->client_options = nd3->data[0];
-
-      /* xxx do something with options */
-      
-      /* We send:
-       *
-       * s - salt
-       * B - server public key
-       */
-
-      result = parseuser(sparams->utils, &text->authid, &text->realm, sparams->user_realm,
-			 sparams->serverFQDN, nd1->data);
-      if (result != SASL_OK) {
-	  return result;
-      }
-
-      printf("authid = %s realm = %s\n",text->authid,text->realm);
-
-      result = get_salt_and_verifier(text->authid,text->realm,
-				     sparams->utils, &(text->sinfo), errstr);
-      if (result!=SASL_OK) return result;
-
-      VL(("Retrieved salt from db\n"));
-
-      ns1 = create_netstring_str(text->sinfo->salt, sizeof(text->sinfo->salt), sparams->utils);
-
-      VL(("Calculating B\n"));
-
-      /* B = (v + g^b) %N */
-      result = create_public_server(text->g, text->N, text->sinfo->verifier, text->b, text->B);
-      if (result!=SASL_OK) return result;
-
-      ns2 = create_netstring_bigint(text->B, sparams->utils);
-
-      printf("server B: ");
-      mpz_out_str (stdout, 10, text->B);
-      printf("\n");
-
-      /* u is first 32 bits of B; MSB first */      
-      Hash_bigint(text->B, &hashedB, sparams->utils);
-      memcpy(&u, hashedB.data, 4);
-      u = ntohl(u);
-
-      printf("U = %d\n",u);
-
-      /* calculate server shared secret */
-      /* S = (A*v^u)^b %N */
-
-      mpz_init(text->S);
-
-      mpz_powm_ui (text->S, text->sinfo->verifier, u, text->N);      
-      mpz_mul (text->S, text->S, text->A);
-      mpz_powm (text->S, text->S, text->b, text->N);
-
-      result = SHA_Interleave(text->S, &text->sharedsecretK, sparams->utils);
-      if (result!=SASL_OK) return result;
-
-      printf("server calculated S: ");
-      mpz_out_str (stdout, 10, text->S);
-      printf("\n");
-
-      merge_netstrings(sparams->utils,ns1,ns2,NULL,serverout,serveroutlen);
-
-      text->state = 3;
-
-      return SASL_CONTINUE;
-  }
-
-  if (text->state == 3) {
-
-      netstring_t *ns1=NULL;      
-      unsigned char *M1in;
-      int M1inlen;
-      hash_t M1;
-      hash_t M2;
-      int lup;
-
-      /*
-       * Recieve M1 evidence
-       *
-       */
-      result = checkvalid_netstring((char *) clientin, clientinlen, (char **) &M1in, &M1inlen);
-      if (result!=SASL_OK) return result;      
-
-      /* Let's calculate M1 ourselves and see if it matches */
-      result = calculate_client_evidence(text->N, text->g,
-					 text->sinfo->salt, sizeof(text->sinfo->salt),
-					 text->server_options,
-					 text->A, text->B,
-					 &text->sharedsecretK,
-					 &M1,
-					 sparams->utils);
-      if (result!=SASL_OK) return result;      
-      
-      for (lup=0;lup<HASHLEN;lup++)
-      {
-	  if (M1in[lup]!=M1.data[lup]) {
-	      if (errstr) *errstr = "Client evidence is wrong";
-	      return SASL_BADAUTH;
-	  }
-      }
-
-      /*
-       * Calculate and send:
-       *  M2
-       */
-
-      result = calculate_server_evidence(text->authid,
-					 text->A,
-					 text->client_options,
-					 &M1,
-					 &text->sharedsecretK,
-					 &M2,
-					 sparams->utils);
-      if (result!=SASL_OK) return result;      
-      
-      ns1 = create_netstring_str(M2.data, sizeof(M2.data), sparams->utils);
-      if (ns1==NULL) return SASL_NOMEM;
-      
-      *serverout = sparams->utils->malloc(ns1->size+1);
-      if (!*serverout) return SASL_NOMEM;
-      memcpy(*serverout, ns1->data, ns1->size);
-      *serveroutlen = ns1->size;
-
-      /* Set the oparams */
-      oparams->doneflag=1;
-      result = srp_strdup(sparams->utils, text->authid, &oparams->user, NULL); 
-      result = srp_strdup(sparams->utils, text->realm, &oparams->realm, NULL); 
-      result = srp_strdup(sparams->utils, text->authid, &oparams->authid, NULL);
-      oparams->mech_ssf = 0;
-      oparams->maxoutbuf = 0;
-      oparams->encode = NULL;
-      oparams->decode = NULL;
-      oparams->param_version = 0;
-
-      text->state = 4;
-      return SASL_OK;
-  }
-
-  return SASL_FAIL;
 }
 
-/*
- * Put a DUMMY entry in the db to show that there is at least one SRP entry in the db
- *
- * Note: this function is duplicated in multiple plugins. If you fix
- * something here please update the other files
- */
-static int mechanism_fill_db(char *mech_name, sasl_server_params_t *sparams)
+
+static int
+ReadUserInfo(const sasl_utils_t *utils, char *authid, char *realm,
+	     const char *propName,
+	     mpz_t *N, mpz_t *g, char **salt, int *saltlen, mpz_t *v)
 {
-  int result;
-  sasl_server_putsecret_t *putsecret;
-  void *putsecret_context;
-  sasl_secret_t *sec = NULL;
-  long version;
+    char secret[8192];
+    size_t seclen;
+    int r;
+    char *data;
+    int datalen;
 
-  /* don't do this again if it's already set */
-  if (mydb_initialized == 1)
-  {
-      return SASL_OK;
-  }
+    /* fetch the secret using the sasldb interface */
+    r = (*_sasldb_getdata)(utils, utils->conn,
+			   authid, realm, propName,
+			   secret, sizeof(secret), &seclen);
 
-  /* get the callback for saving to the password db */
-  result = sparams->utils->getcallback(sparams->utils->conn,
-				       SASL_CB_SERVER_PUTSECRET,
-				       &putsecret,
-				       &putsecret_context);
-  if (result != SASL_OK) {
-    return result;
-  }
-
-  /* allocate a secret structure that we're going to save to disk */  
-  sec=(sasl_secret_t *) sparams->utils->malloc(sizeof(sasl_secret_t)+
-					       4);
-  if (sec == NULL) {
-    result = SASL_NOMEM;
-    return result;
-  }
-  
-  /* set the size */
-  sec->len = 4;
-
-  /* and insert the data */
-  version = htonl(SRP_VERSION);
-  memcpy(sec->data, &version, 4);
-
-  /* do the store */
-  result = putsecret(putsecret_context,
-		     mech_name, 
-		     "",
-		     "",
-		     sec);
-
-  if (result == SASL_OK)
-  {
-      mydb_initialized = 1;
-  }
-
-  return result;
-}
-
-static int calculate_x(sasl_utils_t *utils,
-		       const char *user, int userlen,
-		       const char *pass, int passlen,
-		       char *salt, int saltlen,
-		       mpz_t x)
-{
-    char *userpassstr = NULL;
-    char *saltfoo =NULL;
-    hash_t userpasshash;
-    hash_t hashx;
-    int result;
-
-    /* create <username> | ':' | <pass> */
-    userpassstr = utils->malloc(userlen+1+passlen+1);
-    if (!userpassstr) {
-	result = SASL_NOMEM;
-	goto done;
+    if (r) {
+      utils->seterror(utils->conn, 0, 
+		      "unable to get user's secret");
+      return r;
     }
-	
-    strcpy(userpassstr, user);
-    userpassstr[userlen]=':';
-    memcpy(userpassstr+userlen+1, pass, passlen);
-    userpassstr[userlen+1+passlen]='\0';
 
-    /* SHA( <username> | ':' | <pass> ) */
-    Hash(userpassstr, userlen+1+passlen, &userpasshash);
-    
-    /* create <salt> | SHA ( ... ) */
-    saltfoo = utils->malloc(saltlen+HASHLEN+1);
-    if (!saltfoo) {
-	result = SASL_NOMEM;
-	goto done;
+    /* The secret data is encoded just like data we send over the wire. It has
+     *
+     *  salt - os 
+     *  N    - mpi
+     *  g    - mpi
+     *  v    - mpi
+     */
+    r = UnBuffer(secret, seclen, &data, &datalen);
+    if (r) {
+      utils->seterror(utils->conn, 0, 
+		      "Error UnBuffering secret data");
+      return r;
     }
-    
-    memcpy(saltfoo, salt, saltlen);
-    memcpy(saltfoo+saltlen, userpasshash.data, HASHLEN);
 
-    /* x = SHA( <salt> | SHA (... )) */
-    Hash(saltfoo, saltlen+HASHLEN, &hashx);
+    r = GetOS(utils, data, datalen, salt, saltlen, &data, &datalen);
+    if (r) {
+      utils->seterror(utils->conn, 0, 
+		      "Error parsing out salt");
+      return r;
+    }
 
-    result = bigint_fromstr(hashx.data, sizeof(hashx.data), utils, x);
-    if (result!=SASL_OK) goto done;
+    r = GetMPI(data, datalen, N, &data, &datalen);
+    if (r) {
+      utils->seterror(utils->conn, 0, 
+		      "Error parsing out 'N'");
+      return r;
+    }
 
- done:
-    
-    if (userpassstr) utils->free(userpassstr);
-    if (saltfoo) utils->free(saltfoo);
+    r = GetMPI(data, datalen, g, &data, &datalen);
+    if (r) {
+      utils->seterror(utils->conn, 0, 
+		      "Error parsing out 'g'");
+      return r;
+    }
 
-    return result;
-}
-/*
- * Flatten an saved_info_t into bytes
- *
- * we need to save:
- * salt      
- * mpz_t verifier;
- *
- * store salt as series of bytes
- * verifier as netstring 
- *
- */
+    r = GetMPI(data, datalen, v, &data, &datalen);
+    if (r) {
+      utils->seterror(utils->conn, 0, 
+		      "Error parsing out 'v'");
+      return r;
+    }
 
-static sasl_secret_t *flatten_sinfo(savedinfo_t *sinfo, sasl_utils_t *utils)
-{
+    if (datalen != 0) {
+      utils->seterror(utils->conn, 0, 
+		      "Extra data in request step 2");
+      r = SASL_FAIL;
+    }
 
-    int result;
-    int toalsize;
-    netstring_t *ns1;
-    sasl_secret_t *sec;
-    int totalsize;
-
-    ns1 = create_netstring_bigint(sinfo->verifier, utils);
-    if (!ns1) return NULL;
-
-    totalsize = sizeof(sinfo->salt) + ns1->size;
-
-    sec=(sasl_secret_t *) utils->malloc(sizeof(sasl_secret_t)+
-					totalsize+1);
-    if (!sec) return NULL;
-
-    memcpy(sec->data, sinfo->salt, sizeof(sinfo->salt));
-    memcpy(sec->data+sizeof(sinfo->salt), ns1->data, ns1->size);
-
-    sec->len = totalsize;
-
-    return sec;
+    return r;
 }
 
 static int
-setpass(void *glob_context __attribute__((unused)),
-	sasl_server_params_t *sparams,
-	const char *userstr,
-	const char *pass,
-	unsigned passlen,
-	int flags __attribute__((unused)),
-	const char **errstr)
+GetSaveInfo(context_t *text,
+	    const char *user,
+	    const char *pass, unsigned passlen,
+	    sasl_secret_t **sec)
 {
-    int userlen = strlen(userstr);
-    
-    int result;
-    sasl_server_putsecret_t *putsecret;
-    void *putsecret_context;
-    char *user = NULL;
-    char *realm = NULL;
+    mpz_t N;
+    mpz_t g;
+    mpz_t v;
+    mpz_t x;
+    char salt[SRP_SALT_SIZE];
+    int saltlen;
+    int r;    
+    char *osSalt = NULL;
+    int osSaltlen;
+    char *mpiN = NULL;
+    int mpiNlen;
+    char *mpig = NULL;
+    int mpiglen;
+    char *mpiv = NULL;
+    int mpivlen;    
+    const char *buffer = NULL;
+    int bufferlen;
 
-    savedinfo_t sinfo;
-    sasl_secret_t *sec = NULL;
+    /* generate <salt> */    
+    saltlen = sizeof(salt);
+    text->utils->rand(text->utils->rpool, salt, saltlen);
 
-    if (errstr) {
-	*errstr = NULL;
+    r = generate_N_and_g(N, g);
+    if (r) {
+	text->utils->seterror(text->utils->conn, 0, 
+		      "Error calculating N and g");
+	return r;
     }
 
-    result = parseuser(sparams->utils, &user, &realm, sparams->user_realm,
+    r = CalculateX(text, salt, saltlen, user, pass, passlen, &x);
+    if (r) {
+	text->utils->seterror(text->utils->conn, 0, 
+			      "Error calculating 'x'");
+      return r;
+    }
+
+    /* v = g^x % N */
+    mpz_init(v);
+    mpz_powm (v, g, x, N);
+
+    /*
+     * We need to save:
+     *  salt
+     *  N
+     *  g
+     *  v
+     */
+
+    r = MakeOS(text->utils, salt, saltlen, &osSalt, &osSaltlen);
+    if (r) {
+	text->utils->seterror(text->utils->conn, 0, 
+			      "Error turning salt into 'os' string");
+	goto end;
+    }
+    
+    r = MakeMPI(text->utils, N, &mpiN, &mpiNlen);
+    if (r) {
+	text->utils->seterror(text->utils->conn, 0, 
+			      "Error turning 'N' into 'mpi' string");
+	goto end;
+    }
+
+    r = MakeMPI(text->utils, g, &mpig, &mpiglen);
+    if (r) {
+	text->utils->seterror(text->utils->conn, 0, 
+			      "Error turning 'g' into 'mpi' string");
+	goto end;
+    }
+    
+    r = MakeMPI(text->utils, v, &mpiv, &mpivlen);
+    if (r) {
+	text->utils->seterror(text->utils->conn, 0, 
+			      "Error turning 'N' into 'mpi' string");
+	goto end;
+    }
+
+    r = MakeBuffer(text->utils, osSalt, osSaltlen, mpiN, mpiNlen,
+		   mpig, mpiglen, mpiv, mpivlen, &buffer, &bufferlen);
+    if (r) {
+	text->utils->seterror(text->utils->conn, 0, 
+			      "Error putting all the data together in step 2");
+	goto end;
+    }    
+    
+    /* Put 'buffer' into sasl_secret_t */
+    *sec = text->utils->malloc(sizeof(sasl_secret_t)+bufferlen+1);
+    if (!*sec) {
+	r = SASL_NOMEM;
+	goto end;
+    }
+    memcpy((*sec)->data, buffer, bufferlen);
+    (*sec)->len = bufferlen;    
+
+    /* Clean everything up */
+ end:
+    if (osSalt) text->utils->free(osSalt);
+    if (mpiN)   text->utils->free(mpiN);
+    if (mpig)   text->utils->free(mpig);
+    if (mpiv)   text->utils->free(mpiv);
+    if (buffer) text->utils->free((void *) buffer);
+    mpz_clear(N);
+    mpz_clear(g);
+    mpz_clear(v);
+    mpz_clear(x);
+
+    return r;   
+}
+
+static int
+srp_setpass(context_t *text,
+	    sasl_server_params_t *sparams,
+	    const char *userstr,
+	    const char *pass,
+	    unsigned passlen,
+	    unsigned flags)
+{
+    int r;
+    char *user = NULL;
+    char *realm = NULL;
+    sasl_secret_t *sec;
+
+    r = parseuser(sparams->utils, &user, &realm, sparams->user_realm,
 		       sparams->serverFQDN, userstr);
-    if (result != SASL_OK) {
-	return result;
+    if (r) {
+      sparams->utils->seterror(sparams->utils->conn, 0, 
+	"Error parsing user");
+      return r;
     }
 
     if ((flags & SASL_SET_DISABLE) || pass == NULL) {
 	sec = NULL;
     } else {
-	mpz_t N, g, x;
-
-	/* generate <salt> */    
-	sparams->utils->rand(sparams->utils->rpool, sinfo.salt, sizeof(sinfo.salt));
-    
-	/* x = SHA( <salt> | SHA (... )) */
-	result = calculate_x(sparams->utils,
-			     user, userlen,
-			     pass, passlen,
-			     sinfo.salt, sizeof(sinfo.salt),
-			     x);
-	if (result!=SASL_OK) return result;
-
-	result = generate_N_and_g(N, g);
-	if (result!=SASL_OK) return result;
-
-	/* calculate v = g^x % N */
-	mpz_init(sinfo.verifier);
-	mpz_powm(sinfo.verifier,g,x,N);
-
-
-	/* flatten sinfo */
-	sec = flatten_sinfo(&sinfo, sparams->utils);
-
-	if (sec == NULL) {
-	    result = SASL_NOMEM;
-	    goto cleanup;
+      r = GetSaveInfo(text, user, pass, passlen, &sec);
+	if (r) {
+	  sparams->utils->seterror(sparams->utils->conn, 0, 
+				   "Error creating data for SRP to save");
+	  return r;
 	}
     }
 
-    /* get the callback for saving to the password db */
-    result = sparams->utils->getcallback(sparams->utils->conn,
-					 SASL_CB_SERVER_PUTSECRET,
-					 &putsecret,
-					 &putsecret_context);
-    if (result != SASL_OK) {
-	goto cleanup;
-    }
-
     /* do the store */
-    result = putsecret(putsecret_context,
-		       "SRP", 
-		       user,
-		       realm,
-		       sec);
+    r = (*_sasldb_putdata)(sparams->utils, sparams->utils->conn,
+			   user, realm, text->propName, sec->data, sec->len);
 
-    if (result != SASL_OK) {
-	goto cleanup;
+    if (r) {
+      sparams->utils->seterror(sparams->utils->conn, 0, 
+	"Error putting secret");
+      goto cleanup;
     }
-
-    /* put entry in db to say we have at least one user */
-    result = mechanism_fill_db("SRP", sparams);
 
     VL(("Setpass for SRP successful\n"));
 
  cleanup:
-    if (sec) {
-	memset(sec, 0, sizeof(sasl_secret_t) + sizeof(savedinfo_t));
-	sparams->utils->free(sec);
-    }
 
     if (user) 	sparams->utils->free(user);
     if (realm) 	sparams->utils->free(realm);
-    return result;
+    if (sec)    sparams->utils->free(sec);
+
+    return r;
 }
 
-static const sasl_server_plug_t plugins[] = 
+#ifdef WITH_SHA1
+static int
+srp_sha1_setpass(void *glob_context __attribute__((unused)),
+		 sasl_server_params_t *sparams,
+		 const char *userstr,
+		 const char *pass,
+		 unsigned passlen,
+		 const char *oldpass __attribute__((unused)),
+		 unsigned oldpasslen __attribute__((unused)),
+		 unsigned flags)
 {
+    context_t text;
+
+    text.utils = sparams->utils;
+    text.propName = "SRP-MD5-120";
+    text.HashLen    = srp_sha1Len(text.utils);
+    text.HashInit   = srp_sha1Init;
+    text.HashUpdate = srp_sha1Update;
+    text.HashFinal  = srp_sha1Final;
+
+    return srp_setpass(&text, sparams, userstr,
+		       pass, passlen, flags);
+}
+#endif /* WITH_SHA1 */
+
+static int
+srp_md5_setpass(void *glob_context __attribute__((unused)),
+		sasl_server_params_t *sparams,
+		const char *userstr,
+		const char *pass,
+		unsigned passlen,
+		const char *oldpass __attribute__((unused)),
+		unsigned oldpasslen __attribute__((unused)),
+		unsigned flags)
+{
+    context_t text;
+
+    text.utils = sparams->utils;
+    text.propName = "SRP-MD5-120";
+    text.HashLen    = srp_md5Len(text.utils);
+    text.HashInit   = srp_md5Init;
+    text.HashUpdate = srp_md5Update;
+    text.HashFinal  = srp_md5Final;
+
+    return srp_setpass(&text, sparams, userstr,
+		       pass, passlen, flags);
+}
+
+
+static const sasl_server_plug_t srp_server_plugins[] = 
+{
+#ifdef WITH_SHA1
   {
-    "SRP",		        /* mech_name */
+    "SRP-SHA-160",	        /* mech_name */
     0,				/* max_ssf */
     SASL_SEC_NOPLAINTEXT,	/* security_flags */
+    SASL_FEAT_WANT_CLIENT_FIRST,/* features */
     NULL,			/* glob_context */
-    &server_start,		/* mech_new */
-    &server_continue_step,	/* mech_step */
-    NULL,			/* mech_dispose */
-    NULL,			/* mech_free */
-    &setpass,			/* setpass */
+    &srp_sha1_server_mech_new,	/* mech_new */
+    &srp_server_mech_step,	/* mech_step */
+    &srp_both_mech_dispose,	/* mech_dispose */
+    &srp_both_mech_free,	/* mech_free */
+    &srp_sha1_setpass,		/* setpass */
     NULL,			/* user_query */
     NULL,			/* idle */
-    NULL,			/* install_credentials */
-    NULL,			/* uninstall_credentials */
-    NULL			/* free_credentials */
+    NULL,			/* mech avail */
+    NULL			/* spare */
+  },
+#endif /* WITH_SHA1 */
+  {
+    "SRP-MD5-120",	        /* mech_name */
+    0,				/* max_ssf */
+    SASL_SEC_NOPLAINTEXT,	/* security_flags */
+    SASL_FEAT_WANT_CLIENT_FIRST,/* features */
+    NULL,			/* glob_context */
+    &srp_md5_server_mech_new,	/* mech_new */
+    &srp_server_mech_step,	/* mech_step */
+    &srp_both_mech_dispose,	/* mech_dispose */
+    &srp_both_mech_free,	/* mech_free */
+    &srp_md5_setpass,		/* setpass */
+    NULL,			/* user_query */
+    NULL,			/* idle */
+    NULL,			/* mech avail */
+    NULL			/* spare */
   }
 };
 
-int sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
-			  int maxversion,
-			  int *out_version,
-			  const sasl_server_plug_t **pluglist,
-			  int *plugcount)
+int srp_server_plug_init(const sasl_utils_t *utils __attribute__((unused)),
+			 int maxversion,
+			 int *out_version,
+			 const sasl_server_plug_t **pluglist,
+			 int *plugcount,
+			 const char *plugname __attribute__((unused)))
 {
-  if (maxversion<SRP_VERSION)
-    return SASL_BADVERS;
+    if (maxversion<SASL_SERVER_PLUG_VERSION) {
+	SETERROR(utils, "SRP version mismatch");
+	return SASL_BADVERS;
+    }
 
-  *pluglist=plugins;
+    /* Do we have database support? */
+    /* Note that we can use a NULL sasl_conn_t because our
+     * sasl_utils_t is "blessed" with the global callbacks */
+    if(_sasl_check_db(utils, NULL) != SASL_OK)
+	return SASL_NOMECH;
 
-  *plugcount=1;  
-  *out_version=SRP_VERSION;
+    *pluglist=srp_server_plugins;
 
-  return SASL_OK;
-}
+    *plugcount=sizeof(srp_server_plugins)/sizeof(sasl_server_plug_t);
+    *out_version=SASL_SERVER_PLUG_VERSION;
 
-static void dispose(void *conn_context, sasl_utils_t *utils)
-{
-  context_t *text;
-  text=conn_context;
-
-  if (!text)
-    return;
-
-  utils->free(text);
+    return SASL_OK;
 }
 
 /* put in sasl_wrongmech */
-static int
-client_start(void *glob_context __attribute__((unused)),
-	     sasl_client_params_t *params,
-	     void **conn)
+#ifdef WITH_SHA1
+static int srp_sha1_client_mech_new(void *glob_context __attribute__((unused)),
+			       sasl_client_params_t *params,
+			       void **conn)
 {
-  context_t *text;
+    context_t *text;
 
-  if (! conn)
-    return SASL_BADPARAM;
+    /* holds state are in */
+    text = params->utils->malloc(sizeof(context_t));
+    if (text==NULL) {
+	MEMERROR( params->utils );
+	return SASL_NOMEM;
+    }
+    
+    memset(text, 0, sizeof(context_t));
 
-  /* holds state are in */
-  text = params->utils->malloc(sizeof(context_t));
-  if (text==NULL) return SASL_NOMEM;
+    text->state=1;
+    text->utils = params->utils;
+    text->HashLen    = srp_sha1Len(text->utils);
+    text->HashInit   = srp_sha1Init;
+    text->HashUpdate = srp_sha1Update;
+    text->HashFinal  = srp_sha1Final;
 
-  memset(text, '\0', sizeof(context_t));
-  text->state=0;  
-  *conn=text;
+    *conn=text;
 
-  return SASL_OK;
+    return SASL_OK;
 }
+#endif /* WITH_SHA1 */
 
-/*
- * Create large random a
- * A = g^a % N
- *
- */
-
-static netstring_t *create_public_client(mpz_t g, mpz_t N, mpz_t a, mpz_t A, 
-					 sasl_utils_t *utils)
+static int srp_md5_client_mech_new(void *glob_context __attribute__((unused)),
+			       sasl_client_params_t *params,
+			       void **conn)
 {
-    mpz_init(a);
-    mpz_init(A);
+    context_t *text;
 
-    /* xxx likely should use sasl random funcs */
-    mpz_random(a,BITSFORab/(8*sizeof(int))); 
+    /* holds state are in */
+    text = params->utils->malloc(sizeof(context_t));
+    if (text==NULL) {
+	MEMERROR( params->utils );
+	return SASL_NOMEM;
+    }
+    
+    memset(text, 0, sizeof(context_t));
 
-    /* A = g^a % N */
-    mpz_powm (A, g, a, N);
+    text->state=1;
+    text->utils = params->utils;
+    text->HashLen    = srp_md5Len(text->utils);
+    text->HashInit   = srp_md5Init;
+    text->HashUpdate = srp_md5Update;
+    text->HashFinal  = srp_md5Final;
 
-    return create_netstring_bigint(A, utils);
-}
-
-/*
- * Create large random b
- * B = (v + g^b) % N
- *
- */
-
-static int create_public_server(mpz_t g, mpz_t N, mpz_t v,
-				mpz_t b, mpz_t B)
-{
-    mpz_init(b);
-    mpz_init(B);
-
-    /* xxx likely should use sasl random funcs */
-    mpz_random(b,BITSFORab/(8*sizeof(int))); 
-
-    /*  g^b % N */
-    mpz_powm (B, g, b, N);
-
-    /* v + (g^b%N)  */
-    mpz_add (B, B, v);
-
-    /* B = (v + g^b) % N */
-    mpz_mod (B, B, N);
+    *conn=text;
 
     return SASL_OK;
 }
@@ -1599,44 +2861,85 @@ static int create_public_server(mpz_t g, mpz_t N, mpz_t v,
  * Trys to find the prompt with the lookingfor id in the prompt list
  * Returns it if found. NULL otherwise
  */
-
-static sasl_interact_t *find_prompt(sasl_interact_t *promptlist,
+static sasl_interact_t *find_prompt(sasl_interact_t **promptlist,
 				    unsigned int lookingfor)
 {
-  if (promptlist==NULL) return NULL;
+  sasl_interact_t *prompt;
 
-  while (promptlist->id!=SASL_CB_LIST_END)
-  {
-    if (promptlist->id==lookingfor)
-      return promptlist;
-
-    promptlist++;
-  }
+  if (promptlist && *promptlist)
+    for (prompt = *promptlist;
+	 prompt->id != SASL_CB_LIST_END;
+	 ++prompt)
+      if (prompt->id==lookingfor)
+	return prompt;
 
   return NULL;
 }
 
+/*
+ * Somehow retrieve the userid
+ * This is the same as in digest-md5 so change both
+ */
+static int get_userid(sasl_client_params_t *params,
+		      const char **userid,
+		      sasl_interact_t **prompt_need)
+{
+  int result;
+  sasl_getsimple_t *getuser_cb;
+  void *getuser_context;
+  sasl_interact_t *prompt;
+  const char *id;
+
+  /* see if we were given the userid in the prompt */
+  prompt=find_prompt(prompt_need,SASL_CB_USER);
+  if (prompt!=NULL)
+    {
+	*userid = prompt->result;
+	return SASL_OK;
+    }
+
+  /* Try to get the callback... */
+  result = params->utils->getcallback(params->utils->conn,
+				      SASL_CB_USER,
+				      &getuser_cb,
+				      &getuser_context);
+  if (result == SASL_OK && getuser_cb) {
+    id = NULL;
+    result = getuser_cb(getuser_context,
+			SASL_CB_USER,
+			&id,
+			NULL);
+    if (result != SASL_OK)
+      return result;
+    if (! id) {
+	PARAMERROR(params->utils);
+	return SASL_BADPARAM;
+    }
+    
+    *userid = id;
+  }
+
+  return result;
+}
+
 static int get_authid(sasl_client_params_t *params,
-		      char **authid,
+		      const char **authid,
 		      sasl_interact_t **prompt_need)
 {
 
   int result;
   sasl_getsimple_t *getauth_cb;
   void *getauth_context;
-  sasl_interact_t *prompt = NULL;
-  const char *ptr;
+  sasl_interact_t *prompt;
+  const char *id;
 
   /* see if we were given the authname in the prompt */
-  if (prompt_need) prompt = find_prompt(*prompt_need,SASL_CB_AUTHNAME);
+  prompt=find_prompt(prompt_need,SASL_CB_AUTHNAME);
   if (prompt!=NULL)
   {
-    /* copy it */
-    *authid=params->utils->malloc(prompt->len+1);
-    if ((*authid)==NULL) return SASL_NOMEM;
-
-    strncpy(*authid, prompt->result, prompt->len+1);
-    return SASL_OK;
+      *authid = prompt->result;
+      
+      return SASL_OK;
   }
 
   /* Try to get the callback... */
@@ -1644,34 +2947,24 @@ static int get_authid(sasl_client_params_t *params,
 				      SASL_CB_AUTHNAME,
 				      &getauth_cb,
 				      &getauth_context);
-  switch (result)
-    {
-    case SASL_INTERACT:
-      return SASL_INTERACT;
-
-    case SASL_OK:
-      if (! getauth_cb)
-	  return SASL_FAIL;
-      result = getauth_cb(getauth_context,
-			  SASL_CB_AUTHNAME,
-			  (const char **)&ptr,
-			  NULL);
-      if (result != SASL_OK)
-	  return result;
-
-      *authid=params->utils->malloc(strlen(ptr)+1);
-      if ((*authid)==NULL) return SASL_NOMEM;
-      strcpy(*authid, ptr);
-      break;
-
-    default:
-      break;
+  if (result == SASL_OK && getauth_cb) {
+    id = NULL;
+    result = getauth_cb(getauth_context,
+			SASL_CB_AUTHNAME,
+			&id,
+			NULL);
+    if (result != SASL_OK)
+      return result;
+    if (! id) {
+	PARAMERROR( params->utils );
+	return SASL_BADPARAM;
     }
+    
+    *authid = id;
+  }
 
   return result;
-
 }
-
 
 static int get_password(sasl_client_params_t *params,
 		      sasl_secret_t **password,
@@ -1681,27 +2974,32 @@ static int get_password(sasl_client_params_t *params,
   int result;
   sasl_getsecret_t *getpass_cb;
   void *getpass_context;
-  sasl_interact_t *prompt = NULL;
+  sasl_interact_t *prompt;
 
   /* see if we were given the password in the prompt */
-  if (prompt_need) prompt=find_prompt(*prompt_need,SASL_CB_PASS);
+  prompt=find_prompt(prompt_need,SASL_CB_PASS);
   if (prompt!=NULL)
   {
-    /* We prompted, and got.*/
+      /* We prompted, and got.*/
 	
-    if (! prompt->result)
-      return SASL_FAIL;
+      if (! prompt->result) {
+	  SETERROR(params->utils, "Unexpectedly missing a prompt result");
+	  return SASL_FAIL;
+      }
+      
+      /* copy what we got into a secret_t */
+      *password = (sasl_secret_t *) params->utils->malloc(sizeof(sasl_secret_t)+
+							  prompt->len+1);
+      if (! *password) {
+	  MEMERROR( params->utils );
+	  return SASL_NOMEM;
+      }
+      
+      (*password)->len=prompt->len;
+      memcpy((*password)->data, prompt->result, prompt->len);
+      (*password)->data[(*password)->len]=0;
 
-    /* copy what we got into a secret_t */
-    *password = (sasl_secret_t *) params->utils->malloc(sizeof(sasl_secret_t)+
-						       prompt->len+1);
-    if (! *password) return SASL_NOMEM;
-
-    (*password)->len=prompt->len;
-    memcpy((*password)->data, prompt->result, prompt->len);
-    (*password)->data[(*password)->len]=0;
-
-    return SASL_OK;
+      return SASL_OK;
   }
 
 
@@ -1711,80 +3009,66 @@ static int get_password(sasl_client_params_t *params,
 				      &getpass_cb,
 				      &getpass_context);
 
-  switch (result)
-    {
-    case SASL_INTERACT:      
-      return SASL_INTERACT;
-    case SASL_OK:
-      if (! getpass_cb)
-	return SASL_FAIL;
-      result = getpass_cb(params->utils->conn,
-			  getpass_context,
-			  SASL_CB_PASS,
-			  password);
-      if (result != SASL_OK)
-	return result;
-
-      break;
-    default:
-      /* sucess */
-      break;
-    }
+  if (result == SASL_OK && getpass_cb)
+    result = getpass_cb(params->utils->conn,
+			getpass_context,
+			SASL_CB_PASS,
+			password);
 
   return result;
-}
-
-static void free_prompts(sasl_client_params_t *params,
-			sasl_interact_t *prompts)
-{
-  sasl_interact_t *ptr=prompts;
-  if (ptr==NULL) return;
-
-  do
-  {
-    /* xxx might be freeing static memory. is this ok? */
-    if (ptr->result!=NULL)
-      params->utils->free(ptr->result);
-
-    ptr++;
-  } while(ptr->id!=SASL_CB_LIST_END);
-
-  params->utils->free(prompts);
-  prompts=NULL;
 }
 
 /*
  * Make the necessary prompts
  */
-
 static int make_prompts(sasl_client_params_t *params,
 			sasl_interact_t **prompts_res,
+			int user_res,
 			int auth_res,
 			int pass_res)
 {
   int num=1;
   sasl_interact_t *prompts;
 
+  if (user_res==SASL_INTERACT) num++;
   if (auth_res==SASL_INTERACT) num++;
   if (pass_res==SASL_INTERACT) num++;
 
-  if (num==1) return SASL_FAIL;
+  if (num==1) {
+      SETERROR( params->utils, "make_prompts called with no actual prompts" );
+      return SASL_FAIL;
+  }
 
-  prompts=params->utils->malloc(sizeof(sasl_interact_t)*num);
-  if ((prompts) ==NULL) return SASL_NOMEM;
+  prompts=params->utils->malloc(sizeof(sasl_interact_t)*(num+1));
+  if ((prompts) ==NULL) {
+      MEMERROR( params->utils );
+      return SASL_NOMEM;
+  }
+  
   *prompts_res=prompts;
+
+  if (user_res==SASL_INTERACT)
+  {
+    /* We weren't able to get the callback; let's try a SASL_INTERACT */
+    (prompts)->id=SASL_CB_USER;
+    (prompts)->challenge="Authorization Name";
+    (prompts)->prompt="Please enter your authorization name";
+    (prompts)->defresult=NULL;
+
+    prompts++;
+  }
 
   if (auth_res==SASL_INTERACT)
   {
     /* We weren't able to get the callback; let's try a SASL_INTERACT */
     (prompts)->id=SASL_CB_AUTHNAME;
-    (prompts)->challenge="Authorization Name";
-    (prompts)->prompt="Please enter your authorization name";
+    (prompts)->challenge="Authentication Name";
+    (prompts)->prompt="Please enter your authentication name";
     (prompts)->defresult=NULL;
 
-    VL(("authid callback added\n"));
     prompts++;
   }
+
 
   if (pass_res==SASL_INTERACT)
   {
@@ -1794,10 +3078,8 @@ static int make_prompts(sasl_client_params_t *params,
     (prompts)->prompt="Please enter your password";
     (prompts)->defresult=NULL;
 
-    VL(("password callback added\n"));
     prompts++;
   }
-
 
   /* add the ending one */
   (prompts)->id=SASL_CB_LIST_END;
@@ -1809,339 +3091,488 @@ static int make_prompts(sasl_client_params_t *params,
 }
 
 static int
-client_continue_step(void *conn_context,
-		sasl_client_params_t *params,
-		const char *serverin,
-		int serverinlen,
-		sasl_interact_t **prompt_need,
-		char **clientout,
-		int *clientoutlen,
-		sasl_out_params_t *oparams)
+client_step1(context_t *text,
+	     sasl_client_params_t *params,
+	     const char *serverin  __attribute__((unused)),
+	     unsigned serverinlen,
+	     sasl_interact_t **prompt_need,
+	     const char **clientout,
+	     unsigned *clientoutlen,
+	     sasl_out_params_t *oparams  __attribute__((unused)))
 {
-  int result;
-  context_t *text;
-  text=conn_context;
+    int auth_result=SASL_OK;
+    int pass_result=SASL_OK;
+    int user_result=SASL_OK;
+    int r;
+    char *utf8U = NULL;
+    int utf8Ulen;
 
-  VL(("SRP client step %d\n",text->state));
+    /* Expect: 
+     *   absolutly nothing
+     * 
+     */
+    if (serverinlen > 0) {
+	VL(("Invalid input to first step of SRP\n"));
+	return SASL_FAIL;
+    }
 
-  if (text->state == 0) {
 
-      /* nothing. server makes first challenge */
-
-      *clientout=params->utils->malloc(1);
-      if (! (*clientout)) return SASL_NOMEM;
-      (*clientout)[0]='\0';
-      *clientoutlen = 0;
-
-      VL(("Step one succeeded!\n"));
-      text->state = 1;
-      return SASL_CONTINUE;
-  }
-
-  if (text->state == 1) {
-
-      netdata_t *nd1;
-      netdata_t *nd2;
-      netdata_t *nd3;
-
-      netstring_t *ns1;
-      netstring_t *ns2;
-      netstring_t *ns3;
-
-      int result;
-      int auth_result=SASL_OK;
-      int pass_result=SASL_OK;
-
-      /* try to get the userid */
-      if (text->authid==NULL)
-      {
-	  VL (("Trying to get authid\n"));
-	  auth_result=get_authid(params,
-				 &text->authid,
-				 prompt_need);
+    /* try to get the authid */
+    if (text->authid==NULL)
+    {
+	auth_result=get_authid(params,
+			       (const char **) &text->authid,
+			       prompt_need);
 	  
-	  if ((auth_result!=SASL_OK) && (auth_result!=SASL_INTERACT))
-	      return auth_result;	  
+	if ((auth_result!=SASL_OK) && (auth_result!=SASL_INTERACT))
+	    return auth_result;	  
+    }
+
+    /* try to get the userid */
+    if (text->userid == NULL) {
+      user_result = get_userid(params,
+			       (const char **) &text->userid,
+			       prompt_need);
+
+      if ((user_result != SASL_OK) && (user_result != SASL_INTERACT))
+      {
+	  return user_result;
       }
+    }
       
-      /* try to get the password */
-      if (text->password==NULL)
-      {
-	  VL (("Trying to get password\n"));
-	  pass_result=get_password(params,
-				   &text->password,
-				   prompt_need);
-	  
-	  if ((pass_result!=SASL_OK) && (pass_result!=SASL_INTERACT))
-	      return pass_result;
-      }
+    /* try to get the password */
+    if (text->password==NULL)
+    {
+	pass_result=get_password(params,
+				 &text->password,
+				 prompt_need);
+	
+	if ((pass_result!=SASL_OK) && (pass_result!=SASL_INTERACT))
+	    return pass_result;
+    }
+    
+    /* free prompts we got */
+    if (prompt_need && *prompt_need) {
+	params->utils->free(*prompt_need);
+	*prompt_need = NULL;
+    }
+
+    /* if there are prompts not filled in */
+    if ((auth_result==SASL_INTERACT) ||
+	(user_result==SASL_INTERACT) ||
+	(pass_result==SASL_INTERACT))
+    {
+	/* make the prompt list */
+	int result=make_prompts(params,prompt_need,
+				auth_result, user_result, pass_result);
+	if (result!=SASL_OK) return result;
+	
+	return SASL_INTERACT;
+    }
+
+    /* send authentication identity 
+     * { utf8(U) }
+     */
+
+    r = MakeUTF8(params->utils, text->authid, &utf8U, &utf8Ulen);
+    if (r) goto done;
+
+    r = MakeBuffer(params->utils, utf8U, utf8Ulen, NULL, 0, NULL, 0, NULL, 0,
+		   clientout, clientoutlen);
+    if (r) goto done;
+
+    text->state++;
+    r = SASL_CONTINUE;
+
+ done:
+
+    if (utf8U)    params->utils->free(utf8U);
+
+    return r;
+}
+
+static int
+client_step2(context_t *text,
+	     sasl_client_params_t *params,
+	     const char *serverin,
+	     unsigned serverinlen,
+	     sasl_interact_t **prompt_need __attribute__((unused)),
+	     const char **clientout,
+	     unsigned *clientoutlen,
+	     sasl_out_params_t *oparams __attribute__((unused)))
+{
+    char *data;
+    int datalen;
+    int r;    
+    char *utf8I = NULL, *mpiA = NULL, *utf8o = NULL;
+    int utf8Ilen, mpiAlen, utf8olen;
+    srp_options_t server_opts;
+
+    /* expect:
+     *  { mpi(N) mpi(g) os(s) utf8(L) }
+     *
+     */
+    r = UnBuffer((char *) serverin, serverinlen, &data, &datalen);
+    if (r) return r;
+
+    r = GetMPI((unsigned char *)data, datalen, &text->N, &data, &datalen);
+    if (r) {
+	VL(("Error getting MPI string for 'N'\n"));
+	goto done;
+    }
+
+    r = GetMPI((unsigned char *) data, datalen, &text->g, &data, &datalen);
+    if (r) {
+	VL(("Error getting MPI string for 'g'\n"));
+	goto done;
+    }
+
+    r = GetOS(params->utils, (unsigned char *)data, datalen,
+	      &text->salt, &text->saltlen, &data, &datalen);
+    if (r) {
+	VL(("Error getting OS string for 's'\n"));
+	goto done;
+    }
+
+    r = GetUTF8(params->utils, data, datalen, &text->server_options,
+		&data, &datalen);
+    if (r) {
+	VL(("Error getting UTF8 string for 'L'"));
+	goto done;
+    }
+
+    if (datalen != 0) {
+	VL(("Extra data parsing buffer\n"));
+	goto done;
+    }
+
+    /* parse server options */
+    memset(&server_opts, 0, sizeof(srp_options_t));
+    r = ParseOptions(params->utils, text->server_options, &server_opts);
+    if (r) {
+	VL(("Error parsing options\n"));
+	goto done;
+    }
+
+    /* create an 'a' */
+    GetRandBigInt(text->a);
+
+    /* calculate 'A' 
+     *
+     * A = g^a % N 
+     */
+    mpz_init(text->A);
+    mpz_powm (text->A, text->g, text->a, text->N);
+
+    /* make o */
+    r = CreateClientOpts(params, &server_opts, &text->client_opts);
+    if (r) {
+	VL(("Error creating client options\n"));
+	goto done;
+    }
+
+    r = OptionsToString(params->utils, &text->client_opts,
+			&text->client_options);
+    if (r) {
+	VL(("Error converting client options to an option string\n"));
+	goto done;
+    }
+      
+    /* Send out:
+     *
+     * A - client's public key
+     * I - authorization
+     * o - client option list
+     *
+     * { mpi(A) uf8(I) utf8(o) }
+     */
+    
+    r = MakeMPI(params->utils, text->A, &mpiA, &mpiAlen);
+    if (r) {
+	VL(("Error making MPI string from A\n"));
+	goto done;
+    }
+
+    r = MakeUTF8(params->utils, text->userid, &utf8I, &utf8Ilen);
+    if (r) {
+	VL(("Error making UTF8 string from userid ('I')\n"));
+	goto done;
+    }
+
+    r = MakeUTF8(params->utils, text->client_options, &utf8o, &utf8olen);
+    if (r) {
+	VL(("Error making UTF8 string from client options ('o')\n"));
+	goto done;
+    }
+
+    r = MakeBuffer(params->utils, mpiA, mpiAlen, utf8I, utf8Ilen,
+		   utf8o, utf8olen, NULL, 0, clientout, clientoutlen);
+    if (r) {
+	VL(("Error making output buffer\n"));
+	goto done;
+    }
+
+    text->state ++;
+    r = SASL_CONTINUE;
+
+ done:
+    
+    if (utf8I)    params->utils->free(utf8I);
+    if (mpiA)     params->utils->free(mpiA);
+    if (utf8o)    params->utils->free(utf8o);
+
+    return r;
+}
+
+static int
+client_step3(context_t *text,
+	     sasl_client_params_t *params,
+	     const char *serverin,
+	     unsigned serverinlen,
+	     sasl_interact_t **prompt_need __attribute__((unused)),
+	     const char **clientout,
+	     unsigned *clientoutlen,
+	     sasl_out_params_t *oparams)
+{
+    char *data;
+    int datalen;
+    int r;    
+    char *osM1 = NULL;
+    int osM1len;
+
+    /* Expect:
+     *  { mpi(B) }
+     *
+     */
+    r = UnBuffer((char *) serverin, serverinlen, &data, &datalen);
+    if (r) return r;
+
+    r = GetMPI((unsigned char *) data, datalen, &text->B, &data, &datalen);
+    if (r) return r;
+
+    if (datalen != 0) {
+	VL(("Extra data parsing buffer\n"));
+	return SASL_FAIL;
+    }
+    
+    /* Calculate shared context key K
+     *
+     */
+    r = CalculateK_client(text, text->salt, text->saltlen, text->authid, 
+			  text->password->data, text->password->len,
+			  &text->K, &text->Klen);
+    if (r) return r;
+
+    r = SetOptions(&text->client_opts, text, params->utils, oparams);
+    if (r) return r;
+
+    /* Now calculate M1 (client evidence)
+     *
+     */
+    r = CalculateM1(text, text->N, text->g, text->authid,
+		    text->salt, text->saltlen,
+		    text->server_options, text->A, text->B,
+		    text->K, text->Klen,
+		    &text->M1, &text->M1len);
+    if (r) return r;
+
+    /* Send:
+     *
+     * { os(M1) }
+     */
+    
+    r = MakeOS(params->utils, text->M1, text->M1len, &osM1, &osM1len);
+    if (r) {
+	VL(("Error creating OS string for M1\n"));
+	goto done;
+    }
+
+    r = MakeBuffer(params->utils, osM1, osM1len, NULL, 0, NULL, 0, NULL, 0,
+		   clientout, clientoutlen);
+    if (r) {
+	VL(("Error creating buffer in step 3\n"));
+	goto done;
+    }
+
+    text->state++;
+    r = SASL_CONTINUE;
+ done:
+
+    if (osM1)    params->utils->free(osM1);
+
+    return r;
+}
+
+static int
+client_step4(context_t *text,
+	     sasl_client_params_t *params,
+	     const char *serverin,
+	     unsigned serverinlen,
+	     sasl_interact_t **prompt_need __attribute__((unused)),
+	     const char **clientout,
+	     unsigned *clientoutlen,
+	     sasl_out_params_t *oparams __attribute__((unused)))
+{
+    char *data;
+    int datalen;
+    int r;    
+    char *serverM2 = NULL;
+    int serverM2len;
+    int i;
+    char *myM2 = NULL;
+    int myM2len;
+
+    /* Input:
+     *
+     * M2 - server evidence
+     *
+     *   { os(M2) }
+     */
+    r = UnBuffer((char *) serverin, serverinlen, &data, &datalen);
+    if (r) return r;
+
+    r = GetOS(params->utils, (unsigned char *)data, datalen,
+	      &serverM2, &serverM2len, &data, &datalen);
+    if (r) return r;
+
+    if (datalen != 0) {
+	VL(("Extra data parsing buffer\n"));
+	r = SASL_FAIL;
+	goto done;
+    }
+
+    /* calculate our own M2 */
+    r = CalculateM2(text, text->A, text->authid, text->userid,
+		    text->client_options, text->M1, text->M1len,
+		    text->K, text->Klen, &myM2, &myM2len);
+    if (r) {
+	VL(("Error calculating our own M2 (server evidence)\n"));
+	goto done;
+    }
+
+    /* compare to see if is server spoof */
+    if (myM2len != serverM2len) {
+	VL(("Server M2 length wrong\n"));
+	r = SASL_FAIL;
+	goto done;
+    }
 
     
-      /* free prompts we got */
-      if (prompt_need) free_prompts(params,*prompt_need);
+    for (i = 0; i < myM2len; i++) {
+	if (serverM2[i] != myM2[i]) {
+	    VL(("Server spoof detected. M2 incorrect\n"));
+	    r = SASL_FAIL;
+	    goto done;
+	}
+    }
 
-      /* if there are prompts not filled in */
-      if ((auth_result==SASL_INTERACT) ||
-	  (pass_result==SASL_INTERACT))
+    /* Send out: nothing
+     *
+     */
+    *clientout = NULL;
+    *clientoutlen = 0;
+
+    text->state++;
+    r = SASL_OK;
+
+ done:
+
+    if (serverM2)    params->utils->free(serverM2);
+    if (myM2)        params->utils->free(myM2);
+
+    return r;
+}
+
+static int
+srp_client_mech_step(void *conn_context,
+		     sasl_client_params_t *params,
+		     const char *serverin,
+		     unsigned serverinlen,
+		     sasl_interact_t **prompt_need,
+		     const char **clientout,
+		     unsigned *clientoutlen,
+		     sasl_out_params_t *oparams)
+{
+  context_t *text = conn_context;
+
+  VL(("SRP client step %d\n",text->state));
+  params->utils->log(NULL, SASL_LOG_ERR, "SRP client step %d\n",text->state);
+
+  switch (text->state)
       {
-	  /* make the prompt list */
-	  int result=make_prompts(params,prompt_need,
-				  auth_result, pass_result);
-	  if (result!=SASL_OK) return result;
-	  
-	  VL(("returning prompt(s)\n"));
-	  return SASL_INTERACT;
-      }
-
-      printf("authid = %s\n",text->authid);
-
-      /* We received:
-       *
-       * N
-       * g
-       * Z - server options
-       */
-      result = split_netstrings(params->utils, &nd1,&nd2,&nd3, (char *) serverin, serverinlen);
-      if (result!=SASL_OK) return result;
-
-      printf("split worked\n");
-
-      result = bigint_fromnetdata(nd1, params->utils, text->N);
-      if (result!=SASL_OK) return result;
-
-      result = bigint_fromnetdata(nd2, params->utils, text->g);
-      if (result!=SASL_OK) return result;
-
-      if (nd3->size!=1) {
-	  VL(("Options is wrong size\n"));
+      case 1:
+	  return client_step1(text, params, serverin, serverinlen, 
+			      prompt_need, clientout, clientoutlen, oparams);
+      case 2:
+	  return client_step2(text, params, serverin, serverinlen, 
+			      prompt_need, clientout, clientoutlen, oparams);
+      case 3:
+	  return client_step3(text, params, serverin, serverinlen, 
+			      prompt_need, clientout, clientoutlen, oparams);
+      case 4:
+	  return client_step4(text, params, serverin, serverinlen, 
+			      prompt_need, clientout, clientoutlen, oparams);
+      default:
+	  VL(("Invalid SRP step\n"));
 	  return SASL_FAIL;
       }
-      text->server_options = nd3->data[0];
-
-      printf("got N and g\n");
-
-      printf("client g: ");
-      mpz_out_str (stdout, 10, text->g);
-      printf("\n");
-
-      printf("client N: ");
-      mpz_out_str (stdout, 10, text->N);
-      printf("\n");
-
-      /* U  - authname
-       * A  - public key
-       * o  - options byte
-       */
-      ns1 = create_netstring_str(text->authid,strlen(text->authid), params->utils);
-
-      ns2 = create_public_client(text->g,text->N, text->a, text->A, params->utils);
-
-      printf("created public netstring\n");
-
-      /* xxx client options */
-      text->client_options = 0;
-
-      /* create options */
-      ns3 = create_netstring_str(&text->client_options,1, params->utils);
-
-      merge_netstrings(params->utils, ns1,ns2,ns3,clientout,clientoutlen);
-
-      text->state = 2;
-      return SASL_CONTINUE;
-  }
-  if (text->state == 2) { /* client step 2 */
-      netdata_t *nd1;
-      netdata_t *nd2;
-      netstring_t *ns1;
-      netstring_t *tmpns;
-      mpz_t exp;
-      int lup;
-      hash_t hashedB;
-      unsigned int u;
-      hash_t hashx;
-      mpz_t x;
-
-      /* We received 
-       *
-       * s - salt
-       * B - server public key
-       */
-
-      result = split_netstrings(params->utils, &nd1,&nd2,NULL, (char *) serverin, serverinlen);
-      if (result!=SASL_OK) return result;
-
-      result = bigint_fromnetdata(nd2, params->utils, text->B);
-      if (result!=SASL_OK) return result;
-
-      printf("client B: ");
-      mpz_out_str (stdout, 10, text->B);
-      printf("\n");
-
-      printf("foo\n");
-      /* Calculate shared secret S */
-      /* S = (B - g^x) ^ (a+u*x) %N */
-
-
-      /* u is first 32 bits of B; MSB first */      
-      Hash_bigint(text->B, &hashedB, params->utils);
-      memcpy(&u, hashedB.data, 4);
-      u = ntohl(u);      
-
-      printf("client U = %d\n",u);
-
-      /* generate x */
-      result = calculate_x(params->utils,
-			   text->authid, strlen(text->authid), 
-			   text->password->data,text->password->len, 
-			   nd1->data, nd1->size,
-			   x);
-      if (result!=SASL_OK) return result;
-
-      /* exp = a+u*x */
-      mpz_init(exp);
-      mpz_mul_ui (exp, x, u);
-      mpz_add(exp,exp,text->a);
-
-      /* (tmp)S = B - g^x */
-      mpz_init(text->S);
-      mpz_powm (text->S, text->g, x, text->N);     
-      printf("calculated g: ");
-      mpz_out_str (stdout, 10, text->g);
-      printf("\n");
-      printf("calculated x: ");
-      mpz_out_str (stdout, 10, x);
-      printf("\n");
-      printf("calculated N: ");
-      mpz_out_str (stdout, 10, text->N);
-      printf("\n");
-       printf("calculated tmpS 1: ");
-      mpz_out_str (stdout, 10, text->S);
-      printf("\n");
-
-      mpz_sub(text->S, text->B,text->S);
-
-      printf("calculated tmpS: ");
-      mpz_out_str (stdout, 10, text->S);
-      printf("\n");
-
-      /* S = tmpS^exp % N */
-      mpz_powm(text->S, text->S, exp, text->N);
-
-      printf("client calculated S: ");
-      mpz_out_str (stdout, 10, text->S);
-      printf("\n");
-
-      result = SHA_Interleave(text->S, &text->sharedsecretK, params->utils);
-      if (result!=SASL_OK) return result;
-
-      /*
-       * Give out:
-       *  M1
-       *
-       */
-
-      result = calculate_client_evidence(text->N, text->g,
-					 nd1->data, nd1->size,
-					 text->server_options,
-					 text->A, text->B,
-					 &text->sharedsecretK,
-					 &(text->M1),
-					 params->utils);
-      if (result!=SASL_OK) return result;
-
-
-      ns1 = create_netstring_str(text->M1.data, sizeof(text->M1.data), params->utils);
-      if (ns1==NULL) return SASL_NOMEM;
-      
-      *clientout = params->utils->malloc(ns1->size+1);
-      if (!*clientout) return SASL_NOMEM;
-      memcpy(*clientout, ns1->data, ns1->size);
-      *clientoutlen = ns1->size;
-      
-
-      text->state = 3;
-      return SASL_CONTINUE;
-  }
-
-  if (text->state == 3) {
-
-      unsigned char *M2in;
-      int M2inlen;
-      hash_t M2;
-      int lup;
-      
-      /*
-       * Retrieve M2 and verify it
-       *
-       */
-      result = checkvalid_netstring((char *) serverin, serverinlen, (char *) &M2in, &M2inlen);
-      if (result!=SASL_OK) return result;      
-
-      /* Let's calculate M2 ourselves and see if it matches */
-      result = calculate_server_evidence(text->authid,
-					 text->A,
-					 text->client_options,
-					 &(text->M1),
-					 &text->sharedsecretK,
-					 &M2,
-					 params->utils);
-      if (result!=SASL_OK) return result;      
-      
-      for (lup=0;lup<HASHLEN;lup++)
-      {
-	  if (M2in[lup]!=M2.data[lup]) {
-	      VL (("Server evidence failure\n"));
-	      return SASL_FAIL;
-	  }
-      }
-
-      *clientout = params->utils->malloc(1);
-      if (!*clientout) return SASL_NOMEM;
-      (*clientout)[0] = '\0';
-      *clientoutlen = 0;
-
-      text->state = 4;     
-      return SASL_OK;
-  }
 
   return SASL_FAIL;
 }
 
-static const long client_required_prompts[] = {
-  SASL_CB_AUTHNAME,
-  SASL_CB_LIST_END
-};
 
-static const sasl_client_plug_t client_plugins[] = 
+static const sasl_client_plug_t srp_client_plugins[] = 
 {
+#ifdef WITH_SHA1
   {
-    "SRP",	   	        /* mech_name */
+    "SRP-SHA-160",   	        /* mech_name */
     0,				/* max_ssf */
     SASL_SEC_NOPLAINTEXT,	/* security_flags */
-    client_required_prompts,	/* required_prompts */
+    SASL_FEAT_WANT_CLIENT_FIRST,/* features */
+    NULL,			/* required_prompts */
     NULL,			/* glob_context */
-    &client_start,		/* mech_new */
-    &client_continue_step,	/* mech_step */
-    &dispose,			/* mech_dispose */
-    NULL,			/* mech_free */
-    NULL,			/* auth_create */
-    NULL			/* idle */
+    &srp_sha1_client_mech_new,	/* mech_new */
+    &srp_client_mech_step,	/* mech_step */
+    &srp_both_mech_dispose,	/* mech_dispose */
+    &srp_both_mech_free,	/* mech_free */
+    NULL,			/* idle */
+    NULL,			/* spare1 */
+    NULL			/* spare2 */
+  },
+#endif /* WITH_SHA1 */
+  {
+    "SRP-MD5-120",   	        /* mech_name */
+    0,				/* max_ssf */
+    SASL_SEC_NOPLAINTEXT,	/* security_flags */
+    SASL_FEAT_WANT_CLIENT_FIRST,/* features */
+    NULL,			/* required_prompts */
+    NULL,			/* glob_context */
+    &srp_md5_client_mech_new,	/* mech_new */
+    &srp_client_mech_step,	/* mech_step */
+    &srp_both_mech_dispose,	/* mech_dispose */
+    &srp_both_mech_free,	/* mech_free */
+    NULL,			/* idle */
+    NULL,			/* spare1 */
+    NULL			/* spare2 */
   }
 };
 
-int sasl_client_plug_init(sasl_utils_t *utils __attribute__((unused)),
-			  int maxversion,
-			  int *out_version,
-			  const sasl_client_plug_t **pluglist,
-			  int *plugcount)
+int srp_client_plug_init(const sasl_utils_t *utils __attribute__((unused)),
+			 int maxversion,
+			 int *out_version,
+			 const sasl_client_plug_t **pluglist,
+			 int *plugcount,
+			 const char *plugname __attribute__((unused)))
 {
-  if (maxversion < SRP_VERSION)
-    return SASL_BADVERS;
+    if (maxversion < SASL_CLIENT_PLUG_VERSION) {
+	SETERROR(utils, "SRP version mismatch");
+	return SASL_BADVERS;
+    }
 
-  *pluglist=client_plugins;
+    *pluglist=srp_client_plugins;
 
-  *plugcount=1;
-  *out_version=SRP_VERSION;
+    *plugcount=sizeof(srp_client_plugins)/sizeof(sasl_client_plug_t);
+    *out_version=SASL_CLIENT_PLUG_VERSION;
 
-  return SASL_OK;
+    return SASL_OK;
 }

@@ -1,5 +1,6 @@
+/* $Id: common.c,v 1.2 2001/12/04 02:06:52 rjs3 Exp $ */
 /* 
- * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,9 +61,9 @@ int send_string(FILE *f, const char *s, int l)
     printf("send: {%d}\n", l);
     while (l--) {
 	if (isprint((unsigned char) *s)) {
-	    printf("%c ", *s);
+	    printf("%c", *s);
 	} else {
-	    printf("%x ", (unsigned char) *s);
+	    printf("[%X]", (unsigned char) *s);
 	}
 	s++;
     }
@@ -112,9 +113,9 @@ int recv_string(FILE *f, char *buf, int buflen)
     printf("recv: {%d}\n", len);
     while (l--) {
 	if (isprint((unsigned char) *s)) {
-	    printf("%c ", *s);
+	    printf("%c", *s);
 	} else {
-	    printf("%X ", (unsigned char) *s);
+	    printf("[%X]", (unsigned char) *s);
 	}
 	s++;
     }
@@ -139,19 +140,14 @@ int dprintf(int lvl, const char *fmt, ...)
     return ret;
 }
 
-void saslerr(int why, const char *what, const char *errstr)
+void saslerr(int why, const char *what)
 {
   fprintf(stderr, "%s: %s", what, sasl_errstring(why, NULL, NULL));
-  if (errstr) {
-      fprintf(stderr, " (%s)\n", errstr);
-  } else {
-      putc('\n', stderr);
-  }
 }
 
-void saslfail(int why, const char *what, const char *errstr)
+void saslfail(int why, const char *what)
 {
-    saslerr(why, what, errstr);
+    saslerr(why, what);
     exit(EX_TEMPFAIL);
 }
 

@@ -44,11 +44,13 @@
  * socket.
  *
  * The service speaks a very simple protocol. The client connects and
- * sends the authentication identifier, a NUL, the plaintext password,
- * and a NUL. The server returns a single response beginning with "OK"
- * or "NO", an optional text string (seperated from the OK/NO by a
- * single space character), and a NUL. The server then closes the
- * connection.
+ * sends the authentication identifier, the plaintext password, the
+ * service name and user realm as counted length strings (a 16-bit
+ * unsigned integer in network byte order followed by the string
+ * itself). The server returns a single response as a counted length
+ * string. The response begins with "OK" or "NO", and is followed by
+ * an optional text string (separated from the OK/NO by a single space
+ * character), and a NUL. The server then closes the connection.
  *
  * An "OK" response indicates the authentication credentials are valid.
  * A "NO" response indicates the authentication failed.
@@ -68,10 +70,15 @@
  *
  * This implementation was contributed to CMU by Messaging Direct Ltd.
  * in September 2000.
+ *
+ * September 2001 (Ken Murchison of Oceana Matrix Ltd.):
+ * - Modified the protocol to use counted length strings instead of
+ *   nul delimited strings.
+ * - Augmented the protocol to accept the service name and user realm.
  * END HISTORY */
 
 #ifdef __GNUC__
-#ident "$Id: saslauthd.c,v 1.4 2001/01/04 21:20:45 leg Exp $"
+#ident "$Id: saslauthd.c,v 1.5 2001/12/04 02:06:55 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -91,8 +98,8 @@
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <sys/uio.h>
 
-#include "config.h"
 #include "mechanisms.h"
 #include "globals.h"
 /* END PUBLIC DEPENDENCIES */
@@ -109,6 +116,8 @@ char	*r_service;		/* Remote service for rimap driver	 */
 int	g_argc;			/* Copy of argc for sia_* routines	 */
 char	**g_argv;		/* Copy of argv for sia_* routines       */
 #endif /* AUTH_SIA */
+int     retry_read(int fd, void *buf, unsigned nbyte);
+int     retry_writev(int fd, struct iovec *iov, int iovcnt);
 /* path_mux needs to be accessable to server_exit() */
 char	*path_mux;		/* path to AF_UNIX socket */
 
@@ -123,7 +132,7 @@ void		show_version(void);
 
 #define LOCK_FILE_MODE	(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH)
 #define LOCK_SUFFIX ".pid"
-#define MAX_REQ_LEN 1024		/* login/pw input buffer size */
+#define MAX_REQ_LEN 256		/* login/pw/service/realm input buffer size */
 
 #ifdef _AIX
 # define SALEN_TYPE size_t
@@ -534,8 +543,8 @@ main(
  * do_request: handle an incoming authentication request.
  *
  *	This function is the I/O interface between the socket
- *	and auth mechanism. It reads data from the socket until both
- *	a login id and password have been seen, calls the
+ *	and auth mechanism. It reads the login id, password,
+ *	service name and user realm from the socket, calls the
  *	mechanism-specific authentication routine, and sends
  *	the result out to the client.
  * END SYNOPSIS */
@@ -550,62 +559,83 @@ do_request
   )
 {
     /* VARIABLES */
-    char rb[MAX_REQ_LEN + 1];		/* input buffer */
-    char *c;				/* scratch pointer */
     char *reply;			/* authentication response message.
 					   This is a malloc()ed string that
 					   is free()d at the end. If you assign
 					   this internally, make sure to
 					   strdup() the string you assign. */
-    int count;				/* input data byte counter */
+    struct iovec iov[2];		/* for sending response */
+    unsigned short count;		/* input/output data byte count */
     int rc;				/* general purpose return code */
-    int nul_count;			/* # of '\0' seen in input stream */
-    char *login;			/* account name to authenticate */
-    char *password;			/* password for authentication */
+    char login[MAX_REQ_LEN + 1];	/* account name to authenticate */
+    char password[MAX_REQ_LEN + 1];	/* password for authentication */
+    char service[MAX_REQ_LEN + 1];	/* service name for authentication */
+    char realm[MAX_REQ_LEN + 1];	/* user realm for authentication */
     int error_condition;		/* 1: error occured, can't continue */
 /* END VARIABLES */
 
     /* initialization */
-    count = 0;
-    rc = 0;
-    c = rb;
-    nul_count = 0;
     error_condition = 0;
     reply = NULL;
 
     /*
-     * The input data stream consists of the login id, a NUL,
-     * the password, and a NUL. We read() until we have
-     * seen two NUL characters, then dispatch the data.
+     * The input data stream consists of the login id, password,
+     * service name and user realm as counted length strings.
+     * We read() each string, then dispatch the data.
      */
-    while ((count < MAX_REQ_LEN) && (nul_count < 2)) {
-	rc = read(in, c, MAX_REQ_LEN - count);
-	if (rc == -1) {
-	    if (errno == EINTR)
-		continue;
-	    else {
-		syslog(LOG_ERR, "do_request read(fd=%d): %m");
-		return;
-	    }
+    rc = (retry_read(in, &count, sizeof(count)) < (int)
+	  sizeof(count));
+    if (!rc) {
+	count = ntohs(count);
+	if (count > MAX_REQ_LEN)
+	    rc = error_condition = 1;
+	else {
+	    rc = (retry_read(in, login, count) < (int) count);
+	    login[count] = '\0';
 	}
-	if (rc == 0) {
-	    syslog(LOG_WARNING, "do_request: NUL read?");
-	    return;
-	}
-	count += rc;
-	while (rc--)
-	    if (*c++ == '\0')
-		nul_count++;
     }
-  
-    if (count < 2) {
-	/*
-	 * Fell off the end of the buffer before receiving all the
-	 * data. This is probably someone trying to exploit a buffer
-	 * overflow ...
-	 */
 
-	error_condition = 1;
+    if (!rc)
+	rc = (retry_read(in, &count, sizeof(count)) < (int) sizeof(count));
+    if (!rc) {
+	count = ntohs(count);
+	if (count > MAX_REQ_LEN)
+	    rc = error_condition = 1;
+	else {
+	    rc = (retry_read(in, password, count) < (int) count);
+	    password[count] = '\0';
+	}
+    }
+
+    if (!rc)
+	rc = (retry_read(in, &count, sizeof(count)) < (int) sizeof(count));
+    if (!rc) {
+	count = ntohs(count);
+	if (count > MAX_REQ_LEN)
+	    rc = error_condition = 1;
+	else {
+	    rc = (retry_read(in, service, count) < (int) count);
+	    service[count] = '\0';
+	}
+    }
+
+    if (!rc)
+	rc = (retry_read(in, &count, sizeof(count)) < (int) sizeof(count));
+    if (!rc) {
+	count = ntohs(count);
+	if (count > MAX_REQ_LEN)
+	    rc = error_condition = 1;
+	else {
+	    rc = (retry_read(in, realm, count) < (int) count);
+	    realm[count] = '\0';
+	}
+    }
+
+    if (error_condition) {
+	/*
+	 * One of parameter lengths is too long.
+	 * This is probably someone trying to exploit a buffer overflow ...
+	 */
 	syslog(LOG_ERR,
 	       "ALERT: input data exceeds %d bytes! Possible intrusion attempt?",
 	       MAX_REQ_LEN);
@@ -614,10 +644,11 @@ do_request
 					/* will keep banging on the door long*/
 					/* enough for someone to take action.*/
     }
-
-    login = strdup(rb);			/* make a copy of the  account name */
-    password = rb + strlen(rb) + 1;	/* point to password */
-
+    else if (rc) {
+	syslog(LOG_ERR, "do_request read failed: %m");
+	return;
+    }
+	    
     if ((*login == '\0') || (*password == '\0')) {
 	error_condition = 1;
 	syslog(LOG_NOTICE, "null login/password received");
@@ -629,7 +660,7 @@ do_request
     }
 
     if (!error_condition) {
-	reply = authmech->authenticate(login, password);
+	reply = authmech->authenticate(login, password, service, realm);
 	memset(password, 0, strlen(password));
 
 	if (reply == NULL) {
@@ -643,42 +674,150 @@ do_request
 
     if (!strncmp(reply, "NO", sizeof("NO")-1)) {
 	if (strlen(reply) < sizeof("NO "))
-	    syslog(LOG_WARNING, "AUTHFAIL: %s", login);
+	    syslog(LOG_WARNING, "AUTHFAIL: user=%s service=%s realm=%s",
+		   login, service, realm);
 	else
-	    syslog(LOG_WARNING, "AUTHFAIL: %s [%s]", login, reply + 3);
+	    syslog(LOG_WARNING, "AUTHFAIL: user=%s service=%s realm=%s [%s]",
+		   login, service, realm, reply + 3);
     } else {
 	if (debug) {
-	    syslog(LOG_INFO, "OK: %s", login);
+	    syslog(LOG_INFO, "OK: user=%s service=%s realm=%s",
+		   login, service, realm);
 	}
     }
 
-    free(login);
-    
     /* write the response out the socket */
-    count = 0;
-    while (1) {
-	int n = strlen(reply);
+    count = htons(strlen(reply));
 
-	rc = write(out, reply, n);
-	if (rc == -1) {
-	    if (errno == EINTR)
-		continue;
-	    syslog(LOG_ERR, "do_request write failed: %m");
-	    free(reply);
-	    return;
-	}
-	count += rc;
-	if (count >= n)
-	    break;			/* finished */
-	reply += n;
-	count -= n;
-    }
+    iov[0].iov_base = &count;
+    iov[0].iov_len = sizeof(count);
+    iov[1].iov_base = (void*) reply;
+    iov[1].iov_len = strlen(reply);
+
+    rc = retry_writev(out, iov, 2);
+
+    if (debug)
+	printf("Just Wrote: %d:%s\n",ntohs(count),reply);
+
+    if (rc == -1)
+	syslog(LOG_ERR, "do_request write failed: %m");
 
     free(reply);
     return;
 }
 
 /* END FUNCTION: do_request */
+
+/* FUNCTION: retry_read */
+
+/* SYNOPSIS
+ * Keep calling the read() system call with 'fd', 'buf', and 'nbyte'
+ * until all the data is read in or an error occurs.
+ * END SYNOPSIS */
+int retry_read(int fd, void *buf, unsigned nbyte)
+{
+    int n;
+    int nread = 0;
+
+    if (nbyte == 0) return 0;
+
+    for (;;) {
+	n = read(fd, buf, nbyte);
+	if (n == -1) {
+	    if (errno == EINTR) continue;
+	    return -1;
+	}
+
+	nread += n;
+
+	if (n >= (int) nbyte) return nread;
+
+	buf += n;
+	nbyte -= n;
+    }
+}
+
+/* END FUNCTION: retry_read */
+
+/* FUNCTION: retry_writev */
+
+/* SYNOPSIS
+ * Keep calling the writev() system call with 'fd', 'iov', and 'iovcnt'
+ * until all the data is written out or an error occurs.
+ * END SYNOPSIS */
+
+int				/* R: bytes written, or -1 on error */
+retry_writev (
+  /* PARAMETERS */
+  int fd,				/* I: fd to write on */
+  struct iovec *iov,			/* U: iovec array base
+					 *    modified as data written */
+  int iovcnt				/* I: number of iovec entries */
+  /* END PARAMETERS */
+  )
+{
+    /* VARIABLES */
+    int n;				/* return value from writev() */
+    int i;				/* loop counter */
+    int written;			/* bytes written so far */
+    static int iov_max;			/* max number of iovec entries */
+    /* END VARIABLES */
+
+    /* initialization */
+#ifdef MAXIOV
+    iov_max = MAXIOV;
+#else /* ! MAXIOV */
+# ifdef IOV_MAX
+    iov_max = IOV_MAX;
+# else /* ! IOV_MAX */
+    iov_max = 8192;
+# endif /* ! IOV_MAX */
+#endif /* ! MAXIOV */
+    written = 0;
+    
+    for (;;) {
+
+	while (iovcnt && iov[0].iov_len == 0) {
+	    iov++;
+	    iovcnt--;
+	}
+
+	if (!iovcnt) {
+	    return written;
+	}
+
+	n = writev(fd, iov, iovcnt > iov_max ? iov_max : iovcnt);
+	if (n == -1) {
+	    if (errno == EINVAL && iov_max > 10) {
+		iov_max /= 2;
+		continue;
+	    }
+	    if (errno == EINTR) {
+		continue;
+	    }
+	    return -1;
+	} else {
+	    written += n;
+	}
+
+	for (i = 0; i < iovcnt; i++) {
+	    if (iov[i].iov_len > (unsigned) n) {
+		iov[i].iov_base = (char *)iov[i].iov_base + n;
+		iov[i].iov_len -= n;
+		break;
+	    }
+	    n -= iov[i].iov_len;
+	    iov[i].iov_len = 0;
+	}
+
+	if (i == iovcnt) {
+	    return written;
+	}
+    }
+    /* NOTREACHED */
+}
+
+/* END FUNCTION: retry_writev */
 
 /* FUNCTION: show_version */
 

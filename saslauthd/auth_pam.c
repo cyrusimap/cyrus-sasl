@@ -43,8 +43,8 @@
  */
 
 /* PUBLIC DEPENDENCIES */
-#include <config.h>
 #include "mechanisms.h"
+#include <stdio.h>
 
 #ifdef AUTH_PAM
 
@@ -176,7 +176,9 @@ char *					/* R: allocated response string */
 auth_pam (
   /* PARAMETERS */
   const char *login,			/* I: plaintext authenticator */
-  const char *password			/* I: plaintext password */
+  const char *password,			/* I: plaintext password */
+  const char *service,			/* I: service name */
+  const char *realm __attribute__((unused))
   /* END PARAMETERS */
   )
 {
@@ -194,7 +196,7 @@ auth_pam (
     my_conv.conv = saslauthd_pam_conv;
     my_conv.appdata_ptr = &my_appdata;
 
-    rc = pam_start("cyrus", login, &my_conv, &pamh);
+    rc = pam_start(service, login, &my_conv, &pamh);
     if (rc != PAM_SUCCESS) {
 	syslog(LOG_DEBUG, "DEBUG: auth_pam: pam_start failed: %s",
 	       pam_strerror(pamh, rc));
@@ -230,7 +232,9 @@ auth_pam (
 char *
 auth_pam(
   const char *login __attribute__((unused)),
-  const char *password __attribute__((unused))
+  const char *password __attribute__((unused)),
+  const char *service __attribute__((unused)),
+  const char *realm __attribute__((unused))
   )
 {
     return NULL;

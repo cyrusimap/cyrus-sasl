@@ -1,8 +1,10 @@
 /* Anonymous SASL plugin
+ * Rob Siemborski
  * Tim Martin 
+ * $Id: anonymous.c,v 1.38 2001/12/04 02:06:46 rjs3 Exp $
  */
 /* 
- * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,11 +62,11 @@
 # include "saslANONYMOUS.h"
 #endif
 
+#include "plugin_common.h"
+
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
 
 static const char anonymous_id[] = "anonymous";
-
-#define ANONYMOUS_VERSION (3)
 
 #ifdef L_DEFAULT_GUARD
 # undef L_DEFAULT_GUARD
@@ -74,53 +76,47 @@ static const char anonymous_id[] = "anonymous";
 /* only used by client */
 typedef struct context {
   int state;
+  char *out_buf;
+  unsigned out_buf_len;
 } context_t;
 
 static int
-server_start(void *glob_context __attribute__((unused)),
-      sasl_server_params_t *sparams __attribute__((unused)),
-      const char *challenge __attribute__((unused)),
-      int challen __attribute__((unused)),
-      void **conn,
-      const char **errstr)
+anonymous_server_mech_new(void *glob_context __attribute__((unused)),
+			  sasl_server_params_t *sparams,
+			  const char *challenge __attribute__((unused)),
+			  unsigned challen __attribute__((unused)),
+			  void **conn_context)
 {
-  /* holds state are in */
-  if (!conn)
-      return SASL_BADPARAM;
+    /* holds state are in */
+    if (!conn_context) {
+	PARAMERROR( sparams->utils );
+	return SASL_BADPARAM;
+    }
   
-  *conn = NULL;
-  if (errstr)
-      *errstr = NULL;
+    *conn_context = NULL;
 
-  return SASL_OK;
+    return SASL_OK;
 }
 
 static int
-server_continue_step (void *conn_context __attribute__((unused)),
-	       sasl_server_params_t *sparams,
-	       const char *clientin,
-	       int clientinlen,
-	       char **serverout,
-	       int *serveroutlen,
-	       sasl_out_params_t *oparams,
-	       const char **errstr)
+anonymous_server_mech_step(void *conn_context __attribute__((unused)),
+			   sasl_server_params_t *sparams,
+			   const char *clientin,
+			   unsigned clientinlen,
+			   const char **serverout,
+			   unsigned *serveroutlen,
+			   sasl_out_params_t *oparams)
 {
-  int result;
-  struct sockaddr_in *remote_addr;   
   char *clientdata;
 
   if (!sparams
       || !serverout
       || !serveroutlen
-      || !oparams)
-    return SASL_BADPARAM;
-
-  if (clientinlen < 0)
+      || !oparams) {
+      PARAMERROR( sparams->utils );
       return SASL_BADPARAM;
-
-  if (errstr)
-      *errstr = NULL;
-
+  }
+  
   if (! clientin) {
     *serverout = NULL;
     *serveroutlen = 0;
@@ -132,51 +128,31 @@ server_continue_step (void *conn_context __attribute__((unused)),
 
   /* NULL-terminate the clientin... */
   clientdata = sparams->utils->malloc(clientinlen + 1);
-  if (! clientdata)
-    return SASL_NOMEM;
+  if (! clientdata) {
+      MEMERROR(sparams->utils);
+      return SASL_NOMEM;
+  }
+  
   strncpy(clientdata, clientin, clientinlen);
   clientdata[clientinlen] = '\0';
 
-  result = sparams->utils->getprop(sparams->utils->conn,
-				   SASL_IP_REMOTE, (void **)&remote_addr);
-
-  if (result==SASL_OK) {
-    int ipnum = remote_addr->sin_addr.s_addr;
-
-    sparams->utils->log(sparams->utils->conn,
-			SASL_LOG_INFO,
-			"ANONYMOUS", 0, 0,
-			"login: \"%s\" from [%d.%d.%d.%d]",
-			clientdata,
-			ipnum >> 24 & 0xFF,
-			ipnum >> 16 & 0xFF,
-			ipnum >> 8 &0xFF,
-			ipnum & 0xFF);
-  } else {
-    sparams->utils->log(sparams->utils->conn,
-			SASL_LOG_INFO,
-			"ANONYMOUS", 0, 0,
-			"login: \"%s\" from [no IP given]",
-			clientdata);
-  }
+  sparams->utils->log(sparams->utils->conn,
+		      SASL_LOG_NOTE,
+		      "ANONYMOUS login: \"%s\"",
+		      clientdata);
 
   if (clientdata != clientin)
     sparams->utils->free(clientdata);
   
   oparams->mech_ssf=0;
-  oparams->maxoutbuf = 0;
+  oparams->maxoutbuf=0;
   oparams->encode=NULL;
   oparams->decode=NULL;
 
-  oparams->user = sparams->utils->malloc(sizeof(anonymous_id));
-  if (oparams->user)
-    strcpy(oparams->user, anonymous_id);
-
-  oparams->authid = sparams->utils->malloc(sizeof(anonymous_id));
-  if (oparams->authid)
-    strcpy(oparams->authid, anonymous_id);
-
-  oparams->realm=NULL;
+  sparams->canon_user(sparams->utils->conn,
+		      anonymous_id, 0, anonymous_id, 0,
+		      0, oparams);
+  
   oparams->param_version=0;
 
   /*nothing more to do; authenticated */
@@ -187,83 +163,98 @@ server_continue_step (void *conn_context __attribute__((unused)),
   return SASL_OK;
 }
 
-static const sasl_server_plug_t plugins[] = 
+static sasl_server_plug_t anonymous_server_plugins[] = 
 {
   {
     "ANONYMOUS",		/* mech_name */
     0,				/* max_ssf */
     SASL_SEC_NOPLAINTEXT,	/* security_flags */
+    SASL_FEAT_WANT_CLIENT_FIRST,/* features */
     NULL,			/* glob_context */
-    &server_start,		/* mech_new */
-    &server_continue_step,	/* mech_step */
+    &anonymous_server_mech_new,	/* mech_new */
+    &anonymous_server_mech_step,/* mech_step */
     NULL,			/* mech_dispose */
     NULL,			/* mech_free */
     NULL,			/* setpass */
     NULL,			/* user_query */
     NULL,			/* idle */
-    NULL,			/* install_credentials */
-    NULL,			/* uninstall_credentials */
-    NULL			/* free_credentials */
+    NULL,			/* mech_avail */
+    NULL                        /* spare */
   }
 };
 
-int sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
-			  int maxversion,
-			  int *out_version,
-			  const sasl_server_plug_t **pluglist,
-			  int *plugcount)
+int anonymous_server_plug_init(const sasl_utils_t *utils,
+			       int maxversion,
+			       int *out_version,
+			       sasl_server_plug_t **pluglist,
+			       int *plugcount)
 {
-  if (maxversion<ANONYMOUS_VERSION)
-    return SASL_BADVERS;
-
-  *pluglist=plugins;
-
-  *plugcount=1;  
-  *out_version=ANONYMOUS_VERSION;
-
-  return SASL_OK;
+    if (maxversion<SASL_SERVER_PLUG_VERSION) {
+	SETERROR( utils, "ANONYMOUS version mismatch" );
+	return SASL_BADVERS;
+    }
+    
+    *pluglist=anonymous_server_plugins;
+    
+    *plugcount=1;  
+    *out_version=SASL_SERVER_PLUG_VERSION;
+    
+    return SASL_OK;
 }
 
-static void dispose(void *conn_context, sasl_utils_t *utils)
+static void anonymous_client_dispose(void *conn_context,
+				     const sasl_utils_t *utils)
 {
   context_t *text;
-  text=conn_context;
 
-  if (!text)
-    return;
+  if(!conn_context) return;
+
+  text=(context_t *)conn_context;
+  if (!text) return;
+
+  if(text->out_buf) utils->free(text->out_buf);
 
   utils->free(text);
 }
 
-/* put in sasl_wrongmech */
 static int
-client_start(void *glob_context __attribute__((unused)),
-	sasl_client_params_t *params __attribute__((unused)),
-	void **conn)
+anonymous_client_mech_new(void *glob_context __attribute__((unused)),
+			  sasl_client_params_t *cparams,
+			  void **conn_context)
 {
   context_t *text;
 
-  if (! conn)
-    return SASL_BADPARAM;
-
+  if (! conn_context) {
+      PARAMERROR(cparams->utils);
+      return SASL_BADPARAM;
+  }
+  
   /* holds state are in */
-  text = params->utils->malloc(sizeof(context_t));
-  if (text==NULL) return SASL_NOMEM;
-  text->state=1;  
-  *conn=text;
+  text = cparams->utils->malloc(sizeof(context_t));
+  if (text==NULL) {
+      MEMERROR(cparams->utils);
+      return SASL_NOMEM;
+  }
+  
+  text->state=1;
+ 
+  text->out_buf = NULL;
+  text->out_buf_len = 0;
+
+  *conn_context=text;
 
   return SASL_OK;
 }
 
 static int
-client_continue_step(void *conn_context,
-		sasl_client_params_t *params,
-		const char *serverin __attribute__((unused)),
-		int serverinlen,
-		sasl_interact_t **prompt_need,
-		char **clientout,
-		int *clientoutlen,
-		sasl_out_params_t *oparams)
+anonymous_client_mech_step(void *conn_context,
+			   sasl_client_params_t *cparams,
+			   const char *serverin __attribute__((unused)),
+			   unsigned serverinlen,
+			   sasl_interact_t **prompt_need,
+			   const char **clientout,
+			   unsigned *clientoutlen,
+			   sasl_out_params_t *oparams)
 {
   int result;
   unsigned userlen;
@@ -274,55 +265,44 @@ client_continue_step(void *conn_context,
   context_t *text;
   text=conn_context;
 
-  if (text->state == 3) {
-      *clientout = NULL;
-      *clientoutlen = 0;
-      VL(("Verify we're done step"));
-      text->state++;
-      return SASL_OK;      
-  }
-
-  if (clientout == NULL && text->state == 1) {
-      /* no initial client send */
-      text->state = 2;
-      return SASL_CONTINUE;
-  } else if (text->state == 1) {
-      text->state = 2;
-  }
-
-  if (text->state != 2) {
+  if (text->state != 1) {
+      SETERROR( cparams->utils, "Invalid state in ANONYMOUS continue_step" );
       return SASL_FAIL;
   }
 
-  VL(("ANONYMOUS: step 1\n"));
-
-  if (!params
+  if (!cparams
       || !clientout
       || !clientoutlen
-      || !oparams)
-    return SASL_BADPARAM;
-
-  if (serverinlen != 0)
-    return SASL_BADPROT;
+      || !oparams) {
+      PARAMERROR( cparams->utils );
+      return SASL_BADPARAM;
+  }
+      
+  if (serverinlen != 0) {
+      SETERROR( cparams->utils, "Nonzero serverinlen in ANONYMOUS continue_step" );
+      return SASL_BADPROT;
+  }
 
   /* check if sec layer strong enough */
-  if (params->props.min_ssf>0)
-    return SASL_TOOWEAK;
+  if (cparams->props.min_ssf>0) {
+      SETERROR( cparams->utils, "SSF requested of ANONYMOUS plugin");
+      return SASL_TOOWEAK;
+  }
 
+  /* Watch out if this doesn't start nulled! */
   /* Get the username */
   if (prompt_need && *prompt_need) {
-    VL(("Received prompt\n"));
-    /* We used an interaction to get it. */
-    if (! (*prompt_need)[0].result)
-      return SASL_BADPARAM;
+      if (! (*prompt_need)[0].result) {
+	  SETERROR( cparams->utils, "ANONYMOUS continue_step expected interaction result but got none");
+	  return SASL_BADPARAM;
+      }
 
-    user = (*prompt_need)[0].result;
-    userlen = (*prompt_need)[0].len;
-    params->utils->free(*prompt_need);
-    *prompt_need = NULL;
+      user = (*prompt_need)[0].result;
+      userlen = (*prompt_need)[0].len;
+      cparams->utils->free(*prompt_need);
   } else {
     /* Try to get the callback... */
-    result = params->utils->getcallback(params->utils->conn,
+    result = cparams->utils->getcallback(cparams->utils->conn,
 					SASL_CB_AUTHNAME,
 					&getuser_cb,
 					&getuser_context);
@@ -330,9 +310,11 @@ client_continue_step(void *conn_context,
     case SASL_INTERACT:
       /* Set up the interaction... */
       if (prompt_need) {
-	*prompt_need = params->utils->malloc(sizeof(sasl_interact_t) * 2);
-	if (! *prompt_need)
-	  return SASL_FAIL;
+	*prompt_need = cparams->utils->malloc(sizeof(sasl_interact_t) * 2);
+	if (! *prompt_need) {
+	    MEMERROR( cparams->utils );
+	    return SASL_NOMEM;
+	}
 	memset(*prompt_need, 0, sizeof(sasl_interact_t) * 2);
 	(*prompt_need)[0].id = SASL_CB_AUTHNAME;
 	(*prompt_need)[0].prompt = "Anonymous identification";
@@ -365,16 +347,18 @@ client_continue_step(void *conn_context,
   gethostname(hostname, sizeof(hostname));
   hostname[sizeof(hostname)-1] = '\0';
   
-  *clientoutlen = userlen + strlen(hostname) + 1;
+  *clientoutlen = userlen + strlen(hostname) + 2;
 
-  *clientout = params->utils->malloc(*clientoutlen + 1);
-  if (! *clientout) return SASL_NOMEM;
+  result = _plug_buf_alloc(cparams->utils, &text->out_buf,
+			   &text->out_buf_len, *clientoutlen);
 
-  strcpy(*clientout, user);
-  (*clientout)[userlen] = '@';
-  strcpy(*clientout + userlen + 1, hostname);
+  if(result != SASL_OK) return result;
 
-  VL(("anonymous: out=%s\n", *clientout));
+  *clientout = text->out_buf;
+
+  strcpy(text->out_buf, user);
+  text->out_buf[userlen] = '@';
+  strcpy(text->out_buf + userlen + 1, hostname);
 
   oparams->doneflag = 1;
   oparams->mech_ssf=0;
@@ -382,57 +366,57 @@ client_continue_step(void *conn_context,
   oparams->encode=NULL;
   oparams->decode=NULL;
 
-  oparams->user = params->utils->malloc(sizeof(anonymous_id));
-  if (oparams->user)
-    strcpy(oparams->user, anonymous_id);
+  cparams->canon_user(cparams->utils->conn,
+		      anonymous_id, 0, anonymous_id, 0,
+		      0, oparams);
 
-  oparams->authid = params->utils->malloc(sizeof(anonymous_id));
-  if (oparams->authid)
-    strcpy(oparams->authid, anonymous_id);
-
-  oparams->realm=NULL;
   oparams->param_version=0;
 
-  text->state = 3;
+  text->state = 2;
 
-  return SASL_CONTINUE;
+  return SASL_OK;
 }
 
-static const long client_required_prompts[] = {
+static const long anonymous_required_prompts[] = {
   SASL_CB_AUTHNAME,
   SASL_CB_LIST_END
 };
 
-static const sasl_client_plug_t client_plugins[] = 
+static sasl_client_plug_t anonymous_client_plugins[] = 
 {
   {
     "ANONYMOUS",		/* mech_name */
     0,				/* max_ssf */
     SASL_SEC_NOPLAINTEXT,	/* security_flags */
-    client_required_prompts,	/* required_prompts */
+    SASL_FEAT_WANT_CLIENT_FIRST,/* features */
+    anonymous_required_prompts,	/* required_prompts */
     NULL,			/* glob_context */
-    &client_start,		/* mech_new */
-    &client_continue_step,	/* mech_step */
-    &dispose,			/* mech_dispose */
+    &anonymous_client_mech_new, /* mech_new */
+    &anonymous_client_mech_step,/* mech_step */
+    &anonymous_client_dispose,	/* mech_dispose */
     NULL,			/* mech_free */
-    NULL,			/* auth_create */
-    NULL			/* idle */
+    NULL,			/* idle */
+    NULL,			/* spare */
+    NULL                        /* spare */
   }
 };
 
-int sasl_client_plug_init(sasl_utils_t *utils __attribute__((unused)),
-			  int maxversion,
-			  int *out_version,
-			  const sasl_client_plug_t **pluglist,
-			  int *plugcount)
+int anonymous_client_plug_init(
+    const sasl_utils_t *utils,
+    int maxversion,
+    int *out_version,
+    sasl_client_plug_t **pluglist,
+    int *plugcount)
 {
-  if (maxversion < ANONYMOUS_VERSION)
-    return SASL_BADVERS;
+    if (maxversion < SASL_CLIENT_PLUG_VERSION) {
+	SETERROR( utils, "ANONYMOUS version mismatch" );
+	return SASL_BADVERS;
+    }
 
-  *pluglist=client_plugins;
+    *pluglist=anonymous_client_plugins;
+    
+    *plugcount=1;
+    *out_version=SASL_CLIENT_PLUG_VERSION;
 
-  *plugcount=1;
-  *out_version=ANONYMOUS_VERSION;
-
-  return SASL_OK;
+    return SASL_OK;
 }

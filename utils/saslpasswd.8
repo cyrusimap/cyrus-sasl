@@ -49,6 +49,7 @@ saslpasswd \- set a user's sasl password
 .RB [ -p ]
 .RB [ -d ]
 .RB [ -c ]
+.RB [ -f\ file ]
 .RB [ -u\ domain ]
 .RB [ -a\ appname ]
 .B userid
@@ -79,6 +80,11 @@ Deletes the entry for the user.  This is mutually exclusive with the
 use
 .B domain
 for user domain (realm).
+.TP
+.B -f file
+use
+.B file
+for sasldb
 .TP
 .B -a appname
 use

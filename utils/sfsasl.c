@@ -4,7 +4,7 @@
 #include <sfio.h>
 
 /* 
- * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -56,7 +56,7 @@ typedef struct _sasldisc
 ssize_t sasl_read(Sfio_t *f, Void_t *buf, size_t size, Sfdisc_t *disc)
 {
     int len, result;
-    char *outbuf;
+    const char *outbuf;
     int outlen;
     Sasldisc_t *sd = (Sasldisc_t *) disc;
 
@@ -74,7 +74,6 @@ ssize_t sasl_read(Sfio_t *f, Void_t *buf, size_t size, Sfdisc_t *disc)
 
     if (outbuf != NULL) {
 	memcpy(buf, outbuf, outlen);
-	free(outbuf);
     }
 
     return outlen;
@@ -83,7 +82,7 @@ ssize_t sasl_read(Sfio_t *f, Void_t *buf, size_t size, Sfdisc_t *disc)
 ssize_t sasl_write(Sfio_t *f, const Void_t *buf, size_t size, Sfdisc_t *disc)
 {
     int result;
-    char *outbuf;
+    const char *outbuf;
     int outlen;
     Sasldisc_t *sd = (Sasldisc_t *) disc;
 
@@ -95,7 +94,6 @@ ssize_t sasl_write(Sfio_t *f, const Void_t *buf, size_t size, Sfdisc_t *disc)
 
     if (outbuf != NULL) {
 	sfwr(f, outbuf, outlen, disc);
-	free(outbuf);
     }
 
     return size;

@@ -31,7 +31,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: mechanisms.c,v 1.3 2001/07/24 17:11:28 rjs3 Exp $"
+#ident "$Id: mechanisms.c,v 1.4 2001/12/04 02:06:55 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -49,6 +49,7 @@
 #include "auth_krb4.h"
 #include "auth_krb5.h"
 #include "auth_getpwent.h"
+#include "auth_sasldb.h"
 #include "auth_rimap.h"
 #ifdef AUTH_PAM
 # include "auth_pam.h"
@@ -57,9 +58,9 @@
 
 authmech_t mechanisms[] =
 {
-#ifdef NOTYET
+#ifdef AUTH_SASLDB
     {	"sasldb",	0,			auth_sasldb },
-#endif
+#endif /* AUTH_SASLDB */
 #ifdef AUTH_DCE
     {	"dce",		0,			auth_dce },
 #endif /* AUTH_DCE */

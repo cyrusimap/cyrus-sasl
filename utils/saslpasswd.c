@@ -2,7 +2,7 @@
  * Rob Earhart
  */
 /* 
- * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,6 +42,9 @@
  */
 
 #include <config.h>
+#include <stdio.h>
+#include <assert.h>
+
 #ifndef WIN32
 #include <termios.h>
 #include <unistd.h>
@@ -56,12 +59,20 @@ __declspec(dllimport) int optind;
 __declspec(dllimport) int getsubopt(char **optionp, char * const *tokens, char **valuep);
 #endif /*WIN32*/
 #include <sasl.h>
+#include <saslplug.h>
+#include "../sasldb/sasldb.h"
+
+/* Cheating to make the utils work out right */
+extern const sasl_utils_t *sasl_global_utils;
+
+char myhostname[1025];
 
 #define PW_BUF_SIZE 2048
 
 static const char build_ident[] = "$Build: saslpasswd " PACKAGE "-" VERSION " $";
 
 const char *progname = NULL;
+char *sasldb_path = NULL;
 
 void read_password(const char *prompt,
 		   int flag_pipe,
@@ -162,8 +173,6 @@ exit_sasl(int result, const char *errstr)
   exit(-result);
 }
 
-char *sasldb_path = NULL;
-
 int good_getopt(void *context __attribute__((unused)), 
 		const char *plugin_name __attribute__((unused)), 
 		const char *option,
@@ -185,6 +194,120 @@ static struct sasl_callback goodsasl_cb[] = {
     { SASL_CB_LIST_END, NULL, NULL }
 };
 
+/* returns the realm we should pretend to be in */
+static int parseuser(char **user, char **realm, const char *user_realm, 
+		     const char *serverFQDN, const char *input)
+{
+    char *r;
+
+    assert(user && realm && serverFQDN);
+
+    *realm = *user = NULL;
+
+    if (!user_realm) {
+	*realm = strdup(serverFQDN);
+	*user = strdup(input);
+    } else if (user_realm[0]) {
+	*realm = strdup(user_realm);
+	*user = strdup(input);
+    } else {
+	/* otherwise, we gotta get it from the user */
+	r = strchr(input, '@');
+	if (!r) {
+	    /* hmmm, the user didn't specify a realm */
+	    /* we'll default to the serverFQDN */
+	    *realm = strdup(serverFQDN);
+	    *user = strdup(input);
+	} else {
+	    r++;
+	    *realm = strdup(r);
+	    *--r = '\0';
+	    *user = malloc(r - input + 1);
+	    if (*user) {
+		strncpy(*user, input, r - input +1);
+	    } else {
+		return SASL_NOMEM;
+	    }
+	    *r = '@';
+	}
+    }
+
+    if(! *user && ! *realm ) return SASL_FAIL;
+    else return SASL_OK;
+}
+
+/* this routine sets the sasldb password given a user/pass */
+int _sasl_sasldb_set_pass(sasl_conn_t *conn,
+			  const char *serverFQDN,
+			  const char *userstr, 
+			  const char *pass,
+			  unsigned passlen,
+			  const char *user_realm,
+			  int flags)
+{
+    char *userid = NULL;
+    char *realm = NULL;
+    int ret = SASL_OK;
+
+    ret = parseuser(&userid, &realm, user_realm, serverFQDN, userstr);
+    if (ret != SASL_OK) {
+	return ret;
+    }
+
+    if (pass != NULL && !(flags & SASL_SET_DISABLE)) {
+	/* set the password */
+	sasl_secret_t *sec = NULL;
+
+	/* if SASL_SET_CREATE is set, we don't want to overwrite an
+	   existing account */
+	if (flags & SASL_SET_CREATE) {
+	    ret = _sasldb_getsecret(sasl_global_utils,
+				    conn, userid, realm, &sec);
+	    if (ret == SASL_OK) {
+		memset(sec->data, 0, sec->len);
+		free(sec);
+		sec = NULL;
+		ret = SASL_NOCHANGE;
+	    } else {
+		/* Don't give up yet-- the DB might have failed because
+		 * does not exist, but will be created later... */
+		ret = SASL_OK;
+	    }
+	}
+	
+	/* ret == SASL_OK iff we still want to set this password */
+	if (ret == SASL_OK) {
+	    /* Create the sasl_secret_t */
+	    sec = malloc(sizeof(sasl_secret_t) + passlen);
+	    if(!sec) ret = SASL_NOMEM;
+	    else {
+		memcpy(sec->data, pass, passlen);
+		sec->data[passlen] = '\0';
+		sec->len = passlen;
+	    }
+	}
+	if (ret == SASL_OK) {
+	    ret = _sasldb_putsecret(sasl_global_utils,
+				    conn, userid, realm, sec);
+	}
+	if ( ret != SASL_OK ) {
+	    printf("Could not set secret for %s\n", userid);
+	}
+	if (sec) {
+	    memset(sec->data, 0, sec->len);
+	    free(sec);
+	    sec = NULL;
+	}
+    } else { 
+	/* SASL_SET_DISABLE specified */
+	ret = _sasldb_putsecret(sasl_global_utils, conn, userid, realm, NULL);
+    }
+
+    if (userid)   free(userid);
+    if (realm)    free(realm);
+    return ret;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -197,6 +320,10 @@ main(int argc, char *argv[])
   sasl_conn_t *conn;
   char *user_domain = NULL;
   char *appname = "saslpasswd";
+
+  memset(myhostname, 0, sizeof(myhostname));
+  result = gethostname(myhostname, sizeof(myhostname)-1);
+  if (result == -1) exit_sasl(SASL_FAIL, "gethostname");
 
   if (! argv[0])
     progname = "saslpasswd";
@@ -225,11 +352,11 @@ main(int argc, char *argv[])
       else
 	flag_disable = 1;
       break;
-    case 'f':
-      sasldb_path = optarg;
-      break;
     case 'u':
       user_domain = optarg;
+      break;
+    case 'f':
+      sasldb_path = optarg;
       break;
     case 'a':
       appname = optarg;
@@ -248,12 +375,12 @@ main(int argc, char *argv[])
 
   if (flag_error) {
     (void)fprintf(stderr,
-		  "%s: usage: %s [-a appname] [-p] [-c] [-d] [-u DOM] userid\n"
+		  "%s: usage: %s [-p] [-c] [-d] [-a appname] [-f sasldb] [-u DOM] userid\n"
 		  "\t-p\tpipe mode -- no prompt, password read on stdin\n"
 		  "\t-c\tcreate -- ask mechs to create the account\n"
-		  "\t-d\tdisable -- ask mechs to disable the account\n"
+		  "\t-d\tdisable -- ask mechs to disable/delete the account\n"
+		  "\t-f sasldb\tuse given file as sasldb\n"
 		  "\t-a appname\tuse appname as application name\n"
-		  "\t-f file\tpath to sasldb\n"
 		  "\t-u DOM\tuse DOM for user domain\n",
 		  progname, progname);
     exit(-SASL_FAIL);
@@ -265,9 +392,11 @@ main(int argc, char *argv[])
   if (result != SASL_OK)
     exit_sasl(result, NULL);
 
-  result = sasl_server_new("saslpasswd",
-			   NULL,
+  result = sasl_server_new("sasldb",
+			   myhostname,
 			   user_domain,
+			   NULL,
+			   NULL,
 			   NULL,
 			   0,
 			   &conn);
@@ -294,16 +423,56 @@ main(int argc, char *argv[])
       }
   }
 
+  if((result = _sasl_check_db(sasl_global_utils,conn)) == SASL_OK) {
+    result = _sasl_sasldb_set_pass(conn, myhostname, userid, password, passlen,
+				   user_domain,
+				   (flag_create ? SASL_SET_CREATE : 0)
+				   | (flag_disable ? SASL_SET_DISABLE : 0));
+  }
+
+  if(result != SASL_OK && !flag_disable)
+      exit_sasl(result, NULL);
+  else {
+      int ret = 1;
+      /* Either we were setting and succeeded or we were disableing and
+	 failed.  In either case, we want to wipe old entries */
+
+      /* Delete the possibly old entries */
+      /* We don't care if these fail */
+      ret = _sasldb_putdata(sasl_global_utils, conn,
+			    userid, (user_domain ? user_domain : myhostname),
+			    "cmusaslsecretCRAM-MD5", NULL, 0);
+      if(ret == SASL_OK) result = ret;
+
+      ret = _sasldb_putdata(sasl_global_utils, conn,
+			    userid, (user_domain ? user_domain : myhostname),
+			    "cmusaslsecretDIGEST-MD5", NULL, 0);
+      if(ret == SASL_OK) result = ret;
+
+      ret = _sasldb_putdata(sasl_global_utils, conn,
+			    userid, (user_domain ? user_domain : myhostname),
+			    "cmusaslsecretPLAIN", NULL, 0);
+      if(ret == SASL_OK) result = ret;
+
+      /* Were we disableing and failed above? */
+      if(result != SASL_OK)
+	  exit_sasl(result, NULL);
+  }
+      
+      
   result = sasl_setpass(conn,
 			userid,
 			password,
 			passlen,
+			NULL, 0,
 			(flag_create ? SASL_SET_CREATE : 0)
-			| (flag_disable ? SASL_SET_DISABLE : 0),
-			&errstr);
+			| (flag_disable ? SASL_SET_DISABLE : 0));
 
   if (result != SASL_OK)
     exit_sasl(result, errstr);
+
+  sasl_dispose(&conn);
+  sasl_done();
 
   return 0;
 }

@@ -28,11 +28,10 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb4.c,v 1.3 2001/07/24 17:11:28 rjs3 Exp $"
+#ident "$Id: auth_krb4.c,v 1.4 2001/12/04 02:06:54 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
-#include <config.h>
 #include <unistd.h>
 #include "mechanisms.h"
 
@@ -151,7 +150,9 @@ char *					/* R: allocated response string */
 auth_krb4 (
   /* PARAMETERS */
   const char *login,			/* I: plaintext authenticator */
-  const char *password			/* I: plaintext password */
+  const char *password,			/* I: plaintext password */
+  const char *service __attribute__((unused)),
+  const char *realm_in __attribute__((unused))
   /* END PARAMETERS */
   )
 {
@@ -231,7 +232,9 @@ auth_krb4 (
 char *
 auth_krb4 (
   const char *login __attribute__((unused)),
-  const char *password __attribute__((unused))
+  const char *password __attribute__((unused)),
+  const char *service __attribute__((unused)),
+  const char *realm __attribute__((unused))
   )
 {
     return NULL;

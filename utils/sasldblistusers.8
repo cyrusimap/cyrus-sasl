@@ -50,8 +50,11 @@ sasldblistusers \- list users in sasldb
 .I sasldblistusers
 is used to list the users in the SASL password database (usually
 /etc/sasldb). This will NOT list all the users in /etc/passwd, shadow,
-PAM, etc. only those created by SASL (usually by saslpasswd).
+PAM, etc. only those created by SASL (via saslpasswd).
 .SH OPTIONS
+.TP
+.SH KNOWN BUGS
+This only works for sasldb files that use the gdbm library.
 .TP
 .SH SEE ALSO
 rfc2222 \- Simple Authentication and Security Layer (SASL)

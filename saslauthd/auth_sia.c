@@ -28,11 +28,10 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_sia.c,v 1.2 2001/01/04 21:20:45 leg Exp $"
+#ident "$Id: auth_sia.c,v 1.3 2001/12/04 02:06:55 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
-#include <config.h>
 #include "mechanisms.h"
 
 #ifdef AUTH_SIA
@@ -55,7 +54,9 @@ char *					/* R: allocated response string */
 auth_sia (
   /* PARAMETERS */
   const char *login,			/* I: plaintext authenticator */
-  const char *password			/* I: plaintext password */
+  const char *password,			/* I: plaintext password */
+  const char *service __attribute__((unused)),
+  const char *realm __attribute__((unused))
   /* END PARAMETERS */
   )
 {
@@ -81,7 +82,9 @@ auth_sia (
 char *
 auth_sia(
   const char *login __attribute__((unused)),
-  const char *password __attribute__((unused))
+  const char *password __attribute__((unused)),
+  const char *service __attribute__((unused)),
+  const char *realm __attribute__((unused))
   )
 {
     return NULL;

@@ -1,40 +1,13 @@
-/* imtest.c -- IMAP/IMSP test client
+/* smtpauth.c -- authenticate to SMTP server, then give normal protocol
  *
- # Copyright 1998 Carnegie Mellon University
- # 
- # No warranties, either expressed or implied, are made regarding the
- # operation, use, or results of the software.
- #
- # Permission to use, copy, modify and distribute this software and its
- # documentation is hereby granted for non-commercial purposes only
- # provided that this copyright notice appears in all copies and in
- # supporting documentation.
- #
- # Permission is also granted to Internet Service Providers and others
- # entities to use the software for internal purposes.
- #
- # The distribution, modification or sale of a product which uses or is
- # based on the software, in whole or in part, for commercial purposes or
- # benefits requires specific, additional permission from:
- #
- #  Office of Technology Transfer
- #  Carnegie Mellon University
- #  5000 Forbes Avenue
- #  Pittsburgh, PA  15213-3890
- #  (412) 268-4387, fax: (412) 268-7395
- #  tech-transfer@andrew.cmu.edu
+ * uses sfio
  *
- * Author: Chris Newman <chrisn+@cmu.edu>
- * Start Date: 2/16/93
  */
 
-/* kludge: send a non-synchronizing literal with password instead of
-   unquoted password; should not do this, as it is not compatible with
-   base-line IMAP4rev1 servers.
-   */
 #include <config.h>
-#include <fcntl.h>
-#include <stdio.h>
+
+#include <sfio.h>
+#include <sfio/stdio.h>
 #include <ctype.h>
 #include <pwd.h>
 #include <sys/types.h>
@@ -43,6 +16,12 @@
 #include <sys/file.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <unistd.h>
+#include <string.h>
+#include <assert.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdlib.h>
 
 #include <sys/socket.h>
 #include <sys/file.h>
@@ -53,619 +32,557 @@
 #include <sys/select.h>
 #endif
 
-#include "sasl.h"
-#include "saslutil.h"
-#include "saslplug.h"
-#include <sfio.h>
+#include <sysexits.h>
+
+#include <sasl.h>
+#include <saslutil.h>
+
 #include "sfsasl.h"
-
-#define TEST_USERID "tmartin"
-#define MECH "KERBEROS_V4"
-#define TESTSTRING "a001 lfdist . blah\r\n"
-
-  Sfio_t *yofile;
 
 /* from OS: */
 extern char *getpass();
 extern struct hostent *gethostbyname();
 
-/* constant commands */
-char logout[] = ". LOGOUT\r\n";
+static char *authname = NULL;
+static char *username = NULL;
+static char *realm = NULL;
 
-/* authstate which must be cleared before exit */
-static void *authstate;
+extern char *optarg;
+extern int optind;
 
+int verbose = 0;
+int emacs = 0;
 
-
-extern struct sasl_client krb_sasl_client;
-#define client_start krb_sasl_client.start
-#define client_auth  krb_sasl_client.auth
-#define client_query krb_sasl_client.query_state
-#define client_free  krb_sasl_client.free_state
-
-/* base64 tables
- */
-static char basis_64[] =
-   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-static char index_64[128] = {
-    -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
-    -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
-    -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,62, -1,-1,-1,63,
-    52,53,54,55, 56,57,58,59, 60,61,-1,-1, -1,-1,-1,-1,
-    -1, 0, 1, 2,  3, 4, 5, 6,  7, 8, 9,10, 11,12,13,14,
-    15,16,17,18, 19,20,21,22, 23,24,25,-1, -1,-1,-1,-1,
-    -1,26,27,28, 29,30,31,32, 33,34,35,36, 37,38,39,40,
-    41,42,43,44, 45,46,47,48, 49,50,51,-1, -1,-1,-1,-1
-};
-#define CHAR64(c)  (((c) < 0 || (c) > 127) ? -1 : index_64[(c)])
-
-void to64(out, in, inlen)
-    unsigned char *out, *in;
-    int inlen;
-{
-    unsigned char oval;
+int iptostring(const struct sockaddr *addr, socklen_t addrlen,
+		     char *out, unsigned outlen) {
+    char hbuf[NI_MAXHOST], pbuf[NI_MAXSERV];
     
-    while (inlen >= 3) {
+    if(!addr || !out) return SASL_BADPARAM;
 
-	*out++ = basis_64[in[0] >> 2];
-	*out++ = basis_64[((in[0] << 4) & 0x30) | (in[1] >> 4)];
-	*out++ = basis_64[((in[1] << 2) & 0x3c) | (in[2] >> 6)];
-	*out++ = basis_64[in[2] & 0x3f];
-	in += 3;
-	inlen -= 3;
-    }
-    if (inlen > 0) {
-	*out++ = basis_64[in[0] >> 2];
-	oval = (in[0] << 4) & 0x30;
-	if (inlen > 1) oval |= in[1] >> 4;
-	*out++ = basis_64[oval];
-	*out++ = (inlen < 2) ? '=' : basis_64[(in[1] << 2) & 0x3c];
-	*out++ = '=';
-    }
-    *out = '\0';
+    getnameinfo(addr, addrlen, hbuf, sizeof(hbuf), pbuf, sizeof(pbuf),
+		NI_NUMERICHOST | NI_WITHSCOPEID | NI_NUMERICSERV);
+
+    if(outlen < strlen(hbuf) + strlen(pbuf) + 2)
+	return SASL_BUFOVER;
+
+    snprintf(out, outlen, "%s;%s", hbuf, pbuf);
+
+    return SASL_OK;
 }
 
-int from64(out, in)
-    char *out, *in;
+void usage(char *p)
 {
-    int len = 0;
-    int c1, c2, c3, c4;
-
-    if (in[0] == '+' && in[1] == ' ') in += 2;
-    if (*in == '\r') return (0);
-    do {
-	c1 = in[0];
-	if (CHAR64(c1) == -1) return (-1);
-	c2 = in[1];
-	if (CHAR64(c2) == -1) return (-1);
-	c3 = in[2];
-	if (c3 != '=' && CHAR64(c3) == -1) return (-1); 
-	c4 = in[3];
-	if (c4 != '=' && CHAR64(c4) == -1) return (-1);
-	in += 4;
-	*out++ = (CHAR64(c1) << 2) | (CHAR64(c2) >> 4);
-	++len;
-	if (c3 != '=') {
-	    *out++ = ((CHAR64(c2) << 4) & 0xf0) | (CHAR64(c3) >> 2);
-	    ++len;
-	    if (c4 != '=') {
-		*out++ = ((CHAR64(c3) << 6) & 0xc0) | CHAR64(c4);
-		++len;
-	    }
-	}
-    } while (*in != '\r' && c4 != '=');
-
-    *out=0;
-
-    return (len);
+    fprintf(stderr, "%s [-v] [-l] [-u username] [-a authname] [-s ssf] [-m mech] host[:port]\n", p);
+    fprintf(stderr, " -v\tVerbose Output\n");
+    fprintf(stderr, " -l\tLMTP semantics\n");
+    exit(EX_USAGE);
 }
 
+#define ISGOOD(r) (((r) / 100) == 2)
+#define TEMPFAIL(r) (((r) / 100) == 4)
+#define PERMFAIL(r) (((r) / 100) == 5)
+#define ISCONT(s) (s && (s[3] == '-'))
 
-void checkerror(int result)
+static int ask_code(const char *s)
 {
-  const char *errstr;
+    int ret = 0;
+    
+    if (s==NULL) return -1;
 
-  if ((result==SASL_OK) || (result==SASL_CONTINUE))
-    return;
-  
+    if (strlen(s) < 3) return -1;
 
-  printf("error: %i\n",result);
-  exit(1);
-}
-
-void fatal(str, level)
-    char *str;
-    int level;
-{
-    if (str) fprintf(stderr, "%s\n", str);
-    exit(1);
-}
-
-  FILE *fp;
-char blah2[100];
-int sock;
-char blah[100];
-
-char *read_string(int *len)
-{
-  char *ret;
-  char *out;
-  int pos=0;
-  char c;
-  
-
-  out=(char *) malloc(200);
-  ret=(char *) malloc(200);
-
-  printf("waiting for chars\n");
-
-  while ((c= sfgetc(yofile)) !=EOF)
+    /* check to make sure 0-2 are digits */
+    if ((isdigit((int) s[0])==0) ||
+	(isdigit((int) s[1])==0) ||
+	(isdigit((int) s[2])==0))
     {
-      if (c=='\n')
-	break;
-
-      ret[pos]=c;
-      pos++;
-
+	return -1;
     }
-  ret[pos]=0;
 
-  printf("S: %s\n", ret);
-
-  /* should remove ``+ '' and decode64 it */
-  if ((ret[0]!='3') || (ret[1]!='3'))
-  {
-    *len=0;
+    ret = ((s[0]-'0')*100)+((s[1]-'0')*10)+(s[2]-'0');
+    
     return ret;
-  }
-
-  /* started with "+ " (we should decode64 it */
-
-  ret+=4; /* ignore "+ " */
-
-  printf("S: %s\n", ret);
-
-  *len=from64(out ,ret);
-
-  printf("S: [%s] %i\n", out,*len);
-
-  return out;
 }
 
-void decode_string(sasl_conn_t *conn)
+static void chop(char *s)
 {
-  char *ret;
-  char *out;
-  int outlen;
-  int pos=0;
-  int c;
-  int len;
-  int result;
-  int length;
-  fd_set rset;
-  struct timeval tv;
-  
-  tv.tv_sec = 1;
-  tv.tv_usec = 0;
+    char *p;
 
-  FD_ZERO(&rset);
-  FD_SET(0,&rset);
-  FD_SET( sock, &rset);
-
-  while (select(100, &rset, NULL, NULL, &tv) >0 )
-  {
-  
-  fcntl(sock, F_SETFL, O_NONBLOCK);
-
-  ret=(char *) malloc(5010);
-  len=recv(sock, ret, 5000, 0);
-
-  result=sasl_decode(conn,ret, len, &out,(unsigned int *)&outlen);
-
-  free(ret);
-
-  checkerror(result);
-  if (out!=NULL)
-  {
-    out[outlen]=0;
-    printf("S: %s", out);
-    free(out);
-  }
-
-  }
-
-
+    assert(s);
+    p = s + strlen(s) - 1;
+    if (p[0] == '\n') {
+	*p-- = '\0';
+    }
+    if (p >= s && p[0] == '\r') {
+	*p-- = '\0';
+    }
 }
 
-void interaction (sasl_interact_t *t)
+void interaction (int id, const char *prompt,
+		  char **tresult, unsigned int *tlen)
 {
-  char result[1024];
+    char result[1024];
+    
+    if (id==SASL_CB_PASS) {
+	fprintf(stderr, "%s: ", prompt);
+	*tresult = strdup(getpass("")); /* leaks! */
+	*tlen=   strlen(*tresult);
+	return;
+    } else if (id==SASL_CB_USER) {
+	if (username != NULL) {
+	    strcpy(result, username);
+	} else {
+	    strcpy(result, getpwuid(getuid())->pw_name);
+	}
+    } else if (id==SASL_CB_AUTHNAME) {
+	if (authname != NULL) {
+	    strcpy(result, authname);
+	} else {
+	    strcpy(result, getpwuid(getuid())->pw_name);
+	}
+    } else if ((id==SASL_CB_GETREALM) && (realm != NULL)) {
+      strcpy(result, realm);
+    } else {
+	int c;
+	
+	fprintf(stderr, "%s: ",prompt);
+	fgets(result, sizeof(result) - 1, stdin);
+	c = strlen(result);
+	result[c - 1] = '\0';
+    }
 
-  printf("%s:",t->prompt);
-  scanf("%s",&result);
-
-  t->len=strlen(result);
-  printf("setting len to %i\n",t->len);
-  t->result=(char *) malloc(t->len+1);
-  memset(t->result, 0, t->len+1);
-  memcpy((char *) t->result, result, t->len);
-
-  printf("done interaction\n");
-
+    *tlen = strlen(result);
+    *tresult = (char *) malloc(*tlen+1); /* leaks! */
+    memset(*tresult, 0, *tlen+1);
+    memcpy((char *) *tresult, result, *tlen);
 }
 
-void usage()
+void fillin_interactions(sasl_interact_t *tlist)
 {
-    fprintf(stderr, "usage: imtest [-k[p/i] / -p] <server> <username> <port>\n");
-    exit(1);
+    while (tlist->id != SASL_CB_LIST_END)
+    {
+	interaction(tlist->id, tlist->prompt,
+		    (void *) &(tlist->result), 
+		    &(tlist->len));
+	tlist++;
+    }
 }
 
-int sasl_setpeer(void)
-{
-  int ipaddr;
-  struct sockaddr_in *name=malloc(sizeof(struct sockaddr_in));
-  int namelen;
-  unsigned char ip[4];
-
-  /* set the client */
-  if (getpeername(sock,(struct sockaddr *) name,&namelen)!=0)
-  {
-    printf("ERROR!!! %i\n",sock);
-    return 0;
-  }
-
-  memcpy(ip,&(name->sin_addr), 4);
-
-    printf("ip = %i %i %i %i\n",
-	 ip[0],
-	 ip[1],
-	 ip[2],
-	 ip[3]);
-
-  ipaddr=
-    ((unsigned char) ip[0])*256*256*256 +
-    ((unsigned char) ip[1])*256*256 +
-    ((unsigned char) ip[2])*256 +
-    ((unsigned char) ip[3]);
-
-  
-
-  ipaddr=htonl(ipaddr);
-
-
-  /* if client give server port if server give server */
-
-
-  /* set the server */
-  if (getsockname(sock,(struct sockaddr *) name,&namelen)!=0)
-    return 0;
-
-  memcpy(ip,&(name->sin_addr), 4);
-
-  ipaddr=
-    ((unsigned char) ip[0])*256*256*256 +
-    ((unsigned char) ip[1])*256*256 +
-    ((unsigned char) ip[2])*256 +
-    ((unsigned char) ip[3]);
-
-  ipaddr=htonl(ipaddr);
-
-
-  /* set the port */
-
-  /* if client give server port if server give server */
-
-
- return SASL_OK;
-}
+static sasl_callback_t callbacks[] = {
+    { SASL_CB_GETREALM, NULL, NULL }, 
+    { SASL_CB_USER, NULL, NULL }, 
+    { SASL_CB_AUTHNAME, NULL, NULL }, 
+    { SASL_CB_PASS, NULL, NULL }, 
+    { SASL_CB_LIST_END, NULL, NULL }
+};
 
 static sasl_security_properties_t *make_secprops(int min,int max)
 {
-  sasl_security_properties_t *ret=(sasl_security_properties_t *)
-    malloc(sizeof(sasl_security_properties_t));
+    sasl_security_properties_t *ret=(sasl_security_properties_t *)
+	malloc(sizeof(sasl_security_properties_t));
 
-  ret->maxbufsize=1024;
-  ret->min_ssf=min;
-  ret->max_ssf=max;
+    ret->maxbufsize = 8192;
+    ret->min_ssf = min;
+    ret->max_ssf = max;
 
-  ret->security_flags=0;
-  ret->property_names=NULL;
-  ret->property_values=NULL;
+    ret->security_flags = 0;
+    ret->property_names = NULL;
+    ret->property_values = NULL;
 
-  return ret;
+    return ret;
 }
 
-main(argc, argv)
-    int argc;
-    char **argv;
+Sfio_t *debug;
+
+int main(int argc, char **argv)
 {
-  int instrlen;
-  int ssf=1;
-  int result, port,lup;
-  char c;
-  sasl_conn_t *conn;
-  sasl_interact_t *client_interact=NULL;
-  sasl_secret_t *secret;
-  char *out, *str;
-  const char *mechusing;
-  int outlen;
-  char sen[1024];
+    char *mechlist = NULL;
+    const char *mechusing = NULL;
+    int minssf = 0, maxssf = 128;
+    char *p;
+    Sfio_t *server_in, *server_out;
+    sasl_conn_t *conn = NULL;
+    sasl_interact_t *client_interact = NULL;
+    char in[4096];
+    const char *out;
+    unsigned int inlen, outlen;
+    char out64[4096];
+    int c;
 
-  char hostname[1024];
-  int ipaddr;
-  char *username;
-  char tmp[4];
-  
-  struct sockaddr_in *saddr_l=malloc(sizeof(struct sockaddr_in));
-  struct sockaddr_in *saddr_r=malloc(sizeof(struct sockaddr_in));
-  struct sockaddr_in sad;
-
-    int nfds, nfound, count, dologin, dopass;
-    int len, done=0, maxplain;
-    int prot_req, protlevel;
-    
-    char *host, *pass, *outbuf, *user, *portstr;
-    fd_set read_set, rset;
-    struct sockaddr_in addr, laddr;
+    char *host;
+    struct servent *service;
+    int port;
     struct hostent *hp;
-    struct servent *serv;
-    struct protstream *pout, *pin;
-    char buf[4096];
-    char *in;
-    sasl_security_properties_t *secprops=NULL;
-    char ipstr[4],ip[4];
+    struct sockaddr_in addr;
+    char remote_ip[64], local_ip[64];
+    int sock;
 
-    struct passwd *pwd;
-    char *salt;
-    char *crypted;
-    char tosend[1024];
+    char buf[1024];
+    int sz;
+    char greeting[1024];
+    int code;
+    int do_lmtp=0;
+    int r = 0;
 
+    debug = stderr;
 
+    while ((c = getopt(argc, argv, "vElm:s:u:a:d:")) != EOF) {
+	switch (c) {
+	case 'm':
+	    mechlist = optarg;
+	    break;
 
-    if (argc < 3) usage();
+	case 'l':
+	    do_lmtp = 1;
+	    break;
 
-    host = argv[1];
-    username = argv[2];
-    portstr = argv[3];
+	case 's':
+	    maxssf = atoi(optarg);
+	    break;
+	    
+	case 'u':
+	    username = optarg;
+	    break;
 
-    if (*argv[1] == '-') 
-    {
-      if (argv[1][1] == 'p') 
-	secprops=make_secprops(0,0);
-      else if (argv[1][1] == 'k') {
-	    if (argv[1][2] == 'p') {
-	      secprops=make_secprops(0,56);
-	    } else if (argv[1][2] == 'i') {
-	      secprops=make_secprops(0,1);
-	    }
+	case 'a':
+	    authname = optarg;
+	    break;
+
+	case 'v':
+	    verbose++;
+	    break;
+	    
+	case 'E':
+	    emacs++;
+	    break;
+
+	case 'd':
+	    sprintf(buf, "%s-%d", optarg, getpid());
+	    debug = sfopen(NULL, buf, "w");
+	    sfsetbuf(debug, NULL, 0);
+	    break;
+
+	case '?':
+	default:
+	    usage(argv[0]);
+	    break;
 	}
-
-	else usage();
-	host = argv[2];
-	username = argv[3];
-	portstr = argv[4];
     }
-    if (!portstr) usage();
 
-    port=atoi(portstr);
-    malloc(1000);
+    if (optind != argc - 1) {
+	usage(argv[0]);
+    }
 
-    result=sasl_client_init(NULL);
+    host = argv[optind];
+    p = strchr(host, ':');
+    if (p) {
+	*p++ = '\0';
+    } else {
+	if(do_lmtp) {
+	    p = "lmtp";
+	} else {
+	    p = "smtp";
+	}
+    }
+    service = getservbyname(p, "tcp");
+    if (service) {
+	port = service->s_port;
+    } else {
+	port = atoi(p);
+	if (!port) usage(argv[0]);
+	port = htons(port);
+    }
 
-    malloc(1000);
     if ((hp = gethostbyname(host)) == NULL) {
 	perror("gethostbyname");
-	exit(1);
+	exit(EX_NOHOST);
     }
-    malloc(1000);
+
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 	perror("socket");
-	exit(1);
+	exit(EX_OSERR);
     }
-    malloc(1000);
-
-    printf("sock=%i\n",sock);
 
     addr.sin_family = AF_INET;
     memcpy(&addr.sin_addr, hp->h_addr, hp->h_length);
-    printf("port=%i\n",port);
-    addr.sin_port = htons(port);
-    malloc(1000);
-    printf("%i\n",addr.sin_addr);
+    addr.sin_port = port;
 
     if (connect(sock, (struct sockaddr *) &addr, sizeof (addr)) < 0) {
 	perror("connect");
-	exit(1);
+	exit(EX_NOHOST);
     }
 
-    yofile=sfnew(NULL, NULL, SF_UNBOUND, sock, SF_READ | SF_WRITE);  
+    server_in = sfnew(NULL, NULL, SF_UNBOUND, sock, SF_READ);
+    server_out = sfnew(NULL, NULL, SF_UNBOUND, sock, SF_WRITE);
 
+    /* read greeting */
+    greeting[0] = '\0';
+    for (;;) {
+	sfsync(server_out);
+	if (fgets(buf, sizeof(buf)-1, server_in)) {
+	    if (greeting[0] == '\0') {
+		strncpy(greeting, buf, sizeof(greeting) - 1);
+	    }
 
+	    if (verbose) fprintf(debug, "%s", buf);
+	    code = ask_code(buf);
+	    if (ISCONT(buf) && ISGOOD(code)) continue;
+	} else {
+	    code = 400;
+	}
+	break;
+    }
+
+    if (!ISGOOD(code)) goto done;
+
+    /* EHLO */
+    gethostname(buf, sizeof(buf)-1);
+    if(do_lmtp) {
+	if(verbose) fprintf(debug, "LHLO %s\r\n", buf);
+	fprintf(server_out, "LHLO %s\r\n", buf);
+    } else {
+	if (verbose) fprintf(debug, "EHLO %s\r\n", buf);
+	fprintf(server_out, "EHLO %s\r\n", buf);
+    }
     
-
-    in=read_string(&instrlen);    
-    free(in);
-    in=read_string(&instrlen);    
-    free(in);
-    in=read_string(&instrlen);    
-    free(in);
-
-    checkerror(result);
-
-
- 
-    /* client new connection */
-    result=sasl_client_new("smtp",
-			   host,
-			   NULL,
-			   0,
-			   &conn);
-  checkerror(result);
-
-   ssf=0;
-   sasl_setprop(conn,   SASL_SSF_EXTERNAL, &ssf);  
-
-
-
-
-/* create secret */
-  secret=(sasl_secret_t *) malloc(sizeof(sasl_secret_t)+9);
-  strcpy(secret->data,"password");
-
-
-
-  secret->len=strlen(secret->data);
-
-  printf("username=[%s]\n",username);
-  sasl_setprop(conn, SASL_USERNAME, username);
-
-  port=25;
-
-  if (secprops!=NULL)
-    sasl_setprop(conn, SASL_SEC_PROPS, secprops);
-
-  /* */
-
-
-
-
-  memcpy(&sad.sin_addr,"aaaa",4);
-
-
-
-
-
-
-
-    result=sizeof(struct sockaddr_in);
-    if (getpeername(sock,(struct sockaddr *)saddr_r,&result)!=0)
-      printf("fail!\n");
-
-
-    result=sizeof(struct sockaddr_in);
-    if (getsockname(sock,(struct sockaddr *)saddr_l,&result)!=0)
-      printf("fail!\n");
-
-  sasl_setprop(conn,   SASL_IP_REMOTE, saddr_r);  
-
-  sasl_setprop(conn,   SASL_IP_LOCAL, saddr_l);
-
-
-  /* */
-  gethostname(hostname,sizeof(hostname));
-  if (! (hp = gethostbyname(hostname))) exit(1); 
-
-
-  /* call sasl client start */
-  result=sasl_client_start(conn, MECH, /* mechlist */
-			   secret, &client_interact,
-			   &out, &outlen,
-			   &mechusing);
-
-  if (client_interact!=NULL)
-  {
-    interaction(client_interact); /* fill in prompt */
-    result=sasl_client_start(conn, MECH, /* mechlist */
-			     secret, &client_interact,
-			     &out, &outlen,
-			     &mechusing);
-  }  
-  checkerror(result);
-
-
-  if (outlen>0)
-  {
-    for (lup=0;lup<outlen;lup++)
-      printf("out=%c %i\n",out[lup]);
-
-    to64(sen, out, outlen);
-
-    printf("outlen=%i\n",outlen);
-
-    sprintf(tosend, "auth %s %s\r\n", MECH, sen);
-  } else {
-    sprintf(tosend, "auth %s\r\n", MECH);
-  }
-
-  printf("sending [%s] \n",tosend);
-  
-  send(sock, tosend, strlen(tosend), 0);
-
-  in=read_string(&instrlen);    
-  printf("strlen=%i\n",instrlen);
-
-    while (done==0)
-    {
-
-      result=sasl_client_step(conn,
-			    in,
-			    instrlen,
-			    &client_interact,
-			    &out,
-			    &outlen);
-
-      if (client_interact!=NULL)
-      {
-
-	interaction(client_interact); /* fill in prompt */
-	result=sasl_client_step(conn,
-				in,
-				instrlen,
-				&client_interact,
-				&out,
-				&outlen);
-      }
-      printf("checking error\n");
-      checkerror(result);
-
-
-      if (outlen<=0)
-	printf("IS ZERO!\n");
-      to64(sen, out, outlen);
-      printf("checking error 2\n");
-      send(sock, sen, strlen(sen), 0);
-      send(sock, "\r\n", 2, 0);
-      printf("checking error 3\n");
-      printf("C: %s", sen);
-      free(out);
-
-      in=read_string(&instrlen);
-      if ((in[0]=='2') && (in[1]=='3') && (in[2]=='5'))
-	done=1;
-    }
-
-  if (result!=SASL_OK)
-  {
-    printf("didn't succeed\n");
-    printf("result=%i\n", result);
-    exit(1);
-  }
-
-  str=(char *) malloc(1024);
-
-
-  /* add SASL layer to sfio stream */
-    if (sfdcsasl(yofile, conn) < 0) {
-	fprintf(stderr, "problems adding SASL layer\n");
-	exit(1);
-    }
-
-    while(fgets(str, 1000, stdin) != NULL) {
-	result = strlen(str);
-	memcpy(str+result-1, "\r\n\0", 3);
-	result = sfwrite(yofile, str, result + 1);
-	if (result < 1) {
-	    printf("write result = %d\n", result);
+    /* read responses */
+    for (;;) {
+	sfsync(server_out);
+	if (!fgets(buf, sizeof(buf)-1, server_in)) {
+	    code = 400;
+	    goto done;
 	}
-	sfsync(yofile);
+	if (verbose) fprintf(debug, "%s", buf);
+	code = ask_code(buf);
+	if (code == 250) {
+	    /* we're only looking for AUTH */
+	    if (!strncasecmp(buf + 4, "AUTH ", 5)) {
+		chop(buf);
+		if (!mechlist) mechlist = strdup(buf + 9);
+	    }
+	}
+	if (ISCONT(buf) && ISGOOD(code)) {
+	    continue;
+	} else {
+	    break;
+	}
+    }
+    if (!ISGOOD(code)) goto done;
 
-	while (sfpoll(&yofile, 1, 0) > 0) {
-	    if (fgets(buf, 1024, yofile) == NULL)
-		exit(0);
-	    printf("S: %s", buf);
+    /* attempt authentication */
+    if (!mechlist) {
+	if (verbose > 2) fprintf(debug, "no authentication\n");
+	goto doneauth;
+    }
+
+    if (!r) r = sasl_client_init(callbacks);
+    if (!r) {
+	struct sockaddr_in saddr_r;
+	int addrsize = sizeof(struct sockaddr_in);
+
+	if (getpeername(sock, (struct sockaddr *) &saddr_r, &addrsize) < 0) {
+	    perror("getpeername");
+	    exit(EX_NOHOST);
+	}
+	r = iptostring((struct sockaddr *)&saddr_r,
+		       sizeof(struct sockaddr_in), remote_ip, 64);
+    }
+    if (!r) {
+	struct sockaddr_in saddr_l;
+	int addrsize = sizeof(struct sockaddr_in);
+
+	if (getsockname(sock, (struct sockaddr *) &saddr_l, &addrsize) < 0) {
+	    perror("getsockname");
+	    exit(EX_OSERR);
+	}
+	r = iptostring((struct sockaddr *)&saddr_l,
+		       sizeof(struct sockaddr_in), local_ip, 64);
+    }
+
+    if (!r) {
+	if(do_lmtp) {
+	    r = sasl_client_new("lmtp", host, local_ip, remote_ip,
+				NULL, 0, &conn);
+	} else {
+	    r = sasl_client_new("smtp", host, local_ip, remote_ip,
+				NULL, 0, &conn);
+	}
+    }
+    
+    if (!r) {
+	sasl_security_properties_t *secprops = make_secprops(minssf, maxssf);
+	r = sasl_setprop(conn, SASL_SEC_PROPS, secprops);
+	free(secprops);
+    }
+    
+    if (!r) {
+	do {
+	    r = sasl_client_start(conn, mechlist,
+				  &client_interact, &out, &outlen, &mechusing);
+	    if (r == SASL_INTERACT) {
+		fillin_interactions(client_interact);
+	    }
+	} while (r == SASL_INTERACT);
+
+	if (r == SASL_OK || r == SASL_CONTINUE) {
+	    if (outlen > 0) {
+		r = sasl_encode64(out, outlen, out64, sizeof out64, NULL);
+		if (!r) {
+		    if (verbose) 
+			fprintf(debug, "AUTH %s %s\r\n", mechusing, out64);
+		    fprintf(server_out, "AUTH %s %s\r\n", mechusing, out64);
+		}
+	    } else {
+		if (verbose) fprintf(debug, "AUTH %s\r\n", mechusing);
+		fprintf(server_out, "AUTH %s\r\n", mechusing);
+	    }
+	} else {
+	    fprintf(debug, "\nclient start failed: %s\n", sasl_errdetail(conn));
+	}
+	
+    }
+
+    /* jump to doneauth if we succeed */
+    while (r == SASL_OK || r == SASL_CONTINUE) {
+	sfsync(server_out);
+	if (!fgets(buf, sizeof(buf)-1, server_in)) {
+	    code = 400;
+	    goto done;
+	}
+	if (verbose) fprintf(debug, "%s", buf);
+	code = ask_code(buf);
+	if (ISCONT(buf)) continue;
+	if (ISGOOD(code)) {
+	    if (code != 235) {
+		/* weird! */
+	    }
+	    /* yay, we won! */
+	    sfdcsasl(server_in, conn);
+	    sfdcsasl(server_out, conn);
+	    goto doneauth;
+	} else if (code != 334) {
+	    /* unexpected response */
+	    break;
+	}
+	r = sasl_decode64(buf + 4, strlen(buf) - 6, in, 4096, &inlen);
+	if (r != SASL_OK) break;
+	
+	do {
+	    r = sasl_client_step(conn, in, inlen, &client_interact,
+				 &out, &outlen);
+	    if (r == SASL_INTERACT) {
+		fillin_interactions(client_interact);
+	    }
+	} while (r == SASL_INTERACT);
+
+	if (r == SASL_OK || r == SASL_CONTINUE) {
+	    r = sasl_encode64(out, outlen, out64, sizeof out64, NULL);
+	}
+	if (r == SASL_OK) {
+	    if (verbose) fprintf(debug, "%s\r\n", out64);
+	    fprintf(server_out, "%s\r\n", out64);
 	}
     }
 
+    /* auth failed! */
+    if (!r) {
+	fprintf(debug, "%d authentication failed\n", code);
+    } else {
+	fprintf(debug, "400 authentication failed: %s\n", 
+		sasl_errstring(r, NULL, NULL));
+    }
+    exit(EX_SOFTWARE);
 
-  exit(0);
+ doneauth:
+    /* ready for application */
+    greeting[3] = '-';
+    printf("%s", greeting);
+    printf("220 %s %s\r\n", host, conn ? "authenticated" : "no auth");
+
+    fcntl(0, F_SETFL, O_NONBLOCK);
+    fcntl(sock, F_SETFL, O_NONBLOCK);
+    sfset(stdin, SF_SHARE, 0);
+
+    /* feed data back 'n forth */
+    for (;;) {
+	Sfio_t *flist[3];
+
+    top:
+	flist[0] = stdin;
+	flist[1] = server_in;
+
+	/* sfpoll */
+	if (verbose > 5) fprintf(debug, "poll\n");
+	r = sfpoll(flist, 2, -1);
+	if (verbose > 5) fprintf(debug, "poll 2\n");
+
+	while (r--) {
+	    if (flist[r] == server_in) {
+		do {
+		    if (verbose > 5) fprintf(debug, "server!\n");
+		    errno = 0;
+		    sz = sfread(server_in, buf, sizeof(buf)-1);
+		    if (sz == 0 && (errno == EAGAIN)) goto top;
+		    if (sz <= 0) goto out;
+		    buf[sz] = '\0';
+		    if (verbose > 5) fprintf(debug, "server 2 '%s'!\n", buf);
+		    sfwrite(stdout, buf, sz);
+		} while (sfpoll(&server_in, 1, 0));
+		sfsync(stdout);
+	    } else if (flist[r] == stdin) {
+		Sfio_t *p[1];
+
+		p[0] = stdin;
+		do {
+		    if (verbose > 5) fprintf(debug, "stdin!\n");
+		    errno = 0;
+		    sz = sfread(stdin, buf, sizeof(buf)-1);
+		    if (sz == 0 && (errno == EAGAIN)) goto top;
+		    if (sz <= 0) goto out;
+		    buf[sz] = '\0';
+		    if (verbose > 5) fprintf(debug, "stdin 2 '%s'!\n", buf);
+		    if (emacs) {
+			int i;
+
+			/* fix emacs stupidness */
+			for (i = 0; i < sz - 1; i++) {
+			    if (buf[i] == '\n' && buf[i+1] == '\n')
+				buf[i++] = '\r';
+			}
+			if (buf[sz-2] != '\r' && buf[sz-1] == '\n') {
+			    sfungetc(stdin, buf[sz--]);
+			    buf[sz] = '\0';
+			}
+
+			if (verbose > 5) fprintf(debug, "emacs '%s'!\n", buf);
+		    }
+		    sfwrite(server_out, buf, sz);
+		    if (verbose > 7) fprintf(debug, "stdin 3!\n");
+		} while (sfpoll(p, 1, 0));
+		sfsync(server_out);
+	    } else {
+		abort();
+	    }
+	}
+    }
+ out:
+    if (verbose > 3) fprintf(debug, "exiting! %d %s\n", sz, strerror(errno));
+    exit(EX_OK);
+
+ done:
+    if (ISGOOD(code)) {
+	if (verbose > 1) fprintf(debug, "ok\n");
+	exit(EX_OK);
+    }
+    if (TEMPFAIL(code)) {
+	if (verbose > 1) fprintf(debug, "tempfail\n");
+	exit(EX_TEMPFAIL);
+    }
+    if (PERMFAIL(code)) {
+	if (verbose > 1) fprintf(debug, "permfail\n");
+	exit(EX_UNAVAILABLE);
+    }
+    
+    if (verbose > 1) fprintf(debug, "unknown failure\n");
+    exit(EX_TEMPFAIL);
 }

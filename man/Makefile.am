@@ -1,8 +1,7 @@
 # Makefile.am for SASL documentation
-# Rob Earhart
 #
 ################################################################
-# Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
+# Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -43,12 +42,17 @@
 ################################################################
 
 man_MANS = sasl_authorize_t.3 sasl_done.3 sasl_listmech.3 sasl_callbacks.3 \
-           sasl_encode.3 sasl_log_t.3 sasl_checkpass.3 sasl_errstring.3 \
+           sasl_encode.3 sasl_encodev.3 sasl_log_t.3 sasl_checkpass.3 \
+           sasl_errstring.3 sasl_dispose.3 sasl_canon_user_t.3 \
            sasl_server_init.3 sasl_client_init.3 sasl_getopt_t.3 \
            sasl_server_new.3 sasl_client_new.3 sasl_getpath_t.3  \
            sasl_server_start.3 sasl_client_start.3 sasl_getprop.3 \
            sasl_server_step.3 sasl_client_step.3  sasl_getsecret_t.3 \
-           sasl_setprop.3 sasl_decode.3 sasl_getsimple_t.3 sasl_usererr.3 \
-	   sasl.3 
+           sasl_setprop.3 sasl_decode.3 sasl_getsimple_t.3 sasl.3 \
+	   sasl_checkapop.3 sasl_errors.3 sasl_verifyfile_t.3 \
+	   sasl_getrealm_t.3 sasl_chalprompt_t.3 sasl_auxprop_request.3 \
+	   sasl_auxprop_getctx.3 sasl_auxprop.3 sasl_idle.3 \
+	   sasl_errdetail.3 sasl_user_exists.3 sasl_setpass.3 \
+	   sasl_server_userdb_checkpass_t.3 sasl_server_userdb_setpass_t.3
 
 EXTRA_DIST = $(man_MANS)

@@ -25,4 +25,4 @@
  * DAMAGE.
  * END COPYRIGHT */
 
-char *auth_krb5(const char *, const char *);
+char *auth_krb5(const char *, const char *, const char *, const char *);

@@ -35,3 +35,5 @@ extern char *path_db;
 extern authmech_t *proxymech;
 extern char *r_host;
 extern char *r_service;
+extern int retry_read(int fd, void *buf, unsigned nbyte);
+extern int retry_writev (int fd, struct iovec *iov, int iovcnt);

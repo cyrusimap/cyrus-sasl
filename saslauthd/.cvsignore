@@ -1,5 +1,12 @@
+configure
+aclocal.m4
+stamp-h
 Makefile.in
 Makefile
+saslauthd.h
+saslauthd.h.in
+config.log
+config.status
 .deps
 .libs
 *.l[ao]

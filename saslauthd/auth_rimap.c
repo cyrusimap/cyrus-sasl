@@ -53,11 +53,10 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_rimap.c,v 1.4 2001/02/11 09:18:39 esys Exp $"
+#ident "$Id: auth_rimap.c,v 1.5 2001/12/04 02:06:54 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
-#include <config.h>
 #include "mechanisms.h"
 
 #include <unistd.h>
@@ -75,26 +74,19 @@
 #include <arpa/inet.h>
 #include <signal.h>
 #include <netdb.h>
-#include <sys/uio.h>
 
-#include "config.h"
 #include "auth_rimap.h"
 #include "globals.h"
 /* END PUBLIC DEPENDENCIES */
 
 /* PRIVATE DEPENDENCIES */
-static struct hostent *he;		/* remote authentication host    */
-static struct in_addr raddr;		/* dotted quad to IP conversion  */
-
-static int connect_byaddr = 0;		/* 1: connect to specified addr  */
-static int port;			/* port to connect to            */
-static int retry_writev (int fd, struct iovec *iov, int iovcnt);
+static struct addrinfo *ai = NULL;	/* remote authentication host    */
 /* END PRIVATE DEPENDENCIES */
 
 #define DEFAULT_REMOTE_SERVICE "imap"	/* getservbyname() name for remote
 					   service we connect to.	 */
 #define TAG "saslauthd"			/* IMAP command tag */
-#define LOGIN_CMD (TAG " LOGIN")	/* IMAP login command (with tag) */
+#define LOGIN_CMD (TAG " LOGIN ")	/* IMAP login command (with tag) */
 #define NETWORK_IO_TIMEOUT 30		/* network I/O timeout (seconds) */
 #define RESP_LEN 1000			/* size of read response buffer  */
 
@@ -221,7 +213,8 @@ auth_rimap_init (
 {
 
     /* VARIABLES */
-    static struct servent *se;		/* remote authentication service */
+    struct addrinfo hints;
+    int err;
     char *c;				/* scratch pointer               */
     /* END VARIABLES */
 
@@ -248,52 +241,27 @@ auth_rimap_init (
     } else {
 	c = DEFAULT_REMOTE_SERVICE;
     }
-    
-    port = atoi(c);			/* Numeric takes precedence */
-    if (port == 0) {
-	se = getservbyname(c, "tcp");
-	endservent();
-	if (se == NULL) {
-	    syslog(LOG_ERR, "auth_rimap_init: unknown service %s/tcp", c);
-	    return -1;
-	}
-	port = se->s_port;
+
+    if (ai)
+	freeaddrinfo(ai);
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = PF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_CANONNAME;
+    if ((err = getaddrinfo(r_host, c, &hints, &ai)) != 0) {
+	syslog(LOG_ERR, "auth_rimap_init: getaddrinfo %s/%s: %s",
+	       r_host, c, gai_strerror(err));
+	return -1;
+     }
+    /* Make sure we have AF_INET or AF_INET6 addresses. */
+    if (ai->ai_family != AF_INET && ai->ai_family != AF_INET6) {
+	syslog(LOG_ERR, "auth_rimap_init: no IP address info for %s",
+	       ai->ai_canonname ? ai->ai_canonname : r_host);
+	freeaddrinfo(ai);
+	ai = NULL;
+	return -1;
     }
 
-    /*
-     * Get network info for remote authentication host.
-     *
-     * Dotted quad's take precedence over hostnames. This allows
-     * the site to configure connections to a specific interface
-     * on a multi-homed host. (Some of the interfaces might be
-     * unreachable due to security policy, and we don't want to
-     * delay authentication requests while we hang around trying
-     * to do a connect that cannot succeed.)
-     */
-
-#ifndef INADDR_NONE
-# define INADDR_NONE -1
-#endif /* ! INADDR_NONE */
-
-    if ((raddr.s_addr = inet_addr(r_host)) != INADDR_NONE) {
-	/* It converted. Treat it as a dotted quad. */
-	connect_byaddr++;
-    } else {
-	/* Treat it as a host name */
-	he = gethostbyname(r_host);
-	if (he == NULL) {
-	    /* Couldn't resolve the hostname. */
-	    syslog(LOG_ERR, "auth_rimap_init couldn't resolve %s", r_host);
-	    return -1;
-	}
-	/* Make sure we have AF_INET addresses. */
-	/* XXX IPV6 */
-	if ((he->h_addrtype != AF_INET) || (*(he->h_addr_list) == 0)) {
-	    syslog(LOG_ERR, "auth_rimap_init: no IP address info for %s",
-		   he->h_name);
-	    return -1;
-	}
-    }
     return 0;
 }
 
@@ -319,19 +287,23 @@ char *					/* R: Allocated response string */
 auth_rimap (
   /* PARAMETERS */
   const char *login,			/* I: plaintext authenticator */
-  const char *password			/* I: plaintext password */
+  const char *password,			/* I: plaintext password */
+  const char *service __attribute__((unused)),
+  const char *realm __attribute__((unused))
   /* END PARAMETERS */
   )
 {
     /* VARIABLES */
-    int	s;				/* socket to remote auth host   */
-    struct sockaddr_in sin;		/* remote socket address info   */
+    int	s=-1;				/* socket to remote auth host   */
+    struct addrinfo *r;			/* remote socket address info   */
     struct iovec iov[5];		/* for sending LOGIN command    */
     char *qlogin;			/* pointer to "quoted" login    */
     char *qpass;			/* pointer to "quoted" password */
     char *c;				/* scratch pointer              */
     int rc;				/* return code scratch area     */
     char rbuf[RESP_LEN];		/* response read buffer         */
+    char hbuf[NI_MAXHOST], pbuf[NI_MAXSERV];
+    int saved_errno;
     /* END VARIABLES */
 
     /* sanity checks */
@@ -339,89 +311,28 @@ auth_rimap (
     assert(password != NULL);
 
     /*establish connection to remote */
-    memset(&sin, 0, sizeof(sin));
-
-    s = socket(PF_INET, SOCK_STREAM, 0);
-    if (s == -1) {
-	syslog(LOG_WARNING, "auth_rimap: socket: %m");
-	return strdup(RESP_IERROR);
-    }
-    
-    if (connect_byaddr) {
-	
-	sin.sin_addr = raddr;
-	sin.sin_port = port;
-	sin.sin_family = AF_INET;
-	if (connect(s, (struct sockaddr *)&sin, sizeof(sin)) == -1) {
-	    rc = errno;
-	    syslog(LOG_WARNING, "auth_rimap: connect %s/%d: %m",
-		   inet_ntoa(raddr), port);
-	    switch (errno) {
-	      case ECONNREFUSED:
-		return strdup("NO [ALERT] Remote authentication server refused connection request");
-		/*NOTREACHED*/
-		break;
-	      case ETIMEDOUT:
-		return strdup("NO [ALERT] Timed out while trying to contact remote authentication server");
-		/*NOTREACHED*/
-		break;
-	      case ENETUNREACH:
-		return strdup("NO [ALERT] Remote authentication server is on an unreachable network");
-		/*NOTREACHED*/
-		break;
-	      default:
-		return strdup(RESP_IERROR);
-		/*NOTREACHED*/
-		break;
-	    }
-	}
-
-    } else {
-	
-	/* walk the list of IP addresses, trying each in turn */
-	/* until we connect, or fall off the end of the list  */
-	
-	struct hostent host;
-	struct hostent *hp;
-
-	/* build a working copy of the hostent data. we can't */
-	/* just use *he since we might modify the internal    */
-	/* address list pointer (if there are multiple addrs) */
-	
-	memcpy(&host, he, sizeof(host));
-	hp = &host;
-
-	sin.sin_port = port;
-	sin.sin_family = AF_INET;
-	memcpy(&sin.sin_addr, hp->h_addr, hp->h_length);
-	
-	while (connect(s, (struct sockaddr *)&sin, sizeof(sin)) == -1) {
-	    syslog(LOG_WARNING, "auth_rimap: connect %s[%s]/%d: %m",
-		   hp->h_name, inet_ntoa(sin.sin_addr), sin.sin_port);
-
-	    hp->h_addr_list++;
-
-	    /* do we have more addresses to try? */
-	    if (hp->h_addr_list == 0) {
-		/* no, give up */
-		syslog(LOG_WARNING, "auth_rimap: couldn't connect to %s/%d",
-		       hp->h_name, sin.sin_port);
-		return strdup("NO [ALERT] Couldn't contact remote authentication server");
-	    }
-	    
-	    /* more addresses, try the next one */
-	    memcpy(&sin.sin_addr, hp->h_addr, hp->h_length);
-
-	    /* recycle the socket */
-	    (void)close(s);
-	    s = socket(AF_INET, SOCK_STREAM, 0);
-	    if (s == -1) {
-		syslog(LOG_WARNING, "auth_rimap: socket: %m");
-		return strdup(RESP_IERROR);
-	    }
-	    
+    for (r = ai; r; r = r->ai_next) {
+	s = socket(r->ai_family, r->ai_socktype, r->ai_protocol);
+	if (s < 0)
 	    continue;
-	}
+	if (connect(s, r->ai_addr, r->ai_addrlen) >= 0)
+	    break;
+	close(s);
+	s = -1;
+	saved_errno = errno;
+	getnameinfo(r->ai_addr, r->ai_addrlen,
+		    hbuf, sizeof(hbuf), pbuf, sizeof(pbuf),
+		    NI_NUMERICHOST | NI_WITHSCOPEID | NI_NUMERICSERV);
+	errno = saved_errno;
+	syslog(LOG_WARNING, "auth_rimap: connect %s[%s]/%s: %m",
+	       ai->ai_canonname ? ai->ai_canonname : r_host, hbuf, pbuf);
+    }
+    if (s < 0) {
+	getnameinfo(ai->ai_addr, ai->ai_addrlen, NULL, 0, pbuf, sizeof(pbuf),
+		    NI_NUMERICSERV);
+	syslog(LOG_WARNING, "auth_rimap: couldn't connect to %s/%s",
+	       ai->ai_canonname ? ai->ai_canonname : r_host, pbuf);
+	return strdup("NO [ALERT] Couldn't contact remote authentication server");
     }
 
     /* CLAIM: we now have a TCP connection to the remote IMAP server */
@@ -558,85 +469,5 @@ auth_rimap (
 }
 
 /* END FUNCTION: auth_rimap */
-
-/* FUNCTION: retry_writev */
-
-/* SYNOPSIS
- * Keep calling the writev() system call with 'fd', 'iov', and 'iovcnt'
- * until all the data is written out or an error occurs.
- * END SYNOPSIS */
-
-static int				/* R: bytes written, or -1 on error */
-retry_writev (
-  /* PARAMETERS */
-  int fd,				/* I: fd to write on */
-  struct iovec *iov,			/* U: iovec array base
-					 *    modified as data written */
-  int iovcnt				/* I: number of iovec entries */
-  /* END PARAMETERS */
-  )
-{
-    /* VARIABLES */
-    int n;				/* return value from writev() */
-    int i;				/* loop counter */
-    int written;			/* bytes written so far */
-    static int iov_max;			/* max number of iovec entries */
-    /* END VARIABLES */
-
-    /* initialization */
-#ifdef MAXIOV
-    iov_max = MAXIOV;
-#else /* ! MAXIOV */
-# ifdef IOV_MAX
-    iov_max = IOV_MAX;
-# else /* ! IOV_MAX */
-    iov_max = 8192;
-# endif /* ! IOV_MAX */
-#endif /* ! MAXIOV */
-    written = 0;
-    
-    for (;;) {
-
-	while (iovcnt && iov[0].iov_len == 0) {
-	    iov++;
-	    iovcnt--;
-	}
-
-	if (!iovcnt) {
-	    return written;
-	}
-
-	n = writev(fd, iov, iovcnt > iov_max ? iov_max : iovcnt);
-	if (n == -1) {
-	    if (errno == EINVAL && iov_max > 10) {
-		iov_max /= 2;
-		continue;
-	    }
-	    if (errno == EINTR) {
-		continue;
-	    }
-	    return -1;
-	} else {
-	    written += n;
-	}
-
-	for (i = 0; i < iovcnt; i++) {
-	    if (iov[i].iov_len > n) {
-		iov[i].iov_base = (char *)iov[i].iov_base + n;
-		iov[i].iov_len -= n;
-		break;
-	    }
-	    n -= iov[i].iov_len;
-	    iov[i].iov_len = 0;
-	}
-
-	if (i == iovcnt) {
-	    return written;
-	}
-    }
-    /* NOTREACHED */
-}
-
-/* END FUNCTION: retry_writev */
 
 /* END MODULE: auth_rimap */

@@ -1,10 +1,10 @@
 /* Plain SASL plugin
+ * Rob Siemborski
  * Tim Martin 
- * $Id: plain.c,v 1.44 2001/06/20 10:38:39 n3liw Exp $
+ * $Id: plain.c,v 1.45 2001/12/04 02:06:49 rjs3 Exp $
  */
-
 /* 
- * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,6 +49,8 @@
 #include <sasl.h>
 #include <saslplug.h>
 
+#include "plugin_common.h"
+
 #ifdef WIN32
 /* This must be after sasl.h */
 # include "saslPLAIN.h"
@@ -60,63 +62,42 @@
 
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
 
-#define PLAIN_VERSION (3)
 #undef L_DEFAULT_GUARD
 #define L_DEFAULT_GUARD (0)
 
 typedef struct context {
-  int state;
-  sasl_secret_t *password;
+    int state;
+    sasl_secret_t *password;
+    char *out_buf;
+    unsigned out_buf_len;
 } context_t;
 
-
-static int start(void *glob_context __attribute__((unused)), 
-		 sasl_server_params_t *sparams,
-		 const char *challenge __attribute__((unused)),
-		 int challen __attribute__((unused)),
-		 void **conn,
-		 const char **errstr)
+static int plain_server_mech_new(void *glob_context __attribute__((unused)), 
+				 sasl_server_params_t *sparams,
+				 const char *challenge __attribute__((unused)),
+				 unsigned challen __attribute__((unused)),
+				 void **conn)
 {
   context_t *text;
 
-  if (errstr)
-    *errstr = NULL;
-
   /* holds state are in */
-  text= sparams->utils->malloc(sizeof(context_t));
-  if (text==NULL) return SASL_NOMEM;
-  text->state=1;
+  text=sparams->utils->malloc(sizeof(context_t));
+  if (text==NULL) {
+      MEMERROR(sparams->utils);
+      return SASL_NOMEM;
+  }
 
-  text->password = NULL;
+  memset(text, 0, sizeof(context_t));
+
+  text->state=1;
 
   *conn=text;
 
   return SASL_OK;
 }
 
-static void free_secret(sasl_utils_t *utils,
-			sasl_secret_t **secret)
-{
-  size_t lup;
-
-  VL(("Freeing secret\n"));
-
-  if (secret==NULL) return;
-  if (*secret==NULL) return;
-
-  /* overwrite the memory */
-  for (lup=0;lup<(*secret)->len;lup++)
-    (*secret)->data[lup]='X';
-
-  (*secret)->len=0;
-
-  /* this fail in the debug version on win32, which does tighter checking */
-  utils->free(*secret);
-
-  *secret=NULL;
-}
-
-static void dispose(void *conn_context, sasl_utils_t *utils)
+static void plain_both_mech_dispose(void *conn_context,
+				    const sasl_utils_t *utils)
 {
   context_t *text;
   text=conn_context;
@@ -125,91 +106,69 @@ static void dispose(void *conn_context, sasl_utils_t *utils)
     return;
 
   /* free sensitive info */
-  free_secret(utils,&(text->password));
+  _plug_free_secret(utils, &(text->password));
+  
+  if(text->out_buf)
+      utils->free(text->out_buf);
 
   utils->free(text);
 }
 
-static void mech_free(void *global_context, sasl_utils_t *utils)
+static void plain_both_mech_free(void *global_context,
+				 const sasl_utils_t *utils)
 {
-  utils->free(global_context);  
+    if(global_context) utils->free(global_context);  
 }
 
 /* fills in password; remember to free password and wipe it out correctly */
 static
 int verify_password(sasl_server_params_t *params, 
-		    const char *user, const char *pass,
-		    const char **errstr)
+		    const char *user, const char *pass)
 {
-    const char *mech = NULL;
     int result;
     
-    params->utils->getopt(params->utils->getopt_context, "PLAIN",
-			  "pwcheck_method", &mech, NULL);
-
     /* if it's null, checkpass will default */
     result = params->utils->checkpass(params->utils->conn,
-				      mech, params->service, 
-				      user, pass, errstr);
+				      user, 0, pass, 0);
     
     return result;
 }
 
+static const char blank_server_out[] = "";
+
 static int
-server_continue_step (void *conn_context,
-		      sasl_server_params_t *params,
-		      const char *clientin,
-		      int clientinlen,
-		      char **serverout,
-		      int *serveroutlen,
-		      sasl_out_params_t *oparams,
-		      const char **errstr)
+plain_server_mech_step(void *conn_context,
+		       sasl_server_params_t *params,
+		       const char *clientin,
+		       unsigned clientinlen,
+		       const char **serverout,
+		       unsigned *serveroutlen,
+		       sasl_out_params_t *oparams)
 {
-  context_t *text;
-  text=conn_context;
+    context_t *text;
+    text=conn_context;
 
-  if (errstr) { *errstr = NULL; }
-
-  oparams->mech_ssf=0;
-
-  oparams->maxoutbuf = 0;
+    oparams->mech_ssf=0;
+    oparams->maxoutbuf = 0;
   
-  oparams->encode = NULL;
-  oparams->decode = NULL;
+    oparams->encode = NULL;
+    oparams->decode = NULL;
 
-  oparams->user = NULL;
-  oparams->authid = NULL;
+    oparams->user = NULL;
+    oparams->authid = NULL;
 
-  oparams->realm = NULL;
-  oparams->param_version = 0;
-
-  /* nothing more to do; authenticated */
-  oparams->doneflag = 1;
-
-  if (text->state == 1 && clientin == NULL && clientinlen == 0)
-  {
-      /* for IMAP's sake! */
-      *serverout = params->utils->malloc(1);
-      if (! *serverout) return SASL_NOMEM;
-      (*serverout)[0] = '\0';
-      *serveroutlen = 0;
-
-      return SASL_CONTINUE;
-  }
+    oparams->param_version = 0;
 
   if (text->state == 1) {
     const char *author;
     const char *authen;
     const char *password;
     size_t password_len;
-    int lup=0;
-    char *mem;
+    unsigned lup=0;
     int result;
     char *passcopy; 
 
     /* should have received author-id NUL authen-id NUL password */
-
-    VL (("in=%s len=%i\n",clientin,clientinlen));
 
     /* get author */
     author = clientin;
@@ -218,7 +177,7 @@ server_continue_step (void *conn_context,
 
     if (lup >= clientinlen)
     {
-	VL(("Can only find author (no password)\n"));
+	SETERROR(params->utils, "Can only find author (no password)");
 	return SASL_BADPROT;
     }
 
@@ -230,7 +189,8 @@ server_continue_step (void *conn_context,
 
     if (lup >= clientinlen)
     {
-	VL(("Can only find author/en (no password) \n"));
+	params->utils->seterror(params->utils->conn, 0,
+				"Can only find author/en (no password)");
 	return SASL_BADPROT;
     }
 
@@ -242,53 +202,41 @@ server_continue_step (void *conn_context,
 
     password_len = clientin + lup - password;
 
-    if (lup != clientinlen)
-      return SASL_BADPROT;
-
+    if (lup != clientinlen) {
+	SETERROR(params->utils, "Got more data than we were expecting in the PLAIN plugin\n");
+	return SASL_BADPROT;
+    }
+    
     /* this kinda sucks. we need password to be null terminated
        but we can't assume there is an allocated byte at the end
        of password so we have to copy it */
     passcopy = params->utils->malloc(password_len + 1);    
-    if (passcopy == NULL) return SASL_NOMEM;
+    if (passcopy == NULL) {
+	MEMERROR(params->utils);
+	return SASL_NOMEM;
+    }
 
     strncpy(passcopy, password, password_len);
     passcopy[password_len] = '\0';
 
     /* verify password - return sasl_ok on success*/    
-    result = verify_password(params, authen, passcopy, errstr);
+    result = verify_password(params, authen, passcopy);
     
-    for (lup = strlen(passcopy); lup >= 0; lup--) {
-	passcopy[lup] = '\0';
-    }
-    params->utils->free(passcopy);
+    _plug_free_string(params->utils, &passcopy);
 
     if (result != SASL_OK)
     {
-	VL(("Password verification failed\n"));
+	params->utils->seterror(params->utils->conn, 0,
+				"Password verification failed");
 	return result;
     }
-
-    VL(("Password verified A-ok\n"));
 
     if (! author || !*author)
       author = authen;
 
-    mem = params->utils->malloc(strlen(author) + 1);
-    if (! mem) return SASL_NOMEM;
-    strcpy(mem, author);
-    oparams->user = mem;
-
-    mem = params->utils->malloc(strlen(authen) + 1);
-    if (! mem) return SASL_NOMEM;
-    strcpy(mem, authen);
-    oparams->authid = mem;
-
-    if (params->serverFQDN) {
-      mem = params->utils->malloc(strlen(params->serverFQDN) + 1);
-      if (! mem) return SASL_NOMEM;
-      strcpy(mem, params->serverFQDN);
-      oparams->realm = mem;
-    } else oparams->realm = NULL;
+    result = params->canon_user(params->utils->conn,
+				author, 0, authen, 0, 0, oparams);
+    if(result != SASL_OK) return result;
 
     if (params->transition)
     {
@@ -296,31 +244,33 @@ server_continue_step (void *conn_context,
 			   password, password_len);
     }
     
-    *serverout = params->utils->malloc(1);
-    if (! *serverout) return SASL_NOMEM;
-    (*serverout)[0] = '\0';
+    *serverout = blank_server_out;
     *serveroutlen = 0;
 
     text->state++; /* so fails if called again */
 
+    oparams->doneflag = 1;
+
     return SASL_OK;
   }
 
+  SETERROR( params->utils,
+	    "Unexpected State Reached in PLAIN plugin");
   return SASL_FAIL; /* should never get here */
 }
 
-static const sasl_server_plug_t plugins[] = 
+static sasl_server_plug_t plain_server_plugins[] = 
 {
   {
     "PLAIN",
     0,
     SASL_SEC_NOANONYMOUS,
+    SASL_FEAT_WANT_CLIENT_FIRST,
     NULL,
-    &start,
-    &server_continue_step,
-    &dispose,
-    &mech_free,
-    NULL,
+    &plain_server_mech_new,
+    &plain_server_mech_step,
+    &plain_both_mech_dispose,
+    &plain_both_mech_free,
     NULL,
     NULL,
     NULL,
@@ -329,45 +279,51 @@ static const sasl_server_plug_t plugins[] =
   }
 };
 
-int sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
-			  int maxversion,
-			  int *out_version,
-			  const sasl_server_plug_t **pluglist,
-			  int *plugcount)
+int plain_server_plug_init(const sasl_utils_t *utils,
+			   int maxversion,
+			   int *out_version,
+			   sasl_server_plug_t **pluglist,
+			   int *plugcount)
 {
-  if (maxversion<PLAIN_VERSION)
-    return SASL_BADVERS;
+    if (maxversion<SASL_SERVER_PLUG_VERSION) {
+	SETERROR(utils, "PLAIN version mismatch");
+	return SASL_BADVERS;
+    }
+    
+    *pluglist=plain_server_plugins;
 
-  *pluglist=plugins;
+    *plugcount=1;  
+    *out_version=SASL_SERVER_PLUG_VERSION;
 
-  *plugcount=1;  
-  *out_version=PLAIN_VERSION;
-
-  return SASL_OK;
+    return SASL_OK;
 }
 
 /* put in sasl_wrongmech */
-static int c_start(void *glob_context __attribute__((unused)),
-		   sasl_client_params_t *params,
-		   void **conn)
+static int plain_client_mech_new(void *glob_context __attribute__((unused)),
+				 sasl_client_params_t *params,
+				 void **conn)
 {
-  context_t *text;
+    context_t *text;
 
-  /* holds state are in */
-  text = params->utils->malloc(sizeof(context_t));
-  if (text==NULL) return SASL_NOMEM;
-  text->state=1;  
-  text->password = NULL;
-  *conn=text;
+    /* holds state are in */
+    text = params->utils->malloc(sizeof(context_t));
+    if (text==NULL) {
+	MEMERROR( params->utils );
+	return SASL_NOMEM;
+    }
+    
+    memset(text, 0, sizeof(context_t));
 
-  return SASL_OK;
+    text->state=1;
+    *conn=text;
+
+    return SASL_OK;
 }
 
 /* 
  * Trys to find the prompt with the lookingfor id in the prompt list
  * Returns it if found. NULL otherwise
  */
-
 static sasl_interact_t *find_prompt(sasl_interact_t **promptlist,
 				    unsigned int lookingfor)
 {
@@ -387,9 +343,8 @@ static sasl_interact_t *find_prompt(sasl_interact_t **promptlist,
  * Somehow retrieve the userid
  * This is the same as in digest-md5 so change both
  */
-
 static int get_userid(sasl_client_params_t *params,
-		      char **userid,
+		      const char **userid,
 		      sasl_interact_t **prompt_need)
 {
   int result;
@@ -402,11 +357,7 @@ static int get_userid(sasl_client_params_t *params,
   prompt=find_prompt(prompt_need,SASL_CB_USER);
   if (prompt!=NULL)
     {
-	/* copy it */
-	*userid=params->utils->malloc(prompt->len+1);
-	if ((*userid)==NULL) return SASL_NOMEM;
-	
-	strncpy(*userid, prompt->result, prompt->len+1);
+	*userid = prompt->result;
 	return SASL_OK;
     }
 
@@ -423,19 +374,19 @@ static int get_userid(sasl_client_params_t *params,
 			NULL);
     if (result != SASL_OK)
       return result;
-    if (! id)
-      return SASL_BADPARAM;
-    *userid = params->utils->malloc(strlen(id) + 1);
-    if (! *userid)
-      return SASL_NOMEM;
-    strcpy(*userid, id);
+    if (! id) {
+	PARAMERROR(params->utils);
+	return SASL_BADPARAM;
+    }
+    
+    *userid = id;
   }
 
   return result;
 }
 
 static int get_authid(sasl_client_params_t *params,
-		      char **authid,
+		      const char **authid,
 		      sasl_interact_t **prompt_need)
 {
 
@@ -449,11 +400,8 @@ static int get_authid(sasl_client_params_t *params,
   prompt=find_prompt(prompt_need,SASL_CB_AUTHNAME);
   if (prompt!=NULL)
   {
-      /* copy it */
-      *authid=params->utils->malloc(prompt->len+1);
-      if ((*authid)==NULL) return SASL_NOMEM;
+      *authid = prompt->result;
       
-      strncpy(*authid, prompt->result, prompt->len+1);    
       return SASL_OK;
   }
 
@@ -470,18 +418,16 @@ static int get_authid(sasl_client_params_t *params,
 			NULL);
     if (result != SASL_OK)
       return result;
-    if (! id)
-      return SASL_BADPARAM;
-    *authid = params->utils->malloc(strlen(id) + 1);
-    if (! *authid)
-      return SASL_NOMEM;
-    strcpy(*authid, id);
+    if (! id) {
+	PARAMERROR( params->utils );
+	return SASL_BADPARAM;
+    }
+    
+    *authid = id;
   }
 
   return result;
 }
-
-
 
 static int get_password(sasl_client_params_t *params,
 		      sasl_secret_t **password,
@@ -497,21 +443,26 @@ static int get_password(sasl_client_params_t *params,
   prompt=find_prompt(prompt_need,SASL_CB_PASS);
   if (prompt!=NULL)
   {
-    /* We prompted, and got.*/
+      /* We prompted, and got.*/
 	
-    if (! prompt->result)
-      return SASL_FAIL;
+      if (! prompt->result) {
+	  SETERROR(params->utils, "Unexpectedly missing a prompt result");
+	  return SASL_FAIL;
+      }
+      
+      /* copy what we got into a secret_t */
+      *password = (sasl_secret_t *) params->utils->malloc(sizeof(sasl_secret_t)+
+							  prompt->len+1);
+      if (! *password) {
+	  MEMERROR( params->utils );
+	  return SASL_NOMEM;
+      }
+      
+      (*password)->len=prompt->len;
+      memcpy((*password)->data, prompt->result, prompt->len);
+      (*password)->data[(*password)->len]=0;
 
-    /* copy what we got into a secret_t */
-    *password = (sasl_secret_t *) params->utils->malloc(sizeof(sasl_secret_t)+
-						       prompt->len+1);
-    if (! *password) return SASL_NOMEM;
-
-    (*password)->len=prompt->len;
-    memcpy((*password)->data, prompt->result, prompt->len);
-    (*password)->data[(*password)->len]=0;
-
-    return SASL_OK;
+      return SASL_OK;
   }
 
 
@@ -530,29 +481,9 @@ static int get_password(sasl_client_params_t *params,
   return result;
 }
 
-static void free_prompts(sasl_client_params_t *params,
-			 sasl_interact_t *prompts)
-{
-  sasl_interact_t *ptr=prompts;
-  if (ptr==NULL) return;
-
-  do
-  {
-    /* xxx might be freeing static memory. is this ok? */
-    if (ptr->result!=NULL)
-      params->utils->free(ptr->result);
-
-    ptr++;
-  } while(ptr->id!=SASL_CB_LIST_END);
-
-  params->utils->free(prompts);
-  prompts=NULL;
-}
-
 /*
  * Make the necessary prompts
  */
-
 static int make_prompts(sasl_client_params_t *params,
 			sasl_interact_t **prompts_res,
 			int user_res,
@@ -566,10 +497,17 @@ static int make_prompts(sasl_client_params_t *params,
   if (auth_res==SASL_INTERACT) num++;
   if (pass_res==SASL_INTERACT) num++;
 
-  if (num==1) return SASL_FAIL;
+  if (num==1) {
+      SETERROR( params->utils, "make_prompts called with no actual prompts" );
+      return SASL_FAIL;
+  }
 
   prompts=params->utils->malloc(sizeof(sasl_interact_t)*(num+1));
-  if ((prompts) ==NULL) return SASL_NOMEM;
+  if ((prompts) ==NULL) {
+      MEMERROR( params->utils );
+      return SASL_NOMEM;
+  }
+  
   *prompts_res=prompts;
 
   if (user_res==SASL_INTERACT)
@@ -606,7 +544,6 @@ static int make_prompts(sasl_client_params_t *params,
     prompts++;
   }
 
-
   /* add the ending one */
   (prompts)->id=SASL_CB_LIST_END;
   (prompts)->challenge=NULL;
@@ -618,68 +555,64 @@ static int make_prompts(sasl_client_params_t *params,
 
 
 
-static int client_continue_step (void *conn_context,
-				 sasl_client_params_t *params,
-				 const char *serverin __attribute__((unused)),
-				 int serverinlen,
-				 sasl_interact_t **prompt_need,
-				 char **clientout,
-				 int *clientoutlen,
-				 sasl_out_params_t *oparams)
+static int plain_client_mech_step(void *conn_context,
+				  sasl_client_params_t *params,
+				  const char *serverin __attribute__((unused)),
+				  unsigned serverinlen __attribute__((unused)),
+				  sasl_interact_t **prompt_need,
+				  const char **clientout,
+				  unsigned *clientoutlen,
+				  sasl_out_params_t *oparams)
 {
   int result;
-
+  const char *user, *authid;
+  
   context_t *text;
   text=conn_context;
 
-  VL(("Plain step #%d\n",text->state));
-
-  if (!clientout && text->state == 1) {
-      text->state = 2;
-      return SASL_CONTINUE;
-  }
   *clientout = NULL;
   *clientoutlen = 0;
 
   /* doesn't really matter how the server responds */
 
-  if (text->state==1 || (text->state == 2 && serverinlen == 0)) {
+  if (text->state==1) {
     int user_result=SASL_OK;
     int auth_result=SASL_OK;
     int pass_result=SASL_OK;
 
     /* check if sec layer strong enough */
-    if (params->props.min_ssf>0)
-      return SASL_TOOWEAK;
-
-    /* try to get the userid */
-    if (oparams->user==NULL)
-    {
-      VL (("Trying to get userid\n"));
-      user_result=get_userid(params,
-			     &oparams->user,
-			     prompt_need);
-
-      if ((user_result!=SASL_OK) && (user_result!=SASL_INTERACT))
-	return user_result;
+    if (params->props.min_ssf>0+params->external_ssf) {
+	SETERROR( params->utils, "The PLAIN plugin cannot support any SSF");
+	return SASL_TOOWEAK;
     }
 
     /* try to get the authid */    
     if (oparams->authid==NULL)
     {
-      VL (("Trying to get authid\n"));
       auth_result=get_authid(params,
-			     &oparams->authid,
+			     &authid,
 			     prompt_need);
 
       if ((auth_result!=SASL_OK) && (auth_result!=SASL_INTERACT))
 	return auth_result;
     }			
 
+    /* try to get the userid */
+    if (oparams->user==NULL)
+    {
+      user_result=get_userid(params,
+			     &user,
+			     prompt_need);
+
+      /* Fallback to authid */
+      if ((user_result!=SASL_OK) && (user_result!=SASL_INTERACT)) {
+	  user = authid;
+      }
+    }
+
     /* try to get the password */
     if (text->password==NULL)
     {
-      VL (("Trying to get password\n"));
       pass_result=get_password(params,
 			       &text->password,
 			       prompt_need);
@@ -688,10 +621,9 @@ static int client_continue_step (void *conn_context,
 	return pass_result;
     }
 
-    
     /* free prompts we got */
-    if (prompt_need) {
-	free_prompts(params,*prompt_need);
+    if (prompt_need && *prompt_need) {
+	params->utils->free(*prompt_need);
 	*prompt_need = NULL;
     }
 
@@ -704,114 +636,87 @@ static int client_continue_step (void *conn_context,
 			  user_result, auth_result, pass_result);
       if (result!=SASL_OK) return result;
       
-      VL(("returning prompt(s)\n"));
       return SASL_INTERACT;
     }
     
-    if (!oparams->authid || !text->password)
-      return SASL_BADPARAM;
+    params->canon_user(params->utils->conn, user, 0, authid, 0, 0, oparams);
 
-    VL (("Got username, authid, and password\n"));
-
+    if (!text->password) {
+	PARAMERROR(params->utils);
+	return SASL_BADPARAM;
+    }
+    
     /* send authorized id NUL authentication id NUL password */
     {
-      size_t userid_len, authid_len;
-
-      if (oparams->user) {
-	  userid_len = strlen(oparams->user);
-      } else {
-	  userid_len = 0;
-      }
-
-      authid_len = strlen(oparams->authid);
-
-      *clientoutlen = (userid_len + 1
-		       + authid_len + 1
+      *clientoutlen = (oparams->ulen + 1
+		       + oparams->alen + 1
 		       + text->password->len);
-      *clientout=params->utils->malloc(*clientoutlen);
-      if (! *clientout) return SASL_NOMEM;
-      memset(*clientout, 0, *clientoutlen);
 
-      VL(("userid=[%s]\n",oparams->user ? oparams->user : "(NULL)"));
-      VL(("authid=[%s]\n",oparams->authid));
-      VL(("password=[%s]\n",text->password->data));
+      /* remember the extra NUL on the end for stupid clients */
+      result = _plug_buf_alloc(params->utils, &(text->out_buf),
+			       &(text->out_buf_len), *clientoutlen + 1);
+      if(result != SASL_OK) return result;
 
-      if (oparams->user)
-	memcpy(*clientout, oparams->user, userid_len);
-      memcpy(*clientout+userid_len+1, oparams->authid, authid_len);
-      memcpy(*clientout+userid_len+authid_len+2,
+      memset(text->out_buf, 0, *clientoutlen + 1);
+      memcpy(text->out_buf, oparams->user, oparams->ulen);
+      memcpy(text->out_buf+oparams->ulen+1, oparams->authid, oparams->alen);
+      memcpy(text->out_buf+oparams->ulen+oparams->alen+2,
 	     text->password->data,
 	     text->password->len);
+
+      *clientout=text->out_buf;
     }
 
     /* set oparams */
     oparams->mech_ssf=0;
-    oparams->maxoutbuf = 0;
+    oparams->maxoutbuf=0;
     oparams->encode=NULL;
     oparams->decode=NULL;
-    if (! oparams->user) {
-      oparams->user = params->utils->malloc(strlen(oparams->authid) + 1);
-      if (! oparams->user)
-	return SASL_NOMEM;
-      strcpy(oparams->user, oparams->authid);
-    }
-
-    if (params->serverFQDN) {
-      oparams->realm = params->utils->malloc(strlen(params->serverFQDN) + 1);
-      if (! oparams->realm)
-	return SASL_NOMEM;
-      strcpy(oparams->realm, params->serverFQDN);
-    }
 
     oparams->param_version = 0;
 
-    text->state = 3;
+    text->state = 2;
 
-    return SASL_CONTINUE;
-  }
-
-  if (text->state == 3)
-  {
-      *clientout = NULL;
-      *clientoutlen = 0;
-      VL(("Verify we're done step"));
-      text->state++;
-      return SASL_OK;      
+    return SASL_OK;
   }
 
   return SASL_FAIL; /* should never get here */
 }
 
-static const sasl_client_plug_t client_plugins[] = 
+static sasl_client_plug_t plain_client_plugins[] = 
 {
   {
     "PLAIN",
     0,
     SASL_SEC_NOANONYMOUS,
+    SASL_FEAT_WANT_CLIENT_FIRST,
     NULL,
     NULL,
-    &c_start,
-    &client_continue_step,
-    &dispose,
-    &mech_free,
+    &plain_client_mech_new,
+    &plain_client_mech_step,
+    &plain_both_mech_dispose,
+    &plain_both_mech_free,
+    NULL,
     NULL,
     NULL
   }
 };
 
-int sasl_client_plug_init(sasl_utils_t *utils __attribute__((unused)),
-			  int maxversion,
-			  int *out_version,
-			  const sasl_client_plug_t **pluglist,
-			  int *plugcount)
+int plain_client_plug_init(sasl_utils_t *utils,
+			   int maxversion,
+			   int *out_version,
+			   sasl_client_plug_t **pluglist,
+			   int *plugcount)
 {
-  if (maxversion<PLAIN_VERSION)
-    return SASL_BADVERS;
+    if (maxversion<SASL_CLIENT_PLUG_VERSION) {
+	SETERROR(utils, "PLAIN version mismatch");
+	return SASL_BADVERS;
+    }
 
-  *pluglist=client_plugins;
+    *pluglist=plain_client_plugins;
 
-  *plugcount=1;
-  *out_version=PLAIN_VERSION;
+    *plugcount=1;
+    *out_version=SASL_CLIENT_PLUG_VERSION;
 
-  return SASL_OK;
+    return SASL_OK;
 }

@@ -25,9 +25,10 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ******************************************************************/
 
 #include <config.h>
+#include <limits.h>
+#include <netinet/in.h>
 #include <sasl.h>
 #include <saslutil.h>
-#include <netinet/in.h>
 
 static const char
 build_ident[] = "$Build: sample-server " PACKAGE "-" VERSION " $";
@@ -280,7 +281,7 @@ main(int argc, char *argv[])
   /* Init defaults... */
   memset(&secprops, 0L, sizeof(secprops));
   secprops.maxbufsize = SAMPLE_SEC_BUF_SIZE;
-  secprops.max_ssf = 9999; /* xxx solaris doesn't compile UINT_MAX; */
+  secprops.max_ssf = UINT_MAX;
   memset(&extprops, 0L, sizeof(extprops));
 
   while ((c = getopt(argc, argv, "hb:e:m:f:i:p:s:l:u:?")) != EOF)
@@ -537,19 +538,19 @@ main(int argc, char *argv[])
 
   result = sasl_getprop(conn, SASL_USERNAME, (void **)&data);
   if (result != SASL_OK)
-    sasldebug(result, "Getting username property", NULL);
+    sasldebug(result, "username", NULL);
   else
     printf("Username: %s\n", data);
 
   result = sasl_getprop(conn, SASL_REALM, (void **)&data);
   if (result != SASL_OK)
-    sasldebug(result, "Getting realm property", NULL);
+    sasldebug(result, "realm", NULL);
   else
     printf("Realm: %s\n", data);
 
   result = sasl_getprop(conn, SASL_SSF, (void **)&ssf);
   if (result != SASL_OK)
-    sasldebug(result, "Getting ssf property", NULL);
+    sasldebug(result, "ssf", NULL);
   else
     printf("SSF: %d\n", ssf);
 

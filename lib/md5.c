@@ -440,6 +440,10 @@ void hmac_md5_import(HMAC_MD5_CTX *hmac,
     hmac->ictx.state[lupe] = ntohl(state->istate[lupe]);
     hmac->octx.state[lupe] = ntohl(state->ostate[lupe]);
   }
+  /* Init the counts to account for our having applied
+   * 64 bytes of key; this works out to 0x200 (64 << 3; see
+   * MD5Update above...) */
+  hmac->ictx.count[0] = hmac->octx.count[0] = 0x200;
 }
 
 void hmac_md5_final(unsigned char digest[HMAC_MD5_SIZE],

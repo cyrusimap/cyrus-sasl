@@ -180,9 +180,9 @@ int sasl_mkchal(sasl_conn_t *conn,
   time(&now);
 
   if (hostflag && conn->local_domain)
-    sprintf(buf, "<%ld.%ld@%s>", randnum, now, conn->local_domain);
+    sprintf(buf, "<%lu.%lu@%s>", randnum, now, conn->local_domain);
   else
-    sprintf(buf, "<%ld.%ld>", randnum, now);
+    sprintf(buf, "<%lu.%lu>", randnum, now);
 
   return strlen(buf);
 }

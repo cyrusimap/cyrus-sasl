@@ -1,4 +1,58 @@
+1999-03-29  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c: no longer requiring errstr to be passed in
+
+	* plugins/plain.c: cleaned up some code
+
+	* lib/common.c (_sasl_getcallback): no longer returns SASL_INTERACT 
+	when it can't find a callback; uses SASL_OK instead.
+
+	* plugins/kerberos4.c (client_continue_step): diked out all the
+	authid code.  Why was this in Kerberos, anyway?  Also added
+	required prompts for kerberos (i.e. none, instead of the default
+	SASL_CB_AUTHNAME and SASL_CB_PASS).
+	
+	* lib/common.c (_sasl_getcallback): eliminated builtin SASL_CB_USER
+
+	* plugins/cram.c (c_continue_step): don't send a zero-length
+	initial response...
+
+	* sample/sample-client.c (main): free data properly when
+	initial response is possible
+
+	* plugins/cram.c: set client-side user+authid oparams, tweaked a
+ 	couple allocation constants to make purify happy.  CRAM-MD5 now
+ 	passes purify, both client and server, success and fail cases,
+ 	returning all data correctly to both sides.
+
+	* sample/sample-client.c (main): added property retrieval tests to 
+	sample-client.c (so the client can discover whom it has
+	authenticated as).
+
+	* lib/md5.c (hmac_md5_import): fixed count update bug
+
+1999-03-28  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* lib/saslutil.c (sasl_mkchal): always generate positive nonces
+
+	* plugins/cram.c (server_continue_step): lots of little changes;
+	no longer tickles purify
+	(c_continue_step): some more little changes
+
+	* config/sasl.spec: Added the extra RFCs
+
+	* doc/Makefile.am (EXTRA_DIST): Added a few more RFCs
+
 1999-03-26  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* plugins/cram.c (find_prompt): Fixed
+	(c_continue_step): Fixed call to free_prompts
+
+	* lib/server.c (sasl_server_step): removed strange setprop
+
+	* lib/common.c: Setting security flags
+	(sasl_errstring): changed badparam message to something a little
+	less confusing
 
 	* config/{config.guess,config.sub,ltconfig,ltmain.sh}: reverted to 
 	old hacked versions

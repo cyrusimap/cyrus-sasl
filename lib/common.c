@@ -193,6 +193,7 @@ int _sasl_conn_init(sasl_conn_t *conn,
     conn->props.max_ssf = UINT_MAX;
   else
     conn->props.max_ssf = 0;
+  conn->props.security_flags = 0;
   conn->idle_hook = idle_hook;
   conn->callbacks = callbacks;
   conn->global_callbacks = global_callbacks;
@@ -392,7 +393,7 @@ const char *sasl_errstring(int saslerr,
     case SASL_NOMECH:   return "no mechanism available";
     case SASL_BADPROT:  return "bad protocol / cancel";
     case SASL_NOTDONE:  return "can't request info until later in exchange";
-    case SASL_BADPARAM: return "invalid parameter supplied (probably config file)";
+    case SASL_BADPARAM: return "invalid parameter supplied";
     case SASL_TRYAGAIN: return "transient failure (e.g., weak key)";
     case SASL_BADMAC:   return "integrity check failed";
                              /* -- client only codes -- */
@@ -537,10 +538,6 @@ _sasl_getsimple(void *context,
   conn = (sasl_conn_t *)context;
 
   switch(id) {
-  case SASL_CB_USER:
-    *result = "";
-    if (len) *len = 0;
-    return SASL_OK;
   case SASL_CB_AUTHNAME:
     userid = getenv("USER");
     if (userid != NULL) {
@@ -626,29 +623,29 @@ _sasl_getcallback(sasl_conn_t * conn,
   case SASL_CB_LOG:
     *pproc = (int (*)()) &_sasl_syslog;
     *pcontext = NULL;
-    break;
+    return SASL_OK;
 #endif /* HAVE_VSYSLOG */
   case SASL_CB_GETPATH:
     *pproc = (int (*)()) &_sasl_getpath;
     *pcontext = NULL;
-    break;
-  case SASL_CB_USER:
+    return SASL_OK;
   case SASL_CB_AUTHNAME:
     *pproc = (int (*)()) &_sasl_getsimple;
     *pcontext = conn;
-    break;
+    return SASL_OK;
   case SASL_CB_SERVER_GETSECRET:
     *pproc = _sasl_server_getsecret_hook;
     *pcontext = NULL;
-    break;
+    return SASL_OK;
   case SASL_CB_SERVER_PUTSECRET:
     *pproc = _sasl_server_putsecret_hook;
     *pcontext = NULL;
-    break;
-  default:
-    return SASL_INTERACT;
+    return SASL_OK;
   }
 
+  /* Unable to find a callback... */
+  *pproc = NULL;
+  *pcontext = NULL;
   return SASL_OK;
 }
 

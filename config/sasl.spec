@@ -112,6 +112,7 @@ fi
 /usr/lib/sasl/libanonymous.so
 
 %files plug-crammd5
+%doc doc/rfc1321.txt doc/rfc2095.txt doc/rfc2104.txt
 /usr/lib/sasl/libcrammd5.so.1.0.1
 /usr/lib/sasl/libcrammd5.so
 

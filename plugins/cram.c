@@ -42,7 +42,7 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 
 #ifdef L_DEFAULT_GUARD
 # undef L_DEFAULT_GUARD
-# define L_DEFAULT_GUARD (1)
+# define L_DEFAULT_GUARD (0)
 #endif
 
 typedef struct context {
@@ -73,7 +73,9 @@ static int start(void *glob_context __attribute__((unused)),
   text= sparams->utils->malloc(sizeof(context_t));
   if (text==NULL) return SASL_NOMEM;
   text->state=1;
-  
+  text->msgid = NULL;
+  text->authid = NULL;
+  text->password = NULL;
   *conn=text;
 
   return SASL_OK;
@@ -136,66 +138,6 @@ static void mech_free(void *global_context, sasl_utils_t *utils)
   utils->free(global_context);  
 }
 
-/* convert a string of 8bit chars to it's representation in hex
- * using lowercase letters
- */
-static char *convert16(unsigned char *in,int inlen,sasl_utils_t *utils)
-{
-  static char hex[]="0123456789abcdef";
-  int lup;
-  char *out;
-  out=utils->malloc(inlen*2+1);
-  if (out==NULL) return NULL;
-
-  for (lup=0;lup<inlen;lup++)
-  {
-    out[lup*2]=  hex[  in[lup] >> 4 ];
-    out[lup*2+1]=hex[  in[lup] & 15 ];
-  }
-  out[lup*2]=0;
-  return out;
-}
-
-static char *make_hashed(sasl_secret_t *sec, char *nonce, int noncelen, 
-			 void *inparams)
-{
-  char secret[65];
-  unsigned char digest[1024];  
-  int lup;
-  char *in16;
-
-  sasl_server_params_t *params=(sasl_server_params_t *) inparams;
-
-  if (sec==NULL) return NULL;
-
-  if (sec->len<64)
-  {
-    memcpy(secret, sec->data, sec->len);
-
-    /* fill in rest with 0's */
-    for (lup= sec->len ;lup<64;lup++)
-      secret[lup]='\0';
-
-  } else {
-    memcpy(secret, sec->data, 64);
-  }
-
-  VL(("secret=[%s] %lu\n",secret,sec->len));
-  VL(("nonce=[%s] %i\n",nonce, noncelen));
-
-  /* do the hmac md5 hash */
-  params->utils->hmac_md5((unsigned char *) nonce,noncelen,
-			  (unsigned char *) secret,64,digest);
-
-  /* convert that to hex form */
-  in16=convert16(digest,16,params->utils);
-  if (in16==NULL) return NULL;
-
-  return in16;
-}
-
-
-
 static int server_continue_step (void *conn_context,
 				 sasl_server_params_t *sparams,
 				 const char *clientin,
@@ -220,7 +162,7 @@ static int server_continue_step (void *conn_context,
     *serveroutlen = 0;
     len = 128;			/* I happen to know that 128 is
 				 * likely to work on the first try...  */
-    *serverout = sparams->utils->malloc(*serveroutlen);
+    *serverout = sparams->utils->malloc(len);
     if (! *serverout)
       return SASL_NOMEM;
     
@@ -240,9 +182,9 @@ static int server_continue_step (void *conn_context,
     text->msgidlen=*serveroutlen;
 
     /* save nonce so we can check against it later */
-    text->msgid=sparams->utils->malloc(*serveroutlen);
+    text->msgid=sparams->utils->malloc(*serveroutlen + 1);
     if (text->msgid==NULL) return SASL_NOMEM;
-    memcpy(text->msgid,*serverout,*serveroutlen);
+    strcpy(text->msgid, *serverout);
 
     VL(("nonce=[%s]\n",text->msgid));
 
@@ -253,42 +195,41 @@ static int server_continue_step (void *conn_context,
   if (text->state==2)
   {
     /* verify digest */
-    char *userid=NULL;
+    const char *client_secret = NULL;
+    const char *s;
     sasl_secret_t *sec=NULL;
-    int lup,pos;
-    /*    int len=sizeof(MD5_CTX);*/
     int result;
     sasl_server_getsecret_t *getsecret;
     void *getsecret_context;
     HMAC_MD5_CTX ctx;
-    unsigned char digest[HMAC_MD5_SIZE];
-    int lupe;
-    unsigned char *p;
+    UINT4 digest[4];
+    char digest_str[33];
 
     VL(("CRAM-MD5 Step 2\n"));
     VL(("Clientin: %s\n",clientin));
 
     /* extract userid; everything before last space*/
-    pos=clientinlen-1;
-    while ((pos>0) && (clientin[pos]!=' '))
-    {
-      pos--;
+    s = clientin;
+    while (s - clientin < clientinlen
+	   && *s != ' ')
+      s++;
+    if (clientinlen <= s - clientin)
+      return SASL_BADPROT;
+
+    /* s now points to the space after the userid.
+     * s - clientin == number of chars in the userid */
+    oparams->authid = sparams->utils->malloc(s - clientin + 1);
+    if (! oparams->authid)
+      return SASL_NOMEM;
+    strncpy(oparams->authid, clientin, s - clientin);
+    oparams->authid[s - clientin] = '\0';
+    
+    client_secret = s + 1;
+    if (clientinlen - (client_secret - clientin) != 32) {
+      VL(("Received incorrectly sized secret from client\n"));
+      return SASL_BADPROT;
     }
-    if (pos==0)
-    {
-      VL(("There was no userid\n"));
-      return SASL_FAIL;
-    }
-
-    /* allocate for userid */
-    userid=(char *) sparams->utils->malloc(pos+1);
-    if (userid==NULL) return SASL_NOMEM;
-
-    /* copy userid out */
-    for (lup=0;lup<pos;lup++)
-      userid[lup]=clientin[lup];
-    userid[lup]=0;
-
+    
     /* get callback so we can request the secret */
     result = sparams->utils->getcallback(sparams->utils->conn,
 					 SASL_CB_SERVER_GETSECRET,
@@ -296,33 +237,32 @@ static int server_continue_step (void *conn_context,
 					 &getsecret_context);
     if (result != SASL_OK)
     {
-      VL(("result = %i trying to get secret callback\n",result));
+      VL(("result = %i trying to find getsecret callback\n",result));
       return result;
     }
     if (! getsecret)
     {
-      VL(("Received NULL getsecret callback\n"));
+      VL(("Unable to find getsecret callback\n"));
       return SASL_FAIL;
     }
 
     /* Request secret */
-    result = getsecret(getsecret_context, "CRAM-MD5", userid, &sec);
+    result = getsecret(getsecret_context, "CRAM-MD5", oparams->authid, &sec);
     if (result != SASL_OK)
     {
-      VL(("userid=%s\n",userid));
-      sparams->utils->free(userid);
+      VL(("userid=%s\n",oparams->authid));
       VL(("error %i in getsecret\n",result));
       return result;
     }
 
     if (! sec)
     {
-      VL(("Received NULL sec from getsecret\n"));
+      VL(("Unable to obtain user's secret\n"));
       return SASL_FAIL;
     }
 
     if (sec->len != sizeof(HMAC_MD5_STATE)) {
-      VL(("Received incorrectly sized secret\n"));
+      VL(("User's secret is not the right size\n"));
       free_secret(sparams->utils, &sec);
       return SASL_FAIL;
     }
@@ -336,40 +276,31 @@ static int server_continue_step (void *conn_context,
 			      (const unsigned char *)text->msgid,
 			      text->msgidlen);
 
-    sparams->utils->hmac_md5_final(digest, &ctx);
-
+    sparams->utils->hmac_md5_final((unsigned char *)&digest, &ctx);
     memset(&ctx, 0, sizeof(ctx));
+    sprintf(digest_str, "%08lx%08lx%08lx%08lx",
+	    digest[0], digest[1], digest[2], digest[3]);
+    memset(&digest, 0, sizeof(digest));
+
+    VL(("Server digest: %s\n", digest_str));
 
     /* and do the check */
-    for (lupe = 0, p = (unsigned char *) clientin + pos + 1;
-	 lupe < HMAC_MD5_SIZE;
-	 ++lupe, p += 2) {
-      if (!p[0] || !p[1]) {
-	VL(("length check failed\n"));
-	return SASL_FAIL;
-      }
-      if (((p[0] < '0' || '9' < p[0]) && (p[0] < 'a' || 'f' < p[0]))
-	  || ((p[1] < '0' || '9' < p[1]) && (p[1] < 'a' || 'f' < p[1]))) {
-	VL(("validity check failed\n"));
-	return SASL_FAIL;
-      }
-      if ((((('0' <= p[0] && p[0] <= '9') ? p[0] - '0' : p[0] - 'a' + 10) * 16)
-	   + (('0' <= p[1] && p[1] <= '9') ? p[1] - '0' : p[1] - 'a' + 10))
-	  != digest[lupe]) {
-	VL(("comparison check failed\n"));
-	return SASL_FAIL;
-      }
+    if (memcmp(digest_str, client_secret, 32)) {
+      VL(("Auth check failed\n"));
+      memset(digest_str, 0, sizeof(digest_str));
+      return SASL_BADAUTH;
     }
-
-    memset(digest, 0, sizeof(digest));
+    memset(digest_str, 0, sizeof(digest_str));
 
     /* nothing more to do; authenticated 
      * set oparams information
      */
     oparams->doneflag=1;
 
-    oparams->user=userid; /* set username */
-    oparams->authid=userid;
+    oparams->user=sparams->utils->malloc(strlen(oparams->authid) + 1);
+    if (! oparams->user)
+      return SASL_NOMEM;
+    strcpy(oparams->user, oparams->authid);
 
     oparams->mech_ssf=0;
 
@@ -378,7 +309,11 @@ static int server_continue_step (void *conn_context,
     oparams->encode=NULL;
     oparams->decode=NULL;
 
-    oparams->realm=NULL;
+    oparams->realm=sparams->utils->malloc(strlen(sparams->local_domain) + 1);
+    if (! oparams->realm)
+      return SASL_NOMEM;
+    strcpy(oparams->realm, sparams->local_domain);
+
     oparams->param_version=0;
 
     *serverout = NULL;
@@ -497,6 +432,7 @@ static int c_start(void *glob_context __attribute__((unused)),
   text->state=1;  
   text->authid=NULL;
   text->password=NULL;
+  text->msgid = NULL;
 
   *conn=text;
 
@@ -508,18 +444,17 @@ static int c_start(void *glob_context __attribute__((unused)),
  * Returns it if found. NULL otherwise
  */
 
-static sasl_interact_t *find_prompt(sasl_interact_t *promptlist,
+static sasl_interact_t *find_prompt(sasl_interact_t **promptlist,
 				    unsigned int lookingfor)
 {
-  if (promptlist==NULL) return NULL;
-
-  while (promptlist->id!=SASL_CB_LIST_END)
-  {
-    if (promptlist->id==lookingfor)
-      return promptlist;
-
-    promptlist++;
-  }
+  sasl_interact_t *prompt;
+  
+  if (promptlist && *promptlist)
+    for (prompt = *promptlist;
+	 prompt->id != SASL_CB_LIST_END;
+	 ++prompt)
+      if (prompt->id==lookingfor)
+	return prompt;
 
   return NULL;
 }
@@ -533,9 +468,10 @@ static int get_authid(sasl_client_params_t *params,
   sasl_getsimple_t *getauth_cb;
   void *getauth_context;
   sasl_interact_t *prompt;
+  const char *id;
 
   /* see if we were given the authname in the prompt */
-  prompt=find_prompt(*prompt_need,SASL_CB_AUTHNAME);
+  prompt=find_prompt(prompt_need,SASL_CB_AUTHNAME);
   if (prompt!=NULL)
   {
     /* copy it */
@@ -551,28 +487,22 @@ static int get_authid(sasl_client_params_t *params,
 				      SASL_CB_AUTHNAME,
 				      &getauth_cb,
 				      &getauth_context);
-  switch (result)
-    {
-    case SASL_INTERACT:
-      return SASL_INTERACT;
-    case SASL_OK:
-      if (! getauth_cb)
-	return SASL_FAIL;
-      result = getauth_cb(getauth_context,
-			  SASL_CB_AUTHNAME,
-			  (const char **)authid,
-			  NULL);
-      if (result != SASL_OK)
-	return result;
-
-      break;
-    default:
-      /* sucess */
-      break;
-    }
+  if (result == SASL_OK && getauth_cb) {
+    result = getauth_cb(getauth_context,
+			SASL_CB_AUTHNAME,
+			&id,
+			NULL);
+    if (result != SASL_OK)
+      return result;
+    if (! id)
+      return SASL_BADPARAM;
+    *authid = params->utils->malloc(strlen(id) + 1);
+    if (! *authid)
+      return SASL_NOMEM;
+    strcpy(*authid, id);
+  }
 
   return result;
-
 }
 
 
@@ -587,7 +517,7 @@ static int get_password(sasl_client_params_t *params,
   sasl_interact_t *prompt;
 
   /* see if we were given the password in the prompt */
-  prompt=find_prompt(*prompt_need,SASL_CB_PASS);
+  prompt=find_prompt(prompt_need,SASL_CB_PASS);
   if (prompt!=NULL)
   {
     /* We prompted, and got.*/
@@ -614,25 +544,12 @@ static int get_password(sasl_client_params_t *params,
 				      &getpass_cb,
 				      &getpass_context);
 
-  switch (result)
-    {
-    case SASL_INTERACT:      
-      return SASL_INTERACT;
-    case SASL_OK:
-      if (! getpass_cb)
-	return SASL_FAIL;
-      result = getpass_cb(params->utils->conn,
-			  getpass_context,
-			  SASL_CB_PASS,
-			  password);
-      if (result != SASL_OK)
-	return result;
-
-      break;
-    default:
-      /* sucess */
-      break;
-    }
+  if (result == SASL_OK && getpass_cb) {
+    result = getpass_cb(params->utils->conn,
+			getpass_context,
+			SASL_CB_PASS,
+			password);
+  }
 
   return result;
 }
@@ -741,6 +658,7 @@ static int c_continue_step (void *conn_context,
 
     text->msgid=params->utils->malloc(1);
     if (text->msgid==NULL) return SASL_NOMEM;
+    text->msgid[0] = '\0';
     text->msgidlen=0;
     *clientout=NULL;
     *clientoutlen=0;
@@ -758,10 +676,9 @@ static int c_continue_step (void *conn_context,
 
   if (text->state==2)
   {
-    /*    unsigned char digest[1024];*/
-    char *in16;
     int auth_result=SASL_OK;
     int pass_result=SASL_OK;
+    UINT4 digest[4];
 
     /* try to get the userid */
     if (text->authid==NULL)
@@ -790,7 +707,8 @@ static int c_continue_step (void *conn_context,
 
     
     /* free prompts we got */
-    free_prompts(params,*prompt_need);
+    if (prompt_need)
+      free_prompts(params,*prompt_need);
 
     /* if there are prompts not filled in */
     if ((auth_result==SASL_INTERACT) ||
@@ -811,25 +729,33 @@ static int c_continue_step (void *conn_context,
      */
 
     /* make nonce */
-    in16=make_hashed(text->password,(char *) serverin, serverinlen, params);
+    params->utils->hmac_md5((unsigned char *) serverin, serverinlen,
+			    (unsigned char *) text->password->data,
+			    text->password->len,
+			    (unsigned char *)&digest);
 
-    if (in16==NULL) return SASL_FAIL;
-
-    VL(("authid=[%s]\n",text->authid));
-    VL(("in16=[%s]\n",in16));
-
-    *clientout=params->utils->malloc(32+1+strlen(text->authid)+1000);
+    *clientout=params->utils->malloc(strlen(text->authid) + 34);
     if ((*clientout) == NULL) return SASL_NOMEM;
 
-    sprintf((char *)*clientout,"%s %s",text->authid,in16);
-
-    /* get rid of private information */
-    free_string(params->utils, &in16);
-
+    sprintf(*clientout,
+	    "%s %08lx%08lx%08lx%08lx",
+	    text->authid,
+	    digest[0], digest[1], digest[2], digest[3]);
+    
     *clientoutlen=strlen(*clientout);
 
     /*nothing more to do; authenticated */
     oparams->doneflag=1;
+
+    oparams->user = params->utils->malloc(strlen(text->authid) + 1);
+    if (! oparams->user)
+      return SASL_NOMEM;
+    strcpy(oparams->user, text->authid);
+
+    oparams->authid = params->utils->malloc(strlen(text->authid) + 1);
+    if (! oparams->authid)
+      return SASL_NOMEM;
+    strcpy(oparams->authid, text->authid);
 
     VL(("clientout looks like=%s %i\n",*clientout,*clientoutlen));
 

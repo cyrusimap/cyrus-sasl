@@ -61,7 +61,7 @@ struct sasl_conn {
   int open; /* connection open or not */
   char *service;
 
-  int secflags;  /* strength required by server */
+  int secflags;  /* security layer flags passed to sasl_*_new */
   int got_ip_local, got_ip_remote;
   struct sockaddr_in ip_local, ip_remote;
   sasl_external_properties_t external;

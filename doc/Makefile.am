@@ -23,7 +23,10 @@
 #PERFORMANCE OF THIS SOFTWARE.
 ################################################################
 
-EXTRA_DIST =	rfc2222.txt \
+EXTRA_DIST =	rfc1321.txt \
+		rfc2095.txt \
+		rfc2104.txt \
+		rfc2222.txt \
 		draft-leach-digest-sasl-02.txt \
 		draft-newman-auth-scram-03.txt \
 		draft-newman-sasl-anon-00.txt

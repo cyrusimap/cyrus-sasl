@@ -646,32 +646,20 @@ int sasl_server_step(sasl_conn_t *conn,
 		     unsigned *serveroutlen,
 		     const char **errstr)
 {
-  int result;
   sasl_server_conn_t *s_conn;
   s_conn= (sasl_server_conn_t *) conn;
 
   if (errstr)
     *errstr = NULL;
 
-  result = s_conn->mech->plug->mech_step(conn->context,
-					 s_conn->sparams,
-					 clientin,
-					 clientinlen,
-					 serverout,
-					 (int *) serveroutlen,
-					 &conn->oparams,
-					 errstr);
-
-  if (result == SASL_OK) {
-    if (conn->oparams.user)
-      sasl_setprop(conn, SASL_USERNAME, conn->oparams.user);
-  }
-
-  return result;
-  /* if returns SASL_OK check to make sure
-   * is valid username and then
-   * correct password using sasl_checkpass
-   */
+  return s_conn->mech->plug->mech_step(conn->context,
+				       s_conn->sparams,
+				       clientin,
+				       clientinlen,
+				       serverout,
+				       (int *) serveroutlen,
+				       &conn->oparams,
+				       errstr);
 }
 
 

@@ -1782,8 +1782,7 @@ static int
   /* make sure we have everything we need */
   if (!sparams
       || !user
-      || !pass
-      || !errstr)
+      || !pass)
     return SASL_BADPARAM;
 
   if (!sparams->local_domain) {

@@ -25,9 +25,10 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ******************************************************************/
 
 #include <config.h>
+#include <limits.h>
+#include <netinet/in.h>
 #include <sasl.h>
 #include <saslutil.h>
-#include <netinet/in.h>
 
 static const char
 build_ident[] = "$Build: sample-client " PACKAGE "-" VERSION " $";
@@ -264,7 +265,7 @@ prompt(void *context __attribute__((unused)),
 }
 
 static void
-saslfail(int why, const char *what, const char *errstr)
+sasldebug(int why, const char *what, const char *errstr)
 {
   fprintf(stderr, "%s: %s: %s",
 	  progname,
@@ -274,6 +275,12 @@ saslfail(int why, const char *what, const char *errstr)
     fprintf(stderr, " (%s)\n", errstr);
   else
     putc('\n', stderr);
+}
+
+static void
+saslfail(int why, const char *what, const char *errstr)
+{
+  sasldebug(why, what, errstr);
   exit(EXIT_FAILURE);
 }
 
@@ -379,7 +386,8 @@ main(int argc, char *argv[])
     *fqdn = "",
     *userid = NULL,
     *authid = NULL;
-  
+  sasl_ssf_t ssf;
+    
   progname = strrchr(argv[0], '/');
   if (progname)
     progname++;
@@ -389,7 +397,7 @@ main(int argc, char *argv[])
   /* Init defaults... */
   memset(&secprops, 0L, sizeof(secprops));
   secprops.maxbufsize = SAMPLE_SEC_BUF_SIZE;
-  secprops.max_ssf = 9999; /* xxx doesn't work on solaris? UINT_MAX; */
+  secprops.max_ssf = UINT_MAX;
   memset(&extprops, 0L, sizeof(extprops));
 
   while ((c = getopt(argc, argv, "hb:e:m:f:i:p:s:n:u:a:?")) != EOF)
@@ -651,7 +659,7 @@ main(int argc, char *argv[])
   if (mech) {
     printf("Forcing use of mechanism %s\n", mech);
     strncpy(buf, mech, SAMPLE_SEC_BUF_SIZE);
-    buf[SAMPLE_SEC_BUF_SIZE] = '\0';
+    buf[SAMPLE_SEC_BUF_SIZE - 1] = '\0';
   }
 
   printf("Choosing best mechanism from: %s\n", buf);
@@ -675,6 +683,8 @@ main(int argc, char *argv[])
     puts("Preparing initial.");
     memcpy(buf + strlen(buf) + 1, data, len);
     len += strlen(buf) + 1;
+    free(data);
+    data = NULL;
   } else {
     len = strlen(buf);
   }
@@ -696,6 +706,24 @@ main(int argc, char *argv[])
     }
   }
   puts("Negotiation complete");
+
+  result = sasl_getprop(conn, SASL_USERNAME, (void **)&data);
+  if (result != SASL_OK)
+    sasldebug(result, "username", NULL);
+  else
+    printf("Username: %s\n", data);
+
+  result = sasl_getprop(conn, SASL_REALM, (void **)&data);
+  if (result != SASL_OK)
+    sasldebug(result, "realm", NULL);
+  else
+    printf("Realm: %s\n", data);
+
+  result = sasl_getprop(conn, SASL_SSF, (void **)&ssf);
+  if (result != SASL_OK)
+    sasldebug(result, "ssf", NULL);
+  else
+    printf("SSF: %d\n", ssf);
 
   return (EXIT_SUCCESS);
 }

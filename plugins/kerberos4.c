@@ -62,7 +62,7 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 
 #ifdef L_DEFAULT_GUARD
 # undef L_DEFAULT_GUARD
-# define L_DEFAULT_GUARD (0)
+# define L_DEFAULT_GUARD (1)
 #endif
 
 #ifdef sun
@@ -797,9 +797,7 @@ static int client_continue_step (void *conn_context,
   {
     VL(("KEBREROS_V4 Step 1\n"));
 
-    *clientout = text->malloc(1);
-    if (! *clientout) return SASL_NOMEM;
-    **clientout = '\0';
+    *clientout = NULL;
     *clientoutlen = 0;
 
     text->state=1;
@@ -875,15 +873,12 @@ static int client_continue_step (void *conn_context,
     unsigned char sout[1024];
     unsigned len;
     unsigned char in[8];
-    const char *userid, *authid;
+    const char *userid;
     int result;
-    int external;
-    krb_principal principal;
     sasl_getsimple_t *getuser_cb;
     void *getuser_context;
     sasl_interact_t *prompt;
-    int prompt_for_userid = 0,
-      prompt_for_authid = 0;
+    int prompt_for_userid = 0;
 
     if (prompt_need && *prompt_need) {
       /* If we requested prompts, make sure they're
@@ -908,20 +903,6 @@ static int client_continue_step (void *conn_context,
 	    break;
 	  }
 
-      /* Get the authname */
-      if (! oparams->authid)
-	for (prompt = *prompt_need;
-	     prompt->id != SASL_CB_LIST_END;
-	     ++prompt)
-	  if (prompt->id == SASL_CB_AUTHNAME) {
-	    oparams->authid
-	      = params->utils->malloc(strlen(prompt->result) + 1);
-	    if (! oparams->authid)
-	      return SASL_NOMEM;
-	    strcpy(oparams->authid, prompt->result);
-	    break;
-	  }
-      
       params->utils->free(*prompt_need);
       *prompt_need = NULL;
     }
@@ -937,10 +918,10 @@ static int client_continue_step (void *conn_context,
       case SASL_INTERACT:
 	/* We'll set up an interaction later. */
 	prompt_for_userid = 1;
-	return SASL_INTERACT;
+	break;
       case SASL_OK:
 	if (! getuser_cb)
-	  return SASL_FAIL;
+	  break;
 	result = getuser_cb(getuser_context,
 			    SASL_CB_USER,
 			    &userid,
@@ -959,88 +940,23 @@ static int client_continue_step (void *conn_context,
       }
     }
       
-    /* And the authid... */
-    if (! oparams->authid) {
-      /* Try to get the callback... */
-      result = params->utils->getcallback(params->utils->conn,
-					  SASL_CB_AUTHNAME,
-					  &getuser_cb,
-					  &getuser_context);
-      switch (result) {
-      case SASL_INTERACT:
-	/* We'll set up an interaction later. */
-	prompt_for_authid = 1;
-	return SASL_INTERACT;
-      case SASL_OK:
-	if (! getuser_cb)
-	  return SASL_FAIL;
-	result = getuser_cb(getuser_context,
-			    SASL_CB_AUTHNAME,
-			    &authid,
-			    NULL);
-	if (result != SASL_OK)
-	  return result;
-	if (authid) {
-	  oparams->authid = params->utils->malloc(strlen(authid) + 1);
-	  if (! oparams->authid)
-	    return SASL_NOMEM;
-	  strcpy(oparams->authid, authid);
-	}
-	break;
-      default:
-	return result;
-      }
-    }
-
-    /* And now, if we *still* don't have either of them,
+    /* And now, if we *still* don't have userid,
      * but we think we can prompt, we need to set up a prompt. */
-    if ((! oparams->authid && prompt_for_authid)
-	|| (! oparams->user && prompt_for_userid)) {
+    if (! oparams->user && prompt_for_userid) {
       if (! prompt_need)
 	return SASL_INTERACT;
-      *prompt_need = params->utils->malloc(sizeof(sasl_interact_t) *
-					   ((! oparams->authid
-					     && prompt_for_authid
-					     && ! oparams->user
-					     && prompt_for_userid)
-					    ? 3 : 2));
+      *prompt_need = params->utils->malloc(sizeof(sasl_interact_t) * 2);
       if (! *prompt_need)
 	return SASL_NOMEM;
       prompt = *prompt_need;
-      if (! oparams->user && prompt_for_userid) {
-	prompt->id = SASL_CB_USER;
-	prompt->prompt = "Remote Userid";
-	prompt->defresult = NULL;
-	prompt++;
-      }
-      if (! oparams->authid && prompt_for_authid) {
-	prompt->id = SASL_CB_AUTHNAME;
-	prompt->prompt = "Kerberos Identifier";
-	prompt->defresult = NULL;
-	prompt++;
-      }
+      prompt->id = SASL_CB_USER;
+      prompt->prompt = "Remote Userid";
+      prompt->defresult = NULL;
+      prompt++;
       prompt->id = SASL_CB_LIST_END;
       return SASL_INTERACT;
     }
       
-#ifndef WIN32
-    if (! oparams->authid) {
-      krb_get_default_principal(principal.name,
-				principal.instance,
-				principal.realm);
-      oparams->authid = params->utils->malloc(strlen(principal.name)
-					      + strlen(principal.instance)
-					      + 2);
-      if (! oparams->authid)
-	return SASL_NOMEM;
-      strcpy(oparams->authid, principal.name);
-      if (principal.instance[0]) {
-	strcat(oparams->authid, ".");
-	strcat(oparams->authid, principal.instance);
-      }
-    }
-#endif /* WIN32 */
-
     /* must be 8 octets */
     if (serverinlen!=8)
     {
@@ -1084,10 +1000,6 @@ static int client_continue_step (void *conn_context,
      * 5 - bitmask of sec layer
      * 6-8 max buffer size
      */
-
-    /* get requested ssf */
-    external=params->external_ssf;
-    VL (("external ssf=%u\n",external));
 
     if (params->props.min_ssf > KRB_DES_SECURITY_BITS)
     {
@@ -1162,11 +1074,6 @@ static int client_continue_step (void *conn_context,
     *clientoutlen=len;
 
     /*nothing more to do; should be authenticated */
-    oparams->doneflag=1;
-    oparams->maxoutbuf=1024; /* no clue what this should be */
-
-    oparams->param_version=0;
-
     result = params->utils->getprop(params->utils->conn,
                           SASL_IP_LOCAL, (void **)&text->ip_local);
     if (result!=SASL_OK) return result;
@@ -1174,6 +1081,34 @@ static int client_continue_step (void *conn_context,
     result = params->utils->getprop(params->utils->conn,
                           SASL_IP_REMOTE, (void **)&text->ip_remote);
     if (result!=SASL_OK) return result;
+
+    oparams->authid =
+      params->utils->malloc(strlen(text->credentials.pname)
+			    + strlen(text->credentials.pinst)
+			    + 2);
+    if (! oparams->authid)
+      return SASL_NOMEM;
+    strcpy(oparams->authid, text->credentials.pname);
+    if (text->credentials.pinst[0]) {
+      strcat(oparams->authid, ".");
+      strcat(oparams->authid, text->credentials.pinst);
+    }
+
+    if (oparams->user && !oparams->user[0]) {
+      params->utils->free(oparams->user);
+      oparams->user = NULL;
+    }
+    if (! oparams->user) {
+      oparams->user = params->utils->malloc(strlen(oparams->authid) + 1);
+      if (! oparams->user)
+	return SASL_NOMEM;
+      strcpy(oparams->user, oparams->authid);
+    }
+
+    oparams->doneflag=1;
+    oparams->maxoutbuf=1024; /* no clue what this should be */
+
+    oparams->param_version=0;
 
     text->size=-1;
     text->needsize=4;
@@ -1187,6 +1122,10 @@ static int client_continue_step (void *conn_context,
   return SASL_FAIL; /* should never get here */
 }
 
+static const long client_required_prompts[] = {
+  SASL_CB_LIST_END
+};
+
 static const sasl_client_plug_t client_plugins[] = 
 {
   {
@@ -1194,7 +1133,7 @@ static const sasl_client_plug_t client_plugins[] =
     KRB_DES_SECURITY_BITS,
     0,
     NULL,
-    NULL,
+    &client_required_prompts,
     &client_start,
     &client_continue_step,
     &dispose,

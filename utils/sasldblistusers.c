@@ -253,14 +253,9 @@ int listusers(const char *path, listcb_t *cb)
 	char *tmp;
 	int len;
 	char mech[1024];
-<<<<<<< sasldblistusers.c
 	int numnulls = 0;
 	int lup;
-=======
-	int len = key.size - (tmp - ((char *)key.data));
->>>>>>> 1.7
 
-<<<<<<< sasldblistusers.c
 	/* make sure there are exactly 3 null's */
 	for (lup=0;lup<key.size;lup++)
 	    if (((char *)key.data)[lup]=='\0')
@@ -282,13 +277,6 @@ int listusers(const char *path, listcb_t *cb)
 	    break;
 
 	memcpy(mech, tmp, key.size - (tmp - ((char *)key.data)));
-=======
-	if (len >= (int) sizeof mech) {
-	    fprintf(stderr, "malformed database entry\n");
-	    break;
-	}
-	memcpy(mech, tmp, len);
->>>>>>> 1.7
 	mech[key.size - (tmp - ((char *)key.data))] = '\0';
 
 	if (*authid) {

@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.76 2000/04/09 22:53:46 tmartin Exp $
+ * $Id: server.c,v 1.77 2000/04/12 19:56:42 tmartin Exp $
  */
 
 /* 
@@ -1015,7 +1015,8 @@ int sasl_server_step(sasl_conn_t *conn,
 		       s_conn->base.oparams.user, &canonuser, errstr);
 
 	if (ret == SASL_OK && canonuser != NULL) {
-	    sasl_FREE(s_conn->base.oparams.user);
+	    if (s_conn->base.oparams.user != NULL)
+		sasl_FREE(s_conn->base.oparams.user);
 	    s_conn->base.oparams.user = (char *) canonuser;
 	}
     }

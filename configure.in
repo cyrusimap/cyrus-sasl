@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.138 2002/07/24 16:04:04 rjs3 Exp $
+dnl $Id: configure.in,v 1.139 2002/07/24 18:23:41 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -228,7 +228,7 @@ AC_SUBST(LIB_PAM)
 
 AC_ARG_WITH(saslauthd, [  --with-saslauthd=DIR    enable use of the saslauth daemon using state dir DIR ],
 		with_saslauthd=$withval,
-		with_saslauthd=no)
+		with_saslauthd=yes)
 if test "$with_saslauthd" != no; then
   if test "$with_saslauthd" = yes; then
     with_saslauthd="/var/state/saslauthd"

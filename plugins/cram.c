@@ -1,7 +1,7 @@
 /* CRAM-MD5 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: cram.c,v 1.83 2003/12/15 20:04:22 rjs3 Exp $
+ * $Id: cram.c,v 1.84 2004/08/06 20:29:44 shadow Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -65,7 +65,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: cram.c,v 1.83 2003/12/15 20:04:22 rjs3 Exp $";
+static const char plugin_id[] = "$Id: cram.c,v 1.84 2004/08/06 20:29:44 shadow Exp $";
 
 /* convert a string of 8bit chars to it's representation in hex
  * using lowercase letters
@@ -507,7 +507,7 @@ static int crammd5_client_mech_step(void *conn_context,
 				    sasl_out_params_t *oparams)
 {
     client_context_t *text = (client_context_t *) conn_context;
-    const char *authid;
+    const char *authid = NULL;
     sasl_secret_t *password = NULL;
     unsigned int free_password = 0; /* set if we need to free password */
     int auth_result = SASL_OK;

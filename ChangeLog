@@ -1,3 +1,7 @@
+2002-10-21  Ken Murchison <ken@oceana.com>
+	* plugins/ntlm.c: NTLM probably doesn't offer perfect forward secrecy
+	* doc/mechanisms: added table of properties/features
+
 2002-10-18  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/lak.[ch], saslauthd/auth_ldap.c:
 	  Code cleanup, now support {SHA}, {SSHA}, {MD5}, and {SMD5} hashes,

@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.3 2002/09/17 15:30:49 ken3 Exp $
+ * $Id: ntlm.c,v 1.4 2002/10/21 15:31:26 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -62,7 +62,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.3 2002/09/17 15:30:49 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.4 2002/10/21 15:31:26 ken3 Exp $";
 
 #define NTLM_SIGNATURE		"NTLMSSP"
 
@@ -620,8 +620,7 @@ static sasl_server_plug_t ntlm_server_plugins[] =
 	"NTLM",				/* mech_name */
 	0,				/* max_ssf */
 	SASL_SEC_NOPLAINTEXT
-	| SASL_SEC_NOANONYMOUS
-	| SASL_SEC_FORWARD_SECRECY,	/* security_flags */
+	| SASL_SEC_NOANONYMOUS,		/* security_flags */
 	SASL_FEAT_WANT_CLIENT_FIRST,	/* features */
 	NULL,				/* glob_context */
 	&ntlm_server_mech_new,		/* mech_new */
@@ -965,8 +964,7 @@ static sasl_client_plug_t ntlm_client_plugins[] =
 	"NTLM",				/* mech_name */
 	0,				/* max_ssf */
 	SASL_SEC_NOPLAINTEXT
-	| SASL_SEC_NOANONYMOUS
-	| SASL_SEC_FORWARD_SECRECY,	/* security_flags */
+	| SASL_SEC_NOANONYMOUS,		/* security_flags */
 	SASL_FEAT_WANT_CLIENT_FIRST,	/* features */
 	NULL,				/* required_prompts */
 	NULL,				/* glob_context */

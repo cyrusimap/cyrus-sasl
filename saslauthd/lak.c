@@ -1213,7 +1213,7 @@ void lak_result_free(LAK_RESULT *res)
 		ptr = lres->next;
 
 		if (lres->attribute != NULL) {
-			memset(lres->attribute, 0, strlen(lres->value));
+			memset(lres->attribute, 0, strlen(lres->attribute));
 			free(lres->attribute);	
 		}
 

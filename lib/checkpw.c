@@ -56,6 +56,7 @@
 #ifdef HAVE_KRB
 #include <krb.h>
 #endif
+
 #include <stdlib.h>
 
 #ifndef WIN32
@@ -338,6 +339,173 @@ static int kerberos_verify_password(sasl_conn_t *conn,
 }
 
 #endif /* HAVE_KRB */
+
+#ifdef HAVE_GSSAPI_H 
+/* ok, this is  wrong but the most convenient way of doing 
+ * it for now. We assume (possibly incorrectly) that if GSSAPI exists then 
+ * the Kerberos 5 headers and libraries exist.   
+ * What really should be done is a configure.in check for krb5.h and use 
+ * that since none of this code is GSSAPI but rather raw Kerberos5.
+ *
+ * This function also has a bug where an alternate realm can't be
+ * specified.  
+ */
+
+#include <krb5.h>
+
+/* returns 0 for failure, 1 for success */
+static int k5support_verify_tgt(krb5_context context, 
+				krb5_ccache ccache) 
+{
+  krb5_principal server;
+  krb5_data packet;
+  krb5_keyblock *keyblock = NULL;
+  krb5_auth_context auth_context = NULL;
+  krb5_error_code k5_retcode;
+  char thishost[BUFSIZ];
+  int result = 0;
+
+  if (krb5_sname_to_principal(context, NULL, NULL,
+			      KRB5_NT_SRV_HST, &server)) {
+    return 0;
+  }
+
+  if (krb5_kt_read_service_key(context, NULL, server, 0,
+			       0, &keyblock)) {
+    goto fini;
+  }
+
+  if (keyblock) {
+    free(keyblock);
+  }
+
+  /* this duplicates work done in krb5_sname_to_principal
+   * oh well.
+   */
+  if (gethostname(thishost, BUFSIZ) < 0) {
+    goto fini;
+  }
+  thishost[BUFSIZ-1] = '\0';
+  
+  krb5_data_zero(&packet);
+  k5_retcode = krb5_mk_req(context, &auth_context, 0, "host", 
+			   thishost, NULL, ccache, &packet);
+
+  if (auth_context) {
+    krb5_auth_con_free(context, auth_context);
+    auth_context = NULL;
+  }
+
+  if (k5_retcode) {
+    goto fini;
+  }
+
+  if (krb5_rd_req(context, &auth_context, &packet, 
+		  server, NULL, NULL, NULL)) {
+    goto fini;
+  }
+
+  
+  /* all is good now */
+  result = 1;
+ fini:
+  krb5_free_principal(context, server);
+
+  return result;
+}
+
+static int kerberos5_verify_password(sasl_conn_t *conn 
+				     __attribute__((unused)),
+				    const char *user,
+				    const char *passwd,
+				    const char *service 
+				     __attribute__((unused)),
+				    const char *user_realm 
+				               __attribute__((unused)), 
+				    const char **reply)
+{
+  krb5_context context;
+  krb5_ccache ccache = NULL;
+  krb5_principal auth_user;
+  krb5_creds creds;
+  krb5_get_init_creds_opt opts;
+  int result = SASL_FAIL;
+  char tfname[40];
+
+  if (!user|| !passwd) {
+    return SASL_BADPARAM;
+  }
+
+  if (reply) { 
+    *reply = NULL; 
+  }
+  
+  if (krb5_init_context(&context)) {
+    return SASL_FAIL;
+  }
+    
+  if (krb5_parse_name (context, user, &auth_user)) {
+    krb5_free_context(context);
+    return SASL_FAIL;
+  }
+
+  /* create a new CCACHE so we don't stomp on anything */
+  snprintf(tfname,sizeof(tfname), "/tmp/k5cc_%d", getpid());
+  if (krb5_cc_resolve(context, tfname, &ccache)) {
+    krb5_free_principal(context, auth_user);
+    krb5_free_context(context);
+    return SASL_FAIL;
+  }
+
+  if (krb5_cc_initialize (context, ccache, auth_user)) {
+    krb5_free_principal(context, auth_user);
+    krb5_free_context(context);
+    return SASL_FAIL;
+  }
+
+  krb5_get_init_creds_opt_init(&opts);
+  /* 15 min should be more than enough */
+  krb5_get_init_creds_opt_set_tkt_life(&opts, 900); 
+  if (krb5_get_init_creds_password(context, &creds, 
+				   auth_user, passwd, NULL, NULL, 
+				   0, NULL, &opts)) {
+    krb5_cc_destroy(context, ccache);
+    krb5_free_principal(context, auth_user);
+    krb5_free_context(context);
+    return SASL_FAIL;
+  }
+
+  /* at this point we should have a TGT. Let's make sure it is valid */
+  if (krb5_cc_store_cred(context, ccache, &creds)) {
+    krb5_free_principal(context, auth_user);
+    krb5_cc_destroy(context, ccache);
+    krb5_free_context(context);
+    return SASL_FAIL;
+  }
+
+  if (!k5support_verify_tgt(context, ccache)) {
+    goto fini;
+  }
+
+  /* 
+   * fall through -- user is valid beyond this point  
+   */
+  
+  /* try to ensure that no one diddled with result */
+  assert(result == SASL_FAIL); 
+  result = SASL_OK;
+  
+
+ fini:
+/* destroy any tickets we had */
+  krb5_free_cred_contents(context, &creds);
+  krb5_free_principal(context, auth_user);
+  krb5_cc_destroy(context, ccache);
+  krb5_free_context(context);
+ return result;
+}
+
+#endif /* HAVE_GSSAPI_H */
 
 #ifdef HAVE_GETSPNAM
 static int shadow_verify_password(sasl_conn_t *conn __attribute__((unused)),
@@ -906,6 +1074,9 @@ struct sasl_verify_password_s _sasl_verify_password[] = {
     { "sasldb", &sasldb_verify_password },
 #ifdef HAVE_KRB
     { "kerberos_v4", &kerberos_verify_password },
+#endif
+#ifdef HAVE_GSSAPI_H
+    { "kerberos_v5", &kerberos5_verify_password },
 #endif
 #ifdef HAVE_GETSPNAM
     { "shadow", &shadow_verify_password },

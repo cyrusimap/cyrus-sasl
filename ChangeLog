@@ -1,3 +1,7 @@
+2003-12-01  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* Fix build nit in IRIX.
+	* Actual 2.1.17 release.
+
 2003-11-28  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* Ready for 2.1.17
 

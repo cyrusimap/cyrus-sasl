@@ -25,6 +25,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ******************************************************************/
 
 #include <config.h>
+
 #include <stdio.h>
 #include <sasl.h>
 #include <saslutil.h>
@@ -46,17 +47,17 @@ static int setcomplete(JNIEnv *env, jobject obj);
 
 static void throwexception(JNIEnv *env, int error)
 {
-  jclass newExcCls;
+    jclass newExcCls;
 
-  VL (("Throwing exception!\n"));
+    VL (("Throwing exception!\n"));
 
-  newExcCls = (*env)->FindClass(env, "CyrusSasl/SaslException");
+    newExcCls = (*env)->FindClass(env, "CyrusSasl/SaslException");
 
-  if (newExcCls == 0) { 
-    return;
-  }
+    if (newExcCls == 0) { 
+	return;
+    }
 
-  (*env)->ThrowNew(env, newExcCls, sasl_errstring(error,NULL,NULL));
+    (*env)->ThrowNew(env, newExcCls, sasl_errstring(error,NULL,NULL));
 }
 
 /* server init */
@@ -66,18 +67,18 @@ JNIEXPORT jint JNICALL Java_CyrusSasl_ServerFactory_jni_1sasl_1server_1init
    jobject obj __attribute__((unused)),
    jstring jstr)
 {
-  /* Obtain a C-copy of the Java string */
-  const char *str = (*env)->GetStringUTFChars(env, jstr, 0);
-  int result;
+    /* Obtain a C-copy of the Java string */
+    const char *str = (*env)->GetStringUTFChars(env, jstr, 0);
+    int result;
 
-  result=sasl_server_init(NULL,str);
-  if (result!=SASL_OK)
-    throwexception(env,result);
+    result=sasl_server_init(NULL,str);
+    if (result!=SASL_OK)
+	throwexception(env,result);
 
-  /* Now we are done with str */
-  (*env)->ReleaseStringUTFChars(env, jstr, str);
+    /* Now we are done with str */
+    (*env)->ReleaseStringUTFChars(env, jstr, str);
 
-  return result;
+    return result;
 }
 
 static int
@@ -160,20 +161,20 @@ JNIEXPORT jint JNICALL Java_CyrusSasl_ClientFactory_jni_1sasl_1client_1init
    jobject obj __attribute__((unused)),
    jstring jstr)
 {
-  /* Obtain a C-copy of the Java string */
-  const char *str = (*env)->GetStringUTFChars(env, jstr, 0);
-  int result;
+    /* Obtain a C-copy of the Java string */
+    const char *str = (*env)->GetStringUTFChars(env, jstr, 0);
+    int result;
 
-  VL(("client initing\n"));
+    VL(("client initing\n"));
 
-  result=sasl_client_init(callbacks);
-  if (result!=SASL_OK)
-    throwexception(env,result);
+    result=sasl_client_init(callbacks);
+    if (result!=SASL_OK)
+	throwexception(env,result);
 
-  /* Now we are done with str */
-  (*env)->ReleaseStringUTFChars(env, jstr, str);
+    /* Now we are done with str */
+    (*env)->ReleaseStringUTFChars(env, jstr, str);
 
-  return result;
+    return result;
 }
 
 /* server new */
@@ -185,30 +186,30 @@ JNIEXPORT jint JNICALL Java_CyrusSasl_ServerFactory_jni_1sasl_1server_1new
    jstring jlocal, 
    jint jsecflags)
 {
-  sasl_conn_t *conn;
+    sasl_conn_t *conn;
 
-  const char *service = (*env)->GetStringUTFChars(env, jservice, 0);
-  const char *local_domain = (*env)->GetStringUTFChars(env, jlocal, 0);
-  const char *user_domain = NULL;  
-  int result;
+    const char *service = (*env)->GetStringUTFChars(env, jservice, 0);
+    const char *local_domain = (*env)->GetStringUTFChars(env, jlocal, 0);
+    const char *user_domain = NULL;  
+    int result;
 
-  if (local_domain) {
-      VL(("local domain = %s\n",local_domain));
-  }
-  if (user_domain) {
-      VL(("user domain = %s\n",user_domain));
-  }
+    if (local_domain) {
+	VL(("local domain = %s\n",local_domain));
+    }
+    if (user_domain) {
+	VL(("user domain = %s\n",user_domain));
+    }
 
-  result=sasl_server_new(service, local_domain, user_domain, 
-			 NULL, jsecflags, &conn);
-  if (result!=SASL_OK)
-    throwexception(env,result);
+    result=sasl_server_new(service, local_domain, user_domain, 
+			   NULL, jsecflags, &conn);
+    if (result!=SASL_OK)
+	throwexception(env,result);
 
-  /* Now we are done with str */
-  (*env)->ReleaseStringUTFChars(env, jservice, service);  
-  (*env)->ReleaseStringUTFChars(env, jlocal, local_domain);  
+    /* Now we are done with str */
+    (*env)->ReleaseStringUTFChars(env, jservice, service);  
+    (*env)->ReleaseStringUTFChars(env, jlocal, local_domain);  
 
-  return (jint) conn;
+    return (jint) conn;
 }
 
 
@@ -217,22 +218,22 @@ JNIEXPORT jint JNICALL JNICALL Java_CyrusSasl_ClientFactory_jni_1sasl_1client_1n
    jobject obj __attribute__((unused)),
    jstring jservice, jstring jserver, jint jsecflags)
 {
-  sasl_conn_t *conn;
+    sasl_conn_t *conn;
 
-  const char *service = (*env)->GetStringUTFChars(env, jservice, 0);
-  const char *serverFQDN = (*env)->GetStringUTFChars(env, jserver, 0);
-  int result;
+    const char *service = (*env)->GetStringUTFChars(env, jservice, 0);
+    const char *serverFQDN = (*env)->GetStringUTFChars(env, jserver, 0);
+    int result;
 
-  result=sasl_client_new(service, serverFQDN, NULL, jsecflags, &conn);
+    result=sasl_client_new(service, serverFQDN, NULL, jsecflags, &conn);
 
-  if (result!=SASL_OK)
-    throwexception(env,result);
+    if (result!=SASL_OK)
+	throwexception(env,result);
 
-  /* Now we are done with str */
-  (*env)->ReleaseStringUTFChars(env, jservice, service);  
-  (*env)->ReleaseStringUTFChars(env, jserver, serverFQDN);  
+    /* Now we are done with str */
+    (*env)->ReleaseStringUTFChars(env, jservice, service);  
+    (*env)->ReleaseStringUTFChars(env, jserver, serverFQDN);  
 
-  return (jint) conn;
+    return (jint) conn;
 }
 
 /* server start */
@@ -242,40 +243,37 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericServer_jni_1sasl_1server_1sta
    jobject obj __attribute__((unused)),
    jint ptr, jstring jstr, jbyteArray jarr, jint jlen)
 {
-  sasl_conn_t *conn;
-  const char *mech = (*env)->GetStringUTFChars(env, jstr, 0);
-  char *out;
-  unsigned int outlen;
-   int result;
-  jbyteArray arr;
-  const char *errstr;
-  char *in=NULL;
+    sasl_conn_t *conn;
+    const char *mech = (*env)->GetStringUTFChars(env, jstr, 0);
+    char *out;
+    unsigned int outlen;
+    int result;
+    jbyteArray arr;
+    const char *errstr;
+    char *in=NULL;
 
-  VL(("in server start\n"));
+    VL(("in server start\n"));
 
-  if (jarr!=NULL)
-    in = (*env)->GetByteArrayElements(env, jarr, 0);
+    if (jarr!=NULL)
+	in = (*env)->GetByteArrayElements(env, jarr, 0);
 
-  conn=(sasl_conn_t *) ptr;
+    conn=(sasl_conn_t *) ptr;
 
-  result=sasl_server_start(conn, mech,
-			   (const char *) in, jlen,
-			   &out, &outlen,
-			   &errstr);
+    result=sasl_server_start(conn, mech,
+			     (const char *) in, jlen,
+			     &out, &outlen,
+			     &errstr);
 
-  if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
-  {
-
-    throwexception(env,result);
-    return NULL;
-  }
+    if ((result!=SASL_OK) && (result!=SASL_CONTINUE)) {
+	throwexception(env,result);
+	return NULL;
+    }
   
 
-  arr=(*env)->NewByteArray(env,outlen);
+    arr = (*env)->NewByteArray(env, outlen);
+    (*env)->SetByteArrayRegion(env, arr, 0, outlen, (char *) out);
 
-  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *) out);
-
-  return arr;
+    return arr;
 }
 
 
@@ -288,8 +286,7 @@ static int getvalue(JNIEnv *env, jobject obj, char *funcname, char **result, int
     
     /* set up for java callback */
     cls = (*env)->GetObjectClass(env, obj);
-    mid = (*env)->GetMethodID(env, cls, funcname,
-				  "(I)Ljava/lang/String;");
+    mid = (*env)->GetMethodID(env, cls, funcname, "(I)Ljava/lang/String;");
     if (mid == 0) {
 	VL(("Can't find %s callback!!!\n",funcname));
 	return SASL_FAIL;
@@ -390,72 +387,66 @@ static int fillin_interactions(JNIEnv *env, jobject obj,
 JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericClient_jni_1sasl_1client_1start
   (JNIEnv *env, jobject obj, jint ptr, jstring jstr)
 {    
-  sasl_conn_t *conn=(sasl_conn_t *) ptr;
-  const char *mechlist = (*env)->GetStringUTFChars(env, jstr, 0);
-  char *out;
-  unsigned int outlen=0;
-  const char *mechusing;
-  int result;
-  sasl_secret_t *secret;
-  sasl_interact_t *client_interact=NULL;
-  jbyteArray arr;
-  jstring jmechusing;
-  jclass cls;
-  jmethodID mid;
+    sasl_conn_t *conn=(sasl_conn_t *) ptr;
+    const char *mechlist = (*env)->GetStringUTFChars(env, jstr, 0);
+    char *out;
+    unsigned int outlen=0;
+    const char *mechusing;
+    int result;
+    sasl_interact_t *client_interact=NULL;
+    jbyteArray arr;
+    jstring jmechusing;
+    jclass cls;
+    jmethodID mid;
 
-  VL(("sasl_start"));
+    VL(("sasl_start"));
  
-  /* create secret XXX */
-  secret=(sasl_secret_t *) malloc(sizeof(sasl_secret_t)+9);
-  strcpy((char *) secret->data,"password");
-  secret->len=strlen((char *) secret->data);
+    do {
 
-  do {
+	result=sasl_client_start(conn, mechlist,
+				 NULL, &client_interact,
+				 &out, &outlen,
+				 &mechusing);
 
-      result=sasl_client_start(conn, mechlist,
-			       secret, &client_interact,
-			       &out, &outlen,
-			       &mechusing);
+	if (result==SASL_INTERACT)
+	    result=fillin_interactions(env,obj,client_interact);
 
-      if (result==SASL_INTERACT)
-	  result=fillin_interactions(env,obj,client_interact);
+    } while (result==SASL_INTERACT);
 
-  } while (result==SASL_INTERACT);
+    /* ok release mechlist */
+    (*env)->ReleaseStringUTFChars(env, jstr, mechlist);  
 
-  /* ok release mechlist */
-  (*env)->ReleaseStringUTFChars(env, jstr, mechlist);  
-
-  if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
-  {
-    throwexception(env,result);
-    return NULL;
-  }
+    if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
+	{
+	    throwexception(env,result);
+	    return NULL;
+	}
 
 
-  /* tell the java layer what mechanism we're using */
+    /* tell the java layer what mechanism we're using */
 
-  /* set up for java callback */
-  cls = (*env)->GetObjectClass(env, obj);
-  mid = (*env)->GetMethodID(env, cls, "callback_setmechanism",
-			    "(Ljava/lang/String;)V");
-  if (mid == 0) {
-      throwexception(env,SASL_FAIL);
-    return NULL;
-  }
+    /* set up for java callback */
+    cls = (*env)->GetObjectClass(env, obj);
+    mid = (*env)->GetMethodID(env, cls, "callback_setmechanism",
+			      "(Ljava/lang/String;)V");
+    if (mid == 0) {
+	throwexception(env,SASL_FAIL);
+	return NULL;
+    }
 
-  VL(("mechusing=%s\n",mechusing));
+    VL(("mechusing=%s\n",mechusing));
 
-  /* make into mech */
-  jmechusing= (*env)->NewStringUTF(env,mechusing);
+    /* make into mech */
+    jmechusing = (*env)->NewStringUTF(env, mechusing);
 
-  /* do the callback */
-  (*env)->CallVoidMethod(env, obj, mid,jmechusing);
+    /* do the callback */
+    (*env)->CallVoidMethod(env, obj, mid,jmechusing);
 
-  /* make the byte array to return */
-  arr=(*env)->NewByteArray(env,outlen);
-  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *) out);
+    /* make the byte array to return */
+    arr=(*env)->NewByteArray(env, outlen);
+    (*env)->SetByteArrayRegion(env, arr, 0, outlen, (char *) out);
   
-  return arr;
+    return arr;
 }
 
 /* server step */
@@ -474,11 +465,12 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericServer_jni_1sasl_1server_1ste
   const char *errstr;  
   char *in = NULL;
 
-  if (jlen > 0)
+  if (jlen > 0) {
       in = (*env)->GetByteArrayElements(env, jarr, 0);
+  }
 
-  result=sasl_server_step(conn, (const char *) in, jlen,
-			  &out, &outlen, &errstr);
+  result = sasl_server_step(conn, in, jlen,
+			    &out, &outlen, &errstr);
 
   if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
   {
@@ -492,13 +484,14 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericServer_jni_1sasl_1server_1ste
       setcomplete(env,obj);
   }
 
-  if (jlen > 0)
-      (*env)->ReleaseByteArrayElements(env, jarr,in ,0);
+  if (jlen > 0) {
+      (*env)->ReleaseByteArrayElements(env, jarr, in, 0);
+  }
 
   /* make byte array to return with stuff to send to server */
-  arr=(*env)->NewByteArray(env,outlen);
+  arr = (*env)->NewByteArray(env, outlen);
 
-  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *) out);
+  (*env)->SetByteArrayRegion(env, arr, 0, outlen, (char *) out);
 
   return arr;
 }
@@ -535,7 +528,6 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericClient_jni_1sasl_1client_1ste
     (JNIEnv *env, jobject obj, jint ptr, jbyteArray jarr, jint jlen)
 {    
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
-  /*  const char *in = (*env)->GetStringUTFChars(env, jstr, 0);*/
   int result;
   sasl_interact_t *client_interact=NULL;
   char *out;
@@ -547,19 +539,17 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericClient_jni_1sasl_1client_1ste
 
   if (jarr) {
       in = (*env)->GetByteArrayElements(env, jarr, 0);
-      in[jlen]=0;
   } else {
       assert(jlen == 0);
-       in = NULL;
+      in = NULL;
   }
 
   globalenv=env;
   globalobj=obj;
 
   do {
-      result=sasl_client_step(conn, (const char *) in, jlen,
-			      &client_interact,
-			      &out, &outlen);
+      result = sasl_client_step(conn, in, jlen, 
+				&client_interact, &out, &outlen);
 
       if (result==SASL_INTERACT)
 	  result= fillin_interactions(env,obj,client_interact);
@@ -576,20 +566,18 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericClient_jni_1sasl_1client_1ste
 
   if (result == SASL_OK) {
       VL (("Setting complete\n"));
-      setcomplete(env,obj);
+      setcomplete(env, obj);
   }
 
   if (jarr) {
-      VL(("about to releasebytearrayelements"));
-      (*env)->ReleaseByteArrayElements(env, jarr,in ,0);
+      /* VL(("about to releasebytearrayelements"));
+       (*env)->ReleaseByteArrayElements(env, jarr, in, 0); */
   }
-      
+
   VL(("about to newbytearray\n"));
   /* make byte array to return with stuff to send to server */
-  arr=(*env)->NewByteArray(env,outlen);
-  
-  VL(("about to setbytearray\n"));
-  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *) out);
+  arr = (*env)->NewByteArray(env, outlen);
+  (*env)->SetByteArrayRegion(env, arr, 0, outlen, (char *) out);
 
   VL(("returning arr\n"));
   return arr;

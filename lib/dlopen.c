@@ -1,7 +1,7 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Siemborski
  * Rob Earhart
- * $Id: dlopen.c,v 1.48 2004/03/10 15:38:13 rjs3 Exp $
+ * $Id: dlopen.c,v 1.49 2005/03/15 13:33:30 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -516,6 +516,11 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
 	    }
 
 	    closedir(dp);
+	} else {
+	    _sasl_log(NULL, SASL_LOG_DEBUG,
+		      "looking for plugins in '%s', failed to open directory, error: %s",
+		      str,
+		      strerror(errno));
 	}
 
     } while ((c!='=') && (c!=0));

@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.25 2002/05/06 21:00:37 rjs3 Exp $
+ * $Id: testsuite.c,v 1.26 2002/05/08 20:19:37 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2822,7 +2822,7 @@ int main(int argc, char **argv)
     int do_all = 0;
     int skip_do_correct = 0;
     unsigned int seed = time(NULL);
-    while ((c = getopt(argc, argv, "Ms:g:r:h:an")) != EOF)
+    while ((c = getopt(argc, argv, "Ms:g:r:han")) != EOF)
 	switch (c) {
 	case 'M':
 	    DETAILED_MEMORY_DEBUGGING = 1;

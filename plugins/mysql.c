@@ -3,7 +3,7 @@
 ** mysql Auxprop plugin
 **   by Simon Loader
 **
-** $Id: mysql.c,v 1.6 2002/07/07 00:04:03 rjs3 Exp $
+** $Id: mysql.c,v 1.7 2002/07/07 05:59:20 rjs3 Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -72,7 +72,7 @@ typedef struct mysql_settings {
     int have_settings;
 } mysql_settings_t;
 
-const char * MYSQL_BLANK_STRING = "";
+static const char * MYSQL_BLANK_STRING = "";
 
 /*
 **  Mysql_create_statemnet

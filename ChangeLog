@@ -1,3 +1,7 @@
+2003-12-30  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/lak.c: Fix NULL pointer dereference
+	  (Simon Brady <simon.brady@otago.ac.nz>)
+
 2003-12-22  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/digestmd5.c: Fix memory leak
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)

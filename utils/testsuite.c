@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.32 2003/02/13 19:56:17 rjs3 Exp $
+ * $Id: testsuite.c,v 1.33 2003/03/28 19:59:45 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -454,6 +454,11 @@ int good_getopt(void *context __attribute__((unused)),
 	*result = "auxprop";
 	if (len)
 	    *len = strlen("auxprop");
+	return SASL_OK;
+    } else if (!strcmp(option, "auxprop_plugin")) {
+	*result = "sasldb";
+	if (len)
+	    *len = strlen("sasldb");
 	return SASL_OK;
     } else if (!strcmp(option, "sasldb_path")) {
 	*result = "./sasldb";

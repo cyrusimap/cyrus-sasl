@@ -1,6 +1,6 @@
 package sasl;
 
-public abstract class saslUtils
+public abstract class Utils
 {
 
 	/**
@@ -166,7 +166,7 @@ public abstract class saslUtils
      * Base 64 Decodes a String
      * Ignores trailing whitespace and newlines
      *
-     * @param s String to be decoded
+     * @param msg String to be decoded
      *
      * @return the decoded value in byte[] form
      */

@@ -37,25 +37,8 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <netinet/in.h>
 #include "javasasl.h"
 
-static char *username="tmartin";
-static char *authid="tmartin";
 static JNIEnv *globalenv;
 static jobject globalobj;
-
-static void throwinteract(JNIEnv *env, sasl_interact_t *interact)
-{
-  jclass newExcCls;
-  char *errstr;
-  newExcCls = (*env)->FindClass(env, "sasl/InteractException");
-
-
-  errstr=(char *) malloc(1024);
-  sprintf(errstr, "%s",interact->prompt);
-			  
-  (*env)->ThrowNew(env, newExcCls, errstr);
-  free(errstr);
-
-}
 
 static void throwexception(JNIEnv *env, int error)
 {
@@ -72,9 +55,6 @@ static void throwexception(JNIEnv *env, int error)
       break;
     case SASL_NOTDONE:
       newExcCls = (*env)->FindClass(env, "sasl/NotDoneException");
-      break;
-    case SASL_INTERACT:
-      newExcCls = (*env)->FindClass(env, "sasl/InteractException");
       break;
     case SASL_BADAUTH:
       newExcCls = (*env)->FindClass(env, "sasl/BadAuthException");
@@ -98,7 +78,9 @@ static void throwexception(JNIEnv *env, int error)
 /* server init */
 
 JNIEXPORT jint JNICALL Java_sasl_ServerFactory_jni_1sasl_1server_1init
-  (JNIEnv *env, jobject obj, jstring jstr)
+  (JNIEnv *env,
+   jobject obj __attribute__((unused)),
+   jstring jstr)
 {
   /* Obtain a C-copy of the Java string */
   const char *str = (*env)->GetStringUTFChars(env, jstr, 0);
@@ -115,90 +97,142 @@ JNIEXPORT jint JNICALL Java_sasl_ServerFactory_jni_1sasl_1server_1init
 }
 
 static int
-simple(void *context __attribute__((unused)),
+prompt(void *context __attribute__((unused)),
        int id,
+       const char *challenge,
+       const char *prompt,
+       const char *defresult,
        const char **result,
        unsigned *len)
-{
-  if (! result)
-    return SASL_BADPARAM;
-  switch (id) {
-  case SASL_CB_USER:
-    *result = username;
-    if (len)
-      *len = username ? strlen(username) : 0;
-    printf("retrieved userid through callback\n");
-    break;
-  case SASL_CB_AUTHNAME:
-    authid=username;
-    *result = authid;
-    if (len)
-      *len = authid ? strlen(authid) : 0;
-    printf("retrieved authid through callback\n");
-      break;
-  case SASL_CB_LANGUAGE:
-    *result = NULL;
-    if (len)
-      *len = 0;
-    break;
-  default:
-    return SASL_BADPARAM;
-  }
-  return SASL_OK;
-}
-
-#define PASSWORD "password"
-
-static int
-getsecret(sasl_conn_t *conn,
-	  void *context __attribute__((unused)),
-	  int id,
-	  sasl_secret_t **psecret)
 {
   jclass cls;
   jmethodID mid;
   const char *str;
   jstring jstr;
-
-  printf("Trying to call password callback\n");
-  cls = (*globalenv)->GetObjectClass(globalenv, globalobj);
-  mid = (*globalenv)->GetMethodID(globalenv, cls, "callback_password",
-				  "(I)Ljava/lang/String;");
-  if (mid == 0) {
-      printf("failure to getmethod\n");
-      return SASL_FAIL;
-  }
-  jstr=(jstring) (*globalenv)->CallObjectMethod(globalenv, globalobj, mid, 2);
-
-  str = (*globalenv)->GetStringUTFChars(globalenv, jstr, 0);
-
-  printf("suceeded %s\n",str);
-
-  /* make sure we got here ok */
-  if (! conn || ! psecret || id != SASL_CB_PASS)
+  jstring defaul, jprompt, jchallenge;
+  if ((id != SASL_CB_ECHOPROMPT && id != SASL_CB_NOECHOPROMPT)
+      || !prompt || !result || !len)
     return SASL_BADPARAM;
 
-  *psecret = (sasl_secret_t *) malloc(sizeof(sasl_secret_t)+strlen(PASSWORD)+1);
-  if (! *psecret)
-    return SASL_FAIL;
+  if (! defresult)
+    defresult = "";
 
-  strcpy((*psecret)->data, str);
-  (*psecret)->len=strlen(str);
+  /* make default result into a java string */
+  defaul= (*globalenv)->NewStringUTF(globalenv,defresult);
+
+  /* make prompt into a java string */
+  jprompt= (*globalenv)->NewStringUTF(globalenv,prompt);
+
+  /* make challenge into a java string */
+  jchallenge= (*globalenv)->NewStringUTF(globalenv,challenge);
+
+  cls = (*globalenv)->GetObjectClass(globalenv, globalobj);
+
+  if (id == SASL_CB_ECHOPROMPT) {
+
+      /* set up for java callback */
+      mid = (*globalenv)->GetMethodID(globalenv, cls, "callback_echo",
+	"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;");
+
+  } else {
+
+      /* set up for java callback */
+      mid = (*globalenv)->GetMethodID(globalenv, cls, "callback_noecho",
+	"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;");
+  }
+
+
+  if (mid == 0) {
+    return SASL_FAIL;
+  }
+
+  /* do the callback */
+  jstr=(jstring) (*globalenv)->CallObjectMethod(globalenv, globalobj, mid,defaul,jchallenge,jprompt);
+
+  /* convert the result string into a char * */
+  str = (*globalenv)->GetStringUTFChars(globalenv, jstr, 0);
+
+  /* copy it into the result */
+  *result=(char *) malloc( strlen(str));
+  if (! *result)
+    return SASL_NOMEM;
+  *len=strlen(str);
+  strcpy((char *) *result, str);
 
   /* Now we are done with str */
   (*globalenv)->ReleaseStringUTFChars(globalenv, jstr, str);
 
-  printf("retrieved password through callback\n");
+  return SASL_OK;  
+}
+
+static int
+log(void *context __attribute__((unused)),
+    int priority,
+    const char *message) 
+{
+  const char *label;
+  jstring jlabel, jmessage;
+  jclass cls;
+  jmethodID mid;
+
+
+  if (! message)
+    return SASL_BADPARAM;
+
+  switch (priority) {
+  case SASL_LOG_ERR:
+    label = "Error";
+    break;
+  case SASL_LOG_WARNING:
+    label = "Warning";
+    break;
+  case SASL_LOG_INFO:
+    label = "Info";
+    break;
+  default:
+    return SASL_BADPARAM;
+  }
+
+  VL(("Trying to call password callback\n"));
+  cls = (*globalenv)->GetObjectClass(globalenv, globalobj);
+  mid = (*globalenv)->GetMethodID(globalenv, cls, "callback_log",
+				  "(Ljava/lang/String;Ljava/lang/String;)V");
+  if (mid == 0) {
+    return SASL_FAIL;
+  }
+
+  /* make label into a java string */
+  jlabel= (*globalenv)->NewStringUTF(globalenv,label);
+
+  /* make message into a java string */
+  jmessage= (*globalenv)->NewStringUTF(globalenv,message);
+
+  /* call java */
+  (*globalenv)->CallVoidMethod(globalenv, globalobj, mid, 
+			       jlabel, jmessage);
+
+  /* Now we are done with jlabel */
+  (*globalenv)->ReleaseStringUTFChars(globalenv, jlabel, label);
+
+  /* Now we are done with jmessage */
+  (*globalenv)->ReleaseStringUTFChars(globalenv, jmessage, message);
+
   return SASL_OK;
 }
 
 static sasl_callback_t callbacks[] = {
   {
+    SASL_CB_LOG,      &log, NULL
+  }, {
     SASL_CB_PASS,     NULL, NULL
   }, {
     SASL_CB_USER,     NULL, NULL /* we'll handle these ourselves */
   }, {
     SASL_CB_AUTHNAME, NULL, NULL /* we'll handle these ourselves */
+  }, {
+    SASL_CB_ECHOPROMPT, &prompt, NULL
+  }, {
+    SASL_CB_NOECHOPROMPT, &prompt, NULL
   }, {
     SASL_CB_LIST_END, NULL, NULL
   }
@@ -206,16 +240,17 @@ static sasl_callback_t callbacks[] = {
 
 /* client init */
 JNIEXPORT jint JNICALL Java_sasl_ClientFactory_jni_1sasl_1client_1init
-  (JNIEnv *env, jobject obj, jstring jstr)
+  (JNIEnv *env,
+   jobject obj __attribute__((unused)),
+   jstring jstr)
 {
   /* Obtain a C-copy of the Java string */
   const char *str = (*env)->GetStringUTFChars(env, jstr, 0);
   int result;
 
-  printf("initing\n");
+  VL(("initing\n"));
 
   result=sasl_client_init(callbacks);
-  printf("initing %i\n",result);
   if (result!=SASL_OK)
     throwexception(env,result);
 
@@ -228,7 +263,9 @@ JNIEXPORT jint JNICALL Java_sasl_ClientFactory_jni_1sasl_1client_1init
 /* server new */
 
 JNIEXPORT jint JNICALL Java_sasl_ServerFactory_jni_1sasl_1server_1new
-  (JNIEnv *env, jobject obj, jstring jservice, jstring jlocal, 
+  (JNIEnv *env,
+   jobject obj __attribute__((unused)),
+   jstring jservice, jstring jlocal, 
    jstring juser, jint jsecflags)
 {
   sasl_conn_t *conn;
@@ -253,7 +290,8 @@ JNIEXPORT jint JNICALL Java_sasl_ServerFactory_jni_1sasl_1server_1new
 
 
 JNIEXPORT jint JNICALL Java_sasl_ClientFactory_jni_1sasl_1client_1new
-  (JNIEnv *env, jobject obj,
+  (JNIEnv *env,
+   jobject obj __attribute__((unused)),
    jstring jservice, jstring jserver, jint jsecflags)
 {
   sasl_conn_t *conn;
@@ -263,7 +301,7 @@ JNIEXPORT jint JNICALL Java_sasl_ClientFactory_jni_1sasl_1client_1new
   int result;
 
   result=sasl_client_new(service, serverFQDN, NULL, jsecflags, &conn);
-  printf("client_new res=%i\n",result);
+  VL(("client_new res=%i\n",result));
   if (result!=SASL_OK)
     throwexception(env,result);
 
@@ -277,7 +315,9 @@ JNIEXPORT jint JNICALL Java_sasl_ClientFactory_jni_1sasl_1client_1new
 /* server start */
 
 JNIEXPORT jbyteArray JNICALL Java_sasl_ServerConn_jni_1sasl_1server_1start
-  (JNIEnv *env, jobject obj, jint ptr, jstring jstr, jbyteArray jarr, jint jlen)
+  (JNIEnv *env,
+   jobject obj __attribute__((unused)),
+   jint ptr, jstring jstr, jbyteArray jarr, jint jlen)
 {
   sasl_conn_t *conn;
   const char *mech = (*env)->GetStringUTFChars(env, jstr, 0);
@@ -285,13 +325,11 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_ServerConn_jni_1sasl_1server_1start
   unsigned int outlen;
    int result;
   jbyteArray arr;
-  signed char *a;
   const char *errstr;
-  const char *fillin;
-  signed char *in;
+  signed char *in=NULL;
 
   if (jarr!=NULL)
-      in = (*env)->GetByteArrayElements(env, jarr, 0);
+    in = (*env)->GetByteArrayElements(env, jarr, 0);
 
   conn=(sasl_conn_t *) ptr;
 
@@ -320,24 +358,6 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_ServerConn_jni_1sasl_1server_1start
   return arr;
 }
 
-extern int _sasl_debug;
-
-static void interaction (sasl_interact_t *t)
-{
-  char result[1024];
-
-  printf("%s:",t->prompt);
-  scanf("%s",&result);
-
-  t->len=strlen(result);
-  printf("setting len to %i\n",t->len);
-  t->result=(char *) malloc(t->len+1);
-  memset(t->result, 0, t->len+1);
-  memcpy((char *) t->result, result, t->len);
-
-  printf("done interaction\n");
-
-}
 
 /* call_pass()
  * 
@@ -535,31 +555,22 @@ static int call_authpass(JNIEnv *env, jobject obj, sasl_interact_t *t_a,
 			    "(I)Ljava/lang/String;");
 
   if (mid == 0) {
-    printf("null function\n");
     return SASL_FAIL;
   }
 
   /* do the callback to get the password*/
   jstr=(jstring) (*env)->CallObjectMethod(env, obj, mid, 2);
 
-  printf("got password too\n");
-
   /* convert the result string into a char * */
   str = (*env)->GetStringUTFChars(env, jstr, 0);
-
-  printf("got password too 2\n");
 
   /* copy password into the result */
   t_p->result=(char *) malloc( strlen(str));
   t_p->len=strlen(str);
   strcpy(t_p->result, str);
 
-  printf("got password too 3\n");
-
   /* Now we are done with str */
   (*env)->ReleaseStringUTFChars(env, jstr, str);
-
-  printf("got password too 4\n");
 
   return SASL_OK;
 }
@@ -616,7 +627,6 @@ static int call_userpass(JNIEnv *env, jobject obj, sasl_interact_t *t_u,
 			    "(I)Ljava/lang/String;");
 
   if (mid == 0) {
-    printf("null function\n");
     return SASL_FAIL;
   }
 
@@ -693,7 +703,6 @@ static int call_userauthpass(JNIEnv *env, jobject obj,
 			    "(I)Ljava/lang/String;");
 
   if (mid == 0) {
-    printf("null function\n");
     return SASL_FAIL;
   }
 
@@ -717,7 +726,6 @@ static int call_userauthpass(JNIEnv *env, jobject obj,
 			    "(I)Ljava/lang/String;");
 
   if (mid == 0) {
-    printf("null function\n");
     return SASL_FAIL;
   }
 
@@ -738,7 +746,12 @@ static int call_userauthpass(JNIEnv *env, jobject obj,
   return SASL_OK;
 }
 
-static void fillin_interactions(JNIEnv *env, jobject obj, 
+/*
+ * Fills in all the prompts by doing callbacks to java
+ * returns SASL_INTERACT on sucess
+ */
+
+static int fillin_interactions(JNIEnv *env, jobject obj, 
 				sasl_interact_t *tlist)
 {
   sasl_interact_t *ptr=tlist;
@@ -760,8 +773,6 @@ static void fillin_interactions(JNIEnv *env, jobject obj,
     /* increment to next sasl_interact_t */
     ptr++;
   }
-
-  printf("%i %i %i\n",uid,aid,pass);
 
   /* If there are any combos we know how to handle then handle them */
 
@@ -785,21 +796,23 @@ static void fillin_interactions(JNIEnv *env, jobject obj,
       else if (tlist->id==SASL_CB_USER)
         call_userid(env,obj, tlist);
       else
-        interaction(tlist); 
+	return SASL_FAIL;
     }
     tlist++;    
   }
 
   /* everything should now be filled in (i think) */
-  printf("everything should now be filled in (i think)\n");
+  VL(("everything should now be filled in (i think)\n"));
+
+  return SASL_INTERACT;
 }
 
 /* client start */
 JNIEXPORT jbyteArray JNICALL Java_sasl_ClientConn_jni_1sasl_1client_1start
-  (JNIEnv *env, jobject obj, jint ptr, jstring jstr, jstring jfill)
+  (JNIEnv *env, jobject obj, jint ptr, jstring jstr)
 {    
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
-   const char *mechlist = (*env)->GetStringUTFChars(env, jstr, 0);
+  const char *mechlist = (*env)->GetStringUTFChars(env, jstr, 0);
   char *out;
   unsigned int outlen=0;
   const char *mechusing;
@@ -807,22 +820,11 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_ClientConn_jni_1sasl_1client_1start
   sasl_secret_t *secret;
   sasl_interact_t *client_interact=NULL;
   jbyteArray arr;
-  signed char *a;
-  const char *fillin;
+  jstring jmechusing;
+  jclass cls;
+  jmethodID mid;
 
-  printf("client start\n");
-
-  /* if got info for an interact make one */
-  if (jfill!=NULL)
-  {
-    fillin=(*env)->GetStringUTFChars(env, jfill, 0);
-    client_interact=(sasl_interact_t *) malloc(sizeof(sasl_interact_t));
-    client_interact->len=strlen(fillin);
-    client_interact->result=(char *) malloc(client_interact->len);
-    memcpy((void *) client_interact->result, fillin, client_interact->len);
-  }
-
-
+  VL(("sasl_start"));
  
   /* create secret XXX */
   secret=(sasl_secret_t *) malloc(sizeof(sasl_secret_t)+9);
@@ -830,54 +832,65 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_ClientConn_jni_1sasl_1client_1start
   secret->len=strlen((char *) secret->data);
 
   do {
-      printf("trying start\n");
 
       result=sasl_client_start(conn, mechlist,
 			       secret, &client_interact,
 			       &out, &outlen,
 			       &mechusing);
-      printf("client_start res=%i\n",result);
-      printf("outlen=%i\n",outlen);
+
       if (result==SASL_INTERACT)
-	  fillin_interactions(env,obj,client_interact);
-      printf("here\n");
+	  result=fillin_interactions(env,obj,client_interact);
 
   } while (result==SASL_INTERACT);
 
-  if (result==SASL_INTERACT)
-  {
-    throwinteract(env,client_interact);
-    return NULL;
-  }
+  /* ok release mechlist */
+  (*env)->ReleaseStringUTFChars(env, jstr, mechlist);  
 
   if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
   {
-
     throwexception(env,result);
     return NULL;
   }
 
-  if (outlen==0)
+
+  /* tell the java layer what mechanism we're using */
+
+  /* set up for java callback */
+  cls = (*env)->GetObjectClass(env, obj);
+  mid = (*env)->GetMethodID(env, cls, "callback_setmechanism",
+			    "(Ljava/lang/String;)V");
+  if (mid == 0) {
+      throwexception(env,SASL_FAIL);
     return NULL;
+  }
 
+  VL(("mechusing=%s\n",mechusing));
+
+  /* make into mech */
+  jmechusing= (*env)->NewStringUTF(env,mechusing);
+
+  /* do the callback */
+  (*env)->CallVoidMethod(env, obj, mid,jmechusing);
+
+  /* make the byte array to return */
   arr=(*env)->NewByteArray(env,outlen);
-
   (*env)->SetByteArrayRegion(env,arr, 0, outlen, (signed char *) out);
-
+  
   return arr;
 }
 
 /* server step */
 
 JNIEXPORT jbyteArray JNICALL Java_sasl_ServerConn_jni_1sasl_1server_1step
-  (JNIEnv *env, jobject obj, jint ptr, jbyteArray jarr, jint jlen)
+  (JNIEnv *env,
+   jobject obj __attribute__((unused)),
+   jint ptr, jbyteArray jarr, jint jlen)
 {
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
   int result;
   char *out;
   unsigned int outlen;
   jbyteArray arr;
-  int lup;
   const char *errstr;  
   signed char *in = (*env)->GetByteArrayElements(env, jarr, 0);
       
@@ -912,37 +925,22 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_ServerConn_jni_1sasl_1server_1step
 /* client step */
 
 JNIEXPORT jbyteArray JNICALL Java_sasl_ClientConn_jni_1sasl_1client_1step
-    (JNIEnv *env, jobject obj, jint ptr, jbyteArray jarr, jint jlen, jstring jstr)
+    (JNIEnv *env, jobject obj, jint ptr, jbyteArray jarr, jint jlen)
 {    
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
-  const char *fillin = NULL; 
   /*  const char *in = (*env)->GetStringUTFChars(env, jstr, 0);*/
   int result;
   sasl_interact_t *client_interact=NULL;
   char *out;
   unsigned int outlen;
   jbyteArray arr;
-  int lup;
-  char *errstr;
   signed char *in = (*env)->GetByteArrayElements(env, jarr, 0);
 
   globalenv=env;
   globalobj=obj;
 
   in[jlen]=0;
-  printf("in client step 1\n");
-
-  /* if got info for an interact make one */
-  /*  if (jstr!=NULL)
-  {
-    fillin=(*env)->GetStringUTFChars(env, jstr, 0);
-    client_interact=(sasl_interact_t *) malloc(sizeof(sasl_interact_t));
-    client_interact->len=strlen(fillin);
-    client_interact->result=(char *) malloc(client_interact->len);
-    memcpy((void *)client_interact->result, fillin, client_interact->len);
-    }*/
-
-  printf("in client step 2 %s %i\n",in,jlen);
+  VL(("in client step\n"));
 
   do {
 
@@ -951,12 +949,9 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_ClientConn_jni_1sasl_1client_1step
 			      &out, &outlen);
 
       if (result==SASL_INTERACT)
-	  fillin_interactions(env,obj,client_interact);
-      printf("here\n");
+	  result=fillin_interactions(env,obj,client_interact);
 
   } while (result==SASL_INTERACT);
-
-  printf("in client step 3\n");
 
 
   if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
@@ -966,26 +961,31 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_ClientConn_jni_1sasl_1client_1step
     return NULL;
   }
 
+  /*void (JNICALL *ReleaseByteArrayElements)
+    (JNIEnv *env, jbyteArray array, jbyte *elems, jint mode);*/
+  (*env)->ReleaseByteArrayElements(env, jarr,in ,0);
+
+
   /* make byte array to return with stuff to send to server */
   arr=(*env)->NewByteArray(env,outlen);
 
   (*env)->SetByteArrayRegion(env,arr, 0, outlen, (signed char *) out);
-
-  printf("out looks like %s\n",out);
 
   return arr;
 }
 
 
 JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1set_1prop_1string
-  (JNIEnv *env, jobject obj, jint ptr, jint propnum, jstring val)
+  (JNIEnv *env,
+   jobject obj __attribute__((unused)),
+   jint ptr, jint propnum, jstring val)
 {
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
   const char *value = (*env)->GetStringUTFChars(env, val, 0);
 
   int result=sasl_setprop(conn, propnum, value);
 
-  printf("prop res=%i\n",result);
+  VL(("prop res=%i\n",result));
 
   if (result!=SASL_OK)
     throwexception(env,result);
@@ -993,7 +993,9 @@ JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1set_1prop_1string
 
 
 JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1set_1prop_1int
-  (JNIEnv *env, jobject obj, jint ptr, jint propnum, jint jval)
+  (JNIEnv *env,
+   jobject obj __attribute__((unused)),
+   jint ptr, jint propnum, jint jval)
 {
 
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
@@ -1005,7 +1007,9 @@ JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1set_1prop_1int
     throwexception(env,result);
 }
 JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1set_1prop_1bytes
-  (JNIEnv *env, jobject obj, jint ptr, jint propnum, jbyteArray jarr)
+  (JNIEnv *env,
+   jobject obj __attribute__((unused)),
+   jint ptr, jint propnum, jbyteArray jarr)
 {
   signed char *value = (*env)->GetByteArrayElements(env, jarr, 0);
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
@@ -1018,34 +1022,35 @@ JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1set_1prop_1bytes
 }
 
 /* encode */
-
 JNIEXPORT jbyteArray JNICALL Java_sasl_CommonConn_jni_1sasl_1encode
-  (JNIEnv *env, jobject obj, jint ptr, jstring jstr)
+  (JNIEnv *env,
+   jobject obj __attribute__((unused)),
+   jint ptr, 
+   jbyteArray jarr, jint jlen)
 {
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
-  const char *in = (*env)->GetStringUTFChars(env, jstr, 0);
+  signed char *in = (*env)->GetByteArrayElements(env, jarr, 0);
   char *out;
   unsigned int outlen;
-  int inlen=strlen(in);
   int result;
   jbyteArray arr;
 
-  result=sasl_encode(conn, in, inlen, &out, &outlen);
+
+  result=sasl_encode(conn,(const char *) in, jlen, &out, &outlen);
   if (result!=SASL_OK)
     throwexception(env,result);
 
   arr=(*env)->NewByteArray(env,outlen);
   (*env)->SetByteArrayRegion(env,arr, 0, outlen, (signed char *) out);
 
-  (*env)->ReleaseStringUTFChars(env, jstr, in);  
-
   return arr;
 }
 
 /* decode */
-
 JNIEXPORT jbyteArray JNICALL Java_sasl_CommonConn_jni_1sasl_1decode
-  (JNIEnv *env, jobject obj, jint ptr, jbyteArray jarr, jint jlen)
+  (JNIEnv *env,
+   jobject obj __attribute__((unused)), 
+   jint ptr, jbyteArray jarr, jint jlen)
 {
 
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
@@ -1053,7 +1058,7 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_CommonConn_jni_1sasl_1decode
   char *out;
   unsigned int outlen;
   int inlen=jlen;
-  int result,lup;
+  int result;
   jbyteArray arr;
 
   result=sasl_decode(conn, (const char *) in, inlen, &out, &outlen);
@@ -1077,7 +1082,9 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_CommonConn_jni_1sasl_1decode
   }*/
 
 JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1dispose
-  (JNIEnv *env, jobject obj, jint ptr)
+  (JNIEnv *env __attribute__((unused)),
+   jobject obj __attribute__((unused)),
+   jint ptr)
 {
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
 
@@ -1086,7 +1093,9 @@ JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1dispose
 }
 
 JNIEXPORT jstring JNICALL Java_sasl_ServerConn_jni_1sasl_1server_1getlist
-  (JNIEnv *env, jobject obj, jint ptr, jstring jpre, jstring jsep, jstring jsuf)
+  (JNIEnv *env,
+   jobject obj __attribute__((unused)),
+   jint ptr, jstring jpre, jstring jsep, jstring jsuf)
 {
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
   const char *pre = (*env)->GetStringUTFChars(env, jpre, 0);
@@ -1112,7 +1121,9 @@ JNIEXPORT jstring JNICALL Java_sasl_ServerConn_jni_1sasl_1server_1getlist
 }
 
 JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1set_1server
-  (JNIEnv *env, jobject obj, jint ptr, jbyteArray jarr, jint jport)
+  (JNIEnv *env,
+   jobject obj __attribute__((unused)),
+   jint ptr, jbyteArray jarr, jint jport)
 {
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
   signed char *ip = (*env)->GetByteArrayElements(env, jarr, 0);
@@ -1133,7 +1144,9 @@ JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1set_1server
 
 
 JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1set_1client
-  (JNIEnv *env, jobject obj, jint ptr, jbyteArray jarr, jint jport)
+  (JNIEnv *env,
+   jobject obj __attribute__((unused)),
+   jint ptr, jbyteArray jarr, jint jport)
 {
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
   signed char *ip = (*env)->GetByteArrayElements(env, jarr, 0);
@@ -1171,7 +1184,9 @@ static sasl_security_properties_t *make_secprops(int min,int max)
 
 
 JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1setSecurity
-  (JNIEnv *env, jobject obj, jint ptr, jint minssf, jint maxssf)
+  (JNIEnv *env,
+   jobject obj __attribute__((unused)),
+   jint ptr, jint minssf, jint maxssf)
 {
   int result=SASL_FAIL;
   sasl_conn_t *conn=(sasl_conn_t *) ptr;

@@ -3,10 +3,11 @@ package sasl;
 import java.net.*;
 
 /**
+ * @version 1.0
  * @author Tim Martin
  */
 
-public abstract class saslCommonConn
+public abstract class CommonConn
 {
 
   /* These are the jni functions called by the routines in common
@@ -19,19 +20,14 @@ public abstract class saslCommonConn
   private native void jni_sasl_set_server(int ptr, byte []ipnum, int port);
   private native void jni_sasl_set_client(int ptr, byte []ipnum, int port);
   private native void jni_sasl_setSecurity(int ptr, int minssf, int maxssf);
-  private native byte[] jni_sasl_encode(int ptr, String in);
+  private native byte[] jni_sasl_encode(int ptr, byte[] in,int len);
   private native byte[] jni_sasl_decode(int ptr, byte[] in,int len);
   private native void jni_sasl_dispose(int ptr);
 
 
-    /**
-     * Username
-     */
-  public static int SASL_USERNAME=0;
-
-    /**
-     * security layer security strength factor
-     */
+  /**
+   * security layer security strength factor
+   */
   public static int SASL_SSF     =1;    
 
   public static int SASL_MAXOUTBUF=2;     /* security layer max output buf unsigned */  
@@ -198,49 +194,75 @@ public abstract class saslCommonConn
   }
 
 
-
-
   /**
    * Encode a String with the negotiated layer
    *
    * @param in String to be encoded
    * @return the encoded string represented at a byte[] 
    */
-  public byte[] encode(String in)
+  public byte[] encode(byte[] in)
   {
     
-    byte[] out=jni_sasl_encode(ptr,in);
+    byte[] out=jni_sasl_encode(ptr,in,in.length);
 
     return out;
   }
-
-
 					    
   /**
-   * Decode a String with the negotiated layer
+   * Decode a byte[] with the negotiated layer
    *
    * @param in byte[] to be decoded
    * @param len number of bytes to be decoded
    * @return the decoded string represented at a byte[]
    */
-  public byte[] decode(byte[] in,int len)
+  public byte[] decode(byte[] in)
   {
     
-    byte[] out=jni_sasl_decode(ptr,in,len);
+    byte[] out=jni_sasl_decode(ptr,in,in.length);
 
     return out;
   }
 
   /**
-   * Decode a String with the negotiated layer
+   * Decode a String with the negotiated layer. NOTE: Be careful with
+   * this function. International or high ascii characters may do strange
+   * things. The byte[] method is preferred
    *
    * @param in String to be decoded
    * @return the decoded string represented at a byte[]
    */
   public byte[] decode(String in)
   {
-    return decode(in.getBytes(), in.length());
+    return decode(in.getBytes());
   }
+
+  protected void setcommonproperties(java.util.Properties props)
+  {
+    String ssfmin=(String) props.getProperty("security.policy.encryption.min",
+					     "0");
+    String ssfmax=(String) props.getProperty("security.policy.encryption.max",
+					     "256");
+    String external=(String) props.getProperty("security.policy.encryption.external",
+					       "0");
+
+    setSecurity(Integer.parseInt(external),
+		Integer.parseInt(ssfmin),
+		Integer.parseInt(ssfmax));
+    
+    /* xxx these aren't handled */
+    String iplocal=props.getProperty("security.ipv4.local");
+    String ipremote=props.getProperty("security.ipv4.remote");
+   
+    /* not implemented
+       props.getProperty("security.ipv6.local");
+       props.getProperty("security.ipv6.remote");
+    */
+
+    String maxbuf=props.getProperty("security.maxbuf","65000");
+    /* xxx this raises an exception for some reason
+       setproperty(SASL_MAXOUTBUF,Integer.parseInt(maxbuf)); */
+  }
+
 
   final protected void finalize () throws Throwable 
   {

@@ -2,10 +2,15 @@ package sasl;
 
 import java.net.*;
 
-public final class saslServerConn extends saslCommonConn
+/**
+ * @author Tim Martin
+ * @version 1.0
+ */
+
+public final class ServerConn extends CommonConn
 {
 
-  saslServerConn(int cptr)
+  ServerConn(int cptr)
   {
     ptr=cptr;
     finished=false;
@@ -14,7 +19,7 @@ public final class saslServerConn extends saslCommonConn
   private native byte[] jni_sasl_server_start(int ptr,
 					     String mech, byte[]in, int inlen);
   /**
-   * Start authentication
+   * Start authentication. 
    *
    * @param mech mechanism to try
    * @param prompt saslPrompt structure 
@@ -22,9 +27,9 @@ public final class saslServerConn extends saslCommonConn
    * @return the byte[] you should send to the server
    */
 
-  public byte[] start(String mech, byte[]in, int inlen) throws saslException
+  public byte[] start(String mech, byte[]in) throws saslException
   {
-    byte [] out=jni_sasl_server_start(ptr, mech,in,inlen);
+    byte [] out=jni_sasl_server_start(ptr, mech,in,in.length);
 
     if (out==null)
       return null;
@@ -44,7 +49,7 @@ public final class saslServerConn extends saslCommonConn
 					    
 
   /**
-   * Perform a step. start() should have been preformed succesfully
+   * Perform a step. start() must have been preformed succesfully
    * before this
    *
    * @param in String from server (must decode64 before)
@@ -53,19 +58,11 @@ public final class saslServerConn extends saslCommonConn
    * @return the byte[] you should send to the server
    */
 	
-  public byte[] step(String in) throws saslException
+  public byte[] step(byte[] in) throws saslException
   {
-
-    byte[] inn=new byte[100];
-    
-    for (int lup=0;lup<in.length();lup++)
-    {
-	inn[lup]=(byte)(in.charAt(lup));
-    }
-
     byte [] out=null;
 
-    out=jni_sasl_server_step(ptr, in.getBytes(), in.length() );
+    out=jni_sasl_server_step(ptr, in, in.length );
 
     if (out==null)
       return null;
@@ -89,20 +86,31 @@ public final class saslServerConn extends saslCommonConn
    * @return the byte[] you should send to the server
    */
 
-  public byte[] step(byte[] in) throws saslException
+  public byte[] step(String in) throws saslException
   {
-    return step(new String(in) );
+    return step(in.getBytes());
   }
 
   private native String jni_sasl_server_getlist(int ptr, String prefix,
 						String sep, String suffix);
 
-  public String getMechanismList(String prefix, String sep,
-			  String suffix) throws saslException
+  /**
+   * Get list of supported mechanisms for the given user. The returned
+   * string is prefix with prefix, sep is placed in between all
+   * entries and suffix is placed at the end. If no user is specified
+   * the mechanism list for all users is returned.
+   *
+   * @param user only mechanism available to this user returned
+   * @param prefix Prefix for string
+   * @param sep String to place in between items in list
+   * @param suffix String appended at end
+   * @exception saslException sasl exception
+   * @return String representing supported mechanisms
+   */
+  public String getMechanismList(String user,String prefix, String sep,
+				 String suffix) throws saslException
   {
-
-      String a=jni_sasl_server_getlist(ptr,prefix,sep,suffix);
-
-      return a;
+      /* xxx user not implemented */
+      return jni_sasl_server_getlist(ptr,prefix,sep,suffix);
   }
 }

@@ -13,7 +13,8 @@ case `uname` in
   Linux) CFLAGS="${CFLAGS} -O2 -g"
 	 ;;
 
-  SunOS) CFLAGS="${CFLAGS} -xs -g"
+  SunOS) CC="cc"
+	 CFLAGS="${CFLAGS} -xs -g"
 	 ;;
 esac
 

@@ -56,7 +56,7 @@ version will be built by default.
 that has to be provided to NMake on the command line.
 If SleepyCat sources are located in <tt>c:\packages\db\4.1.24</tt>
 and built library in <tt>c:\packages\db\4.1.24\build_win32\Release_static</tt>,
-+you should add something like
+you should add something like
 <tt>DB_INCLUDE=c:\packages\db\4.1.24\build_win32</tt>
 and <tt>DB_LIBPATH=c:\packages\db\4.1.24\build_win32\Release_static</tt>.
 <br>Also note, that the <tt>DB_LIB</tt> defines the name of the SleepyCat library
@@ -107,6 +107,55 @@ Defaulting SleepyCat library path to c:\work\isode\db\build_win32\Release_static
 ...
 
 </pre>
+
+<h3>Building additional plugins</h3>
+
+<p>Specify "GSSAPI=&lt;type&gt;" parameter if you want to enable GSSAPI plugin.
+Currently only &lt;type&gt;=CyberSafe is supported and this will build the plugin
+that links against CyberSafe Kerberos.
+
+GSSAPI depends on <tt>GSSAPI_INCLUDE</tt> and <tt>GSSAPI_LIBPATH</tt> parameters.
+You can either specify them on the command line or edit the defaults in win32\common.mak
+
+<p>Specify "NTLM=1" parameter if you want to enable NTLM plugin.
+I.e. "<tt>nmake /f NTMakefile NTLM=1</tt>"
+
+<p>Specify "SRP=1" parameter if you want to enable SRP plugin.
+
+<p>Both NTLM and SRP plugins depend on OpenSSL. You can either specify
+<tt>OPENSSL_INCLUDE</tt> and <tt>OPENSSL_LIBPATH</tt> parameters on the command
+line or edit the defaults in win32\common.mak
+
+<h3>limitations</h3>
+
+Currently only the following plugins build:
+
+<ul>
+<li>ANONYMOUS,
+<li>LOGIN,
+<li>PLAIN,
+<li>CRAM-MD5,
+<li>DIGEST-MD5
+<li>SASLDB (using SleepyCat),
+<li>NTLM,
+<li>GSSAPI (tested using CyberSafe),
+<li>SRP (not tested)
+</ul>
+
+The following executables were built and tested (to some extend):
+In sample:
+<ul>
+<li>sample-client
+<li>sample-server
+</ul>
+In utils:
+<ul>
+<li>sasldblistusers2
+<li>saslpasswd2
+<li>testsuite
+</ul>
+
+Yes, saslauthd is NOT in this list.
 
 <h3>testing</h3>
 

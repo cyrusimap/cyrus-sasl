@@ -1,3 +1,7 @@
+2003-10-01  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* doc/: Documentation Update
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+
 2003-09-30  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/digestmd5.c: Clean up some warnings
 	* lib/canonusr.c, win32/include/config.h, win32/common.mak,

@@ -1,4 +1,4 @@
-/* MODULE: auth_getpwent */
+/* MODULE: auth_sasldb */
 
 /* COPYRIGHT
  * Copyright (c) 1997-2000 Messaging Direct Ltd.
@@ -32,7 +32,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_sasldb.c,v 1.2 2001/12/04 02:06:54 rjs3 Exp $"
+#ident "$Id: auth_sasldb.c,v 1.3 2002/02/06 15:11:26 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -46,6 +46,7 @@
 
 
 #ifdef AUTH_SASLDB
+#include "mechanisms.h"
 #include "../include/sasl.h"
 #include "../include/saslplug.h"
 #include "../sasldb/sasldb.h"
@@ -131,24 +132,30 @@ auth_sasldb (
     char pw[1024];			/* pointer to passwd file entry */
     sasl_utils_t utils;
     int ret, outsize;
+    char *use_realm, realm_buf[MAXHOSTNAME];
     /* END VARIABLES */
 
     init_lame_utils(&utils);
 
     _sasl_check_db(&utils, (void *)0x1);
 
-    printf("checking sasldb for %s %s\n", login, realm);
+    if(!realm || !strlen(realm)) {
+	ret = gethostname(realm_buf,MAXHOSTNAME);
+	if(ret) RETURN("NO");
+	use_realm = realm_buf;
+    } else {
+	use_realm = realm;
+    }
+    
 
     ret = _sasldb_getdata(&utils, (void *)0x1, login, realm, "userPassword",
 			  pw, 1024, &outsize);
 
     if (ret != SASL_OK) {
-	printf("return value NOT OK: %d\n",ret);
 	RETURN("NO");
     }
 
     if (strcmp(pw, password)) {
-	printf("password didn't match\n");
 	RETURN("NO");
     }
 

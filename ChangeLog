@@ -1,3 +1,9 @@
+2005-03-01  Derrick Brashear <shadow@andrew.cmu.edu>  
+	* lib/common.c: honor log level setting
+	
+2005-02-28  Derrick Brashear <shadow@andrew.cmu.edu>   
+	* README.ldapdb: ldapdb license info
+	
 2005-02-25  Alexey Melnikov <alexey.melnikov@isode.com>
 	* include/sasl.h, lib/common.c: Added SASL_VERSION_FULL
 	  define

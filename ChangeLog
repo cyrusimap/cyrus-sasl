@@ -1,3 +1,7 @@
+2002-12-09  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/auxprop.c: Correct leak in prop_clear, also update list_end
+	  in prop_request.
+
 2002-12-06  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* Ready for 2.1.10
 

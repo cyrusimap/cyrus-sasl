@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.68 2002/08/02 14:24:28 leg Exp $
+ * $Id: gssapi.c,v 1.69 2002/09/19 16:28:52 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -87,7 +87,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.68 2002/08/02 14:24:28 leg Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.69 2002/09/19 16:28:52 ken3 Exp $";
 
 #ifndef HAVE_GSS_C_NT_HOSTBASED_SERVICE
 extern gss_OID gss_nt_service_name;
@@ -1498,8 +1498,7 @@ static int gssapi_client_mech_step(void *conn_context,
     return SASL_FAIL; /* should never get here */
 }
 
-static const long gssapi_client_required_prompts[] = {
-    SASL_CB_USER,
+static const long gssapi_required_prompts[] = {
     SASL_CB_LIST_END
 };  
 
@@ -1514,7 +1513,7 @@ static sasl_client_plug_t gssapi_client_plugins[] =
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
 	SASL_FEAT_WANT_CLIENT_FIRST
 	| SASL_FEAT_ALLOWS_PROXY,	/* features */
-	gssapi_client_required_prompts,	/* required_prompts */
+	gssapi_required_prompts,	/* required_prompts */
 	NULL,				/* glob_context */
 	&gssapi_client_mech_new,	/* mech_new */
 	&gssapi_client_mech_step,	/* mech_step */

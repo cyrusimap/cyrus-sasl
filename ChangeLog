@@ -1,3 +1,11 @@
+2002-09-19  Ken Murchison <ken@oceana.com>
+	* plugins/plugin_common.[ch]: make SASL_CB_USER and result optional
+	* plugins/anonymous.c: use SASL_CB_USER for fetching trace info,
+	  don't require SASL_CB_AUTHNAME
+	* plugins/gssapi.c, plugins/kerberos.c: don't require SASL_CB_USER
+	* lib/external.c: define SASL_FEAT_ALLOWS_PROXY for this mechanism,
+	  don't require SASL_CB_USER
+
 2002-09-18  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/srp.c, plugins/kerberos4.c: correct maxoutbuf handling
 	* plugins/digestmd5.c: correct maxoutbuf handling, actually

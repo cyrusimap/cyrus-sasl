@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: external.c,v 1.14 2002/09/04 23:16:51 rjs3 Exp $
+ * $Id: external.c,v 1.15 2002/09/19 16:28:51 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -57,7 +57,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: external.c,v 1.14 2002/09/04 23:16:51 rjs3 Exp $";
+static const char plugin_id[] = "$Id: external.c,v 1.15 2002/09/19 16:28:51 ken3 Exp $";
 
 /*****************************  Server Section  *****************************/
 
@@ -159,7 +159,8 @@ static sasl_server_plug_t external_server_plugins[] =
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOANONYMOUS
 	| SASL_SEC_NODICTIONARY,	/* security_flags */
-	SASL_FEAT_WANT_CLIENT_FIRST,	/* features */
+	SASL_FEAT_WANT_CLIENT_FIRST
+	| SASL_FEAT_ALLOWS_PROXY,	/* features */
 	NULL,				/* glob_context */
 	&external_server_mech_new,	/* mech_new */
 	&external_server_mech_step,	/* mech_step */
@@ -279,7 +280,8 @@ external_client_mech_step(void *conn_context,
 	int result =
 	    _plug_make_prompts(params->utils, prompt_need,
 			       user_result == SASL_INTERACT ?
-			       "Please enter your authorization name" : NULL, "",
+			       "Please enter your authorization name" : NULL,
+			       "",
 			       NULL, NULL,
 			       NULL, NULL,
 			       NULL, NULL, NULL,
@@ -344,7 +346,6 @@ external_client_mech_dispose(void *conn_context,
 }
 
 static const long external_required_prompts[] = {
-    SASL_CB_USER,
     SASL_CB_LIST_END
 };
 
@@ -355,7 +356,8 @@ static sasl_client_plug_t external_client_plugins[] =
 	0,				/* max_ssf */
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NODICTIONARY,	/* security_flags */
-	SASL_FEAT_WANT_CLIENT_FIRST,	/* features */
+	SASL_FEAT_WANT_CLIENT_FIRST
+	| SASL_FEAT_ALLOWS_PROXY,	/* features */
 	external_required_prompts,	/* required_prompts */
 	NULL,				/* glob_context */
 	&external_client_mech_new,	/* mech_new */

@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.89 2002/09/18 22:08:40 rjs3 Exp $
+ * $Id: kerberos4.c,v 1.90 2002/09/19 16:28:52 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -107,7 +107,7 @@ extern int gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: kerberos4.c,v 1.89 2002/09/18 22:08:40 rjs3 Exp $";
+static const char plugin_id[] = "$Id: kerberos4.c,v 1.90 2002/09/19 16:28:52 ken3 Exp $";
 
 #ifndef KEYFILE
 #define KEYFILE "/etc/srvtab";
@@ -1201,7 +1201,8 @@ static int kerberosv4_client_mech_step(void *conn_context,
 	}
 	
 	/* create stuff to send to server */
-	sout = (char *) cparams->utils->malloc(9+strlen(text->user)+9);
+	sout = (char *)
+	    cparams->utils->malloc(9+(text->user ? strlen(text->user) : 0)+9);
 	if (!sout) {
 	    MEMERROR(cparams->utils);
 	    return SASL_NOMEM;
@@ -1384,8 +1385,7 @@ static int kerberosv4_client_mech_step(void *conn_context,
     return SASL_FAIL; /* should never get here */
 }
 
-static const long kerberosv4_client_required_prompts[] = {
-    SASL_CB_USER,
+static const long kerberosv4_required_prompts[] = {
     SASL_CB_LIST_END
 };
 
@@ -1401,7 +1401,7 @@ static sasl_client_plug_t kerberosv4_client_plugins[] =
 	SASL_FEAT_NEEDSERVERFQDN
 	| SASL_FEAT_SERVER_FIRST
 	| SASL_FEAT_ALLOWS_PROXY,	/* features */
-	kerberosv4_client_required_prompts,	/* required_prompts */
+	kerberosv4_required_prompts,	/* required_prompts */
 	NULL,				/* glob_context */
 	&kerberosv4_client_mech_new,	/* mech_new */
 	&kerberosv4_client_mech_step,	/* mech_step */

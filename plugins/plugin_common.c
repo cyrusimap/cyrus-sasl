@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.c,v 1.11 2002/09/06 16:03:05 rjs3 Exp $
+ * $Id: plugin_common.c,v 1.12 2002/09/19 16:28:53 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -315,7 +315,7 @@ sasl_interact_t *_plug_find_prompt(sasl_interact_t **promptlist,
 /*
  * Retrieve the simple string given by the callback id.
  */
-int _plug_get_simple(const sasl_utils_t *utils, unsigned int id,
+int _plug_get_simple(const sasl_utils_t *utils, unsigned int id, int required,
 		     const char **result, sasl_interact_t **prompt_need)
 {
 
@@ -331,7 +331,7 @@ int _plug_get_simple(const sasl_utils_t *utils, unsigned int id,
     if (prompt != NULL) {
 	/* We prompted, and got.*/
 	
-	if (!prompt->result) {
+	if (required && !prompt->result) {
 	    SETERROR(utils, "Unexpectedly missing a prompt result");
 	    return SASL_BADPARAM;
 	}
@@ -343,12 +343,15 @@ int _plug_get_simple(const sasl_utils_t *utils, unsigned int id,
     /* Try to get the callback... */
     ret = utils->getcallback(utils->conn, id, &simple_cb, &simple_context);
 
+    if (ret == SASL_FAIL && !required)
+	return SASL_OK;
+
     if (ret == SASL_OK && simple_cb) {
 	ret = simple_cb(simple_context, id, result, NULL);
 	if (ret != SASL_OK)
 	    return ret;
 
-	if (!*result) {
+	if (required && !*result) {
 	    PARAMERROR(utils);
 	    return SASL_BADPARAM;
 	}

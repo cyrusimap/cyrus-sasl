@@ -1,7 +1,7 @@
 /* Plain SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: plain.c,v 1.60 2003/02/13 19:56:04 rjs3 Exp $
+ * $Id: plain.c,v 1.61 2003/03/26 17:18:04 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -57,7 +57,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: plain.c,v 1.60 2003/02/13 19:56:04 rjs3 Exp $";
+static const char plugin_id[] = "$Id: plain.c,v 1.61 2003/03/26 17:18:04 rjs3 Exp $";
 
 /*****************************  Server Section  *****************************/
 
@@ -151,7 +151,10 @@ static int plain_server_mech_step(void *conn_context __attribute__((unused)),
     
     result = params->canon_user(params->utils->conn,
 				authen, 0, SASL_CU_AUTHID, oparams);
-    if (result != SASL_OK) return result;
+    if (result != SASL_OK) {
+	_plug_free_string(params->utils, &passcopy);
+	return result;
+    }
     
     /* verify password - return sasl_ok on success*/
     result = params->utils->checkpass(params->utils->conn,

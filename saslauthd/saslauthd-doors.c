@@ -78,7 +78,7 @@
  * END HISTORY */
 
 #ifdef __GNUC__
-#ident "$Id: saslauthd-doors.c,v 1.5 2002/05/17 16:43:22 rjs3 Exp $"
+#ident "$Id: saslauthd-doors.c,v 1.6 2002/12/10 17:50:57 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -133,6 +133,7 @@ void		show_version(void);
 #define LOCK_SUFFIX ".pid"
 #define ACCEPT_LOCK_SUFFIX ".accept"
 #define MAX_REQ_LEN 256		/* login/pw/service/realm input buffer size */
+#define MAX_RESP_LEN 1024
 
 #ifdef _AIX
 # define SALEN_TYPE size_t
@@ -511,6 +512,7 @@ door_request(void *cookie, char *data, size_t datasize,
     char service[MAX_REQ_LEN + 1];	/* service name for authentication */
     char realm[MAX_REQ_LEN + 1];	/* user realm for authentication */
     int error_condition;		/* 1: error occured, can't continue */
+    char response[MAX_RESP_LEN + 1];
     char *dataend = data + datasize;
 /* END VARIABLES */
 
@@ -619,9 +621,15 @@ door_request(void *cookie, char *data, size_t datasize,
 	}
     }
 
-    door_return(reply, strlen(reply), NULL, 0);
-
+    /* don't leak the response */
+    strncpy(response, reply, MAX_RESP_LEN);
+    response[MAX_RESP_LEN] = '\0';
     free(reply);
+    
+    door_return(response, strlen(response), NULL, 0);
+
+    /* NOTREACHED */
+
     return;
 }
 

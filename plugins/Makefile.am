@@ -1,7 +1,7 @@
 # Makefile.am for the SASL plugins
 # Rob Siemborski
 # Rob Earhart
-# $Id: Makefile.am,v 1.64 2003/07/15 15:39:26 rjs3 Exp $
+# $Id: Makefile.am,v 1.65 2003/07/15 17:38:59 ken3 Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -53,10 +53,10 @@ gssapiv2_version = 2:15:0
 crammd5_version = 2:15:0
 sasldb_version = 2:15:0
 login_version = 2:15:0
-mysql_version = 2:15:0
 plain_version = 2:15:0
 ntlm_version = 2:15:0
 otp_version = 2:15:0
+sql_version = 2:15:0
 srp_version = 2:15:0
 
 INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/sasldb
@@ -77,7 +77,7 @@ sasldir = $(prefix)/lib/sasl2
 sasl_LTLIBRARIES = @SASL_MECHS@
 EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la \
 	libgssapiv2.la libdigestmd5.la liblogin.la libsrp.la libotp.la \
-	libntlm.la libsasldb.la libmysql.la
+	libntlm.la libsasldb.la libsql.la
 
 libplain_la_SOURCES = plain.c plain_init.c $(common_sources)
 libplain_la_LDFLAGS = -version-info $(plain_version)
@@ -135,18 +135,17 @@ libsasldb_la_LDFLAGS = -version-info $(sasldb_version)
 libsasldb_la_DEPENDENCIES = $(COMPAT_OBJS)
 libsasldb_la_LIBADD = ../sasldb/libsasldb.la $(SASL_DB_LIB) $(COMPAT_OBJS)
 
-# Auxprop Plugins
-libmysql_la_SOURCES = mysql.c mysql_init.c $(common_sources)
-libmysql_la_LDFLAGS = $(LIB_MYSQL) -version-info $(mysql_version)
-libmysql_la_DEPENDENCIES = $(COMPAT_OBJS)
-libmysql_la_LIBADD = $(COMPAT_OBJS)
+libsql_la_SOURCES = sql.c sql_init.c $(common_sources)
+libsql_la_LDFLAGS = $(LIB_MYSQL) $(LIB_PGSQL) -version-info $(sql_version)
+libsql_la_DEPENDENCIES = $(COMPAT_OBJS)
+libsql_la_LIBADD = $(COMPAT_OBJS)
 
 
 # Instructions for making the _init files
 
 init_src=anonymous_init.c crammd5_init.c digestmd5_init.c gssapiv2_init.c \
 kerberos4_init.c login_init.c plain_init.c srp_init.c otp_init.c ntlm_init.c \
-sasldb_init.c mysqlauxprop_init.c
+sasldb_init.c sql_init.c
 
 
 CLEANFILES=$(init_src)

@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.168 2003/07/15 15:39:21 rjs3 Exp $
+dnl $Id: configure.in,v 1.169 2003/07/15 17:38:56 ken3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -568,12 +568,30 @@ fi
 AC_ARG_WITH(ldap,   [  --with-ldap=DIR         use LDAP (in DIR) for saslauthd (experimental) [no] ],,)
 
 
+dnl SQL
+AC_ARG_ENABLE(sql, [  --enable-sql            enable SQL auxprop [no] ],
+  sql=$enableval,
+  sql=no)
+
+AC_MSG_CHECKING(SQL)
+if test "$sql" != no; then
+  AC_MSG_RESULT(enabled)
+  SASL_MECHS="$SASL_MECHS libsql.la"
+  if test "$enable_static" = yes; then
+    SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/sql.o"
+    AC_DEFINE(STATIC_SQL)
+  fi
+else
+  AC_MSG_RESULT(disabled)
+fi
+
+
 ############################################################################
 # Simon Loader tries to do auto conf
 dnl MySQL
-AC_ARG_WITH(mysql,  [  --with-mysql=PATH       enable authentication against a MySQL db                                        (experimental) [no] ],
+AC_ARG_WITH(mysql,  [  --with-mysql=PATH       use MySQL from PATH ],
   with_mysql=$withval,
-  with_mysql=no)
+  with_mysql=yes)
 
 # find location of library 
 # presuing if one given then correct
@@ -620,13 +638,7 @@ case "$with_mysql" in
      else
          CPPFLAGS="${CPPFLAGS} -I${with_mysql}"
      fi
-       AC_CHECK_LIB(mysqlclient, mysql_select_db,[
-           SASL_MECHS="$SASL_MECHS libmysql.la"
-	   if test "$enable_static" = yes; then
-               SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/mysql.o"
-               AC_DEFINE(STATIC_MYSQL)
-	   fi
-	   ],
+       AC_CHECK_LIB(mysqlclient, mysql_select_db, AC_DEFINE(HAVE_MYSQL),
            [AC_ERROR([MYSQL libarary mysqlclient not found])], $LIB_MYSQL_DIR);;
          
 esac
@@ -634,6 +646,63 @@ AC_SUBST(LIB_MYSQL)
 
 # simon finishes trying to do autoconf
 ###############################################################################
+
+dnl PgSQL
+AC_ARG_WITH(pgsql,  [  --with-pgsql=PATH       use PostgreSQL from PATH ],
+  with_pgsql=$withval,
+  with_pgsql=yes)
+
+# find location of library 
+# presuing if one given then correct
+if test "${with_pgsql}" = "yes"; then
+  for pgsqlloc in lib/pgsql lib pgsql/lib
+  do
+    if test -f ${prefix}/${pgsqlloc}/libpq.a; then
+      with_pgsql="${prefix}"
+      break
+    elif test -f /usr/local/${pgsqlloc}/libpq.a; then
+      with_pgsql="/usr/local"
+      break
+    elif test -f /usr/${pgsqlloc}/libpq.a; then
+      with_pgsql="/usr"
+      break
+    fi
+  done
+fi
+
+LIB_PGSQL=""
+
+case "$with_pgsql" in
+    no) true;;
+    *)
+     if test -d ${with_pgsql}/lib/pgsql; then
+         LIB_PGSQL="-L${with_pgsql}/lib/pgsql"
+     elif test -d ${with_pgsql}/pgsql/lib; then
+         LIB_PGSQL="-L${with_pgsql}/pgsql/lib"
+     elif test -d ${with_pgsql}/lib; then
+         LIB_PGSQL="-L${with_pgsql}/lib"
+     else
+         LIB_PGSQL="-L${with_pgsql}"
+     fi
+
+     LIB_PGSQL_DIR=$LIB_PGSQL
+     LIB_PGSQL="$LIB_PGSQL -lpq"
+
+     if test -d ${with_pgsql}/include/pgsql; then
+         CPPFLAGS="${CPPFLAGS} -I${with_pgsql}/include/pgsql"
+     elif test -d ${with_pgsql}/pgsql/include; then
+         CPPFLAGS="${CPPFLAGS} -I${with_pgsql}/pgsql/include"
+     elif test -d ${with_pgsql}/include; then
+         CPPFLAGS="${CPPFLAGS} -I${with_pgsql}/include"
+     else
+         CPPFLAGS="${CPPFLAGS} -I${with_pgsql}"
+     fi
+       AC_CHECK_LIB(pq, PQsetdbLogin, AC_DEFINE(HAVE_PGSQL),
+           [AC_ERROR([PostgreSQL library pq not found])], $LIB_PGSQL_DIR);;
+         
+esac
+AC_SUBST(LIB_PGSQL)
+
 
 if test "$ac_cv_can_build_shared" = yes; then
 	AC_DEFINE(DO_DLOPEN)

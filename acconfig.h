@@ -68,11 +68,11 @@
 #undef STATIC_GSSAPIV2
 #undef STATIC_KERBEROS4
 #undef STATIC_LOGIN
-#undef STATIC_MYSQL
 #undef STATIC_NTLM
 #undef STATIC_OTP
 #undef STATIC_PLAIN
 #undef STATIC_SASLDB
+#undef STATIC_SQL
 #undef STATIC_SRP
 
 /* This is where plugins will live at runtime */
@@ -96,6 +96,12 @@
 
 /* do we have OPIE for server-side OTP support? */
 #undef HAVE_OPIE
+
+/* do we have MySQL for auxprop support? */
+#undef HAVE_MYSQL
+
+/* do we have PostgreSQL for auxprop support? */
+#undef HAVE_PGSQL
 
 /* Do we have kerberos for plaintext password checking? */
 #undef HAVE_KRB

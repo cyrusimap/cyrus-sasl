@@ -1,3 +1,12 @@
+2003-07-15  Ken Murchison <ken@oceana.com>
+	* plugins/mysql.c: deleted
+	* plugins/sql.c: added
+	* acconfig.h, configure.in,
+	  doc/components.html, doc/options.html, doc/sysadmin.html,
+	  plugins/Makefile.am, plugins/makeinit.sh: deprecated MySQL plugin
+	  in favor of a new generic SQL plugin (currently supports MySQL and
+	  PostgreSQL)
+
 2003-07-15  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* Ready for 2.1.15
 

@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Options for Cyrus SASL</title>
-<!-- $Id: options.html,v 1.13 2002/12/09 22:20:05 rjs3 Exp $ -->
+<!-- $Id: options.html,v 1.14 2003/07/15 17:38:58 ken3 Exp $ -->
 </HEAD>
 <BODY>
 <h1>Options for Cyrus SASL</h1>
@@ -81,28 +81,30 @@ dependant)</TD>
 </TR>
 </TABLE>
 
-<h2>Mysql auxprop options</h2>
+<h2>SQL auxprop options</h2>
 
 <DL compact>
-<DT>mysql_user <DD>username to login as to the MySQL server
-<DT>mysql_passwd <DD> password to use
-<DT>mysql_hostnames <DD> comma separated host list
-<DT>mysql_database <DD>database to connect to
-<DT>mysql_statement <DD> select statement to use
-<DT>mysql_verbose <DD>if set, the plugin will print select statement
+<DT>sql_engine <DD>database engine to use - currently <tt>mysql</tt>
+(default) or <tt>pgsql</tt>
+<DT>sql_user <DD>username to login as to the SQL server
+<DT>sql_passwd <DD> password to use
+<DT>sql_hostnames <DD> comma separated host[:port] list
+<DT>sql_database <DD>database to connect to
+<DT>sql_statement <DD> select statement to use
+<DT>sql_verbose <DD>if set, the plugin will print select statement
 to syslog)
 </DL>
 
-<p>The select statement used in the option <tt>mysql_statement</tt> is
+<p>The select statement used in the option <tt>sql_statement</tt> is
 parsed for 3 place holders <tt>%u</tt>, <tt>%r</tt>, and <tt>%p</tt>
 they are replaced with username, realm, and property requested
 respectively. For example:
 
 <pre>
-    mysql_statement: select %p from user_table where username = '%u' and realm = '%r'
+    sql_statement: select %p from user_table where username = '%u' and realm = '%r'
 </pre>
 
-   would send the following statement to MySQL for user "bovik" and
+   would send the following statement to SQL for user "bovik" and
    the default realm for the machine "madoka.surf.org.uk":
 
 <pre>
@@ -127,7 +129,7 @@ the arguments %r, %u, etc.</font>
 
 <p>All substitutions do not have to be used. For instance, 
 "<tt>select password from auth where username = '%u'</tt>" is a
-valid value for "<tt>mysql_statement</tt>".
+valid value for "<tt>sql_statement</tt>".
 
 <hr>
 Back to the <A href=index.html>index</a>

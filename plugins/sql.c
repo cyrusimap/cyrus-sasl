@@ -1,0 +1,606 @@
+/*
+**
+** SQL Auxprop plugin
+**   based on the original work of Simon Loader and Patrick Welche
+**
+** $Id: sql.c,v 1.1 2003/07/15 17:38:59 ken3 Exp $
+**
+**  Auxiliary property plugin for Sasl 2.1.x
+**
+**   The plugin uses the following options in the
+** sasl application config file ( usually in /usr/lib/sasl2 )
+**
+**  sql_engine: <database engine to use>
+**  sql_user: <username to login as>
+**  sql_passwd: <password to use>
+**  sql_hostnames: < comma separated host[:port] list >
+**  sql_database: <database to connect to>
+**  sql_statement: <select statement to use>
+**  sql_verbose:  ( if it exists will print select statement to syslog )
+**
+**   The select statement used in the option sql_statement is parsed
+** for 3 place holders %u %r and %p they are replaced with username
+** realm and property required respectively.
+**
+**  e.g
+**    sql_statement: select %p from user_table where username = %u and
+**    realm = %r
+**  would produce a statement like this :-
+**
+**     select userPassword from user_table where username = simon
+**     and realm = madoka.surf.org.uk
+**
+**   Presuming username is simon, the sasl application is trying to
+**   authenticate and you didn't have a realm to start with (and it was
+**   my computer).
+**
+** OK so thats a bit complex but essential
+**   %u is the username the user logged in as
+**   %p is the property requested this could technically be anything
+**     but sasl authentication will try userPassword and
+**     cmusaslsecretMECHNAME (where MECHNAME is the name of a mechanism).
+**   %r is the realm which could be the kerbros realm, the FQDN of the 
+**     computer the sasl app is on or what ever is after the @ on a username.
+** 
+**   These do not have to be all used or used at all
+** in testing I used select password from auth where username = '%u'
+**     
+*/
+
+#include <config.h>
+
+#include <stdio.h>
+#include <assert.h>
+
+#include "sasl.h"
+#include "saslutil.h"
+#include "saslplug.h"
+
+#include <ctype.h>
+
+#include "plugin_common.h"
+
+typedef struct sql_engine {
+    const char *name;
+    void *(*sql_open)(char *host, char *port,
+		      const char *user, const char *password,
+		      const char *database, const sasl_utils_t *utils);
+    int (*sql_escape_str)(char *to, const char *from);
+    int (*sql_query)(void *conn, char *query, char *value, size_t size,
+		     size_t *value_len, const sasl_utils_t *utils);
+    void (*sql_close)(void *conn);
+} sql_engine_t;
+
+typedef struct sql_settings {
+    const sql_engine_t *sql_engine;
+    const char *sql_user;
+    const char *sql_passwd;
+    const char *sql_hostnames;
+    const char *sql_database;
+    const char *sql_statement;
+    int sql_verbose;
+} sql_settings_t;
+
+static const char * SQL_BLANK_STRING = "";
+
+
+#if HAVE_MYSQL
+#include <mysql.h>
+
+static void *_mysql_open(char *host, char *port,
+			 const char *user, const char *password,
+			 const char *database, const sasl_utils_t *utils)
+{
+    MYSQL *mysql;
+
+    if (!(mysql = mysql_init(NULL))) {
+	utils->log(NULL, SASL_LOG_ERR,
+			    "sql plugin: could not execute mysql_init()");
+	return NULL;
+    }
+
+    return mysql_real_connect(mysql, host, user, password, database,
+			      port ? strtoul(port, NULL, 10) : 0, NULL, 0);
+}
+
+static int _mysql_escape_str(char *to, const char *from)
+{
+    return mysql_escape_string(to, from, strlen(from));
+}
+
+static int _mysql_query(void *conn, char *query, char *value, size_t size,
+			size_t *value_len, const sasl_utils_t *utils)
+{
+    MYSQL_RES *result;
+    MYSQL_ROW row;
+    int row_count;
+
+    /* run the query */
+    if (mysql_real_query(conn, query, strlen(query)) < 0
+	|| !(result = mysql_store_result(conn))) {
+	utils->free(query);
+	return -1;
+    }
+	
+    /* quick row check */
+    row_count = mysql_num_rows(conn);
+    if (!row_count) {
+	/* umm nothing found */
+	utils->free(query);
+	mysql_free_result(result);
+	return -1;
+    }
+    if (row_count > 1) {
+	utils->log(NULL, SASL_LOG_WARN,
+		   "sql plugin: found duplicate row for query %s", query);
+    }
+	
+    /* now get the result set value and value_len */
+    /* we only fetch one because we don't care about the rest */
+    row = mysql_fetch_row(result);
+    strncpy(value, row[0], size-2);
+    value[size-1] = '\0';
+    if (value_len) *value_len = strlen(value);
+	
+    /* free result */
+    utils->free(query);
+    mysql_free_result(result);
+
+    return 0;
+}
+
+static void _mysql_close(void *conn)
+{
+    mysql_close(conn);
+}
+#endif /* HAVE_MYSQL */
+
+#if HAVE_PGSQL
+#include <libpq-fe.h>
+
+static void *_pgsql_open(char *host, char *port,
+			 const char *user, const char *password,
+			 const char *database,
+			 const sasl_utils_t *utils __attribute__((unused)))
+{
+    PGconn *conn = NULL;
+
+    conn = PQsetdbLogin(host, port, NULL, NULL, database, user, password);
+    return (PQstatus(conn) != CONNECTION_OK) ? NULL : conn;
+}
+
+static int _pgsql_escape_str(char *to, const char *from)
+{
+    return PQescapeString(to, from, strlen(from));
+}
+
+static int _pgsql_query(void *conn, char *query, char *value, size_t size,
+			size_t *value_len, const sasl_utils_t *utils)
+{
+    PGresult *result;
+    int row_count;
+
+    /* run the query */
+    result = PQexec(conn, query);
+    if (PQresultStatus(result) != PGRES_TUPLES_OK) {
+	utils->free(query);
+	return -1;
+    }
+	
+    /* quick row check */
+    row_count = PQntuples(result);
+    if (!row_count) {
+	/* umm nothing found */
+	utils->free(query);
+	PQclear(result);
+	return -1;
+    }
+    if (row_count > 1) {
+	utils->log(NULL, SASL_LOG_WARN,
+		   "sql plugin: found duplicate row for query %s", query);
+    }
+	
+    /* now get the result set value and value_len */
+    /* we only fetch one because we don't care about the rest */
+    strncpy(value, PQgetvalue(result,0,0), size-2);
+    value[size-1] = '\0';
+    if (value_len) *value_len = strlen(value);
+	
+    /* free result */
+    utils->free(query);
+    PQclear(result);
+
+    return 0;
+}
+
+static void _pgsql_close(void *conn)
+{
+    PQfinish(conn);
+}
+#endif /* HAVE_PGSQL */
+
+static const sql_engine_t sql_engines[] = {
+#if HAVE_MYSQL
+  { "mysql", &_mysql_open, &_mysql_escape_str, &_mysql_query, &_mysql_close },
+#endif
+#if HAVE_PGSQL
+  { "pgsql", &_pgsql_open, &_pgsql_escape_str, &_pgsql_query, &_pgsql_close },
+#endif
+  { NULL, NULL, NULL, NULL, NULL }
+};
+
+/*
+**  Sql_create_statemnet
+**   uses select line and allocate memory to replace
+**  Parts with the strings provided.
+**   %<char> =  no change
+**   %% = %
+**   %u = user
+**   %p = prop
+**   %r = realm
+**  e.g select %p from auth where user = %p and domain = %r;
+**  Note: calling function must free memory.
+**
+*/
+static char *sql_create_statement(sasl_server_params_t *sparams,
+				  const char *select_line, const char *prop,
+				  const char *user, const char *realm)
+{
+    const char *ptr, *line_ptr;
+    char *buf, *buf_ptr;
+    int filtersize;
+    int ulen, plen, rlen;
+
+    /* calculate memory needed for creating the complete query string. */
+    ulen = strlen(user);
+    rlen = strlen(realm);
+    plen = strlen(prop);
+    /* don't forget the trailing 0x0 */
+    filtersize = strlen(select_line) + ulen + rlen + plen + 1;
+
+    /* ok, now try to allocate a chunk of that size */
+    buf = (char *) sparams->utils->malloc(filtersize);
+    if (!buf) {
+	MEMERROR(sparams->utils);
+	return NULL;
+    }
+    
+    buf_ptr = buf;
+    line_ptr = select_line;
+    
+    /* replace the strings */
+    while ( (ptr = strchr(line_ptr, '%')) ) {
+	/* copy up to but not including the next % */
+	memcpy(buf_ptr, line_ptr, ptr - line_ptr); 
+	buf_ptr += ptr - line_ptr;
+	ptr++;
+	switch (ptr[0]) {
+	case '%':
+	    buf_ptr[0] = '%';
+	    buf_ptr++;
+	    break;
+	case 'u':
+	    memcpy(buf_ptr, user, ulen);
+	    buf_ptr += ulen;
+	    break;
+	case 'r':
+	    memcpy(buf_ptr, realm, rlen);
+	    buf_ptr += rlen;
+	    break;
+	case 'p':
+	    memcpy(buf_ptr, prop, plen);
+	    buf_ptr += plen;
+	    break;
+	default:
+	    buf_ptr[0] = '%';
+	    buf_ptr[1] = ptr[0];
+	    buf_ptr += 2;
+	    break;
+	}
+	ptr++;
+	line_ptr = ptr;
+    }
+
+    /* now copy the last bit */
+    memcpy(buf_ptr, line_ptr, strlen(line_ptr)+1); /* we need the null */
+
+    return(buf);
+}
+
+/* sql_get_settings
+**
+**  Get the auxprop settings and put them in 
+** The global context array
+*/
+void sql_get_settings(const sasl_utils_t *utils, void *glob_context) {
+    sql_settings_t *settings;
+    int r;
+    const char *verbose, *engine_name;
+    const sql_engine_t *e;
+    
+    settings = (sql_settings_t *) glob_context;
+
+    utils->getopt(utils->getopt_context, "SQL", "sql_verbose",
+		  &verbose, NULL);
+    if (verbose) {
+	settings->sql_verbose = 1;
+	utils->log(NULL, SASL_LOG_NOTE,
+		   "sql auxprop plugin being initialized\n");
+    } else {
+	settings->sql_verbose = 0;
+    }
+	
+    r = utils->getopt(utils->getopt_context,"SQL","sql_user",
+		      &settings->sql_user, NULL);
+    if ( r || !settings->sql_user ) {
+	/* set it to a blank string */
+	settings->sql_user = SQL_BLANK_STRING;
+    }
+    r = utils->getopt(utils->getopt_context,"SQL", "sql_passwd",
+		      &settings->sql_passwd, NULL);
+    if ( r || !settings->sql_passwd ) {
+	settings->sql_passwd = SQL_BLANK_STRING;
+    }
+    r = utils->getopt(utils->getopt_context,"SQL", "sql_hostnames",
+		      &settings->sql_hostnames, NULL);
+    if ( r || !settings->sql_hostnames ) {
+	settings->sql_hostnames = SQL_BLANK_STRING;
+    }
+    r = utils->getopt(utils->getopt_context,"SQL", "sql_database",
+		      &settings->sql_database, NULL);
+    if ( r || !settings->sql_database ) {
+	settings->sql_database = SQL_BLANK_STRING;
+    }
+    r = utils->getopt(utils->getopt_context,"SQL", "sql_statement",
+		      &settings->sql_statement, NULL);
+    if ( r || !settings->sql_statement ) {
+	settings->sql_statement = SQL_BLANK_STRING;
+    }
+    r = utils->getopt(utils->getopt_context,"SQL", "sql_engine",
+		      &engine_name, NULL);
+    if ( r || !engine_name ) {
+	engine_name = "mysql";
+    }
+
+    /* find the correct engine */
+    e = sql_engines;
+    while (e->name) {
+	if (!strcasecmp(engine_name, e->name)) break;
+	e++;
+    }
+
+    if (!e->name) {
+	utils->log(NULL, SASL_LOG_ERR, "SQL engine '%s' not supported",
+		   engine_name);
+    }
+
+    settings->sql_engine = e;
+}
+
+static void sql_auxprop_lookup(void *glob_context,
+				 sasl_server_params_t *sparams,
+				 unsigned flags,
+				 const char *user,
+				 unsigned ulen) 
+{
+    char *userid = NULL;
+    /* realm could be used for something clever */
+    char *realm = NULL;
+    const char *user_realm = NULL;
+    const struct propval *to_fetch, *cur;
+    char value[8192];
+    size_t value_len;
+    
+    char *user_buf;
+    char *db_host_ptr = NULL;
+    char *db_host = NULL;
+    char *cur_host, *cur_port;
+    char *query = NULL;
+    char *escap_userid = NULL;
+    char *escap_realm = NULL;
+    sql_settings_t *settings;
+    void *conn = NULL;
+    
+    if (!glob_context || !sparams || !user) return;
+    
+    /* setup the settings */
+    settings = (sql_settings_t *) glob_context;
+    
+    if (settings->sql_verbose)
+	sparams->utils->log(NULL, SASL_LOG_NOTE,
+			    "sql plugin Parse the username %s\n", user);
+    
+    user_buf = sparams->utils->malloc(ulen + 1);
+    if (!user_buf) goto done;
+    
+    memcpy(user_buf, user, ulen);
+    user_buf[ulen] = '\0';
+    
+    if(sparams->user_realm) {
+	user_realm = sparams->user_realm;
+    } else {
+	user_realm = sparams->serverFQDN;
+    }
+    
+    if (_plug_parseuser(sparams->utils, &userid, &realm, user_realm,
+			sparams->serverFQDN, user_buf) != SASL_OK )
+	goto done;
+    
+    /* just need to escape userid and realm now */
+    /* allocate some memory */
+    escap_userid = (char *)sparams->utils->malloc(strlen(userid)*2+1);
+    escap_realm = (char *)sparams->utils->malloc(strlen(realm)*2+1);
+    
+    if (!escap_userid || !escap_realm) {
+	MEMERROR(sparams->utils);
+	goto done;
+    }
+    
+    /*************************************/
+    
+    /* find out what we need to get */
+    /* this corrupts const char *user */
+    to_fetch = sparams->utils->prop_get(sparams->propctx);
+    if(!to_fetch) goto done;
+    
+    /* now loop around hostnames till we get a connection 
+    ** it should probably save the connection but for 
+    ** now we will just disconnect eveyrtime
+    */
+    if ( settings->sql_verbose )
+	sparams->utils->log(NULL, SASL_LOG_NOTE,
+			    "sql plugin try and connect to a host\n");
+    
+    /* create a working version of the hostnames */
+    _plug_strdup(sparams->utils, settings->sql_hostnames,
+		 &db_host_ptr, NULL);
+    db_host = db_host_ptr;
+    cur_host = db_host;
+    while ( cur_host != NULL ) {
+	db_host = strchr(db_host,',');
+	if ( db_host != NULL ) {  
+	    db_host[0] = '\0';
+	    /* loop till we find some text */
+	    while (!isalnum(db_host[0]))
+		db_host++;
+	}
+	
+	if (settings->sql_verbose)
+	    sparams->utils->log(NULL, SASL_LOG_NOTE,
+				"sql plugin trying to open db '%s' on host '%s'\n",
+				settings->sql_database, cur_host);
+
+	/* set the optional port */
+	if ((cur_port = strchr(cur_host, ':')))
+	    *cur_port++ = '\0';
+
+	conn = settings->sql_engine->sql_open(cur_host, cur_port,
+					      settings->sql_user,
+					      settings->sql_passwd,
+					      settings->sql_database,
+					      sparams->utils);
+	if (conn) break;
+	
+	cur_host = db_host;
+    }
+    
+    if ( !conn ) {
+	sparams->utils->log(NULL, SASL_LOG_ERR,
+			    "sql plugin couldn't connect to any host\n");
+	goto done;
+    }
+    /* escape out */
+    settings->sql_engine->sql_escape_str(escap_userid, userid);
+    settings->sql_engine->sql_escape_str(escap_realm, realm);
+    
+    for (cur = to_fetch; cur->name; cur++) {
+	char *realname = (char *)cur->name;
+	/* Only look up properties that apply to this lookup! */
+	if (cur->name[0] == '*'
+	    && (flags & SASL_AUXPROP_AUTHZID))
+	    continue;
+	if(!(flags & SASL_AUXPROP_AUTHZID)) {
+	    if(cur->name[0] != '*')
+		continue;
+	    else
+		realname = (char*)cur->name + 1;
+	}
+	
+	/* If it's there already, we want to see if it needs to be
+	 * overridden */
+	if(cur->values && !(flags & SASL_AUXPROP_OVERRIDE))
+	    continue;
+	else if(cur->values)
+	    sparams->utils->prop_erase(sparams->propctx, cur->name);
+	
+	if ( settings->sql_verbose )
+	    sparams->utils->log(NULL, SASL_LOG_NOTE,
+			       "sql plugin create statement from %s %s %s\n",
+			       realname,escap_userid,escap_realm);
+	
+	/* create a statment that we will use */
+	query = sql_create_statement(sparams,
+				       settings->sql_statement,
+				       realname,escap_userid,
+				       escap_realm);
+	
+	if (settings->sql_verbose)
+	    sparams->utils->log(NULL, SASL_LOG_NOTE,
+				"sql plugin doing query %s\n",
+				query);
+
+	/* run the query */
+	if (!settings->sql_engine->sql_query(conn, query, value, sizeof(value),
+					     &value_len, sparams->utils))
+	    sparams->utils->prop_set(sparams->propctx, cur->name,
+				     value, value_len);
+    }
+    
+ done:
+    if (escap_userid) sparams->utils->free(escap_userid);
+    if (escap_realm) sparams->utils->free(escap_realm);
+    if (conn) settings->sql_engine->sql_close(conn);
+    if (db_host_ptr) sparams->utils->free(db_host_ptr);
+    if (userid) sparams->utils->free(userid);
+    if (realm) sparams->utils->free(realm);
+    if (user_buf) sparams->utils->free(user_buf);
+}
+
+static void sql_auxprop_free(void *glob_context, const sasl_utils_t *utils) {
+    struct sql_settings *settings;
+
+    settings = (sql_settings_t *)glob_context;
+
+    if (!settings) return;
+
+    if (settings->sql_verbose)
+	utils->log(NULL, SASL_LOG_DEBUG, "sql freeing memory\n");
+
+    utils->free(settings);
+}
+
+static sasl_auxprop_plug_t sql_auxprop_plugin = {
+    0,		/* Features */
+    0,		/* spare */
+    NULL,	/* glob_context */
+    sql_auxprop_free,	/* auxprop_free */
+    sql_auxprop_lookup,	/* auxprop_lookup */
+    "sql",	/* name */
+    NULL	/* spare */
+};
+
+int sql_auxprop_plug_init(const sasl_utils_t *utils,
+			    int max_version,
+			    int *out_version,
+			    sasl_auxprop_plug_t **plug,
+			    const char *plugname __attribute__((unused))) 
+{
+    sql_settings_t *settings;
+
+    if (!out_version || !plug) return SASL_BADPARAM;
+    
+    if (max_version < SASL_AUXPROP_PLUG_VERSION) return SASL_BADVERS;
+    *out_version = SASL_AUXPROP_PLUG_VERSION;
+    
+    *plug = &sql_auxprop_plugin;
+    
+    settings = (sql_settings_t *) utils->malloc(sizeof(sql_settings_t));
+
+    if (!settings) {
+	MEMERROR(utils);
+	return SASL_NOMEM;
+    }
+
+    memset(settings, 0, sizeof(sql_settings_t));
+    sql_get_settings(utils, settings);
+
+    if (!settings->sql_engine->name) return SASL_NOMECH;
+    if (settings->sql_verbose)
+	utils->log(NULL, SASL_LOG_NOTE,
+		   "sql auxprop plugin using %s engine\n",
+		   settings->sql_engine->name);
+    
+    sql_auxprop_plugin.glob_context = settings;
+
+    return SASL_OK;
+}

@@ -3,7 +3,7 @@
 ** mysql Auxprop plugin
 **   by Simon Loader
 **
-** $Id: mysql.c,v 1.5 2002/07/06 17:19:26 rjs3 Exp $
+** $Id: mysql.c,v 1.6 2002/07/07 00:04:03 rjs3 Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -88,57 +88,58 @@ const char * MYSQL_BLANK_STRING = "";
 **
 */
 static char *mysql_create_statement(sasl_server_params_t *sparams,
-				    char *select_line, char *prop,
-				    char *user, char *realm)
+				    const char *select_line, const char *prop,
+				    const char *user, const char *realm)
 {
-    char *buf,*ptr;
-    char *buf_ptr,*line_ptr;
+    const char *ptr,*line_ptr;
+    char *buf,*buf_ptr;
     int filtersize = 0;
+    int ulen = 0, plen = 0, rlen = 0;
     
     /* ++++ this could be modulised more */
     /* calculate memory needed for creating 
        the complete filter string. */
-    buf = select_line;
+    ptr = select_line;
     
     /* we can use strtok to get all vars */
-    while ( (ptr = strchr(buf,'%')) ) {
-	buf = ++ptr;
-	switch ( buf[0] ) {
+    while ( (ptr = strchr(ptr,'%')) ) {
+	ptr++;
+	switch ( *ptr ) {
 	case '%':
 	    filtersize--;  /* we are actully deleting a character */
 	    break;
 	case 'u':
-	    filtersize += strlen(user)-2;
+	    ulen = strlen(user);
+	    filtersize += ulen-2;
 	    break;
 	case 'r':
-	    filtersize += strlen(realm)-2;
+	    rlen = strlen(realm);
+	    filtersize += rlen-2;
 	    break;
 	case 'p':
-	    filtersize += strlen(prop)-2;
+	    plen = strlen(prop);
+	    filtersize += plen-2;
 	    break;
 	default:
 	    break;
 	}
     }
     
-    /* alloc mem */
     /* don't forget the trailing 0x0 */
     filtersize = filtersize+strlen(select_line)+1;
     
     /* ok, now try to allocate a chunk of that size */
     buf = (char *)sparams->utils->malloc(filtersize);
-    if (!buf) {
-	/* ummm couldnt get the memory something must be up */
+    if (!buf)
 	return NULL;
-    }
     
     buf_ptr = buf;
     line_ptr = select_line;
     
     /* replace the strings */
     while ( (ptr = strchr(line_ptr,'%')) ) {
-	/* copy what ever we have not done so already */
-	memcpy(buf_ptr,line_ptr,ptr - line_ptr); /* -1 we dont want the % */
+	/* copy up to but not including the next % */
+	memcpy(buf_ptr,line_ptr,ptr - line_ptr); 
 	buf_ptr += ptr - line_ptr;
 	ptr++;
 	switch (ptr[0]) {
@@ -147,16 +148,16 @@ static char *mysql_create_statement(sasl_server_params_t *sparams,
 	    buf_ptr++;
 	    break;
 	case 'u':
-	    memcpy(buf_ptr,user,strlen(user));
-	    buf_ptr += strlen(user);
+	    memcpy(buf_ptr,user,ulen);
+	    buf_ptr += ulen;
 	    break;
 	case 'r':
-	    memcpy(buf_ptr,realm,strlen(realm));
-	    buf_ptr += strlen(realm);
+	    memcpy(buf_ptr,realm,rlen);
+	    buf_ptr += rlen;
 	    break;
 	case 'p':
-	    memcpy(buf_ptr,prop,strlen(prop));
-	    buf_ptr += strlen(prop);
+	    memcpy(buf_ptr,prop,plen);
+	    buf_ptr += plen;
 	    break;
 	default:
 	    buf_ptr[0] = '%';
@@ -169,7 +170,6 @@ static char *mysql_create_statement(sasl_server_params_t *sparams,
     }
     /* now copy the last bit */
     memcpy(buf_ptr,line_ptr,strlen(line_ptr)+1); /* we need the null */
-    buf_ptr[strlen(line_ptr)+1] = '\0';
     return(buf);
 }
 

@@ -1,6 +1,6 @@
 # Top-level Makefile.am for SASL
 # Rob Earhart
-# $Id: Makefile.am,v 1.6 1998/11/30 14:22:19 rob Exp $
+# $Id: Makefile.am,v 1.7 1998/11/30 19:18:16 rob Exp $
 #
 ################################################################
 #        Copyright 1998 by Carnegie Mellon University
@@ -41,5 +41,10 @@ install-exec-local:
 	  echo "* symbolic link from $(plugindir) to $(prefix)/lib/sasl,"; \
 	  echo "* but this may not be appropriate for your site, so this"; \
 	  echo "* installation procedure won't do it for you."; \
+	  echo "*"; \
+          echo "* If you don't want to do this for some reason, you can"; \
+          echo "* set the location where the library will look for plugins"; \
+	  echo "* by setting the environment variable SASL_PATH to the path"; \
+	  echo "* the library should use."; \
 	  echo "********************************************************"; \
 	fi

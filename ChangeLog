@@ -1,5 +1,13 @@
 1998-11-30  Rob Earhart  <rob+@andrew.cmu.edu>
 
+	* lib/Makefile.am: added windlopen.c
+
+	* plugins/plain.c: passing a len return to getsimple callbacks
+
+	* Makefile.am: added note about SASL_PATH
+
+	* INSTALL: added note about SASL_PATH
+
 	* include/winconfig.h: added copyright, updated version
 
 	* include/Makefile.am: added winconfig.h to distribution

@@ -10,6 +10,10 @@ site), but we want the library to *always* be able to find its plugins
 under /usr/lib/sasl, no matter where you install things, so that the
 SASL plugin ABI on all platforms is roughly the same.
 
+If you don't want to do this for some reason, you can set the location
+where the library will look for plugins by setting the environment
+variable SASL_PATH to the path the library should use.
+
 You'll probably need the GNU make program, available as of this
 writing at <url:ftp://ftp.gnu.org/pub/gnu/make-3.77.tar.gz>.
 

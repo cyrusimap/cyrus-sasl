@@ -1,6 +1,6 @@
 # Makefile.am for the SASL library
 # Rob Earhart
-# $Id: Makefile.am,v 1.8 1998/11/29 22:07:12 rob Exp $
+# $Id: Makefile.am,v 1.9 1998/11/30 19:18:16 rob Exp $
 #
 #
 #         Copyright 1998 by Carnegie Mellon University
@@ -29,7 +29,7 @@ sasl_version = 3:1:0
 
 INCLUDES=-I$(top_srcdir)/include
 
-EXTRA_DIST = saslint.h makedbm.c
+EXTRA_DIST = saslint.h makedbm.c windlopen.c
 
 EXTRA_PROGRAMS = test test-server test-client makedbm
 test_LDADD = libsasl.la -lsocket -lnsl

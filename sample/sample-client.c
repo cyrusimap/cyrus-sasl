@@ -26,7 +26,12 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include <config.h>
 #include <limits.h>
-#include <netinet/in.h>
+#include <stdio.h>
+#ifdef WIN32
+# include <winsock.h>
+#else  /* WIN32 */
+# include <netinet/in.h>
+#endif /* WIN32 */
 #include <sasl.h>
 #include <saslutil.h>
 

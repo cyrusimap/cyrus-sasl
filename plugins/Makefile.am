@@ -1,7 +1,7 @@
 # Makefile.am for the SASL plugins
 # Rob Siemborski
 # Rob Earhart
-# $Id: Makefile.am,v 1.51 2002/06/25 17:07:09 rjs3 Exp $
+# $Id: Makefile.am,v 1.52 2002/06/25 18:55:28 rjs3 Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -66,6 +66,8 @@ COMPAT_OBJS = @LTGETADDRINFOOBJS@ @LTGETNAMEINFOOBJS@ @LTSNPRINTFOBJS@
 EXTRA_DIST = makeinit.sh
 noinst_SCRIPTS = makeinit.sh
 
+LIB_MYSQL = @LIB_MYSQL@
+
 plugindir = @plugindir@
 
 common_sources = plugin_common.c plugin_common.h
@@ -129,7 +131,7 @@ libsasldb_la_LIBADD = ../sasldb/libsasldb.la $(SASL_DB_LIB) $(COMPAT_OBJS)
 
 # Auxprop Plugins
 libmysql_la_SOURCES = mysql.c mysql_init.c $(common_sources)
-libmysql_la_LDFLAGS = -lmysqlclient -version-info $(mysql_version)
+libmysql_la_LDFLAGS = $(LIB_MYSQL) -version-info $(mysql_version)
 libmysql_la_DEPENDENCIES = $(COMPAT_OBJS)
 libmysql_la_LIBADD = $(COMPAT_OBJS)
 

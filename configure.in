@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.133 2002/06/25 17:07:01 rjs3 Exp $
+dnl $Id: configure.in,v 1.134 2002/06/25 18:55:22 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -523,18 +523,23 @@ if test "${with_mysql}" = "yes"; then
   done
 fi
 
+LIB_MYSQL=""
+
 case "$with_mysql" in
     no) true;;
     *)
      if test -d ${with_mysql}/lib/mysql; then
-         LDFLAGS="$LDFLAGS -L${with_mysql}/lib/mysql"
+         LIB_MYSQL="-L${with_mysql}/lib/mysql"
      elif test -d ${with_mysql}/mysql/lib; then
-         LDFLAGS="$LDFLAGS -L${with_mysql}/mysql/lib"
+         LIB_MYSQL="-L${with_mysql}/mysql/lib"
      elif test -d ${with_mysql}/lib; then
-         LDFLAGS="$LDFLAGS -L${with_mysql}/lib"
+         LIB_MYSQL="-L${with_mysql}/lib"
      else
-         LDFLAGS="$LDFLAGS -L${with_mysql}"
+         LIB_MYSQL="-L${with_mysql}"
      fi
+
+     LIB_MYSQL="$LIB_MYSQL -lmysqlclient"
+
      if test -d ${with_mysql}/include/mysql; then
          CPPFLAGS="${CPPFLAGS} -I${with_mysql}/include/mysql"
      elif test -d ${with_mysql}/mysql/include; then

@@ -92,6 +92,7 @@ AC_ARG_WITH(ipctype, [  --with-ipctype={unix,doors}    use ipctype [unix] ],
 MAIN_COMPAT_OBJ="saslauthd-${with_ipctype}.o"
 AC_SUBST(MAIN_COMPAT_OBJ)
 if test "$with_ipctype" = "doors"; then
+  AC_DEFINE(USE_DOORS)
   AC_DEFINE(SASLAUTHD_THREADED)
   LIBS="$LIBS -ldoor -lpthread"
 fi

@@ -49,6 +49,9 @@
 /* do we have a sys/time.h */
 #undef HAVE_SYS_TIME_H
 
+/* Are we building with doors */
+#undef USE_DOORS
+
 /* Things SASLAUTHd doesn't really care about */
 #undef HAVE_SASLAUTHD
 #undef WITH_DES

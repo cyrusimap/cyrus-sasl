@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.134 2003/12/07 00:34:07 ken3 Exp $
+ * $Id: server.c,v 1.135 2004/01/23 22:16:38 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -126,7 +126,7 @@ int sasl_setpass(sasl_conn_t *conn,
 		 unsigned oldpasslen,
 		 unsigned flags)
 {
-    int result=SASL_OK, tmpresult;
+    int result = SASL_OK, tmpresult;
     sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;
     const char *password_request[] = { SASL_AUX_PASSWORD_PROP, NULL };
     sasl_server_userdb_setpass_t *setpass_cb = NULL;
@@ -175,16 +175,19 @@ int sasl_setpass(sasl_conn_t *conn,
 	}
     }
 
+    /* We want to preserve the current value of result, so we use tmpresult below */
+
     /* call userdb callback function */
-    result = _sasl_getcallback(conn, SASL_CB_SERVER_USERDB_SETPASS,
+    tmpresult = _sasl_getcallback(conn, SASL_CB_SERVER_USERDB_SETPASS,
 			       &setpass_cb, &context);
-    if(result == SASL_OK && setpass_cb) {
+    if (tmpresult == SASL_OK && setpass_cb) {
 
 	tried_setpass++;
 
 	tmpresult = setpass_cb(conn, context, user, pass, passlen,
 			    s_conn->sparams->propctx, flags);
 	if(tmpresult != SASL_OK) {
+	    result = tmpresult;
 	    _sasl_log(conn, SASL_LOG_ERR,
 		      "setpass callback failed for %s: %z",
 		      user, tmpresult);
@@ -192,8 +195,6 @@ int sasl_setpass(sasl_conn_t *conn,
 	    _sasl_log(conn, SASL_LOG_NOTE,
 		      "setpass callback succeeded for %s", user);
 	}
-    } else {
-	result = SASL_OK;
     }
 
     /* now we let the mechanisms set their secrets */

@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb5.c,v 1.12 2004/04/29 19:38:13 rjs3 Exp $"
+#ident "$Id: auth_krb5.c,v 1.13 2004/05/21 20:38:57 rjs3 Exp $"
 #endif
 
 /* ok, this is  wrong but the most convenient way of doing 
@@ -231,6 +231,8 @@ static int k5support_verify_tgt(krb5_context context,
     char thishost[BUFSIZ];
     int result = 0;
     
+    memset(&packet, 0, sizeof(packet));
+
     if (krb5_sname_to_principal(context, NULL, NULL,
 				KRB5_NT_SRV_HST, &server)) {
 	return 0;
@@ -253,9 +255,6 @@ static int k5support_verify_tgt(krb5_context context,
     }
     thishost[BUFSIZ-1] = '\0';
     
-#ifdef KRB5_HEIMDAL
-    krb5_data_zero(&packet);
-#endif
     k5_retcode = krb5_mk_req(context, &auth_context, 0, "host", 
 			     thishost, NULL, ccache, &packet);
     
@@ -281,9 +280,7 @@ static int k5support_verify_tgt(krb5_context context,
     /* all is good now */
     result = 1;
  fini:
-#ifndef KRB5_HEIMDAL
     krb5_free_data_contents(context, &packet);
-#endif
     krb5_free_principal(context, server);
     
     return result;

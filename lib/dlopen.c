@@ -147,6 +147,55 @@ char *dlerror()
 #define SO_SUFFIX	".so"
 #endif /* __hpux */
 
+/* loads a single mechanism */
+int _sasl_get_plugin(const char *file,
+		     const char *entryname,
+		     const sasl_callback_t *verifyfile_cb,
+		     void **entrypointptr,
+		     void **libraryptr)
+{
+    int r = 0;
+    int flag;
+    void *library;
+    void *entry_point;
+#if __OpenBSD__
+    char adj_entryname[1024];
+#else
+#define adj_entryname entryname
+#endif
+
+    r = ((sasl_verifyfile_t *)(verifyfile_cb->proc))
+		    (verifyfile_cb->context, file, SASL_VRFY_PLUGIN);
+    if (r != SASL_OK) return r;
+
+#ifdef RTLD_NOW
+    flag = RTLD_NOW;
+#else
+    flag = 0;
+#endif
+    if (!(library = dlopen(file, flag))) {
+	_sasl_log(NULL, SASL_LOG_ERR, NULL, 0, 0,
+		  "unable to dlopen %s: %s", file, dlerror());
+	return SASL_FAIL;
+    }
+
+#if __OpenBSD__
+    snprintf(adj_entryname, sizeof adj_entryname, "_%s", entryname);
+#endif
+
+    entry_point = NULL;
+    entry_point = dlsym(library, adj_entryname);
+    if (entry_point == NULL) {
+	_sasl_log(NULL, SASL_LOG_ERR, NULL, 0, 0,
+		  "unable to get entry point %s in %s: %s", adj_entryname,
+		  file, dlerror());
+	return SASL_FAIL;
+    }
+
+    *entrypointptr = entry_point;
+    *libraryptr = library;
+    return SASL_OK;
+}
 
 /* gets the list of mechanisms */
 int _sasl_get_mech_list(const char *entryname,
@@ -154,130 +203,99 @@ int _sasl_get_mech_list(const char *entryname,
 			const sasl_callback_t *verifyfile_cb,
 			int (*add_plugin)(void *,void *))
 {
-  /* XXX These fixed-length buffers could be a problem;
-   * this really needs to be rewritten to do overflow
-   * checks appropriately. */
-  int result;
-  char str[PATH_MAX], tmp[PATH_MAX+2], c, prefix[PATH_MAX+2]; /* 1 for '/' 1 for trailing '\0' */
-#if __OpenBSD__
-  char adj_entryname[1024];
-#else
-#define adj_entryname entryname
-#endif
-  int pos;
-  char *path=NULL;
-  int position;
-  DIR *dp;
-  struct dirent *dir;
+    int result;
+    char str[PATH_MAX], tmp[PATH_MAX+2], prefix[PATH_MAX+2];
+				/* 1 for '/' 1 for trailing '\0' */
+    char c;
+    int pos;
+    char *path=NULL;
+    int position;
+    DIR *dp;
+    struct dirent *dir;
 
-  if (! entryname
-      || ! getpath_cb
-      || getpath_cb->id != SASL_CB_GETPATH
-      || ! getpath_cb->proc
-      || ! verifyfile_cb
-      || verifyfile_cb->id != SASL_CB_VERIFYFILE
-      || ! verifyfile_cb->proc
-      || ! add_plugin)
-    return SASL_BADPARAM;
+    if (! entryname
+	|| ! getpath_cb
+	|| getpath_cb->id != SASL_CB_GETPATH
+	|| ! getpath_cb->proc
+	|| ! verifyfile_cb
+	|| verifyfile_cb->id != SASL_CB_VERIFYFILE
+	|| ! verifyfile_cb->proc
+	|| ! add_plugin)
+	return SASL_BADPARAM;
 
-#if __OpenBSD__
-  snprintf(adj_entryname, sizeof adj_entryname, "_%s", entryname);
-#endif
+    /* get the path to the plugins */
+    result = ((sasl_getpath_t *)(getpath_cb->proc))(getpath_cb->context,
+						    &path);
+    if (result != SASL_OK) return result;
+    if (! path) return SASL_FAIL;
 
-  /* get the path to the plugins */
-  result = ((sasl_getpath_t *)(getpath_cb->proc))(getpath_cb->context,
-						  &path);
-  if (result != SASL_OK) return result;
-  if (! path) return SASL_FAIL;
-
-  if (strlen(path) >= PATH_MAX) { /* no you can't buffer overrun */
-      sasl_FREE(path);
-      return SASL_FAIL;
-  }
-
-  position=0;
-  do {
-    pos=0;
-    do {
-      c=path[position];
-      position++;
-      str[pos]=c;
-      pos++;
-    } while ((c!=':') && (c!='=') && (c!=0));
-    str[pos-1]='\0';
-
-    strcpy(prefix,str);
-    strcat(prefix,"/");
-
-    if ((dp=opendir(str)) !=NULL) /* ignore errors */    
-    {
-      while ((dir=readdir(dp)) != NULL)
-      {
-	size_t length;
-	void *library;
-	void *entry_point;
-	char name[PATH_MAX];
-	int flag;
-
-
-	length = NAMLEN(dir);
-	if (length < 4) continue; /* can not possibly be what we're looking for */
-
-	if (length + pos>=PATH_MAX) continue; /* too big */
-
-	if (strcmp(dir->d_name + (length - 3), SO_SUFFIX)) continue;
-
-	memcpy(name,dir->d_name,length);
-	name[length]='\0';
-	
-	strcpy(tmp,prefix);
-	strcat(tmp,name);
-	
-	VL(("entry is = [%s]\n",tmp));
-	
-	/* Ask the application if we should use this file or not */
-	result = ((sasl_verifyfile_t *)(verifyfile_cb->proc))
-	    (verifyfile_cb->context, tmp, SASL_VRFY_PLUGIN);
-	/* returns continue if this file is to be skipped */
-	if (result == SASL_CONTINUE) continue; 
-	
-	if (result != SASL_OK) return result;
-	
-#ifdef RTLD_NOW
-	flag = RTLD_NOW;
-#else
-	flag = 0;
-#endif
-	if (!(library = dlopen(tmp, flag))) {
-	    _sasl_log(NULL, SASL_LOG_ERR, NULL, 0, 0,
-		      "unable to dlopen %s: %s", tmp, dlerror());
-	    continue;
-	}
-	entry_point = NULL;
-	entry_point = dlsym(library, adj_entryname);
-
-	if (entry_point == NULL) {
-	  VL(("can't get an entry point\n"));
-	  dlclose(library);
-	  continue;
-	}
-
-	if ((*add_plugin)(entry_point, library) != SASL_OK) {
-	  VL(("add_plugin to list failed\n"));
-	  dlclose(library);
-	  continue;
-	}
-	VL(("added [%s] successfully\n",dir->d_name));
-      }
-
-     closedir(dp);
+    if (strlen(path) >= PATH_MAX) { /* no you can't buffer overrun */
+	sasl_FREE(path);
+	return SASL_FAIL;
     }
 
-  } while ((c!='=') && (c!=0));
+    position=0;
+    do {
+	pos=0;
+	do {
+	    c=path[position];
+	    position++;
+	    str[pos]=c;
+	    pos++;
+	} while ((c!=':') && (c!='=') && (c!=0));
+	str[pos-1]='\0';
 
-  sasl_FREE(path); 
+	strcpy(prefix,str);
+	strcat(prefix,"/");
 
-  return SASL_OK;
+	if ((dp=opendir(str)) !=NULL) /* ignore errors */    
+	{
+	    while ((dir=readdir(dp)) != NULL)
+	    {
+		size_t length;
+		void *library;
+		void *entry_point;
+		char name[PATH_MAX];
+
+		length = NAMLEN(dir);
+		if (length < 4) 
+		    continue; /* can not possibly be what we're looking for */
+
+		if (length + pos>=PATH_MAX) continue; /* too big */
+
+		if (strcmp(dir->d_name + (length - 3), SO_SUFFIX)) continue;
+
+		memcpy(name,dir->d_name,length);
+		name[length]='\0';
+	
+		strcpy(tmp,prefix);
+		strcat(tmp,name);
+	
+		result = _sasl_get_plugin(tmp, entryname,
+					  verifyfile_cb,
+					  &entry_point, &library);
+
+		if (result == SASL_OK) {
+		    result = (*add_plugin)(entry_point, library);
+		    if (result != SASL_OK) {
+			_sasl_log(NULL, SASL_LOG_ERR, NULL, result, 0,
+				  "add_plugin(%s) failed: %z", tmp);
+			dlclose(library);
+			continue;
+		    }
+		}
+
+		/* added successfully */
+	    }
+
+	    closedir(dp);
+	}
+
+    } while ((c!='=') && (c!=0));
+
+    sasl_FREE(path); 
+
+    return SASL_OK;
 }
 
 int

@@ -50,10 +50,16 @@
 
 extern int _sasl_common_init(void);
 
+/* dlopen.c */
 extern int _sasl_get_mech_list(const char *entryname,
 			       const sasl_callback_t *getpath_callback,
 			       const sasl_callback_t *verifyfile_callback,
 			       int (*add_plugin)(void *,void *));
+extern int _sasl_get_plugin(const char *file,
+			    const char *entryname,
+			    const sasl_callback_t *verifyfile_callback,
+			    void **entrypoint,
+			    void **library);
 
 extern const sasl_callback_t *
 _sasl_find_getpath_callback(const sasl_callback_t *callbacks);

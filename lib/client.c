@@ -504,140 +504,135 @@ int sasl_client_start(sasl_conn_t *conn,
 		      unsigned *clientoutlen,
 		      const char **mech)
 {
-  sasl_client_conn_t *c_conn= (sasl_client_conn_t *) conn;
-  char name[SASL_MECHNAMEMAX + 1];
-  cmechanism_t *m=NULL,*bestm=NULL;
-  size_t pos=0,place;
-  size_t list_len;
-  sasl_ssf_t bestssf=0,
-             minssf=0;
+    sasl_client_conn_t *c_conn= (sasl_client_conn_t *) conn;
+    char name[SASL_MECHNAMEMAX + 1];
+    cmechanism_t *m=NULL,*bestm=NULL;
+    size_t pos=0,place;
+    size_t list_len;
+    sasl_ssf_t bestssf = 0, minssf = 0;
 
-  if (name==NULL)
-    return SASL_NOMEM;
+    VL(("in sasl_client_start\n"));
 
-  VL(("in sasl_client_start\n"));
-
-  /* if prompt_need != NULL we've already been here
-     and just need to do the continue step again */
-
-   /* do a step */
-  if (prompt_need && *prompt_need!=NULL)
-      return c_conn->mech->plug->mech_step(conn->context,
-					   c_conn->cparams,
-					   NULL,
-					   0,
-					   prompt_need,
-					   clientout, (int *) clientoutlen,
-					   &conn->oparams);
-
-
-  /* set secret */
-  conn->secret=secret;
-
-  /* Get app's desired sec props */
-  minssf=conn->props.min_ssf;
-
-  /* parse mechlist */
-  VL(("mech list from server is %s\n", list));
-  list_len = strlen(list);
-  while (pos<list_len)
-  {
-    place=0;
-    while ((pos<list_len) && (isalnum((unsigned char)list[pos])
-			      || list[pos] == '_'
-			      || list[pos] == '-'))
-    {
-      name[place]=list[pos];
-      pos++;
-      place++;
-      if (SASL_MECHNAMEMAX <= place) {
-	place--;
-	while(pos<list_len && (isalnum((unsigned char)list[pos])
-			       || list[pos] == '_'
-			       || list[pos] == '-'))
-	  pos++;
-      }
-    }
-    pos++;
-    name[place]=0;
-
-    if (! place) continue;
-
-    VL(("Considering mech %s\n",name));
-
-    /* foreach in server list */
-    for (m = cmechlist->mech_list; m != NULL; m = m->next) {
-	/* is this the mechanism the server is suggesting? */
-	if (strcasecmp(m->plug->mech_name, name))
-	    continue; /* no */
-
-	/* do we have the prompts for it? */
-	if (!have_prompts(conn, m->plug))
-	    break;
-
-	/* is it strong enough? */
-	if (minssf > (m->plug->max_ssf + conn->external.ssf))
-	    break;
-
-	/* does it meet our security properties? */
-	if (((conn->props.security_flags ^ m->plug->security_flags)
-	     & conn->props.security_flags) != 0) {
-	    break;
-	}
-
-
-#ifdef PREFER_MECH
-	if (strcasecmp(m->plug->mech_name, PREFER_MECH) &&
-	    bestm && m->plug->max_ssf <= bestssf) {
-	    /* this mechanism isn't our favorite, and it's no better
-	       than what we already have! */
-	    break;
-	}
-#else
-	if (bestm && m->plug->max_ssf <= bestssf) {
-	    /* this mechanism is no better than what we already have! */
-	    break;
-	}
-#endif
-
-	VL(("Best mech so far: %s\n", m->plug->mech_name));
-	if (mech)
-	    *mech=m->plug->mech_name;
-	bestssf=m->plug->max_ssf;
-	bestm=m;
-	break;
-    }
-  }
-
-  if (bestm == NULL) {
-    VL(("No worthy mechs found\n"));
-    return SASL_NOMECH;
-  }
-
-  /* make cparams */
-  
-  c_conn->cparams->serverFQDN=c_conn->serverFQDN; 
-  c_conn->cparams->service=conn->service;
-
-  c_conn->cparams->external_ssf=conn->external.ssf;
-  c_conn->cparams->props=conn->props;
-
-  c_conn->mech=bestm;
-
-    /* init that plugin */
-  c_conn->mech->plug->mech_new(NULL,
-			       c_conn->cparams,
-			       &(conn->context));
-
+    /* if prompt_need != NULL we've already been here
+       and just need to do the continue step again */
 
     /* do a step */
-  return c_conn->mech->plug->mech_step(conn->context,
-				    c_conn->cparams,
-				    NULL,
-				    0,
-				    prompt_need,
-				    clientout, (int *) clientoutlen,
-				    &conn->oparams);
+    if (prompt_need && *prompt_need != NULL) {
+	return c_conn->mech->plug->mech_step(conn->context,
+					     c_conn->cparams,
+					     NULL,
+					     0,
+					     prompt_need,
+					     clientout, (int *) clientoutlen,
+					     &conn->oparams);
+    }
+
+    /* set secret */
+    conn->secret=secret;
+
+    /* Get app's desired sec props */
+    if (conn->props.min_ssf < conn->external.ssf) {
+	minssf = 0;
+    } else {
+	minssf = conn->props.min_ssf - conn->external.ssf;
+    }
+
+    /* parse mechlist */
+    VL(("mech list from server is %s\n", list));
+    list_len = strlen(list);
+    while (pos<list_len)
+    {
+	place=0;
+	while ((pos<list_len) && (isalnum((unsigned char)list[pos])
+				  || list[pos] == '_'
+				  || list[pos] == '-')) {
+	    name[place]=list[pos];
+	    pos++;
+	    place++;
+	    if (SASL_MECHNAMEMAX <= place) {
+		place--;
+		while(pos<list_len && (isalnum((unsigned char)list[pos])
+				       || list[pos] == '_'
+				       || list[pos] == '-'))
+		    pos++;
+	    }
+	}
+	pos++;
+	name[place]=0;
+
+	if (! place) continue;
+
+	VL(("Considering mech %s\n",name));
+
+	/* foreach in server list */
+	for (m = cmechlist->mech_list; m != NULL; m = m->next) {
+	    /* is this the mechanism the server is suggesting? */
+	    if (strcasecmp(m->plug->mech_name, name))
+		continue; /* no */
+
+	    /* do we have the prompts for it? */
+	    if (!have_prompts(conn, m->plug))
+		break;
+
+	    /* is it strong enough? */
+	    if (minssf > m->plug->max_ssf)
+		break;
+
+	    /* does it meet our security properties? */
+	    if (((conn->props.security_flags ^ m->plug->security_flags)
+		 & conn->props.security_flags) != 0) {
+		break;
+	    }
+
+#ifdef PREFER_MECH
+	    if (strcasecmp(m->plug->mech_name, PREFER_MECH) &&
+		bestm && m->plug->max_ssf <= bestssf) {
+		/* this mechanism isn't our favorite, and it's no better
+		   than what we already have! */
+		break;
+	    }
+#else
+	    if (bestm && m->plug->max_ssf <= bestssf) {
+		/* this mechanism is no better than what we already have! */
+		break;
+	    }
+#endif
+
+	    VL(("Best mech so far: %s\n", m->plug->mech_name));
+	    if (mech) {
+		*mech = m->plug->mech_name;
+	    }
+	    bestssf = m->plug->max_ssf;
+	    bestm = m;
+	    break;
+	}
+    }
+
+    if (bestm == NULL) {
+	VL(("No worthy mechs found\n"));
+	return SASL_NOMECH;
+    }
+
+    /* make cparams */
+    c_conn->cparams->serverFQDN = c_conn->serverFQDN; 
+    c_conn->cparams->service = conn->service;
+    c_conn->cparams->external_ssf = conn->external.ssf;
+    c_conn->cparams->props = conn->props;
+    c_conn->mech = bestm;
+
+    /* init that plugin */
+    c_conn->mech->plug->mech_new(NULL,
+				 c_conn->cparams,
+				 &(conn->context));
+
+    /* do a step */
+    return c_conn->mech->plug->mech_step(conn->context,
+					 c_conn->cparams,
+					 NULL,
+					 0,
+					 prompt_need,
+					 clientout, (int *) clientoutlen,
+					 &conn->oparams);
 }
 
 /* do a single authentication step.

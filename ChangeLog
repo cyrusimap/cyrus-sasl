@@ -1,3 +1,14 @@
+1999-12-29  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/server.c (mech_permitted): ditto.  now considers external
+	encryption.
+
+	* lib/client.c (sasl_client_start): now considers external
+	encryption correctly when looking for mechanisms
+
+	* plugins/digestmd5.c (c_continue_step): cleaned up how it
+	selected a cipher to use for auth-conf qop.  now much less #ifdefs
+
 1999-12-28  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/gssapi.c: client-side wasn't dealing with not being
@@ -7,7 +18,8 @@
 	right integrity/privacy/etc. layers
 
         * plugins/digestmd5.c: also make sure that whatever the client
-	sends us meets our ssf restrictions
+	sends us meets our ssf restrictions. restructured the code a
+	little for clarity.
 
         * plugins/digestmd5.c: fixes to the server-side ssf processing (we
 	were offering things we didn't want to support due to min/max ssf)

@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.62 1999/12/21 23:23:19 leg Exp $
+ * $Id: server.c,v 1.63 1999/12/29 20:30:09 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -763,9 +763,17 @@ static int mech_permitted(sasl_conn_t *conn,
 	    || ! conn->external.auth_id)
 	    return 0;
     } else {
+	sasl_ssf_t minssf;
+
+	if (conn->props.min_ssf < conn->external.ssf) {
+	    minssf = 0;
+	} else {
+	    minssf = conn->props.min_ssf - conn->external.ssf;
+	}
+
 	/* Generic mechanism */
-	if (plug->max_ssf < conn->props.min_ssf)
-	    return 0;
+	if (plug->max_ssf < minssf)
+	    return 0; /* too weak */
     }
 
     /* if there are no users in the secrets database we can't use this 

@@ -198,10 +198,11 @@ int _sasl_conn_init(sasl_conn_t *conn,
   conn->got_ip_local = 0;
   conn->got_ip_remote = 0;
   conn->props.min_ssf = 0;
-  if (secflags & SASL_SECURITY_LAYER)
-    conn->props.max_ssf = INT_MAX;
-  else
-    conn->props.max_ssf = 0;
+  if (secflags & SASL_SECURITY_LAYER) {
+      conn->props.max_ssf = INT_MAX;
+  } else {
+      conn->props.max_ssf = 0;
+  }
   conn->props.security_flags = 0;
   conn->idle_hook = idle_hook;
   conn->callbacks = callbacks;

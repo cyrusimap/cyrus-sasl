@@ -86,11 +86,6 @@ extern int      strcasecmp(const char *s1, const char *s2);
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL "
 VERSION " $";
 
-#ifdef L_DEFAULT_GUARD
-#undef L_DEFAULT_GUARD
-#define L_DEFAULT_GUARD (0)
-#endif
-
 /* external definitions */
 
 #ifdef sun
@@ -227,6 +222,7 @@ struct digest_cipher {
     char *name;
     sasl_ssf_t ssf;
     int n; /* bits to make privacy key */
+    int flag; /* the flag name of this cipher */
     
     cipher_function_t *cipher_enc;
     cipher_function_t *cipher_dec;
@@ -1304,15 +1300,15 @@ enc_rc4(void *v,
 struct digest_cipher available_ciphers[] =
 {
 #ifdef WITH_RC4
-    { "rc4-40", 40, 5, &enc_rc4, &dec_rc4, &init_rc4 },
-    { "rc4", 128, 16, &enc_rc4, &dec_rc4, &init_rc4 },
-    { "rc4-56", 56, 7, &enc_rc4, &dec_rc4, &init_rc4 },
+    { "rc4-40", 40, 5, CIPHER_RC440, &enc_rc4, &dec_rc4, &init_rc4 },
+    { "rc4-56", 56, 7, CIPHER_RC456, &enc_rc4, &dec_rc4, &init_rc4 },
+    { "rc4", 128, 16, CIPHER_RC4, &enc_rc4, &dec_rc4, &init_rc4 },
 #endif
 #ifdef WITH_DES
-    { "des", 55, 16, &enc_des, &dec_des, &init_des },
-    { "3des", 112, 16, &enc_3des, &dec_3des, &init_3des },
+    { "des", 55, 16, CIPHER_DES, &enc_des, &dec_des, &init_des },
+    { "3des", 112, 16, CIPHER_3DES, &enc_3des, &dec_3des, &init_3des },
 #endif
-    { NULL, 0, 0, NULL, NULL, NULL }
+    { NULL, 0, 0, 0, NULL, NULL, NULL }
 };
 
 static int create_layer_keys(context_t *text,sasl_utils_t *utils,HASH key, int keylen,
@@ -2792,14 +2788,11 @@ const sasl_server_plug_t plugins[] =
     "DIGEST-MD5",
 #ifdef WITH_RC4
     128,				/* max ssf */
-#else
-#ifdef WITH_DES
+#elif WITH_DES
     112,
 #else 
     0,
-#endif /* WITH_DES */
-#endif /* WITH_RC4 */
-
+#endif
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
     NULL,
     &server_start,
@@ -3281,8 +3274,8 @@ c_continue_step(void *conn_context,
   }
 
   if (text->state == 2) {
-    int need = 0;
-    int musthave = 0;
+    sasl_ssf_t limit, musthave = 0;
+    sasl_ssf_t external;
     unsigned char  *digesturi = NULL;
     unsigned char  *nonce = NULL;
     unsigned char  *ncvalue = (unsigned char *) "00000001";
@@ -3302,7 +3295,6 @@ c_continue_step(void *conn_context,
     char           *charset = NULL;
     int             result = SASL_FAIL;
     char           *client_response = NULL;
-    int             external;
     int             user_result = SASL_OK;
     int             auth_result = SASL_OK;
     int             pass_result = SASL_OK;
@@ -3379,22 +3371,15 @@ c_continue_step(void *conn_context,
 		}
 
 		if (strcmp(value, "des") == 0) {
-		    VL(("Server supports DES\n"));
 		    ciphers |= CIPHER_DES;
 		} else if (strcmp(value, "3des") == 0) {
-		    VL(("Server supports 3DES\n"));
 		    ciphers |= CIPHER_3DES;
-#ifdef WITH_RC4
 		} else if (strcmp(value, "rc4") == 0) {
-		    VL(("Server supports rc4\n"));
 		    ciphers |= CIPHER_RC4;
 		} else if (strcmp(value, "rc4-40") == 0) {
-		    VL(("Server supports rc4-40\n"));
 		    ciphers |= CIPHER_RC440;
 		} else if (strcmp(value, "rc4-56") == 0) {
-		    VL(("Server supports rc4-56\n"));
 		    ciphers |= CIPHER_RC456;
-#endif /* WITH_RC4 */
 		} else {
 		    VL(("Server supports unknown cipher: %s\n", value));
 		}
@@ -3548,104 +3533,65 @@ c_continue_step(void *conn_context,
       * response | maxbuf | charset | auth-param )
      */
 
-
     /* get requested ssf */
     external = params->external_ssf;
-    /*    VL(("external ssf=%d\n", external));*/
 
-    params->utils->free(qop);
-
-    /* need bits of layer */
-    need = params->props.max_ssf - external;
-    musthave = params->props.min_ssf - external;
+    /* what do we _need_?  how much is too much? */
+    if (params->props.max_ssf > external) {
+	limit = params->props.max_ssf - external;
+    } else {
+	limit = 0;
+    }
+    if (params->props.min_ssf > external) {
+	musthave = params->props.min_ssf - external;
+    } else {
+	musthave = 0;
+    }
 
     /* we now go searching for an option that gives us at least "musthave"
-       and at most "need" bits of ssf */
-    if ((need > 1) &&
-	((protection & DIGEST_PRIVACY) == DIGEST_PRIVACY)) {
+       and at most "limit" bits of ssf. */
+    if ((limit > 1) && (protection & DIGEST_PRIVACY)) {
+	struct digest_cipher *cipher, *bestcipher;
+
 	/* let's find an encryption scheme that we like */
-      oparams->encode = &privacy_encode; 
-      oparams->decode = &privacy_decode;
-      qop = "auth-conf";
-      VL(("Using encryption layer\n"));
+	cipher = available_ciphers;
+	bestcipher = NULL;
+	while (cipher->name) {
+	    /* examine each cipher we support, see if it meets our security
+	       requirements, and see if the server supports it.
+	       choose the best one of these */
+	    if ((limit >= cipher->ssf) && (musthave <= cipher->ssf) &&
+		(ciphers & cipher->flag) &&
+		(!bestcipher || (cipher->ssf > bestcipher->ssf))) {
+		bestcipher = cipher;
+	    }
+	    cipher++;
+	}
 
-      /* Client request encryption, server supports it */
-      /* encryption */
-#ifdef WITH_RC4
-      if ((need >= 128) && (musthave <= 128) && 
-	  ((ciphers & CIPHER_RC4) == CIPHER_RC4)) { /* rc4 */
-	  VL(("Trying to use rc4"));
-	  cipher = "rc4";
-				/* uses same function both ways */
-	  text->cipher_enc = (cipher_function_t *) &enc_rc4; 
-	  text->cipher_dec = (cipher_function_t *) &dec_rc4;
-	  text->cipher_init = &init_rc4;
-	  oparams->mech_ssf = 128;
-	  n=16;
-#else
-      if (0) {
-#endif /* WITH_RC4 */
+	if (bestcipher) {
+	    /* we found a cipher we like */
+	    oparams->encode = &privacy_encode; 
+	    oparams->decode = &privacy_decode;
+	    oparams->mech_ssf = bestcipher->ssf;
 
-#ifdef WITH_DES
-      } else if ((need >= 112) && (musthave <= 112) &&
-		 ((ciphers & CIPHER_3DES) == CIPHER_3DES)) {
-	  VL(("Trying to use 3des"));
-	  cipher = "3des";
-	  text->cipher_enc = (cipher_function_t *) &enc_3des;
-	  text->cipher_dec = (cipher_function_t *) &dec_3des;
-	  text->cipher_init = (cipher_init_t *) &init_3des;
-	  oparams->mech_ssf = 112; 
-	  n=16; /* number of bits to use for privacy key */
-#endif /* WITH_DES */
-
-#ifdef WITH_RC4
-      } else if ((need>=56) && (musthave <=56) &&
-		 ((ciphers & CIPHER_RC456) == CIPHER_RC456)) { /* rc4-56 */
-	  VL(("Trying to use rc4-56"));
-	  cipher = "rc4-56";
-	  text->cipher_enc=(cipher_function_t *) &enc_rc4;
-	  text->cipher_dec=(cipher_function_t *) &dec_rc4;
-	  text->cipher_init=&init_rc4;
-	  oparams->mech_ssf = 56;
-	  n = 7;
-#endif /* WITH_RC4 */
-
-#ifdef WITH_DES
-      } else if ((need>=55) && (musthave <=55) &&
-		 ((ciphers & CIPHER_DES) == CIPHER_DES)) { /* des */
-	  VL(("Trying to use des"));
-	  cipher = "des";
-	  text->cipher_enc=(cipher_function_t *) &enc_des;
-	  text->cipher_dec=(cipher_function_t *) &dec_des;
-	  text->cipher_init=(cipher_init_t *) &init_des;
-	  oparams->mech_ssf = 55; 
-	  n=16;
-#endif /* WITH_DES */
-
-#ifdef WITH_RC4
-      } else if ((need>=40) && (musthave <=40) &&
-		 ((ciphers & CIPHER_RC440) == CIPHER_RC440)) { /* rc4-40 */
-	  VL(("Trying to use rc4-40"));
-	  cipher = "rc4-40";
-	  text->cipher_enc=(cipher_function_t *) &enc_rc4;
- 	text->cipher_dec=(cipher_function_t *) &dec_rc4;
- 	text->cipher_init=&init_rc4;
- 	oparams->mech_ssf = 40;
- 	n = 5;
-#endif /* WITH_RC4 */
-      } else {
-	  /* should try integrity or plain */
-	  VL(("No good privacy layers\n"));
-	  qop=NULL;
-      }
+	    qop = "auth-conf";
+	    n = bestcipher->n;
+	    text->cipher_enc = bestcipher->cipher_enc;
+	    text->cipher_dec = bestcipher->cipher_dec;
+	    text->cipher_init = bestcipher->cipher_init;
+	} else {
+	    /* we didn't find any ciphers we like */
+	    VL(("No good privacy layers\n"));
+	    qop = NULL;
+	}
     }
 
     if (qop==NULL) {
 	/* we failed to find an encryption layer we liked;
 	   can we use integrity or nothing? */
 
-	if ((need >= 1) && (musthave <= 1) &&
-	    ((protection & DIGEST_INTEGRITY) == DIGEST_INTEGRITY)) {
+	if ((limit >= 1) && (musthave <= 1) 
+	    && (protection & DIGEST_INTEGRITY)) {
 	    /* integrity */
 	    oparams->encode = &integrity_encode;
 	    oparams->decode = &integrity_decode;
@@ -3938,13 +3884,11 @@ const sasl_client_plug_t client_plugins[] =
     "DIGEST-MD5",
 #ifdef WITH_RC4
     128,				/* max ssf */
-#else
-#ifdef WITH_DES
+#elif WITH_DES
     112,
 #else
     0,
-#endif /* WITH_DES */
-#endif /* WITH_RC4 */
+#endif
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
     client_required_prompts,
     NULL,

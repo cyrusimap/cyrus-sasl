@@ -1,9 +1,11 @@
 /*
 **
 ** SQL Auxprop plugin
+**
+** Ken Murchison
 **   based on the original work of Simon Loader and Patrick Welche
 **
-** $Id: sql.c,v 1.13 2003/09/29 17:19:50 ken3 Exp $
+** $Id: sql.c,v 1.14 2003/10/03 01:45:40 ken3 Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -85,13 +87,13 @@
 
 typedef struct sql_engine {
     const char *name;
-    const char *begin_txn;
-    const char *commit_txn;
-    const char *rollback_txn;
     void *(*sql_open)(char *host, char *port, int usessl,
 		      const char *user, const char *password,
 		      const char *database, const sasl_utils_t *utils);
     int (*sql_escape_str)(char *to, const char *from);
+    int (*sql_begin_txn)(void *conn, const sasl_utils_t *utils);
+    int (*sql_commit_txn)(void *conn, const sasl_utils_t *utils);
+    int (*sql_rollback_txn)(void *conn, const sasl_utils_t *utils);
     int (*sql_exec)(void *conn, const char *cmd, char *value, size_t size,
 		    size_t *value_len, const sasl_utils_t *utils);
     void (*sql_close)(void *conn);
@@ -196,6 +198,27 @@ static int _mysql_exec(void *conn, const char *cmd, char *value, size_t size,
     mysql_free_result(result);
     
     return 0;
+}
+
+static int _mysql_begin_txn(void *conn, const sasl_utils_t *utils)
+{
+    return _mysql_exec(conn,
+#if MYSQL_VERSION_ID >= 40011
+		       "START TRANSACTION",
+#else
+		       "BEGIN",
+#endif
+		       NULL, 0, NULL, utils);
+}
+
+static int _mysql_commit_txn(void *conn, const sasl_utils_t *utils)
+{
+    return _mysql_exec(conn, "COMMIT", NULL, 0, NULL, utils);
+}
+
+static int _mysql_rollback_txn(void *conn, const sasl_utils_t *utils)
+{
+    return _mysql_exec(conn, "ROLLBACK", NULL, 0, NULL, utils);
 }
 
 static void _mysql_close(void *conn)
@@ -321,6 +344,21 @@ static int _pgsql_exec(void *conn, const char *cmd, char *value, size_t size,
     return 0;
 }
 
+static int _pgsql_begin_txn(void *conn, const sasl_utils_t *utils)
+{
+    return _mysql_exec(conn, "BEGIN;", NULL, 0, NULL, utils);
+}
+
+static int _pgsql_commit_txn(void *conn, const sasl_utils_t *utils)
+{
+    return _pgsql_exec(conn, "COMMIT;", NULL, 0, NULL, utils);
+}
+
+static int _pgsql_rollback_txn(void *conn, const sasl_utils_t *utils)
+{
+    return _pgsql_exec(conn, "ROLLBACK;", NULL, 0, NULL, utils);
+}
+
 static void _pgsql_close(void *conn)
 {
     PQfinish(conn);
@@ -329,18 +367,14 @@ static void _pgsql_close(void *conn)
 
 static const sql_engine_t sql_engines[] = {
 #if HAVE_MYSQL
-    { "mysql",
-#if MYSQL_VERSION_ID >= 40011
-      "START TRANSACTION",
-#else
-      "BEGIN",
-#endif /* MYSQL_VERSION_ID */
-      "COMMIT", "ROLLBACK",
-      &_mysql_open, &_mysql_escape_str, &_mysql_exec, &_mysql_close },
+    { "mysql", &_mysql_open, &_mysql_escape_str,
+      &_mysql_begin_txn, &_mysql_commit_txn, &_mysql_rollback_txn,
+      &_mysql_exec, &_mysql_close },
 #endif /* HAVE_MYSQL */
 #if HAVE_PGSQL
-    { "pgsql", "BEGIN;", "COMMIT;", "ROLLBACK;",
-      &_pgsql_open, &_pgsql_escape_str, &_pgsql_exec, &_pgsql_close },
+    { "pgsql", &_pgsql_open, &_pgsql_escape_str,
+      &_pgsql_begin_txn, &_pgsql_commit_txn, &_pgsql_rollback_txn,
+      &_pgsql_exec, &_pgsql_close },
 #endif
     { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 };
@@ -680,9 +714,7 @@ static void sql_auxprop_lookup(void *glob_context,
     settings->sql_engine->sql_escape_str(escap_userid, userid);
     settings->sql_engine->sql_escape_str(escap_realm, realm);
     
-    if (settings->sql_engine->sql_exec(conn, 
-				       settings->sql_engine->begin_txn, 
-				       NULL, 0, NULL, sparams->utils)) {
+    if (settings->sql_engine->sql_begin_txn(conn, sparams->utils)) {
 	sparams->utils->log(NULL, SASL_LOG_ERR, 
 			    "Unable to begin transaction\n");
     }
@@ -730,8 +762,7 @@ static void sql_auxprop_lookup(void *glob_context,
 	
 	sparams->utils->free(query);
     }
-    if (settings->sql_engine->sql_exec(conn, settings->sql_engine->commit_txn, 
-				       NULL, 0, NULL, sparams->utils)) {
+    if (settings->sql_engine->sql_commit_txn(conn, sparams->utils)) {
 	sparams->utils->log(NULL, SASL_LOG_ERR, 
 			    "Unable to commit transaction\n");
     }
@@ -828,8 +859,7 @@ static int sql_auxprop_store(void *glob_context,
     settings->sql_engine->sql_escape_str(escap_userid, userid);
     settings->sql_engine->sql_escape_str(escap_realm, realm);
     
-    if (settings->sql_engine->sql_exec(conn, settings->sql_engine->begin_txn, 
-				       NULL, 0, NULL, sparams->utils)) {
+    if (settings->sql_engine->sql_begin_txn(conn, sparams->utils)) {
 	sparams->utils->log(NULL, SASL_LOG_ERR, 
 			    "Unable to begin transaction\n");
     }
@@ -883,16 +913,12 @@ static int sql_auxprop_store(void *glob_context,
     if (ret != SASL_OK) {
 	sparams->utils->log(NULL, SASL_LOG_ERR,
 			    "Failed to store auxprop; aborting transaction\n");
-	if (settings->sql_engine->sql_exec(conn,
-					   settings->sql_engine->rollback_txn, 
-					   NULL, 0, NULL, sparams->utils)) {
+	if (settings->sql_engine->sql_rollback_txn(conn, sparams->utils)) {
 	    sparams->utils->log(NULL, SASL_LOG_ERR, 
 				"Unable to rollback transaction\n");
 	}
     }
-    else if (settings->sql_engine->sql_exec(conn,
-					    settings->sql_engine->commit_txn, 
-					    NULL, 0, NULL, sparams->utils)) {
+    else if (settings->sql_engine->sql_commit_txn(conn, sparams->utils)) {
 	sparams->utils->log(NULL, SASL_LOG_ERR, 
 			    "Unable to commit transaction\n");
     }

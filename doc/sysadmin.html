@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.4 1999/08/20 21:12:29 tmartin Exp $ -->
+<!-- $Id: sysadmin.html,v 1.5 1999/09/09 17:30:43 leg Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -9,14 +9,14 @@ This document covers configuring SASL for system administrators,
 specifically those administrators who are installing a server that
 uses the Cyrus SASL library.
 
-<h2>What SASL is</h2>
+<h2><A NAME="saslintro">What SASL is</A></h2>
 
 SASL, the Simple Authentication and Security Layer, is a generic
 mechanism for protocols to accomplish authentication.  Since protocols
 (such as SMTP or IMAP) use SASL, it is a natural place for code
 sharing between applications.  Some notable applications that use SASL
-include Sendmail (versions 8.10.0 and higher) and Cyrus imapd
-(versions 1.6.0 and higher).
+include <a href="http://www.sendmail.org">Sendmail</a> (versions
+8.10.0 and higher) and Cyrus imapd (versions 1.6.0 and higher).
 
 <p> Applications use the SASL library to tell it how to accomplish the
 SASL protocol exchange, and what the results were.
@@ -29,7 +29,7 @@ different specifications.  With the Cyrus SASL library, the mechanisms
 need only be written once, and they'll work with all servers that use
 it.
 
-<h3>Authentication and authorization identifiers</h3>
+<h3><a name="authid">Authentication and authorization identifiers</a></h3>
 
 An important concept to become familiar with is the difference between
 an "authorization identifier" and an "authentication identifer".
@@ -58,7 +58,7 @@ password.
 library will only allow the same user to act for another (that is,
 userid must equal authid).
 
-<h3>Realms</h3>
+<h3><a name="realms">Realms</a></h3>
 
 The Cyrus SASL library supports the concept of "realms".  A realm is
 an abstract set of users and certain mechanisms authenticate users in
@@ -90,7 +90,7 @@ authentication; check your application on how it deals with this.
 <p>Some authentication mechanisms, such as PLAIN and CRAM-MD5, do not
 support the concept of realms.
 
-<h2>How SASL works</h2>
+<h2><a name="saslhow">How SASL works</a></h2>
 
 How SASL works is governed by what mechanism the client and server 
 choose to use and the exact implementation of that mechanism.  This
@@ -249,7 +249,7 @@ The Cyrus SASL library comes with a built-in configuration file
 reader.  However, it is also possible for applications to redefine
 where the library gets it's configuration options from.
 
-<h3>The default configuration file</h3>
+<h3><a name="saslconf">The default configuration file</a></h3>
 
 <p>By default, the Cyrus SASL library reads it's options from
 <tt>/usr/lib/sasl/App.conf</tt> (where "App" is the application

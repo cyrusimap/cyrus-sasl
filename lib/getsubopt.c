@@ -49,7 +49,7 @@ __RCSID("$NetBSD: getsubopt.c,v 1.4 1998/02/03 18:44:15 perry Exp $");
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif /* HAVE_UNISTD_H */
-#ifdef WIN32
+#if (defined(WIN32)||(defined(macintosh))
 #include "sasl.h"
 LIBSASL_API int getsubopt(char **optionp, char * const *tokens, char **valuep);
 #endif /* WIN32 */

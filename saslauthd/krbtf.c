@@ -41,7 +41,7 @@
 
 /*
  * Dec  4, 2002 by Dave Eckhardt <davide+receptionist@cs.cmu.edu>
- * $Id: krbtf.c,v 1.1 2005/01/19 00:11:42 shadow Exp $
+ * $Id: krbtf.c,v 1.2 2005/02/14 05:18:36 shadow Exp $
  * This is inspired by code which was identical in both
  * auth_krb4.c and auth_krb5.c.  This code is shared
  * between the two implementations, contains protection
@@ -51,7 +51,7 @@
  */
 
 #ifdef __GNUC__
-#ident "$Id: krbtf.c,v 1.1 2005/01/19 00:11:42 shadow Exp $"
+#ident "$Id: krbtf.c,v 1.2 2005/02/14 05:18:36 shadow Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -84,7 +84,6 @@
 
 /* PRIVATE DEPENDENCIES */
 /* globals */
-authmech_t *authmech;       /* Authentication mechanism we're using  */
 
 /* privates */
 static char tf_dir[] = PATH_SASLAUTHD_RUNDIR "/.tf";
@@ -123,9 +122,11 @@ krbtf_init (
     int rc;				/* return code holder */
     struct stat sb;			/* stat() work area */
     /* END VARIABLES */
+    authmech_t *authmech;
 
 #ifdef AUTH_KRB5
-    if (authmech->initialize == auth_krb5_init) {
+    for (authmech = mechanisms; authmech->name != NULL; authmech++ ) {
+	    if (authmech->initialize != auth_krb5_init) continue;
 	    /* This execution is using krb5 */
 	    /* Both MIT krb5 and Heimdal support MEMORY: ccaches */
 	    tfn_cookie = "MEMORY:0";
@@ -202,7 +203,7 @@ krbtf_name (
 
 	strcpy(tfname, pidstring);
 
-#ifdef SASLAUTHD_THREADED
+#ifdef SASLAUTHD_THREADED /* is this really used??? */
 	tfname += pidstring_len;
 	len -= pidstring_len;
 

@@ -1,3 +1,8 @@
+2005-02-16  Derrick Brashear <shadow@andrew.cmu.edu> 
+	* configure.in, doc/install.html, doc/options.html, doc/readme.html,
+	  doc/sysadmin.html, lib/staticopen.h, plugins/Makefile.am,
+	  plugins/ldapdb.c, plugins/makeinit.sh: pull in ldapdb auxprop
+	  plugin, from Igor Brezac (Howard Chu's plugin)
 2005-02-14  Derrick Brashear <shadow@andrew.cmu.edu>
 	* saslauthd/krbtf.c: updated from CMUCS
 	* saslauthd/auth_krb5.c: log the krb5 error return if get_creds fails 

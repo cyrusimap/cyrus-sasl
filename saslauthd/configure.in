@@ -151,6 +151,9 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST  
 AC_TYPE_PID_T
 
+LTLIBOBJS=`echo "$LIB@&t@OBJS" | sed 's,\.[[^.]]* ,.lo ,g;s,\.[[^.]]*$,.lo,'`
+AC_SUBST(LTLIBOBJS)
+
 dnl Checks for which function macros exist
 AC_MSG_CHECKING(whether $CC implements __func__)
 AC_CACHE_VAL(have_func,

@@ -89,9 +89,6 @@
  *
  *****************************************************************************/
 
-/****************************************
- * includes
- *****************************************/
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -139,10 +136,13 @@ int		num_procs = 5;		/* The max number of worker processes*/
 /****************************************
  * module globals
 *****************************************/
-extern char 	*optarg;		/* For getopt()                     */
-static int     	master_pid;		/* Pid of the master process        */
-static int 	pid_fd;                 /* Descriptor to the open pid file  */
-static char	*pid_file;		/* Pid file name                    */
+extern char 	*optarg;		/* For getopt()                          */
+static int     	master_pid;		/* Pid of the master process             */
+static int 	pid_fd;                 /* Descriptor to the open pid file       */
+static int 	pid_file_lock_fd; 		/* Descriptor to the open pid lock file  */
+static char	*pid_file;		/* Pid file name                         */
+static char	*pid_file_lock;		/* Pid lock file name                    */
+static int       startup_pipe[2] = { -1, -1 };
 
 int main(int argc, char **argv) {
 	int		option;
@@ -155,9 +155,7 @@ int main(int argc, char **argv) {
 	g_argc = argc;
 	g_argv = argv;
 
-	/*********************************************************
-	* Set default flags.
-	**********************************************************/
+	/* default flags */
 	flags |= USE_ACCEPT_LOCK;
 	flags |= DETACH_TTY;
 	flags |= LOG_USE_SYSLOG;
@@ -257,23 +255,17 @@ int main(int argc, char **argv) {
 
 	umask(077);
 
-	/*********************************************************
-	 * Open the pid file and attempt to acquire a lock on it
-	 * to ensure only one copy of saslauthd is running at a 
-	 * given time. This also makes sure the run directory
-	 * is available and writeable early on.
-	 **********************************************************/
-	if ((pid_file = malloc(strlen(run_path) + sizeof(PID_FILE) + 1)) == NULL) {
+	if ((pid_file_lock = malloc(strlen(run_path) + sizeof(PID_FILE_LOCK) + 1)) == NULL) {
 		logger(L_ERR, L_FUNC, "could not allocate memory");
 		exit(1);
 	}
     
-	strcpy(pid_file, run_path);
-	strcat(pid_file, PID_FILE);
+	strcpy(pid_file_lock, run_path);
+	strcat(pid_file_lock, PID_FILE_LOCK);
 
-	if ((pid_fd = open(pid_file, O_WRONLY|O_CREAT, (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH))) < 0) {
+	if ((pid_file_lock_fd = open(pid_file_lock, O_CREAT|O_TRUNC|O_RDWR, 644)) < 0) {
 		rc = errno;
-		logger(L_ERR, L_FUNC, "could not open pid file: %s", pid_file);
+		logger(L_ERR, L_FUNC, "could not open pid lock file: %s", pid_file_lock);
 		logger(L_ERR, L_FUNC, "open: %s", strerror(rc));
 		logger(L_ERR, L_FUNC,
 		       "Check to make sure the directory exists and is");
@@ -286,16 +278,18 @@ int main(int argc, char **argv) {
 	lockinfo.l_len = 0;
 	lockinfo.l_whence = SEEK_SET;
 
-	if (fcntl(pid_fd, F_SETLK, &lockinfo) == -1) {
+	if (fcntl(pid_file_lock_fd, F_SETLK, &lockinfo) == -1) {
 		rc = errno;
-		logger(L_ERR, L_FUNC, "could not lock pid file: %s", pid_file);
+		logger(L_ERR, L_FUNC, "could not lock pid lock file: %s", pid_file_lock);
 		logger(L_ERR, L_FUNC, "fcntl: %s", strerror(rc));
-		logger(L_ERR, L_FUNC,
-		       "This may occur because another instance");
-		logger(L_ERR, L_FUNC, "of saslauthd is currently running.");
 		exit(1);
 	}
     
+	if(pipe(startup_pipe) == -1) {
+		logger(L_ERR, L_FUNC, "can't create startup pipe");
+		exit(1);
+	}
+
 	/*********************************************************
 	 * Enable signal handlers.
 	 **********************************************************/
@@ -323,7 +317,6 @@ int main(int argc, char **argv) {
 	 * If required, enable the process model.
 	 **********************************************************/
 	if (flags & USE_PROCESS_MODEL) {
-
         	if (flags & VERBOSE)
                 	logger(L_DEBUG, L_FUNC, "using process model");
 
@@ -357,12 +350,9 @@ char *do_auth(const char *login, const char *password, const char *service, cons
 	int			cached = 0;
 
 	if (cache_lookup(login, realm, service, password, &lkup_result) == CACHE_OK) {	
-
 		response = strdup("OK");
 		cached = 1;
-
 	} else {
-
 		response = auth_mech->authenticate(login, password, service, realm);
 
 		if (response == NULL) {
@@ -581,108 +571,214 @@ void signal_setup() {
  * as possible.
  **************************************************************/
 void detach_tty() {
-	int		x;
-	int		rc;
-	int		null_fd;
-	pid_t		pid;
-	char		pid_buf[100];
-	struct flock	lockinfo;
-
-	/**************************************************************
-	 * Make sure we're supposed to do this, the user may have 
-	 * requested us to stay in the foreground.
-	 **************************************************************/
-        if (flags & DETACH_TTY) {
-                for(x=5; x; x--) {
-                        pid = fork();
-
-                        if (pid > 0)
-                                _exit(0);       /* parent silently dies */
-
-                        if ((pid == -1) && (errno == EAGAIN)) {
-			    logger(L_ERR, L_FUNC,
-				   "fork failed, retrying");
-			    sleep(5);
-			    continue;
-                        } else if (pid == -1) {
-			    break;
-			}
-                }
-
-                if (pid == -1) {
-                        rc = errno;
-                        logger(L_ERR, L_FUNC, "master fork failed");
-                        logger(L_ERR, L_FUNC, "fork: %s", strerror(rc));
-                        exit(1);
-                }
-
-                if (setsid() == -1) {
-                        rc = errno;
-                        logger(L_ERR, L_FUNC, "failed to set session id");
-                        logger(L_ERR, L_FUNC, "setsid: %s", strerror(rc));
-                        exit(1);
-                }
-
-                if ((null_fd = open("/dev/null", O_RDWR, 0)) == -1) {
-                        rc = errno;
-                        logger(L_ERR, L_FUNC, "failed to open /dev/null");
-                        logger(L_ERR, L_FUNC, "open: %s", strerror(rc));
-                        exit(1);
-                }
-
-		/*********************************************************
-		 * From this point on, stop printing errors out to stderr.
-		 **********************************************************/
-		flags &= ~LOG_USE_STDERR;
-
-                close(STDIN_FILENO);
-                close(STDOUT_FILENO);
-                close(STDERR_FILENO);
-
-                dup2(null_fd, STDIN_FILENO);
-                dup2(null_fd, STDOUT_FILENO);
-                dup2(null_fd, STDERR_FILENO);
-
-                if (null_fd > 2)
-                        close(null_fd);
-
-		/*********************************************************
-		 * Locks don't persist across forks. Relock the pid file
-		 * to keep folks from having duplicate copies running...
-		 **********************************************************/
-		lockinfo.l_type = F_WRLCK;
-		lockinfo.l_start = 0;
-		lockinfo.l_len = 0;
-		lockinfo.l_whence = SEEK_SET;
-
-		if (fcntl(pid_fd, F_SETLK, &lockinfo) == -1) {
-			rc = errno;
-			logger(L_ERR, L_FUNC, "could not lock pid file: %s", pid_file);
-			logger(L_ERR, L_FUNC, "fcntl: %s", strerror(rc));
-			exit(1);
-		}
+    int		x;
+    int		rc;
+    int		null_fd;
+    int         exit_result;
+    pid_t      	pid;
+    char       	pid_buf[100];
+    struct flock	lockinfo;
     
-        }
-
-	/**************************************************************
-	 * Now that we know what the true (possibly post fork) master_pid
-	 * is, write it out to the pid file.
-	 **************************************************************/
-        master_pid = getpid();
-
-	snprintf(pid_buf, 100, "%lu\n", (unsigned long)master_pid);
-	rc = strlen(pid_buf);
-
-	if (write(pid_fd, pid_buf, rc) == -1) {
-		rc = errno;
-		logger(L_ERR, L_FUNC, "could not write to pid file: %s", pid_file);
-		logger(L_ERR, L_FUNC, "write: %s", strerror(rc));
-		exit(1);
+    /**************************************************************
+     * Make sure we're supposed to do this, the user may have 
+     * requested us to stay in the foreground.
+     **************************************************************/
+    if (flags & DETACH_TTY) {
+	for(x=5; x; x--) {
+	    pid = fork();
+	    
+	    if ((pid == -1) && (errno == EAGAIN)) {
+		logger(L_ERR, L_FUNC,
+		       "fork failed, retrying");
+		sleep(5);
+		continue;
+	    }
+	    
+	    break;
 	}
+	
+	if (pid == -1) {
+	    /* Non retryable error. */
+	    rc = errno;
+	    logger(L_ERR, L_FUNC, "Cannot start saslauthd");
+	    logger(L_ERR, L_FUNC, "saslauthd master fork failed: %s",
+		   strerror(rc));
+	    exit(1);
+	} else if (pid != 0) {
+	    int exit_code;
+	    
+	    /* Parent, wait for child */
+	    if(read(startup_pipe[0], &exit_code, sizeof(exit_code)) == -1) {
+		logger(L_ERR, L_FUNC,
+		       "Cannot start saslauthd");
+		logger(L_ERR, L_FUNC,
+		       "could not read from startup_pipe");
+		unlink(pid_file_lock);
+		exit(1);
+	    } else {
+		if (exit_code != 0) {
+		    logger(L_ERR, L_FUNC, "Cannot start saslauthd");
+		    if (exit_code == 2) {
+			logger(L_ERR, L_FUNC,
+			       "Another instance of saslauthd is currently running");
+		    } else {
+			logger(L_ERR, L_FUNC, "Check syslog for errors");
+		    }
+		}
+		unlink(pid_file_lock);
+		exit(exit_code);
+	    }
+	}
+	
+	/* Child! */
+	close(startup_pipe[0]);
+	
+	free(pid_file_lock);
+	
+	if (setsid() == -1) {
+	    exit_result = 1;
+	    rc = errno;
+	    
+	    logger(L_ERR, L_FUNC, "failed to set session id: %s",
+		   strerror(rc));
+	    
+	    /* Tell our parent that we failed. */
+	    write(startup_pipe[1], &exit_result, sizeof(exit_result));
+	    
+	    exit(1);
+	}
+	
+	if ((null_fd = open("/dev/null", O_RDWR, 0)) == -1) {
+	    exit_result = 1;
+	    rc = errno;
+	    
+	    logger(L_ERR, L_FUNC, "failed to open /dev/null: %s",
+		   strerror(rc));
+	    
+	    /* Tell our parent that we failed. */
+	    write(startup_pipe[1], &exit_result, sizeof(exit_result));
+	    
+	    exit(1);
+	}
+	
+	/*********************************************************
+	 * From this point on, stop printing errors out to stderr.
+	 **********************************************************/
+	flags &= ~LOG_USE_STDERR;
+	
+	close(STDIN_FILENO);
+	close(STDOUT_FILENO);
+	close(STDERR_FILENO);
+	
+	dup2(null_fd, STDIN_FILENO);
+	dup2(null_fd, STDOUT_FILENO);
+	dup2(null_fd, STDERR_FILENO);
+	
+	if (null_fd > 2)
+	    close(null_fd);
+	
+	/*********************************************************
+	 * Locks don't persist across forks. Relock the pid file
+	 * to keep folks from having duplicate copies running...
+	 *********************************************************/
+	if (!(pid_file = malloc(strlen(run_path) + sizeof(PID_FILE) + 1))) {
+	    exit_result = 1;
+	    logger(L_ERR, L_FUNC, "could not allocate memory");
+	    write(startup_pipe[1], &exit_result, sizeof(exit_result));
+	    exit(1);
+	}
+	
+	strcpy(pid_file, run_path);
+	strcat(pid_file, PID_FILE);
+	
+	/* Write out the pidfile */
+	pid_fd = open(pid_file, O_CREAT|O_TRUNC|O_RDWR, 0644);
+	if(pid_fd == -1) {
+	    rc = errno;
+	    exit_result = 1;
 
-	logger(L_INFO, L_FUNC, "master pid is: %lu", (unsigned long)master_pid);
-
-	return;
+	    logger(L_ERR, L_FUNC, "could not open pid file %s: %s",
+		   pid_file, strerror(rc));
+	    
+	    /* Tell our parent that we failed. */
+	    write(startup_pipe[1], &exit_result, sizeof(exit_result));
+	    
+	    exit(1);
+	} else {
+	    char buf[100];
+	    
+	    lockinfo.l_type = F_WRLCK;
+	    lockinfo.l_start = 0;
+	    lockinfo.l_len = 0;
+	    lockinfo.l_whence = SEEK_SET;
+	    
+	    if (fcntl(pid_fd, F_SETLK, &lockinfo) == -1) {
+		exit_result = 2;
+		rc = errno;
+		
+		logger(L_ERR, L_FUNC, "could not lock pid file %s: %s",
+		       pid_file, strerror(rc));
+		
+		/* Tell our parent that we failed. */
+		write(startup_pipe[1], &exit_result, sizeof(exit_result));
+		
+		exit(2);
+	    } else {
+		int pid_fd_flags = fcntl(pid_fd, F_GETFD, 0);
+		
+		if (pid_fd_flags != -1) {
+		    pid_fd_flags =
+			fcntl(pid_fd, F_SETFD, pid_fd_flags | FD_CLOEXEC);
+		}
+		
+		if (pid_fd_flags == -1) {
+		    int exit_result = 1;
+		    
+		    logger(L_ERR, L_FUNC, "unable to set close-on-exec for pidfile");
+		    
+		    /* Tell our parent that we failed. */
+		    write(startup_pipe[1], &exit_result, sizeof(exit_result));
+		    
+		    exit(1);
+		}
+		
+		/* Write PID */
+		master_pid = getpid();
+		snprintf(buf, sizeof(buf), "%d\n", master_pid);
+		if (write(pid_fd, buf, strlen(buf)) == -1) {
+		    int exit_result = 1;
+		    rc = errno;
+		    
+		    logger(L_ERR, L_FUNC, "could not write to pid file %s: %s", pid_file, strerror(rc));
+		    
+		    /* Tell our parent that we failed. */
+		    write(startup_pipe[1], &exit_result, sizeof(exit_result));
+		    
+		    exit(1);
+		}
+		fsync(pid_fd);
+	    }
+	}
+	
+	{
+	    int exit_result = 0;
+	    
+	    /* success! */
+	    if(write(startup_pipe[1], &exit_result, sizeof(exit_result)) == -1) {
+		logger(L_ERR, L_FUNC,
+		       "could not write success result to startup pipe");
+		exit(1);
+	    }
+	}
+	
+	close(startup_pipe[1]);
+	if(pid_file_lock_fd != -1) close(pid_file_lock_fd);
+	free(pid_file);
+    }
+    
+    logger(L_INFO, L_FUNC, "master pid is: %lu", (unsigned long)master_pid);
+    
+    return;
 }
 
 

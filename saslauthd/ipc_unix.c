@@ -135,6 +135,12 @@ void ipc_init() {
 	}
 
 	/**************************************************************
+	 * We're at the point where we can't really do anything else
+	 * until we attempt to detach or daemonize.
+	 **************************************************************/
+	detach_tty();
+
+	/**************************************************************
 	 * Setup the UNIX domain socket
 	 **************************************************************/
 	if ((sock_file = malloc(strlen(run_path) + sizeof(SOCKET_FILE) + 1)) == NULL) {
@@ -184,12 +190,6 @@ void ipc_init() {
 		exit(1);
 	}
 
-
-	/**************************************************************
-	 * We're at the point where we can't really do anything else
-	 * until we attempt to detach or daemonize.
-	 **************************************************************/
-	detach_tty();
 
 	logger(L_INFO, L_FUNC, "listening on socket: %s", sock_file);
 

@@ -1,5 +1,7 @@
 2000-03-28  Larry Greenfield  <leg+@andrew.cmu.edu>
 
+	* plugins/anonymous.c: shouldn't free static memory
+
 	* plugins/kerberos4.c (server_continue_step): delete unused variable
 
 	* utils/dbconverter-1.5.9.c: shut up a warning message by adding

@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.77 2003/07/25 20:25:44 rjs3 Exp $
+ * $Id: gssapi.c,v 1.78 2003/07/28 21:08:06 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -87,7 +87,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.77 2003/07/25 20:25:44 rjs3 Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.78 2003/07/28 21:08:06 rjs3 Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -1029,7 +1029,7 @@ int gssapiv2_server_plug_init(
     int *plugcount)
 {
 #ifdef HAVE_GSSKRB5_REGISTER_ACCEPTOR_IDENTITY
-    const char *keytab;
+    const char *keytab = NULL;
     char keytab_path[1024];
     unsigned int rl;
 #endif

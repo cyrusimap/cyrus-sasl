@@ -7,7 +7,7 @@ libsasl_sources = auxprop.c canonusr.c checkpw.c client.c common.c config.c exte
 libsasl_objs = auxprop.obj canonusr.obj checkpw.obj client.obj common.obj config.obj external.obj md5.obj saslutil.obj server.obj seterror.obj windlopen.obj getsubopt.obj plugin_common.obj $(compat_objs)
 libsasl_out = libsasl.dll libsasl.exp libsasl.lib
 
-CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBSASL_EXPORTS"
+CPPFLAGS = /D NEED_GETOPT /I "..\win32\include" /I "." /I "..\include" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBSASL_EXPORTS"
 
 all_objs = $(libsasl_objs)
 all_out = $(libsasl_out)
@@ -42,6 +42,8 @@ plugin_common.c: ..\plugins\plugin_common.c plugin_common.h
 
 plugin_common.h: ..\plugins\plugin_common.h
 	copy ..\plugins\plugin_common.h .
+
+client.c common.c external.c plugin_common.c server.c seterror.c: ..\include\saslplug.h
 
 CLEAN :
 	-@erase $(all_objs)

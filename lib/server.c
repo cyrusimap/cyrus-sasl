@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.115 2002/09/05 19:21:15 rjs3 Exp $
+ * $Id: server.c,v 1.116 2002/09/10 17:32:37 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -289,8 +289,8 @@ int sasl_server_add_plugin(const char *plugname,
 			 &pluglist, &plugcount);
 
     if ((result != SASL_OK) && (result != SASL_NOUSER)) {
-	_sasl_log(NULL, SASL_LOG_WARN,
-		  "server add_plugin entry_point error %i\n", result);
+	_sasl_log(NULL, SASL_LOG_DEBUG,
+		  "server add_plugin entry_point error %z\n", result);
 	return result;
     }
 

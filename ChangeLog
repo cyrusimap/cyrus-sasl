@@ -1,3 +1,7 @@
+2001-12-11  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* sasldb/db_ndbm.c: fix call to dbm_nextkey, from
+	  Scot W. Hetzel <scot@genroco.com>
+
 2001-12-10  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* doc/plugprog.html: Update for new user canonicalization usage.
 	* man/sasl_canon_user.3: Update for new user canonicalization usage.

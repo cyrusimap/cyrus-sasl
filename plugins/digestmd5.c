@@ -47,8 +47,10 @@
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
+#ifndef macintosh
 #include <sys/types.h>
 #include <sys/stat.h>
+#endif
 #include <fcntl.h>
 #include <ctype.h>
 
@@ -86,6 +88,10 @@
 #else /* Unix */
 extern int      strcasecmp(const char *s1, const char *s2);
 #endif /* end WIN32 */
+
+#ifdef macintosh
+#include <sasl_md5_plugin_decl.h>
+#endif
 
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL "
 VERSION " $";
@@ -239,7 +245,7 @@ static int      htoi(unsigned char *hexin, int *res);
 
 static unsigned char *COLON = (unsigned char *) ":";
 
-void
+static void
 CvtHex(
        IN HASH Bin,
        OUT HASHHEX Hex
@@ -263,7 +269,7 @@ CvtHex(
   Hex[HASHHEXLEN] = '\0';
 }
 
-bool
+static bool
 UTF8_In_8859_1(const unsigned char *base,
 	       int len)
 {
@@ -287,7 +293,7 @@ UTF8_In_8859_1(const unsigned char *base,
  * if the string is entirely in the 8859-1 subset of UTF-8, then translate to
  * 8859-1 prior to MD5
  */
-void
+static void
 MD5_UTF8_8859_1(IN sasl_utils_t * utils,
 		MD5_CTX * ctx,
 		bool In_ISO_8859_1,
@@ -363,7 +369,7 @@ DigestCalcSecret(IN sasl_utils_t * utils,
 
 
 /* calculate H(A1) as per spec */
-void
+static void
 DigestCalcHA1(IN context_t * text,
 	      IN sasl_utils_t * utils,
 	      IN unsigned char *pszUserName,
@@ -415,7 +421,7 @@ DigestCalcHA1(IN context_t * text,
  * calculate request-digest/response-digest as per HTTP Digest spec
  */
 
-void
+static void
 DigestCalcResponse(IN sasl_utils_t * utils,
 		   IN HASHHEX HA1,	/* H(A1) */
 		   IN unsigned char *pszNonce,	/* nonce from server */
@@ -575,7 +581,7 @@ calculate_response(context_t * text,
   return result;
 }
 
-void
+static void
 DigestCalcHA1FromSecret(IN context_t * text,
 			IN sasl_utils_t * utils,
 			IN HASH HA1,
@@ -802,7 +808,7 @@ add_to_challenge(sasl_utils_t * utils,
 }
 
 
-char           *
+static char           *
 strend(char *s)
 {
   if (s == NULL)
@@ -811,7 +817,7 @@ strend(char *s)
   return (s + strlen(s));
 }
 
-char *skip_lws (char *s)
+static char *skip_lws (char *s)
 {
   assert (s != NULL);
 
@@ -824,7 +830,7 @@ char *skip_lws (char *s)
   return s;
 }
 
-char *skip_token (char *s, int caseinsensitive)
+static char *skip_token (char *s, int caseinsensitive)
 {
   assert (s != NULL);
   
@@ -846,7 +852,7 @@ char *skip_token (char *s, int caseinsensitive)
 }
 
 /* NULL - error (unbalanced quotes), otherwise pointer to the first character after value */
-char * unquote (char *qstr)
+static char * unquote (char *qstr)
 {
   char *endvalue;
   int   escaped = 0;

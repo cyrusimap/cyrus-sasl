@@ -89,9 +89,6 @@
 #undef WITH_DES
 #undef WITH_SSL_DES
 
-/* do we have sha1 available? */
-#undef WITH_SHA1
-
 /* should we support srp_setpass */
 #undef DO_SRP_SETPASS
 

@@ -1,6 +1,6 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Earhart
- * $Id: dlopen.c,v 1.5 1998/11/17 19:28:45 rob Exp $
+ * $Id: dlopen.c,v 1.6 1998/11/17 19:29:52 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -130,7 +130,7 @@ int _sasl_get_mech_list(const char *entryname,
 	  strcpy(tmp,prefix);
 	  strcat(tmp,name);
 
-	  VL(("entry is = [%s]\n",dir->d_name));
+	  VL(("entry is = [%s]\n",tmp));
 
 	  library=NULL;
 	  if (!(library=dlopen(tmp,RTLD_LAZY)))

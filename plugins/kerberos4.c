@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.8 1998/11/17 19:28:47 rob Exp $
+ * $Id: kerberos4.c,v 1.9 1998/11/17 19:29:52 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -812,8 +812,6 @@ static int c_continue_step (void *conn_context,
       userid = principal.name;
     }
       
-    printf("userid=[%s]\n",userid);
-
     /* must be 8 octets */
     if (serverinlen!=8)
     {

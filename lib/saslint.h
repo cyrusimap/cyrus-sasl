@@ -1,6 +1,6 @@
 /* saslint.h - internal SASL library definitions
  * Tim Martin
- * $Id: saslint.h,v 1.3 1998/11/20 16:22:00 ryan Exp $
+ * $Id: saslint.h,v 1.4 1998/11/29 22:07:13 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -133,5 +133,9 @@ _sasl_alloc_utils(sasl_conn_t *conn,
 
 extern int
 _sasl_free_utils(sasl_utils_t ** utils);
+
+extern sasl_server_getsecret_t *_sasl_db_getsecret;
+
+extern sasl_server_putsecret_t *_sasl_db_putsecret;
 
 #endif /* SASLINT_H */

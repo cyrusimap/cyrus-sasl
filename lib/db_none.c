@@ -1,6 +1,6 @@
-/* acconfig.h - autoheader configuration input
+/* db_none.c--provides linkage for systems which lack a backend db lib
  * Rob Earhart
- * $Id: acconfig.h,v 1.3 1998/11/29 22:07:11 rob Exp $
+ * $Id: db_none.c,v 1.1 1998/11/29 22:07:13 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -25,55 +25,16 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
 OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ******************************************************************/
 
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif /* HAVE_CONFIG_H */
+#ifdef WIN32
+# include "winconfig.h"
+#endif /* WIN32 */
+#include "sasl.h"
+#include "saslint.h"
 
-@TOP@
-
-/* Our package */
-#undef PACKAGE
-
-/* Our version */
-#undef VERSION
-
-/* Set to the database name you want SASL to use for
- * username->secret lookups */
-#undef SASL_DB_PATH
-
-/* This is where plugins will live at runtime */
-#undef PLUGINDIR
-
-@BOTTOM@
-
-/* Make Solaris happy... */
-#ifndef __EXTENSIONS__
-#define __EXTENSIONS__
-#endif
-
-/* Make Linux happy... */
-#define _GNU_SOURCE
-
-#ifdef HAVE_LIBNANA
-
-extern int _sasl_debug;
-#define L_DEFAULT_GUARD (_sasl_debug)
-
-#include <stdio.h>
-#include <nana.h>
-#else				/* ! HAVE_LIBNANA */
-#define WITHOUT_NANA
-#define L_DEFAULT_GUARD (0)
-#define I_DEFAULT_GUARD (0)
-#define I(foo)
-#define VL(foo)
-#define VLP(foo,bar)
-#endif				/* ! HAVE_LIBNANA */
-
-#ifndef __GNUC__
-/* Can't use attributes... */
-#define __attribute__(foo)
-#endif
-
-#define SASL_PATH_ENV_VAR "SASL_PATH"
-
-#endif /* CONFIG_H */
+/* This just exists to provide these symbols on systems where configure
+ * couldn't find a database library. */
+sasl_server_getsecret_t *_sasl_db_getsecret = 0;
+sasl_server_putsecret_t *_sasl_db_putsecret = 0;

@@ -1,3 +1,26 @@
+1998-11-29  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* lib/server.c: removed gdbm/ndbm code and the whole SASL_DB_TYPE
+ 	nonsense; replaced with linkage against _sasl_db_getsecret and
+ 	_sasl_db_putsecret
+
+	* lib/db_ndbm.c: created; moved ndbm code from server.c to here
+
+	* lib/db_gdbm: created; moved gdbm code from server.c to here
+
+	* lib/db_none: created; filled in hook symbols
+
+	* lib/saslint.h: added _sasl_db_getsecret and _sasl_db_putsecret
+ 	symbol definitions
+
+	* lib/Makefile.am: added SASL_DB_BACKEND and db backend sources,
+ 	incremented library version number
+
+	* acconfig.h: removed SASL_DB_TYPE; it's superfluous now
+
+	* configure.in: now subst's SASL_DB_BACKEND appropriately, and is
+ 	more careful about pulling in libs after checking for them
+
 1998-11-25  Rob Earhart  <rob+@andrew.cmu.edu>
 
 	* 1.2b2 released

@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.9 1998/11/25 03:45:01 rob Exp $
+ * $Id: server.c,v 1.10 1998/11/29 22:07:13 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -47,15 +47,6 @@ SOFTWARE.
 #endif /* WIN32 */
 #include <sys/stat.h>
 #include <fcntl.h>
-#ifdef SASL_DB_TYPE
-# if SASL_DB_TYPE == gdbm
-#  include <gdbm.h>
-# elif SASL_DB_TYPE == ndbm
-#  include <ndbm.h>
-# else
-#  error Invalid DB implementation specified
-# endif
-#endif /* defined(SASL_DB_TYPE) */
 #include "sasl.h"
 #include "saslint.h"
 #include "saslutil.h"
@@ -261,188 +252,6 @@ server_idle(sasl_conn_t *conn)
   return 0;
 }
 
-#ifdef SASL_DB_TYPE
-
-static int
-server_getsecret(void *context __attribute__((unused)),
-		 const char *mechanism,
-		 const char *auth_identity,
-		 sasl_secret_t ** secret)
-{
-  int result = SASL_OK;
-  char *key;
-  size_t auth_id_len, mech_len, key_len;
-
-  if (! mechanism || ! auth_identity || ! secret)
-    return SASL_FAIL;
-
-  auth_id_len = strlen(auth_identity);
-  mech_len = strlen(mechanism);
-  key_len = auth_id_len + mech_len + 1;
-  key = sasl_ALLOC(key_len);
-  if (! key)
-    return SASL_NOMEM;
-  memcpy(key, auth_identity, auth_id_len);
-  key[auth_id_len] = '\0';
-  memcpy(key + auth_id_len + 1, mechanism, mech_len);
-
-#if SASL_DB_LIB == gdbm
-  {
-    GDBM_FILE db;
-    datum gkey, gvalue;
-
-    db = gdbm_open(SASL_DB_PATH, 0, GDBM_READER, S_IRUSR | S_IWUSR, NULL);
-    if (! db) {
-      result = SASL_FAIL;
-      goto cleanup;
-    }
-    gkey.dptr = key;
-    gkey.dsize = key_len;
-    gvalue = gdbm_fetch(db, gkey);
-    gdbm_close(db);
-    if (! gvalue.dptr) {
-      result = SASL_NOUSER;
-      goto cleanup;
-    }
-    *secret = sasl_ALLOC(sizeof(sasl_secret_t)
-			 + gvalue.dsize
-			 + 1);
-    if (! *secret) {
-      result = SASL_NOMEM;
-      free(gvalue.dptr);
-      goto cleanup;
-    }
-    (*secret)->len = gvalue.dsize;
-    memcpy(&(*secret)->data, gvalue.dptr, gvalue.dsize);
-    (*secret)->data[(*secret)->len] = '\0'; /* sanity */
-    /* Note: not sasl_FREE!  This is memory allocated by gdbm,
-     * which is using libc malloc/free. */
-    free(gvalue.dptr);
-  }
-#elif SASL_DB_LIB == ndbm
-  {
-    DBM *db;
-    datum dkey, dvalue;
-
-    db = dbm_open(SASL_DB_PATH, O_RDONLY, S_IRUSR | S_IWUSR);
-    if (! db) {
-      result = SASL_FAIL;
-      goto cleanup;
-    }
-    dkey.dptr = key;
-    dkey.dsize = key_len;
-    dvalue = dbm_fetch(db, dkey);
-    dbm_close(db);
-    if (! dvalue.dptr) {
-      result = SASL_NOUSER;
-      goto cleanup;
-    }
-    *secret = sasl_ALLOC(sizeof(sasl_secret_t)
-			 + dvalue.dsize
-			 + 1);
-    if (! *secret) {
-      result = SASL_NOMEM;
-      free(dvalue.dptr);
-      goto cleanup;
-    }
-    (*secret)->len = dvalue.dsize;
-    memcpy(&(*secret)->data, dvalue.dptr, dvalue.dsize);
-    (*secret)->data[(*secret)->len] = '\0'; /* sanity */
-    /* Note: not sasl_FREE!  This is memory allocated by ndbm,
-     * which is using libc malloc/free. */
-    free(dvalue.dptr);
-  }
-#else
-# error Invalid DB implementation specified in server_getsecret
-#endif /* SASL_DB_LIB */
- cleanup:
-  sasl_FREE(key);
-
-  return result;
-}
-
-static int
-server_putsecret(void *context __attribute__((unused)),
-		 const char *mechanism,
-		 const char *auth_identity,
-		 const sasl_secret_t * secret)
-{
-  int result = SASL_OK;
-  char *key;
-  size_t auth_id_len, mech_len, key_len;
-
-  if (! mechanism || ! auth_identity)
-    return SASL_FAIL;
-
-  auth_id_len = strlen(auth_identity);
-  mech_len = strlen(mechanism);
-  key_len = auth_id_len + mech_len + 1;
-  key = sasl_ALLOC(key_len);
-  if (! key)
-    return SASL_NOMEM;
-  memcpy(key, auth_identity, auth_id_len);
-  key[auth_id_len] = '\0';
-  memcpy(key + auth_id_len + 1, mechanism, mech_len);
-
-#if SASL_DB_LIB == gdbm
-  {
-    GDBM_FILE db;
-    datum gkey;
-
-    db = gdbm_open(SASL_DB_PATH, 0, GDBM_WRCREAT, S_IRUSR | S_IWUSR, NULL);
-    if (! db) {
-      result = SASL_FAIL;
-      goto cleanup;
-    }
-    gkey.dptr = key;
-    gkey.dsize = key_len;
-    if (secret) {
-      datum gvalue;
-      gvalue.dptr = (char *)&secret->data;
-      gvalue.dsize = secret->len;
-      if (gdbm_store(db, gkey, gvalue, GDBM_REPLACE))
-	result = SASL_FAIL;
-    } else
-      if (gdbm_delete(db, gkey))
-	result = SASL_FAIL;
-    gdbm_close(db);
-  }
-#elif SASL_DB_LIB == ndbm
-  {
-    DBM *db;
-    datum dkey;
-
-    db = dbm_open(SASL_DB_PATH,
-		  O_RDWR | O_CREAT /* TODO: what should this be? */,
-		  S_IRUSR | S_IWUSR);
-    if (! db) {
-      result = SASL_FAIL;
-      goto cleanup;
-    }
-    dkey.dptr = key;
-    dkey.dsize = key_len;
-    if (secret) {
-      datum dvalue;
-      dvalue.dptr = &secret->data;
-      dvalue.dsize = secret->len;
-      if (dbm_store(db, dkey, dvalue, DBM_REPLACE))
-	result = SASL_FAIL;
-    } else
-      if (dbm_delete(db, dkey))
-	result = SASL_FAIL;
-    dbm_close(db);
-  }
-#else
-# error Invalid DB implementation specified in server_putsecret
-#endif /* SASL_DB_LIB */
- cleanup:
-  sasl_FREE(key);
-
-  return result;
-}
-
-#endif /* SASL_DB_TYPE */
-
 int sasl_server_init(const sasl_callback_t *callbacks,
 		     const char *appname)
 {
@@ -451,10 +260,8 @@ int sasl_server_init(const sasl_callback_t *callbacks,
   _sasl_server_cleanup_hook = &server_done;
   _sasl_server_idle_hook = &server_idle;
 
-#ifdef SASL_DB_TYPE
-  _sasl_server_getsecret_hook = &server_getsecret;
-  _sasl_server_putsecret_hook = &server_putsecret;
-#endif /* SASL_DB_TYPE */
+  _sasl_server_getsecret_hook = _sasl_db_getsecret;
+  _sasl_server_putsecret_hook = _sasl_db_putsecret;
 
   global_callbacks.callbacks = callbacks;
   global_callbacks.appname = appname;

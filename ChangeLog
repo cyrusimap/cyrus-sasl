@@ -1,3 +1,7 @@
+2002-12-03  Ken Murchison <ken@oceana.com>
+	* plugins/digestmd5.c: major fast reauth rewrite, mech_step cleanup
+	* doc/options.html: server-side reauth is disabled by default
+
 2002-11-24  Ken Murchison <ken@oceana.com>
 	* plugins/login.c: allow authid to be passed in initial response
 	* doc/draft-sasl-login.txt, doc/mechanisms.html:

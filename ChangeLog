@@ -1,5 +1,7 @@
 1998-11-30  Rob Earhart  <rob@ANDREW.CMU.EDU>
 
+	* configure.in: bumped up version to 1.2b3
+
 	* lib/common.c: added default user/authname callbacks
 
 	* Makefile.am: added plugin path warning

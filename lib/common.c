@@ -24,8 +24,9 @@ SOFTWARE.
 ******************************************************************/
 
 #include <config.h>
+#include <stdio.h>
 #include <limits.h>
-#ifdef HAVE_VSYSLOG
+#ifdef HAVE_SYSLOG
 #include <syslog.h>
 #endif
 #include <stdarg.h>
@@ -34,8 +35,6 @@ SOFTWARE.
 #include <saslplug.h>
 #include "saslint.h"
 #ifdef WIN32
-/* for snprintf */
-#include <stdio.h>
 /* need to handle the fact that errno has been defined as a function
    in a dll, not an extern int */
 # ifdef errno
@@ -515,8 +514,7 @@ _sasl_conn_getopt(void *context,
 			     len);
 }
 
-#ifdef HAVE_VSYSLOG
-
+#ifdef HAVE_SYSLOG
 /* this is the default logging */
 static int _sasl_syslog(void *context __attribute__((unused)),
 			int priority,
@@ -545,14 +543,7 @@ static int _sasl_syslog(void *context __attribute__((unused)),
     
     return SASL_OK;
 }
-
-
-#endif				/* HAVE_VSYSLOG */
-
-
-#ifdef WIN32
-#define MAX_VALUE_NAME	128
-#endif /* WIN32 */
+#endif				/* HAVE_SYSLOG */
 
 static int
 _sasl_getsimple(void *context,
@@ -562,33 +553,33 @@ _sasl_getsimple(void *context,
 {
   const char *userid;
   sasl_conn_t *conn;
-#ifdef WIN32
-  DWORD i;
-  BOOL rval;
-  static char sender[MAX_VALUE_NAME];
-#endif //WIN32
 
-  if (! context || ! result)
-    return SASL_BADPARAM;
+  if (! context || ! result) return SASL_BADPARAM;
 
   conn = (sasl_conn_t *)context;
 
   switch(id) {
   case SASL_CB_AUTHNAME:
-#ifndef WIN32
     userid = getenv("USER");
-#else
-    userid = getenv("USERNAME");
-#endif /* WIN32 */
     if (userid != NULL) {
-      *result = userid;
-      if (len) *len = strlen(userid);
-      return SASL_OK;
+	*result = userid;
+	if (len) *len = strlen(userid);
+	return SASL_OK;
+    }
+    userid = getenv("USERNAME");
+    if (userid != NULL) {
+	*result = userid;
+	if (len) *len = strlen(userid);
+	return SASL_OK;
     }
 #ifdef WIN32
     /* for win32, try using the GetUserName standard call */
-    else {
-	i=sizeof(sender);
+    {
+	DWORD i;
+	BOOL rval;
+	static char sender[128];
+	
+	i = sizeof(sender);
 	rval = GetUserName(sender, &i);
 	if ( rval) { /* got a userid */
 		*result = sender;
@@ -710,12 +701,12 @@ _sasl_getcallback(sasl_conn_t * conn,
 
   /* Otherwise, see if the library provides a default callback. */
   switch (callbackid) {
-#ifdef HAVE_VSYSLOG
+#ifdef HAVE_SYSLOG
   case SASL_CB_LOG:
     *pproc = (int (*)()) &_sasl_syslog;
     *pcontext = NULL;
     return SASL_OK;
-#endif /* HAVE_VSYSLOG */
+#endif /* HAVE_SYSLOG */
   case SASL_CB_GETPATH:
     *pproc = (int (*)()) &_sasl_getpath;
     *pcontext = NULL;

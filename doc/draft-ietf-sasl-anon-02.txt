@@ -6,12 +6,12 @@
 
 INTERNET-DRAFT                           Editor: Kurt D. Zeilenga
 Intended Category: Standards Track            OpenLDAP Foundation
-Expires in six months                                  4 May 2003
+Expires in six months                                30 June 2003
 Obsoletes: RFC 2245
 
 
                        The Anonymous SASL Mechanism
-                      <draft-ietf-sasl-anon-01.txt>
+                      <draft-ietf-sasl-anon-02.txt>
 
 
 Status of Memo
@@ -39,10 +39,10 @@ Status of Memo
   Internet-Draft Shadow Directories can be accessed at
   <http://www.ietf.org/shadow.html>.
 
-  Copyright 2003, The Internet Society.  All Rights Reserved.
+  Copyright (C) The Internet Society (2003).  All Rights Reserved.
 
-  Please see the Copyright section near the end of this document for
-  more information.
+  Please see the Full Copyright section near the end of this document
+  for more information.
 
 
 Abstract
@@ -51,13 +51,13 @@ Abstract
   various services.  Traditionally, this has been done with a plain text
   password mechanism using "anonymous" as the user name and optional
   trace information, such as an email address, as the password.  As
-  plaintext login commands are not permitted in new IETF protocols, a
+  plain text login commands are not permitted in new IETF protocols, a
 
 
 
 Zeilenga                Anonymous SASL Mechanism                [Page 1]
 
-INTERNET-DRAFT         draft-ietf-sasl-anon-01.txt            4 May 2003
+INTERNET-DRAFT         draft-ietf-sasl-anon-02.txt          30 June 2003
 
 
   new way to provide anonymous login is needed within the context of the
@@ -68,7 +68,7 @@ Conventions
 
   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
-  document are to be interpreted as described in [KEYWORDS].
+  document are to be interpreted as described in [Keywords].
 
 
 1. Anonymous SASL mechanism
@@ -83,8 +83,8 @@ Conventions
   The mechanism consists of a single message from the client to the
   server.  The client sends optional trace information in the form of a
   string of [UTF-8] encoded [Unicode] characters prepared in accordance
-  with [Stringprep] and the "trace" stringprep profile defined in
-  Section 2 of this document.  The trace information, which as no
+  with [StringPrep] and the "trace" stringprep profile defined in
+  Section 2 of this document.  The trace information, which has no
   semantical value, should take one of three forms: an Internet email
   address, an opaque string which does not contain the '@' (U+0040)
   character and can be interpreted by the system administrator of the
@@ -113,7 +113,7 @@ Conventions
 
 Zeilenga                Anonymous SASL Mechanism                [Page 2]
 
-INTERNET-DRAFT         draft-ietf-sasl-anon-01.txt            4 May 2003
+INTERNET-DRAFT         draft-ietf-sasl-anon-02.txt          30 June 2003
 
 
                     %xED %x80-9F UTF0 / %xEE-EF 2(UTF0)
@@ -133,15 +133,15 @@ INTERNET-DRAFT         draft-ietf-sasl-anon-01.txt            4 May 2003
 
       token       = 1*255TCHAR
 
-      Note to implementors:
+  Note to implementors:
       The <token> production is restricted to 255 UTF-8 encoded Unicode
-      characters.   As the encoding of a characters use a sequence of 1
+      characters.   As the encoding of a characters uses a sequence of 1
       to 4 octets, a token may be long as 1020 octets.
 
 
 2. The "trace" profile of "Stringprep"
 
-  This section defines the "trace" profile of [Stringprep].  This
+  This section defines the "trace" profile of [StringPrep].  This
   profile is designed for use with the SASL ANONYMOUS Mechanism.
   Specifically, the client MUST prepare the <message> production in
   accordance with this profile.
@@ -156,7 +156,7 @@ INTERNET-DRAFT         draft-ietf-sasl-anon-01.txt            4 May 2003
   in appendix A of [RFC 3454].  Unassigned code points are not
   prohibited.
 
-  Characters from the following tables of [Stringprep] are prohibited:
+  Characters from the following tables of [StringPrep] are prohibited:
       - C.2.1 (ASCII control characters)
       - C.2.2 (Non-ASCII control characters)
       - C.3 (Private use characters)
@@ -169,7 +169,7 @@ INTERNET-DRAFT         draft-ietf-sasl-anon-01.txt            4 May 2003
 
 Zeilenga                Anonymous SASL Mechanism                [Page 3]
 
-INTERNET-DRAFT         draft-ietf-sasl-anon-01.txt            4 May 2003
+INTERNET-DRAFT         draft-ietf-sasl-anon-02.txt          30 June 2003
 
 
       - C.9 (Tagging characters)
@@ -177,7 +177,7 @@ INTERNET-DRAFT         draft-ietf-sasl-anon-01.txt            4 May 2003
   No additional characters are prohibited.
 
   This profile requires bidirectional character checking per Section 6
-  of [Stringprep].
+  of [StringPrep].
 
 
 3. Example
@@ -225,7 +225,7 @@ INTERNET-DRAFT         draft-ietf-sasl-anon-01.txt            4 May 2003
 
 Zeilenga                Anonymous SASL Mechanism                [Page 4]
 
-INTERNET-DRAFT         draft-ietf-sasl-anon-01.txt            4 May 2003
+INTERNET-DRAFT         draft-ietf-sasl-anon-02.txt          30 June 2003
 
 
   should implement the common "drop box" model which forbids anonymous
@@ -274,14 +274,14 @@ INTERNET-DRAFT         draft-ietf-sasl-anon-01.txt            4 May 2003
 
   General [SASL] security considerations apply to this mechanism.
 
-  [Stringprep] security considerations as well as [Unicode] security
-  considerations discussed in [Stringprep] apply to this mechanism.
+  [StringPrep] security considerations as well as [Unicode] security
+  considerations discussed in [StringPrep] apply to this mechanism.
 
 
 
 Zeilenga                Anonymous SASL Mechanism                [Page 5]
 
-INTERNET-DRAFT         draft-ietf-sasl-anon-01.txt            4 May 2003
+INTERNET-DRAFT         draft-ietf-sasl-anon-02.txt          30 June 2003
 
 
   [UTF-8] security considerations also apply.
@@ -306,8 +306,9 @@ INTERNET-DRAFT         draft-ietf-sasl-anon-01.txt            4 May 2003
       Author/Change controller: IESG <iesg@ietf.org>
       Note: Updates existing entry for ANONYMOUS
 
-  It is requested that the "stringprep" [RFC3454] profile "trace", first
-  defined in this RFC, be registered:
+
+  It is requested that the [Stringprep] profile "trace", first defined
+  in this RFC, be registered:
 
       To: iana@iana.org
       Subject: Initial Registration of Stringprep "trace" profile
@@ -324,52 +325,55 @@ INTERNET-DRAFT         draft-ietf-sasl-anon-01.txt            4 May 2003
   the grammar defined in Section 1 were borrowed from [UTF-8] by
   Francois Yergeau.
 
+  This document is a product of the IETF SASL WG.
+
 
 7. Normative References
 
-  [ABNF]       Crocker, D. and P. Overell, "Augmented BNF for Syntax
-               Specifications: ABNF", RFC 2234, November 1997.
-
-  [IMAIL]      Crocker, D., "Standard for the Format of Arpa Internet
-               Text Messages", STD 11, RFC 822, August 1982.
+  [ABNF]        Crocker, D. and P. Overell, "Augmented BNF for Syntax
+                Specifications: ABNF", RFC 2234, November 1997.
 
 
 
 Zeilenga                Anonymous SASL Mechanism                [Page 6]
 
-INTERNET-DRAFT         draft-ietf-sasl-anon-01.txt            4 May 2003
+INTERNET-DRAFT         draft-ietf-sasl-anon-02.txt          30 June 2003
 
 
-  [KEYWORDS]   Bradner, S., "Key words for use in RFCs to Indicate
-               Requirement Levels", BCP 14, RFC 2119, March 1997
+  [IMAIL]       Crocker, D., "Standard for the Format of Arpa Internet
+                Text Messages", STD 11, RFC 822, August 1982.
 
-  [SASL]       J. Myers, "Simple Authentication and Security Layer
-               (SASL)", RFC 2222bis (a work in progress).
+  [Keywords]    Bradner, S., "Key words for use in RFCs to Indicate
+                Requirement Levels", BCP 14, RFC 2119, March 1997
 
-  [Stringprep] P. Hoffman, M. Blanchet, "Preparation of
-               Internationalized Strings ('stringprep')", RFC 3454,
-               December 2002.
+  [SASL]        Myers, J., "Simple Authentication and Security Layer
+                (SASL)", draft-myers-saslrev-xx.txt, a work in progress.
 
-  [Unicode]    The Unicode Consortium. The Unicode Standard, Version
-               3.2.0 is defined by The Unicode Standard, Version 3.0
-               (Reading, MA, Addison-Wesley, 2000. ISBN 0-201-61633-5),
-               as amended by the Unicode Standard Annex #27: Unicode 3.1
-               (http://www.unicode.org/reports/tr27/) and by the Unicode
-               Standard Annex #28: Unicode 3.2
-               (http://www.unicode.org/reports/tr28/).
+  [StringPrep]  Hoffman P. and M. Blanchet, "Preparation of
+                Internationalized Strings ('stringprep')", RFC 3454,
+                December 2002.
 
-  [UTF-8]      Yergeau, F., "UTF-8, a transformation format of ISO
-               10646", draft-yergeau-rfc2279bis (a work in progress).
+  [Unicode]     The Unicode Consortium, "The Unicode Standard, Version
+                3.2.0" is defined by "The Unicode Standard, Version 3.0"
+                (Reading, MA, Addison-Wesley, 2000. ISBN 0-201-61633-5),
+                as amended by the "Unicode Standard Annex #27: Unicode
+                3.1" (http://www.unicode.org/reports/tr27/) and by the
+                "Unicode Standard Annex #28: Unicode 3.2"
+                (http://www.unicode.org/reports/tr28/).
+
+                [UTF-8]       Yergeau, F., "UTF-8, a transformation
+                format of ISO 10646", draft-yergeau-rfc2279bis, a work
+                in progress.
 
 
 8. Informative References
 
-  [IMAP4]      Crispin, M., "Internet Message Access Protocol - Version
-               4rev1", RFC 2060, December 1996.
+  [IMAP4]       Crispin, M., "Internet Message Access Protocol - Version
+                4rev1", RFC 2060, December 1996.
 
-  [IANA-SASL]  IANA, "SIMPLE AUTHENTICATION AND SECURITY LAYER (SASL)
-               MECHANISMS", http://www.iana.org/assignments/sasl-
-               mechanisms.
+  [IANA-SASL]   IANA, "SIMPLE AUTHENTICATION AND SECURITY LAYER (SASL)
+                MECHANISMS", http://www.iana.org/assignments/sasl-
+                mechanisms.
 
 
 9. Editor's Address
@@ -384,18 +388,18 @@ Appendix A.  Changes since RFC 2245
 
   This appendix is non-normative.
 
-  RFC 2245 allows the client to send optional trace information in the
-  form of a human readable string.  RFC 2245 restricted this string to
-  US-ASCII.  As the Internet is international, this document uses a
-  string restricted to UTF-8 encoded Unicode characters.  A "stringprep"
 
 
 
 Zeilenga                Anonymous SASL Mechanism                [Page 7]
 
-INTERNET-DRAFT         draft-ietf-sasl-anon-01.txt            4 May 2003
+INTERNET-DRAFT         draft-ietf-sasl-anon-02.txt          30 June 2003
 
 
+  RFC 2245 allows the client to send optional trace information in the
+  form of a human readable string.  RFC 2245 restricted this string to
+  US-ASCII.  As the Internet is international, this document uses a
+  string restricted to UTF-8 encoded Unicode characters.  A "stringprep"
   profile is defined to precisely define which Unicode characters are
   allowed in this string.  While the string remains restricted to 255
   characters, the encoded length of each character may now range from 1
@@ -404,32 +408,56 @@ INTERNET-DRAFT         draft-ietf-sasl-anon-01.txt            4 May 2003
   Additionally, a number of editorial changes were made.
 
 
-Full Copyright Statement
 
-  Copyright 2003, The Internet Society.  All Rights Reserved.
+Intellectual Property Rights
+
+  The IETF takes no position regarding the validity or scope of any
+  intellectual property or other rights that might be claimed to pertain
+  to the implementation or use of the technology described in this
+  document or the extent to which any license under such rights might or
+  might not be available; neither does it represent that it has made any
+  effort to identify any such rights.  Information on the IETF's
+  procedures with respect to rights in standards-track and
+  standards-related documentation can be found in BCP-11.  Copies of
+  claims of rights made available for publication and any assurances of
+  licenses to be made available, or the result of an attempt made to
+  obtain a general license or permission for the use of such proprietary
+  rights by implementors or users of this specification can be obtained
+  from the IETF Secretariat.
+
+  The IETF invites any interested party to bring to its attention any
+  copyrights, patents or patent applications, or other proprietary
+  rights which may cover technology that may be required to practice
+  this standard.  Please address the information to the IETF Executive
+  Director.
+
+
+
+Full Copyright
+
+  Copyright (C) The Internet Society (2003). All Rights Reserved.
 
   This document and translations of it may be copied and furnished to
   others, and derivative works that comment on or otherwise explain it
-  or assist in its implementation may be prepared, copied, published and
+  or assist in its implmentation may be prepared, copied, published and
   distributed, in whole or in part, without restriction of any kind,
   provided that the above copyright notice and this paragraph are
   included on all such copies and derivative works.  However, this
   document itself may not be modified in any way, such as by removing
+
+
+
+Zeilenga                Anonymous SASL Mechanism                [Page 8]
+
+INTERNET-DRAFT         draft-ietf-sasl-anon-02.txt          30 June 2003
+
+
   the copyright notice or references to the Internet Society or other
   Internet organizations, except as needed for the  purpose of
   developing Internet standards in which case the procedures for
   copyrights defined in the Internet Standards process must be followed,
   or as required to translate it into languages other than English.
 
-  The limited permissions granted above are perpetual and will not be
-  revoked by the Internet Society or its successors or assigns.
-
-  This document and the information contained herein is provided on an
-  "AS IS" basis and THE AUTHORS, THE INTERNET SOCIETY, AND THE INTERNET
-  ENGINEERING TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED,
-  INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
-  INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
-  WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 
 
 
@@ -447,5 +475,33 @@ Full Copyright Statement
 
 
 
-Zeilenga                Anonymous SASL Mechanism                [Page 8]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga                Anonymous SASL Mechanism                [Page 9]
 

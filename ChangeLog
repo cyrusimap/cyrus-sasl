@@ -1,3 +1,12 @@
+2003-07-02  Ken Murchison <ken@oceana.com>
+	* doc/draft-ietf-sasl-anon-02.txt: added
+	* doc/draft-ietf-sasl-plain-02.txt: added
+	* doc/draft-ietf-sasl-saslprep-03.txt: added
+	* doc/draft-ietf-sasl-anon-01.txt: deleted
+	* doc/draft-ietf-sasl-plain-01.txt: deleted
+	* doc/index.html, doc/Makefile.am: updated to latest versions of
+	  PLAIN, ANONYMOUS, SASLprep drafts
+
 2003-07-02  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* acconfig.h, cmulocal/sasl2.m4, plugins/gssapi.c:
 	  Properly detect HAVE_GSS_C_NT_USER_NAME

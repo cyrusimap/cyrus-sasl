@@ -67,7 +67,7 @@ if test "$authsasldb" != no; then
   AC_DEFINE(AUTH_SASLDB)
   SASL_DB_PATH_CHECK()
   SASL_DB_CHECK()
-  SASL_DB_LIB="$SASL_DB_LIB ../sasldb/libsasldb.a"
+  SASL_DB_LIB="$SASL_DB_LIB ../sasldb/.libs/libsasldb.al"
 fi
 
 AC_ARG_WITH(pam, [  --with-pam=DIR          use PAM (rooted in DIR) [yes] ],

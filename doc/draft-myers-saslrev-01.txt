@@ -62,6 +62,62 @@ J. Myers                                                        [Page i]
 Internet DRAFT                    SASL                    April 25, 2001
 
 
+
+
+
+                           Table of Contents
+
+
+
+Status of this Memo ...............................................    i
+1.    Abstract ....................................................    2
+2.    Organization of this document ...............................    2
+2.1.  How to read this document ...................................    2
+2.2.  Conventions used in this document ...........................    2
+3.    Overview ....................................................    2
+4.    Authentication mechanisms ...................................    3
+4.1.  Authentication protocol exchange ............................    4
+4.2.  Proxy authentication ........................................    4
+4.3.  Security layers .............................................    5
+5.    Protocol profile requirements ...............................    5
+6.    Specific issues .............................................    6
+6.1.  Client sends data first .....................................    6
+6.2.  Server returns success with additional data .................    6
+6.3.  Multiple authentications ....................................    7
+7.    Registration procedures .....................................    7
+7.1.  Comments on SASL mechanism registrations ....................    7
+7.2.  Location of registered SASL mechanism list ..................    8
+7.3.  Change control ..............................................    8
+7.4.  Registration template .......................................    8
+8.    The external mechanism ......................................    9
+8.1   Formal syntax ...............................................    9
+8.2   Example .....................................................   10
+9.    References ..................................................   10
+10.   Security considerations .....................................   11
+11.   Author's address ............................................   12
+Appendix A. Relation of SASL to transport security ................   12
+Appendix B. IANA considerations ...................................   13
+Appendix C. Changes since RFC 2222 ................................   13
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+J. Myers                                                       [Page ii]
+
+Internet DRAFT                    SASL                    April 25, 2001
+
+
 1.    Abstract
 
    SASL provides a method for adding authentication support with an
@@ -786,60 +842,4 @@ Internet DRAFT                    SASL                    April 25, 2001
 
 
 J. Myers                                                       [Page 14]
-
-Internet DRAFT                    SASL                    April 25, 2001
-
-
-
-
-
-                           Table of Contents
-
-
-
-Status of this Memo ...............................................    i
-1.    Abstract ....................................................    2
-2.    Organization of this document ...............................    2
-2.1.  How to read this document ...................................    2
-2.2.  Conventions used in this document ...........................    2
-3.    Overview ....................................................    2
-4.    Authentication mechanisms ...................................    3
-4.1.  Authentication protocol exchange ............................    4
-4.2.  Proxy authentication ........................................    4
-4.3.  Security layers .............................................    5
-5.    Protocol profile requirements ...............................    5
-6.    Specific issues .............................................    6
-6.1.  Client sends data first .....................................    6
-6.2.  Server returns success with additional data .................    6
-6.3.  Multiple authentications ....................................    7
-7.    Registration procedures .....................................    7
-7.1.  Comments on SASL mechanism registrations ....................    7
-7.2.  Location of registered SASL mechanism list ..................    8
-7.3.  Change control ..............................................    8
-7.4.  Registration template .......................................    8
-8.    The external mechanism ......................................    9
-8.1   Formal syntax ...............................................    9
-8.2   Example .....................................................   10
-9.    References ..................................................   10
-10.   Security considerations .....................................   11
-11.   Author's address ............................................   12
-Appendix A. Relation of SASL to transport security ................   12
-Appendix B. IANA considerations ...................................   13
-Appendix C. Changes since RFC 2222 ................................   13
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-J. Myers                                                       [Page ii]
 

@@ -1,5 +1,7 @@
 2000-03-28  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
+	* utils/Makefile.am (EXTRA_DIST): sasldblistusers.8 to dist line
+
 	* plugins/Makefile.am (login_version): releasing 1.5.18
 
 	* java/: wrote server side of javasasl

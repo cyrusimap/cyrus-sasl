@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.51 1999/09/20 18:35:02 leg Exp $
+ * $Id: server.c,v 1.52 1999/10/01 20:05:10 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -294,23 +294,21 @@ int sasl_setpass(sasl_conn_t *conn,
 	getopt(context, NULL, "pwcheck_method", &plainmech, NULL);
     }
 
-    if (plainmech != NULL && !strcasecmp(plainmech, "sasldb")) {
-	/* do we want to set/create password? */
-	tmpresult = _sasl_sasldb_set_pass(conn, user, pass, passlen, 
-					  s_conn->user_realm, flags, errstr);
-	if (tmpresult != SASL_OK) {
-	    result = SASL_FAIL;
-	    _sasl_log(conn, SASL_LOG_ERR, "PLAIN", tmpresult,
+    /* set/create password for PLAIN usage */
+    tmpresult = _sasl_sasldb_set_pass(conn, user, pass, passlen, 
+				      s_conn->user_realm, flags, errstr);
+    if (tmpresult != SASL_OK) {
+	result = SASL_FAIL;
+	_sasl_log(conn, SASL_LOG_ERR, "PLAIN", tmpresult,
 #ifndef WIN32
-		      errno,
+		  errno,
 #else
-		      GetLastError(),
+		  GetLastError(),
 #endif
-		      "failed to set secret for %s: %z", user);
-	} else {
-	    _sasl_log(conn, SASL_LOG_INFO, "PLAIN", 0, 0, 
-		      "set secret for %s", user);
-	}
+		  "failed to set secret for %s: %z", user);
+    } else {
+	_sasl_log(conn, SASL_LOG_INFO, "PLAIN", 0, 0, 
+		  "set secret for %s", user);
     }
 
     /* copy info into sparams */

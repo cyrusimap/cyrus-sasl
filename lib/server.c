@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.121 2003/03/19 18:25:28 rjs3 Exp $
+ * $Id: server.c,v 1.122 2003/04/08 17:30:54 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -901,28 +901,17 @@ static int mech_permitted(sasl_conn_t *conn,
 	}
     }
     
-    if (!strcasecmp(plug->mech_name, "EXTERNAL")) {
-	/* Special case for the external mechanism */
-	if (conn->props.min_ssf > conn->external.ssf
-	    || ! conn->external.auth_id) {
-	    sasl_seterror(conn, SASL_NOLOG,
-			  "External SSF not good enough");
-	    return 0;
-	}
-    } else {	
-	if (conn->props.min_ssf < conn->external.ssf) {
-	    minssf = 0;
-	} else {
-	    minssf = conn->props.min_ssf - conn->external.ssf;
-	}
-
-	/* Generic mechanism */
-	if (plug->max_ssf < minssf) {
-	    sasl_seterror(conn, SASL_NOLOG,
-			  "mech %s is too weak", plug->mech_name);
-	    return 0; /* too weak */
-	}
-	
+    if (conn->props.min_ssf < conn->external.ssf) {
+	minssf = 0;
+    } else {
+	minssf = conn->props.min_ssf - conn->external.ssf;
+    }
+    
+    /* Generic mechanism */
+    if (plug->max_ssf < minssf) {
+	sasl_seterror(conn, SASL_NOLOG,
+		      "mech %s is too weak", plug->mech_name);
+	return 0; /* too weak */
     }
 
     context = NULL;

@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.85 2002/11/21 20:21:24 leg Exp $
+ * $Id: common.c,v 1.86 2002/11/26 20:01:06 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1622,7 +1622,7 @@ int _sasl_ipfromstring(const char *addr,
 	return SASL_BADPARAM;
 
     if (out) {
-	if (outlen < (unsigned)ai->ai_addrlen) {
+	if (outlen < (socklen_t)ai->ai_addrlen) {
 	    freeaddrinfo(ai);
 	    return SASL_BUFOVER;
 	}

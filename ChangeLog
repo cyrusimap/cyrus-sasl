@@ -1,3 +1,8 @@
+Wed Oct 20 12:06:56 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/checkpw.c (_sasl_sasldb_setpass): rpool was being free'd
+	even when not created
+
 Sat Oct 16 20:13:40 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* version 1.5.11 released

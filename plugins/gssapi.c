@@ -605,6 +605,8 @@ sasl_gss_server_step (void *conn_context,
 	gss_buffer_desc name_token;
 	gss_buffer_desc name_without_realm;
 	gss_name_t without = NULL;
+	char *at;
+	int nlen;
 	int equal;
 
 	name_token.value = NULL;
@@ -639,17 +641,18 @@ sasl_gss_server_step (void *conn_context,
 	   without the realm and see if it's the same id (i.e. 
 	   tmartin == tmartin@ANDREW.CMU.EDU. If this is the case we just want
 	   to return the id (i.e. just "tmartin: */
-	if (strchr((char *)name_token.value, (int) '@')!=NULL)
+	if ((at=strchr((char *)name_token.value, (int) '@'))!=NULL)
 	{
-	    name_without_realm.value = (char *) params->utils->malloc(strlen(name_token.value)+1);
+	    nlen = at - (char *)name_token.value;
+	    name_without_realm.value = (char *)params->utils->malloc(nlen+1);
 	    if (name_without_realm.value == NULL) return SASL_NOMEM;
 
-	    strcpy(name_without_realm.value, name_token.value);
+	    strncpy(name_without_realm.value, name_token.value, nlen);
 
 	    /* cut off string at '@' */
-	    (strchr(name_without_realm.value,'@'))[0] = '\0';
+	    ((char *)name_without_realm.value)[nlen] = '\0';
 
-	    name_without_realm.length = strlen( (char *) name_without_realm.value );
+	    name_without_realm.length = nlen;
 
 	    maj_stat = gss_import_name (&min_stat,
 					&name_without_realm,
@@ -692,14 +695,26 @@ sasl_gss_server_step (void *conn_context,
 
 	if (equal == 1) /* xxx True doesn't seem to exist in gssapi.h */
 	{
-	    oparams->authid = (char *) params->utils->malloc(strlen(name_without_realm.value)+1);
+	    oparams->authid = 
+		(char *)params->utils->malloc(name_without_realm.length+1);
 	    if (oparams->authid == NULL) return SASL_NOMEM;
 	    strcpy(oparams->authid, name_without_realm.value);
 	} else {
-	    oparams->authid = (char *) params->utils->malloc(strlen(name_token.value)+1);
+	    oparams->authid =
+		(char *)params->utils->malloc(strlen(name_token.value)+1);
 	    if (oparams->authid == NULL) return SASL_NOMEM;
 	    strcpy(oparams->authid, name_token.value);
 	}
+
+	if (at)
+	{
+	    oparams->realm =
+		(char *)params->utils->malloc(name_token.length -
+					      name_without_realm.length);
+	    if (oparams->realm == NULL) return SASL_NOMEM;
+	    strcpy(oparams->realm, at+1);
+	}
+	
 
 	if (name_token.value)
 	    params->utils->free(name_without_realm.value);

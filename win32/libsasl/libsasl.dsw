@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "libsasl"=.\libsasl.dsp - Package Owner=<4>
+Project: "libsasl"=".\libsasl.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -15,7 +15,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "sample_client"=..\sample_client\sample_client.dsp - Package Owner=<4>
+Project: "sample_client"="..\sample_client\sample_client.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -27,7 +27,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "sample_server"=..\sample_server\sample_server.dsp - Package Owner=<4>
+Project: "sample_server"="..\sample_server\sample_server.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -39,7 +39,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "saslANONYMOUS"=..\saslANONYMOUS\saslANONYMOUS.dsp - Package Owner=<4>
+Project: "saslANONYMOUS"="..\saslANONYMOUS\saslANONYMOUS.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -51,7 +51,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "saslCRAM"=..\saslCRAM\saslCRAM.dsp - Package Owner=<4>
+Project: "saslCRAM"="..\saslCRAM\saslCRAM.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -63,7 +63,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "saslDIGESTMD5"=..\saslDIGESTMD5\saslDIGESTMD5.dsp - Package Owner=<4>
+Project: "saslDIGESTMD5"="..\saslDIGESTMD5\saslDIGESTMD5.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -75,7 +75,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "saslGSSAPI"=..\saslGSSAPI\saslGSSAPI.dsp - Package Owner=<4>
+Project: "saslGSSAPI"="..\saslGSSAPI\saslGSSAPI.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -87,7 +87,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "saslKERBEROSV4"=..\saslKERBEROSV4\saslKERBEROSV4.dsp - Package Owner=<4>
+Project: "saslKERBEROSV4"="..\saslKERBEROSV4\saslKERBEROSV4.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -99,7 +99,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "saslPLAIN"=..\saslPLAIN\saslPLAIN.dsp - Package Owner=<4>
+Project: "saslLOGIN"="..\saslLOGIN\saslLOGIN.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -111,7 +111,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "saslSCRAM"=..\saslSCRAM\saslSCRAM.dsp - Package Owner=<4>
+Project: "saslPLAIN"="..\saslPLAIN\saslPLAIN.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -123,7 +123,19 @@ Package=<4>
 
 ###############################################################################
 
-Project: "saslpwd"=..\utils\saslpwd\saslpwd.dsp - Package Owner=<4>
+Project: "saslSCRAM"="..\saslSCRAM\saslSCRAM.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "saslpwd"="..\utils\saslpwd\saslpwd.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{

@@ -1,5 +1,15 @@
 2000-02-22  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
+	* win32/saslLOGIN: added; contributed by Geir Myrestrand
+	<geir@sendmail.com>
+
+	* plugins/cram.c:
+	* plugins/digestmd5.c: don't log version mismatched if fetching
+	the version results in a failure (probably no database).  pointed
+	out by Claus Assmann <ca+sasl@sendmail.org>
+
+	* plugins/kerberos4.c: unused variable ignored
+
 	* lib/checkpw.c (_sasl_kerberos_verify_password): change the
 	location of the ticket cache while verifying password, then
 	restore the original ticket cache (inherently not thread safe)

@@ -1027,10 +1027,10 @@ static int lak_bind(
 			break;
 		case LDAP_TIMEOUT:
 		case LDAP_SERVER_DOWN:
-			lak->status = LAK_NOT_BOUND;
 		default:
 			syslog(LOG_DEBUG|LOG_AUTH,
 				   (lak->conf->use_sasl ? "ldap_sasl_bind() failed %d (%s)." : "ldap_simple_bind() failed %d (%s)."), rc, ldap_err2string(rc));
+			lak->status = LAK_NOT_BOUND;
 			return LAK_FAIL;
 	}
 
@@ -1094,8 +1094,11 @@ retry:;
 	}
 
 	rc = lak_bind(lak, lu);
-
 	if (rc != LAK_OK) {
+        if (retry) {
+            retry--;
+            goto retry;
+        }
 		syslog(LOG_WARNING|LOG_AUTH, "lak_bind() failed");
 		goto done;
 	}
@@ -1221,7 +1224,9 @@ int lak_retrieve(
 		}
 
 		ldap_value_free(vals);
+        vals = NULL;
 		ldap_memfree(attr);
+        attr = NULL;
 	}
 
 done:;

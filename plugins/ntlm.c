@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.6 2003/02/13 19:56:04 rjs3 Exp $
+ * $Id: ntlm.c,v 1.7 2003/08/25 00:43:45 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -51,6 +51,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <errno.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/utsname.h>
+#include <netdb.h>
 
 #include <openssl/des.h>
 #include <openssl/md4.h>
@@ -62,7 +68,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.6 2003/02/13 19:56:04 rjs3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.7 2003/08/25 00:43:45 ken3 Exp $";
 
 #define NTLM_SIGNATURE		"NTLMSSP"
 
@@ -328,7 +334,751 @@ typedef struct server_context {
     char *out_buf;
     unsigned out_buf_len;
 
+    /* socket to remote authentication host */
+    int sock;
+
 } server_context_t;
+
+#define	N(a)			(sizeof (a) / sizeof (a[0]))
+
+#define SMB_HDR_PROTOCOL	"\xffSMB"
+
+typedef struct {
+    unsigned char protocol[4];
+    unsigned char command;
+    uint32 status;
+    unsigned char flags;
+    uint16 flags2;
+    unsigned char extra[12];
+    uint16 tid;
+    uint16 pid;
+    uint16 uid;
+    uint16 mid;
+} SMB_Header;
+
+typedef struct {
+    uint16 dialect_index;
+    unsigned char security_mode;
+    uint16 max_mpx_count;
+    uint16 max_number_vcs;
+    uint32 max_buffer_size;
+    uint32 max_raw_size;
+    uint32 session_key;
+    uint32 capabilities;
+    uint32 system_time_low;
+    uint32 system_time_high;
+    uint16 server_time_zone;
+    unsigned char encryption_key_length;
+} SMB_NegProt_Resp;
+
+typedef struct {
+    unsigned char andx_command;
+    unsigned char andx_reserved;
+    uint16 andx_offset;
+    uint16 max_buffer_size;
+    uint16 max_mpx_count;
+    uint16 vc_number;
+    uint32 session_key;
+    uint16 case_insensitive_passwd_len;
+    uint16 case_sensitive_passwd_len;
+    uint32 reserved;
+    uint32 capabilities;
+} SMB_SessionSetup;
+
+typedef struct {
+    unsigned char andx_command;
+    unsigned char andx_reserved;
+    uint16 andx_offset;
+    uint16 action;
+} SMB_SessionSetup_Resp;
+
+enum {
+    NBT_SESSION_REQUEST		= 0x81,
+    NBT_POSITIVE_SESSION_RESP	= 0x82,
+    NBT_NEGATIVE_SESSION_RESP	= 0x83,
+    NBT_ERR_NO_LISTEN_CALLED	= 0x80,
+    NBT_ERR_NO_LISTEN_CALLING	= 0x81,
+    NBT_ERR_CALLED_NOT_PRESENT	= 0x82,
+    NBT_ERR_INSUFFICIENT_RESRC	= 0x83,
+    NBT_ERR_UNSPECIFIED		= 0x8F,
+
+    SMB_HDR_SIZE		= 32,
+
+    SMB_COM_NEGOTIATE_PROTOCOL	= 0x72,
+    SMB_COM_SESSION_SETUP_ANDX	= 0x73,
+    SMB_COM_NONE		= 0xFF,
+
+    SMB_FLAGS_SERVER_TO_REDIR	= 0x80,
+
+    SMB_FLAGS2_ERR_STATUS	= 0x4000,
+    SMB_FLAGS2_UNICODE		= 0x8000,
+
+    SMB_NEGPROT_RESP_SIZE	= 34,
+
+    SMB_SECURITY_MODE_USER	= 0x1,
+    SMB_SECURITY_MODE_ENCRYPT	= 0x2,
+    SMB_SECURITY_MODE_SIGN	= 0x4,
+    SMB_SECURITY_MODE_SIGN_REQ	= 0x8,
+
+    SMB_CAP_UNICODE		= 0x0004,
+    SMB_CAP_STATUS32		= 0x0040,
+    SMB_CAP_EXTENDED_SECURITY	= 0x80000000,
+
+    SMB_SESSION_SETUP_SIZE	= 26,
+    SMB_SESSION_SETUP_RESP_SIZE	= 6,
+
+    SMB_REQUEST_MODE_GUEST	= 0x1
+};
+
+static const char *SMB_DIALECTS[] = {
+#if 0
+    "\x02PC NETWORK PROGRAM 1.0",
+    "\x02PCLAN1.0",
+    "\x02MICROSOFT NETWORKS 1.03",
+    "\x02MICROSOFT NETWORKS 3.0",
+    "\x02LANMAN1.0",
+    "\x02Windows for Workgroups 3.1a",
+    "\x02LM1.2X002",
+    "\x02DOS LM1.2X002",
+    "\x02DOS LANLAM2.1",
+    "\x02LANMAN2.1",
+#endif
+    "\x02NT LM 0.12"
+};
+
+static void load_smb_header(unsigned char buf[], SMB_Header *hdr)
+{
+    unsigned char *p = buf;
+
+    memcpy(p, SMB_HDR_PROTOCOL, 4); p += 4;
+    *p++ = hdr->command;
+    UINT32_TO_INTEL(hdr->status, *((uint32*) p)); p += 4;
+    *p++ = hdr->flags;
+    UINT16_TO_INTEL(hdr->flags2, *((uint16*) p)); p += 2;
+    memcpy(p, hdr->extra, 12); p += 12;
+    UINT16_TO_INTEL(hdr->tid, *((uint16*) p)); p += 2;
+    UINT16_TO_INTEL(hdr->pid, *((uint16*) p)); p += 2;
+    UINT16_TO_INTEL(hdr->uid, *((uint16*) p)); p += 2;
+    UINT16_TO_INTEL(hdr->mid, *((uint16*) p));
+}
+
+static void unload_smb_header(unsigned char buf[], SMB_Header *hdr)
+{
+    unsigned char *p = buf;
+
+    memcpy(hdr->protocol, p, 4); p += 4;
+    hdr->command = *p++;
+    UINT32_FROM_INTEL(*((uint32*) p), hdr->status); p += 4;
+    hdr->flags = *p++;
+    UINT16_FROM_INTEL(*((uint16*) p), hdr->flags2); p += 2;
+    memcpy(hdr->extra, p, 12); p += 12;
+    UINT16_FROM_INTEL(*((uint16*) p), hdr->tid); p += 2;
+    UINT16_FROM_INTEL(*((uint16*) p), hdr->pid); p += 2;
+    UINT16_FROM_INTEL(*((uint16*) p), hdr->uid); p += 2;
+    UINT16_FROM_INTEL(*((uint16*) p), hdr->mid);
+}
+
+static void unload_negprot_resp(unsigned char buf[], SMB_NegProt_Resp *resp)
+{
+    unsigned char *p = buf;
+
+    UINT16_FROM_INTEL(*((uint16*) p), resp->dialect_index); p += 2;
+    resp->security_mode = *p++;
+    UINT16_FROM_INTEL(*((uint16*) p), resp->max_mpx_count); p += 2;
+    UINT16_FROM_INTEL(*((uint16*) p), resp->max_number_vcs); p += 2;
+    UINT32_FROM_INTEL(*((uint32*) p), resp->max_buffer_size); p += 4;
+    UINT32_FROM_INTEL(*((uint32*) p), resp->max_raw_size); p += 4;
+    UINT32_FROM_INTEL(*((uint32*) p), resp->session_key); p += 4;
+    UINT32_FROM_INTEL(*((uint32*) p), resp->capabilities); p += 4;
+    UINT32_FROM_INTEL(*((uint32*) p), resp->system_time_low); p += 4;
+    UINT32_FROM_INTEL(*((uint32*) p), resp->system_time_high); p += 4;
+    UINT16_FROM_INTEL(*((uint16*) p), resp->server_time_zone); p += 2;
+    resp->encryption_key_length = *p;
+}
+
+static void load_session_setup(unsigned char buf[], SMB_SessionSetup *setup)
+{
+    unsigned char *p = buf;
+
+    *p++ = setup->andx_command;
+    *p++ = setup->andx_reserved;
+    UINT16_TO_INTEL(setup->andx_offset, *((uint16*) p)); p += 2;
+    UINT16_TO_INTEL(setup->max_buffer_size, *((uint16*) p)); p += 2;
+    UINT16_TO_INTEL(setup->max_mpx_count, *((uint16*) p)); p += 2;
+    UINT16_TO_INTEL(setup->vc_number, *((uint16*) p)); p += 2;
+    UINT32_TO_INTEL(setup->session_key, *((uint32*) p)); p += 4;
+    UINT16_TO_INTEL(setup->case_insensitive_passwd_len, *((uint16*) p)); p += 2;
+    UINT16_TO_INTEL(setup->case_sensitive_passwd_len, *((uint16*) p)); p += 2;
+    UINT32_TO_INTEL(setup->reserved, *((uint32*) p)); p += 4;
+    UINT32_TO_INTEL(setup->capabilities, *((uint32*) p));
+}
+
+static void unload_session_setup_resp(unsigned char buf[],
+				      SMB_SessionSetup_Resp *resp)
+{
+    unsigned char *p = buf;
+
+    resp->andx_command = *p++;
+    resp->andx_reserved = *p++;
+    UINT16_FROM_INTEL(*((uint16*) p), resp->andx_offset); p += 2;
+    UINT16_FROM_INTEL(*((uint16*) p), resp->action);
+}
+
+/*
+ * Keep calling the writev() system call with 'fd', 'iov', and 'iovcnt'
+ * until all the data is written out or an error occurs.
+ */
+static int retry_writev(int fd, struct iovec *iov, int iovcnt)
+{
+    int n;
+    int i;
+    int written = 0;
+    static int iov_max =
+#ifdef MAXIOV
+	MAXIOV
+#else
+#ifdef IOV_MAX
+	IOV_MAX
+#else
+	8192
+#endif
+#endif
+	;
+    
+    for (;;) {
+	while (iovcnt && iov[0].iov_len == 0) {
+	    iov++;
+	    iovcnt--;
+	}
+
+	if (!iovcnt) return written;
+
+	n = writev(fd, iov, iovcnt > iov_max ? iov_max : iovcnt);
+	if (n == -1) {
+	    if (errno == EINVAL && iov_max > 10) {
+		iov_max /= 2;
+		continue;
+	    }
+	    if (errno == EINTR) continue;
+	    return -1;
+	}
+
+	written += n;
+
+	for (i = 0; i < iovcnt; i++) {
+	    if (iov[i].iov_len > (unsigned) n) {
+		iov[i].iov_base = (char *)iov[i].iov_base + n;
+		iov[i].iov_len -= n;
+		break;
+	    }
+	    n -= iov[i].iov_len;
+	    iov[i].iov_len = 0;
+	}
+
+	if (i == iovcnt) return written;
+    }
+}
+
+static void make_netbios_name(const char *in, unsigned char out[])
+{
+    size_t i, j = 0, n;
+
+    /* create a NetBIOS name from the DNS name
+     *
+     * - use up to the first 16 chars of the first part of the hostname
+     * - convert to all uppercase
+     * - use the tail end of the output buffer as temp space
+     */
+    n = strcspn(in, ".");
+    if (n > 16) n = 16;
+    strncpy(out+18, in, n);
+    in = out+18;
+    ucase(in, n);
+
+    out[j++] = 0x20;
+    for (i = 0; i < n; i++) {
+	out[j++] = ((in[i] >> 4) & 0xf) + 0x41;
+	out[j++] = (in[i] & 0xf) + 0x41;
+    }
+    for (; i < 16; i++) {
+	out[j++] = ((0x20 >> 4) & 0xf) + 0x41;
+	out[j++] = (0x20 & 0xf) + 0x41;
+    }
+    out[j] = 0;
+}
+
+static int smb_connect_server(const sasl_utils_t *utils, const char *client,
+			      const char *server)
+{
+    struct addrinfo hints;
+    struct addrinfo *ai = NULL, *r;
+    int s = -1, err, saved_errno;
+    char *port = "139";
+    char hbuf[NI_MAXHOST], pbuf[NI_MAXSERV];
+
+    unsigned char called[34];
+    unsigned char calling[34];
+    struct iovec iov[3];
+    uint32 pkt;
+    int rc;
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = PF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_CANONNAME;
+    if ((err = getaddrinfo(server, port, &hints, &ai)) != 0) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: getaddrinfo %s/%s: %s",
+		   server, port, gai_strerror(err));
+	return -1;
+    }
+
+    /* Make sure we have AF_INET or AF_INET6 addresses. */
+    if (ai->ai_family != AF_INET && ai->ai_family != AF_INET6) {
+	utils->log(NULL, SASL_LOG_ERR, "NTLM: no IP address info for %s",
+		   ai->ai_canonname ? ai->ai_canonname : server);
+	freeaddrinfo(ai);
+	return -1;
+    }
+
+    /* establish connection to authentication server */
+    for (r = ai; r; r = r->ai_next) {
+	s = socket(r->ai_family, r->ai_socktype, r->ai_protocol);
+	if (s < 0)
+	    continue;
+	if (connect(s, r->ai_addr, r->ai_addrlen) >= 0)
+	    break;
+	close(s);
+	s = -1;
+	saved_errno = errno;
+	getnameinfo(r->ai_addr, r->ai_addrlen,
+		    hbuf, sizeof(hbuf), pbuf, sizeof(pbuf),
+		    NI_NUMERICHOST | NI_WITHSCOPEID | NI_NUMERICSERV);
+	errno = saved_errno;
+	utils->log(NULL, SASL_LOG_WARN, "NTLM: connect %s[%s]/%s: %m",
+		   ai->ai_canonname ? ai->ai_canonname : server, hbuf, pbuf);
+    }
+    if (s < 0) {
+	getnameinfo(ai->ai_addr, ai->ai_addrlen, NULL, 0,
+			pbuf, sizeof(pbuf), NI_NUMERICSERV);
+	utils->log(NULL, SASL_LOG_ERR, "NTLM: couldn't connect to %s/%s",
+		   ai->ai_canonname ? ai->ai_canonname : server, pbuf);
+	freeaddrinfo(ai);
+	return -1;
+    }
+
+    freeaddrinfo(ai);
+
+    /*** send NetBIOS session request ***/
+
+    /* get length of data */
+    pkt = sizeof(called) + sizeof(calling);
+
+    /* make sure length is less than 17 bits */
+    if (pkt >= (1 << 17)) {
+	close(s);
+	return -1;
+    }
+
+    /* prepend the packet type */
+    pkt |= (NBT_SESSION_REQUEST << 24);
+    pkt = htonl(pkt);
+
+    /* XXX should determine the real NetBIOS name */
+    make_netbios_name(server, called);
+    make_netbios_name(client, calling);
+
+    iov[0].iov_base = &pkt;
+    iov[0].iov_len = sizeof(pkt);
+    iov[1].iov_base = called;
+    iov[1].iov_len = sizeof(called);
+    iov[2].iov_base = calling;
+    iov[2].iov_len = sizeof(calling);
+
+    rc = retry_writev(s, iov, N(iov));
+    if (rc == -1) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: error sending NetBIOS session request");
+	close(s);
+	return -1;
+    }
+
+    rc = read(s, &pkt, sizeof(pkt));
+    pkt = ntohl(pkt);
+    if (rc == -1 || pkt != (uint32) (NBT_POSITIVE_SESSION_RESP << 24)) {
+	unsigned char ec = NBT_ERR_UNSPECIFIED;
+	char *errstr;
+
+	read(s, &ec, sizeof(ec));
+	switch (ec) {
+	case NBT_ERR_NO_LISTEN_CALLED:
+	    errstr = "Not listening on called name";
+	    break;
+	case NBT_ERR_NO_LISTEN_CALLING:
+	    errstr = "Not listening for calling name";
+	    break;
+	case NBT_ERR_CALLED_NOT_PRESENT:
+	    errstr = "Called name not present";
+	    break;
+	case NBT_ERR_INSUFFICIENT_RESRC:
+	    errstr = "Called name present, but insufficient resources";
+	    break;
+	default:
+	    errstr = "Unspecified error";
+	}
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: negative NetBIOS session response: %s", errstr);
+	close(s);
+	return -1;
+    }
+
+    return s;
+}
+
+static int smb_negotiate_protocol(const sasl_utils_t *utils,
+				  server_context_t *text, char **domain)
+{
+    SMB_Header hdr;
+    SMB_NegProt_Resp resp;
+    unsigned char hbuf[SMB_HDR_SIZE], *p;
+    unsigned char wordcount = 0;
+    uint16 bytecount, bc;
+    uint32 len, nl;
+    struct iovec iov[4+N(SMB_DIALECTS)];
+    size_t i, n;
+    int rc;
+
+    /*** create a negotiate protocol request ***/
+
+    /* create a header */
+    memset(&hdr, 0, sizeof(hdr));
+    hdr.command = SMB_COM_NEGOTIATE_PROTOCOL;
+#if 0
+    hdr.flags2 = SMB_FLAGS2_ERR_STATUS;
+    if (text->flags & NTLM_USE_UNICODE) hdr.flags2 |= SMB_FLAGS2_UNICODE;
+#endif
+    hdr.pid = getpid();
+    load_smb_header(hbuf, &hdr);
+
+    /* put together all of the pieces of the request */
+    n = 0;
+    iov[n].iov_base = &nl;
+    iov[n++].iov_len = sizeof(len);
+    iov[n].iov_base = hbuf;
+    iov[n++].iov_len = SMB_HDR_SIZE;
+    iov[n].iov_base = &wordcount;
+    iov[n++].iov_len = sizeof(wordcount);
+    iov[n].iov_base = &bc;
+    iov[n++].iov_len = sizeof(bc);
+
+    /* add our supported dialects */
+    for (i = 0; i < N(SMB_DIALECTS); i++) {
+	iov[n].iov_base = (char *) SMB_DIALECTS[i];
+	iov[n++].iov_len = strlen(SMB_DIALECTS[i]) + 1;
+    }
+
+    /* total up the lengths */
+    len = bytecount = 0;
+    for (i = 1; i < 4; i++) len += iov[i].iov_len;
+    for (i = 4; i < n; i++) bytecount += iov[i].iov_len;
+    len += bytecount;
+    nl = htonl(len);
+    UINT16_TO_INTEL(bytecount, bc);
+
+    /* send it */
+    rc = retry_writev(text->sock, iov, n);
+    if (rc == -1) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: error sending NEGPROT request");
+	return SASL_FAIL;
+    }
+
+    /*** read the negotiate protocol response ***/
+
+    /* read the total length */
+    rc = read(text->sock, &nl, sizeof(nl));
+    if (rc < (int) sizeof(nl)) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: error reading NEGPROT response length");
+	return SASL_FAIL;
+    }
+
+    /* read the data */
+    len = ntohl(nl);
+    if (_plug_buf_alloc(utils, &text->out_buf, &text->out_buf_len,
+			len) != SASL_OK) {
+	SETERROR(utils, "cannot allocate NTLM NEGPROT response buffer");
+	return SASL_NOMEM;
+    }
+
+    rc = read(text->sock, text->out_buf, len);
+    if (rc < (int) len) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: error reading NEGPROT response");
+	return SASL_FAIL;
+    }
+    p = text->out_buf;
+
+    /* parse the header */
+    if (len < SMB_HDR_SIZE) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: not enough data for NEGPROT response header");
+	return SASL_FAIL;
+    }
+    unload_smb_header(p, &hdr);
+    p += SMB_HDR_SIZE;
+    len -= SMB_HDR_SIZE;
+
+    /* sanity check the header */
+    if (memcmp(hdr.protocol, SMB_HDR_PROTOCOL, 4)	 /* correct protocol */
+	|| hdr.command != SMB_COM_NEGOTIATE_PROTOCOL /* correct command */
+	|| hdr.status				 /* no errors */
+	|| !(hdr.flags & SMB_FLAGS_SERVER_TO_REDIR)) { /* response */
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: error in NEGPROT response header: %ld",
+		   hdr.status);
+	return SASL_FAIL;
+    }
+
+    /* get the wordcount */
+    if (len < 1) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: not enough data for NEGPROT response wordcount");
+	return SASL_FAIL;
+    }
+    wordcount = *p++;
+    len--;
+
+    /* parse the parameters */
+    if (wordcount != SMB_NEGPROT_RESP_SIZE / sizeof(uint16)) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: incorrect NEGPROT wordcount for NT LM 0.12");
+	return SASL_FAIL;
+    }
+    unload_negprot_resp(p, &resp);
+    p += SMB_NEGPROT_RESP_SIZE;
+    len -= SMB_NEGPROT_RESP_SIZE;
+
+    /* sanity check the parameters */
+    if (resp.dialect_index != 0
+	|| !(resp.security_mode & SMB_SECURITY_MODE_USER)
+	|| !(resp.security_mode & SMB_SECURITY_MODE_ENCRYPT)
+	|| resp.security_mode & SMB_SECURITY_MODE_SIGN_REQ
+	|| resp.capabilities & SMB_CAP_EXTENDED_SECURITY
+	|| resp.encryption_key_length != NTLM_NONCE_LENGTH) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: error in NEGPROT response parameters");
+	return SASL_FAIL;
+    }
+
+    /* get the bytecount */
+    if (len < 2) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: not enough data for NEGPROT response bytecount");
+	return SASL_FAIL;
+    }
+    UINT16_FROM_INTEL(*((uint16*) p), bytecount);
+    p += 2;
+    len -= 2;
+    if (len != bytecount) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: incorrect bytecount for NEGPROT response data");
+	return SASL_FAIL;
+    }
+
+    /* parse the data */
+    memcpy(text->nonce, p, resp.encryption_key_length);
+    p += resp.encryption_key_length;
+    len -= resp.encryption_key_length;
+
+    /* if client asked for target, send domain */
+    if (text->flags & NTLM_ASK_TARGET) {
+	*domain = utils->malloc(len);
+	if (domain == NULL) {
+	    MEMERROR(utils);
+	    return SASL_NOMEM;
+	}
+	memcpy(*domain, p, len);
+	from_unicode(*domain, *domain, len);
+
+	text->flags |= NTLM_TARGET_IS_DOMAIN;
+    }
+
+    return SASL_OK;
+}
+
+static int smb_session_setup(const sasl_utils_t *utils, server_context_t *text,
+			     const char *authid, char *domain,
+			     unsigned char *lm_resp, unsigned char *nt_resp)
+{
+    SMB_Header hdr;
+    SMB_SessionSetup setup;
+    SMB_SessionSetup_Resp resp;
+    unsigned char hbuf[SMB_HDR_SIZE], sbuf[SMB_SESSION_SETUP_SIZE], *p;
+    unsigned char wordcount = SMB_SESSION_SETUP_SIZE / sizeof(uint16);
+    uint16 bytecount, bc;
+    uint32 len, nl;
+    struct iovec iov[12];
+    size_t i, n;
+    int rc;
+    struct utsname os;
+    char osbuf[2*SYS_NMLN+2], lanman[20];
+
+    /*** create a session setup request ***/
+
+    /* create a header */
+    memset(&hdr, 0, sizeof(hdr));
+    hdr.command = SMB_COM_SESSION_SETUP_ANDX;
+#if 0
+    hdr.flags2 = SMB_FLAGS2_ERR_STATUS;
+    if (text->flags & NTLM_USE_UNICODE) hdr.flags2 |= SMB_FLAGS2_UNICODE;
+#endif
+    hdr.pid = getpid();
+    load_smb_header(hbuf, &hdr);
+
+    /* create a the setup parameters */
+    memset(&setup, 0, sizeof(setup));
+    setup.andx_command = SMB_COM_NONE;
+    setup.max_buffer_size = 0xFFFF;
+    if (lm_resp) setup.case_insensitive_passwd_len = NTLM_RESP_LENGTH;
+    if (nt_resp) setup.case_sensitive_passwd_len = NTLM_RESP_LENGTH;
+#if 0
+    if (text->flags & NTLM_USE_UNICODE)
+	setup.capabilities = SMB_CAP_UNICODE;
+#endif
+    load_session_setup(sbuf, &setup);
+
+    uname(&os);
+    snprintf(osbuf, sizeof(osbuf), "%s %s", os.sysname, os.release);
+
+    snprintf(lanman, sizeof(lanman), "Cyrus SASL %u.%u.%u",
+	     SASL_VERSION_MAJOR, SASL_VERSION_MINOR,
+	     SASL_VERSION_STEP);
+
+    /* put together all of the pieces of the request */
+    n = 0;
+    iov[n].iov_base = &nl;
+    iov[n++].iov_len = sizeof(len);
+    iov[n].iov_base = hbuf;
+    iov[n++].iov_len = SMB_HDR_SIZE;
+    iov[n].iov_base = &wordcount;
+    iov[n++].iov_len = sizeof(wordcount);
+    iov[n].iov_base = sbuf;
+    iov[n++].iov_len = SMB_SESSION_SETUP_SIZE;
+    iov[n].iov_base = &bc;
+    iov[n++].iov_len = sizeof(bc);
+    if (lm_resp) {
+	iov[n].iov_base = lm_resp;
+	iov[n++].iov_len = NTLM_RESP_LENGTH;
+    }
+    if (nt_resp) {
+	iov[n].iov_base = nt_resp;
+	iov[n++].iov_len = NTLM_RESP_LENGTH;
+    }
+    iov[n].iov_base = (char*) authid;
+    iov[n++].iov_len = strlen(authid) + 1;
+    iov[n].iov_base = domain;
+    iov[n++].iov_len = strlen(domain) + 1;
+    iov[n].iov_base = osbuf;
+    iov[n++].iov_len = strlen(osbuf) + 1;
+    iov[n].iov_base = lanman;
+    iov[n++].iov_len = strlen(lanman) + 1;
+
+    /* total up the lengths */
+    len = bytecount = 0;
+    for (i = 1; i < 5; i++) len += iov[i].iov_len;
+    for (i = 5; i < n; i++) bytecount += iov[i].iov_len;
+    len += bytecount;
+    nl = htonl(len);
+    UINT16_TO_INTEL(bytecount, bc);
+
+    /* send it */
+    rc = retry_writev(text->sock, iov, n);
+    if (rc == -1) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: error sending SESSIONSETUP request");
+	return SASL_FAIL;
+    }
+
+    /*** read the session setup response ***/
+
+    /* read the total length */
+    rc = read(text->sock, &nl, sizeof(nl));
+    if (rc < (int) sizeof(nl)) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: error reading SESSIONSETUP response length");
+	return SASL_FAIL;
+    }
+
+    /* read the data */
+    len = ntohl(nl);
+    if (_plug_buf_alloc(utils, &text->out_buf, &text->out_buf_len,
+			len) != SASL_OK) {
+	SETERROR(utils,
+		 "cannot allocate NTLM SESSIONSETUP response buffer");
+	return SASL_NOMEM;
+    }
+
+    rc = read(text->sock, text->out_buf, len);
+    if (rc < (int) len) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: error reading SESSIONSETUP response");
+	return SASL_FAIL;
+    }
+    p = text->out_buf;
+
+    /* parse the header */
+    if (len < SMB_HDR_SIZE) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: not enough data for SESSIONSETUP response header");
+	return SASL_FAIL;
+    }
+    unload_smb_header(p, &hdr);
+    p += SMB_HDR_SIZE;
+    len -= SMB_HDR_SIZE;
+
+    /* sanity check the header */
+    if (memcmp(hdr.protocol, SMB_HDR_PROTOCOL, 4)	 /* correct protocol */
+	|| hdr.command != SMB_COM_SESSION_SETUP_ANDX /* correct command */
+	|| !(hdr.flags & SMB_FLAGS_SERVER_TO_REDIR)) { /* response */
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: error in SESSIONSETUP response header");
+	return SASL_FAIL;
+    }
+
+    /* check auth success */
+    if (hdr.status) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: auth failure: %ld", hdr.status);
+	return SASL_BADAUTH;
+    }
+
+    /* get the wordcount */
+    if (len < 1) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: not enough data for SESSIONSETUP response wordcount");
+	return SASL_FAIL;
+    }
+    wordcount = *p++;
+    len--;
+
+    /* parse the parameters */
+    if (wordcount < SMB_SESSION_SETUP_RESP_SIZE / sizeof(uint16)) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: incorrect SESSIONSETUP wordcount");
+	return SASL_FAIL;
+    }
+    unload_session_setup_resp(p, &resp);
+
+    /* check auth success */
+    if (resp.action & SMB_REQUEST_MODE_GUEST) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "NTLM: authenticated as guest");
+	return SASL_BADAUTH;
+    }
+
+    return SASL_OK;
+}
 
 static int create_challenge(const sasl_utils_t *utils,
 			    server_context_t *text,
@@ -373,6 +1123,17 @@ static int ntlm_server_mech_new(void *glob_context __attribute__((unused)),
 				void **conn_context)
 {
     server_context_t *text;
+    const char *serv;
+    unsigned int len;
+    int sock = -1;
+
+    sparams->utils->getopt(sparams->utils->getopt_context,
+			   "NTLM", "ntlm_server", &serv, &len);
+    if (serv) {
+	/* try to start a NetBIOS session with the server */
+	sock = smb_connect_server(sparams->utils, sparams->serverFQDN, serv);
+	if (sock == -1) return SASL_UNAVAIL;
+    }
     
     /* holds state are in */
     text = sparams->utils->malloc(sizeof(server_context_t));
@@ -384,6 +1145,7 @@ static int ntlm_server_mech_new(void *glob_context __attribute__((unused)),
     memset(text, 0, sizeof(server_context_t));
     
     text->state = 1;
+    text->sock = sock;
     
     *conn_context = text;
     
@@ -408,23 +1170,32 @@ static int ntlm_server_mech_step1(server_context_t *text,
     }
 
     UINT32_FROM_INTEL(request->flags, text->flags);
+    sparams->utils->log(NULL, SASL_LOG_DEBUG,
+			"client flags: %x", text->flags);
+
     text->flags &= NTLM_FLAGS_MASK;
 
     /* if client can do Unicode, turn off ASCII */
     if (text->flags & NTLM_USE_UNICODE) text->flags &= ~NTLM_USE_ASCII;
 
-    /* if client asked for target, use FQDN as server target */
-    if (text->flags & NTLM_ASK_TARGET) {
-	result = _plug_strdup(sparams->utils, sparams->serverFQDN,
-			      &domain, NULL);
-	if (result != SASL_OK) return result;
-
-	text->flags |= NTLM_TARGET_IS_SERVER;
+    if (text->sock != -1) {
+	result = smb_negotiate_protocol(sparams->utils, text, &domain);
+	if (result != SASL_OK) goto cleanup;
     }
+    else {
+	/* if client asked for target, use FQDN as server target */
+	if (text->flags & NTLM_ASK_TARGET) {
+	    result = _plug_strdup(sparams->utils, sparams->serverFQDN,
+			      &domain, NULL);
+	    if (result != SASL_OK) return result;
 
-    /* generate a nonce */
-    sparams->utils->rand(sparams->utils->rpool,
-			 (char *) text->nonce, NTLM_NONCE_LENGTH);
+	    text->flags |= NTLM_TARGET_IS_SERVER;
+	}
+
+	/* generate a nonce */
+	sparams->utils->rand(sparams->utils->rpool,
+			     (char *) text->nonce, NTLM_NONCE_LENGTH);
+    }
 
     result = create_challenge(sparams->utils, text, domain, text->flags,
 			      text->nonce, serveroutlen);
@@ -453,14 +1224,8 @@ static int ntlm_server_mech_step2(server_context_t *text,
     ntlm_response_t *response = (ntlm_response_t *) clientin;
     unsigned char *lm_resp_c = NULL, *nt_resp_c = NULL;
     char *domain = NULL, *authid = NULL;
-    sasl_secret_t *password = NULL;
-    unsigned lm_resp_len, nt_resp_len, domain_len, authid_len, pass_len;
+    unsigned lm_resp_len, nt_resp_len, domain_len, authid_len;
     int result;
-    const char *password_request[] = { SASL_AUX_PASSWORD,
-				       NULL };
-    struct propval auxprop_values[2];
-    unsigned char hash[NTLM_HASH_LENGTH];
-    unsigned char lm_resp_s[NTLM_RESP_LENGTH], nt_resp_s[NTLM_RESP_LENGTH];
 
     if (!response || clientinlen < sizeof(ntlm_response_t)) {
 	SETERROR(sparams->utils, "client didn't issue valid NTLM response");
@@ -499,52 +1264,73 @@ static int ntlm_server_mech_step2(server_context_t *text,
 	goto cleanup;
     }
 
-    /* fetch user's password */
-    result = sparams->utils->prop_request(sparams->propctx, password_request);
-    if (result != SASL_OK) goto cleanup;
-    
-    /* this will trigger the getting of the aux properties */
-    result = sparams->canon_user(sparams->utils->conn, authid, authid_len,
-				 SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
-    if (result != SASL_OK) goto cleanup;
+    if (text->sock != -1) {
+	result = sparams->canon_user(sparams->utils->conn, authid, authid_len,
+				     SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
+	if (result != SASL_OK) goto cleanup;
 
-    result = sparams->utils->prop_getnames(sparams->propctx,
-					   password_request,
-					   auxprop_values);
-    if (result < 0 ||
-	(!auxprop_values[0].name || !auxprop_values[0].values)) {
- 	/* We didn't find this username */
-	SETERROR(sparams->utils, "no secret in database");
-	result = SASL_NOUSER;
-	goto cleanup;
+	result = smb_session_setup(sparams->utils, text, oparams->authid,
+				   domain, lm_resp_c, nt_resp_c);
+	if (result != SASL_OK) goto cleanup;
     }
-    
-    pass_len = strlen(auxprop_values[0].values[0]);
-    if (pass_len == 0) {
-	SETERROR(sparams->utils, "empty secret");
-	result = SASL_FAIL;
-	goto cleanup;
-    }
+    else {
+	sasl_secret_t *password = NULL;
+	unsigned pass_len;
+	const char *password_request[] = { SASL_AUX_PASSWORD,
+				       NULL };
+	struct propval auxprop_values[2];
+	unsigned char hash[NTLM_HASH_LENGTH];
+	unsigned char lm_resp_s[NTLM_RESP_LENGTH], nt_resp_s[NTLM_RESP_LENGTH];
 
-    password = sparams->utils->malloc(sizeof(sasl_secret_t) + pass_len);
-    if (!password) {
-	result = SASL_NOMEM;
-	goto cleanup;
-    }
+	/* fetch user's password */
+	result = sparams->utils->prop_request(sparams->propctx, password_request);
+	if (result != SASL_OK) goto cleanup;
+    
+	/* this will trigger the getting of the aux properties */
+	result = sparams->canon_user(sparams->utils->conn, authid, authid_len,
+				     SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
+	if (result != SASL_OK) goto cleanup;
+
+	result = sparams->utils->prop_getnames(sparams->propctx,
+					       password_request,
+					       auxprop_values);
+	if (result < 0 ||
+	    (!auxprop_values[0].name || !auxprop_values[0].values)) {
+	    /* We didn't find this username */
+	    SETERROR(sparams->utils, "no secret in database");
+	    result = SASL_NOUSER;
+	    goto cleanup;
+	}
+    
+	pass_len = strlen(auxprop_values[0].values[0]);
+	if (pass_len == 0) {
+	    SETERROR(sparams->utils, "empty secret");
+	    result = SASL_FAIL;
+	    goto cleanup;
+	}
+
+	password = sparams->utils->malloc(sizeof(sasl_secret_t) + pass_len);
+	if (!password) {
+	    result = SASL_NOMEM;
+	    goto cleanup;
+	}
 	
-    password->len = pass_len;
-    strncpy(password->data, auxprop_values[0].values[0], pass_len + 1);
+	password->len = pass_len;
+	strncpy(password->data, auxprop_values[0].values[0], pass_len + 1);
 
-    /* calculate our own responses */
-    P24(lm_resp_s, P21(hash, password->data, P16_lm), text->nonce);
-    P24(nt_resp_s, P21(hash, password->data, P16_nt), text->nonce);
+	/* calculate our own responses */
+	P24(lm_resp_s, P21(hash, password->data, P16_lm), text->nonce);
+	P24(nt_resp_s, P21(hash, password->data, P16_nt), text->nonce);
 
-    /* compare client's responses with ours */
-    if ((lm_resp_c && memcmp(lm_resp_c, lm_resp_s, NTLM_RESP_LENGTH)) ||
-	(nt_resp_c && memcmp(nt_resp_c, nt_resp_s, NTLM_RESP_LENGTH))) {
-	SETERROR(sparams->utils, "incorrect NTLM responses");
-	result = SASL_BADAUTH;
-	goto cleanup;
+	_plug_free_secret(sparams->utils, &password);
+
+	/* compare client's responses with ours */
+	if ((lm_resp_c && memcmp(lm_resp_c, lm_resp_s, NTLM_RESP_LENGTH)) ||
+	    (nt_resp_c && memcmp(nt_resp_c, nt_resp_s, NTLM_RESP_LENGTH))) {
+	    SETERROR(sparams->utils, "incorrect NTLM responses");
+	    result = SASL_BADAUTH;
+	    goto cleanup;
+	}
     }
 
     /* set oparams */
@@ -564,7 +1350,6 @@ static int ntlm_server_mech_step2(server_context_t *text,
     if (nt_resp_c) sparams->utils->free(nt_resp_c);
     if (domain) sparams->utils->free(domain);
     if (authid) sparams->utils->free(authid);
-    if (password) _plug_free_secret(sparams->utils, &password);
 
     return result;
 }
@@ -612,6 +1397,7 @@ static void ntlm_server_mech_dispose(void *conn_context,
     if (!text) return;
     
     if (text->out_buf) utils->free(text->out_buf);
+    if (text->sock != -1) close(text->sock);
 
     utils->free(text);
 }

@@ -28,7 +28,6 @@ SOFTWARE.
 				   in this implementation */
 
 #include <config.h>
-//#include <des.h> //moved below for win32 since it clobbers definitions in stdio.h
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>

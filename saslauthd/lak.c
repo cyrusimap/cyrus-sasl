@@ -348,7 +348,7 @@ static int lak_escape(const char *s, char **result)
 	char *buf;
 	char *end, *ptr, *temp;
 
-	buf = malloc(strlen(s) * 2 + 1);
+	buf = malloc(strlen(s) * 3 + 1);
 	if (buf == NULL) {
 		return LAK_NOMEM;
 	}
@@ -427,7 +427,9 @@ static int lak_filter(LAK *lak, const char *username, const char *realm, char **
 		if( *buf == '%' ) percents++;
 	}
 
-	buf=malloc(strlen(lak->conf->filter) + (percents * maxparamlength) +1);
+	/* percents * 3 * maxparamlength because we need to account for
+         * an entirely-escaped worst-case-length parameter */
+	buf=malloc(strlen(lak->conf->filter) + (percents * 3 * maxparamlength) +1);
 	if(buf == NULL) {
 		syslog(LOG_ERR|LOG_AUTH, "Cannot allocate memory");
 		return LAK_NOMEM;

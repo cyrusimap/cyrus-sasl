@@ -3225,15 +3225,15 @@ c_continue_step(void *conn_context,
       }
     }
     if (text->realm == NULL) {
-	char *tmp;
 	VL(("Trying to get realm\n"));
-	realm_result = c_get_realm(params, &tmp, realm,
+	realm_result = c_get_realm(params, &text->realm, realm,
 				   prompt_need);
 
 	if ((realm_result != SASL_OK) && (realm_result != SASL_INTERACT)) {
 	    result = realm_result;
 	    goto FreeAllocatedMem;
 	}
+	/* if realm_result == SASL_OK, text->realm has been filled in */
     }
 
     /* free prompts we got */

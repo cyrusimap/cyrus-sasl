@@ -24,13 +24,14 @@
 #
 
 # Library version info - here at the top, for sanity
+# CURRENT:REVISION:AGE
 plain_version = 1:5:0
 anonymous_version = 1:6:0
 kerberos4_version = 1:6:0
 crammd5_version = 1:5:0
 scrammd5_version = 1:2:0
 gssapiv2_version = 1:5:0
-digestmd5_version = 0:6:0
+digestmd5_version = 0:7:0
 
 INCLUDES=-I$(top_srcdir)/include
 

@@ -15,14 +15,18 @@ To release:
 - increment version in configure.in
 - synchronize version with include/sasl.h and win32/include/config.h
 - modify library versions in lib/Makefile.am and plugins/Makefile.am
-  accordingly
+  accordingly (see libtool info file for details)
 - add release notice to ChangeLog
 - add user visible changes to NEWS
 
+- tag the CVS repository with sasl-Major_Minor_Revision
+
+- copy to /afs/andrew/system/archive/cmu/anonftp/pub/cyrus-mail
 - update asg.web.cmu.edu
 - announce to:
     info-cyrus@andrew.cmu.edu
     cyrus-sasl@lists.andrew.cmu.edu
+
     comp.os.linux.announce
     comp.mail.imap
     comp.mail.sendmail after 8.10 comes out

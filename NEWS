@@ -1,3 +1,7 @@
+New in 1.5.11
+-------------
+* bugfix in realm support for DIGEST-MD5
+
 New in 1.5.10
 -------------
 * DIGEST-MD5 layer support

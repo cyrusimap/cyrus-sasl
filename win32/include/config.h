@@ -33,7 +33,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define PACKAGE "cyrus-sasl"
 
 /* Our version */
-#define VERSION "1.5.5"
+#define VERSION "1.5.9"
 
 /* Registry key that contains the locations of the plugins */
 #define SASL_KEY "SOFTWARE\\Carnegie Mellon\\Project Cyrus\\SASL Library\\Available Plugins"

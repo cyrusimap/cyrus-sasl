@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.6 1999/09/20 18:34:59 leg Exp $ -->
+<!-- $Id: sysadmin.html,v 1.7 1999/10/01 20:27:48 leg Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -159,14 +159,6 @@ flexible in this regard:
   password mechanisms and that this is the only plaintext
   authentication method that supports multiple realms on a single
   server.  However, system built-in routines will not use sasldb.<p>
-
-  Note that to <i>set</i> plaintext passwords in sasldb,
-  you need to configure "<tt>saslpasswd</tt>" to do so.  The
-  "<tt>saslpasswd</tt>" uses the same configuration files like any
-  SASL server.  Make <tt>/usr/lib/sasl/saslpasswd.conf</tt> contain
-  the line "<tt>pwcheck_method: sasldb</tt>" to instruct
-  "<tt>saslpasswd</tt>" to create plaintext secrets in addition to the
-  normal secrets.<p>
 
 <dt><i>write your own</i><dd> Last, but not least, the most flexible
   method of authentication for PLAIN is to write your own.  If you do

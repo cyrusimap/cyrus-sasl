@@ -1,3 +1,10 @@
+Fri Oct  1 16:05:22 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* version 1.5.9 released
+
+	* lib/server.c (sasl_setpass): for user sanity, we now create the
+	PLAIN secrets regardless
+
 1999-09-20  Gregory M. Diskin  <diskin+@andrew.cmu.edu>
 
 	* win32/saslgssapi: Added control files for win32 gssapi plugin build

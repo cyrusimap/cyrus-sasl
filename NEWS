@@ -1,3 +1,14 @@
+New in 1.5.9
+------------
+* Bug fixes
+* More win32 support
+* Realm support in the database (database format changed again, sorry)
+  Other realm support in plugins; need to document it
+* Preliminary code for pwcheck added; not yet tested (and probably not 
+  working)
+* config stuff should be less case/whitespace sensitive
+* more error conditions logged
+
 New in 1.5.5
 ------------
 * Bug fixes

@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.4 2002/10/21 15:31:26 ken3 Exp $
+ * $Id: ntlm.c,v 1.5 2003/01/21 17:46:46 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -62,7 +62,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.4 2002/10/21 15:31:26 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.5 2003/01/21 17:46:46 ken3 Exp $";
 
 #define NTLM_SIGNATURE		"NTLMSSP"
 
@@ -489,10 +489,12 @@ static int ntlm_server_mech_step2(server_context_t *text,
 			   (u_char *) response, clientinlen);
     if (result != SASL_OK) goto cleanup;
 
-    if (!lm_resp_c || lm_resp_len < NTLM_RESP_LENGTH ||
-	!nt_resp_c || nt_resp_len < NTLM_RESP_LENGTH ||
+    /* require at least one response and an authid */
+    if ((!lm_resp_c && !nt_resp_c) ||
+	(lm_resp_c && lm_resp_len < NTLM_RESP_LENGTH) ||
+	(nt_resp_c && nt_resp_len < NTLM_RESP_LENGTH) ||
 	!authid) {
-	SETERROR(sparams->utils, "client didn't issue valid NTLM response");
+	SETERROR(sparams->utils, "client issued incorrect/nonexistent responses");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -538,8 +540,8 @@ static int ntlm_server_mech_step2(server_context_t *text,
     P24(nt_resp_s, P21(hash, password->data, P16_nt), text->nonce);
 
     /* compare client's responses with ours */
-    if (memcmp(lm_resp_c, lm_resp_s, NTLM_RESP_LENGTH) ||
-	memcmp(nt_resp_c, nt_resp_s, NTLM_RESP_LENGTH)) {
+    if ((lm_resp_c && memcmp(lm_resp_c, lm_resp_s, NTLM_RESP_LENGTH)) ||
+	(nt_resp_c && memcmp(nt_resp_c, nt_resp_s, NTLM_RESP_LENGTH))) {
 	SETERROR(sparams->utils, "incorrect NTLM responses");
 	result = SASL_BADAUTH;
 	goto cleanup;

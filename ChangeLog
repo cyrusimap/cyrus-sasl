@@ -1,3 +1,7 @@
+1999-03-24  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* include/Makefile.am: removed winconfig.h dependancy
+
 1999-03-23  Rob Earhart  <rob+@andrew.cmu.edu>
 
 	* plugins/plain.c (client_plugins): deleted required prompts;

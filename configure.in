@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.79 2000/03/21 19:22:17 tmartin Exp $
+dnl $Id: configure.in,v 1.80 2000/03/21 19:34:06 tmartin Exp $
 dnl
 dnl Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -100,7 +100,7 @@ fi
 
 if test "$enable_java" = yes; then
 dnl  AC_ERROR([java is not supported in this release])
-  DIRS="$DIRS sasl"
+  DIRS="$DIRS java"
 fi
 
 if test "$enable_java" = yes; then
@@ -658,4 +658,4 @@ fi
 
 AC_SUBST(DIRS)
 
-AC_OUTPUT(Makefile include/Makefile lib/Makefile plugins/Makefile utils/Makefile doc/Makefile sample/Makefile sasl/Makefile man/Makefile pwcheck/Makefile)
+AC_OUTPUT(Makefile include/Makefile lib/Makefile plugins/Makefile utils/Makefile doc/Makefile sample/Makefile java/Makefile man/Makefile pwcheck/Makefile)

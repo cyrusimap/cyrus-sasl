@@ -47,7 +47,7 @@ static const char anonymous_id[] = "anonymous";
 
 #ifdef L_DEFAULT_GUARD
 # undef L_DEFAULT_GUARD
-# define L_DEFAULT_GUARD (0)
+# define L_DEFAULT_GUARD (1)
 #endif
 
 static int
@@ -227,6 +227,8 @@ c_continue_step(void *conn_context __attribute__((unused)),
   void *getuser_context;
   const char *user;
 
+  VL(("ANONYMOUS: step 1\n"));
+
   if (!params
       || !clientout
       || !clientoutlen
@@ -242,9 +244,11 @@ c_continue_step(void *conn_context __attribute__((unused)),
 
   /* Get the username */
   if (prompt_need && *prompt_need) {
+    VL(("Received prompt\n"));
     /* We used an interaction to get it. */
     if (! (*prompt_need)[0].result)
       return SASL_BADPARAM;
+
     user = (*prompt_need)[0].result;
     params->utils->free(*prompt_need);
     *prompt_need = NULL;
@@ -290,22 +294,28 @@ c_continue_step(void *conn_context __attribute__((unused)),
   
   VL(("anonymous: user=%s\n",user));
 
+
+
   userlen = strlen(user);
 
   memset(hostname, 0, sizeof(hostname));
   gethostname(hostname,sizeof(hostname));
-  hostname[sizeof(hostname)] = '\0';
+  hostname[sizeof(hostname)-1] = '\0';
+
   
   *clientoutlen = userlen + strlen(hostname) + 1;
 
   *clientout = params->utils->malloc(*clientoutlen + 1);
   if (! *clientout) return SASL_NOMEM;
 
+
   strcpy(*clientout, user);
   (*clientout)[userlen] = '@';
   strcpy(*clientout + userlen + 1, hostname);
 
   VL(("anonymous: out=%s\n", *clientout));
+
+
 
   oparams->doneflag = 1;
   oparams->mech_ssf=0;

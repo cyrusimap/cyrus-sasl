@@ -18,16 +18,16 @@ Sections:
 1. BUILD SASLAUTHD WITH LDAP SUPPORT
 ------------------------------------
 
-Ensure that you have the OpenLDAP (http://www.openldap.org) libraries 2.0 or
-higher.  Fetch the latest cyrus-sasl package, 2.1.12 or higher,
+Ensure that you have the OpenLDAP (http://www.openldap.org) libraries 2.1 or
+higher.  Fetch the latest cyrus-sasl package, 2.1.17 or higher,
 ftp://ftp.andrew.cmu.edu/pub/cyrus-mail/.
 
 Unpack cyrus-sasl:
-gzip -dc cyrus-sasl-2.1.15.tar.gz | tar xf -
+gzip -dc cyrus-sasl-2.1.17.tar.gz | tar xf -
 or
-tar zxf cyrus-sasl-2.1.15.tar.gz (if your tar supportz gzip)
+tar zxf cyrus-sasl-2.1.17.tar.gz (if your tar supportz gzip)
 
-cd cyrus-sasl-2.1.15
+cd cyrus-sasl-2.1.17
 ./configure --with-ldap  (you may need to add other options, check doc/index.html for more)
 make
 make install
@@ -87,8 +87,9 @@ ldap_auth_method: <bind|fastbind> <bind|custom|fastbind>
 
     The bind method uses the LDAP bind facility to verify the password.  The
     bind method is not available when ldap_use_sasl is turned on.  In that case
-    saslauthd will use to fastbind.
-    'bind' is the default auth method. When ldap_use_sasl is turned on,
+    saslauthd will use fastbind.
+
+    'bind' is the default auth method. When ldap_use_sasl is enabled,
     'fastbind' is the default.
 
     The custom method uses userPassword attribute to verify the password.
@@ -97,7 +98,7 @@ ldap_auth_method: <bind|fastbind> <bind|custom|fastbind>
 
     The fastbind method (when 'ldap_use_sasl: no') does away with the search
     and an extra anonymous bind in auth_bind, but makes two assumptions:
-	  1. Expanding the ldap_filter expression gives the fully-qualified DN
+	  1. Expanding the ldap_filter expression gives the user's fully-qualified DN
 	  2. There is no cost to staying bound as a named user
 
 ldap_bind_dn: <none>
@@ -110,7 +111,7 @@ ldap_bind_pw: <none>
 ldap_default_domain: <none>
 	Alias for ldap_default_realm.
 
-ldap_default_domain: <none>
+ldap_default_realm: <none>
 	The default realm is assigned to the %r token when realm is not
 	available.  See ldap_filter for more.
 
@@ -128,6 +129,7 @@ ldap_filter: <uid=%u>
 	%1-9 = domain tokens (%1 = tld, %2 = domain when %d = domain.tld)
 	%s   = service
 	%r   = realm
+	%D   = user DN (available for group checks)
 	
 	The %u token has to be used at minimum for the filter to be useful.  If
 	ldap_auth_method is 'bind', the filter will search for the DN
@@ -135,15 +137,32 @@ ldap_filter: <uid=%u>
 	the 'ldap_password_attr' (see below) attribute.
 
 ldap_group_attr: <uniqueMember>
-	Specify what attribute to compare the user DN against in the group. If
-	ldap_group_dn is not specified, this parameter is ignored.
+    Specify what attribute to compare the user DN against in the group. If
+    ldap_group_dn is not specified, this parameter is ignored.  If
+    ldap_group_match_method is not attr, this parameter is ignored.
  
 ldap_group_dn: <none>
-	Specify a group DN. If specified, the user DN has to be part of the
-	group in order to authenticate successfully.  Tokens described in
-	'ldap_filter' (see above) can be used for substitution.  The user DN is
-	compared against the 'ldap_group_attr' (see below) attribute of the
-	group.
+    If specified, the user has to be part of the group in order to authenticate
+    successfully.  Tokens described in 'ldap_filter' (see above) can be used
+    for substitution.
+
+ldap_group_filter: <none>
+    Specify a filter. If a filter match is found then the user is in the group.
+    Tokens described in 'ldap_filter' (see above) can be used for for
+    substitution. If ldap_group_dn is not specified, this parameter is ignored.
+    If ldap_group_match_method is not filter, this parameter is ignored.
+
+ldap_group_match_method: <attr> <attr|filter>
+    Specify whether the group match method uses ldap_group_attr or
+    ldap_group_search.  If ldap_group_dn is not specified, this parameter is
+    ignored.
+
+ldap_group_search_base: <if not specified, it defaults to ldap_search_base>
+    Specify a starting point for the group search: e.g. dc=foo,dc=com.  Tokens
+    described in 'ldap_filter' (see below) can be used for substitution.
+
+ldap_group_scope: <sub> <sub|one|base>
+	Group search scope.
 
 ldap_password: <none>
 	Specify the password for ldap_bind_dn or ldap_id if

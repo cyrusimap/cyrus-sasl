@@ -59,6 +59,9 @@
 #define LAK_AUTH_METHOD_CUSTOM 1
 #define LAK_AUTH_METHOD_FASTBIND 2
 
+#define LAK_GROUP_MATCH_METHOD_ATTR 0
+#define LAK_GROUP_MATCH_METHOD_FILTER 1
+
 #define LAK_BUF_LEN 128
 #define LAK_DN_LEN 512
 #define LAK_PATH_LEN 1024
@@ -80,9 +83,13 @@ typedef struct lak_conf {
     char   default_realm[LAK_BUF_LEN];
     char   search_base[LAK_DN_LEN];
     char   filter[LAK_DN_LEN];
+    char   password_attr[LAK_BUF_LEN];
     char   group_dn[LAK_DN_LEN];
     char   group_attr[LAK_BUF_LEN];
-    char   password_attr[LAK_BUF_LEN];
+    char   group_filter[LAK_DN_LEN];
+    char   group_search_base[LAK_DN_LEN];
+    int    group_scope;
+    int    group_match_method;
     char   auth_method;
     int    use_sasl;
     char   id[LAK_BUF_LEN];

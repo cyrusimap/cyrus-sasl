@@ -1,3 +1,9 @@
+2000-10-13  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c: switch to using an internal implementation
+	of rc4 to remove at least one dependency on openssl, just makes
+	things easier to compile/use
+
 2000-08-23  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/kerberos4.c (sasl_server_plug_init): now uses utils->log

@@ -1,3 +1,8 @@
+2003-12-12  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* assign null to free variables (Juan Felipe Garcia <fgc@usal.es>)
+	* Improve retry when ldap connection is reset (1st pass)
+	  (Igor Brezac <igor@ipass.net>)
+
 2003-12-11  Rolf Braun <rbraun@andrew.cmu.edu>
 	* Several MacOS X Fixes
 

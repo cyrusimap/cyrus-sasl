@@ -94,16 +94,17 @@ static char *gssapi_service = "host";
 /* our types of failures */
 typedef enum {
     NOTHING = 0,
-    ONEBYTE_RANDOM, /* replace one byte with something random */
-    ONEBYTE_NULL,   /* replace one byte with a null */
-    ONEBYTE_QUOTES, /* replace one byte with a double quote (try to fuck with digest-md5) */   
-    ONLY_ONE_BYTE,  /* send only one byte */
-    ADDSOME,        /* add some random bytes onto the end */
-    SHORTEN,        /* shorten the string some */
-    REASONABLE_RANDOM, /* send same size but random */
-    REALLYBIG,       /* send something absurdly large (all random)*/
-    NEGATIVE_LENGTH, /* send negative length */
-    CORRUPT_SIZE /* keep this one last */
+    ONEBYTE_RANDOM,		/* replace one byte with something random */
+    ONEBYTE_NULL,		/* replace one byte with a null */
+    ONEBYTE_QUOTES,		/* replace one byte with a double quote 
+				   (try to fuck with digest-md5) */
+    ONLY_ONE_BYTE,		/* send only one byte */
+    ADDSOME,			/* add some random bytes onto the end */
+    SHORTEN,			/* shorten the string some */
+    REASONABLE_RANDOM,		/* send same size but random */
+    REALLYBIG,			/* send something absurdly large all random */
+    NEGATIVE_LENGTH,		/* send negative length */
+    CORRUPT_SIZE		/* keep this one last */
 } corrupt_type_t;
 
 typedef void *foreach_t(char *mech, void *rock);

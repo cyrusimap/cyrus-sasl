@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.41 2002/05/13 15:43:17 ken3 Exp $
+ * $Id: srp.c,v 1.42 2002/07/30 17:06:22 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -75,7 +75,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: srp.c,v 1.41 2002/05/13 15:43:17 ken3 Exp $";
+static const char plugin_id[] = "$Id: srp.c,v 1.42 2002/07/30 17:06:22 rjs3 Exp $";
 
 /* Size of diffie-hellman secrets a and b */
 #define BITSFORab 64
@@ -2718,7 +2718,8 @@ static sasl_server_plug_t srp_server_plugins[] =
 	| SASL_SEC_NODICTIONARY
 	| SASL_SEC_FORWARD_SECRECY
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
-	SASL_FEAT_WANT_CLIENT_FIRST,	/* features */
+	SASL_FEAT_WANT_CLIENT_FIRST
+	| SASL_FEAT_ALLOWS_PROXY,	/* features */
 	NULL,				/* glob_context */
 	&srp_server_mech_new,		/* mech_new */
 	&srp_server_mech_step,		/* mech_step */
@@ -3578,7 +3579,8 @@ static sasl_client_plug_t srp_client_plugins[] =
 	| SASL_SEC_NODICTIONARY
 	| SASL_SEC_FORWARD_SECRECY
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
-	SASL_FEAT_WANT_CLIENT_FIRST,	/* features */
+	SASL_FEAT_WANT_CLIENT_FIRST
+	| SASL_FEAT_ALLOWS_PROXY,	/* features */
 	NULL,				/* required_prompts */
 	NULL,				/* glob_context */
 	&srp_client_mech_new,		/* mech_new */

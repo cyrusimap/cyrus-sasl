@@ -257,6 +257,7 @@ typedef unsigned sasl_ssf_t;
 /* usage flags provided to sasl_server_new and sasl_client_new:
  */
 #define SASL_SUCCESS_DATA    0x0004 /* server supports data on success */
+#define SASL_NEED_PROXY      0x0008 /* require a mech that allows proxying */
 
 /***************************
  * Security Property Types *

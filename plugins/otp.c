@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.21 2002/05/13 15:43:17 ken3 Exp $
+ * $Id: otp.c,v 1.22 2002/07/30 17:06:21 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -76,7 +76,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: otp.c,v 1.21 2002/05/13 15:43:17 ken3 Exp $";
+static const char plugin_id[] = "$Id: otp.c,v 1.22 2002/07/30 17:06:21 rjs3 Exp $";
 
 #define OTP_SEQUENCE_MAX	9999
 #define OTP_SEQUENCE_DEFAULT	499
@@ -539,7 +539,8 @@ static sasl_server_plug_t otp_server_plugins[] =
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOANONYMOUS
 	| SASL_SEC_FORWARD_SECRECY,
-	SASL_FEAT_WANT_CLIENT_FIRST,
+	SASL_FEAT_WANT_CLIENT_FIRST
+	| SASL_FEAT_ALLOWS_PROXY,
 	NULL,
 	&otp_server_mech_new,
 	&opie_server_mech_step,
@@ -1344,7 +1345,8 @@ static sasl_server_plug_t otp_server_plugins[] =
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOANONYMOUS
 	| SASL_SEC_FORWARD_SECRECY,	/* security_flags */
-	SASL_FEAT_WANT_CLIENT_FIRST,	/* features */
+	SASL_FEAT_WANT_CLIENT_FIRST
+	| SASL_FEAT_ALLOWS_PROXY,	/* features */
 	NULL,				/* glob_context */
 	&otp_server_mech_new,		/* mech_new */
 	&otp_server_mech_step,		/* mech_step */

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.53 2002/07/02 19:01:40 rjs3 Exp $
+ * $Id: client.c,v 1.54 2002/07/30 17:06:15 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -444,19 +444,19 @@ int sasl_client_start(sasl_conn_t *conn,
 
 	/* foreach in server list */
 	for (m = cmechlist->mech_list; m != NULL; m = m->next) {
-	    /* is this the mechanism the server is suggesting? */
+	    /* Is this the mechanism the server is suggesting? */
 	    if (strcasecmp(m->plug->mech_name, name))
 		continue; /* no */
 
-	    /* do we have the prompts for it? */
+	    /* Do we have the prompts for it? */
 	    if (!have_prompts(conn, m->plug))
 		break;
 
-	    /* is it strong enough? */
+	    /* Is it strong enough? */
 	    if (minssf > m->plug->max_ssf)
 		break;
 
-	    /* does it meet our security properties? */
+	    /* Does it meet our security properties? */
 	    if (((conn->props.security_flags ^ m->plug->security_flags)
 		 & conn->props.security_flags) != 0) {
 		break;
@@ -465,6 +465,12 @@ int sasl_client_start(sasl_conn_t *conn,
 	    /* Can we meet it's features? */
 	    if ((m->plug->features & SASL_FEAT_NEEDSERVERFQDN)
 		&& !conn->serverFQDN) {
+		break;
+	    }
+
+	    /* Can it meet our features? */
+	    if ((conn->flags & SASL_NEED_PROXY) &&
+		!(m->plug->features & SASL_FEAT_ALLOWS_PROXY)) {
 		break;
 	    }
 	    
@@ -727,6 +733,12 @@ int _sasl_client_listmech(sasl_conn_t *conn,
 	    if ((m->plug->features & SASL_FEAT_NEEDSERVERFQDN)
 		&& !conn->serverFQDN) {
 		continue;
+	    }
+
+	    /* Can it meet our features? */
+	    if ((conn->flags & SASL_NEED_PROXY) &&
+		!(m->plug->features & SASL_FEAT_ALLOWS_PROXY)) {
+		break;
 	    }
 
 	    /* Okay, we like it, add it to the list! */

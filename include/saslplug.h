@@ -304,6 +304,9 @@ typedef struct sasl_client_params {
  */
 #define SASL_FEAT_SERVER_FIRST 0x0010
 
+/* This plugin allows proxying */
+#define SASL_FEAT_ALLOWS_PROXY 0x0020
+
 /* client plug-in features */
 #define SASL_FEAT_NEEDSERVERFQDN 0x0001
 

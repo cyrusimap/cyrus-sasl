@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.113 2002/06/19 18:07:23 rjs3 Exp $
+ * $Id: server.c,v 1.114 2002/07/30 17:06:16 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -953,6 +953,12 @@ static int mech_permitted(sasl_conn_t *conn,
        mechanism */
     if (mech->condition == SASL_NOUSER) {
 	sasl_seterror(conn, 0, "no users in secrets db");
+	return 0;
+    }
+
+    /* Can it meet our features? */
+    if ((conn->flags & SASL_NEED_PROXY) &&
+	!(plug->features & SASL_FEAT_ALLOWS_PROXY)) {
 	return 0;
     }
     

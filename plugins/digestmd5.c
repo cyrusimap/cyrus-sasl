@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.136 2002/06/19 16:25:00 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.137 2002/07/30 17:06:19 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -103,7 +103,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.136 2002/06/19 16:25:00 rjs3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.137 2002/07/30 17:06:19 rjs3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -2650,7 +2650,7 @@ static sasl_server_plug_t digestmd5_server_plugins[] =
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOANONYMOUS
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
-	0,				/* features */
+	SASL_FEAT_ALLOWS_PROXY,		/* features */
 	NULL,				/* glob_context */
 	&digestmd5_server_mech_new,	/* mech_new */
 	&digestmd5_server_mech_step,	/* mech_step */
@@ -3822,7 +3822,7 @@ static sasl_client_plug_t digestmd5_client_plugins[] =
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOANONYMOUS
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
-	0,				/* features */
+	SASL_FEAT_ALLOWS_PROXY, 	/* features */
 	NULL,				/* required_prompts */
 	NULL,				/* glob_context */
 	&digestmd5_client_mech_new,	/* mech_new */

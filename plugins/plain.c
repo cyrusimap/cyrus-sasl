@@ -1,7 +1,7 @@
 /* Plain SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: plain.c,v 1.57 2002/06/17 16:24:35 rjs3 Exp $
+ * $Id: plain.c,v 1.58 2002/07/30 17:06:22 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -62,7 +62,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: plain.c,v 1.57 2002/06/17 16:24:35 rjs3 Exp $";
+static const char plugin_id[] = "$Id: plain.c,v 1.58 2002/07/30 17:06:22 rjs3 Exp $";
 
 /*****************************  Server Section  *****************************/
 
@@ -202,7 +202,8 @@ static sasl_server_plug_t plain_server_plugins[] =
 	"PLAIN",			/* mech_name */
 	0,				/* max_ssf */
 	SASL_SEC_NOANONYMOUS,		/* security_flags */
-	SASL_FEAT_WANT_CLIENT_FIRST,	/* features */
+	SASL_FEAT_WANT_CLIENT_FIRST
+	| SASL_FEAT_ALLOWS_PROXY,	/* features */
 	NULL,				/* glob_context */
 	&plain_server_mech_new,		/* mech_new */
 	&plain_server_mech_step,	/* mech_step */
@@ -416,7 +417,8 @@ static sasl_client_plug_t plain_client_plugins[] =
 	"PLAIN",			/* mech_name */
 	0,				/* max_ssf */
 	SASL_SEC_NOANONYMOUS,		/* security_flags */
-	SASL_FEAT_WANT_CLIENT_FIRST,	/* features */
+	SASL_FEAT_WANT_CLIENT_FIRST
+	| SASL_FEAT_ALLOWS_PROXY,	/* features */
 	NULL,				/* required_prompts */
 	NULL,				/* glob_context */
 	&plain_client_mech_new,		/* mech_new */

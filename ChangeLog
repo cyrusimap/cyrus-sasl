@@ -1,3 +1,12 @@
+2002-07-30  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/client.c, lib/server.c: Add checks for SASL_NEED_PROXY and
+	  SASL_FEAT_ALLOWS_PROXY
+	* include/sasl.h, include/saslplug.h: Add SASL_NEED_PROXY and
+	  SASL_FEAT_ALLOWS_PROXY
+	* plugins/digestmd5.c, plugins/gssapi.c, plugins/kerberos4.c,
+	  plugins/otp.c, plugins/plain.c, plugins/srp.c: define
+	  SASL_FEAT_ALLOWS_PROXY for these mechanisms
+
 2002-07-27  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/auth_sasldb.c: Include mechanisms.h in a reasonable place.
 

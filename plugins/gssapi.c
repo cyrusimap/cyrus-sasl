@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.66 2002/05/02 22:05:41 ken3 Exp $
+ * $Id: gssapi.c,v 1.67 2002/07/30 17:06:20 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -87,7 +87,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.66 2002/05/02 22:05:41 ken3 Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.67 2002/07/30 17:06:20 rjs3 Exp $";
 
 #ifndef HAVE_GSS_C_NT_HOSTBASED_SERVICE
 extern gss_OID gss_nt_service_name;
@@ -1026,7 +1026,8 @@ static sasl_server_plug_t gssapi_server_plugins[] =
 	| SASL_SEC_NOACTIVE
 	| SASL_SEC_NOANONYMOUS
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
-	SASL_FEAT_WANT_CLIENT_FIRST,	/* features */
+	SASL_FEAT_WANT_CLIENT_FIRST
+	| SASL_FEAT_ALLOWS_PROXY,	/* features */
 	NULL,				/* glob_context */
 	&gssapi_server_mech_new,	/* mech_new */
 	&gssapi_server_mech_step,	/* mech_step */
@@ -1501,7 +1502,8 @@ static sasl_client_plug_t gssapi_client_plugins[] =
 	| SASL_SEC_NOACTIVE
 	| SASL_SEC_NOANONYMOUS
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
-	SASL_FEAT_WANT_CLIENT_FIRST,	/* features */
+	SASL_FEAT_WANT_CLIENT_FIRST
+	| SASL_FEAT_ALLOWS_PROXY,	/* features */
 	gssapi_client_required_prompts,	/* required_prompts */
 	NULL,				/* glob_context */
 	&gssapi_client_mech_new,	/* mech_new */

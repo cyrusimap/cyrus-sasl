@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.87 2002/06/10 15:52:18 rjs3 Exp $
+ * $Id: kerberos4.c,v 1.88 2002/07/30 17:06:21 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -107,7 +107,7 @@ extern int gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: kerberos4.c,v 1.87 2002/06/10 15:52:18 rjs3 Exp $";
+static const char plugin_id[] = "$Id: kerberos4.c,v 1.88 2002/07/30 17:06:21 rjs3 Exp $";
 
 #ifndef KEYFILE
 #define KEYFILE "/etc/srvtab";
@@ -870,7 +870,8 @@ static sasl_server_plug_t kerberosv4_server_plugins[] =
 	| SASL_SEC_NOACTIVE
 	| SASL_SEC_NOANONYMOUS
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
-	SASL_FEAT_SERVER_FIRST,		/* features */
+	SASL_FEAT_SERVER_FIRST
+	| SASL_FEAT_ALLOWS_PROXY,	/* features */
 	NULL,				/* glob_context */
 	&kerberosv4_server_mech_new,	/* mech_new */
 	&kerberosv4_server_mech_step,	/* mech_step */
@@ -1352,7 +1353,8 @@ static sasl_client_plug_t kerberosv4_client_plugins[] =
 	| SASL_SEC_NOANONYMOUS
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
 	SASL_FEAT_NEEDSERVERFQDN
-	| SASL_FEAT_SERVER_FIRST,	/* features */
+	| SASL_FEAT_SERVER_FIRST
+	| SASL_FEAT_ALLOWS_PROXY,	/* features */
 	kerberosv4_client_required_prompts,	/* required_prompts */
 	NULL,				/* glob_context */
 	&kerberosv4_client_mech_new,	/* mech_new */

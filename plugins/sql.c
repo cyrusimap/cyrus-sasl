@@ -3,7 +3,7 @@
 ** SQL Auxprop plugin
 **   based on the original work of Simon Loader and Patrick Welche
 **
-** $Id: sql.c,v 1.9 2003/09/22 17:33:40 mnigrosh Exp $
+** $Id: sql.c,v 1.10 2003/09/23 20:22:56 mnigrosh Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -82,14 +82,16 @@ static int sql_max(int a, int b);
 static int sql_len(const char *input);
 
 typedef struct sql_engine {
-    const char *name;
-    void *(*sql_open)(char *host, char *port, int usessl,
-		      const char *user, const char *password,
-		      const char *database, const sasl_utils_t *utils);
-    int (*sql_escape_str)(char *to, const char *from);
-    int (*sql_query)(void *conn, char *query, char *value, size_t size,
-		     size_t *value_len, const sasl_utils_t *utils);
-    void (*sql_close)(void *conn);
+  const char *name;
+  const char *begin;
+  const char *commit;
+  void *(*sql_open)(char *host, char *port, int usessl,
+		    const char *user, const char *password,
+		    const char *database, const sasl_utils_t *utils);
+  int (*sql_escape_str)(char *to, const char *from);
+  int (*sql_query)(void *conn, char *query, char *value, size_t size,
+		   size_t *value_len, const sasl_utils_t *utils);
+  void (*sql_close)(void *conn);
 } sql_engine_t;
 
 typedef struct sql_settings 
@@ -138,20 +140,11 @@ static int _mysql_query(void *conn, char *query, char *value, size_t size,
     MYSQL_RES *result;
     MYSQL_ROW row;
     int row_count;
-    const char begin[] = "START TRANSACTION";
-    const char commit[] = "COMMIT";
-    int querylength = strlen(query);
-    /* The 32 covers the START TRANSACTION and the COMMIT, plus a pad*/
-    char *transaction_query = 
-      utils->malloc(querylength + 32);
-
-    snprintf(transaction_query, querylength + 32, 
-	     "%s; %s %s;", begin, query, commit);
 
     /* run the query */
-    if (mysql_real_query(conn, transaction_query, strlen(transaction_query)) < 0
+    if (mysql_real_query(conn, query, strlen(query)) < 0
 	|| !(result = mysql_store_result(conn))) {
-	utils->free(transaction_query);
+	utils->free(query);
 	return -1;
     }
 	
@@ -159,7 +152,7 @@ static int _mysql_query(void *conn, char *query, char *value, size_t size,
     row_count = mysql_num_rows(conn);
     if (!row_count) {
 	/* umm nothing found */
-	utils->free(transaction_query);
+	utils->free(query);
 	mysql_free_result(result);
 	return -1;
     }
@@ -176,7 +169,7 @@ static int _mysql_query(void *conn, char *query, char *value, size_t size,
     if (value_len) *value_len = strlen(value);
 	
     /* free result */
-    utils->free(transaction_query);
+    utils->free(query);
     mysql_free_result(result);
 
     return 0;
@@ -201,8 +194,6 @@ int pgsql_exists(const char *input)
     }
   return 0;
 }
-
-
 
 static void *_pgsql_open(char *host, char *port,
 			 int usessl __attribute__((unused)),
@@ -282,23 +273,15 @@ static int _pgsql_query(void *conn, char *query, char *value, size_t size,
 {
   PGresult *result;
   int row_count;
-  const char begin[] = "BEGIN";
-  const char commit[] = "COMMIT";
-  int querylength = strlen(query);
-  /* The 16 is to take care of the BEGIN and the COMMIT, plus a pad*/
-  char *transaction_query = 
-    utils->malloc(querylength + 16);
- 
-  snprintf(transaction_query, querylength + 16, 
-	   "%s; %s %s;", begin, query, commit);
-  
+  ExecStatusType status;
+
   /* run the query */
-  result = PQexec(conn, transaction_query);
+  result = PQexec(conn, query);
   
-  if (PQresultStatus(result) != PGRES_TUPLES_OK) 
+  if (((status = PQresultStatus(result)) != PGRES_TUPLES_OK)) 
     {
-      utils->log(NULL, SASL_LOG_NOTE, "sql plugin: %s", PQerrorMessage(conn));
-      utils->free(transaction_query);
+      utils->log(NULL, SASL_LOG_NOTE, "sql plugin: %s ", PQresStatus(status));
+      utils->free(query);
       PQclear(result);
       return -1;
     }
@@ -308,7 +291,7 @@ static int _pgsql_query(void *conn, char *query, char *value, size_t size,
   if (!row_count) 
     {
       /* umm nothing found */
-      utils->free(transaction_query);
+      utils->free(query);
       PQclear(result);
       return -1;
     }
@@ -326,7 +309,7 @@ static int _pgsql_query(void *conn, char *query, char *value, size_t size,
   if (value_len) *value_len = strlen(value);
   
   /* free result */
-  utils->free(transaction_query);
+  utils->free(query);
   PQclear(result);
   return 0;
 }
@@ -339,12 +322,12 @@ static void _pgsql_close(void *conn)
 
 static const sql_engine_t sql_engines[] = {
 #if HAVE_MYSQL
-  { "mysql", &_mysql_open, &_mysql_escape_str, &_mysql_query, &_mysql_close },
+  { "mysql", "START TRANSACTION;", "COMMIT;", &_mysql_open, &_mysql_escape_str, &_mysql_query, &_mysql_close },
 #endif
 #if HAVE_PGSQL
-  { "pgsql", &_pgsql_open, &_pgsql_escape_str, &_pgsql_query, &_pgsql_close },
+  { "pgsql", "BEGIN;", "COMMIT;", &_pgsql_open, &_pgsql_escape_str, &_pgsql_query, &_pgsql_close },
 #endif
-  { NULL, NULL, NULL, NULL, NULL }
+  { NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
 /*
@@ -375,7 +358,6 @@ static char *sql_create_statement(sasl_server_params_t *sparams,
   int numpercents=0;
   int biggest;
   int i;
-  const char *select;
 
   /* calculate memory needed for creating the complete query string. */
   ulen = strlen(user);
@@ -383,12 +365,10 @@ static char *sql_create_statement(sasl_server_params_t *sparams,
   plen = strlen(prop);
   ilen = sql_len(insertvalue);
 
-  select = strcat(select_line, ";");
-
   /* what if we have multiple %foo occurrences in the input query?*/
-  for(i=0; i<strlen(select); i++)
+  for(i=0; i<strlen(select_line); i++)
     {
-      if(select[i]=='%')
+      if(select_line[i]=='%')
 	{
 	  numpercents++;
 	}
@@ -398,7 +378,7 @@ static char *sql_create_statement(sasl_server_params_t *sparams,
   biggest = sql_max(sql_max(ulen, rlen),sql_max(plen, ilen));
 
   /* plus one for the semicolon...and don't forget the trailing 0x0 */
-  filtersize = strlen(select) + (numpercents*biggest)+1;
+  filtersize = strlen(select_line) + 1 + (numpercents*biggest)+1;
   
   /* ok, now try to allocate a chunk of that size */
   buf = (char *) sparams->utils->malloc(filtersize);
@@ -410,7 +390,7 @@ static char *sql_create_statement(sasl_server_params_t *sparams,
     }
   
   buf_ptr = buf;
-  line_ptr = select;
+  line_ptr = select_line;
     
   /* replace the strings */
   while ( (ptr = strchr(line_ptr, '%')) ) 
@@ -459,7 +439,11 @@ static char *sql_create_statement(sasl_server_params_t *sparams,
     }
   
   memcpy(buf_ptr, line_ptr, strlen(line_ptr)+1);
-  
+  /* Make sure the current portion of the statement ends with a semicolon */
+  if (buf_ptr[strlen(buf_ptr-1)] != ';') 
+    {
+      strcat(buf_ptr, ";");
+    }
   return(buf);
 }
 
@@ -677,6 +661,15 @@ static void sql_auxprop_lookup(void *glob_context,
     settings->sql_engine->sql_escape_str(escap_userid, userid);
     settings->sql_engine->sql_escape_str(escap_realm, realm);
     
+    if(!settings->sql_engine->sql_query(conn, 
+					(char *)settings->sql_engine->begin, 
+					value, sizeof(value), &value_len, 
+					sparams->utils))
+      {
+	sparams->utils->log(NULL, SASL_LOG_ERR, 
+			    "Unable to begin transaction\n");
+      }
+    
     for (cur = to_fetch; cur->name; cur++) {
 	char *realname = (char *)cur->name;
 	/* Only look up properties that apply to this lookup! */
@@ -720,7 +713,14 @@ static void sql_auxprop_lookup(void *glob_context,
 	    sparams->utils->prop_set(sparams->propctx, cur->name,
 				     value, value_len);
     }
-    
+    if(!settings->sql_engine->sql_query(conn, 
+					(char*)settings->sql_engine->commit, 
+					value, sizeof(value), &value_len, 
+					sparams->utils))
+      {
+	sparams->utils->log(NULL, SASL_LOG_ERR, 
+			    "Unable to commit transaction\n");
+      }  
  done:
     if (escap_userid) sparams->utils->free(escap_userid);
     if (escap_realm) sparams->utils->free(escap_realm);
@@ -889,6 +889,14 @@ static int sql_auxprop_store (void *glob_context,
     settings->sql_engine->sql_escape_str(escap_userid, userid);
     settings->sql_engine->sql_escape_str(escap_realm, realm);
     
+    if(!settings->sql_engine->sql_query(conn, 
+					(char*)settings->sql_engine->begin, 
+					value, sizeof(value), &value_len, 
+					sparams->utils))
+      {
+	sparams->utils->log(NULL, SASL_LOG_ERR, 
+			    "Unable to begin transaction\n");
+      }
     for (cur = to_store; cur->name; cur++) 
       {	
 	/* create a statment that we will use */
@@ -912,6 +920,14 @@ static int sql_auxprop_store (void *glob_context,
 	    sparams->utils->prop_set(sparams->propctx, cur->name,
 				     value, value_len);
 	  }
+      }
+    if(!settings->sql_engine->sql_query(conn, 
+					(char*)settings->sql_engine->commit, 
+					value, sizeof(value), &value_len, 
+					sparams->utils))
+      {
+	sparams->utils->log(NULL, SASL_LOG_ERR, 
+			    "Unable to commit transaction\n");
       }
  done:
     if (escap_userid) sparams->utils->free(escap_userid);

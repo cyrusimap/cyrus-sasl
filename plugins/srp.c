@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.9 2001/12/14 19:18:34 ken3 Exp $
+ * $Id: srp.c,v 1.10 2001/12/15 01:26:13 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1102,6 +1102,7 @@ CalculateK_client(context_t *text,
     if (r) return r;
     mpz_init(u);
     DataToBigInt(hash, 4, &u);
+    if (!mpz_cmp_ui(u, 0)) return SASL_FAIL;
 
     /* a + ux */
     mpz_init(aux);
@@ -1971,9 +1972,9 @@ ServerCalculateK(context_t *text, mpz_t v,
     /* u is first 32 bits of B hashed; MSB first */
     r = HashBigInt(text, B, hash, NULL);
     if (r) return r;
-
     mpz_init(u);
     DataToBigInt(hash, 4, &u);
+    if (!mpz_cmp_ui(u, 0)) return SASL_FAIL;
 
     mpz_init(S);
     mpz_powm(S, v, u, N);

@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.10 2003/08/26 20:51:55 ken3 Exp $
+ * $Id: ntlm.c,v 1.11 2003/08/26 20:57:58 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -68,7 +68,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.10 2003/08/26 20:51:55 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.11 2003/08/26 20:57:58 ken3 Exp $";
 
 #define NTLM_SIGNATURE		"NTLMSSP"
 
@@ -1179,7 +1179,7 @@ static int ntlm_server_mech_step1(server_context_t *text,
     if (text->flags & NTLM_USE_UNICODE) text->flags &= ~NTLM_USE_ASCII;
 
     if (text->sock == -1) {
-	/* generate challenge interally */
+	/* generate challenge internally */
 
 	/* if client asked for target, use FQDN as server target */
 	if (text->flags & NTLM_ASK_TARGET) {

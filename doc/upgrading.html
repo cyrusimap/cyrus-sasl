@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Upgrading from Cyrus SASLv1 to Cyrus SASLv2</title>
-<!-- $Id: upgrading.html,v 1.7 2001/12/06 18:01:13 rjs3 Exp $ -->
+<!-- $Id: upgrading.html,v 1.8 2002/07/19 15:13:20 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Upgrading from Cyrus SASLv1 to Cyrus SASLv2</H1>
@@ -14,8 +14,13 @@ href="install.html">the installation guide</a>.  This will overwrite
 some manpages, but will not affect your current applications.  Do NOT
 attempt to make it use the same directories.</li>
 
-<li> If you are using <tt>/etc/sasldb</tt> for any authentication, run
-<tt>utils/dbconverter-2</tt> after installation.</li>
+<li> If you are using <tt>/etc/sasldb</tt> for authentication, you'll need to take the following steps to convert:
+      <ol>
+      <li> run <tt>utils/dbconverter-2</tt> after installation.</li>
+      <li> change the <tt>pwcheck_method</tt> in any config files to <tt>auxprop</tt></li>
+      <li> (optional) add <tt>auxprop_plugin</tt> to the config files, set to <tt>sasldb</tt></li>
+      </ol>
+</li>
 
 <li> If you are continuing to use libsaslv1 applications, read onwards
 to understand the ramifications.</li>

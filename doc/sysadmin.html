@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.29 2002/06/25 17:07:04 rjs3 Exp $ -->
+<!-- $Id: sysadmin.html,v 1.30 2002/07/19 15:13:20 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -202,7 +202,8 @@ secrets in sasldb when a user uses PLAIN to successfully authenticate.
 However, this means that the individual servers, such as imapd, need
 read/write access to sasldb, not just read access.  By default,
 "auto_transition" is set to false; set it to true to enable.  (There's
-no point in enabling this option if "pwcheck_method" is "sasldb".)
+no point in enabling this option if "pwcheck_method" is "auxprop",
+and the sasldb plugin is installed)
 
 <h3>Kerberos mechanisms</h3>
 
@@ -388,6 +389,17 @@ opiekeys in <tt>/etc/opiekeys</tt>, but it's configurable using the
 <dd>
 <p><b>A:</b> Because sasldb now stores plaintext passwords only, the old
 sasldb is completely incompatible.
+
+<p>
+<dt><b>Q:</b> I've converted the sasldb database to the new format. 
+Why can't anybody authenticate?
+<dd>
+<p><b>A:</b> sasldb is now a plugin module for the auxprop method.
+Make sure you changed the /usr/lib/sasl2/*.conf files to reflect<br>
+<tt>pwcheck_method: auxprop</tt><br>
+<br>
+...and if you're using cyrus-imapd, /etc/imapd.conf must reflect:
+<tt>sasl_pwcheck_method: auxprop</tt>
 
 <p>
 <dt><b>Q:</b> Is LOGIN supported?

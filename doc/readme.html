@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASLv2 README</title>
-<!-- $Id: readme.html,v 1.7 2002/05/08 15:53:38 ken3 Exp $ -->
+<!-- $Id: readme.html,v 1.8 2002/07/19 15:13:20 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Read Me First</H1>
@@ -26,7 +26,9 @@ to store per-user authentication secrets.  The utility
 <tt>saslpasswd</tt> has been included for adding authentication
 secrets to the file.<p>
 
-PLAIN uses sasldb, the pwcheck daemon, or the saslauthd daemon.<p>
+PLAIN uses the saslauthd (preferred and now standard), the pwcheck 
+daemon (obsolete), or an auxilliary property plugin (for example,
+sasldb).<p>
 
 The sample directory contains two programs which provide a reference
 for using the library, as well as making it easy to test a mechanism

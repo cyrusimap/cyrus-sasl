@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.169 2004/05/25 15:02:27 ken3 Exp $
+ * $Id: digestmd5.c,v 1.170 2004/06/30 19:41:35 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -120,7 +120,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.169 2004/05/25 15:02:27 ken3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.170 2004/06/30 19:41:35 rjs3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -150,6 +150,10 @@ const char *SIGNING_SERVER_CLIENT="Digest session key to server-to-client signin
 #define LF	(10)
 #define SP	(32)
 #define DEL	(127)
+
+#define NEED_ESCAPING	"\"\\"
+
+static char *quote (char *str);
 
 struct context;
 
@@ -511,7 +515,15 @@ static int add_to_challenge(const sasl_utils_t *utils,
     
     if (need_quotes) {
 	strcat(*str, "=\"");
-	strcat(*str, (char *) value);	/* XXX. What about quoting??? */
+
+	/* Check if the value needs quoting */
+	if (strpbrk ((char *)value, NEED_ESCAPING) != NULL) {
+	    char * quoted = quote ((char *) value);
+	    strcat(*str, quoted);
+	    free (quoted);
+	} else {
+	    strcat(*str, (char *) value);
+	}
 	strcat(*str, "\"");
     } else {
 	strcat(*str, "=");
@@ -627,7 +639,8 @@ static bool str2ul32 (char *str, unsigned long * value)
 }
 
 /* NULL - error (unbalanced quotes), 
-   otherwise pointer to the first character after value */
+   otherwise pointer to the first character after the value.
+   The function performs work in place. */
 static char *unquote (char *qstr)
 {
     char *endvalue;
@@ -668,11 +681,48 @@ static char *unquote (char *qstr)
 	endvalue++;
     }
     else { /* not qouted value (token) */
+	/* qstr already contains output */
 	endvalue = skip_token(qstr,0);
     };
     
     return endvalue;  
-} 
+}
+
+/* Unlike unquote, this function returns an allocated quoted copy */
+static char *quote (char *str)
+{
+    char *p;
+    char *outp;
+    char *result;
+    int num_to_escape;		/* How many characters need escaping */
+    
+    if (!str) return NULL;
+
+    num_to_escape = 0;
+    p = strpbrk (str, NEED_ESCAPING);
+    while (p != NULL) {
+	num_to_escape++;
+	p = strpbrk (p + 1, NEED_ESCAPING);
+    }
+
+    if (num_to_escape == 0) {
+	return (strdup (str));
+    }
+
+    result = malloc (strlen(str) + num_to_escape + 1);
+    for (p = str, outp = result; *p; p++) {
+	if (*p == '"' || *p == '\\') {
+	    *outp = '\\';
+	    outp++;
+	}
+	*outp = *p;
+	outp++;
+    }
+
+    *outp = '\0';
+    
+    return (result);
+}
 
 static void get_pair(char **in, char **name, char **value)
 {
@@ -3745,7 +3795,7 @@ digestmd5_client_mech_step3(client_context_t *ctext,
 	    if (strcmp(text->response_value, value) != 0) {
 		params->utils->seterror(params->utils->conn, 0,
 					"DIGEST-MD5: This server wants us to believe that he knows shared secret");
-		result = SASL_FAIL;
+		result = SASL_BADSERV;
 	    } else {
 		oparams->doneflag = 1;
 		oparams->param_version = 0;

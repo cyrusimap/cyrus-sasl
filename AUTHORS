@@ -7,5 +7,7 @@ coding advice.
 
 Leif Johansson <leifj@matematik.su.se> wrote the GSSAPI plugin.
 
+Alexey Melnikov wrote the first pass of the DIGEST-MD5 plugin.
+
 Chris Newman <chris.newman@innosoft.com> wrote the initial version of
 the SASL API documented in sasl.h, saslutil.h, and saslplug.h.

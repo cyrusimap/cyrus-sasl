@@ -46,7 +46,7 @@ __RCSID("$NetBSD: getsubopt.c,v 1.4 1998/02/03 18:44:15 perry Exp $");
 
 #include <stdlib.h>
 #include <string.h>
-#ifndef HAVE_UNISTD_H
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif /* HAVE_UNISTD_H */
 #ifdef WIN32

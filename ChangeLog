@@ -1,6 +1,8 @@
 2002-09-11  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/mysql.c: Actually loop through the potential servers
 	  properly (Seow Kok Heng <kokheng@jhs.com.sg>)
+	* acinclude.m4: Added copy of the correct libtool macros as
+	  acinclude.m4
 
 2002-09-10  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/server.c: Better handling of add_plugin failures

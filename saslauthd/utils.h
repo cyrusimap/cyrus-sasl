@@ -1,12 +1,16 @@
 /*******************************************************************************
  * *****************************************************************************
  * *
- * * globals.h
+ * * utils.h
  * *
- * * Description:  Header file for all application wide globale variables.
+ * * Description:  Header file for utils.c
+ * *               
  * *
  * * Copyright (c) 1997-2000 Messaging Direct Ltd.
  * * All rights reserved.
+ * *
+ * * Portions Copyright (c) 2003 Jeremy Rumpf
+ * * jrumpf@heavyload.net
  * *
  * * Redistribution and use in source and binary forms, with or without
  * * modification, are permitted provided that the following conditions
@@ -32,36 +36,55 @@
  * *
  * * HISTORY
  * * 
+ * *
  * * This source file created using 8 space tabs.
  * *
  * ******************************************************************************
  ********************************************************************************/
 
-#ifndef _GLOBALS_H
-#define _GLOBALS_H
-
-#include "mechanisms.h"
+#ifndef _UTILS_H
+#define _UTILS_H
 
 
-/* saslauthd-main.c */
-extern int              g_argc;
-extern char             **g_argv;
-extern int              flags;
-extern int              num_procs;
-extern char             *mech_option;
-extern char             *run_path;
-extern authmech_t       *auth_mech;
+#include <syslog.h>
+#include <sys/types.h>
+#include <sys/uio.h>
+#include "saslauthd.h"
 
 
-/* flags bits */
-#define VERBOSE                 (1 << 1)
-#define LOG_USE_SYSLOG          (1 << 2)
-#define LOG_USE_STDERR          (1 << 3)
-#define AM_MASTER               (1 << 4)
-#define USE_ACCEPT_LOCK         (1 << 5)
-#define DETACH_TTY              (1 << 6)
-#define CACHE_ENABLED           (1 << 7)
-#define USE_PROCESS_MODEL       (1 << 8)
+/* log prioities */
+#define L_ERR			LOG_ERR
+#define L_INFO			LOG_INFO
+#define L_DEBUG			LOG_DEBUG
 
 
-#endif  /* _GLOBALS_H */
+/* some magic to grab function names */
+#ifdef HAVE_FUNC
+# define L_FUNC __func__
+# define HAVE_L_FUNC 1
+#elif HAVE_PRETTY_FUNCTION
+# define L_FUNC __PRETTY_FUNCTION__
+# define HAVE_L_FUNC 1
+#elif HAVE_FUNCTION
+# define L_FUNC __FUNCTION__
+# define HAVE_L_FUNC 1
+#else
+# define L_FUNC ""
+# undef HAVE_L_FUNC
+#endif
+
+#ifdef HAVE_L_FUNC
+# define L_STDERR_FORMAT        "saslauthd[%d] :%-16s: %s\n"
+#else
+# define L_STDERR_FORMAT        "saslauthd[%d] :%s%s\n"
+#endif 
+
+
+/* utils.c */
+extern void	logger(int, const char *, const char *, ...);
+extern ssize_t	tx_rec(int filefd, void *, size_t);
+extern ssize_t	rx_rec(int , void *, size_t);
+extern int	retry_writev(int, struct iovec *, int);
+
+
+#endif  /* _UTILS_H */

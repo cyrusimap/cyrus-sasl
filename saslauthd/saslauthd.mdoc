@@ -1,4 +1,4 @@
-.\" $Id: saslauthd.mdoc,v 1.15 2002/10/24 21:09:10 rjs3 Exp $
+.\" $Id: saslauthd.mdoc,v 1.16 2003/03/28 19:59:24 rjs3 Exp $
 .\" Copyright 1997-2001 Messaging Direct Ltd. All rights reserved.
 .\"
 .\" This manpage uses the BSD mdoc manpage macros. Please don't
@@ -19,10 +19,12 @@
 .Nm
 .Fl a
 .Ar authmech
-.Op Fl \&Tvd
+.Op Fl \&Tvdchl
 .Op Fl O Ar option
 .Op Fl m Ar mux_path
 .Op Fl n Ar threads
+.Op Fl s Ar size
+.Op Fl t Ar timeout
 .Sh DESCRIPTION
 .Nm
 is a daemon process that handles plaintext authentication requests
@@ -76,9 +78,23 @@ Use
 processes for responding to authentication queries. (default: 5)  A
 value of zero will indicate that saslauthd should fork an individual
 process for each connection.  This can solve leaks that occur in some
-deployments.
+deployments..
+.It Fl s Ar size
+Use
+.Ar size
+as the table size of the hash table (in kilobytes)
+.It Fl t Ar timeout
+Use
+.Ar timeout
+as the expiration time of the authentication cache (in seconds)
 .It Fl T
 Honour time-of-day login restrictions.
+.It Fl h
+Show usage information
+.It Fl c
+Enable cacheing of authentication credentials
+.It Fl l
+Disable the use of a lock file for controlling access to accept().
 .It Fl v
 Print the version number and available authentication
 mechanisms on standard error, then exit.

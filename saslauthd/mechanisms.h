@@ -26,8 +26,11 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: mechanisms.h,v 1.5 2002/05/03 18:59:30 rjs3 Exp $"
+#ident "$Id: mechanisms.h,v 1.6 2003/03/28 19:59:24 rjs3 Exp $"
 #endif
+
+#ifndef _MECHANISMS_H
+#define _MECHANISMS_H
 
 #include "saslauthd.h"
 
@@ -89,3 +92,6 @@ extern authmech_t *authmech;		/* auth mech daemon is using */
 #  define AUTH_LDAP
 # endif
 #endif
+
+
+#endif  /* _MECHANISMS_H */

@@ -148,6 +148,37 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST  
 AC_TYPE_PID_T
 
+dnl Checks for which function macros exist
+AC_MSG_CHECKING(whether $CC implements __func__)
+AC_CACHE_VAL(have_func,
+[AC_TRY_LINK([#include <stdio.h>],[printf("%s", __func__);],
+have_func=yes,
+have_func=no)])
+AC_MSG_RESULT($have_func)
+if test "$have_func" = yes; then
+       AC_DEFINE(HAVE_FUNC)
+else
+       AC_MSG_CHECKING(whether $CC implements __PRETTY_FUNCTION__)
+       AC_CACHE_VAL(have_pretty_function,
+       [AC_TRY_LINK([#include <stdio.h>],[printf("%s", __PRETTY_FUNCTION__);],
+       have_pretty_function=yes,
+       have_pretty_function=no)])
+       AC_MSG_RESULT($have_pretty_function)
+       if test "$have_pretty_function" = yes; then
+               AC_DEFINE(HAVE_PRETTY_FUNCTION)
+       else
+               AC_MSG_CHECKING(whether $CC implements __FUNCTION__)
+               AC_CACHE_VAL(have_function,
+               [AC_TRY_LINK([#include <stdio.h>],[printf("%s", __FUNCTION__);],
+               have_function=yes,
+               have_function=no)])
+               AC_MSG_RESULT($have_function)
+               if test "$have_function" = yes; then
+                       AC_DEFINE(HAVE_FUNCTION)
+               fi
+       fi
+fi
+
 dnl Checks for library functions.
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS(gethostname mkdir socket strdup)

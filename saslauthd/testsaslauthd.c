@@ -57,63 +57,13 @@
 #endif
 #include <assert.h>
 
+#include "globals.h"
+#include "utils.h"
+
+/* make utils.c happy */
+int flags = LOG_USE_STDERR;
+
 extern int errno;
-
-/*
- * Keep calling the writev() system call with 'fd', 'iov', and 'iovcnt'
- * until all the data is written out or an error occurs.
- */
-static int retry_writev(int fd, struct iovec *iov, int iovcnt)
-{
-    int n;
-    int i;
-    int written = 0;
-    static int iov_max =
-#ifdef MAXIOV
-	MAXIOV
-#else
-#ifdef IOV_MAX
-	IOV_MAX
-#else
-	8192
-#endif
-#endif
-	;
-    
-    for (;;) {
-	while (iovcnt && iov[0].iov_len == 0) {
-	    iov++;
-	    iovcnt--;
-	}
-
-	if (!iovcnt) return written;
-
-	n = writev(fd, iov, iovcnt > iov_max ? iov_max : iovcnt);
-	if (n == -1) {
-	    if (errno == EINVAL && iov_max > 10) {
-		iov_max /= 2;
-		continue;
-	    }
-	    if (errno == EINTR) continue;
-	    return -1;
-	}
-
-	written += n;
-
-	for (i = 0; i < iovcnt; i++) {
-	    if (iov[i].iov_len > (unsigned) n) {
-		iov[i].iov_base = (char *)iov[i].iov_base + n;
-		iov[i].iov_len -= n;
-		break;
-	    }
-	    n -= iov[i].iov_len;
-	    iov[i].iov_len = 0;
-	}
-
-	if (i == iovcnt) return written;
-    }
-}
-
 
 /*
  * Keep calling the read() system call with 'fd', 'buf', and 'nbyte'

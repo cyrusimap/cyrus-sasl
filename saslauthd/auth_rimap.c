@@ -53,7 +53,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_rimap.c,v 1.6 2002/05/17 16:43:22 rjs3 Exp $"
+#ident "$Id: auth_rimap.c,v 1.7 2003/03/28 19:59:23 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -76,6 +76,7 @@
 #include <netdb.h>
 
 #include "auth_rimap.h"
+#include "utils.h"
 #include "globals.h"
 /* END PUBLIC DEPENDENCIES */
 
@@ -413,7 +414,7 @@ auth_rimap (
     iov[4].iov_base = "\r\n";
     iov[4].iov_len  = sizeof("\r\n") - 1;
 
-    if (debug) {
+    if (flags & VERBOSE) {
 	syslog(LOG_DEBUG, "auth_rimap: sending %s%s %s",
 	       LOGIN_CMD, qlogin, qpass);
     }
@@ -454,13 +455,13 @@ auth_rimap (
     }
 
      if (!strncmp(rbuf, TAG " OK", sizeof(TAG " OK")-1)) {
-	if (debug) {
+	if (flags & VERBOSE) {
 	    syslog(LOG_DEBUG, "auth_rimap: [%s] %s", login, rbuf);
 	}
 	return strdup("OK remote authentication successful");
     }
     if (!strncmp(rbuf, TAG " NO", sizeof(TAG " NO")-1)) {
-	if (debug) {
+	if (flags & VERBOSE) {
 	    syslog(LOG_DEBUG, "auth_rimap: [%s] %s", login, rbuf);
 	}
 	return strdup("NO remote server rejected your credentials");

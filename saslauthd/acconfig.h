@@ -92,6 +92,11 @@
 /* for modules that want to know if we're threaded or not */
 #undef SASLAUTHD_THREADED
 
+/* which function macros are available */
+#undef HAVE_FUNC
+#undef HAVE_FUNCTION
+#undef HAVE_PRETTY_FUNCTION
+
 @BOTTOM@
 
 #ifndef HAVE___ATTRIBUTE__

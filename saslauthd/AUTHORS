@@ -4,3 +4,9 @@ code.
 Rob Siemborski <rjs3@andrew.cmu.edu> wrote the self-contained autoconf system.
 
 Larry Greenfield <leg+sasl@andrew.cmu.edu> talked a lot.
+
+Igor Brezac <igor@ipass.net> has done a good deal of work on the saslauthd
+LDAP module.
+
+Jeremy Rumpf <jrumpf@heavyload.net> implemented the credential cache, unified
+the different IPC methods under a common framework.

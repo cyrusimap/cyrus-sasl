@@ -1,3 +1,12 @@
+2003-03-28  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/: Unify the source files so that the IPC methods
+	  are broken out into a separate API.  Cacheing of authentication
+	  credentials is also available as a command-line option.
+	  Other changes include: Remove Time of Day Flag, omit
+	  SO_REUSEADDR on AF_UNIX sockets, make using the accept-socket
+	  locking runtime configurable, and misc other cleanup.
+	  (Jeremy Rumpf <jrumpf@heavyload.net>)
+
 2003-03-26  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/plain.c: Defend against memory leak on canon_user
 	  failure (Chris Newman <chris.newman@sun.com>)

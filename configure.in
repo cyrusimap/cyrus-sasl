@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.145 2002/09/10 17:14:44 ken3 Exp $
+dnl $Id: configure.in,v 1.146 2002/09/11 15:24:49 ken3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -86,7 +86,14 @@ if test "$with_staticsasl" = yes; then
 	enable_static=yes
 fi
 
+save_target=$target
+if test -z "$target"; then
+	target="NONE"
+fi
+
 CMU_PROG_LIBTOOL
+
+target=$save_target
 
 dnl ltconfig might not have found support for shared libs
 dnl just do static libs if so.
@@ -753,6 +760,9 @@ AC_SUBST(SFIO_LIB_FLAGS)
 AC_SUBST(SMTPTEST_PROGRAM)
 AC_SUBST(SASL_UTIL_LIBS_EXTRA)
 AC_SUBST(SASL_UTIL_HEADERS_EXTRA)
+
+dnl Backwards compatibility with autoconf 2.13
+ifdef([m4_pattern_allow],[m4_pattern_allow([^LIBOBJS$])])
 
 dnl check for getsubopt
 sasl_cv_getsubopt=no

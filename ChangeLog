@@ -1,3 +1,7 @@
+2002-10-02  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/checkpw.c: Fix some misuses of sasl_seterror
+	  (Martin Exler <m.exler@gmx.at>)
+
 2002-09-24  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* config/sasl2.m4, saslauthd/Makefile.am: GSSAPI doesn't need
 	  to link ndbm.  Also cleanup some sasldb linking in saslauthd.

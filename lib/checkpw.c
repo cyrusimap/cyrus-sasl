@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.58 2002/09/05 04:02:28 rjs3 Exp $
+ * $Id: checkpw.c,v 1.59 2002/10/02 14:01:03 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -518,7 +518,7 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 #ifdef USE_DOORS
     s = open(pwpath, O_RDONLY);
     if (s < 0) {
-	sasl_seterror(conn, 0, "cannot open door to saslauthd server: %m");
+	sasl_seterror(conn, 0, "cannot open door to saslauthd server: %m", errno);
 	return SASL_FAIL;
     }
 
@@ -545,7 +545,7 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 
     s = socket(AF_UNIX, SOCK_STREAM, 0);
     if (s == -1) {
-	sasl_seterror(conn, 0, "cannot create socket for saslauthd: %m");
+	sasl_seterror(conn, 0, "cannot create socket for saslauthd: %m", errno);
 	return SASL_FAIL;
     }
 
@@ -556,7 +556,7 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
     {
 	int r = connect(s, (struct sockaddr *) &srvaddr, sizeof(srvaddr));
 	if (r == -1) {
-	    sasl_seterror(conn, 0, "cannot connect to saslauthd server: %m");
+	    sasl_seterror(conn, 0, "cannot connect to saslauthd server: %m", errno);
 	    return SASL_FAIL;
 	}
     }

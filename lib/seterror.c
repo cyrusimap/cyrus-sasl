@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * split from common.c by Rolf Braun
- * $Id: seterror.c,v 1.5 2002/06/14 15:40:59 rjs3 Exp $
+ * $Id: seterror.c,v 1.6 2002/10/02 14:01:03 rjs3 Exp $
  */
 
 /* 
@@ -85,8 +85,8 @@ static int _sasl_seterror_usererr(int saslerr)
 }
 
 /* set the error string which will be returned by sasl_errdetail() using  
- *  syslog()-style formatting (e.g. printf-style with %m as most recent
- *  errno error)
+ *  syslog()-style formatting (e.g. printf-style with %m as the string form
+ *  of an errno error)
  * 
  *  primarily for use by server callbacks such as the sasl_authorize_t
  *  callback and internally to plug-ins

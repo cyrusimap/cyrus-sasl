@@ -449,6 +449,21 @@ typedef int sasl_chalprompt_t(void *context, int id,
 #define SASL_CB_ECHOPROMPT   (0x4005) /* challenge and client-entered result */
 #define SASL_CB_NOECHOPROMPT (0x4006) /* challenge and client-entered result */
 
+/* prompt (or autoselect) the realm to do authentication in.
+ *  may get a list of valid realms.
+ * input:
+ *  context     -- context from callback structure
+ *  id          -- callback id
+ *  availrealms -- available realms; NULL terminated
+ * output:
+ *  result      -- NUL terminated realm; NULL is equivalent to ""
+ * returns SASL_OK
+ */
+typedef int sasl_getrealm_t(void *context, int id,
+			    const char **availrealms,
+			    const char **result);
+#define SASL_CB_GETREALM (0x4007) /* realm to attempt authentication in */
+
 /* server callbacks:
  */
 /* callback to verify authorization

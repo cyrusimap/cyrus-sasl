@@ -47,7 +47,7 @@ if test "$gssapi" != no; then
 	fi
 fi
 
-SASL_CRYPT_CHK
+SASL2_CRYPT_CHK
 
 AC_ARG_ENABLE(sia, [  --enable-sia            enable SIA authentication [no] ],
   sia=$enableval,

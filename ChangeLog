@@ -1,3 +1,6 @@
+2002-10-10  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* Ready for 2.1.8
+
 2002-10-09  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/client.c: Allow plaintext mechanisms under an external security
 	  layer.

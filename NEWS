@@ -1,3 +1,13 @@
+New in 2.1.8
+------------
+* Support for the NTLM mechanism (Ken Murchison <ken@oceana.com>)
+* Support libtool --enable-shared and --enable-static
+  (Howard Chu <hyc@highlandsun.com>)
+* OS/390 Support (Howard Chu <hyc@highlandsun.com>)
+* Berkeley DB 4.1 Support (Mika Iisakkila <mika.iisakkila@pingrid.fi>)
+* Documentation fixes
+* The usual round of assorted other minor bugfixes.
+
 New in 2.1.7
 ------------
 * Add SASL_AUTHUSER as a parameter to sasl_getprop

@@ -50,7 +50,7 @@
 #define PACKAGE "cyrus-sasl"
 
 /* Our version */
-#define VERSION "2.1.7"
+#define VERSION "2.1.8"
 
 /* Registry key that contains the locations of the plugins */
 #define SASL_KEY "SOFTWARE\\Carnegie Mellon\\Project Cyrus\\SASL Library\\Available Plugins"

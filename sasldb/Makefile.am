@@ -1,6 +1,6 @@
 # Makefile.am for the SASLdb library
 # Rob Siemborski
-# $Id: Makefile.am,v 1.12 2002/09/05 19:21:20 rjs3 Exp $
+# $Id: Makefile.am,v 1.13 2002/10/10 19:12:13 rjs3 Exp $
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@
 #
 
 # Library version info - here at the top, for sanity
-sasl_version = 1:12:0
+sasl_version = 1:13:0
 
 INCLUDES=-I$(top_srcdir)/include @SASL_DB_INC@
 

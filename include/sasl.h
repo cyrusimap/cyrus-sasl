@@ -644,7 +644,6 @@ LIBSASL_API int sasl_client_init(const sasl_callback_t *callbacks);
  * in/out:
  *  pconn         -- connection negotiation structure
  *                   pointer to NULL => allocate new
- *                   non-NULL => recycle storage and go for next available mech
  *
  * Returns:
  *  SASL_OK       -- success

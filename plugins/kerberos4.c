@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.85 2002/05/02 22:05:12 ken3 Exp $
+ * $Id: kerberos4.c,v 1.86 2002/05/03 15:38:35 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -107,7 +107,7 @@ extern int gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: kerberos4.c,v 1.85 2002/05/02 22:05:12 ken3 Exp $";
+static const char plugin_id[] = "$Id: kerberos4.c,v 1.86 2002/05/03 15:38:35 rjs3 Exp $";
 
 #ifndef KEYFILE
 #define KEYFILE "/etc/srvtab";
@@ -525,7 +525,7 @@ static int kerberosv4_server_mech_step(void *conn_context,
     *serverout = NULL;
     *serveroutlen = 0;
     
-    switch (text->context) {
+    switch (text->state) {
 
     case 1: {
 	/* random 32-bit number */
@@ -833,8 +833,8 @@ static int kerberosv4_server_mech_step(void *conn_context,
     }
     
     default:
-	params->utils->log(NULL, SASL_LOG_ERR,
-			   "Invalid GSSAPI client step %d\n", text->state);
+	sparams->utils->log(NULL, SASL_LOG_ERR,
+			    "Invalid Kerberos server step %d\n", text->state);
 	return SASL_FAIL;
     }
     
@@ -1329,8 +1329,8 @@ static int kerberosv4_client_mech_step(void *conn_context,
     }
     
     default:
-	params->utils->log(NULL, SASL_LOG_ERR,
-			   "Invalid GSSAPI client step %d\n", text->state);
+	cparams->utils->log(NULL, SASL_LOG_ERR,
+			    "Invalid Kerberos client step %d\n", text->state);
 	return SASL_FAIL;
     }
 

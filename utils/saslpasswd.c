@@ -49,17 +49,20 @@
 #include <termios.h>
 #include <unistd.h>
 
+/* perror can't be used on Windows system calls, so we define a new macro to underline this */
+#define	p_oserror(str)	    perror(str)
+
 #else /* WIN32 */
 
 #include <stdio.h>
 #include <io.h>
 
-#define STDIN_FILENO stdin
 #include <saslutil.h>
 __declspec(dllimport) char *optarg;
 __declspec(dllimport) int optind;
-__declspec(dllimport) int getsubopt(char **optionp, char * const *tokens, char **valuep);
 
+/* perror can't be used on Windows system calls, so we define a new macro to underline this */
+void p_oserror (const char *string);
 #endif /*WIN32*/
 
 #include <sasl.h>
@@ -78,6 +81,53 @@ static const char build_ident[] = "$Build: saslpasswd " PACKAGE "-" VERSION " $"
 const char *progname = NULL;
 char *sasldb_path = NULL;
 
+#ifdef WIN32
+
+/* This is almost like _plug_get_error_message(), but uses malloc */
+char * _get_error_message (
+   DWORD error
+)
+{
+    char * return_value;
+    LPVOID lpMsgBuf;
+
+    FormatMessage( 
+	FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+	FORMAT_MESSAGE_FROM_SYSTEM | 
+	FORMAT_MESSAGE_IGNORE_INSERTS,
+	NULL,
+	error,
+	MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), /* Default language */
+	(LPTSTR) &lpMsgBuf,
+	0,
+	NULL 
+    );
+
+    return_value = strdup (lpMsgBuf);
+
+    LocalFree( lpMsgBuf );
+    return (return_value);
+}
+
+/* perror() like function that works on OS error codes returned by GetLastError() */
+void p_oserror (
+    const char *message
+)
+{
+/* Try to match perror() behaviour:
+    string is printed first, followed by a colon, then by the system error message
+    for the last library call that produced the error, and finally by a newline
+    character. If string is a null pointer or a pointer to a null string, perror
+    prints only the system error message.
+ */
+    if (message && *message) {
+	fprintf (stderr, "%s: %s\n", message, _get_error_message(GetLastError()));
+    } else {
+	fprintf (stderr, "%s\n", _get_error_message(GetLastError()));
+    }
+}
+#endif /* WIN32 */
+
 void read_password(const char *prompt,
 		   int flag_pipe,
 		   char ** password,
@@ -92,7 +142,7 @@ void read_password(const char *prompt,
   DWORD n_read, fdwMode, fdwOldMode;
   hStdin = GetStdHandle(STD_INPUT_HANDLE);
   if (hStdin == INVALID_HANDLE_VALUE) {
-	  perror(progname);
+	  p_oserror(progname);
 	  exit(-(SASL_FAIL));
   }
 #endif /*WIN32*/
@@ -118,12 +168,12 @@ void read_password(const char *prompt,
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &nts);
 #else
   if (! GetConsoleMode(hStdin, &fdwOldMode)) {
-	  perror(progname);
+	  p_oserror(progname);
 	  exit(-(SASL_FAIL));
   }
   fdwMode = fdwOldMode & ~ENABLE_ECHO_INPUT;
   if (! SetConsoleMode(hStdin, fdwMode)) {
-	  perror(progname);
+	  p_oserror(progname);
 	  exit(-(SASL_FAIL));
   }
 #endif /*WIN32*/
@@ -136,7 +186,7 @@ void read_password(const char *prompt,
   if (! ReadFile(hStdin, buf, PW_BUF_SIZE, &n_read, NULL)) {
 #endif /*WIN32*/
 
-    perror(progname);
+    p_oserror(progname);
     exit(-(SASL_FAIL));
   }
 
@@ -166,6 +216,7 @@ void read_password(const char *prompt,
 
   *password = malloc(n_read + 1);
   if (! *password) {
+/* Can use perror() here even on Windows, as malloc is in std C library */
     perror(progname);
     exit(-(SASL_FAIL));
   }
@@ -317,7 +368,7 @@ main(int argc, char *argv[])
     case 'a':
       appname = optarg;
       if (strchr(optarg, '/') != NULL) {
-        (void)fprintf(stderr, "filename must not contain /\n");
+        (void)fprintf(stderr, "appname must not contain /\n");
         exit(-(SASL_FAIL));
       }
       break;
@@ -331,7 +382,7 @@ main(int argc, char *argv[])
 
   if (flag_error) {
     (void)fprintf(stderr,
-		  "%s: usage: %s [-p] [-c] [-d] [-a appname] [-f sasldb] [-u DOM] userid\n"
+	"%s: usage: %s [-c [-p] [-n]] [-d] [-a appname] [-f sasldb] [-u DOM] userid\n"
 		  "\t-p\tpipe mode -- no prompt, password read on stdin\n"
 		  "\t-c\tcreate -- ask mechs to create the account\n"
 		  "\t-d\tdisable -- ask mechs to disable/delete the account\n"
@@ -417,6 +468,7 @@ main(int argc, char *argv[])
   }
       
   if (result != SASL_OK)
+/* errstr is currently always NULL */
     exit_sasl(result, errstr);
 
   sasl_dispose(&conn);

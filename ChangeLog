@@ -22,6 +22,9 @@
 	  (Courtesy Marshall T. Rose <mrose@dbc.mtview.ca.us>
 	* config/kerberos_v4.m4: Detect OpenSSL libdes first.
 	  (Courtesy Marshall T. Rose <mrose@dbc.mtview.ca.us>
+	* plugins/cram.c, digestmd5.c, kervberos4.c, login.c,
+	  lib/client.c, server.c, include/saslplug.h:
+	  Cleaner client-first ABI.
 
 2002-01-19  Ken Murchison <ken@oceana.com>
 	* plugins/otp.c: set serverout to NULL where we have nothing to

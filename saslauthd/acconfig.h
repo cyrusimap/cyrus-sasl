@@ -25,7 +25,9 @@
 #undef HAVE_LDAP
 
 /* do we want to enable the GSSAPI module */
-#undef AUTH_KRB5
+#undef HAVE_GSSAPI
+
+/* do we use the Heimdal implementation? */
 #undef KRB5_HEIMDAL
 
 /* Do we want to enable the experimental sasldb authentication module? */

@@ -1,3 +1,9 @@
+New in 2.1.15
+-------------
+* Fix a number of build issues
+* Add a doc/components.html that hopefully describes how things
+  interact better.
+
 New in 2.1.14
 -------------
 * OS X 10.2 support

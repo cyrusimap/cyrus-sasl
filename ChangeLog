@@ -1,3 +1,6 @@
+2003-07-15  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* Ready for 2.1.15
+
 2003-07-03  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* doc/components.html: added in the hopes that this gives a better
 	  description of how all the components interact

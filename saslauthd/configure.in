@@ -14,7 +14,7 @@ AC_ARG_WITH(saslauthd, [  --with-saslauthd=DIR    enable use of the saslauth dae
   AC_DEFINE_UNQUOTED(PATH_SASLAUTHD_RUNDIR, "$with_saslauthd")
 AM_CONDITIONAL(SASLAUTHD, test "$with_saslauthd" != no)
 
-AM_INIT_AUTOMAKE(saslauthd,2.1.14)
+AM_INIT_AUTOMAKE(saslauthd,2.1.15)
 CMU_INIT_AUTOMAKE
 
 dnl Checks for programs.
@@ -46,6 +46,7 @@ if test "$gssapi" != no; then
 	if test "$gss_impl" = "heimdal"; then
 	    AC_DEFINE(KRB5_HEIMDAL)
 	fi
+	AC_DEFINE(HAVE_GSSAPI)
 fi
 
 SASL2_CRYPT_CHK

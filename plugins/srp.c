@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.19 2002/01/10 16:17:52 ken3 Exp $
+ * $Id: srp.c,v 1.20 2002/01/10 23:55:18 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -3069,8 +3069,12 @@ int srp_server_plug_init(const sasl_utils_t *utils,
 	}
     }
 
+#if OPENSSL_VERSION_NUMBER < 0x00907000L
+    if (1) { /* XXX Hack until OpenSSL 0.9.7 */
+#else
     /* Can't advertise confidentiality w/o support for AES */
     if (EVP_get_cipherbyname("aes-128-ofb")) {
+#endif
 	/* See which ciphers we have available and set max_ssf accordingly */
 	opts = confidentiality_options;
 	while (opts->name) {

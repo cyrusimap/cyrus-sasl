@@ -7,7 +7,7 @@
 ** Simon Loader -- original mysql plugin
 ** Patrick Welche -- original pgsql plugin
 **
-** $Id: sql.c,v 1.23 2003/10/07 20:48:32 ken3 Exp $
+** $Id: sql.c,v 1.24 2003/10/09 14:01:09 ken3 Exp $
 **
 */
 
@@ -61,7 +61,7 @@ static const char * SQL_WILDCARD = "*";
 static const char * SQL_NULL_VALUE = "NULL";
 
 
-#if HAVE_MYSQL
+#ifdef HAVE_MYSQL
 #include <mysql.h>
 
 static void *_mysql_open(char *host, char *port, int usessl,
@@ -174,7 +174,7 @@ static void _mysql_close(void *conn)
 }
 #endif /* HAVE_MYSQL */
 
-#if HAVE_PGSQL
+#ifdef HAVE_PGSQL
 #include <libpq-fe.h>
 
 static void *_pgsql_open(char *host, char *port, int usessl,
@@ -327,12 +327,12 @@ static void _pgsql_close(void *conn)
 #endif /* HAVE_PGSQL */
 
 static const sql_engine_t sql_engines[] = {
-#if HAVE_MYSQL
+#ifdef HAVE_MYSQL
     { "mysql", &_mysql_open, &_mysql_escape_str,
       &_mysql_begin_txn, &_mysql_commit_txn, &_mysql_rollback_txn,
       &_mysql_exec, &_mysql_close },
 #endif /* HAVE_MYSQL */
-#if HAVE_PGSQL
+#ifdef HAVE_PGSQL
     { "pgsql", &_pgsql_open, &_pgsql_escape_str,
       &_pgsql_begin_txn, &_pgsql_commit_txn, &_pgsql_rollback_txn,
       &_pgsql_exec, &_pgsql_close },

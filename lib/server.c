@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.60 1999/12/02 05:20:59 tmartin Exp $
+ * $Id: server.c,v 1.61 1999/12/02 19:12:06 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -822,8 +822,7 @@ int sasl_server_start(sasl_conn_t *conn,
   m=mechlist->mech_list;
 
   /* check parameters */
-  if ((mech==NULL)    ||
-      ((clientin==NULL) && (clientinlen>0)))
+  if ((conn == NULL) || (mech==NULL) || ((clientin==NULL) && (clientinlen>0)))
     return SASL_BADPARAM;
 
   if (errstr)

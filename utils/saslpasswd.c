@@ -233,16 +233,19 @@ main(int argc, char *argv[])
     flag_pipe = 1;
 #endif /*WIN32*/
 
-  read_password("Password: ", flag_pipe, &password, &passlen);
+  if (!flag_disable) {
+      read_password("Password: ", flag_pipe, &password, &passlen);
 
-  if (! flag_pipe) {
-    read_password("Again (for verification): ", flag_pipe, &verify,
+      if (! flag_pipe) {
+	  read_password("Again (for verification): ", flag_pipe, &verify,
 		  &verifylen);
-    if (passlen != verifylen
-	|| memcmp(password, verify, verifylen)) {
-      fprintf(stderr, "%s: passwords don't match; aborting\n", progname);
-      exit(-SASL_BADPARAM);
-    }
+	  if (passlen != verifylen
+	      || memcmp(password, verify, verifylen)) {
+	      fprintf(stderr, "%s: passwords don't match; aborting\n", 
+		      progname);
+	      exit(-SASL_BADPARAM);
+	  }
+      }
   }
 
   result = sasl_setpass(conn,

@@ -1,19 +1,23 @@
+Thu Dec  2 14:11:33 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* utils/saslpasswd.c (main): don't prompt for a password if
+	disabling an account
+
 1999-12-01  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
 	* plugins/kerberos4.c: enforces minumum ssf
 	
 	* plugins/digestmd5.c: enforces minumum ssf
 
-	* plugins/kerberos4.c (client_continue_step): 
-
-	* lib/server.c (sasl_server_start): from alexey: set external_ssf in sasl_server_start
+	* lib/server.c (sasl_server_start): from alexey: set external_ssf
+	in sasl_server_start
 
 	* plugins/digestmd5.c: caches db has entries; checks db version
 
 	* plugins/cram.c: caches db has entries; checks db version
 
 	* lib/server.c (sasl_setpass): set secret exist condition to true
- 	on sucessful mechanism setpass
+ 	on successful mechanism setpass
 
 Tue Nov 30 16:45:12 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
@@ -26,7 +30,7 @@ Fri Nov 19 13:05:47 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 1999-11-28  Larry Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/db_berkeley.c (_sasl_server_check_db): sasldb_path note,
-	flaw in implementation (goes for all three dbs): if an application
+	flaw in implementation---goes for all three dbs: if an application
 	specifies a different path given a connection than it does
 	otherwise, verifyfile isn't checked
 

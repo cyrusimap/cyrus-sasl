@@ -1,3 +1,11 @@
+Tue Nov 30 16:45:12 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* configure.in: added test for res_search; suggested by tjs
+
+Fri Nov 19 13:05:47 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/server.c (sasl_server_start): make sure conn != NULL
+
 1999-11-28  Larry Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/db_berkeley.c (_sasl_server_check_db): sasldb_path note,
@@ -85,7 +93,8 @@ Thu Nov 11 00:10:33 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/db_berkeley.c: Cleaned up
 
-	* plugins/digestmd5.c: Can use rc4 libraries from openSSL if they exist
+	* plugins/digestmd5.c: Can use rc4 libraries from openSSL if they
+	exist
 
 1999-11-10  Timothy L Martin  <tmartin@andrew.cmu.edu>
 
@@ -681,9 +690,11 @@ Tue Jun 15 15:21:05 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 1999-06-09  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
-	* lib/common.c: doesn't do getdomain name anymore b/c it's usually broken
+	* lib/common.c: doesn't do getdomain name anymore b/c it's usually
+	broken
 
-	* lib/common.c (_sasl_log): fixed casting problem. doesn't support as many types anymore	
+	* lib/common.c (_sasl_log): fixed casting problem. doesn't support
+	as many types anymore
 
 1999-06-08  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
@@ -985,7 +996,8 @@ Tue Jun 15 15:21:05 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 1999-03-07  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
-	* plugins/digestmd5.c: client and server can't send challenges >2048 bytes now
+	* plugins/digestmd5.c: client and server can't send challenges
+	>2048 bytes now
 
 1999-03-05  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
@@ -1283,7 +1295,8 @@ Tue Jun 15 15:21:05 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 1998-12-09  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
-	* utils/*: created utils directory with saslpasswd, imtest, and smtptest
+	* utils/*: created utils directory with saslpasswd, imtest, and
+	smtptest
 
 	* server.c: implemented sasl_setpass (adding passwords only)
 

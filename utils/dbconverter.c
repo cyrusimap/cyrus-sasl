@@ -102,7 +102,8 @@ int dbm_convert(char *dbfilename, char *user_domain)
   dkey=gdbm_firstkey(db);
 #endif
 
-  while (dkey.dptr!=NULL)
+  for (dkey = dbm_firstkey(db); dkey.dptr;
+       dkey = dbm_nextkey(db))
   {
     char *userid;
     char *mech;
@@ -117,8 +118,7 @@ int dbm_convert(char *dbfilename, char *user_domain)
 	   dkey.dsize-strlen(dkey.dptr)-1);
     
     if (strcmp(mech,"CRAM-MD5")!=0)
-      break;
-
+	continue;
 
 
     /* only gets here if it is the cram passwd */
@@ -143,15 +143,6 @@ int dbm_convert(char *dbfilename, char *user_domain)
 
     if (result != SASL_OK)
       exit_sasl(result, errstr);    
-
-#ifdef NDBM
-    nextkey=dbm_nextkey(db);
-#else
-    nextkey=gdbm_nextkey(db, dkey);
-#endif
-
-    dkey=nextkey;
-
   }
 
   dbm_close(db);
@@ -181,13 +172,11 @@ int main(int argc, char **argv)
   if (argc!=3)
     usage();
 
-  printf("This program will take the sasldb file specified on the
-command line and convert it to a new sasldb file in the default
-location (usually /etc/sasldb). It is STRONGLY RECOMMENDED that you
-remove sasldb before allowing this program to run\n\n");
-
-
-  printf("Press any key to continue\n");
+  printf("This program will take the sasldb file specified on the\n"
+"command line and convert it to a new sasldb file in the default\n"
+"location (usually /etc/sasldb). It is STRONGLY RECOMMENDED that you\n"
+"remove sasldb before allowing this program to run\n\n"
+"Press return to continue\n");
   getchar();
 
   dbm_convert(argv[1],argv[2]);  

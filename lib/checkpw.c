@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.53 2002/04/26 18:59:36 leg Exp $
+ * $Id: checkpw.c,v 1.54 2002/05/08 20:48:33 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -367,10 +367,8 @@ static int pwcheck_verify_password(sasl_conn_t *conn,
     int r;
     struct iovec iov[10];
     static char response[1024];
-    int start, n;
+    unsigned start, n;
     char pwpath[1024];
-    sasl_getopt_t *getopt;
-    void *context;
 
     if (strlen(PWCHECKDIR)+8+1 > sizeof(pwpath)) return SASL_FAIL;
 

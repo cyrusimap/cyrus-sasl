@@ -1,4 +1,4 @@
-.\" $Id: saslauthd.mdoc,v 1.4 2001/12/04 02:06:55 rjs3 Exp $
+.\" $Id: saslauthd.mdoc,v 1.5 2001/12/18 02:34:32 rjs3 Exp $
 .\" Copyright 1997-2001 Messaging Direct Ltd. All rights reserved.
 .\"
 .\" This manpage uses the BSD mdoc manpage macros. Please don't
@@ -22,6 +22,7 @@
 .Op Fl \&Tv
 .Op Fl H Ar hostname
 .Op Fl m Ar mux_path
+.Op Fl n Ar threads
 .Sh DESCRIPTION
 .Nm
 is a daemon process that handles plaintext authentication requests
@@ -64,6 +65,10 @@ Use
 .Ar path
 as the pathname to the named socket to listen on for
 connection requests. This must be an absolute pathname.
+.It Fl n Ar threads
+Use
+.Ar threads
+processes for responding to authentication queries. (default: 5)
 .It Fl T
 Honour time-of-day login restrictions.
 .It Fl v

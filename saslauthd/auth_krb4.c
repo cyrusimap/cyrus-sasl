@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb4.c,v 1.4 2001/12/04 02:06:54 rjs3 Exp $"
+#ident "$Id: auth_krb4.c,v 1.5 2001/12/18 02:34:32 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -121,7 +121,7 @@ auth_krb4_init (
     }
 
     /* Make sure it's not a symlink. */
-    if (sb.st_mode & S_IFLNK) {
+    if (S_ISLNK(sb.st_mode)) {
         syslog(LOG_ERR, "auth_krb4_init: %s: is a symbolic link", tf_dir);
 	free(tf_dir);
 	tf_dir = NULL;
@@ -160,6 +160,7 @@ auth_krb4 (
     char aname[ANAME_SZ];		/* Kerberos principal */
     char inst[INST_SZ];			/* Kerberos instance (default: imap) */
     char realm[REALM_SZ];		/* Kerberos realm to authenticate in */
+    char pidstr[128];
     int rc;				/* return code */
     static char *tf_name;		/* Ticket file name */
     /* END VARIABLES */
@@ -180,7 +181,8 @@ auth_krb4 (
      * NOTE: these ticket files are not used by us. The are created
      * as a side-effect of calling krb_get_pw_in_tkt.
      */
-    tf_name = malloc(strlen(tf_dir) + strlen(login) + 2);
+    snprintf(pidstr, sizeof(pidstr), "%d", getpid());
+    tf_name = malloc(strlen(tf_dir) + strlen(login) + strlen(pidstr) + 2);
     if (tf_name == NULL) {
 	syslog(LOG_ERR, "auth_krb4: malloc(tf_name) failed");
 	return strdup("NO saslauthd internal error");
@@ -188,6 +190,7 @@ auth_krb4 (
     }
     strcpy(tf_name, tf_dir);
     strcat(tf_name, login);
+    strcat(tf_name, pidstr);
     krb_set_tkt_string(tf_name);
     
     strncpy(aname, login, ANAME_SZ-1);

@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.166 2004/02/18 17:07:33 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.167 2004/02/23 22:03:09 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -120,7 +120,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.166 2004/02/18 17:07:33 rjs3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.167 2004/02/23 22:03:09 rjs3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -302,7 +302,7 @@ static void CvtHex(HASH Bin, HASHHEX Hex)
  */
 void
 DigestCalcResponse(const sasl_utils_t * utils,
-		   HASHHEX HA1,	/* H(A1) */
+		   HASHHEX HA1,	/* HEX(H(A1)) */
 		   unsigned char *pszNonce,	/* nonce from server */
 		   unsigned int pszNonceCount,	/* 8 hex digits */
 		   unsigned char *pszCNonce,	/* client nonce */
@@ -1582,7 +1582,7 @@ static char *create_response(context_t * text,
 			    SessionKey);
     
     DigestCalcResponse(utils,
-		       SessionKey,/* H(A1) */
+		       SessionKey,/* HEX(H(A1)) */
 		       nonce,	/* nonce from server */
 		       ncvalue,	/* 8 hex digits */
 		       cnonce,	/* client nonce */
@@ -1601,7 +1601,7 @@ static char *create_response(context_t * text,
     /* response_value (used for reauth i think */
     if (response_value != NULL) {
 	DigestCalcResponse(utils,
-			   SessionKey,	/* H(A1) */
+			   SessionKey,	/* HEX(H(A1)) */
 			   nonce,	/* nonce from server */
 			   ncvalue,	/* 8 hex digits */
 			   cnonce,	/* client nonce */
@@ -1952,7 +1952,7 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     char           *cipher = NULL;
     unsigned int   n=0;
     
-    HASH            A1;
+    HASH            Secret;
     
     /* password prop_request */
     const char *password_request[] = { SASL_AUX_PASSWORD,
@@ -2243,25 +2243,22 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	
 	/* Calculate the secret from the plaintext password */
 	{
-	    HASH HA1;
-	    
-	    DigestCalcSecret(sparams->utils, username,
-			     text->realm, sec->data, sec->len, HA1);
-	    
 	    /*
-	     * A1 = { H( { username-value, ":", realm-value, ":", passwd } ),
-	     * ":", nonce-value, ":", cnonce-value }
+	     * Secret = { H( { username-value, ":", realm-value, ":", passwd } ) }
+	     *
+	     * (used to build A1)
 	     */
 	    
-	    memcpy(A1, HA1, HASHLEN);
-	    A1[HASHLEN] = '\0';
+	    DigestCalcSecret(sparams->utils, username,
+			     text->realm, sec->data, sec->len, Secret);
+	    Secret[HASHLEN] = '\0';
 	}
 	
 	/* We're done with sec now. Let's get rid of it */
 	_plug_free_secret(sparams->utils, &sec);
     } else if (auxprop_values[1].name && auxprop_values[1].values) {
-	memcpy(A1, auxprop_values[1].values[0], HASHLEN);
-	A1[HASHLEN] = '\0';
+	memcpy(Secret, auxprop_values[1].values[0], HASHLEN);
+	Secret[HASHLEN] = '\0';
     } else {
 	sparams->utils->seterror(sparams->utils->conn, 0,
 				 "Have neither type of secret");
@@ -2337,7 +2334,7 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 				     cnonce,
 				     qop,
 				     digesturi,
-				     A1,
+				     Secret,
 				     authorization_id,
 				     &text->response_value);
     
@@ -2778,7 +2775,7 @@ static char *calculate_response(context_t * text,
 		  SessionKey);
     
     DigestCalcResponse(utils,
-		       SessionKey,/* H(A1) */
+		       SessionKey,/* HEX(H(A1)) */
 		       nonce,	/* nonce from server */
 		       ncvalue,	/* 8 hex digits */
 		       cnonce,	/* client nonce */
@@ -2796,7 +2793,7 @@ static char *calculate_response(context_t * text,
     
     if (response_value != NULL) {
 	DigestCalcResponse(utils,
-			   SessionKey,	/* H(A1) */
+			   SessionKey,	/* HEX(H(A1)) */
 			   nonce,	/* nonce from server */
 			   ncvalue,	/* 8 hex digits */
 			   cnonce,	/* client nonce */

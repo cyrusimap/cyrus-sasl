@@ -22,12 +22,12 @@ fi
 LIBS=""
 case `uname` in
   Linux) CFLAGS="${CFLAGS} -O2 -g"
-	 LNEXTRA=" --with-javabase=/usr/local/lib/java/"
+	 LNEXTRA=" --with-javabase=/usr/local/lib/java"
 	 ;;
 
   SunOS) CC="gcc"
 	 CFLAGS="${CFLAGS} -O2 -g"
-	 LNEXTRA=" --with-javabase=/usr/java/ --with-ipctype=doors"
+	 LNEXTRA=" --with-javabase=/usr/java --with-ipctype=doors"
 #	 CC="cc"
 #	 if test "${WASH_CYRUS_DEBUG}" = "t"; then
 #	   CFLAGS="${CFLAGS} -xs -g"

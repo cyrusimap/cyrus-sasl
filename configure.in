@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.186 2004/02/06 17:23:48 rjs3 Exp $
+dnl $Id: configure.in,v 1.187 2004/02/16 16:23:40 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -95,10 +95,8 @@ if test -z "$target"; then
 fi
 
 # new libtool
-#AC_PROG_RANLIB
 AM_DISABLE_STATIC
 AC_PROG_LIBTOOL
-#CMU_PROG_LIBTOOL
 
 target=$save_target
 

@@ -47,6 +47,6 @@ INSTCOMMAND="rm -rf ${DESTDIR}/*; \
 	echo 'usr/local /' > ${DESTDIR}/depot.conf; \
 	echo '~delete sbin/smtptest' >> ${DESTDIR}/depot.conf; \
 	mkdir ${DESTDIR}/usr/local/lib/java/lib; \
-	/usr/local/bin/jar cf ${DESTDIR}/usr/local/lib/java/lib/sasl.jar -C ${DESTDIR}/usr/local/lib/java/classes/sasl ."
+	jar cf ${DESTDIR}/usr/local/lib/java/lib/sasl.jar -C ${DESTDIR}/usr/local/lib/java/classes/sasl ."
 
 export CC CFLAGS CPPFLAGS LIBS

@@ -582,6 +582,24 @@ _sasl_verifyfile(void *context __attribute__((unused)),
   return SASL_OK;
 }
 
+
+static int
+_sasl_proxy_policy(void *context __attribute__((unused)),
+		   const char *auth_identity,
+		   const char *requested_user,
+		   const char **user,
+		   const char **errstr)
+{
+    *user = NULL;
+    if (!auth_identity || !requested_user || 
+	(strcmp(auth_identity, requested_user) != 0)) {
+	*errstr = "Requested identity not authenticated identity";
+	return SASL_BADAUTH;
+    }
+
+    return SASL_OK;
+}
+
 int
 _sasl_getcallback(sasl_conn_t * conn,
 		  unsigned long callbackid,
@@ -662,6 +680,9 @@ _sasl_getcallback(sasl_conn_t * conn,
     *pproc = & _sasl_verifyfile;
     *pcontext = NULL;
     return SASL_OK;
+  case SASL_CB_PROXY_POLICY:
+    *pproc = (int (*)()) &_sasl_proxy_policy;
+    *pcontext = NULL;
   }
 
   /* Unable to find a callback... */

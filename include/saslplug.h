@@ -4,8 +4,11 @@
 #ifndef SASLPLUG_H
 #define SASLPLUG_H 1
 
-#ifndef MD5_H
+#ifndef MD5GLOBAL_H
 #include "md5global.h"
+#define MD5GLOBAL_H 1
+#endif
+#ifndef MD5_H
 #include "md5.h"
 #endif
 #ifndef HMAC_MD5_H

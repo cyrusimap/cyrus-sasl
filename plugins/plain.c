@@ -279,24 +279,6 @@ server_continue_step (void *conn_context,
     if (result!=SASL_OK)
       return result;
 
-    /* verify authorization */
-    if (author && *author && strcmp(author, authen)) {
-      sasl_authorize_t *authorize;
-      void *context;
-      const char *user;
-      const char *errstr;
-      if (params->utils->getcallback(params->utils->conn,
-				     SASL_CB_PROXY_POLICY,
-				     &authorize,
-				     &context) != SASL_OK)
-	return SASL_NOAUTHZ;
-      result = authorize(context, authen, author, &user, &errstr);
-      if (result != SASL_OK)
-	return result; /*result;*/
-      if (user)
-	author = user;
-    }
-
     if (! author || !*author)
       author = authen;
 

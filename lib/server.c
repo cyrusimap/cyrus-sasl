@@ -132,41 +132,19 @@ external_server_step(void *conn_context __attribute__((unused)),
     return SASL_CONTINUE;
   }
 
-  if (clientinlen		/* if we have a non-zero authorization id */
-      && strcmp(clientin,	/* and it's not the same as the auth_id */
-		sparams->utils->conn->external.auth_id)) {
-    /* The user's trying to authorize as someone they didn't
-     * authenticate as; we need to ask the application if this is
-     * kosher. */
-    int (*authorize_cb)(void *context,
-			const char *auth_identity,
-			const char *requested_user,
-			char **user,
-			const char **errstr);
-    void *authorize_context;
-
-    if ((sparams->utils->getcallback(sparams->utils->conn,
-				     SASL_CB_PROXY_POLICY,
-				     (int (**)()) &authorize_cb,
-				     &authorize_context)
-	 != SASL_OK)
-	|| ! authorize_cb)
-      return SASL_NOAUTHZ;
-
-    if (authorize_cb(authorize_context,
-		     sparams->utils->conn->external.auth_id,
-		     clientin,
-		     &oparams->user,
-		     errstr)
-	!= SASL_OK) {
-      return SASL_NOAUTHZ;
-    }
+  if (clientinlen) {		/* if we have a non-zero authorization id */
+      /* The user's trying to authorize as someone they didn't
+       * authenticate as */
+      result = _sasl_strdup(clientin, &oparams->user, NULL);
+      if (result != SASL_OK)
+	  return result;
   } else {
-    result = _sasl_strdup(sparams->utils->conn->external.auth_id,
-			  &oparams->user,
-			  NULL);
-    if (result != SASL_OK)
-      return result;
+      /* just copy the authid to the userid */
+      result = _sasl_strdup(sparams->utils->conn->external.auth_id,
+			    &oparams->user,
+			    NULL);
+      if (result != SASL_OK)
+	  return result;
   }
   
   result = _sasl_strdup(sparams->utils->conn->external.auth_id,
@@ -855,25 +833,48 @@ int sasl_server_step(sasl_conn_t *conn,
 		     unsigned *serveroutlen,
 		     const char **errstr)
 {
-  /* cast */
-  sasl_server_conn_t *s_conn;
-  s_conn= (sasl_server_conn_t *) conn;
+    int ret;
+    sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;  /* cast */
 
-  /* check parameters */
-  if ((clientin==NULL) && (clientinlen>0))
-    return SASL_BADPARAM;
+    /* check parameters */
+    if ((clientin==NULL) && (clientinlen>0))
+	return SASL_BADPARAM;
 
-  if (errstr)
-    *errstr = NULL;
+    if (errstr)
+	*errstr = NULL;
 
-  return s_conn->mech->plug->mech_step(conn->context,
-				       s_conn->sparams,
-				       clientin,
-				       clientinlen,
-				       serverout,
-				       (int *) serveroutlen,
-				       &conn->oparams,
-				       errstr);
+    ret = s_conn->mech->plug->mech_step(conn->context,
+					s_conn->sparams,
+					clientin,
+					clientinlen,
+					serverout,
+					(int *) serveroutlen,
+					&conn->oparams,
+					errstr);
+
+    if (ret == SASL_OK) {
+	sasl_authorize_t *authproc;
+	void *auth_context;
+	const char *canonuser;
+
+	/* now let's see if authname is allowed to proxy for username! */
+
+	/* check the proxy callback */
+	if (_sasl_getcallback(&s_conn->base, SASL_CB_PROXY_POLICY,
+			      &authproc, &auth_context)
+	    != SASL_OK) {
+	    return SASL_NOAUTHZ;
+	}
+	ret = authproc(auth_context, s_conn->base.oparams.authid,
+		       s_conn->base.oparams.user, &canonuser, errstr);
+
+	if (ret == SASL_OK && canonuser != NULL) {
+	    sasl_FREE(s_conn->base.oparams.user);
+	    s_conn->base.oparams.user = (char *) canonuser;
+	}
+    }
+
+    return ret;
 }
 
 /* returns the length of all the mechanisms

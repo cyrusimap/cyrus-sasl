@@ -1,3 +1,20 @@
+Mon Jun 28 00:50:02 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/plain.c (server_continue_step): proxy callback is done
+	in server.c; removed here
+
+	* lib/common.c (_sasl_getcallback): added default proxy policy
+	callback
+	(_sasl_proxy_policy): default proxy policy callback (auth_identity
+	must equal requested_user)
+
+	* include/saslplug.h: added a md5global test, just in case
+
+Sun Jun 27 18:39:37 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/server.c (sasl_server_step): added check for
+	SASL_CB_PROXY_POLICY so plugins don't have to do it
+
 Mon Jun 21 22:39:17 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/kerberos4.c: efficiency improvements (not so many

@@ -1,3 +1,6 @@
+2004-06-30  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/auth_rimap.c: Fix Tru64 compilation problem
+
 2004-06-23  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/lak.c: Minor bugfixes, support %R token
 	  (Igor Brezac <igor@ypass.net>)

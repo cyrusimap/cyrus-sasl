@@ -585,10 +585,20 @@ int sasl_client_start(sasl_conn_t *conn,
 	    break;
 	}
 
+
+#ifdef PREFER_MECH
+	if (strcasecmp(m->plug->mech_name, PREFER_MECH) &&
+	    bestm && m->plug->max_ssf <= bestssf) {
+	    /* this mechanism isn't our favorite, and it's no better
+	       than what we already have! */
+	    break;
+	}
+#else
 	if (bestm && m->plug->max_ssf <= bestssf) {
 	    /* this mechanism is no better than what we already have! */
 	    break;
 	}
+#endif
 
 	VL(("Best mech so far: %s\n", m->plug->mech_name));
 	if (mech)

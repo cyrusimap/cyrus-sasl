@@ -153,8 +153,8 @@ int _sasl_get_mech_list(const char *entryname,
 	  flag = 0;
 #endif
 	  if (!(library = dlopen(tmp, flag))) {
-	      /* should log this! */
-	      /* printf("unable to dlopen %s: %s\n", tmp, dlerror()); */
+	      _sasl_log(NULL, SASL_LOG_ERR, NULL, 0, 0,
+			"unable to dlopen %s: %s", tmp, dlerror());
 	      continue;
 	  }
 	}

@@ -72,6 +72,9 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 /* do we pay attention to IP addresses in the kerberos 4 tickets? */
 #undef KRB4_IGNORE_IP_ADDRESS
 
+/* do we have a preferred mechanism, or should we just pick the highest ssf? */
+#undef PREFER_MECH
+
 @BOTTOM@
 
 /* Make Solaris happy... */
@@ -84,20 +87,14 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include <stdio.h>
 
-#ifdef HAVE_LIBNANA
-
-extern int _sasl_debug;
-#define L_DEFAULT_GUARD (_sasl_debug)
-
-#include <nana.h>
-#else				/* ! HAVE_LIBNANA */
+/* we no longer support or use nana, 
+   but we still have code that refers to it */
 #define WITHOUT_NANA
 #define L_DEFAULT_GUARD (0)
 #define I_DEFAULT_GUARD (0)
 #define I(foo)
 #define VL(foo)
 #define VLP(foo,bar)
-#endif				/* ! HAVE_LIBNANA */
 
 #ifndef __GNUC__
 /* Can't use attributes... */

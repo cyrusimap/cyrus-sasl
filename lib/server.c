@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.49 1999/08/26 19:17:46 leg Exp $
+ * $Id: server.c,v 1.50 1999/09/09 02:46:57 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -1058,7 +1058,7 @@ int sasl_listmech(sasl_conn_t *conn,
 }
 
 #define EOSTR(s,n) (((s)[n] == '\0') || ((s)[n] == ' ') || ((s)[n] == '\t'))
-static int is_mech(char *t, char *m)
+static int is_mech(const char *t, const char *m)
 {
     int sl = strlen(m);
     return ((!strncasecmp(m, t, sl)) && EOSTR(t, sl));
@@ -1100,6 +1100,10 @@ static int _sasl_checkpass(sasl_conn_t *conn,
     if (is_mech(mech, "sasldb")) {
 	/* check sasl database */
 	result = _sasl_sasldb_verify_password(conn, user, pass, NULL);
+    } else {
+	/* no mechanism available ?!? */
+	_sasl_log(conn, SASL_LOG_ERR, NULL, 0, 0,
+		  "unrecognized plaintext verifier %s", mech);
     }
 
     return result;

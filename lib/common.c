@@ -643,7 +643,7 @@ _sasl_getcallback(sasl_conn_t * conn,
 {
   const sasl_callback_t *callback;
 
-  if (! conn || ! pproc || ! pcontext)
+  if (! pproc || ! pcontext)
     return SASL_BADPARAM;
 
   /* Some callbacks are always provided by the library */
@@ -659,33 +659,38 @@ _sasl_getcallback(sasl_conn_t * conn,
 
   /* If it's not always provided by the library, see if there's
    * a version provided by the application for this connection... */
-  if (conn->callbacks)
-    for (callback = conn->callbacks;
-	 callback->id != SASL_CB_LIST_END;
-	 callback++)
-      if (callback->id == callbackid) {
-	*pproc = callback->proc;
-	*pcontext = callback->context;
-	if (callback->proc)
-	  return SASL_OK;
-	else
-	  return SASL_INTERACT;
-      }
+  if (conn && conn->callbacks) {
+    for (callback = conn->callbacks; callback->id != SASL_CB_LIST_END;
+	 callback++) {
+	if (callback->id == callbackid) {
+	    *pproc = callback->proc;
+	    *pcontext = callback->context;
+	    if (callback->proc) {
+		return SASL_OK;
+	    } else {
+		return SASL_INTERACT;
+	    }
+	}
+    }
+  }
 
   /* And, if not for this connection, see if there's one
    * for all {server,client} connections... */
-  if (conn->global_callbacks && conn->global_callbacks->callbacks)
-    for (callback = conn->global_callbacks->callbacks;
-	 callback->id != SASL_CB_LIST_END;
-	 callback++)
-      if (callback->id == callbackid) {
-	*pproc = callback->proc;
-	*pcontext = callback->context;
-	if (callback->proc)
-	  return SASL_OK;
-	else
-	  return SASL_INTERACT;
+  if (conn && conn->global_callbacks && conn->global_callbacks->callbacks) {
+      for (callback = conn->global_callbacks->callbacks;
+	   callback->id != SASL_CB_LIST_END;
+	   callback++) {
+	  if (callback->id == callbackid) {
+	      *pproc = callback->proc;
+	      *pcontext = callback->context;
+	      if (callback->proc) {
+		  return SASL_OK;
+	      } else {
+		  return SASL_INTERACT;
+	      }
+	  }
       }
+  }
 
   /* Otherwise, see if the library provides a default callback. */
   switch (callbackid) {

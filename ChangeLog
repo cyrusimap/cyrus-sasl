@@ -1,14 +1,24 @@
 Wed Sep  8 14:21:23 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
+	* lib/client.c (sasl_client_start): added another cmu kludge for a
+	"preferred mechanism", settable at compile time
+
+	* lib/common.c (_sasl_getcallback): don't require a connection for
+	logging messages; this way we can log configuration errors
+
+	* lib/server.c (_sasl_checkpass): log a message when there's an
+	unknown plaintext verifier
+
 	* configure.in: added --enable-cmulocal
 
-	* plugins/kerberos4.c (server_continue_step): added a cmu kluge:
+	* plugins/kerberos4.c (server_continue_step): added a cmu kludge:
 	KRB4_IGNORE_IP_ADDRESS, for ignoring ip addresses when doing a
 	kerberos authentication
 
 1999-09-08  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
-	* lib/db_ndbm.c (getsecret): don't dbm_close() if opening the dbm failed
+	* lib/db_ndbm.c (getsecret): don't dbm_close() if opening the dbm
+ 	failed
 
 1999-08-20  Timothy L Martin  <tmartin+@andrew.cmu.edu> Sarah Robeson <robeson@andrew.cmu.edu>
 

@@ -31,7 +31,7 @@ dnl
 dnl REMINDER: When changing the version number here, please also update
 dnl the values in win32/include/config.h and config/sasl.spec as well.
 dnl
-AM_INIT_AUTOMAKE(cyrus-sasl, 1.5.5)
+AM_INIT_AUTOMAKE(cyrus-sasl, 1.5.7)
 CMU_INIT_AUTOMAKE
 
 DIRS=""
@@ -478,8 +478,9 @@ AC_SUBST(SASL_UTIL_HEADERS_EXTRA)
 AC_CHECK_FUNCS(getdomainname getpassphrase)
 
 if test $enable_cmulocal = yes; then
+    AC_WARN([enabling CMU local kludges])
     AC_DEFINE(KRB4_IGNORE_IP_ADDRESS)
-    AC_WARN([enabling CMU local kluges])
+    AC_DEFINE_UNQUOTED(PREFER_MECH, "KERBEROS_V4")
 fi
 
 AC_SUBST(DIRS)

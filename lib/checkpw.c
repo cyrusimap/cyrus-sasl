@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.67 2003/12/07 00:34:07 ken3 Exp $
+ * $Id: checkpw.c,v 1.68 2003/12/15 21:39:20 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -618,7 +618,7 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 	    goto fail;
 	}
 	
-	count = (int)sizeof(response) < count ? sizeof(response) : count;
+	count = (int)sizeof(response) <= count ? sizeof(response) - 1 : count;
 	if (retry_read(s, response, count) < count) {
 	    close(s);
 	    sasl_seterror(conn, 0, "read failed");

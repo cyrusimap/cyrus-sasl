@@ -1,3 +1,7 @@
+2003-05-15  Rob Siemborski <rjs3@andrew.cmu.edu>	
+	* configure.in: Actually listen to --disable-java
+	  (Maciej W. Rozycki <macro@ds2.pg.gda.pl>)
+
 2003-05-14  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* config/kerberos_v4.m4: Minor nit
 	  (Carlos Velasco <carlosev@newipnet.com>)

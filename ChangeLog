@@ -1,8 +1,15 @@
+2003-04-08  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/external.c, lib/server.c: use mech_avail to disable
+	EXTERNAL instead of special casing it (Chris Newman
+	<Chris.Newman@Sun.COM>)
+
 2003-03-31  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/ipc_unix.c, saslauthd/saslauthd-main.c,
 	  saslauthd/saslauthd-main.h: use the pidfile locking from
 	  the Cyrus IMAPd master process (implemented for saslauthd by
 	  Igor Brezac <igor@ipass.net>)
+	* configure.in, acconfig.h: Add configure option to set what
+	  we use for /dev/random
 
 2003-03-28  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/: Unify the source files so that the IPC methods

@@ -1,3 +1,7 @@
+2003-07-28  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/gssapi.c: another missed pointer init
+	  (Will Fiveash <william.fiveash@sun.com>)
+
 2003-07-26  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/server.c: Missed pointer initialization fix
 	  ("Dave Cridland [Home]" <dave@cridland.net>)

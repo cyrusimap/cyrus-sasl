@@ -11,8 +11,19 @@ if test "$with_des" != no; then
     CPPFLAGS="$CPPFLAGS -I${with_des}/include"
     LDFLAGS="$LDFLAGS -L${with_des}/lib"
   fi
-  AC_CHECK_LIB(des, des_pcbc_encrypt, [LIB_DES="-ldes";
-				       with_des=yes], with_des=no)
+
+  dnl check for openssl installing -lcrypto, then make vanilla check
+  AC_CHECK_LIB(crypto, des_pcbc_encrypt,
+      AC_CHECK_HEADER(openssl/des.h, [AC_DEFINE(WITH_SSL_DES)
+                                     LIB_DES="-lcrypto";
+                                     with_des=yes],
+                     with_des=no),
+      with_des=no, $LIB_RSAREF)
+
+  if test "$with_des" = no; then
+    AC_CHECK_LIB(des, des_pcbc_encrypt, [LIB_DES="-ldes";
+                                        with_des=yes], with_des=no)
+  fi
 
   if test "$with_des" = no; then
      AC_CHECK_LIB(des524, des_pcbc_encrypt, [LIB_DES="-ldes524";

@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.36 2002/09/16 19:06:32 rjs3 Exp $ -->
+<!-- $Id: sysadmin.html,v 1.37 2002/09/17 15:30:48 ken3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -402,6 +402,15 @@ Make sure you changed the /usr/lib/sasl2/*.conf files to reflect<br>
 plaintext mechanism.  It's included in the SASL distribution purely
 for sites that need it to interoperate with old clients; we don't
 support it.  Don't enable it unless you know you need it.
+
+<p>
+<dt><b>Q:</b> Is NTLM supported?
+<dd>
+<p><b>A:</b> The NTLM mechanism is a non-standard, undocumented
+mechanism developed by Microsoft.  It's included in the SASL
+distribution purely for sites that need it to interoperate with
+Microsoft clients (ie, Outlook) and/or servers (ie, Exchange); we
+don't support it.  Don't enable it unless you know you need it.
 
 <p>
 <dt><b>Q:</b> How can I get a non-root application to check plaintext

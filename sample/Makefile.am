@@ -50,8 +50,8 @@ EXTRA_PROGRAMS = sample-client sample-server
 sample_client_SOURCES = sample-client.c
 sample_server_SOURCES = sample-server.c
 
-server_SOURCES = server.c common.c
-client_SOURCES = client.c common.c
+server_SOURCES = server.c common.c common.h
+client_SOURCES = client.c common.c common.h
 
 server_LDADD = ../lib/libsasl.la $(LIB_SOCKET)
 client_LDADD = ../lib/libsasl.la $(LIB_SOCKET)

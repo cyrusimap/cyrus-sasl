@@ -1,3 +1,7 @@
+2001-03-22  Larry Greenfield  <leg@yossarian.cc.cmu.edu>
+
+	* plugins/digestmd5.c: disabled DES for now
+
 2001-02-19  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* ready for 1.5.26

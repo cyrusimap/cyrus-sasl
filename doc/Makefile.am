@@ -1,6 +1,6 @@
 # Makefile.am for SASL documentation
 # Rob Earhart
-# $Id: Makefile.am,v 1.9 2000/05/03 19:34:08 leg Exp $
+# $Id: Makefile.am,v 1.10 2001/03/22 22:07:06 leg Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -48,7 +48,7 @@ EXTRA_DIST =	rfc1321.txt \
 		rfc2104.txt \
 		rfc2222.txt \
 		rfc2245.txt \
-		draft-leach-digest-sasl-05.txt \
+		rfc2831.txt \
 		draft-newman-auth-scram-03.txt \
 		programming.html \
 		sysadmin.html \

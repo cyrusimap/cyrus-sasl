@@ -1,19 +1,9 @@
 if test ! -x configure; then
-  echo aclocal -I cmulocal -I config
-  aclocal -I cmulocal -I config
+  echo aclocal -I cmulocal
+  aclocal -I cmulocal
   echo autoheader
   autoheader
   echo autoconf
-  autoconf
-  echo automake --add-missing --include-deps
-  automake --add-missing --include-deps
-  echo cd saslauthd
-  cd saslauthd
-  echo aclocal -I ../cmulocal -I config
-  aclocal -I ../cmulocal -I config -I ../config
-  echo autoheader
-  autoheader
-  echo autoconf 
   autoconf
   echo automake --add-missing --include-deps
   automake --add-missing --include-deps
@@ -23,12 +13,12 @@ LIBS=""
 case `uname` in
   Linux) CFLAGS="${CFLAGS} -O2 -g"
 	 LIBS="-ldb"
-	 LNEXTRA=" --with-javabase=/usr/local/lib/java/"
+	 LNEXTRA=" --enable-java --with-javabase=/usr/local/lib/java/"
 	 ;;
 
   SunOS) CC="gcc"
 	 CFLAGS="${CFLAGS} -O2 -g"
-	 LNEXTRA=" --with-javabase=/usr/java/"
+	 LNEXTRA=" --enable-java --with-javabase=/usr/java/"
 	 LIBS="-ldb"
 #	 CC="cc"
 #	 if test "${WASH_CYRUS_DEBUG}" = "t"; then
@@ -37,11 +27,13 @@ case `uname` in
 #	   CFLAGS="${CFLAGS} -xO3 -xdepend"
 #         fi
 	 ;;
+  Darwin) CFLAGS="${CFLAGS} -O2 -g"
+	;;
 esac
 
 MAKE=gmake
-LNCOMMAND="${SRCDIR}/configure --with-staticsasl --prefix=/usr/local --enable-cmulocal --with-sfio=/usr/local --enable-java ${LNEXTRA} --with-saslauthd=/var/run/saslauthd --enable-login"
+LNCOMMAND="${SRCDIR}/configure --prefix=/usr/local --enable-login --enable-cmulocal ${LNEXTRA}"
 CPPFLAGS=-I/usr/local/include/gssapi
-INSTCOMMAND="rm -rf ${DESTDIR}/*; ${MAKE} DESTDIR=${DESTDIR} install; echo 'usr/local /' > ${DESTDIR}/depot.conf"
 
 export CC CFLAGS CPPFLAGS LIBS
+# -lgssapi_krb5 -lkrb5 -lk5crypto -lndbm

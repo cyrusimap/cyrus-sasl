@@ -81,6 +81,10 @@ static int start(void *glob_context __attribute__((unused)),
   text= sparams->utils->malloc(sizeof(context_t));
   if (text==NULL) return SASL_NOMEM;
   text->state=1;
+
+  /* not used on server side */
+  text->authid=NULL;
+  text->password=NULL;
   
   *conn=text;
 
@@ -253,6 +257,26 @@ static char *make_hashed(sasl_secret_t *sec, char *nonce, int noncelen,
 }
 
 
+/* copy a string */
+static int
+cram_strdup(sasl_utils_t * utils, const char *in, char **out, int *outlen)
+{
+  size_t          len = strlen(in);
+  if (outlen!=NULL)
+  {
+    *outlen = len;
+  }
+
+  *out = utils->malloc(len + 1);
+  if (!*out)
+  {
+    return SASL_NOMEM;
+  }
+
+  strcpy((char *) *out, in);
+  return SASL_OK;
+}
+
 
 static int server_continue_step (void *conn_context,
 				 sasl_server_params_t *sparams,
@@ -299,9 +323,10 @@ static int server_continue_step (void *conn_context,
     text->msgidlen=*serveroutlen;
 
     /* save nonce so we can check against it later */
-    text->msgid=sparams->utils->malloc(*serveroutlen);
+    text->msgid=sparams->utils->malloc((*serveroutlen)+1);
     if (text->msgid==NULL) return SASL_NOMEM;
     memcpy(text->msgid,*serverout,*serveroutlen);
+    text->msgid[ *serveroutlen ] ='\0';
 
     VL(("nonce=[%s]\n",text->msgid));
 
@@ -319,7 +344,7 @@ static int server_continue_step (void *conn_context,
     sasl_server_getsecret_t *getsecret;
     void *getsecret_context;
 
-    HMAC_MD5_CTX *tmphmac;
+    HMAC_MD5_CTX tmphmac;
     char digest_str[33];
     UINT4 digest[4];
 
@@ -386,14 +411,10 @@ static int server_continue_step (void *conn_context,
     
     VL(("password=[%s]\n",sec->data));
 
-    tmphmac=(HMAC_MD5_CTX *) sparams->utils->malloc(sizeof(HMAC_MD5_CTX));
-    if (tmphmac==NULL)
-    {
-      return SASL_NOMEM;
-    }
-
     if (sec->len!=sizeof(HMAC_MD5_STATE))
     {
+      free_secret(sparams->utils, &sec);
+      free_string(sparams->utils, &userid);
       VL(("The secret in the db is not of the right size"));
       return SASL_FAIL;
     }
@@ -406,13 +427,13 @@ static int server_continue_step (void *conn_context,
        -finalize it
     */
 
-    sparams->utils->hmac_md5_import(tmphmac, (HMAC_MD5_STATE *) sec->data);
+    sparams->utils->hmac_md5_import(&tmphmac, (HMAC_MD5_STATE *) sec->data);
 
-    sparams->utils->MD5Update(&(tmphmac->ictx),
+    sparams->utils->MD5Update(&(tmphmac.ictx),
 			      (const unsigned char *)text->msgid,
 			      text->msgidlen);
 
-    sparams->utils->hmac_md5_final((unsigned char *)&digest, tmphmac);
+    sparams->utils->hmac_md5_final((unsigned char *)&digest, &tmphmac);
 
 
     /* this converts to base 16 with lower case letters 
@@ -435,6 +456,7 @@ static int server_continue_step (void *conn_context,
      */
     if (strncmp(digest_str,clientin+pos+1,strlen(digest_str))!=0)
     {
+      sparams->utils->free(userid);
       VL(("bad auth here\n"));
       return SASL_BADAUTH;
     }
@@ -447,7 +469,10 @@ static int server_continue_step (void *conn_context,
     oparams->doneflag=1;
 
     oparams->user=userid; /* set username */
-    oparams->authid=userid;
+    
+    result=cram_strdup(sparams->utils, userid, &(oparams->authid),NULL);
+    if (result!=SASL_OK) return result;
+
 
     oparams->mech_ssf=0;
 

@@ -45,7 +45,7 @@ static const char *progname = NULL;
 
 #define SAMPLE_SEC_BUF_SIZE (2048)
 
-#define N_CALLBACKS (8)
+#define N_CALLBACKS (16)
 
 static const char
 message[] = "Come here Watson, I want you.";
@@ -128,6 +128,18 @@ sasl_my_log(void *context __attribute__((unused)),
   fprintf(stderr, "%s: SASL %s: %s\n",
 	  progname, label, message);
 
+  return SASL_OK;
+}
+
+static int getrealm(void *context, 
+		    int id,
+		    const char **availrealms,
+		    const char **result)
+{
+  if (id!=SASL_CB_GETREALM) return SASL_FAIL;
+
+  *result=(char *) context;
+  
   return SASL_OK;
 }
 
@@ -390,6 +402,7 @@ main(int argc, char *argv[])
   const char *chosenmech;
   unsigned len;
   sasl_callback_t callbacks[N_CALLBACKS], *callback;
+  char *realm = NULL;
   char *mech = NULL,
     *iplocal = NULL,
     *ipremote = NULL,
@@ -412,7 +425,7 @@ main(int argc, char *argv[])
   secprops.max_ssf = UINT_MAX;
   memset(&extprops, 0L, sizeof(extprops));
 
-  while ((c = getopt(argc, argv, "hb:e:m:f:i:p:s:n:u:a:?")) != EOF)
+  while ((c = getopt(argc, argv, "hb:e:m:f:i:p:r:s:n:u:a:?")) != EOF)
     switch (c) {
     case 'b':
       options = optarg;
@@ -518,6 +531,10 @@ main(int argc, char *argv[])
       searchpath = optarg;
       break;
 
+    case 'r':
+      realm = optarg;
+      break;
+
     case 's':
       service=malloc(1000);
       strcpy(service,optarg);
@@ -567,6 +584,7 @@ main(int argc, char *argv[])
 	    "\t\tlocal=IP:PORT\tset local address to IP, port PORT\n"
 	    "\t\tremote=IP:PORT\tset remote address to IP, port PORT\n"
 	    "\t-p PATH\tcolon-seperated search path for mechanisms\n"
+	    "\t-r REALM\trealm to use"
 	    "\t-s NAME\tservice name pass to mechanisms\n"
 	    "\t-n FQDN\tserver fully-qualified domain name\n"
 	    "\t-u ID\tuser (authorization) id to request\n"
@@ -606,6 +624,14 @@ main(int argc, char *argv[])
     callback->proc = &simple;
     callback->context = authid;
     ++callback;
+  }
+
+  if (realm!=NULL)
+  {
+    callback->id = SASL_CB_GETREALM;
+    callback->proc = &getrealm;
+    callback->context = realm;
+    callback++;
   }
 
   /* password */

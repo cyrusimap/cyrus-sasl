@@ -744,11 +744,11 @@ LIBSASL_API int sasl_server_init(const sasl_callback_t *callbacks,
  *  SASL_NOMEM     -- not enough memory
  */
 LIBSASL_API int sasl_server_new(const char *service,
-		    const char *serverFQDN,
-		    const char *user_realm,
-		    const sasl_callback_t *callbacks,
-		    int secflags,
-		    sasl_conn_t **pconn);
+				const char *serverFQDN,
+				const char *user_realm,
+				const sasl_callback_t *callbacks,
+				int secflags,
+				sasl_conn_t **pconn);
 
 /* This returns a list of mechanisms in a NUL-terminated string
  *  user          -- restricts mechanisms to those available to that user

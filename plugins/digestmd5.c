@@ -3060,7 +3060,15 @@ make_prompts(sasl_client_params_t * params,
   }
   if (realm_res == SASL_INTERACT) {
       (prompts)->id = SASL_CB_GETREALM;
-      (prompts)->challenge = "Realm";
+      /* xxx this leaks memory */
+      if (params->serverFQDN==NULL)
+      {
+	(prompts)->challenge = "{}";
+      } else {
+	(prompts)->challenge = (char *) params->utils->malloc(3+strlen(params->serverFQDN));
+	sprintf((char *) (prompts)->challenge,"{%s}",params->serverFQDN);
+      }
+	
       (prompts)->prompt = "Please enter your realm";
       (prompts)->defresult = NULL;
 
@@ -3662,8 +3670,6 @@ FreeAllocatedMem:
     if (charset) { params->utils->free(charset); }
     if (digesturi) { params->utils->free(digesturi); }
     if (cnonce) { params->utils->free(cnonce); }
-
-    if (in) { params->utils->free(in); }
 
     VL(("All done. exiting DIGEST-MD5\n"));
 

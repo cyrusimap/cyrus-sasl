@@ -248,6 +248,7 @@ samp_send(const char *buffer,
   buf = malloc(alloclen);
   if (! buf)
     osfail();
+
   result = sasl_encode64(buffer, length, buf, alloclen, &len);
   if (result != SASL_OK)
     saslfail(result, "Encoding data in base64", NULL);
@@ -261,15 +262,19 @@ samp_recv()
   unsigned len;
   int result;
   
-  if (! fgets(buf, SAMPLE_SEC_BUF_SIZE, stdin)
-      || strncmp(buf, "C: ", 3))
+  if (! fgets(buf, SAMPLE_SEC_BUF_SIZE, stdin))
     fail("Unable to parse input");
+
+  if (strncmp(buf, "C: ", 3)!=0)
+    fail("Line must start with 'C: '");
+    
   result = sasl_decode64(buf + 3, strlen(buf + 3), buf, &len);
   if (result != SASL_OK)
     saslfail(result, "Decoding data from base64", NULL);
   buf[len] = '\0';
   return len;
 }
+
 
 int
 main(int argc, char *argv[])
@@ -574,5 +579,6 @@ main(int argc, char *argv[])
   else
     printf("SSF: %d\n", *ssf);
 
+  printf("a\n");
   return (EXIT_SUCCESS);
 }

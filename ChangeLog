@@ -1,3 +1,34 @@
+1999-08-19  Timothy L Martin  <tmartin+@andrew.cmu.edu>
+
+	* sample/sample-server.c (samp_recv): give better error messages. less obfuscated code
+
+	* plugins/digestmd5.c: only free in once
+
+	* sample/sample-client.c (main): supports realm callback
+
+	* plugins/cram.c (server_continue_step): end saved msgid with a
+ 	null
+	(start): start authid and password as null so the server doesn't
+ 	try to free them in dispose()
+	(server_continue_step): free userid
+	(server_continue_step): put tmphmac on the stack not heap
+	(server_continue_step): free the secret in more cases
+	(server_continue_step): oparams->authid gets an allocated string
+ 	so one mem ptr isn't free'd 2x
+
+1999-08-18  Timothy L Martin  <tmartin+@andrew.cmu.edu>
+
+	* TODO: snipped some stuff
+
+	* plugins/digestmd5.c (make_prompts): Put the challenge part of
+ 	the interaction in the computer readable form containing the list
+ 	of possible realms
+
+	* plugins/kerberos4.c: should require CB_USER not CB_AUTHNAME
+	the authname is in the 
+
+	* sample/sample-client.c (main): should always interact.
+
 1999-08-17  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
 	* plugins/kerberos4.c (integrity_decode): checks timestamps

@@ -49,7 +49,9 @@ SOFTWARE.
 #include <pwd.h>
 #endif /* SASL_MINIMAL_SERVER */
 #ifdef HAVE_CRYPT_H
+#ifndef HAVE_KRB
 #include <crypt.h>
+#endif /* HAVE_KRB */
 #endif /* HAVE_CRYPT_H */
 #ifdef HAVE_SHADOW_H
 #include <shadow.h>

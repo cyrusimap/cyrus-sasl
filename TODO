@@ -26,14 +26,12 @@ Digest-MD5
 ) Layers
 ) Checking wacko cases or even not so wacko cases
 ) Testing
-) Should require & use the SASL_CB_GETREALM callback
 ) correct deletion of user account
 ) support use of other RC4 libraries
 ) allow sending multiple realms or no realm from server to client
 
 Kerberos_V4
 ~~~~~~~~~~~
-) Needs to check timestamps for replay attacks
 
 GSSAPI
 ~~~~~~

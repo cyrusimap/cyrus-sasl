@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.30 2002/12/03 19:15:17 ken3 Exp $
+ * $Id: testsuite.c,v 1.31 2002/12/09 21:01:09 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -369,13 +369,13 @@ int mem_stat()
     
     fprintf(stderr, "  Currently Still Allocated:\n");
     for(cur = head; cur; cur = cur->next) {
-	fprintf(stderr, "    %X\t", (unsigned)cur->addr);
+	fprintf(stderr, "    %X (%5d)\t", (unsigned)cur->addr, cur->size);
 	for(data = (unsigned char *) cur->addr,
 		n = 0; n < (cur->size > 12 ? 12 : cur->size); n++) {
 	    if (isprint((int) data[n]))
 		fprintf(stderr, "'%c' ", (char) data[n]);
 	    else
-		fprintf(stderr, "%02X ", data[n] & 0xff);
+		fprintf(stderr, "%02X  ", data[n] & 0xff);
 	}
 	if (n < cur->size)
 	    fprintf(stderr, "...");
@@ -985,6 +985,13 @@ void test_props(void)
         NULL
     };
 
+    const char *more_requests[] = {
+	"a",
+	"b",
+	"c",
+	"defghijklmnop"
+    };
+
     const char *short_requests[] = {
 	"userPassword",
 	"userName",
@@ -1006,11 +1013,24 @@ void test_props(void)
     if(result != SASL_OK)
 	fatal("prop request failed");
 
+    /* set some values */
+    prop_set(ctx, "uidNumber", really_long_string, 0);
     prop_set(ctx, "userPassword", "pw1", 0);
     prop_set(ctx, "userPassword", "pw2", 0);
     prop_set(ctx, "userName", "rjs3", 0);
     prop_set(ctx, NULL, "tmartin", 0);
-    
+
+    /* and request some more (this resets values) */
+    prop_request(ctx, more_requests);
+
+    /* and set some more... */
+    prop_set(ctx, "c", really_long_string, 0);
+    prop_set(ctx, "b", really_long_string, 0);
+    prop_set(ctx, "userPassword", "pw1b", 0);
+    prop_set(ctx, "userPassword", "pw2b", 0);
+    prop_set(ctx, "userName", "rjs3b", 0);
+    prop_set(ctx, NULL, "tmartinagain", 0);
+
     if(prop_set(ctx, "gah", "ack", 0) == SASL_OK) {
 	printf("setting bad property name succeeded\n");
 	exit(1);
@@ -1026,6 +1046,15 @@ void test_props(void)
 	fatal("prop_getnames item 1 wrong name");
     if(foobar[2].name)
 	fatal("prop_getnames returned an item 2");
+
+    if(strcmp(foobar[0].values[0], "pw1b"))
+	fatal("prop_getnames item 1a wrong value");
+    if(strcmp(foobar[0].values[1], "pw2b"))
+	fatal("prop_getnames item 1b wrong value");
+    if(strcmp(foobar[1].values[0], "rjs3b"))
+	fatal("prop_getnames item 2a wrong value");
+    if(strcmp(foobar[1].values[1], "tmartinagain"))
+	fatal("prop_getnames item 2b wrong value");
 
     result = prop_dup(ctx, &dupctx);
     if(result != SASL_OK)

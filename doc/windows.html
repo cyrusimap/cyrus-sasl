@@ -1,0 +1,69 @@
+<html><head>
+<title>Building Cyrus SASL on Windows</title>
+
+</head>
+
+<body>
+<h1>Building Cyrus SASL on Windows</h1>
+
+<h2>Prerequisites</h2>
+
+<ul>
+<li>Visual Studio. We have tested Visual Studio 6 and Visual Studio 7 (.NET).
+
+<li>The latest Platform SDK. We've tested November 2001.
+
+<li>If you are building directly from CVS, you'll need the <a
+href="http://www.cygwin.com/">Cygwin</a> Unix-compatibility
+environment to create the <tt>_init.c</tt> files needed for dynamic
+loading. Cygwin is <em>not</em> required for building from our tar
+distribution.  
+
+</ul>
+
+<h2>Step by step</h2>
+
+These directions assume that you've untarred the library or used CVS
+and the sources are in <tt>C:\SASL</tt>.
+
+<h3>preparing to build (cvs only!)</h3>
+
+Start a cygwin shell and create the dynamic loading stubs:
+
+<pre>
+% cd /cygdrive/c/sasl/plugins
+% sh makeinit.sh
+</pre>
+
+<h3>building using NMake</h3>
+
+Open a "Windows 2000 build environment" from the SDK's Start Menu and
+use "<tt>nmake /f NTMakefile</tt>" to build:
+
+<pre>
+Targeting Windows 2000 and IE 5.0 RETAIL
+
+C:\Program Files\Microsoft SDK> cd \sasl
+
+C:\sasl> cd lib
+
+C:\sasl\lib> nmake /f NTMakefile
+...
+
+C:\sasl\lib> cd ..\plugins
+
+C:\sasl\plugins> nmake /f NTMakefile
+</pre>
+
+To build a debug verison, use "<tt>nmake /f NTMakefile
+CFG=Debug</tt>". For a production version, "<tt>nmake /f NTMakefile
+CFG=Release</tt>".
+
+<h3>testing</h3>
+
+
+<h3>creating an MSI</h3>
+
+</body>
+
+</html>

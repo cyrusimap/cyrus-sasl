@@ -1,7 +1,7 @@
 /* saslutil.c
  * Rob Siemborski
  * Tim Martin
- * $Id: saslutil.c,v 1.37 2002/09/03 15:11:52 rjs3 Exp $
+ * $Id: saslutil.c,v 1.38 2002/09/10 15:44:12 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -292,7 +292,7 @@ void getranddata(unsigned short ret[RPOOL_SIZE])
 	fd = open(DEV_RANDOM, O_RDONLY);
 	if(fd != -1) {
 	    unsigned char *buf = (unsigned char *)ret;
-	    size_t bytesread = 0;
+	    ssize_t bytesread = 0;
 	    size_t bytesleft = RPOOL_SIZE*sizeof(unsigned short);
 	    
 	    do {

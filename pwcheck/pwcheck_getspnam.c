@@ -1,9 +1,7 @@
-/* CMU libsasl
- * Tim Martin
- * Rob Earhart
- */
-/***********************************************************
-        Copyright 1999 by Carnegie Mellon University
+/* pwcheck_getspnam.c -- check passwords using getspnam()
+   $Id: pwcheck_getspnam.c,v 1.1 1999/08/26 16:22:44 leg Exp $
+
+Copyright 1998, 1999 Carnegie Mellon University
 
                       All Rights Reserved
 
@@ -24,3 +22,26 @@ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
 OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ******************************************************************/
+
+#include <shadow.h>
+
+extern char *crypt();
+
+char *pwcheck(userid, password)
+char *userid;
+char *password;
+{
+    struct spwd *pwd;
+
+    pwd = getspnam(userid);
+    if (!pwd) {
+	return "Userid not found";
+    }
+    
+    if (strcmp(pwd->sp_pwdp, crypt(password, pwd->sp_pwdp)) != 0) {
+	return "Incorrect password";
+    }
+    else {
+	return "OK";
+    }
+}

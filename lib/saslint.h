@@ -192,12 +192,16 @@ extern int _sasl_PAM_verify_password(sasl_conn_t *conn,
 				     const char *password, 
 				     const char *service,
 				     const char **reply);
-extern int _sasl_make_plain_secret(const char *salt, const 
-				   char *passwd, int passlen,
-				   sasl_secret_t **secret);
 extern int _sasl_sasldb_verify_password(sasl_conn_t *conn,
 					const char *userid, 
 					const char *passwd,
 					const char **reply);
+extern int _sasl_pwcheck_verify_password(sasl_conn_t *conn,
+					 const char *userid,
+					 const char *passwd,
+					 const char **reply);
+extern int _sasl_make_plain_secret(const char *salt, const 
+				   char *passwd, int passlen,
+				   sasl_secret_t **secret);
 
 #endif /* SASLINT_H */

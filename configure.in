@@ -102,6 +102,7 @@ if test "$enable_java" = yes; then
 fi
 
 if test "$enable_java" = yes; then
+  AC_ERROR([java is not supported in this release])
   DIRS="$DIRS sasl"
 fi
 
@@ -213,6 +214,18 @@ if test "$with_pam" != no; then
   LIB_PAM="-lpam"
 fi
 AC_SUBST(LIB_PAM)
+
+AC_ARG_WITH(pwcheck,[  --with-pwcheck=DIR      enable use of the pwcheck daemonusing statedir DIR ],
+	with_pwcheck=$withval,
+	with_pwcheck=no)
+if test "$with_pwcheck" != no; then
+   if test "$with_pwcheck" = yes; then
+     with_pwcheck=/var/pwcheck
+   fi
+   AC_DEFINE(HAVE_PWCHECK)
+   AC_DEFINE_UNQUOTED(PWCHECKDIR, $with_pwcheck)
+   DIRS="$DIRS pwcheck"
+fi
 
 dnl CRAM-MD5
 AC_ARG_ENABLE(cram, [  --enable-cram           enable CRAM-MD5 authentication [yes] ],
@@ -471,4 +484,4 @@ AC_CHECK_FUNCS(getdomainname getpassphrase)
 
 AC_SUBST(DIRS)
 
-AC_OUTPUT(Makefile include/Makefile lib/Makefile plugins/Makefile utils/Makefile doc/Makefile sample/Makefile man/Makefile)
+AC_OUTPUT(Makefile include/Makefile lib/Makefile plugins/Makefile utils/Makefile doc/Makefile sample/Makefile man/Makefile pwcheck/Makefile)

@@ -61,6 +61,17 @@ SOFTWARE.
 #include <security/pam_appl.h>
 #endif
 
+#ifdef HAVE_PWCHECK
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/uio.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
+extern int errno;
+#endif
+
 #ifdef HAVE_KRB
 
 /* This defines the Andrew string_to_key function.  It accepts a
@@ -505,3 +516,117 @@ int _sasl_sasldb_verify_password(sasl_conn_t *conn,
     return ret;
 }
 
+#ifdef HAVE_PWCHECK
+/*
+ * Keep calling the writev() system call with 'fd', 'iov', and 'iovcnt'
+ * until all the data is written out or an error occurs.
+ */
+static int retry_writev(int fd, struct iovec *iov, int iovcnt)
+{
+    int n;
+    int i;
+    int written = 0;
+    static int iov_max =
+#ifdef MAXIOV
+	MAXIOV
+#else
+#ifdef IOV_MAX
+	IOV_MAX
+#else
+	8192
+#endif
+#endif
+	;
+    
+    for (;;) {
+	while (iovcnt && iov[0].iov_len == 0) {
+	    iov++;
+	    iovcnt--;
+	}
+
+	if (!iovcnt) return written;
+
+	n = writev(fd, iov, iovcnt > iov_max ? iov_max : iovcnt);
+	if (n == -1) {
+	    if (errno == EINVAL && iov_max > 10) {
+		iov_max /= 2;
+		continue;
+	    }
+	    if (errno == EINTR) continue;
+	    return -1;
+	}
+
+	written += n;
+
+	for (i = 0; i < iovcnt; i++) {
+	    if (iov[i].iov_len > n) {
+		iov[i].iov_base = (char *)iov[i].iov_base + n;
+		iov[i].iov_len -= n;
+		break;
+	    }
+	    n -= iov[i].iov_len;
+	    iov[i].iov_len = 0;
+	}
+
+	if (i == iovcnt) return written;
+    }
+}
+
+/* pwcheck daemon-authenticated login */
+int _sasl_pwcheck_verify_password(sasl_conn_t *conn,
+				  const char *userid, const char *passwd,
+				  const char **reply)
+{
+    int s;
+    struct sockaddr_un srvaddr;
+    int r;
+    struct iovec iov[10];
+    static char response[1024];
+    int start, n;
+    char *pwpath[1024];
+    sasl_getopt_t *getopt;
+    void *context;
+
+    if (reply) { *reply = NULL; }
+
+    strcpy(pwpath, PWCHECKDIR);
+    strcat(pwpath, "/pwcheck");
+
+    s = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (s == -1) return errno;
+
+    memset((char *)&srvaddr, 0, sizeof(srvaddr));
+    srvaddr.sun_family = AF_UNIX;
+    strcpy(srvaddr.sun_path, pwpath);
+    r = connect(s, (struct sockaddr *)&srvaddr, sizeof(srvaddr));
+    if (r == -1) {
+	if (reply) { *reply = "cannot connect to pwcheck server"; }
+	return SASL_FAIL;
+    }
+
+    iov[0].iov_base = (char *)userid;
+    iov[0].iov_len = strlen(userid)+1;
+    iov[1].iov_base = (char *)passwd;
+    iov[1].iov_len = strlen(passwd)+1;
+
+    retry_writev(s, iov, 2);
+
+    start = 0;
+    while (start < sizeof(response) - 1) {
+	n = read(s, response+start, sizeof(response) - 1 - start);
+	if (n < 1) break;
+	start += n;
+    }
+
+    close(s);
+
+    if (start > 1 && !strncmp(response, "OK", 2)) {
+	return SASL_OK;
+    }
+
+    response[start] = '\0';
+    if (reply) { *reply = response; }
+    return SASL_BADAUTH;
+}
+
+#endif

@@ -14,7 +14,10 @@ case `uname` in
 	 ;;
 
   SunOS) CC="cc"
-	 CFLAGS="${CFLAGS} -xs -g"
+         CFLAGS="-xO3 -xdepend"
+	 if test "${WASH_CYRUS_DEBUG}" = "t"; then
+	   CFLAGS="${CFLAGS} -xs -g"
+         fi
 	 ;;
 esac
 

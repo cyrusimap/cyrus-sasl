@@ -63,6 +63,12 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 /* Does your system have the vsnprintf() call? */
 #undef HAVE_VSNPRINTF
 
+/* should we include support for the pwcheck daemon? */
+#undef HAVE_PWCHECK
+
+/* where do we look for the pwcheck daemon? */
+#undef PWCHECKDIR
+
 @BOTTOM@
 
 /* Make Solaris happy... */

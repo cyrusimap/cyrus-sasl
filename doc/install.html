@@ -2,7 +2,7 @@
                       "http://www.w3.org/TR/html4/loose.dtd"> 
 <html><head>
 <title>Cyrus SASLv2 INSTALL Documentation</title>
-<!-- $Id: install.html,v 1.12 2003/08/14 21:04:12 rjs3 Exp $ -->
+<!-- $Id: install.html,v 1.13 2003/08/14 21:11:27 rjs3 Exp $ -->
 </head>
 <body>
 <h1>Installation Procedure</h1>
@@ -181,6 +181,17 @@ our platforms by looking at the "SMakefile".
 needs to be configured so that applications can successfully use the SASL
 library.  This is also covered in the <a href=readme.html>Read Me First</a>
 document.
+
+<p>You will want to ensure that the settings of <tt>pwcheck_method</tt>
+and <tt>auxprop_plugin</tt> match the decisions you made about your
+authentication infrastructure.  (For example, if you are using
+saslauthd as a password verifier, you'll want to be sure to set
+<tt>pwcheck_method: saslauthd</tt>.
+
+<p>If you are using saslauthd, you will want to arrange for
+<tt>saslauthd -a pam</tt> (or ldap, or kerberos4, etc) to be run
+at boot.  If you are not going to be using saslauthd, then this is
+not necessary.
 
 <h2>Supported platforms</h2>
 

@@ -76,7 +76,7 @@ AC_SUBST(LIB_DES)
 AC_DEFUN([SASL_KERBEROS_V4_CHK], [
   AC_REQUIRE([SASL_DES_CHK])
 
-  AC_ARG_ENABLE(krb4, [  --enable-krb4           enable KERBEROS_V4 authentication [yes] ],
+  AC_ARG_ENABLE(krb4, [  --enable-krb4           enable KERBEROS_V4 authentication [[no]] ],
     krb4=$enableval,
     krb4=no)
 

@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.38 2004/06/30 19:40:27 rjs3 Exp $
+ * $Id: testsuite.c,v 1.39 2004/10/24 20:05:22 shadow Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -97,10 +97,10 @@ char myhostname[1024+1];
 #define REALLY_LONG_LENGTH  32000
 #define REALLY_LONG_BACKOFF  2000
 
-const char *username = "rjs3";
+const char *username = "shadow";
 const char *nonexistant_username = "ABCDEFGHIJ";
-const char *authname = "rjs3";
-const char *proxyasname = "rjs3proxy";
+const char *authname = "shadow";
+const char *proxyasname = "shadowproxy";
 const char *password = "1234";
 const char *cu_plugin = "INTERNAL";
 char other_result[1024];

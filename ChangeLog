@@ -1,3 +1,6 @@
+2004-07-01  Derrick Brashear <shadow@andrew.cmu.edu> 
+	* Prep for 2.1.20
+
 2004-10-19  Derrick Brashear <shadow@dementia.org>
 	* Makefile.am, saslauthd/Makefile.am: require automake 1.7;
 	  prior versions require AM_CONFIG_HEADER and dislike AM_LDFLAGS

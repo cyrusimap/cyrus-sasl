@@ -1,3 +1,11 @@
+New in 2.1.20
+-------------
+* Fixes to cram plugin to avoid attempting to canonify uninitialized data.
+* NTLM portability fixes.
+* Avoid potential attack using SASL_PATH when sasl is used in a setuid 
+  environment.
+* A trivial number of small bugfixes.
+
 New in 2.1.19
 -------------
 * Fixes to saslauthd to allow better integration with realms (-r flag to

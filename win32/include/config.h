@@ -55,7 +55,7 @@
 #define PACKAGE "cyrus-sasl"
 
 /* Our version */
-#define VERSION "2.1.19"
+#define VERSION "2.1.20"
 
 /* Visual Studio supports prototypes */
 #define PROTOTYPES     1

@@ -1,3 +1,6 @@
+2004-01-20  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* configure.in: minor sql nit (Edward Rudd <eddie@omegaware.com>)
+
 2004-01-12  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* win32/include/config.h: fix VC++ 6.0 compiles
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)

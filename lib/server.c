@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.83 2000/12/18 06:05:55 leg Exp $
+ * $Id: server.c,v 1.84 2001/02/06 20:54:28 leg Exp $
  */
 
 /* 
@@ -298,7 +298,6 @@ int sasl_setpass(sasl_conn_t *conn,
     mechanism_t *m;
     sasl_getopt_t *getopt;
     void *context;
-    const char *plainmech;
      
     /* check params */
     if (errstr) { *errstr = NULL; }
@@ -316,11 +315,6 @@ int sasl_setpass(sasl_conn_t *conn,
     if ((flags & SASL_SET_CREATE) && (flags & SASL_SET_DISABLE)) {
 	if (errstr) *errstr = "Can't both create and disable simultaneously";
 	return SASL_BADPARAM;
-    }
-
-    if (_sasl_getcallback(conn, SASL_CB_GETOPT, 
-			  &getopt, &context) == SASL_OK) {
-	getopt(context, NULL, "pwcheck_method", &plainmech, NULL);
     }
 
     /* set/create password for PLAIN usage */

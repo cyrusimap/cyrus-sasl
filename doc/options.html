@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Options for Cyrus SASL</title>
-<!-- $Id: options.html,v 1.4 2002/01/05 20:56:48 leg Exp $ -->
+<!-- $Id: options.html,v 1.5 2002/01/30 20:11:40 ken3 Exp $ -->
 </HEAD>
 <BODY>
 <h1>Options for Cyrus SASL</h1>
@@ -32,8 +32,13 @@ otp').  Used to restrict the mechanisms to a subset of the installed
 plugins.</TD><TD>all available</TD>
 </TR>
 <TR>
-<TD>opiekeys</TD><TD>OTP</TD>
+<TD>opiekeys</TD><TD>OTP (with OPIE)</TD>
 <TD>Location of the opiekeys file</TD><TD><tt>/etc/opiekeys</tt></TD>
+</TR>
+<TR>
+<TD>otp_mda</TD><TD>OTP (w/o OPIE)</TD>
+<TD>Message digest algorithm for one-time passwords, used by sasl_setpass
+(possible values: 'md4', 'md5', 'sha1')</TD><TD><tt>md5</tt></TD>
 </TR>
 <TR>
 <TD>plugin_list</TD><TD>SASL Library</TD>
@@ -52,6 +57,10 @@ plugins.</TD><TD>all available</TD>
 <TD>sasldb_path</TD><TD>sasldb plugin</TD>
 <TD>Path to sasldb file</TD><TD><tt>/etc/sasldb2</tt> (system dependant)</TD>
 <TR>
+<TD>srp_mda</TD><TD>SRP</TD>
+<TD>Message digest algorithm for SRP calculations
+(possible values: 'md5', 'sha1', 'rmd160')</TD><TD><tt>sha1</tt></TD>
+</TR>
 <TD>srvtab</TD><TD>KERBEROS_V4</TD>
 <TD>Location of the srvtab file</TD><TD><tt>/etc/srvtab</tt> (system
 dependant)</TD>

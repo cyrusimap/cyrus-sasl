@@ -22,8 +22,8 @@ SRP
 
 OTP
 ~~~
-) Protect against race attack (depends on OPIE modifications)
-) Notify when sequence number gets too low (depends on OPIE modifications)
+) Checking edge cases
+) Testing
 
 Digest-MD5
 ~~~~~~~~~~
@@ -54,6 +54,7 @@ Database stuff
 ) atomic updates of passwords (we can crash and leave the user with 
   different passwords for different mechanisms) [through failure to
   make setpass calls]
+) locks (to help fortify protection against OTP race attack)?
 
 ABI
 ~~~

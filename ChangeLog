@@ -1,3 +1,10 @@
+2002-01-30  Ken Murchison <ken@oceana.com>
+	* plugins/otp.c, plugins/otp.h: added non-OPIE client/server
+	  implementation (requires OpenSSL)
+	* configure.in: OTP now requires OpenSSL, OPIE is optional
+	* doc/options.html, doc/readme.html, doc/sysadmin.html, doc/TODO:
+	  updated for new OTP implementation
+
 2002-01-25  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* saslauthd/Makefile.am: Correct multiple EXTRA_DIST bug
 	* saslauthd/Makefile.am: small typo fixed (Leena Heino <liinu@uta.fi>)

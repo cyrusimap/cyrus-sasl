@@ -1,3 +1,12 @@
+# Define the minimal Windows OS you want to run on:40 (NT), 50 (W2K), 51 (XP)
+# Default is no restrictions. Currently we only check for 51 or later.
+#TARGET_WIN_SYSTEM=51
+
+!IF "$(TARGET_WIN_SYSTEM)" == ""
+!MESSAGE Applications and libraries should run on any Win32 system.
+TARGET_WIN_SYSTEM=0
+!ENDIF
+
 !IF "$(CFG)" == ""
 CFG=Release
 !MESSAGE No configuration specified. Defaulting to $(CFG).

@@ -1,6 +1,6 @@
 /* sample-client.c -- sample SASL client
  * Rob Earhart
- * $Id: sample-client.c,v 1.28 2003/08/29 17:06:23 rjs3 Exp $
+ * $Id: sample-client.c,v 1.29 2003/09/10 16:30:57 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -435,6 +435,16 @@ main(int argc, char *argv[])
     *authid = NULL;
   sasl_ssf_t *ssf;
     
+#ifdef WIN32
+  /* initialize winsock */
+    WSADATA wsaData;
+
+    result = WSAStartup( MAKEWORD(2, 0), &wsaData );
+    if ( result != 0) {
+	saslfail(SASL_FAIL, "Initializing WinSockets", NULL);
+    }
+#endif
+
   progname = strrchr(argv[0], HIER_DELIMITER);
   if (progname)
     progname++;
@@ -838,5 +848,8 @@ main(int argc, char *argv[])
   free_conn();
   sasl_done();
 
+#ifdef WIN32
+  WSACleanup();
+#endif
   return (EXIT_SUCCESS);
 }

@@ -1,0 +1,120 @@
+!INCLUDE ..\win32\common.mak
+
+### Also:- client.exe server.exe
+sample_apps=sample-client.exe sample-server.exe
+sample_out=sample-client.pdb sample-server.pdb client.pdb server.pdb
+
+server_SOURCES = server.c common.c common.h
+client_SOURCES = client.c common.c common.h
+compat_sources = getaddrinfo.c getnameinfo.c
+sample_client_SOURCES = sample-client.c
+sample_server_SOURCES = sample-server.c
+
+common_objs = common.obj
+server_objs = server.obj
+client_objs = client.obj
+compat_objs = getaddrinfo.obj getnameinfo.obj
+sample_client_objs = sample-client.obj
+sample_server_objs = sample-server.obj
+
+!IF $(TARGET_WIN_SYSTEM) < 51
+common_objs = $(common_objs) $(compat_objs)
+!ENDIF 
+
+
+all_objs = $(common_objs) $(server_objs) $(client_objs) $(sample_client_objs) $(sample_server_objs)
+all_out = $(sample_apps) $(sample_out)
+
+!IF "$(OS)" == "Windows_NT"
+NULL=
+!ELSE 
+NULL=nul
+!ENDIF 
+
+DB_FLAGS = /I $(DB_INCLUDE)
+CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" $(DB_FLAGS) /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL"
+
+!IF $(TARGET_WIN_SYSTEM) >= 51
+CPPFLAGS = /D TARGET_WIN_SYSTEM=$(TARGET_WIN_SYSTEM) $(CPPFLAGS)
+!ENDIF 
+
+SYS_LIBS=ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib
+SASL_LIB=/libpath:"..\lib" libsasl.lib
+
+CPP=cl.exe
+LINK32=link.exe
+
+!IF  "$(CFG)" == "Release"
+
+!IF "$(STATIC)" == "yes"
+CODEGEN=/MT
+!ELSE
+CODEGEN=/MD
+!ENDIF 
+!MESSAGE Codegeneration defaulting to $(CODEGEN).
+
+CPP_PROJ=/nologo $(CODEGEN) /W3 /GX /O2 /D "NDEBUG" $(CPPFLAGS) /FD /c 
+
+LINK32_FLAGS=$(SYS_LIBS) $(SASL_LIB) /nologo /subsystem:console /incremental:no /machine:I386
+
+!ELSEIF  "$(CFG)" == "Debug"
+
+!IF "$(STATIC)" == "yes"
+CODEGEN=/MTd
+!ELSE
+CODEGEN=/MDd
+!ENDIF 
+
+CPP_PROJ=/nologo $(CODEGEN) /W3 /Gm /GX /ZI /Od /D "_DEBUG" $(CPPFLAGS) /FD /GZ /c 
+
+LINK32_FLAGS=$(SYS_LIBS) $(SASL_LIB) /nologo /subsystem:console /incremental:yes /debug /machine:I386 /pdbtype:sept 
+
+!ENDIF
+
+all : all-recursive
+
+all-recursive : $(sample_apps)
+
+server.exe: $(server_objs) $(common_objs)
+	$(LINK32) @<< $(LINK32_FLAGS) /pdb:"server.pdb" /out:"server.exe" $(server_objs) $(common_objs)
+<<
+
+client.exe: $(client_objs) $(common_objs)
+	$(LINK32) @<< $(LINK32_FLAGS) /pdb:"client.pdb" /out:"client.exe" $(client_objs) $(common_objs)
+<<
+
+sample-server.exe: $(sample_server_objs)
+	$(LINK32) @<< $(LINK32_FLAGS) /pdb:"sample-server.pdb" /out:"sample-server.exe" $(sample_server_objs)
+<<
+
+sample-client.exe: $(sample_client_objs)
+	$(LINK32) @<< $(LINK32_FLAGS) /pdb:"sample-client.pdb" /out:"sample-client.exe" $(sample_client_objs)
+<<
+
+getaddrinfo.c: ..\lib\getaddrinfo.c
+	copy ..\lib\getaddrinfo.c .
+
+getnameinfo.c: ..\lib\getnameinfo.c
+	copy ..\lib\getnameinfo.c .
+
+CLEAN :
+	-@erase $(all_objs)
+	-@erase "*.idb"
+	-@erase "*.pch"
+	-@erase $(all_out)
+	-@erase getaddrinfo.c
+
+.c.obj::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+.cpp.obj::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+.cxx.obj::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<

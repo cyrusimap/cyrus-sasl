@@ -1,3 +1,7 @@
+2003-09-10  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/gssapi.c, win32/config.mak, sample/: Win32 Fixes
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+
 2003-09-09  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/NTMakefile: Minor nit
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)

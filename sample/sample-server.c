@@ -1,6 +1,6 @@
 /* sample-server.c -- sample SASL server
  * Rob Earhart
- * $Id: sample-server.c,v 1.28 2003/08/29 17:06:23 rjs3 Exp $
+ * $Id: sample-server.c,v 1.29 2003/09/10 16:30:58 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -45,16 +45,6 @@
 #include <config.h>
 #include <limits.h>
 #include <stdio.h>
-#ifdef WIN32
-# include <winsock.h>
-__declspec(dllimport) char *optarg;
-__declspec(dllimport) int optind;
-__declspec(dllimport) int getsubopt(char **optionp, const char * const *tokens, char **valuep);
-#else /* WIN32 */
-# include <netinet/in.h>
-#endif /* WIN32 */
-#include <sasl.h>
-#include <saslutil.h>
 
 #ifdef HAVE_GETOPT_H
 #include <getopt.h>
@@ -62,6 +52,18 @@ __declspec(dllimport) int getsubopt(char **optionp, const char * const *tokens, 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+
+#ifdef WIN32
+# include <winsock.h>
+__declspec(dllimport) char *optarg;
+__declspec(dllimport) int optind;
+__declspec(dllimport) int getsubopt(char **optionp, const char * const *tokens, char **valuep);
+#define HAVE_GETSUBOPT
+#else /* WIN32 */
+# include <netinet/in.h>
+#endif /* WIN32 */
+#include <sasl.h>
+#include <saslutil.h>
 
 #ifndef HAVE_GETSUBOPT
 int getsubopt(char **optionp, const char * const *tokens, char **valuep);
@@ -282,6 +284,16 @@ main(int argc, char *argv[])
   const char *data;
   int serverlast = 0;
   sasl_ssf_t *ssf;
+
+#ifdef WIN32
+  /* initialize winsock */
+    WSADATA wsaData;
+
+    result = WSAStartup( MAKEWORD(2, 0), &wsaData );
+    if ( result != 0) {
+	saslfail(SASL_FAIL, "Initializing WinSockets", NULL);
+    }
+#endif
 
   progname = strrchr(argv[0], HIER_DELIMITER);
   if (progname)
@@ -609,6 +621,10 @@ main(int argc, char *argv[])
     if(strcmp(recv_data,CLIENT_MSG1)!=0)
     	saslfail(1,"recive decoded server message",NULL);
  }
+
+#ifdef WIN32
+  WSACleanup();
+#endif
 
   return (EXIT_SUCCESS);
 }

@@ -42,7 +42,7 @@
 #
 ################################################################
 
-SUBDIRS=lib plugins utils
+SUBDIRS=lib plugins utils sample
 
 all: all-recursive
 

@@ -1,4 +1,5 @@
 2004-12-08  Alexey Melnikov <alexey.melnikov@isode.com>
+	* doc/windows.html: Updated as per recent build changes.
 	* plugins/ntlm.c: Fixed NTLM build on Windows,
 	  as compiler was complaining about array size not being
 	  a const.

@@ -14,8 +14,8 @@ and two applications (saslpasswd2.exe and sasldblistusers2.exe) can be built.
 
 <ul>
 <li>Visual Studio. We have tested Visual Studio 6 and Visual Studio 7 (.NET).
-By default we are using Visual Studio 7. If you want to use Visual Studio 6,
-you need to remove /Wp64 compiler flag from win32/common.mak
+By default we are using Visual Studio 7 (both 2002 and 2003 versions were tested). If you want to use Visual Studio 6,
+you need to remove the leading # character from the line containing "<tt>#VCVER=6</tt>" in win32/common.mak.
 
 <li>The latest Platform SDK. We've tested November 2001.
 
@@ -110,7 +110,7 @@ Defaulting SleepyCat library path to c:\work\isode\db\build_win32\Release_static
 
 </pre>
 
-<h3>Building additional plugins</h3>
+<h3>building additional plugins</h3>
 
 <p>Specify "GSSAPI=&lt;type&gt;" parameter if you want to enable GSSAPI plugin.
 Currently only &lt;type&gt;=CyberSafe is supported and this will build the plugin
@@ -144,20 +144,13 @@ multiple parameters described above, for example "<tt>nmake /f NTMakefile NTLM=1
 
 <h3>limitations</h3>
 
-Currently only the following plugins build:
+Currently all plugins but KerberosV4 (kerberos4.c) and PASSDSS (passdss.c) can be built on Windows.
+However limited testings was done for some plugins as listed below:
 
 <ul>
-<li>ANONYMOUS,
-<li>LOGIN,
-<li>PLAIN,
-<li>CRAM-MD5,
-<li>DIGEST-MD5,
-<li>NTLM,
-<li>GSSAPI (tested using CyberSafe),
-<li>SRP (not tested),
-<li>OTP (not tested),
-<li>SASLDB (using SleepyCat),
-<li>SQL (using SQLITE, not tested)
+<li>GSSAPI - tested using CyberSafe,
+<li>SASLDB - only SleepyCat version can be built,
+<li>SQL - using SQLITE, not tested
 </ul>
 
 The following executables were built and tested (to some extend):
@@ -173,7 +166,7 @@ In utils:
 <li>testsuite
 </ul>
 
-Yes, saslauthd is NOT in this list.
+Note that saslauthd is <em>NOT</em> in this list.
 
 <h3>testing</h3>
 

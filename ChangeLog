@@ -1,3 +1,9 @@
+2002-09-18  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/srp.c, plugins/kerberos4.c: correct maxoutbuf handling
+	* plugins/digestmd5.c: correct maxoutbuf handling, actually
+	  send maxbuf to the remote.
+	* lib/common.c: sanity check security properties
+	
 2002-09-17  Ken Murchison <ken@oceana.com>
 	* plugins/ntlm.c: home-grown client/server NTLM implementation
 	* configure.in: NTLM depends on OpenSSL libcrypto

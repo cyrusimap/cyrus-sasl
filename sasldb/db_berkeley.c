@@ -1,7 +1,7 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Rob Siemborski
  * Tim Martin
- * $Id: db_berkeley.c,v 1.3 2002/03/27 20:11:29 rjs3 Exp $
+ * $Id: db_berkeley.c,v 1.4 2002/07/05 15:45:13 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -97,7 +97,7 @@ static int berkeleydb_open(const sasl_utils_t *utils,
     if (ret != 0) {
 	utils->log(conn, SASL_LOG_ERR,
 		   "unable to open Berkeley db %s: %s",
-		   path, strerror(ret));
+		   path, db_strerror(ret));
 	utils->seterror(conn, SASL_NOLOG, "Unable to open DB");
 	return SASL_FAIL;
     }
@@ -117,7 +117,7 @@ static void berkeleydb_close(const sasl_utils_t *utils, DB *mbdb)
 	/* error closing! */
 	utils->log(NULL, SASL_LOG_ERR,
 		   "error closing sasldb: %s",
-		   strerror(ret));
+		   db_strerror(ret));
     }
 }
 
@@ -193,7 +193,7 @@ int _sasldb_getdata(const sasl_utils_t *utils,
   default:
     utils->seterror(context, 0,
 		    "error fetching from sasldb: %s",
-		    strerror(result));
+		    db_strerror(result));
     result = SASL_FAIL;
     goto cleanup;
     break;
@@ -278,7 +278,7 @@ int _sasldb_putdata(const sasl_utils_t *utils,
     if (result != 0)
     {
       utils->log(NULL, SASL_LOG_ERR,
-		 "error updating sasldb: %s", strerror(result));
+		 "error updating sasldb: %s", db_strerror(result));
       utils->seterror(context, SASL_NOLOG,
 		      "Couldn't update db");
       result = SASL_FAIL;
@@ -290,7 +290,7 @@ int _sasldb_putdata(const sasl_utils_t *utils,
     if (result != 0)
     {
       utils->log(NULL, SASL_LOG_ERR,
-		 "error deleting entry from sasldb: %s", strerror(result));
+		 "error deleting entry from sasldb: %s", db_strerror(result));
       utils->seterror(context, SASL_NOLOG,
 		      "Couldn't update db");
       if (result == DB_NOTFOUND)

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.103 2002/02/21 21:28:16 rjs3 Exp $
+ * $Id: server.c,v 1.104 2002/04/08 23:34:03 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1461,7 +1461,7 @@ static int _sasl_checkpass(sasl_conn_t *conn, const char *service,
     sasl_getopt_t *getopt;
     sasl_server_userdb_checkpass_t *checkpass_cb;
     void *context;
-    const char *mech;
+    const char *mlist, *mech;
     struct sasl_verify_password_s *v;
 
     /* call userdb callback function, if available */
@@ -1477,17 +1477,26 @@ static int _sasl_checkpass(sasl_conn_t *conn, const char *service,
     /* figure out how to check (i.e. auxprop or saslauthd or pwcheck) */
     if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context)
             == SASL_OK) {
-        getopt(context, NULL, "pwcheck_method", &mech, NULL);
+        getopt(context, NULL, "pwcheck_method", &mlist, NULL);
     }
 
-    if(!mech) mech = DEFAULT_CHECKPASS_MECH;
+    if(!mlist) mlist = DEFAULT_CHECKPASS_MECH;
 
     result = SASL_NOMECH;
 
-    for (v = _sasl_verify_password; v->name; v++) {
-	if(is_mech(mech, v->name)) {
-	    result = v->verify(conn, user, pass, service, s_conn->user_realm);
-	    break;
+    mech = mlist;
+    while (*mech && result != SASL_OK) {
+	for (v = _sasl_verify_password; v->name; v++) {
+	    if(is_mech(mech, v->name)) {
+		result = v->verify(conn, user, pass, service,
+				   s_conn->user_realm);
+		break;
+	    }
+	}
+	if (result != SASL_OK) {
+	    /* skip to next mech in list */
+	    while (*mech && !isspace((int) *mech)) mech++;
+	    while (*mech && isspace((int) *mech)) mech++;
 	}
     }
 
@@ -1566,7 +1575,7 @@ int sasl_user_exists(sasl_conn_t *conn,
 		     const char *user) 
 {
     int result=SASL_NOMECH;
-    const char *mech;
+    const char *mlist, *mech;
     void *context;
     sasl_getopt_t *getopt;
     struct sasl_verify_password_s *v;
@@ -1582,17 +1591,25 @@ int sasl_user_exists(sasl_conn_t *conn,
     /* figure out how to check (i.e. auxprop or saslauthd or pwcheck) */
     if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context)
             == SASL_OK) {
-        getopt(context, NULL, "pwcheck_method", &mech, NULL);
+        getopt(context, NULL, "pwcheck_method", &mlist, NULL);
     }
 
-    if(!mech) mech = DEFAULT_CHECKPASS_MECH;
+    if(!mlist) mlist = DEFAULT_CHECKPASS_MECH;
 
     result = SASL_NOMECH;
 
-    for (v = _sasl_verify_password; v->name; v++) {
-	if(is_mech(mech, v->name)) {
-	    result = v->verify(conn, user, NULL, service, user_realm);
-	    break;
+    mech = mlist;
+    while (*mech && result != SASL_OK) {
+	for (v = _sasl_verify_password; v->name; v++) {
+	    if(is_mech(mech, v->name)) {
+		result = v->verify(conn, user, NULL, service, user_realm);
+		break;
+	    }
+	}
+	if (result != SASL_OK) {
+	    /* skip to next mech in list */
+	    while (*mech && !isspace((int) *mech)) mech++;
+	    while (*mech && isspace((int) *mech)) mech++;
 	}
     }
 

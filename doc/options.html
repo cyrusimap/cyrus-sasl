@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Options for Cyrus SASL</title>
-<!-- $Id: options.html,v 1.5 2002/01/30 20:11:40 ken3 Exp $ -->
+<!-- $Id: options.html,v 1.6 2002/04/08 23:34:03 ken3 Exp $ -->
 </HEAD>
 <BODY>
 <h1>Options for Cyrus SASL</h1>
@@ -46,8 +46,9 @@ plugins.</TD><TD>all available</TD>
 </TR>
 <TR>
 <TD>pwcheck_method</TD><TD>SASL Library</TD>
-<TD>Mechanism used to verify passwords, used by sasl_checkpass
-(possible values: 'auxprop', 'pwcheck', 'saslauthd', 'alwaystrue')</TD><TD>auxprop</TD>
+<TD>Whitespace separated list of mechanisms used to verify passwords,
+used by sasl_checkpass (possible values: 'auxprop', 'pwcheck',
+'saslauthd', 'alwaystrue')</TD><TD>auxprop</TD>
 </TR>
 <TR>
 <TD>saslauthd_path</TD><TD>SASL Library</TD>

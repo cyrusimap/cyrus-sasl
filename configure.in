@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.199 2004/11/24 18:05:27 ken3 Exp $
+dnl $Id: configure.in,v 1.200 2005/01/27 04:30:26 shadow Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -1158,6 +1158,13 @@ struct sockaddr_storage {
 
 #if !defined(HAVE_GETNAMEINFO) || !defined(HAVE_GETADDRINFO)
 #include "gai.h"
+#endif
+
+#ifndef AI_NUMERICHOST   /* support glibc 2.0.x */
+#define AI_NUMERICHOST  4
+#define NI_NUMERICHOST  2
+#define NI_NAMEREQD     4
+#define NI_NUMERICSERV  8
 #endif
 
 /* Defined in RFC 1035. max strlen is only 253 due to length bytes. */

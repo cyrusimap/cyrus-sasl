@@ -282,6 +282,13 @@ struct iovec {
 #include "gai.h"
 #endif
 
+#ifndef AI_NUMERICHOST   /* support glibc 2.0.x */
+#define	AI_NUMERICHOST	4
+#define NI_NUMERICHOST	2
+#define NI_NAMEREQD	4
+#define NI_NUMERICSERV	8
+#endif
+
 /* handy string manipulation functions */
 #ifndef HAVE_STRLCPY
 extern size_t saslauthd_strlcpy(char *dst, const char *src, size_t len);

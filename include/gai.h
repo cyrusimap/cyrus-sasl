@@ -1,6 +1,6 @@
 /*
  * Mar  8, 2000 by Hajimu UMEMOTO <ume@mahoroba.org>
- * $Id: gai.h,v 1.6 2003/07/25 16:46:20 rjs3 Exp $
+ * $Id: gai.h,v 1.7 2005/01/27 04:30:33 shadow Exp $
  *
  * This module is besed on ssh-1.2.27-IPv6-1.5 written by
  * KIKUCHI Takahiro <kick@kyoto.wide.ad.jp>
@@ -83,13 +83,6 @@ struct addrinfo {
 	struct sockaddr *ai_addr;	/* binary address */
 	struct addrinfo *ai_next;	/* next structure in linked list */
 };
-#endif
-
-#ifndef AI_NUMERICHOST   /* support glibc 2.0.x */
-#define	AI_NUMERICHOST	4
-#define NI_NUMERICHOST	2
-#define NI_NAMEREQD	4
-#define NI_NUMERICSERV	8
 #endif
 
 #ifdef __cplusplus

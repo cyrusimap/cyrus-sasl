@@ -24,14 +24,15 @@ SOFTWARE.
 ******************************************************************/
 
 #include <config.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <stdio.h>
 #ifndef SASL_MINIMAL_SERVER
 #include <pwd.h>
 #endif /* SASL_MINIMAL_SERVER */
+#ifdef HAVE_CRYPT_H
+#include <crypt.h>
+#endif /* HAVE_CRYPT_H */
+#ifdef HAVE_SHADOW_H
+#include <shadow.h>
+#endif /* HAVE_SHADOW_H */
 #include <sasl.h>
 #include <saslplug.h>
 
@@ -40,11 +41,11 @@ SOFTWARE.
 # include "saslPLAIN.h"
 #endif /* WIN32 */
 
-extern char *crypt(const char *, const char *);
-
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
 
 #define PLAIN_VERSION (3)
+#undef L_DEFAULT_GUARD
+#define L_DEFAULT_GUARD (0)
 
 typedef struct context {
   int state;
@@ -124,7 +125,10 @@ static void dispose(void *conn_context, sasl_utils_t *utils)
   context_t *text;
   text=conn_context;
 
-  /* free sensetive info */
+  if (!text)
+    return;
+
+  /* free sensitive info */
   free_string(utils,&(text->userid));
   free_string(utils,&(text->authid));
   free_secret(utils,&(text->password));
@@ -154,76 +158,44 @@ static int server_continue_step (void *conn_context,
 #else /* SASL_MINIMAL_SERVER */
 
 /* fills in password  remember to free password and wipe it out correctly */
-static int verify_password(sasl_server_params_t *sparams,
-			   const char *userid,
+static int verify_password(const char *userid,
 			   const char *password)
 {
-  /*struct passwd *pwd;
+  struct passwd *pwd;
   char *salt;
   char *crypted;
+
+  /* XXX Really, this should use the reentrant versions of getpwnam,
+   * getspnam, and crypt.  The problem is that Linux/glibc and Solaris 
+   * have different reentrant APIs (someday, I'd like to know what the 
+   * glibc people were smoking), and it'd be a royal pain to figure
+   * out which version we're supposed to be using. */
+  /* Eventually, this should probably just be ported to use PAM. */
 
   pwd=getpwnam(userid);
   if (pwd==NULL) return SASL_NOUSER;
 
   salt = pwd->pw_passwd;
 
-  crypted=(char *) crypt(password, salt);
+  crypted= crypt(password, salt);
 
-  if (strcmp(crypted, pwd->pw_passwd)!=0)
-    return SASL_BADAUTH;
-
-    return SASL_OK;*/
-
-  /* Let's check against the CRAM secret for now */
-
-  int result;
-  sasl_server_getsecret_t *getsecret;
-  void *getsecret_context;
-  sasl_secret_t *sec=NULL;
-
-  /* get callback so we can request the secret */
-  result = sparams->utils->getcallback(sparams->utils->conn,
-					 SASL_CB_SERVER_GETSECRET,
-					 &getsecret,
-					 &getsecret_context);
-    if (result != SASL_OK)
-    {
-      VL(("result = %i trying to get secret callback\n",result));
-      return result;
-    }
-
-    if (! getsecret)
-    {
-      VL(("Received NULL getsecret callback\n"));
-      return SASL_FAIL;
-    }
-
-    /* We use the user's SCRAM secret */
-    /* Request secret */
-    result = getsecret(getsecret_context, "CRAM-MD5", userid, &sec);
-    if (result != SASL_OK)
-    {
-      VL(("error %i in getsecret\n",result));
-      return result;
-    }
-
-    if (! sec)
-    {
-      VL(("Received NULL sec from getsecret\n"));
-      return SASL_FAIL;
-    }
-
-    VL(("password=[%s]\n",sec->data));
-
-    if (strncmp(sec->data,password,sec->len)!=0)
-    {
-      VL(("Passwords don't match\n"));
-      return SASL_FAIL;
-    }
-
-    free_secret(sparams->utils, &sec);
-
-    return SASL_OK;
+  if (strcmp(crypted, pwd->pw_passwd)) {
+#ifdef HAVE_GETSPNAM
+      /* Well, the normal password file failed.  Let's attempt the
+       * shadow password file, and see if that gets us anywhere. */
+      struct spwd *spwd = getspnam(userid);
+      if (! spwd)
+	return SASL_BADAUTH; /* can't use it */
+      salt = spwd->sp_pwdp;
+      crypted = crypt(password, salt);
+      if (strcmp(crypted, spwd->sp_pwdp))
+	return SASL_BADAUTH;	/* we still lose. */
+#else  /* HAVE_GETSPNAM */
+      return SASL_BADAUTH;	/* can't do anything */
+#endif /* !HAVE_GETSPNAM */
+  }
+  
+  return SASL_OK;
 }
 
 static int
@@ -242,7 +214,7 @@ server_continue_step (void *conn_context,
   if (errstr)
     *errstr = NULL;
 
-  oparams->mech_ssf=1;
+  oparams->mech_ssf=0;
 
   oparams->maxoutbuf=0; /* no clue what this should be */
   
@@ -277,7 +249,8 @@ server_continue_step (void *conn_context,
     while ((lup<clientinlen) && (clientin[lup]!=0))
       ++lup;
 
-    if (lup==clientinlen) return -99; /*SASL_FAIL;      */
+    if (lup>=clientinlen)
+      return SASL_BADPROT;
 
     /* get authen */
     ++lup;
@@ -285,7 +258,8 @@ server_continue_step (void *conn_context,
     while ((lup<clientinlen) && (clientin[lup]!=0))
       ++lup;
 
-    if (lup==clientinlen) return -98; /* SASL_FAIL;      */
+    if (lup>=clientinlen)
+      return SASL_BADPROT;
 
     /* get password */
     lup++;
@@ -296,16 +270,16 @@ server_continue_step (void *conn_context,
     password_len=clientin + lup - password;
 
     if (lup != clientinlen)
-      return -89; /*SASL_BADAUTH;*/
+      return SASL_BADPROT;
 
     /* verify password - return sasl_ok on success*/    
-    result=verify_password(params,
-			   authen,
+    result=verify_password(authen,
 			   password);
-    if (result!=SASL_OK) return -97; /*result;*/
+    if (result!=SASL_OK)
+      return result;
 
     /* verify authorization */
-    if (author && strcmp(author, authen)) {
+    if (author && *author && strcmp(author, authen)) {
       sasl_authorize_t *authorize;
       void *context;
       const char *user;
@@ -317,12 +291,12 @@ server_continue_step (void *conn_context,
 	return SASL_NOAUTHZ;
       result = authorize(context, authen, author, &user, &errstr);
       if (result != SASL_OK)
-	return -96; /*result;*/
+	return result; /*result;*/
       if (user)
 	author = user;
     }
 
-    if (! author)
+    if (! author || !*author)
       author = authen;
 
     mem = params->utils->malloc(strlen(author) + 1);
@@ -335,14 +309,17 @@ server_continue_step (void *conn_context,
     strcpy(mem, authen);
     oparams->authid = mem;
 
-   
+    if (params->local_domain)
+    mem = params->utils->malloc(strlen(params->local_domain) + 1);
+    if (! mem) return SASL_NOMEM;
+    strcpy(mem, params->local_domain);
+    oparams->realm = mem;
 
     if (params->transition)
     {
       VL(("Trying to transition\n"));
-      /* xxx segfaulting
-	 params->transition(params->utils->conn,
-	 password, password_len); */
+      params->transition(params->utils->conn,
+			 password, password_len);
       VL(("Transitioned\n"));
     }
 
@@ -449,6 +426,7 @@ static int get_userid(sasl_client_params_t *params,
   sasl_getsimple_t *getuser_cb;
   void *getuser_context;
   sasl_interact_t *prompt;
+  const char *id;
 
   /* see if we were given the userid in the prompt */
   prompt=find_prompt(prompt_need,SASL_CB_USER);
@@ -474,13 +452,19 @@ static int get_userid(sasl_client_params_t *params,
     case SASL_OK:
       if (! getuser_cb)
 	return SASL_FAIL;
+      id = NULL;
       result = getuser_cb(getuser_context,
 			  SASL_CB_USER,
-			  (const char **) userid,
+			  &id,
 			  NULL);
       if (result != SASL_OK)
 	return result;
-
+      if (! id)
+	return SASL_BADPARAM;
+      *userid = params->utils->malloc(strlen(id) + 1);
+      if (! *userid)
+	return SASL_NOMEM;
+      strcpy(*userid, id);
       break;
     default:
       /* sucess */
@@ -499,6 +483,7 @@ static int get_authid(sasl_client_params_t *params,
   sasl_getsimple_t *getauth_cb;
   void *getauth_context;
   sasl_interact_t *prompt;
+  const char *id;
 
   /* see if we were given the authname in the prompt */
   prompt=find_prompt(prompt_need,SASL_CB_AUTHNAME);
@@ -524,13 +509,19 @@ static int get_authid(sasl_client_params_t *params,
     case SASL_OK:
       if (! getauth_cb)
 	return SASL_FAIL;
+      id = NULL;
       result = getauth_cb(getauth_context,
 			  SASL_CB_AUTHNAME,
-			  (const char **)authid,
+			  &id,
 			  NULL);
       if (result != SASL_OK)
 	return result;
-
+      if (! id)
+	return SASL_BADPARAM;
+      *authid = params->utils->malloc(strlen(id) + 1);
+      if (! *authid)
+	return SASL_NOMEM;
+      strcpy(*authid, id);
       break;
     default:
       /* sucess */
@@ -803,8 +794,6 @@ static int client_continue_step (void *conn_context,
       *clientoutlen = (userid_len + 1
 		       + authid_len + 1
 		       + text->password->len);
-      printf("clientoutlen=%d %d %d %ld\n",
-	     *clientoutlen,userid_len,authid_len,text->password->len);
       *clientout=params->utils->malloc(*clientoutlen);
       if (! *clientout) return SASL_NOMEM;
       memset(*clientout, 0, *clientoutlen);

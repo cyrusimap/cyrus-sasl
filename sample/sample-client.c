@@ -29,14 +29,14 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <saslutil.h>
 #include <netinet/in.h>
 
-#define HAVE_SUBOPT
-
 static const char
 build_ident[] = "$Build: sample-client " PACKAGE "-" VERSION " $";
 
 static const char *progname = NULL;
 
 #define SAMPLE_SEC_BUF_SIZE (2048)
+
+#define N_CALLBACKS (8)
 
 static const char
 message[] = "Come here Watson, I want you.";
@@ -83,15 +83,7 @@ static const char *ip_subopts[] = {
   NULL
 };
 
-char *mech = NULL,
-  *iplocal = NULL,
-  *ipremote = NULL,
-  *searchpath = NULL,
-  *service = "rcmd",
-  *fqdn = "",
-  *userid = NULL,
-  *authid = NULL;
-sasl_conn_t *conn = NULL;
+static sasl_conn_t *conn = NULL;
 
 static void
 free_conn(void)
@@ -131,9 +123,11 @@ log(void *context __attribute__((unused)),
 }
 
 static int
-getpath(void *context __attribute__((unused)),
+getpath(void *context,
 	char ** path) 
 {
+  const char *searchpath = (const char *) context;
+
   if (! path)
     return SASL_BADPARAM;
 
@@ -148,23 +142,26 @@ getpath(void *context __attribute__((unused)),
 }
 
 static int
-simple(void *context __attribute__((unused)),
+simple(void *context,
        int id,
        const char **result,
        unsigned *len)
 {
+  const char *value = (const char *)context;
+
   if (! result)
     return SASL_BADPARAM;
+
   switch (id) {
   case SASL_CB_USER:
-    *result = userid;
+    *result = value;
     if (len)
-      *len = userid ? strlen(userid) : 0;
+      *len = value ? strlen(value) : 0;
     break;
   case SASL_CB_AUTHNAME:
-    *result = authid;
+    *result = value;
     if (len)
-      *len = authid ? strlen(authid) : 0;
+      *len = value ? strlen(value) : 0;
     break;
   case SASL_CB_LANGUAGE:
     *result = NULL;
@@ -191,13 +188,29 @@ getsecret(sasl_conn_t *conn,
 	  int id,
 	  sasl_secret_t **psecret)
 {
+  char *password;
+  size_t len;
+
   if (! conn || ! psecret || id != SASL_CB_PASS)
     return SASL_BADPARAM;
 
-  *psecret = (sasl_secret_t *) getpassphrase("Password: ");
-  if (! *psecret)
+  password = getpassphrase("Password: ");
+  if (! password)
     return SASL_FAIL;
 
+  len = strlen(password);
+
+  *psecret = (sasl_secret_t *) malloc(sizeof(sasl_secret_t) + len);
+  
+  if (! *psecret) {
+    memset(password, 0, len);
+    return SASL_NOMEM;
+  }
+
+  (*psecret)->len = len;
+  strcpy((*psecret)->data, password);
+  memset(password, 0, len);
+    
   return SASL_OK;
 }
 
@@ -249,26 +262,6 @@ prompt(void *context __attribute__((unused)),
   
   return SASL_OK;
 }
-
-static sasl_callback_t callbacks[] = {
-  {
-    SASL_CB_LOG, &log, NULL
-  }, {
-    SASL_CB_GETPATH, &getpath, NULL
-  }, {
-    SASL_CB_USER, &simple, NULL
-  }, {
-    SASL_CB_AUTHNAME, &simple, NULL
-  }, {
-    SASL_CB_PASS, &getsecret, NULL
-  }, {
-    SASL_CB_ECHOPROMPT, &prompt, NULL
-  }, {
-    SASL_CB_NOECHOPROMPT, &prompt, NULL
-  }, {
-    SASL_CB_LIST_END, NULL, NULL
-  }
-};
 
 static void
 saslfail(int why, const char *what, const char *errstr)
@@ -377,6 +370,15 @@ main(int argc, char *argv[])
   char *options, *value, *data;
   const char *chosenmech;
   unsigned len;
+  sasl_callback_t callbacks[N_CALLBACKS], *callback;
+  char *mech = NULL,
+    *iplocal = NULL,
+    *ipremote = NULL,
+    *searchpath = NULL,
+    *service = "rcmd",
+    *fqdn = "",
+    *userid = NULL,
+    *authid = NULL;
   
   progname = strrchr(argv[0], '/');
   if (progname)
@@ -549,6 +551,66 @@ main(int argc, char *argv[])
 	    progname, progname);
     exit(EXIT_FAILURE);
   }
+
+  /* Fill in the callbacks that we're providing... */
+  callback = callbacks;
+
+  /* log */
+  callback->id = SASL_CB_LOG;
+  callback->proc = &log;
+  callback->context = NULL;
+  ++callback;
+  
+  /* getpath */
+  if (searchpath) {
+    callback->id = SASL_CB_GETPATH;
+    callback->proc = &getpath;
+    callback->context = searchpath;
+    ++callback;
+  }
+
+  /* user */
+  if (userid) {
+    callback->id = SASL_CB_USER;
+    callback->proc = &simple;
+    callback->context = userid;
+    ++callback;
+  }
+
+  /* authname */
+  if (authid) {
+    callback->id = SASL_CB_AUTHNAME;
+    callback->proc = &simple;
+    callback->context = authid;
+    ++callback;
+  }
+
+  /* password */
+  callback->id = SASL_CB_PASS;
+  callback->proc = &getsecret;
+  callback->context = NULL;
+  ++callback;
+
+  /* echoprompt */
+  callback->id = SASL_CB_ECHOPROMPT;
+  callback->proc = &prompt;
+  callback->context = NULL;
+  ++callback;
+
+  /* noechoprompt */
+  callback->id = SASL_CB_NOECHOPROMPT;
+  callback->proc = &prompt;
+  callback->context = NULL;
+  ++callback;
+
+  /* termination */
+  callback->id = SASL_CB_LIST_END;
+  callback->proc = NULL;
+  callback->context = NULL;
+  ++callback;
+
+  if (N_CALLBACKS < callback - callbacks)
+    fail("Out of callback space; recompile with larger N_CALLBACKS");
 
   result = sasl_client_init(callbacks);
   if (result != SASL_OK)

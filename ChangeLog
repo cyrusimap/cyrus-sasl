@@ -1,4 +1,43 @@
+1999-03-25  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* testing.txt: updated testing documentation
+
+	* plugins/plain.c (verify_password): added shadow password file support
+	(server_continue_step): fixed mech_ssf and authorization buglet
+	(server_continue_step): setting realm to local domain name
+	(sasl_client_plug_init): tweaked logging
+
 1999-03-24  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* configure.in: added checks for crypt.h, shadow.h, getspnam.
+
+	* plugins/plain.c (server_continue_step): replaced weird error
+	codes with actual symbolic constants
+
+	* lib/server.c (sasl_server_start): check error code from
+	mech_new, eliminated antiquated call to sasl_setprop().
+
+	* sample/sample-server.c (main): made mandatory mech check
+ 	case-insensitive
+
+	* lib/common.c (_sasl_getsimple): don't require len param
+
+	* lib/client.c (have_prompts): made this static
+
+	* sample/sample-client.c (main): dynamic callback list generation, 
+	eliminated most globals
+
+	* plugins/plain.c (get_authid): dup authid
+	(get_userid): dup userid
+
+	* sample/sample-client.c (getsecret): fixed broken password
+ 	reading code
+
+	* lib/server.c: added credential callback pointers to EXTERNAL
+
+	* plugins/plain.c (client_continue_step): fixed
+
+	* lib/server.c (server_dispose): braces to make the compiler happy
 
 	* include/Makefile.am: removed winconfig.h dependancy
 

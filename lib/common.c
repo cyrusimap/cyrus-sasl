@@ -504,7 +504,7 @@ _sasl_getsimple(void *context,
   const char *userid;
   sasl_conn_t *conn;
 
-  if (! context || ! result || ! len)
+  if (! context || ! result)
     return SASL_BADPARAM;
 
   conn = (sasl_conn_t *)context;
@@ -512,13 +512,13 @@ _sasl_getsimple(void *context,
   switch(id) {
   case SASL_CB_USER:
     *result = "";
-    *len = 0;
+    if (len) *len = 0;
     return SASL_OK;
   case SASL_CB_AUTHNAME:
     userid = getenv("USER");
     if (userid != NULL) {
       *result = userid;
-      *len = strlen(userid);
+      if (len) *len = strlen(userid);
       return SASL_OK;
     }
     return SASL_FAIL;

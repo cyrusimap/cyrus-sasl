@@ -413,8 +413,8 @@ cleanup_conn:
   return result;
 }
 
-int have_prompts(sasl_conn_t *conn,
-		 const sasl_client_plug_t *mech)
+static int have_prompts(sasl_conn_t *conn,
+			const sasl_client_plug_t *mech)
 {
   static const long default_prompts[] = {
     SASL_CB_AUTHNAME,

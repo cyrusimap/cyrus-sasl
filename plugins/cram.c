@@ -131,6 +131,9 @@ static void dispose(void *conn_context, sasl_utils_t *utils)
   context_t *text;
   text=conn_context;
 
+  if (!text)
+    return;
+
   /* get rid of all sensetive info */
   free_string(utils,&(text->msgid));
   free_string(utils,&(text->authid));
@@ -492,7 +495,6 @@ setpass(void *glob_context __attribute__((unused)),
   memcpy(&ent->serverkey, ver.state, sizeof(ent->serverkey));
 
   secret->len = sizeof(struct scram_entry);
-
 
   /* We're actually constructing a SCRAM secret... */
   result=putsecret(putsecret_context,

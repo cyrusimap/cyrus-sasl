@@ -495,7 +495,7 @@ main(int argc, char *argv[])
   samp_send(data, len);
   puts("Waiting for client mechanism...");
   len = samp_recv();
-  if (mech && strcmp(mech, buf))
+  if (mech && strcasecmp(mech, buf))
     fail("Client chose something other than the mandatory mechanism");
   if (strlen(buf) < len) {
     /* Hmm, there's an initial response here */

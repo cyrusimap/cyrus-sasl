@@ -170,7 +170,10 @@ static const sasl_server_plug_t external_server_mech = {
   NULL,				/* mech_free */
   NULL,				/* setpass */
   NULL,				/* user_query */
-  NULL				/* idle */
+  NULL,				/* idle */
+  NULL,				/* install_credentials */
+  NULL,				/* uninstall_credentials */
+  NULL				/* dispose_credentials */
 };
 
 static int
@@ -306,14 +309,15 @@ static void server_dispose(sasl_conn_t *pconn)
 {
   sasl_server_conn_t *s_conn=  (sasl_server_conn_t *) pconn;
 
-  if (pconn->oparams.credentials)
+  if (pconn->oparams.credentials) {
     if (s_conn->mech
 	&& s_conn->mech->plug->dispose_credentials)
       s_conn->mech->plug->dispose_credentials(pconn->context,
 					      pconn->oparams.credentials);
     else
       sasl_FREE(pconn->oparams.credentials);
-
+  }
+  
   if (s_conn->mech
       && s_conn->mech->plug->mech_dispose)
     s_conn->mech->plug->mech_dispose(pconn->context,
@@ -641,15 +645,16 @@ int sasl_server_start(sasl_conn_t *conn,
   s_conn->sparams->service=conn->service;
   s_conn->sparams->user_domain=s_conn->user_domain;
 
-  s_conn->mech->plug->mech_new(s_conn->mech->plug->glob_context,
-			       s_conn->sparams,
-			       NULL,
-			       0,
-			       &(conn->context),
-			       errstr);
+  result = s_conn->mech->plug->mech_new(s_conn->mech->plug->glob_context,
+					s_conn->sparams,
+					NULL,
+					0,
+					&(conn->context),
+					errstr);
+  if (result != SASL_OK)
+    return result;
 
-
-  result = s_conn->mech->plug->mech_step(conn->context,
+  return s_conn->mech->plug->mech_step(conn->context,
 				       s_conn->sparams,
 				       clientin,
 				       clientinlen,
@@ -657,17 +662,6 @@ int sasl_server_start(sasl_conn_t *conn,
 				       (int *) serveroutlen,
 				       &conn->oparams,
 				       errstr);
-			     
-  /* if returns SASL_OK check to make sure
-   * is valid username and then
-   * correct password using sasl_checkpass XXXXX
-   */
-  if (result == SASL_OK) {
-    if (conn->oparams.user)
-      sasl_setprop(conn, SASL_USERNAME, conn->oparams.user);
-  }
-
-  return result;
 }
 
 int sasl_server_step(sasl_conn_t *conn,

@@ -97,7 +97,7 @@ fi
 /usr/man/man8/saslpasswd.8
 
 %files devel
-%doc doc/rfc2222.txt sample/sample-client.c sample/sample-server.c
+%doc doc/rfc2222.txt sample/sample-client.c sample/sample-server.c testing.txt
 /usr/lib/libsasl.la
 /usr/include/sasl.h
 /usr/include/saslplug.h
@@ -127,8 +127,3 @@ fi
 %files plug-plain
 /usr/lib/sasl/libplain.so.1.0.1
 /usr/lib/sasl/libplain.so
-
-%files plug-scrammd5
-%doc doc/draft-newman-auth-scram-03.txt
-/usr/lib/sasl/libscrammd5.so.1.0.1
-/usr/lib/sasl/libscrammd5.so

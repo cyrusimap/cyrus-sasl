@@ -1,6 +1,6 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Tim Martin
- * $Id: db_berkeley.c,v 1.12 2000/03/07 05:19:55 tmartin Exp $
+ * $Id: db_berkeley.c,v 1.13 2000/05/08 17:40:12 leg Exp $
  */
 
 /* 
@@ -60,12 +60,13 @@ static int db_ok = 0;
  * Open the database
  *
  */
-static int berkeleydb_open(sasl_conn_t *conn, DB **mbdb)
+static int berkeleydb_open(sasl_conn_t *conn, int rdwr, DB **mbdb)
 {
     const char *path = SASL_DB_PATH;
     int ret;
     void *cntxt;
     sasl_getopt_t *getopt;
+    int flags;
 
     if (_sasl_getcallback(conn, SASL_CB_GETOPT,
 			  &getopt, &cntxt) == SASL_OK) {
@@ -76,13 +77,15 @@ static int berkeleydb_open(sasl_conn_t *conn, DB **mbdb)
 	}
     }
 
+    if (rdwr) flags = DB_CREATE;
+    else flags = DB_RDONLY
 #if DB_VERSION_MAJOR < 3
-    ret = db_open(path, DB_HASH, DB_CREATE, 0664, NULL, NULL, mbdb);
+    ret = db_open(path, DB_HASH, flags, 0664, NULL, NULL, mbdb);
 #else /* DB_VERSION_MAJOR < 3 */
     ret = db_create(mbdb, NULL, 0);
     if (ret == 0 && *mbdb != NULL)
     {
-	    ret = (*mbdb)->open(*mbdb, path, NULL, DB_HASH, DB_CREATE, 0664);
+	    ret = (*mbdb)->open(*mbdb, path, NULL, DB_HASH, flags, 0664);
 	    if (ret != 0)
 	    {
 		    (void) (*mbdb)->close(*mbdb, 0);
@@ -185,7 +188,7 @@ getsecret(void *context,
     return result;
 
   /* open the db */
-  result = berkeleydb_open((sasl_conn_t *) context, &mbdb);
+  result = berkeleydb_open((sasl_conn_t *) context, 0, &mbdb);
   if (result != SASL_OK) goto cleanup;
 
   /* zero out and create the key to search for */
@@ -269,7 +272,7 @@ putsecret(void *context,
     return result;
 
   /* open the db */
-  result=berkeleydb_open((sasl_conn_t *) context, &mbdb);
+  result=berkeleydb_open((sasl_conn_t *) context, 1, &mbdb);
   if (result!=SASL_OK) goto cleanup;
 
   /* create the db key */

@@ -1,3 +1,6 @@
+2004-06-02  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* Spelling Fixes (selsky@columbia.edu)
+
 2004-05-27  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* SQLite support (Norikatsu Shigemura <nork@ninth-nine.com>)
 	* SQLite support on windows (Alexey Melnikov
@@ -1885,7 +1888,7 @@
 	* plugins/plugin_common.c (_plug_ipfromstring): add call to
 	  freeaddrinfo()
 
-	* lib/saslutil.c (sasl_randseed): actually initilize the randpool
+	* lib/saslutil.c (sasl_randseed): actually initialize the randpool
 
 	* saslauthd/auth_getpwent.c (auth_getpwent): clear a warning
 	* saslauthd/auth_shadow.c (auth_shadow): clear a similar warning

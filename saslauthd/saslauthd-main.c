@@ -449,7 +449,7 @@ void set_auth_mech(const char *mech) {
 
 	if (auth_mech->initialize) {
 		if(auth_mech->initialize() != 0) {
-		    logger(L_ERR, L_FUNC, "failed to initilize mechanism %s",
+		    logger(L_ERR, L_FUNC, "failed to initialize mechanism %s",
 			   auth_mech->name);
 		    exit(1);
 		}

@@ -1,7 +1,7 @@
 /* saslutil.c
  * Rob Siemborski
  * Tim Martin
- * $Id: saslutil.c,v 1.34 2001/12/04 02:05:27 rjs3 Exp $
+ * $Id: saslutil.c,v 1.35 2002/07/24 16:14:31 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -50,6 +50,9 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #ifdef HAVE_GETTIMEOFDAY
 #include <sys/time.h>
 #endif
@@ -282,22 +285,31 @@ void getranddata(unsigned short ret[3])
 {
     long curtime;
     
-    memset(ret, 0, sizeof(unsigned short)*3);
+    memset(ret, 0, sizeof(ret));
 
 #ifdef DEV_RANDOM    
     {
-        FILE *f;
+	int fd;
 
-	if ((f = fopen(DEV_RANDOM, "r")) != NULL) {
-	    fread(ret, 1, sizeof(ret), f);
-	    fclose(f);
-	    return;
-        }
+	fd = open(DEV_RANDOM, O_RDONLY);
+	if(fd != -1) {
+	    unsigned char *buf = (unsigned char *)ret;
+	    size_t bytesread = 0, bytesleft = sizeof(ret);
+	    
+	    do {
+		bytesread = read(fd, &buf, bytesleft);
+		if(bytesread == 0) break;
+		bytesleft -= bytesread;
+		buf += bytesread;
+	    } while(bytesleft != 0);
+		
+	    close(fd);
+	}
     }
 #endif
 
 #ifdef HAVE_GETPID
-    ret[0] = (unsigned short) getpid();
+    ret[0] ^= (unsigned short) getpid();
 #endif
 
 #ifdef HAVE_GETTIMEOFDAY

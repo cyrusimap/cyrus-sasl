@@ -101,7 +101,7 @@ AC_DEFUN(SASL_KERBEROS_V4_CHK, [
                      krb4lib=no, $LIB_DES -lcom_err)], [
     	  AC_CHECK_LIB(krb, krb_mk_priv,
                      [COM_ERR=""; SASL_KRB_LIB="-lkrb"; krb4lib="yes"],
-                     krb4lib=no, $LIB_DES)])])
+                     krb4lib=no, $LIB_DES)])], krb4="no")
 
     if test "$krb4" = "yes" -a "$krb4lib" = "no"; then
 	AC_CHECK_LIB(krb4, krb_mk_priv,

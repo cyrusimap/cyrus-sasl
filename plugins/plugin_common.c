@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.c,v 1.2 2001/12/04 02:06:49 rjs3 Exp $
+ * $Id: plugin_common.c,v 1.3 2002/04/26 18:02:23 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -292,4 +292,118 @@ void _plug_free_secret(const sasl_utils_t *utils, sasl_secret_t **secret)
     utils->erasebuffer((*secret)->data, (*secret)->len);
     utils->free(*secret);
     *secret = NULL;
+}
+
+/* 
+ * Trys to find the prompt with the lookingfor id in the prompt list
+ * Returns it if found. NULL otherwise
+ */
+sasl_interact_t *_plug_find_prompt(sasl_interact_t **promptlist,
+				   unsigned int lookingfor)
+{
+    sasl_interact_t *prompt;
+
+    if (promptlist && *promptlist) {
+	for (prompt = *promptlist; prompt->id != SASL_CB_LIST_END; ++prompt) {
+	    if (prompt->id==lookingfor)
+		return prompt;
+	}
+    }
+
+    return NULL;
+}
+
+/*
+ * Retrieve the simple string given by the callback id.
+ */
+int _plug_get_simple(sasl_client_params_t *params, unsigned int id,
+		     const char **result, sasl_interact_t **prompt_need)
+{
+
+    int ret;
+    sasl_getsimple_t *getsimple_cb;
+    void *getsimple_context;
+    sasl_interact_t *prompt;
+
+    /* see if we were given the result in the prompt */
+    prompt=_plug_find_prompt(prompt_need, id);
+    if (prompt != NULL) {
+	    if (!prompt->result) {
+		return SASL_BADPARAM;
+	    }
+
+	    *result = prompt->result;
+	    return SASL_OK;
+	}
+  
+    /* Try to get the callback... */
+    ret = params->utils->getcallback(params->utils->conn, id,
+				     &getsimple_cb, &getsimple_context);
+    if (ret == SASL_OK && getsimple_cb) {
+	ret = getsimple_cb(getsimple_context, id, result, NULL);
+	if (ret != SASL_OK)
+	    return ret;
+	if (!*result) {
+	    PARAMERROR( params->utils );
+	    return SASL_BADPARAM;
+	}
+    }
+  
+    return ret;
+}
+
+int _plug_get_secret(sasl_client_params_t *params, sasl_secret_t **secret,
+		     unsigned int *iscopy, sasl_interact_t **prompt_need)
+{
+    int ret;
+    sasl_getsecret_t *getsecret_cb;
+    void *getsecret_context;
+    sasl_interact_t *prompt;
+
+    *iscopy = 0;
+
+    /* see if we were given the password in the prompt */
+    prompt=_plug_find_prompt(prompt_need,SASL_CB_PASS);
+    if (prompt!=NULL) {
+	/* We prompted, and got.*/
+	
+	if (! prompt->result) {
+	    SETERROR(params->utils, "Unexpectedly missing a prompt result");
+	    return SASL_FAIL;
+	}
+      
+	/* copy what we got into a secret_t */
+	*secret =
+	    (sasl_secret_t *) params->utils->malloc(sizeof(sasl_secret_t)+
+						    prompt->len+1);
+	if (!*secret) {
+	    MEMERROR( params->utils );
+	    return SASL_NOMEM;
+	}
+      
+	(*secret)->len=prompt->len;
+	memcpy((*secret)->data, prompt->result, prompt->len);
+	(*secret)->data[(*secret)->len]=0;
+
+	*iscopy = 1;
+
+	return SASL_OK;
+    }
+
+    /* Try to get the callback... */
+    ret = params->utils->getcallback(params->utils->conn, SASL_CB_PASS,
+				   &getsecret_cb, &getsecret_context);
+
+    if (ret == SASL_OK && getsecret_cb) {
+	ret = getsecret_cb(params->utils->conn, getsecret_context,
+			 SASL_CB_PASS, secret);
+	if (ret != SASL_OK)
+	    return ret;
+	if (!*secret) {
+	    PARAMERROR( params->utils );
+	    return SASL_BADPARAM;
+	}
+    }
+
+    return ret;
 }

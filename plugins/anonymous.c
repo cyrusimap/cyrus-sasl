@@ -1,7 +1,7 @@
 /* Anonymous SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: anonymous.c,v 1.42 2002/02/20 17:19:39 ken3 Exp $
+ * $Id: anonymous.c,v 1.43 2002/04/26 18:02:21 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -261,10 +261,10 @@ anonymous_client_mech_step(void *conn_context,
   int result;
   unsigned userlen;
   char hostname[256];
-  sasl_getsimple_t *getuser_cb;
-  void *getuser_context;
   const char *user = NULL;
   context_t *text;
+  int auth_result = SASL_OK;
+
   text=conn_context;
 
   if (text->state != 1) {
@@ -291,59 +291,41 @@ anonymous_client_mech_step(void *conn_context,
       return SASL_TOOWEAK;
   }
 
-  /* Watch out if this doesn't start nulled! */
-  /* Get the username */
-  if (prompt_need && *prompt_need) {
-      if (! (*prompt_need)[0].result) {
-	  SETERROR( cparams->utils, "ANONYMOUS continue_step expected interaction result but got none");
-	  return SASL_BADPARAM;
-      }
+  /* try to get the authid */
+  if (user == NULL) {
+      auth_result = _plug_get_authid(cparams, &user, prompt_need);
 
-      user = (*prompt_need)[0].result;
-      userlen = (*prompt_need)[0].len;
-      cparams->utils->free(*prompt_need);
-  } else {
-    /* Try to get the callback... */
-    result = cparams->utils->getcallback(cparams->utils->conn,
-					SASL_CB_AUTHNAME,
-					&getuser_cb,
-					&getuser_context);
-    switch (result) {
-    case SASL_INTERACT:
-      /* Set up the interaction... */
-      if (prompt_need) {
-	*prompt_need = cparams->utils->malloc(sizeof(sasl_interact_t) * 2);
-	if (! *prompt_need) {
-	    MEMERROR( cparams->utils );
-	    return SASL_NOMEM;
-	}
-	memset(*prompt_need, 0, sizeof(sasl_interact_t) * 2);
-	(*prompt_need)[0].id = SASL_CB_AUTHNAME;
-	(*prompt_need)[0].prompt = "Anonymous identification";
-	(*prompt_need)[0].defresult = "";
-	(*prompt_need)[1].id = SASL_CB_LIST_END;
-      }
-      return SASL_INTERACT;
-    case SASL_OK:
-      if (! getuser_cb
-	  || (getuser_cb(getuser_context,
-			 SASL_CB_AUTHNAME,
-			 &user,
-			 &userlen)
-	      != SASL_OK)) {
-	/* Use default */
-      }
-      break;
-    default:
-      /* Use default */
-      break;
-    }
+      if ((auth_result != SASL_OK) && (auth_result != SASL_INTERACT))
+	  return auth_result;
   }
-  
+
+  /* free prompts we got */
+  if (prompt_need && *prompt_need) {
+      cparams->utils->free(*prompt_need);
+      *prompt_need = NULL;
+  }
+
+  /* if there are prompts not filled in */
+  if (auth_result == SASL_INTERACT) {
+      /* make the prompt list */
+      *prompt_need = cparams->utils->malloc(sizeof(sasl_interact_t) * 2);
+      if (! *prompt_need) {
+	  MEMERROR( cparams->utils );
+	  return SASL_NOMEM;
+      }
+      memset(*prompt_need, 0, sizeof(sasl_interact_t) * 2);
+      (*prompt_need)[0].id = SASL_CB_AUTHNAME;
+      (*prompt_need)[0].prompt = "Anonymous identification";
+      (*prompt_need)[0].defresult = "";
+      (*prompt_need)[1].id = SASL_CB_LIST_END;
+
+      return SASL_INTERACT;
+  }
+
   if (!user) {
       user = "anonymous";
-      userlen = strlen(user);
   }
+  userlen = strlen(user);
   
   memset(hostname, 0, sizeof(hostname));
   gethostname(hostname, sizeof(hostname));

@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.13 2002/04/25 14:26:09 ken3 Exp $
+ * $Id: otp.c,v 1.14 2002/04/26 18:02:23 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -117,7 +117,7 @@ typedef struct context {
     int state;
     char *authid;
     sasl_secret_t *password;
-    sasl_secret_t *password_free;
+    unsigned int free_password; /* set if we need to free password */
     int locked;				/* is the user's secret locked? */
     algorithm_option_t *alg;
 #ifdef HAVE_OPIE
@@ -144,7 +144,7 @@ static void otp_both_mech_dispose(void *conn_context,
     return;
 
   if (text->authid)           _plug_free_string(utils,&(text->authid));
-  if (text->password_free)    _plug_free_secret(utils, &(text->password_free));
+  if (text->free_password)    _plug_free_secret(utils, &(text->password));
   
   if (text->out_buf)          utils->free(text->out_buf);
 
@@ -181,115 +181,6 @@ static int otp_client_mech_new(void *glob_context __attribute__((unused)),
     return SASL_OK;
 }
 
-/* 
- * Trys to find the prompt with the lookingfor id in the prompt list
- * Returns it if found. NULL otherwise
- */
-static sasl_interact_t *find_prompt(sasl_interact_t **promptlist,
-				    unsigned int lookingfor)
-{
-  sasl_interact_t *prompt;
-
-  if (promptlist && *promptlist)
-    for (prompt = *promptlist;
-	 prompt->id != SASL_CB_LIST_END;
-	 ++prompt)
-      if (prompt->id==lookingfor)
-	return prompt;
-
-  return NULL;
-}
-
-/*
- * Somehow retrieve the userid
- * This is the same as in digest-md5 so change both
- */
-static int get_userid(sasl_client_params_t *params,
-		      const char **userid,
-		      sasl_interact_t **prompt_need)
-{
-  int result;
-  sasl_getsimple_t *getuser_cb;
-  void *getuser_context;
-  sasl_interact_t *prompt;
-  const char *id;
-
-  /* see if we were given the userid in the prompt */
-  prompt=find_prompt(prompt_need,SASL_CB_USER);
-  if (prompt!=NULL)
-    {
-	*userid = prompt->result;
-	return SASL_OK;
-    }
-
-  /* Try to get the callback... */
-  result = params->utils->getcallback(params->utils->conn,
-				      SASL_CB_USER,
-				      &getuser_cb,
-				      &getuser_context);
-  if (result == SASL_OK && getuser_cb) {
-    id = NULL;
-    result = getuser_cb(getuser_context,
-			SASL_CB_USER,
-			&id,
-			NULL);
-    if (result != SASL_OK)
-      return result;
-    if (! id) {
-	PARAMERROR(params->utils);
-	return SASL_BADPARAM;
-    }
-    
-    *userid = id;
-  }
-
-  return result;
-}
-
-static int get_authid(sasl_client_params_t *params,
-		      const char **authid,
-		      sasl_interact_t **prompt_need)
-{
-
-  int result;
-  sasl_getsimple_t *getauth_cb;
-  void *getauth_context;
-  sasl_interact_t *prompt;
-  const char *id;
-
-  /* see if we were given the authname in the prompt */
-  prompt=find_prompt(prompt_need,SASL_CB_AUTHNAME);
-  if (prompt!=NULL)
-  {
-      *authid = prompt->result;
-      
-      return SASL_OK;
-  }
-
-  /* Try to get the callback... */
-  result = params->utils->getcallback(params->utils->conn,
-				      SASL_CB_AUTHNAME,
-				      &getauth_cb,
-				      &getauth_context);
-  if (result == SASL_OK && getauth_cb) {
-    id = NULL;
-    result = getauth_cb(getauth_context,
-			SASL_CB_AUTHNAME,
-			&id,
-			NULL);
-    if (result != SASL_OK)
-      return result;
-    if (! id) {
-	PARAMERROR( params->utils );
-	return SASL_BADPARAM;
-    }
-    
-    *authid = id;
-  }
-
-  return result;
-}
-
 static int get_otpassword(sasl_client_params_t *params,
 			  const char *challenge,
 			  const char **password,
@@ -302,7 +193,7 @@ static int get_otpassword(sasl_client_params_t *params,
   sasl_interact_t *prompt;
 
   /* see if we were given the password in the prompt */
-  prompt=find_prompt(prompt_need,SASL_CB_ECHOPROMPT);
+  prompt=_plug_find_prompt(prompt_need,SASL_CB_ECHOPROMPT);
   if (prompt!=NULL)
   {
       /* We prompted, and got.*/
@@ -331,59 +222,6 @@ static int get_otpassword(sasl_client_params_t *params,
 			"Please enter your one-time password", NULL,
 			password,
 			NULL);
-
-  return result;
-}
-
-static int get_password(context_t *text,
-			sasl_client_params_t *params,
-			sasl_interact_t **prompt_need)
-{
-
-  int result;
-  sasl_getsecret_t *getpass_cb;
-  void *getpass_context;
-  sasl_interact_t *prompt;
-
-  /* see if we were given the secret in the prompt */
-  prompt=find_prompt(prompt_need,SASL_CB_PASS);
-  if (prompt!=NULL)
-  {
-      /* We prompted, and got.*/
-	
-      if (! prompt->result) {
-	  SETERROR(params->utils, "OTP: Unexpectedly missing a prompt result");
-	  return SASL_FAIL;
-      }
-      
-      /* copy what we got into a secret_t */
-      text->password_free = text->password =
-	  (sasl_secret_t *) params->utils->malloc(sizeof(sasl_secret_t)+
-						  prompt->len+1);
-      if (!text->password) {
-	  MEMERROR( params->utils );
-	  return SASL_NOMEM;
-      }
-      
-      text->password->len=prompt->len;
-      memcpy(text->password->data, prompt->result, prompt->len);
-      text->password->data[text->password->len]=0;
-
-      return SASL_OK;
-  }
-
-
-  /* Try to get the callback... */
-  result = params->utils->getcallback(params->utils->conn,
-				      SASL_CB_PASS,
-				      &getpass_cb,
-				      &getpass_context);
-
-  if (result == SASL_OK && getpass_cb)
-    result = getpass_cb(params->utils->conn,
-			getpass_context,
-			SASL_CB_PASS,
-			&(text->password));
 
   return result;
 }
@@ -694,9 +532,7 @@ static int otp_client_mech_step(void *conn_context,
     /* try to get the authid */    
     if (oparams->authid==NULL)
     {
-      auth_result=get_authid(params,
-			     &authid,
-			     prompt_need);
+      auth_result=_plug_get_authid(params, &authid, prompt_need);
 
       if ((auth_result!=SASL_OK) && (auth_result!=SASL_INTERACT))
 	return auth_result;
@@ -705,9 +541,7 @@ static int otp_client_mech_step(void *conn_context,
     /* try to get the userid */
     if (oparams->user==NULL)
     {
-      user_result=get_userid(params,
-			     &user,
-			     prompt_need);
+      user_result=_plug_get_userid(params, &user, prompt_need);
 
       /* Fallback to authid */
       if ((user_result!=SASL_OK) && (user_result!=SASL_INTERACT)) {
@@ -790,7 +624,8 @@ static int otp_client_mech_step(void *conn_context,
 	/*
 	 * try to get the secret pass-phrase
 	 */
-	pass_result=get_password(text, params, prompt_need);
+	pass_result=_plug_get_secret(params, &text->password,
+				     &text->free_password, prompt_need);
       
 	if ((pass_result!=SASL_OK) && (pass_result!=SASL_INTERACT))
 	    return pass_result;

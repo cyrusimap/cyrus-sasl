@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.113 2002/04/26 16:45:47 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.114 2002/04/26 18:02:22 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -201,7 +201,7 @@ typedef struct context {
     unsigned char  *authid; /* authentication id (client) */
     unsigned char  *userid; /* authorization_id (client) */
     sasl_secret_t  *password;
-    sasl_secret_t  *password_free; /* for freeing only */
+    unsigned int free_password; /* set if we need to free password */
 
     /* if privacy mode is used use these functions for encode and decode */
     cipher_function_t *cipher_enc;
@@ -1928,9 +1928,11 @@ digestmd5_both_mech_dispose(void *conn_context, const sasl_utils_t * utils)
   if (text->response_value) utils->free(text->response_value);
 
   if (text->realm) utils->free(text->realm);
+  /* no need to free authid, it's just the interaction result */
+  /* no need to free userid, it's just the interaction result */
 
-  if (text->password_free) {
-      _plug_free_secret(utils, &text->password_free);
+  if (text->free_password) {
+      _plug_free_secret(utils, &text->password);
       text->password = NULL;
   }
 
@@ -2762,174 +2764,6 @@ htoi(unsigned char *hexin, int *res)
   return SASL_OK;
 }
 
-/*
- * Trys to find the prompt with the lookingfor id in the prompt list Returns
- * it if found. NULL otherwise
- */
-static sasl_interact_t *
-find_prompt(sasl_interact_t ** promptlist,
-	    unsigned int lookingfor)
-{
-  sasl_interact_t *prompt;
-
-  if (promptlist && *promptlist)
-    for (prompt = *promptlist;
-	 prompt->id != SASL_CB_LIST_END;
-	 ++prompt)
-      if (prompt->id==lookingfor)
-	return prompt;
-
-  return NULL;
-}
-
-static int get_authid(sasl_client_params_t * params,
-		      char **authid,
-		      sasl_interact_t ** prompt_need)
-{
-
-  int             result;
-  sasl_getsimple_t *getauth_cb;
-  void           *getauth_context;
-  sasl_interact_t *prompt;
- 
-  /* see if we were given the authname in the prompt */
-  prompt = find_prompt(prompt_need, SASL_CB_AUTHNAME);
-  if (prompt != NULL) {
-      if (!prompt->result)
-	  return SASL_BADPARAM;
-      *authid = prompt->result;
-      return SASL_OK;
-  }
-  /* Try to get the callback... */
-  result = params->utils->getcallback(params->utils->conn,
-				      SASL_CB_AUTHNAME,
-				      &getauth_cb,
-				      &getauth_context);
-  switch (result) {
-  case SASL_INTERACT:
-      return SASL_INTERACT;
-  case SASL_OK:
-      if (!getauth_cb)
-	  return SASL_FAIL;
-      result = getauth_cb(getauth_context,
-			  SASL_CB_AUTHNAME,
-			  authid,
-			  NULL);
-      break;
-  default:
-      /* success */
-      break;
-  }
-
-  return result;
-
-}
-
-/*
- * Somehow retrieve the userid
- * This is the same as in digest-md5 so change both
- */
-
-static int
-get_userid(sasl_client_params_t *params,
-		      char **userid,
-		      sasl_interact_t **prompt_need)
-{
-  int result;
-  sasl_getsimple_t *getuser_cb;
-  void *getuser_context;
-  sasl_interact_t *prompt;
-
-  /* see if we were given the userid in the prompt */
-  prompt=find_prompt(prompt_need,SASL_CB_USER);
-  if (prompt!=NULL) {
-      if (!prompt->result)
-	  return SASL_BADPARAM;
-      *userid = prompt->result;
-      return SASL_OK;
-  }
-  
-  /* Try to get the callback... */
-  result = params->utils->getcallback(params->utils->conn,
-				      SASL_CB_USER,
-				      &getuser_cb,
-				      &getuser_context);
-  switch (result) {
-  case SASL_INTERACT:
-    return SASL_INTERACT;
-  case SASL_OK:
-    if (!getuser_cb)
-      return SASL_FAIL;
-    result = getuser_cb(getuser_context,
-			SASL_CB_USER,
-			userid,
-			NULL);
-    break;
-  default:
-    /* sucess */
-    break;
-  }
-
-  return result;
-}
-
-static int get_password(context_t *text,
-			sasl_client_params_t * params,
-			sasl_interact_t ** prompt_need)
-{
-  int             result;
-  sasl_getsecret_t *getpass_cb;
-  void           *getpass_context;
-  sasl_interact_t *prompt;
-
-  /* see if we were given the password in the prompt */
-  prompt = find_prompt(prompt_need, SASL_CB_PASS);
-  if (prompt != NULL) {
-    /* We prompted, and got. */
-
-    if (!prompt->result)
-      return SASL_FAIL;
-
-    /* copy what we got into a secret_t */
-    text->password_free = text->password =
-	(sasl_secret_t *) params->utils->malloc(sizeof(sasl_secret_t) +
-						prompt->len + 1);
-    if (!text->password)
-      return SASL_NOMEM;
-
-    text->password->len = prompt->len;
-    memcpy(text->password->data, prompt->result, prompt->len);
-    text->password->data[text->password->len] = 0;
-
-    return SASL_OK;
-  }
-  /* Try to get the callback... */
-  result = params->utils->getcallback(params->utils->conn,
-				      SASL_CB_PASS,
-				      &getpass_cb,
-				      &getpass_context);
-
-  switch (result) {
-  case SASL_INTERACT:
-    return SASL_INTERACT;
-  case SASL_OK:
-    if (!getpass_cb)
-      return SASL_FAIL;
-    result = getpass_cb(params->utils->conn,
-			getpass_context,
-			SASL_CB_PASS,
-			&(text->password));
-    if (result != SASL_OK)
-      return result;
-    break;
-  default:
-    /* sucess */
-    break;
-  }
-
-  return result;
-}
-
 static int
 c_get_realm(sasl_client_params_t * params,
 	    char ** myrealm,
@@ -2942,7 +2776,7 @@ c_get_realm(sasl_client_params_t * params,
     sasl_interact_t *prompt;
     char *tmp;
 
-    prompt = find_prompt(prompt_need, SASL_CB_GETREALM);
+    prompt = _plug_find_prompt(prompt_need, SASL_CB_GETREALM);
     if (prompt != NULL) {
 	if (!prompt->result) {
 	    return SASL_BADPARAM;
@@ -3343,9 +3177,9 @@ digestmd5_client_mech_step(void *conn_context,
 
     /* try to get the authid */
     if (text->authid == NULL) {
-      auth_result = get_authid(params,
-			       &text->authid,
-			       prompt_need);
+      auth_result = _plug_get_authid(params,
+				     (const char **) &text->authid,
+				     prompt_need);
 
       if ((auth_result != SASL_OK) && (auth_result != SASL_INTERACT))
       {
@@ -3356,9 +3190,9 @@ digestmd5_client_mech_step(void *conn_context,
 
     /* try to get the userid */
     if (text->userid == NULL) {
-      user_result = get_userid(params,
-			       &text->userid,
-			       prompt_need);
+      user_result = _plug_get_userid(params,
+				     (const char **) &text->userid,
+				     prompt_need);
 
       /* Steal it from the authid */
       if (user_result != SASL_OK
@@ -3369,9 +3203,8 @@ digestmd5_client_mech_step(void *conn_context,
 
     /* try to get the password */
     if (text->password == NULL) {
-      pass_result = get_password(text,
-				 params,
-				 prompt_need);
+      pass_result = _plug_get_secret(params, &text->password,
+				     &text->free_password, prompt_need);
       if ((pass_result != SASL_OK) && (pass_result != SASL_INTERACT))
       {
 	result = pass_result;

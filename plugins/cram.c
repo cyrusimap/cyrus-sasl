@@ -1,7 +1,7 @@
 /* CRAM-MD5 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: cram.c,v 1.67 2002/04/25 00:17:14 rjs3 Exp $
+ * $Id: cram.c,v 1.68 2002/04/26 18:02:22 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -84,7 +84,7 @@ typedef struct context {
 
     const char *authid; /* Temporary storage of interaction result */
     sasl_secret_t *password;
-    sasl_secret_t *password_free;  /* use this if we need to free it */
+    unsigned int free_password; /* set if we need to free password */
 
     char *out_buf;
     unsigned out_buf_len;
@@ -122,11 +122,11 @@ static void crammd5_both_mech_dispose(void *conn_context,
 
   if(text->out_buf) utils->free(text->out_buf);
 
-  /* get rid of all sensetive info */
-  _plug_free_string(utils,&(text->msgid));
+  /* get rid of all sensitive info */
+  if(text->msgid) _plug_free_string(utils,&(text->msgid));
   /* no need to free authid, it's just the interaction result */
-  if(text->password_free)
-      _plug_free_secret(utils,&(text->password_free));
+  if(text->free_password)
+      _plug_free_secret(utils,&(text->password));
 
   utils->free(text);
 }
@@ -571,139 +571,6 @@ static int crammd5_client_mech_new(void *glob_context __attribute__((unused)),
     return SASL_OK;
 }
 
-/* 
- * Trys to find the prompt with the lookingfor id in the prompt list
- * Returns it if found. NULL otherwise
- */
-
-static sasl_interact_t *find_prompt(sasl_interact_t *promptlist,
-				    unsigned int lookingfor)
-{
-  if (promptlist==NULL) return NULL;
-
-  while (promptlist->id!=SASL_CB_LIST_END)
-  {
-    if (promptlist->id==lookingfor)
-      return promptlist;
-
-    promptlist++;
-  }
-
-  return NULL;
-}
-
-static int get_authid(sasl_client_params_t *params,
-		      const char **authid,
-		      sasl_interact_t **prompt_need)
-{
-
-  int result;
-  sasl_getsimple_t *getauth_cb;
-  void *getauth_context;
-  sasl_interact_t *prompt = NULL;
-
-  /* see if we were given the authname in the prompt */
-  if (prompt_need) prompt = find_prompt(*prompt_need,SASL_CB_AUTHNAME);
-  if (prompt!=NULL) {
-    *authid=prompt->result;
-    return SASL_OK;
-  }
-
-  /* Try to get the callback... */
-  result = params->utils->getcallback(params->utils->conn,
-				      SASL_CB_AUTHNAME,
-				      &getauth_cb,
-				      &getauth_context);
-  switch (result)
-    {
-    case SASL_INTERACT:
-	return SASL_INTERACT;
-      
-    case SASL_OK:
-	if (! getauth_cb){
-	    SETERROR(params->utils, "no getauth_cb in CRAM plugin");
-	    return SASL_FAIL;
-	}
-	
-	result = getauth_cb(getauth_context,
-			    SASL_CB_AUTHNAME,
-			    authid,
-			    NULL);
-	break;
-
-    default:
-	break;
-    }
-
-  return result;
-}
-
-
-static int get_password(context_t *text,
-			sasl_client_params_t *params,
-			sasl_interact_t **prompt_need)
-{
-
-  int result;
-  sasl_getsecret_t *getpass_cb;
-  void *getpass_context;
-  sasl_interact_t *prompt = NULL;
-
-  /* see if we were given the password in the prompt */
-  if (prompt_need) prompt=find_prompt(*prompt_need,SASL_CB_PASS);
-  if (prompt!=NULL)
-  {
-      /* We prompted, and got.*/      
-      if (! prompt->result) {
-	  SETERROR(params->utils, "no prompt->result in CRAM plugin");
-	  return SASL_FAIL;
-      }
-
-      /* copy what we got into a secret_t */
-      text->password_free = text->password =
-	  (sasl_secret_t *)params->utils->malloc(sizeof(sasl_secret_t)+
-						 prompt->len+1);
-      if (!text->password) return SASL_NOMEM;
-
-      text->password->len=prompt->len;
-      memcpy(text->password->data, prompt->result, prompt->len);
-      text->password->data[text->password->len]=0;
-
-      return SASL_OK;
-  }
-
-  /* Try to get the callback... */
-  result = params->utils->getcallback(params->utils->conn,
-				      SASL_CB_PASS,
-				      &getpass_cb,
-				      &getpass_context);
-
-  switch (result)
-    {
-    case SASL_INTERACT:      
-	return SASL_INTERACT;
-    case SASL_OK:
-	if (! getpass_cb) {
-	    SETERROR(params->utils, "No getpass_cb in CRAM plugin");
-	    return SASL_FAIL;
-	}
-	
-	result = getpass_cb(params->utils->conn,
-			    getpass_context,
-			    SASL_CB_PASS,
-			    &(text->password));
-	if (result != SASL_OK)
-	    return result;
-
-	break;
-    default:
-	/* sucess */
-	break;
-    }
-
-  return result;
-}
-
 /*
  * Make the necessary prompts
  */
@@ -806,9 +673,7 @@ static int crammd5_client_mech_step(void *conn_context,
     /* try to get the userid */
     if (text->authid==NULL)
     {
-      auth_result=get_authid(params,
-			     &text->authid,
-			     prompt_need);
+      auth_result=_plug_get_authid(params, &text->authid, prompt_need);
 
       if ((auth_result!=SASL_OK) && (auth_result!=SASL_INTERACT))
 	return auth_result;
@@ -817,9 +682,8 @@ static int crammd5_client_mech_step(void *conn_context,
     /* try to get the password */
     if (text->password==NULL)
     {
-      pass_result=get_password(text,
-			       params,
-			       prompt_need);
+      pass_result=_plug_get_secret(params, &text->password,
+				   &text->free_password, prompt_need);
       
       if ((pass_result!=SASL_OK) && (pass_result!=SASL_INTERACT))
 	return pass_result;

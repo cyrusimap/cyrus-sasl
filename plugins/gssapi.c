@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.56 2002/04/25 16:11:26 ken3 Exp $
+ * $Id: gssapi.c,v 1.57 2002/04/26 18:02:22 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1223,70 +1223,6 @@ make_prompts(sasl_client_params_t *params,
  }
 
 
-static sasl_interact_t *
-find_prompt(sasl_interact_t **promptlist, unsigned int lookingfor)
-{
-  sasl_interact_t *prompt;
-
-  if (promptlist && *promptlist)
-    for (prompt = *promptlist;
-	 prompt->id != SASL_CB_LIST_END;
-	 ++prompt)
-      if (prompt->id==lookingfor)
-	return prompt;
-
-  return NULL;
-}
-
-static int 
-get_userid(sasl_client_params_t *params,
-	   char **userid, sasl_interact_t **prompt_need)
-{
-  int result;
-  sasl_getsimple_t *getuser_cb;
-  void *getuser_context;
-  sasl_interact_t *prompt;
-  const char *id;
-
-  /* see if we were given the userid in the prompt */
-  prompt=find_prompt(prompt_need,SASL_CB_USER);
-  if (prompt!=NULL)
-    {
-      /* copy it */
-      *userid=params->utils->malloc(prompt->len+1);
-      if ((*userid)==NULL) return SASL_NOMEM;
-
-      strncpy(*userid, prompt->result, prompt->len+1);      
-      return SASL_OK;
-    }
-
-  /* Try to get the callback... */
-  result = params->utils->getcallback(params->utils->conn,
-				      SASL_CB_USER,
-				      &getuser_cb,
-				      &getuser_context);
-  if (result == SASL_OK && getuser_cb) {
-    id = NULL;
-    result = getuser_cb(getuser_context,
-			SASL_CB_USER,
-			&id,
-			NULL);
-    if (result != SASL_OK)
-      return result;
-    if (! id) {
-	*userid = NULL;
-	return SASL_BADPARAM;
-    }
-
-    *userid = params->utils->malloc(strlen(id) + 1);
-    if (! *userid)
-      return SASL_NOMEM;
-    strcpy(*userid, id);
-  }
-
-  return result;
-}
-
 static int 
 gssapi_client_mech_step(void *conn_context,
 			sasl_client_params_t *params,
@@ -1322,9 +1258,7 @@ gssapi_client_mech_step(void *conn_context,
 	  {
 	    int auth_result = SASL_OK;
 
-	    auth_result=get_userid(params,
-				   &text->u.user,
-				   prompt_need);
+	    auth_result=_plug_get_userid(params, &text->u.user, prompt_need);
 
 	    if ((auth_result!=SASL_OK) && (auth_result!=SASL_INTERACT))
 	      {

@@ -3,6 +3,9 @@
 
 2002-04-26  Ken Murchison <ken@oceana.com>
 	* lib/client.c, server.c: check 'doneflag' just before mech_step()
+	* plugins/plugin_common.[ch], anonymous.c, cram.c, digest.c,
+	  gssapi.c, login.c, otp.c, plain.c, srp.c: move callback/interaction
+	  stuff into plugin_common
 
 2002-04-25  Ken Murchison <ken@oceana.com>
 	* plugins/otp.c: don't free the secret when we get data from a

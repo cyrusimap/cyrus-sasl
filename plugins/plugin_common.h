@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.h,v 1.2 2001/12/04 02:06:49 rjs3 Exp $
+ * $Id: plugin_common.h,v 1.3 2002/04/26 18:02:23 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -121,5 +121,17 @@ int _plug_strdup(const sasl_utils_t * utils, const char *in,
 	         char **out, int *outlen);
 void _plug_free_string(const sasl_utils_t *utils, char **str);
 void _plug_free_secret(const sasl_utils_t *utils, sasl_secret_t **secret);
+
+sasl_interact_t *_plug_find_prompt(sasl_interact_t **promptlist,
+				   unsigned int lookingfor);
+
+#define _plug_get_authid(params, result, prompt_need) \
+	_plug_get_simple(params, SASL_CB_AUTHNAME, result, prompt_need)
+#define _plug_get_userid(params, result, prompt_need) \
+	_plug_get_simple(params, SASL_CB_USER, result, prompt_need)
+int _plug_get_simple(sasl_client_params_t *params, unsigned int id,
+		     const char **result, sasl_interact_t **prompt_need);
+int _plug_get_secret(sasl_client_params_t *params, sasl_secret_t **secret,
+		     unsigned int *iscopy, sasl_interact_t **prompt_need);
 
 #endif /* _PLUGIN_COMMON_H_ */

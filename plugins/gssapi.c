@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.50 2002/04/17 02:42:52 rjs3 Exp $
+ * $Id: gssapi.c,v 1.51 2002/04/18 17:23:33 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1330,26 +1330,15 @@ gssapi_client_mech_step(void *conn_context,
 	    }
 
 	    /* if there are prompts not filled in */
-	    if (  (auth_result==SASL_INTERACT))
-	      {
+	    if (auth_result==SASL_INTERACT)
+	    {
 		/* make the prompt list */
 		int result=make_prompts(params,prompt_need,
 					auth_result, SASL_OK, SASL_OK);
 		if (result!=SASL_OK) return result;
 		
 		return SASL_INTERACT;
-	      }
-
-	    ret = params->canon_user(params->utils->conn,
-				     text->u.user, 0,
-				     SASL_CU_AUTHID, oparams);
-	    if(ret != SASL_OK) return ret;
-	    
-	    /* FIXME: This *can't* be right, (note: authzid!) */
-	    ret = params->canon_user(params->utils->conn,
-				     text->u.user, 0,
-				     SASL_CU_AUTHZID, oparams);
-	    if(ret != SASL_OK) return ret;
+	    }
 	  }
 
 	if (text->server_name == GSS_C_NO_NAME) /* only once */
@@ -1454,6 +1443,54 @@ gssapi_client_mech_step(void *conn_context,
 	
 	if (maj_stat == GSS_S_COMPLETE)
 	{
+	    maj_stat = gss_inquire_context(&min_stat,
+                                           text->gss_ctx,
+                                           &text->client_name,
+                                           NULL,       /* targ_name */
+                                           NULL,       /* lifetime */
+                                           NULL,       /* mech */
+                                           NULL,       /* flags */
+                                           NULL,       /* local init */
+                                           NULL);      /* open */
+	    
+	    if (GSS_ERROR(maj_stat)) {
+		sasl_gss_seterror(text->utils, maj_stat, min_stat);
+		sasl_gss_free_context_contents(text);
+		return SASL_FAIL;
+	    }
+	    
+	    name_token.length = 0;
+	    maj_stat = gss_display_name(&min_stat,
+                                        text->client_name,
+                                        &name_token,
+                                        NULL);
+	    
+	    if (GSS_ERROR(maj_stat)) {
+		if (name_token.value)
+		    gss_release_buffer(&min_stat, &name_token);
+		SETERROR(text->utils, "GSSAPI Failure");
+		sasl_gss_free_context_contents(text);
+		return SASL_FAIL;
+	    }
+	    
+	    if (text->u.user && text->u.user[0]) {
+		ret = params->canon_user(params->utils->conn,
+					 text->u.user, 0,
+					 SASL_CU_AUTHZID, oparams);
+		if(ret == SASL_OK) 
+		    ret = params->canon_user(params->utils->conn,
+					     name_token.value, 0,
+					     SASL_CU_AUTHID, oparams);
+	    } else {
+		ret = params->canon_user(params->utils->conn,
+					 name_token.value, 0,
+					 SASL_CU_AUTHID | SASL_CU_AUTHZID,
+					 oparams);
+	    }
+	    gss_release_buffer(&min_stat, &name_token);
+	    
+	    if(ret != SASL_OK) return ret;
+	    
             /* Switch to ssf negotiation */
 	    text->state = SASL_GSSAPI_STATE_SSFCAP;
 	}

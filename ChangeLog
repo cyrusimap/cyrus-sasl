@@ -1,6 +1,8 @@
 2002-09-04  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* acconfig.h, configure.in: Actually check for sysexits.h,
 	  varargs.h, and stdarg.h
+	* lib/checkpw.c: compatibility patch for retry_read
+	  (Howard Chu <hyc@highlandsun.com>)
 
 2002-09-03  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* (throughout) fix handling of sys/param.h

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.57 2002/09/03 15:11:51 rjs3 Exp $
+ * $Id: checkpw.c,v 1.58 2002/09/05 04:02:28 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -416,10 +416,11 @@ static int pwcheck_verify_password(sasl_conn_t *conn,
  * Keep calling the read() system call with 'fd', 'buf', and 'nbyte'
  * until all the data is read in or an error occurs.
  */
-static int retry_read(int fd, void *buf, unsigned nbyte)
+static int retry_read(int fd, void *buf0, unsigned nbyte)
 {
     int n;
     int nread = 0;
+    char *buf = buf0;
 
     if (nbyte == 0) return 0;
 

@@ -1,5 +1,8 @@
 1999-12-28  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
+	* plugins/gssapi.c: client-side wasn't dealing with not being
+	offered all the options
+
 	* plugins/gssapi.c: make sure we advertise and accept only the
 	right integrity/privacy/etc. layers
 

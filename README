@@ -1,4 +1,4 @@
-$Id: README,v 1.10 1999/07/30 19:00:16 leg Exp $
+$Id: README,v 1.11 1999/08/13 21:11:09 leg Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication. See RFC 2222 for more
@@ -19,22 +19,20 @@ DIGEST-MD5
 GSSAPI (MIT Kerberos 5 or Heimdal Kerberos 5)
 KERBEROS_V4
 PLAIN
-SCRAM-MD5 (deprecated)
 
 The library uses a gdbm or ndbm file on the server side to store
-per-user authentication secrets (except for the PLAIN mechanism, which
-is discussed below).  The utility saslpassed has been included for
-adding authentication secrets to the file.
+per-user authentication secrets.  The utility saslpasswd has been
+included for adding authentication secrets to the file.
 
-PLAIN can either check /etc/passwd, Kerberos V4, or use PAM.  By
-default PAM is used if PAM is found, then Kerberos, finally
-/etc/passwd (non-shadow).  This is also tweakable in the configuration
-file.  If you wish to implement your own plaintext password checking,
-examine the file lib/pwcheck.c.
+PLAIN can either check /etc/passwd, Kerberos V4, use PAM, or the sasl
+secrets database.  By default PAM is used if PAM is found, then
+Kerberos, finally /etc/passwd (non-shadow).  This is tweakable in
+the configuration file.  Please see "docs/sysadmin.html".
 
 The sample directory contains two programs which provide a reference
 for using the library, as well as making it easy to test a mechanism
-on the command line.  See "docs/programming" for more information.
+on the command line.  See "docs/programming.html" for more
+information.
 
 INSTALLATION
 ------------
@@ -73,6 +71,9 @@ Currently configurable parameters:
 	if true, automatically add secrets to the secret database when
 	PLAIN or check_password is used, so in the future the user can
 	use the more secure mechanisms.
+
+*** For a more detailed guide on configuring SASL, please look at
+doc/sysadmin.html.
 
 KNOWN BUGS
 ----------

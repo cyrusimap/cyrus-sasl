@@ -690,9 +690,13 @@ typedef struct sasl_server_plug {
      *  given connection context, thus for a given protocol it may
      *  never be called.  Note that if mech_avail returns SASL_NOMECH,
      *  then that mechanism is considered disabled for the remainder
-     *  of the session.
+     *  of the session.  If mech_avail returns SASL_NOTDONE, then a
+     *  future call to mech_avail may still return either SASL_OK
+     *  or SASL_NOMECH.
      *
      *  returns SASL_OK on success,
+     *          SASL_NOTDONE if mech is not available now, but may be later
+     *                       (e.g. EXTERNAL w/o auth_id)
      *          SASL_NOMECH if mech disabled
      */
     int (*mech_avail)(void *glob_context,

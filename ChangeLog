@@ -1,3 +1,7 @@
+2004-02-20  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/server.c, include/saslplug.h: Allow "temporary failure"
+	  return values from mech_avail
+
 2004-02-19  Ken Murchison <ken@oceana.com>
 	* plugins/ntlm.c, sample/server.c, sample/client.c:
 	  error checking of getnameinfo() (Paul Kranenburg <pk@cs.few.eur.nl>)

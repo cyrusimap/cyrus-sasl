@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: external.c,v 1.21 2003/12/15 20:03:47 rjs3 Exp $
+ * $Id: external.c,v 1.22 2004/02/20 17:23:58 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -57,7 +57,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: external.c,v 1.21 2003/12/15 20:03:47 rjs3 Exp $";
+static const char plugin_id[] = "$Id: external.c,v 1.22 2004/02/20 17:23:58 rjs3 Exp $";
 
 /*****************************  Server Section  *****************************/
 
@@ -160,8 +160,11 @@ external_server_mech_avail(void *glob_context __attribute__((unused)),
 			   sasl_server_params_t *sparams,
 			   void **conn_context __attribute__((unused)))
 {
-    if (!sparams->utils->conn->external.auth_id)
-	return SASL_NOMECH;
+    if (!sparams->utils->conn->external.auth_id) {
+	/* Return Temporary Failure */
+	return SASL_NOTDONE;
+    }
+    
     return SASL_OK;
 }
 

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.61 2003/02/13 19:55:53 rjs3 Exp $
+ * $Id: checkpw.c,v 1.62 2003/03/19 18:25:27 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -121,7 +121,7 @@ static int _sasl_make_plain_secret(const char *salt,
     _sasl_MD5Update(&ctx, "sasldb", 6);
     _sasl_MD5Update(&ctx, passwd, passlen);
     memcpy((*secret)->data, salt, 16);
-    memcpy((*secret)->data + 16, "\0", 1);
+    (*secret)->data[16] = '\0';
     _sasl_MD5Final((*secret)->data + 17, &ctx);
     (*secret)->len = sec_len;
     
@@ -237,7 +237,7 @@ int _sasl_auxprop_verify_apop(sasl_conn_t *conn,
     char *userid = NULL;
     char *realm = NULL;
     unsigned char digest[16];
-    char digeststr[32];
+    char digeststr[33];
     const char *password_request[] = { SASL_AUX_PASSWORD, NULL };
     struct propval auxprop_values[2];
     sasl_server_conn_t *sconn = (sasl_server_conn_t *)conn;

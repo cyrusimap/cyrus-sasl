@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.59 2003/03/06 17:05:26 rjs3 Exp $
+ * $Id: client.c,v 1.60 2003/03/19 18:25:27 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -324,6 +324,7 @@ int sasl_client_new(const char *service,
   conn->cparams->utils = utils;
   conn->cparams->canon_user = &_sasl_canon_user;
   conn->cparams->flags = flags;
+  conn->cparams->prompt_supp = (*pconn)->callbacks;
   
   /* get the clientFQDN (serverFQDN was set in _sasl_conn_init) */
   memset(name, 0, sizeof(name));
@@ -633,7 +634,7 @@ int sasl_client_step(sasl_conn_t *conn,
 					 serverin,
 					 serverinlen,
 					 prompt_need,
-					 clientout, (int *)clientoutlen,
+					 clientout, clientoutlen,
 					 &conn->oparams);
 
   if (result == SASL_OK) {

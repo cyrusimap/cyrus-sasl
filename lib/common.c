@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.90 2003/03/06 17:05:26 rjs3 Exp $
+ * $Id: common.c,v 1.91 2003/03/19 18:25:27 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -650,6 +650,13 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
   {
   case SASL_SSF_EXTERNAL:
       conn->external.ssf = *((sasl_ssf_t *)value);
+      if(conn->type == SASL_CONN_SERVER) {
+	((sasl_server_conn_t*)conn)->sparams->external_ssf =
+	  conn->external.ssf;
+      } else {
+	((sasl_client_conn_t*)conn)->cparams->external_ssf =
+	  conn->external.ssf;
+      }
       break;
 
   case SASL_AUTH_EXTERNAL:
@@ -699,8 +706,13 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
 	  RETURN(conn, SASL_TOOWEAK);
       }
 
-      memcpy(&(conn->props), props,
-	     sizeof(sasl_security_properties_t));
+      conn->props = *props;
+
+      if(conn->type == SASL_CONN_SERVER) {
+	((sasl_server_conn_t*)conn)->sparams->props = *props;
+      } else {
+	((sasl_client_conn_t*)conn)->cparams->props = *props;
+      }
 
       break;
   }
@@ -892,17 +904,19 @@ static int _sasl_global_getopt(void *context,
       for (callback = global_callbacks->callbacks;
 	   callback->id != SASL_CB_LIST_END;
 	   callback++) {
-	  if (callback->id == SASL_CB_GETOPT
-	      && (((sasl_getopt_t *)(callback->proc))(callback->context,
-						      plugin_name,
-						      option,
-						      result,
-						      len)
-		  == SASL_OK))
-	      return SASL_OK;
+	if (callback->id == SASL_CB_GETOPT) {
+	  if (!callback->proc) return SASL_FAIL;
+	  if (((sasl_getopt_t *)(callback->proc))(callback->context,
+						  plugin_name,
+						  option,
+						  result,
+						  len)
+	      == SASL_OK)
+	    return SASL_OK;
+	}
       }
   }
-
+  
   /* look it up in our configuration file */
   *result = sasl_config_getstring(option, NULL);
   if (*result != NULL) {
@@ -1667,7 +1681,7 @@ int _sasl_build_mechlist(void)
 	    }
 
 	    if(!flag) {
-		(*last)->next = p;
+		*last = p;
 		p->next = NULL;
 	    } else {
 		sasl_FREE(p);
@@ -1708,7 +1722,7 @@ int _sasl_build_mechlist(void)
 
 const char ** sasl_global_listmech(void) 
 {
-    return global_mech_list;
+    return (const char **)global_mech_list;
 }
 
 int sasl_listmech(sasl_conn_t *conn,

@@ -125,7 +125,7 @@ int prop_format(struct propctx *ctx, const char *sep, int seplen,
  *            if NULL, add to the same name as previous prop_set/setvals call
  *  value  -- a value for the property; will be copied into context
  *            if NULL, remove existing values
- *  vallen -- length of value, if < 0 then strlen(value) will be used
+ *  vallen -- length of value, if <= 0 then strlen(value) will be used
  * returns SASL_OK on success
  * possible error return values include: SASL_BADPARAM, SASL_NOMEM
  */

@@ -1,6 +1,6 @@
 /* auxprop.c - auxilliary property support
  * Rob Siemborski
- * $Id: auxprop.c,v 1.9 2003/02/13 19:55:53 rjs3 Exp $
+ * $Id: auxprop.c,v 1.10 2003/03/19 18:25:27 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -296,7 +296,9 @@ int prop_request(struct propctx *ctx, const char **names)
 	       sizeof(struct propval) * (ctx->allocated_values - ctx->used_values));
 
         /* Finish updating the context -- we've extended the list! */
-	ctx->list_end = (char **)(ctx->values + ctx->allocated_values);
+	/* ctx->list_end = (char **)(ctx->values + ctx->allocated_values); */
+	/* xxx test here */
+	ctx->list_end = (char **)(ctx->values + total_values);
     }
 
     /* Now do the copy, or referencing rather */
@@ -511,7 +513,7 @@ int prop_format(struct propctx *ctx, const char *sep, int seplen,
  *            if NULL, add to the same name as previous prop_set/setvals call
  *  value  -- a value for the property; will be copied into context
  *            if NULL, remove existing values
- *  vallen -- length of value, if < 0 then strlen(value) will be used
+ *  vallen -- length of value, if <= 0 then strlen(value) will be used
  */
 int prop_set(struct propctx *ctx, const char *name,
 	     const char *value, int vallen)
@@ -605,7 +607,7 @@ int prop_set(struct propctx *ctx, const char *name,
 	}
 	    
 	/* Now allocate the last entry */
-	if(!vallen)
+	if(vallen <= 0)
 	    size = (size_t)(strlen(value) + 1);
 	else
 	    size = (size_t)(vallen + 1);
@@ -667,7 +669,7 @@ int prop_set(struct propctx *ctx, const char *name,
 	tmp = (ctx->list_end - 2);
 
 	/* Now allocate the last entry */
-	if(!vallen)
+	if(vallen <= 0)
 	    size = strlen(value) + 1;
 	else
 	    size = vallen + 1;
@@ -901,7 +903,7 @@ void _sasl_auxprop_lookup(sasl_server_params_t *sparams,
     }
 
     if(!found)
-	_sasl_log(NULL, SASL_LOG_DEBUG,
+	_sasl_log(sparams->utils->conn, SASL_LOG_DEBUG,
 		  "could not find auxprop plugin, was searching for '%s'",
 		  plist ? plist : "[all]");
 }

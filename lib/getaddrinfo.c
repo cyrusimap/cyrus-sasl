@@ -1,6 +1,6 @@
 /*
  * Mar  8, 2000 by Hajimu UMEMOTO <ume@mahoroba.org>
- * $Id: getaddrinfo.c,v 1.7 2003/02/13 19:55:54 rjs3 Exp $
+ * $Id: getaddrinfo.c,v 1.8 2003/03/19 18:25:28 rjs3 Exp $
  *
  * This module is based on ssh-1.2.27-IPv6-1.5 written by
  * KIKUCHI Takahiro <kick@kyoto.wide.ad.jp>
@@ -192,6 +192,7 @@ getaddrinfo(const char *hostname, const char *servname,
 		pe_proto = NULL;
 		break;
 	    }
+	    /* xxx thread safety ? */
 	    if ((se = getservbyname(servname, pe_proto)) == NULL)
 		return EAI_SERVICE;
 	    port = se->s_port;
@@ -222,6 +223,7 @@ getaddrinfo(const char *hostname, const char *servname,
     if (hints && hints->ai_flags & AI_NUMERICHOST)
 	return EAI_NODATA;
 #ifndef macintosh
+    /* xxx thread safety? / gethostbyname_r */
     if ((hp = gethostbyname(hostname)) &&
 	hp->h_name && hp->h_name[0] && hp->h_addr_list[0]) {
 	for (i = 0; hp->h_addr_list[i]; i++) {

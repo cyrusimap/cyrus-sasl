@@ -1,7 +1,7 @@
 /* saslutil.c
  * Rob Siemborski
  * Tim Martin
- * $Id: saslutil.c,v 1.40 2003/02/13 19:55:54 rjs3 Exp $
+ * $Id: saslutil.c,v 1.41 2003/03/19 18:25:28 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -229,6 +229,7 @@ int sasl_mkchal(sasl_conn_t *conn,
 {
   sasl_rand_t *pool = NULL;
   unsigned long randnum;
+  int ret;
   time_t now;
   unsigned len;
 
@@ -241,7 +242,9 @@ int sasl_mkchal(sasl_conn_t *conn,
   if (maxlen < len)
     return 0;
 
-  sasl_randcreate(&pool);
+  ret = sasl_randcreate(&pool);
+  if(ret != SASL_OK) return 0; /* xxx sasl return code? */
+
   sasl_rand(pool, (char *)&randnum, sizeof(randnum));
   sasl_randfree(&pool);
 
@@ -319,7 +322,13 @@ void getranddata(unsigned short ret[RPOOL_SIZE])
     {
 	struct timeval tv;
 	
-	if (!gettimeofday(&tv, NULL)) {
+	/* xxx autoconf macro */
+#ifdef _SVID_GETTOD
+	if (!gettimeofday(&tv))
+#else
+	if (!gettimeofday(&tv, NULL))
+#endif
+	{
 	    /* longs are guaranteed to be at least 32 bits; we need
 	       16 bits in each short */
 	    ret[0] ^= (unsigned short) (tv.tv_sec & 0xFFFF);
@@ -367,7 +376,10 @@ void sasl_randseed (sasl_rand_t *rpool, const char *seed, unsigned len)
     if (rpool == NULL) return;
 
     rpool->initialized = 1;
-    if (len > 6) len = sizeof(unsigned short)*RPOOL_SIZE;
+
+    if (len > sizeof(unsigned short)*RPOOL_SIZE)
+      len = sizeof(unsigned short)*RPOOL_SIZE;
+
     for (lup = 0; lup < len; lup += 2)
 	rpool->pool[lup/2] = (seed[lup] << 8) + seed[lup + 1];
 }
@@ -382,7 +394,8 @@ static void randinit(sasl_rand_t *rpool)
 #if !(defined(WIN32)||defined(macintosh))
 #ifndef HAVE_JRAND48
     {
-	long *foo = (long *)rpool->pool;
+      /* xxx varies by platform */
+	unsigned int *foo = (unsigned int *)rpool->pool;
 	srandom(*foo);
     }
 #endif /* HAVE_JRAND48 */

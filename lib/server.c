@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.120 2003/03/06 17:05:27 rjs3 Exp $
+ * $Id: server.c,v 1.121 2003/03/19 18:25:28 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -89,8 +89,9 @@ static int _sasl_server_active = 0;
 /* For access by other modules */
 int _is_sasl_server_active(void) { return _sasl_server_active; }
 
-static int _sasl_checkpass(sasl_conn_t *conn, const char *service, 
-			   const char *user, const char *pass);
+static int _sasl_checkpass(sasl_conn_t *conn, 
+			   const char *user, unsigned userlen,
+			   const char *pass, unsigned passlen);
 
 static mech_list_t *mechlist = NULL; /* global var which holds the list */
 
@@ -247,7 +248,7 @@ static int init_mechlist(void)
     if (newutils == NULL)
 	return SASL_NOMEM;
 
-    newutils->checkpass = &sasl_checkpass;
+    newutils->checkpass = &_sasl_checkpass;
 
     mechlist->utils = newutils;
     mechlist->mech_list=NULL;
@@ -376,7 +377,8 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
 {
   int result;
   const char *path_to_config=NULL;
-  char *c;
+  const char *c;
+  unsigned path_len;
   char *config_filename=NULL;
   int len;
   const sasl_callback_t *getpath_cb=NULL;
@@ -392,13 +394,17 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
   if (result!=SASL_OK) goto done;
   if (path_to_config == NULL) path_to_config = "";
 
-  if ((c = strchr(path_to_config, PATHS_DELIMITER))) {
-      *c = '\0';
-  }
+  c = strchr(path_to_config, PATHS_DELIMITER);
 
   /* length = length of path + '/' + length of appname + ".conf" + 1
      for '\0' */
-  len = strlen(path_to_config)+2+ strlen(global_callbacks.appname)+5+1;
+
+  if(c != NULL)
+    path_len = c - path_to_config;
+  else
+    path_len = strlen(path_to_config);
+
+  len = path_len + 2 + strlen(global_callbacks.appname) + 5 + 1;
 
   if (len > PATH_MAX ) {
       result = SASL_FAIL;
@@ -412,7 +418,7 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
       goto done;
   }
 
-  snprintf(config_filename, len, "%s/%s.conf", path_to_config, 
+  snprintf(config_filename, len, "%.*s/%s.conf", path_len, path_to_config, 
 	   global_callbacks.appname);
 
   /* Ask the application if it's safe to use this file */
@@ -739,6 +745,9 @@ int sasl_server_new(const char *service,
   int result;
   sasl_server_conn_t *serverconn;
   sasl_utils_t *utils;
+  sasl_getopt_t *getopt;
+  void *context;
+  const char *log_level;
 
   if (_sasl_server_active==0) return SASL_NOTINIT;
   if (! pconn) return SASL_FAIL;
@@ -774,7 +783,7 @@ int sasl_server_new(const char *service,
       goto done_error;
   }
   
-  utils->checkpass = &sasl_checkpass;
+  utils->checkpass = &_sasl_checkpass;
 
   /* Setup the propctx -> We'll assume the default size */
   serverconn->sparams->propctx=prop_new(0);
@@ -800,6 +809,14 @@ int sasl_server_new(const char *service,
       serverconn->user_realm = NULL;
       /* the sparams is already zeroed */
   }
+
+  serverconn->sparams->callbacks = callbacks;
+
+  log_level = NULL;
+  if(_sasl_getcallback(*pconn, SASL_CB_GETOPT, &getopt, &context) == SASL_OK) {
+    getopt(context, NULL, "log_level", &log_level, NULL);
+  }
+  serverconn->sparams->log_level = log_level ? atoi(log_level) : SASL_LOG_ERR;
 
   serverconn->sparams->utils = utils;
   serverconn->sparams->transition = &_sasl_transition;
@@ -1457,8 +1474,11 @@ static int is_mech(const char *t, const char *m)
 }
 
 /* returns OK if it's valid */
-static int _sasl_checkpass(sasl_conn_t *conn, const char *service,
-			   const char *user, const char *pass)
+static int _sasl_checkpass(sasl_conn_t *conn,
+			   const char *user,
+			   unsigned userlen __attribute__((unused)),
+			   const char *pass,
+			   unsigned passlen __attribute__((unused)))
 {
     sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;
     int result;
@@ -1467,6 +1487,7 @@ static int _sasl_checkpass(sasl_conn_t *conn, const char *service,
     void *context;
     const char *mlist, *mech;
     struct sasl_verify_password_s *v;
+    const char *service = conn->service;
 
     /* call userdb callback function, if available */
     result = _sasl_getcallback(conn, SASL_CB_SERVER_USERDB_CHECKPASS,
@@ -1548,14 +1569,18 @@ int sasl_checkpass(sasl_conn_t *conn,
     if (pass == NULL)
 	PARAMERROR(conn);
 
-    result = _sasl_checkpass(conn, conn->service, user, pass);
+    /* canonicalize the username */
+    result = _sasl_canon_user(conn, user, 0,
+			      SASL_CU_AUTHID | SASL_CU_AUTHZID,
+			      &(conn->oparams));
+    if(result != SASL_OK) RETURN(conn, result);
+    user = conn->oparams.user;
 
-    if (result == SASL_OK) {
-	strncpy(conn->authid_buf, user, CANON_BUF_SIZE);
-	conn->oparams.authid = conn->authid_buf;
-      
+    /* Check the password */
+    result = _sasl_checkpass(conn, user, strlen(user), pass, strlen(pass));
+
+    if (result == SASL_OK)      
 	result = _sasl_transition(conn, pass, passlen);
-    }
 
     RETURN(conn,result);
 }

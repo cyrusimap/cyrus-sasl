@@ -1,3 +1,8 @@
+2003-03-19  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/auxprop.c, lib/checkpw.c, lib/common.c, lib/saslutil.c,
+	  lib/server.c: Assorted minor fixes from Sun Microsystems
+	  (provided by Chris Newman <chris.newman@sun.com>)
+
 2003-03-13  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/lak.c: Fix a memset length.  (Igor Brezac <igor@ipass.net>)
 

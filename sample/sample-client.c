@@ -598,11 +598,6 @@ main(int argc, char *argv[])
     callback->proc = &simple;
     callback->context = userid;
     ++callback;
-  } else {
-    callback->id = SASL_CB_USER;
-    callback->proc = NULL;
-    callback->context = NULL;
-    ++callback;
   }
 
   /* authname */
@@ -610,11 +605,6 @@ main(int argc, char *argv[])
     callback->id = SASL_CB_AUTHNAME;
     callback->proc = &simple;
     callback->context = authid;
-    ++callback;
-  } else {
-    callback->id = SASL_CB_AUTHNAME;
-    callback->proc = NULL;
-    callback->context = NULL;
     ++callback;
   }
 

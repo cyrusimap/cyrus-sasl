@@ -1187,7 +1187,7 @@ static int client_continue_step (void *conn_context,
 }
 
 static const long client_required_prompts[] = {
-  SASL_CB_AUTHNAME,
+  SASL_CB_USER,
   SASL_CB_LIST_END
 };
 
@@ -1195,7 +1195,7 @@ static const sasl_client_plug_t client_plugins[] =
 {
   {
     "KERBEROS_V4",
-    KRB_DES_SECURITY_BITS,
+    KRB_DES_SECURITY_BITS,r
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOACTIVE | SASL_SEC_NOANONYMOUS,
     NULL,
     &client_required_prompts,

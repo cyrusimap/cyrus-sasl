@@ -1,8 +1,9 @@
 /* DIGEST-MD5 SASL plugin
+ * Ken Murchison
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.156 2003/07/26 20:24:32 ken3 Exp $
+ * $Id: digestmd5.c,v 1.157 2003/08/27 19:15:04 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -60,6 +61,18 @@
 #ifdef WITH_DES
 # ifdef WITH_SSL_DES
 #  include <openssl/des.h>
+#  include <openssl/opensslv.h>
+#  if (OPENSSL_VERSION_NUMBER >= 0x0090700f) && \
+      !defined(OPENSSL_ENABLE_OLD_DES_SUPPORT)
+#   define des_cblock DES_cblock
+#   define des_key_schedule DES_key_schedule
+#   define des_key_sched(k,ks) \
+           DES_key_sched((k),&(ks))
+#   define des_cbc_encrypt(i,o,l,k,iv,e) \
+           DES_cbc_encrypt((i),(o),(l),&(k),(iv),(e))
+#   define des_ede2_cbc_encrypt(i,o,l,k1,k2,iv,e) \
+           DES_ede2_cbc_encrypt((i),(o),(l),&(k1),&(k2),(iv),(e))
+#  endif /* OpenSSL 0.9.7+ w/o old DES support */
 # else /* system DES library */
 #  include <des.h>
 # endif
@@ -102,7 +115,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.156 2003/07/26 20:24:32 ken3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.157 2003/08/27 19:15:04 ken3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */

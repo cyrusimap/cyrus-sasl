@@ -1,3 +1,6 @@
+2003-08-27  Ken Murchison <ken@oceana.com>
+	* plugins/digestmd5.c: handle OpenSSL 0.9.7+ w/o old DES support
+
 2003-08-26  Ken Murchison <ken@oceana.com>
 	* plugins/ntlm.c: only send one NT/LM response to server
 	  (NT preferred); don't use canonified authid when proxying

@@ -24,7 +24,10 @@ AC_PROG_AWK
 AC_PROG_MAKE_SET
 AC_PROG_LN_S
 AC_PROG_INSTALL
+
+dnl Checks for build foo
 CMU_C___ATTRIBUTE__
+CMU_GUESS_RUNPATH_SWITCH
 
 dnl Checks for libraries.
 CMU_SOCKETS
@@ -120,7 +123,7 @@ AC_MSG_RESULT($with_ldap)
 
 if test -d $with_ldap; then
     CPPFLAGS="$CPPFLAGS -I${with_ldap}/include"
-    LDFLAGS="$LDFLAGS -L${with_ldap}/lib"
+    CMU_ADD_LIBPATH(${with_ldap}/lib)
 fi
 
 LDAP_LIBS=""

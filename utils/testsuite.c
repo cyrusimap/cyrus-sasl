@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.22 2002/04/26 18:44:42 rjs3 Exp $
+ * $Id: testsuite.c,v 1.23 2002/04/27 04:09:50 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -708,6 +708,9 @@ void test_listmech(void)
 			&saslconn) != SASL_OK)
 	fatal("can't sasl_server_new");
 
+    if (sasl_setprop(saslconn, SASL_AUTH_EXTERNAL, authname)!=SASL_OK)
+	fatal("sasl_setprop(SASL_AUTH_EXTERNAL) failed");
+
     /* client new connection */
     if (sasl_client_new("rcmd",
 			myhostname,
@@ -715,6 +718,9 @@ void test_listmech(void)
 			0,
 			&cconn)!= SASL_OK)
 	fatal("sasl_client_new() failure");
+
+    if (sasl_setprop(cconn, SASL_AUTH_EXTERNAL, authname)!=SASL_OK)
+	fatal("sasl_setprop(SASL_AUTH_EXTERNAL) failed");
 
     /* try both sides */
     list = sasl_global_listmech();
@@ -1097,6 +1103,9 @@ void set_properties(sasl_conn_t *conn, const sasl_security_properties_t *props)
        	if (sasl_setprop(conn, SASL_SEC_PROPS, props)!=SASL_OK)
 	    fatal("sasl_setprop() failed");
     }
+
+    if (sasl_setprop(conn, SASL_AUTH_EXTERNAL, authname)!=SASL_OK)
+	fatal("sasl_setprop(SASL_AUTH_EXTERNAL) failed");
 }
 
 /*
@@ -2427,6 +2436,9 @@ void foreach_mechanism(foreach_t *func, void *rock)
 			&saslconn) != SASL_OK) {
 	fatal("sasl_server_new in foreach_mechanism");
     }
+
+    if (sasl_setprop(saslconn, SASL_AUTH_EXTERNAL, authname)!=SASL_OK)
+	fatal("sasl_setprop(SASL_AUTH_EXTERNAL) failed");
 
     result = sasl_listmech(saslconn,
 			   NULL,

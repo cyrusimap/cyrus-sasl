@@ -129,6 +129,8 @@ int _sasl_get_mech_list(const char *entryname,
 	if (strcmp(dir->d_name + (length - 3), ".so")) continue;
 	{
 	  char name[PATH_MAX];
+	  int flag;
+
 	  memcpy(name,dir->d_name,length);
 	  name[length]='\0';
 
@@ -145,10 +147,15 @@ int _sasl_get_mech_list(const char *entryname,
 	  
 	  if (result!=SASL_OK) return result;
 	  
-	  library=NULL;
-	  if (!(library=dlopen(tmp,RTLD_NOW))) {
+#ifdef RTLD_NOW
+	  flag = RTLD_NOW;
+#else
+	  flag = 0;
+#endif
+	  if (!(library = dlopen(tmp, flag))) {
+	      /* should log this! */
 	      /* printf("unable to dlopen %s: %s\n", tmp, dlerror()); */
-		continue;
+	      continue;
 	  }
 	}
 	entry_point=NULL;

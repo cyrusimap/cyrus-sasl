@@ -238,7 +238,7 @@ void ipc_loop() {
 		rel_accept_lock();
 
 		if (conn_fd == -1) {
-			if (errno != EINTR) {
+			if (rc != EINTR) {
 				logger(L_ERR, L_FUNC, "socket accept failure");
 				logger(L_ERR, L_FUNC, "accept: %s", strerror(rc));
 				sleep(5);

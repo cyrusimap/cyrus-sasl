@@ -127,11 +127,19 @@ ldap_scope: <sub> <sub|one|base>
 ldap_search_base: <none>
 	Specify a starting point for the search.  e.g. dc=foo,dc=com
 
-ldap_auth_method: <bind> <bind|custom>
-	Specify an authentication method.  The default 'bind' method uses the
-	LDAP simple bind facility to verify the password.  The custom method
-	uses userPassword attribute to verify the password.  Currently, {CRYPT}
-	hash is supported.
+ldap_auth_method: <bind> <bind|custom|fastbind>
+	Specify an authentication method.
+
+	The bind method uses the LDAP simple bind facility to verify the
+	password.  This is the default.
+
+	The custom method uses userPassword attribute to verify the password.  
+	Currently, {CRYPT} hash is supported.
+
+	The fastbind method does away with the search and extra anonymous bind
+	in auth_bind, but makes two assumptions:
+	  1. Expanding the ldap_filter expression gives the fully-qualified DN
+	  2. There is no cost to staying bound as a named user
 
 ldap_filter: <uid=%u>
 	Specify a filter.  Use the %u and %r tokens for the username and realm

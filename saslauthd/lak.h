@@ -53,6 +53,7 @@
 
 #define LAK_AUTH_METHOD_BIND 0
 #define LAK_AUTH_METHOD_CUSTOM 1
+#define LAK_AUTH_METHOD_FASTBIND 2
 
 typedef struct lak_conf {
     char   *path;

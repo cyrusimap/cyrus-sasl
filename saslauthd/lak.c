@@ -70,6 +70,7 @@ static int lak_bind(LAK *, char, const char *, const char *);
 static int lak_search(LAK *, const char *, const char **, LDAPMessage **);
 static int lak_auth_custom(LAK *, const char *, const char *, const char *);
 static int lak_auth_bind(LAK *, const char *, const char *, const char *);
+static int lak_auth_fastbind(LAK *, const char *, const char *, const char *);
 static int lak_result_add(LAK *lak, const char *, const char *, LAK_RESULT **);
 static int lak_check_password(const char *, const char *, void *);
 static int lak_check_crypt(const char *, const char *, void *);
@@ -179,6 +180,8 @@ static int lak_config_read(LAK_CONF *conf, const char *configfile)
 		} else if (!strcasecmp(key, "ldap_auth_method")) {
 			if (!strcasecmp(p, "custom")) {
 				conf->auth_method = LAK_AUTH_METHOD_CUSTOM;
+			} else if (!strcasecmp(p, "fastbind")) {
+				conf->auth_method = LAK_AUTH_METHOD_FASTBIND;
 			}
 		} else if (!strcasecmp(key, "ldap_timeout")) {
 			conf->timeout.tv_sec = lak_config_int(p);
@@ -917,6 +920,24 @@ static int lak_auth_bind(LAK *lak, const char *user, const char *realm, const ch
 }
 
 
+static int lak_auth_fastbind(LAK *lak, const char *user, const char *realm, const char *password) 
+{
+	int rc;
+	char *dn = NULL;
+
+	rc = lak_filter(lak, user, realm, &dn);
+	if (rc != LAK_OK || dn == NULL) {
+		syslog(LOG_WARNING|LOG_AUTH, "lak_filter failed.");
+		return LAK_FAIL;
+	}
+
+	rc = lak_bind(lak, LAK_BIND_AS_USER, dn, password);
+
+	free(dn);
+	return rc;
+}
+
+
 int lak_authenticate(LAK *lak, const char *user, const char *realm, const char *password) 
 {
 	int rc;
@@ -932,8 +953,10 @@ int lak_authenticate(LAK *lak, const char *user, const char *realm, const char *
 
 	if (lak->conf->auth_method == LAK_AUTH_METHOD_BIND) {
 		rc = lak_auth_bind(lak, user, realm, password);
-	} else {
+	} else if (lak->conf->auth_method == LAK_AUTH_METHOD_CUSTOM) {
 		rc = lak_auth_custom(lak, user, realm, password);
+	} else {
+		rc = lak_auth_fastbind(lak, user, realm, password);
 	}
 
 	return rc;

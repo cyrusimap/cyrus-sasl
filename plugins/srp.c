@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.28 2002/02/01 21:32:59 ken3 Exp $
+ * $Id: srp.c,v 1.29 2002/02/11 15:42:49 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -268,10 +268,6 @@ typedef struct context_s {
  *******************************************/
 
 
-#ifndef EVP_MAX_BLOCK_LENGTH
-#define EVP_MAX_BLOCK_LENGTH 32
-#endif
-
 static int srp_encode(void *context,
 		      const struct iovec *invec,
 		      unsigned numiov,
@@ -309,8 +305,8 @@ static int srp_encode(void *context,
   if (text->enabled & BIT_CONFIDENTIALITY) {
       EVP_CIPHER_CTX ctx;
       unsigned char IV[EVP_MAX_IV_LENGTH];
-      unsigned char block1[EVP_MAX_BLOCK_LENGTH];
-      unsigned k = 8 * EVP_CIPHER_block_size(text->cipher); /* XXX bug? */
+      unsigned char block1[EVP_MAX_IV_LENGTH];
+      unsigned k = 8; /* EVP_CIPHER_CTX_block_size() isn't working */
       unsigned enclen = 0;
       unsigned tmplen;
 
@@ -330,20 +326,14 @@ static int srp_encode(void *context,
       text->utils->rand(text->utils->rpool, block1, k - 2);
       memcpy(block1 + k-2, block1, 2);
 
-      if (!EVP_EncryptUpdate(&ctx, text->encode_tmp_buf, &tmplen, block1, k)) {
-	  return SASL_FAIL;
-      }
+      EVP_EncryptUpdate(&ctx, text->encode_tmp_buf, &tmplen, block1, k);
       enclen += tmplen;
 	  
-      if (!EVP_EncryptUpdate(&ctx, text->encode_tmp_buf + enclen, &tmplen,
-			     input, inputlen)) {
-	  return SASL_FAIL;
-      }
+      EVP_EncryptUpdate(&ctx, text->encode_tmp_buf + enclen, &tmplen,
+			input, inputlen);
       enclen += tmplen;
 	  
-      if (!EVP_EncryptFinal(&ctx, text->encode_tmp_buf + enclen, &tmplen)) {
-	  return SASL_FAIL;
-      }
+      EVP_EncryptFinal(&ctx, text->encode_tmp_buf + enclen, &tmplen);
       enclen += tmplen;
 
       EVP_CIPHER_CTX_cleanup(&ctx);
@@ -508,8 +498,9 @@ static int srp_decode_once(context_t *text,
 	if (text->enabled & BIT_CONFIDENTIALITY) {
 	    EVP_CIPHER_CTX ctx;
 	    unsigned char IV[EVP_MAX_IV_LENGTH];
-	    unsigned char block1[EVP_MAX_BLOCK_LENGTH];
-	    unsigned k = 8 * EVP_CIPHER_block_size(text->cipher); /* XXX bug? */
+	    unsigned char block1[EVP_MAX_IV_LENGTH];
+	    unsigned k = 8; /* EVP_CIPHER_CTX_block_size() isn't working */
+
 	    unsigned declen = 0;
 	    unsigned tmplen;
 
@@ -526,24 +517,17 @@ static int srp_decode_once(context_t *text,
 	    /* check the first block and see if octets #k-1 and #k
 	     * are exact copies of octects #1 and #2
 	     */
-	    if (!EVP_DecryptUpdate(&ctx, block1, &tmplen, buf, k)) {
-		return SASL_FAIL;
-	    }
+	    EVP_DecryptUpdate(&ctx, block1, &tmplen, buf, k);
 
 	    if ((block1[0] != block1[k-2]) || (block1[1] != block1[k-1])) {
 		return SASL_BADAUTH;
 	    }
 
-	    if (!EVP_DecryptUpdate(&ctx, text->decode_tmp_buf, &tmplen,
-				   buf + k, buflen - k - hashlen)) {
-		return SASL_FAIL;
-	    }
+	    EVP_DecryptUpdate(&ctx, text->decode_tmp_buf, &tmplen,
+			      buf + k, buflen - k - hashlen);
 	    declen += tmplen;
 	  
-	    if (!EVP_DecryptFinal(&ctx, text->decode_tmp_buf + declen,
-				  &tmplen)) {
-		return SASL_FAIL;
-	    }
+	    EVP_DecryptFinal(&ctx, text->decode_tmp_buf + declen, &tmplen);
 	    declen += tmplen;
 
 	    EVP_CIPHER_CTX_cleanup(&ctx);
@@ -1084,7 +1068,7 @@ static int HashInterleaveBigInt(context_t *text, BIGNUM *num,
     }
 
     EVP_DigestFinal(&mdEven, Evenb, NULL);
-    EVP_DigestFinal(&mdEven, Oddb, &hashlen);
+    EVP_DigestFinal(&mdOdd, Oddb, &hashlen);
 
     *outlen = 2 * hashlen;
     *out = text->utils->malloc(*outlen);
@@ -3496,7 +3480,7 @@ static int client_step1(context_t *text,
 }
 
 /* Check to see if N,g is in the recommended list */
-static int check_N_and_g(BIGNUM *N, BIGNUM *g)
+static int check_N_and_g(const sasl_utils_t *utils, BIGNUM *N, BIGNUM *g)
 {
     char *N_prime;
     unsigned long g_prime;
@@ -3513,7 +3497,8 @@ static int check_N_and_g(BIGNUM *N, BIGNUM *g)
 	}
     }
 
-    OPENSSL_free(N_prime);
+    if (N_prime) utils->free(N_prime);
+
     return r;
 }
 
@@ -3560,7 +3545,7 @@ static int client_step2(context_t *text,
     }
 
     /* Check N and g to see if they are one of the recommended pairs */
-    r = check_N_and_g(&text->N, &text->g);
+    r = check_N_and_g(params->utils, &text->N, &text->g);
     if (r) {
 	params->utils->log(NULL, SASL_LOG_ERR,
 			   "Values of 'N' and 'g' are not recommended\n");

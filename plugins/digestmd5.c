@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.133 2002/05/13 15:43:16 ken3 Exp $
+ * $Id: digestmd5.c,v 1.134 2002/06/12 15:33:55 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -103,7 +103,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.133 2002/05/13 15:43:16 ken3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.134 2002/06/12 15:33:55 rjs3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -1766,8 +1766,8 @@ static char *create_response(context_t * text,
 }
 
 static int
-get_realm(sasl_server_params_t * params,
-	  char **realm)
+get_server_realm(sasl_server_params_t * params,
+		 char **realm)
 {
     /* look at user realm first */
     if (params->user_realm != NULL) {
@@ -1886,7 +1886,8 @@ digestmd5_server_mech_step1(server_context_t *stext,
 			"DIGEST-MD5 server step 1");
 
     /* get realm */
-    result = get_realm(sparams, &realm);
+    result = get_server_realm(sparams, &realm);
+    if(result != SASL_OK) return result;
     
     /* what options should we offer the client? */
     qop[0] = '\0';

@@ -1,5 +1,8 @@
 Thu Aug 26 12:23:26 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
+	* lib/server.c: now pwcheck_method is case & trailing whitespace
+ 	insensitive
+
 	* lib/server.c (_sasl_checkpass): pwcheck_method is no longer case
 	sensitive.
 

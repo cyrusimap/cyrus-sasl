@@ -23,5 +23,5 @@
 #PERFORMANCE OF THIS SOFTWARE.
 ################################################################
 
-SUBDIRS = CyrusSasl
-EXTRA_DIST = Test doc javax
+SUBDIRS = CyrusSasl javax
+EXTRA_DIST = Test doc

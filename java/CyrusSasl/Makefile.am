@@ -25,7 +25,7 @@
 
 javasasl_version = 1:0:0
 
-javasasldir = $(prefix)/lib/java/classes/sasl
+javasasldir = $(prefix)/lib/java/classes/sasl/CyrusSasl
 javahtmldir = $(prefix)/html/sasl
 
 INCLUDES=$(JAVA_INCLUDES) -I$(top_srcdir)/include

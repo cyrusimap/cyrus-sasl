@@ -9,13 +9,16 @@ if test ! -x configure; then
   automake --add-missing --include-deps
 fi
 
+LIBS=""
 case `uname` in
   Linux) CFLAGS="${CFLAGS} -O2 -g"
+	 LIBS="-ldb"
 	 LNEXTRA=" --with-javabase=/usr/local/lib/java/"
 	 ;;
 
   SunOS) CC="cc"
 	 LNEXTRA=" --with-javabase=/usr/java/"
+	 LIBS="-ldb"
 	 if test "${WASH_CYRUS_DEBUG}" = "t"; then
 	   CFLAGS="${CFLAGS} -xs -g"
          else
@@ -25,8 +28,8 @@ case `uname` in
 esac
 
 MAKE=gmake
-LNCOMMAND="${SRCDIR}/configure --prefix=/usr/local --enable-cmulocal ${LNEXTRA}"
+LNCOMMAND="${SRCDIR}/configure --prefix=/usr/local --enable-cmulocal --enable-java ${LNEXTRA}"
 CPPFLAGS=-I/usr/local/include/gssapi
 
-export CC CFLAGS CPPFLAGS
+export CC CFLAGS CPPFLAGS LIBS
 # -lgssapi_krb5 -lkrb5 -lk5crypto -lndbm

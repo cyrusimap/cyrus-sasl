@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.100 2000/10/31 20:27:03 leg Exp $
+dnl $Id: configure.in,v 1.101 2000/11/04 22:55:43 leg Exp $
 dnl
 dnl Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -667,4 +667,18 @@ fi
 
 AC_SUBST(DIRS)
 
-AC_OUTPUT(Makefile include/Makefile lib/Makefile plugins/Makefile utils/Makefile doc/Makefile sample/Makefile java/Makefile java/CyrusSasl/Makefile pwcheck/Makefile man/Makefile)
+AC_OUTPUT(Makefile
+include/Makefile
+lib/Makefile
+plugins/Makefile
+utils/Makefile
+doc/Makefile
+sample/Makefile
+java/Makefile
+java/CyrusSasl/Makefile
+java/javax/Makefile
+java/javax/security/Makefile
+java/javax/security/auth/Makefile
+java/javax/security/auth/callback/Makefile
+pwcheck/Makefile
+man/Makefile)

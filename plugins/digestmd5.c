@@ -2978,6 +2978,7 @@ get_authid(sasl_client_params_t * params,
   sasl_getsimple_t *getauth_cb;
   void           *getauth_context;
   sasl_interact_t *prompt;
+  const char *ptr;
 
   /* see if we were given the authname in the prompt */
   prompt = find_prompt(prompt_need, SASL_CB_AUTHNAME);
@@ -3002,10 +3003,13 @@ get_authid(sasl_client_params_t * params,
       return SASL_FAIL;
     result = getauth_cb(getauth_context,
 			SASL_CB_AUTHNAME,
-			(const char **) authid,
+			&ptr,
 			NULL);
     if (result != SASL_OK)
       return result;
+    *authid=params->utils->malloc(strlen(ptr)+1);
+    if ((*authid)==NULL) return SASL_NOMEM;
+    strcpy(*authid, ptr);
 
     break;
   default:
@@ -3031,6 +3035,7 @@ get_userid(sasl_client_params_t *params,
   sasl_getsimple_t *getuser_cb;
   void *getuser_context;
   sasl_interact_t *prompt;
+  const char *ptr;
 
   /* see if we were given the userid in the prompt */
   prompt=find_prompt(prompt_need,SASL_CB_USER);
@@ -3056,10 +3061,13 @@ get_userid(sasl_client_params_t *params,
       return SASL_FAIL;
     result = getuser_cb(getuser_context,
 			SASL_CB_USER,
-			(const char **) userid,
+			&ptr,
 			NULL);
     if (result != SASL_OK)
       return result;
+    *userid=params->utils->malloc(strlen(ptr)+1);
+    if ((*userid)==NULL) return SASL_NOMEM;
+    strcpy(*userid, ptr);
 
     break;
   default:

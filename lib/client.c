@@ -606,7 +606,7 @@ void sasl_free_secret(sasl_secret_t **secret)
 {
   size_t lup;
 
-  printf("trying to free secret\n");
+  VL(("trying to free secret\n"));
 
   if (secret==NULL) return;
   if (*secret==NULL) return;

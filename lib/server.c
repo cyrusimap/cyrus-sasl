@@ -38,6 +38,7 @@ SOFTWARE.
 #include "saslint.h"
 #include "saslutil.h"
 
+
 #ifdef sun
 /* gotta define gethostname ourselves on suns */
 extern int gethostname(char *, int);
@@ -450,6 +451,39 @@ server_idle(sasl_conn_t *conn)
   return 0;
 }
 
+static int load_config(void)
+{
+  int result;
+  char *path_to_config=NULL;
+  char *config_filename=NULL;
+  const sasl_callback_t *getpath_cb=NULL;
+
+  /* get the path to the plugins; for now the config file will reside there */
+    /* xxx use appname for config file name??? */
+  getpath_cb=_sasl_find_getpath_callback( global_callbacks.callbacks );
+  if (getpath_cb==NULL) return SASL_BADPARAM;
+
+  result = ((sasl_getpath_t *)(getpath_cb->proc))(getpath_cb->context,
+						  &path_to_config);
+  if (result!=SASL_OK) return result;
+
+  /* construct the filename for the config file */
+  config_filename = sasl_ALLOC(strlen(path_to_config)+2+strlen(global_callbacks.appname)+5+1);
+  if (! config_filename) return SASL_NOMEM; 
+
+  strcpy(config_filename, path_to_config);
+  strcat(config_filename,"/");
+  strcat(config_filename, global_callbacks.appname);
+  strcat(config_filename, ".conf");
+
+  /* returns SASL_CONTINUE if doesn't exist
+   * if doesn't exist we can continue using default behavior
+   */
+  result=sasl_config_init(config_filename);
+  
+  return result;
+}
+
 int sasl_server_init(const sasl_callback_t *callbacks,
 		     const char *appname)
 {
@@ -466,6 +500,10 @@ int sasl_server_init(const sasl_callback_t *callbacks,
 
   mechlist=sasl_ALLOC(sizeof(mech_list_t));
   if (mechlist==NULL) return SASL_NOMEM;
+
+  /* load config file if applicable */
+  ret=load_config();
+  if ((ret!=SASL_OK) || (ret!=SASL_CONTINUE)) return ret;
 
   /* load plugins */
   ret=init_mechlist();
@@ -754,5 +792,72 @@ int sasl_listmech(sasl_conn_t *conn,
 
   return SASL_OK;
   
+}
+
+#define CONFIG_FILENAME "plain.conf"
+#define BUFSIZE 4096
+#define VERIFYSTR "verify_method:"
+
+int sasl_checkpass(sasl_conn_t *conn,
+		   const char *user,
+		   unsigned userlen,
+		   const char *pass,
+		   unsigned passlen,
+		   const char **errstr)
+{
+  int result;
+  int try_plain=1;
+  int try_shadow=1;
+  int try_krb=1;
+
+  char *mechs;
+
+  mechs=sasl_config_getstring("plainmech",NULL); /* default to NULL */
+  
+  /* if that parameter exists then we only want to do one of the
+     tests not all of them */
+  if (mechs!=NULL)
+  {
+    try_plain=0;
+    try_shadow=0;
+    try_krb=0;
+
+    if (strcmp(mechs,"KERBEROS_V4")==0)
+      try_krb=1;
+    
+    if (strcmp(mechs,"PASSWD")==0)
+      try_plain=1;
+    
+    if (strcmp(mechs,"SHADOW")==0)
+      try_shadow=1;
+  }
+
+  result=SASL_FAIL;
+
+  if (try_plain==1)
+  {
+    /* check against /etc/passwd */
+    result=passwd_verify_password(user, pass, errstr);
+
+    if (result==SASL_OK) return SASL_OK;
+  }
+
+  if (try_shadow==1)
+  {
+    /* check against /etc/passwd */
+    result=shadow_verify_password(user, pass, errstr);
+
+    if (result==SASL_OK) return SASL_OK;
+  }
+
+  if (try_krb==1)
+  {
+    /* check against krb */
+    result=kerberos_verify_password(user, pass, conn->service, errstr);
+
+    if (result==SASL_OK) return SASL_OK;
+  }
+
+  return result;
 }
 

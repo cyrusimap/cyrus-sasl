@@ -39,6 +39,18 @@ SOFTWARE.
 # endif
 #endif
 
+#ifndef NAME_MAX
+# ifdef _POSIX_NAME_MAX
+#  define NAME_MAX _POSIX_NAME_MAX
+# else
+#  define NAME_MAX 16
+# endif
+#endif
+ 
+#if NAME_MAX < 8
+#  define NAME_MAX 8
+#endif
+
 /* gets the list of mechanisms */
 int _sasl_get_mech_list(const char *entryname,
 			const sasl_callback_t *getpath_cb,
@@ -75,7 +87,7 @@ int _sasl_get_mech_list(const char *entryname,
   } else
     free_path = 1;
 
-  if (strlen(path)>=PATH_MAX) { /* no you can't buffer overrun */
+  if (strlen(path)>=PATH_MAX-NAME_MAX) { /* no you can't buffer overrun */
     if (free_path)
       sasl_FREE(path);
     return SASL_FAIL;
@@ -90,14 +102,14 @@ int _sasl_get_mech_list(const char *entryname,
       str[pos]=c;
       pos++;
     } while ((c!=':') && (c!='=') && (c!=0));
-    str[pos-1]=0;
+    str[pos-1]='\0';
 
     strcpy(prefix,str);
     strcat(prefix,"/");
     
     if ((dp=opendir(str)) !=NULL) /* ignore errors */    
     {
-      strcat(str, "/");
+
       while ((dir=readdir(dp)) != NULL)
       {
 	size_t length;
@@ -105,12 +117,15 @@ int _sasl_get_mech_list(const char *entryname,
 	void *entry_point;
 
 	length = NAMLEN(dir);
-	if (length < 4) continue;
+	if (length < 4) continue; /* can not possibly be what we're looking for */
+
+	if (length + pos>=PATH_MAX) continue; /* too big */
+
 	if (strcmp(dir->d_name + (length - 3), ".so")) continue;
 	{
 	  char name[PATH_MAX];
 	  memcpy(name,dir->d_name,length);
-	  name[length]=0;
+	  name[length]='\0';
 
 	  strcpy(tmp,prefix);
 	  strcat(tmp,name);
@@ -118,7 +133,7 @@ int _sasl_get_mech_list(const char *entryname,
 	  VL(("entry is = [%s]\n",tmp));
 
 	  library=NULL;
-	  if (!(library=dlopen(tmp,RTLD_NOW | RTLD_LOCAL)))
+	  if (!(library=dlopen(tmp,RTLD_NOW))) /* xxx no RTLD_LOCAL | on linux */
 	    {
 	      VL(("Unable to dlopen %s: %s\n", tmp, dlerror()));
 	      continue;

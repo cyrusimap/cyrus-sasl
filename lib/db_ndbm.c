@@ -101,7 +101,9 @@ getsecret(void *context __attribute__((unused)),
 		       + 1);
   if (! *secret) {
     result = SASL_NOMEM;
+#if NDBM_FREE
     free(dvalue.dptr);
+#endif
     goto cleanup;
   }
   (*secret)->len = dvalue.dsize;
@@ -109,7 +111,9 @@ getsecret(void *context __attribute__((unused)),
   (*secret)->data[(*secret)->len] = '\0'; /* sanity */
   /* Note: not sasl_FREE!  This is memory allocated by ndbm,
    * which is using libc malloc/free. */
+#if NDBM_FREE
   free(dvalue.dptr);
+#endif
 
  cleanup:
   sasl_FREE(key);

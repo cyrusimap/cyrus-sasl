@@ -800,7 +800,7 @@ _sasl_log (sasl_conn_t *conn,
 	    frmt[frmtpos]=0;
 	    ival = va_arg(ap, int); /* get the next arg */
 
-	    snprintf(tempbuf,20,frmt,ival); /* have sprintf do the work */
+	    snprintf(tempbuf,20,frmt,ival); /* have snprintf do the work */
 	    /* now add the string */
 	    result = add_string(&out, &alloclen, &outlen, tempbuf);
 	    if (result != SASL_OK)
@@ -878,7 +878,7 @@ _sasl_alloc_utils(sasl_conn_t *conn,
   utils->mkchal = &sasl_mkchal;
   utils->utf8verify = &sasl_utf8verify;
   utils->rand=&sasl_rand;
-  utils->churn=&sasl_churn;
+  utils->churn=&sasl_churn;  
   
   utils->getcallback=&_sasl_getcallback;
 

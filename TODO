@@ -16,6 +16,7 @@ Documentation
 ) how to write an application using sasl (programmer's guide)
 ) man pages (saslpasswd, individual functions, etc.)
 ) how to configure sasl (sysadmin guide)
+) update INSTALL to have step-by-step instructions
 
 Mechs to write
 ~~~~~~~~~~~~~~

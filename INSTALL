@@ -2,6 +2,8 @@ To install, run "./configure", then "make".  If you're checking this
 directly out of CVS, you'll need to run "sh ./SMakefile" to build the
 configure script first.
 
+Read doc/sysadmin.html to learn how to configure SASL.
+
 Note that the library looks for plugins in /usr/lib/sasl, but installs
 them into ${prefix}/lib/sasl, where ${prefix} is usually something
 like /usr/local.  This is intentional - we want the plugins installed

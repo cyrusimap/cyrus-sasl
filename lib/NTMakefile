@@ -32,7 +32,7 @@ CPP=cl.exe
 CPP_PROJ=/nologo /MTd /W3 /Gm /GX /ZI /Od /D "_DEBUG" $(CPPFLAGS) /FD /GZ /c 
 
 LINK32=link.exe
-LINK32_FLAGS=ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /incremental:yes /pdb:"$(OUTDIR)\saslANONYMOUS.pdb" /debug /machine:I386 /out:"$(OUTDIR)\saslANONYMOUS.dll" /implib:"$(OUTDIR)\saslANONYMOUS.lib" /pdbtype:sept 
+LINK32_FLAGS=ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /incremental:yes /debug /machine:I386 /pdbtype:sept 
 
 !ENDIF
 
@@ -41,7 +41,7 @@ all : all-recursive
 all-recursive : libsasl.dll
 
 libsasl.dll: $(libsasl_objs)
-	$(LINK32) @<< $(LINK32_FLAGS) /out:"libsasl.dll" /implib:"libsasl.lib" $(libsasl_objs)
+	$(LINK32) @<< $(LINK32_FLAGS) /out:"libsasl.dll" /implib:"libsasl.lib" /pdb:"libsasl.pdb" $(libsasl_objs)
 <<
 
 plugin_common.c: ..\plugins\plugin_common.c plugin_common.h

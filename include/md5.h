@@ -35,7 +35,7 @@ extern "C" {
 
 void _sasl_MD5Init PROTO_LIST ((MD5_CTX *));
 void _sasl_MD5Update PROTO_LIST
-  ((MD5_CTX *, unsigned char *, unsigned int));
+  ((MD5_CTX *, const unsigned char *, unsigned int));
 void _sasl_MD5Final PROTO_LIST ((unsigned char [16], MD5_CTX *));
 
 #ifdef __cplusplus

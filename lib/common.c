@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.95 2003/08/24 20:53:31 ken3 Exp $
+ * $Id: common.c,v 1.96 2003/09/02 15:34:02 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -59,13 +59,6 @@
 #include <saslplug.h>
 #include "saslint.h"
 
-#ifdef WIN32
-/* need to handle the fact that errno has been defined as a function
-   in a dll, not an extern int */
-# ifdef errno
-#  undef errno
-# endif /* errno */
-#endif /* WIN32 */
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif

@@ -1,3 +1,8 @@
+2003-09-02  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/common.c, lib/server.c, lib/NTMakefile, include/md5.h:
+	  more windows compatibility
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+
 2003-08-29  Ken Murchison <ken@oceana.com>
 	* doc/draft-murchison-sasl-login-00.txt: added
 	* doc/draft-sasl-login.txt: deleted

@@ -67,8 +67,6 @@ typedef struct lak_conf {
     int     deref;
     int     referrals;
     int     restart;
-    long    cache_ttl;
-    long    cache_mem;
     int     scope;
     char   *search_base;
     char   *filter;

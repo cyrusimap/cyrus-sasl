@@ -230,10 +230,6 @@ static int lak_config_read(LAK_CONF *conf, const char *configfile)
 			conf->referrals = lak_config_switch(p);
 		} else if (!strcasecmp(key, "ldap_restart")) {
 			conf->restart = lak_config_switch(p);
-		} else if (!strcasecmp(key, "ldap_cache_ttl")) {
-			conf->cache_ttl = lak_config_int(p);
-		} else if (!strcasecmp(key, "ldap_cache_mem")) {
-			conf->cache_mem = lak_config_int(p);
 		} else if (!strcasecmp(key, "ldap_scope")) {
 			if (!strcasecmp(p, "one")) {
 				conf->scope = LDAP_SCOPE_ONELEVEL;
@@ -494,7 +490,7 @@ static int lak_tokenize_domains(const char *d, int n, char **result)
 	return LAK_FAIL;
 }
 
-#define MAX(a,b,c) (a>b?(a>c?a:c):(b>c?b:c))
+#define LAK_MAX(a,b,c) (a>b?(a>c?a:c):(b>c?b:c))
 
 /*
  * lak_exapdn_tokens
@@ -532,7 +528,7 @@ static int lak_expand_tokens(const char *pattern, const char *username, const ch
 	service_len=strlen(service);
 	realm_len=strlen(realm);
 
-	maxparamlength = MAX(user_len, service_len, realm_len);
+	maxparamlength = LAK_MAX(user_len, service_len, realm_len);
 
 	/* find the number of occurences of percent sign in filter */
 	for( percents=0, buf=(char *)pattern; *buf; buf++ ) {
@@ -694,11 +690,8 @@ void lak_close(LAK *lak) {
 	if (lak == NULL)
 		return;
 
-	if (lak->ld != NULL) {
-		if (lak->conf->cache_ttl)
-			ldap_destroy_cache(lak->ld);
+	if (lak->ld != NULL)
 		ldap_unbind_s(lak->ld);
-	}
 
 	lak_config_free(lak->conf);
 
@@ -805,16 +798,6 @@ static int lak_connect(LAK *lak)
 		syslog(LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_RESTART.");
 	}
 
-	/*
-	 * Set up client-side caching
-	 */
-	if (lak->conf->cache_ttl) {
-		rc = ldap_enable_cache(lak->ld, lak->conf->cache_ttl, lak->conf->cache_mem);
-		if (rc != LDAP_SUCCESS) {
-			syslog(LOG_WARNING|LOG_AUTH, "Unable to enable cache -- continuing (%s)", ldap_err2string(rc));
-		}
-	}
-
 	return LAK_OK;
 }
 
@@ -830,8 +813,6 @@ static int lak_bind(LAK *lak, char flag, const char *bind_dn, const char *passwo
 
 	if (lak->bind_status == LAK_NOT_BOUND) {
 		if (lak->ld != NULL) {
-			if (lak->conf->cache_ttl)
-				ldap_destroy_cache(lak->ld);
 			ldap_unbind_s(lak->ld);
 			lak->ld = NULL;
 		}
@@ -846,10 +827,7 @@ static int lak_bind(LAK *lak, char flag, const char *bind_dn, const char *passwo
 			lak->bind_status = LAK_NOT_BOUND;
 
 			if (lak->ld != NULL) {
-				if (lak->conf->cache_ttl)
-					ldap_destroy_cache(lak->ld);
 				ldap_unbind_s(lak->ld);
-
 				lak->ld = NULL;
 			}
 			rc = lak_connect(lak);

@@ -19,15 +19,15 @@ Sections:
 ------------------------------------
 
 Ensure that you have the OpenLDAP (http://www.openldap.org) libraries 2.0 or
-higher.  Fetch the latest cyrus-sasl package, 2.1.12 or higher,
+higher.  Fetch the latest cyrus-sasl package, 2.1.6 or higher,
 ftp://ftp.andrew.cmu.edu/pub/cyrus-mail/.
 
 Unpack cyrus-sasl:
-gzip -dc cyrus-sasl-2.1.12.tar.gz | tar xf -
+gzip -dc cyrus-sasl-2.1.6.tar.gz | tar xf -
 or
-tar zxf cyrus-sasl-2.1.12.tar.gz (if your tar supportz gzip)
+tar zxf cyrus-sasl-2.1.6.tar.gz (if your tar supportz gzip)
 
-cd cyrus-sasl-2.1.12
+cd cyrus-sasl-2.1.6
 ./configure --with-ldap  (you may need to add other options, check doc/index.html for more)
 make
 make install
@@ -112,21 +112,11 @@ ldap_restart: <yes>
 	Specify whether or not LDAP I/O operations are automatically restarted
 	if they abort prematurely.
 
-ldap_cache_ttl: <0>
-	Non zero enables client side caching.  Cached results will expire after
-	specified number seconds, e.g. 30.  Use this option with care.
-	OpenLDAP folks consider this feature experimental.
-
-ldap_cache_mem: <0>
-	If client side caching is enabled, the value specifies the cache size
-	in bytes,  e.g. 32768.
-	
 ldap_scope: <sub> <sub|one|base>
 	Search scope.
 
 ldap_search_base: <none>
-	Specify a starting point for the search: e.g. dc=foo,dc=com.  Tokens
-	described in 'ldap_filter' (see below) can be used for substitution.
+	Specify a starting point for the search.  e.g. dc=foo,dc=com
 
 ldap_auth_method: <bind> <bind|custom|fastbind>
 	Specify an authentication method.
@@ -135,8 +125,7 @@ ldap_auth_method: <bind> <bind|custom|fastbind>
 	password.  This is the default.
 
 	The custom method uses userPassword attribute to verify the password.  
-	Suppored hashes: crypt, md5, smd5, sha and ssha.  Cleartext is supported 
-	as well.
+	Currently, {CRYPT} hash is supported.
 
 	The fastbind method does away with the search and extra anonymous bind
 	in auth_bind, but makes two assumptions:
@@ -144,35 +133,12 @@ ldap_auth_method: <bind> <bind|custom|fastbind>
 	  2. There is no cost to staying bound as a named user
 
 ldap_filter: <uid=%u>
-	Specify a filter.  The following tokens can be used in the filter string:
+	Specify a filter.  Use the %u and %r tokens for the username and realm
+	substitution.  The %u token has to be used at minimum for the filter to
+	be useful.  If ldap_auth_method is 'bind', the filter will search for
+	the DN (distinguished name) attribute.  Otherwise, the search will look
+	for the userPassword attribute.
 
-	%%   = %
-	%u   = user
-	%U   = user portion of %u (%U = test when %u = test@domain.tld)
-	%d   = domain portion of %u (%d = domain.tld when %u = test@domain.tld)
-	%1-9 = domain tokens (%1 = tld, %2 = domain when %d = domain.tld)
-	%s   = service
-	%r   = realm
-	
-	The %u token has to be used at minimum for the filter to be useful.  If
-	ldap_auth_method is 'bind', the filter will search for the DN
-	(distinguished name) attribute.  Otherwise, the search will look for
-	the 'ldap_password_attr' (see below) attribute.
-
-ldap_group_dn: <none>
-	Specify a group DN. If specified, the user DN has to be part of the
-	group in order to authenticate successfully.  Tokens described in
-	'ldap_filter' (see above) can be used for substitution.  The user DN is
-	compared against the 'ldap_group_attr' (see below) attribute of the
-	group.
-
-ldap_group_attr: <uniqueMember>
-        Specify what attribute to compare the user DN against in the group. If
-        ldap_group_dn is not specified, this parameter is ignored.
- 
-ldap_password_attr: <userPassword>
-        Specify what password attribute to use for password verification.
- 
 ldap_debug: <0>
 	Specify a debugging level in the OpenLDAP libraries.  See
 	ldap_set_option(3) for more (LDAP_OPT_DEBUG_LEVEL).
@@ -202,20 +168,12 @@ ldap_tls_key: <none>
 --------
 
 For better performance ensure that the attributes specified in ldap_filter are
-indexed.  You can also experiment with client side caching.  This can be a
-significant performance gain.  Use client side caching with caution because it
-is still an experimental OpenLDAP call.
-
-The following configuration setting enables client side caching and it
-sets the cache size to 32k:
-
-ldap_cache_ttl: 30
-ldap_cache_mem: 32768
+indexed.  
 
 My testing shows that 'custom' is 2-3 times faster than 'bind'
-ldap_auth_method.  This is caused because of two extra binds performed during
-the 'bind' authentication method.  On the other hand, the 'bind' authentication
-method is more secure because ldap_bind_pw is not exposed. 
+ldap_auth_method.  This is because of two extra ldap binds/searches performed
+during the 'bind' authentication method.  On the other hand, the 'bind'
+authentication method is more secure because ldap_bind_pw is not exposed. 
 
 6. TODO
 -------
@@ -224,9 +182,10 @@ method is more secure because ldap_bind_pw is not exposed.
 - There may be bind problems when following referrals.  Normally this is not an
   issue.  Fix.
 - Allow to specify an attribute other than userPassword for use in the custom
-  authentication method. (Done)
-- Add more password hashes such as md5, sha etc (Done)
-- Make a suggestion (possibly another authentication method?) (added fastbind)
+  authentication method. (done - see ldap_password_attr)
+- Add more password hashes such as md5, sha etc (done)
+- Make a suggestion (possibly another authentication method?) (added
+  ldap_auth_fastbind method - Simon Brady <simon.brady@otago.ac.nz>)
 
 
 7. FEEDBACK

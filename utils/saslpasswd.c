@@ -89,7 +89,7 @@ void read_password(const char *prompt,
   hStdin = GetStdHandle(STD_INPUT_HANDLE);
   if (hStdin == INVALID_HANDLE_VALUE) {
 	  perror(progname);
-	  exit(SASL_FAIL);
+	  exit(-(SASL_FAIL));
   }
 #endif /*WIN32*/
 
@@ -115,12 +115,12 @@ void read_password(const char *prompt,
 #else
   if (! GetConsoleMode(hStdin, &fdwOldMode)) {
 	  perror(progname);
-	  exit(SASL_FAIL);
+	  exit(-(SASL_FAIL));
   }
   fdwMode = fdwOldMode & ~ENABLE_ECHO_INPUT;
   if (! SetConsoleMode(hStdin, fdwMode)) {
 	  perror(progname);
-	  exit(SASL_FAIL);
+	  exit(-(SASL_FAIL));
   }
 #endif /*WIN32*/
   }
@@ -133,7 +133,7 @@ void read_password(const char *prompt,
 #endif /*WIN32*/
 
     perror(progname);
-    exit(SASL_FAIL);
+    exit(-(SASL_FAIL));
   }
 
   if (! flag_pipe) {
@@ -163,7 +163,7 @@ void read_password(const char *prompt,
   *password = malloc(n_read + 1);
   if (! *password) {
     perror(progname);
-    exit(SASL_FAIL);
+    exit(-(SASL_FAIL));
   }
 
   memcpy(*password, buf, n_read);
@@ -180,7 +180,7 @@ exit_sasl(int result, const char *errstr)
 		progname,
 		sasl_errstring(result, NULL, NULL),
 		errstr);
-  exit(-result);
+  exit(result < 0 ? -result : result);
 }
 
 int good_getopt(void *context __attribute__((unused)), 
@@ -376,7 +376,7 @@ main(int argc, char *argv[])
       appname = optarg;
       if (strchr(optarg, '/') != NULL) {
         (void)fprintf(stderr, "filename must not contain /\n");
-        exit(SASL_FAIL);
+        exit(-(SASL_FAIL));
       }
       break;
     default:
@@ -399,7 +399,7 @@ main(int argc, char *argv[])
 		  "\t-a appname\tuse appname as application name\n"
 		  "\t-u DOM\tuse DOM for user domain\n",
 		  progname, progname);
-    exit(SASL_FAIL);
+    exit(-(SASL_FAIL));
   }
 
   userid = argv[optind];
@@ -434,7 +434,7 @@ main(int argc, char *argv[])
 	      || memcmp(password, verify, verifylen)) {
 	      fprintf(stderr, "%s: passwords don't match; aborting\n", 
 		      progname);
-	      exit(-SASL_BADPARAM);
+	      exit(-(SASL_BADPARAM));
 	  }
       }
   }

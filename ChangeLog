@@ -1,3 +1,6 @@
+2002-10-11  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/Makefile.am: add missing staticopen.h to EXTRA_DIST
+
 2002-10-10  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* Ready for 2.1.8
 

@@ -960,6 +960,9 @@ sasl_gss_client_step (void *conn_context,
   input_token->value = NULL; 
   input_token->length = 0;
 
+  *clientout = NULL;
+  *clientoutlen = 0;
+
   switch (text->state)
     {
     case SASL_GSSAPI_STATE_AUTHNEG:

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.59 2002/10/02 14:01:03 rjs3 Exp $
+ * $Id: checkpw.c,v 1.60 2002/10/02 15:50:09 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -260,6 +260,7 @@ int _sasl_auxprop_verify_apop(sasl_conn_t *conn,
        !auxprop_values[0].values ||
        !auxprop_values[0].values[0]) {
 	sasl_seterror(conn, 0, "could not find password");
+	ret = SASL_NOUSER;
 	goto done;
     }
     

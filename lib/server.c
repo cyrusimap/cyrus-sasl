@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.116 2002/09/10 17:32:37 rjs3 Exp $
+ * $Id: server.c,v 1.117 2002/10/02 15:50:09 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1708,19 +1708,15 @@ int sasl_checkapop(sasl_conn_t *conn,
     user[user_len] = '\0';
 
     result = prop_request(s_conn->sparams->propctx, password_request);
-    if(result != SASL_OK)
-        RETURN(conn, result);
-
-    /* Cannonify it */
-    result = _sasl_canon_user(conn, user, user_len,
-	                      SASL_CU_AUTHZID, &(conn->oparams));
     if(result != SASL_OK) 
     {
         sasl_FREE(user);
         RETURN(conn, result);
     }
 
-    result = _sasl_canon_user(conn, user, user_len, SASL_CU_AUTHID,
+    /* Cannonify it */
+    result = _sasl_canon_user(conn, user, user_len,
+	                      SASL_CU_AUTHID | SASL_CU_AUTHZID,
 	                      &(conn->oparams));
     sasl_FREE(user);
 

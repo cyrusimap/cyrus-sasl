@@ -446,7 +446,7 @@ typedef int sasl_verifyfile_t(void *context,
  * outputs:
  *  result        -- set to NUL terminated string
  *                   NULL = user cancel
- *  len           -- length of result, ignored with SASL_CB_SECRET
+ *  len           -- length of result
  * returns SASL_OK
  */
 typedef int sasl_getsimple_t(void *context, int id,

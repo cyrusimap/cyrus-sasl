@@ -1,6 +1,6 @@
 /* SASL Config file API
  * Tim Martin (originally in Cyrus distribution)
- * $Id: config.c,v 1.9 2000/03/07 05:19:55 tmartin Exp $
+ * $Id: config.c,v 1.10 2000/08/14 01:43:06 leg Exp $
  */
 /* 
  * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -47,6 +47,7 @@
  *
  * pwcheck_method: <string>
  * auto_transition: <boolean>
+ * plugin_list: <string>
  *
  * srvtab: <string>
  */
@@ -111,7 +112,8 @@ int sasl_config_init(const char *filename)
 
 	if (nconfiglist == alloced) {
 	    alloced += CONFIGLISTGROWSIZE;
-	    configlist=sasl_REALLOC((char *)configlist, alloced*sizeof(struct configlist));
+	    configlist=sasl_REALLOC((char *)configlist, 
+				    alloced * sizeof(struct configlist));
 	    if (configlist==NULL) return SASL_NOMEM;
 	}
 

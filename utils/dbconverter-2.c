@@ -1,5 +1,5 @@
 /* dbconverter-2.c -- convert libsasl v1 sasldb's to SASLv2 format
- * $Id: dbconverter-2.c,v 1.5 2002/03/27 20:11:30 rjs3 Exp $
+ * $Id: dbconverter-2.c,v 1.6 2002/07/05 15:44:43 rjs3 Exp $
  * Rob Siemborski
  * based on SASLv1 sasldblistusers
  */
@@ -243,7 +243,7 @@ static void berkeleydb_close(DB *mbdb)
     ret = mbdb->close(mbdb, 0);
     if (ret!=0) {
 	fprintf(stderr,"error closing sasldb: %s",
-		strerror(ret));
+		db_strerror(ret));
     }
 }
 
@@ -270,7 +270,7 @@ int listusers(const char *path, listcb_t *cb)
 #endif /* DB_VERSION_MAJOR < 3 */
 
     if (result!=0) {
-	fprintf(stderr,"Making cursor failure: %s\n",strerror(result));
+	fprintf(stderr,"Making cursor failure: %s\n",db_strerror(result));
       result = SASL_FAIL;
       goto cleanup;
     }
@@ -327,7 +327,7 @@ int listusers(const char *path, listcb_t *cb)
     }
 
     if (result != DB_NOTFOUND) {
-	fprintf(stderr,"failure: %s\n",strerror(result));
+	fprintf(stderr,"failure: %s\n",db_strerror(result));
 	result = SASL_FAIL;
 	goto cleanup;
     }

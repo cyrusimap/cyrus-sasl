@@ -1,4 +1,4 @@
-$Id: README,v 1.12 1999/08/17 05:40:24 tmartin Exp $
+$Id: README,v 1.13 1999/08/17 21:25:56 leg Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication. See RFC 2222 for more
@@ -34,6 +34,31 @@ for using the library, as well as making it easy to test a mechanism
 on the command line.  See "docs/programming.html" for more
 information.
 
+UPGRADING FROM PREVIOUS VERSIONS
+--------------------------------
+
+Upgrading from versions 1.5.4 or earlier:
+  The secrets database has changed formats in 1.5.5.
+
+  Edit util/dbconverter.c to select whether you use gdbm or ndbm, and
+  compile util/dbconverter.c:
+  % gcc dbconverter.c -lsasl -o dbconverter
+
+  You have a one-time opportunity to insert PLAIN secrets in the sasl
+  database.  If you wish to enable checking plaintext passwords via
+  the sasl secrets database, set "pwcheck_method" to "sasldb":
+  % cat /usr/lib/sasl/saslpasswd.conf
+  pwcheck_method: sasldb
+  %
+
+  Run dbconverter as a user with sufficient permissions to write to
+  /etc/sasldb as follows:
+  
+  % dbconverter /etc/saslbackup platypus.cc.cmu.edu
+
+  Replace "platypus.cc.cmu.edu" with your realm (usually just your
+  hostname).
+
 INSTALLATION
 ------------
 Please see the file "INSTALL" to install this package.  We hope it to
@@ -52,21 +77,6 @@ The library uses the environment variable SASL_PATH to locate the
 directory where the mechanisms are; this should be a colon-seperated
 list of directories containing plugins.
 
-UPGRADING FROM PREVIOUS VERSIONS
---------------------------------
-
-If you are upgrading from a version previous to 1.5.5 you will need to
-convert your secrets database to continue using CRAM-MD5. This is
-because in previous versions the plaintext password was stored for
-CRAM-MD5 secrets. In versions 1.5.5 and on an intermediate MD5 value
-is stored. To convert your old sasldb file you should first move your
-sasldb file to a safe location. Next compile util/dbconverter.c. gcc
-dbconverter.c -lsasl -o dbconverter should be sufficent. Note that you
-must edit the top of the file before compiling to specify which dbm
-package you are using. Run the program with two parameters: the path
-and filename where you moved the old sasldb to (example:
-/etc/backupsasldb) and the realm (usually just the hostname).
-
 CONFIGURATION
 -------------
 By default, libsasl looks for configuration files in
@@ -78,9 +88,8 @@ Currently configurable parameters:
 - srvtab (for KERBEROS_V4): [/etc/srvtab] path
 	where to find the srvtab
 
-- pwcheck_method: [PAM] one of {PAM, kerberos_v4, passwd, shadow}
-	how to check plaintext passwords. (future will add "dbm" to 
-	check secrets database.)
+- pwcheck_method: [PAM] one of {PAM, kerberos_v4, passwd, shadow, sasldb}
+	how to check plaintext passwords.
 
 - auto_transition: [false]
 	if true, automatically add secrets to the secret database when
@@ -100,6 +109,8 @@ integrity protection are disabled.  It is the view of the authors that
 the current DIGEST-MD5 spec is ambiguous in regards to encryption.
 The encryption implemented in the code generates RC4 in depth and thus
 should not be used.
+
+* DIGEST-MD5 leaks memory.
 
 * The RC4 library is not always correctly found and dynamically
 loaded.  This isn't regarded as a huge problem, since we aren't
@@ -137,7 +148,7 @@ Mechanism", draft-leach-digest-sasl-03.txt, work in progress.
 Authentication", RFC 2104, February 1997. 
 
 [PLAIN] Newman, C., "Using TLS with IMAP4, POP3 and ACAP",
-draft-newman-tls-imappop-xx.txt, Work in progress.
+draft-newman-tls-imappop-xx.txt, work in progress.
 
 [SASL] Myers, J., "Simple Authentication and Security Layer (SASL)",
 RFC 2222, October 1997.

@@ -35,4 +35,4 @@ libsfsasl_la_SOURCES = sfsasl.c
 libsfsasl_la_LDFLAGS = -version-info 0:0:0 -export-dynamic -rpath $(libdir)
 
 INCLUDES=-I$(top_srcdir)/include
-EXTRA_DIST = saslpasswd.8 sfsasl.h
+EXTRA_DIST = saslpasswd.8 sfsasl.h dbconverter.c

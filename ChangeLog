@@ -1,3 +1,6 @@
+2004-03-16  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* configure.in: Properly use CMU_ADD_LIBPATH_TO for pgsql and mysql
+
 2004-03-10  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/dlopen.c: HPUX 11 Fix (Alexey Melnikov <Alexey.Melnikov@isode.com>)
 	* Add sasl_version_info() (Alexey Melnikov <Alexey.Melnikov@isode.com>)

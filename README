@@ -1,4 +1,4 @@
-$Id: README,v 1.17 1999/10/11 03:55:10 leg Exp $
+$Id: README,v 1.18 1999/10/11 04:10:15 leg Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication. See RFC 2222 for more
@@ -13,26 +13,19 @@ to majordomo@lists.andrew.cmu.edu with the body "subscribe cyrus-sasl".
 UPGRADING FROM PREVIOUS VERSIONS
 --------------------------------
 
-Upgrading from versions 1.5.5 or earlier:
+* Upgrading from versions 1.5.5 or earlier:
   The secrets database has changed formats again in 1.5.9.
 
   Run utils/dbconverter-1.5.9 to update your secrets database.  It,
   once again, needs you to specify your default realm for PLAIN and
   CRAM-MD5 secrets.
 
-Upgrading from versions 1.5.4 or earlier:
+* Upgrading from versions 1.5.4 or earlier:
   The secrets database has changed formats in 1.5.5.
 
   Edit util/dbconverter.c to select whether you use gdbm or ndbm, and
   compile util/dbconverter.c:
-  % gcc dbconverter.c -lsasl -o dbconverter
-
-  You have a one-time opportunity to insert PLAIN secrets in the sasl
-  database.  If you wish to enable checking plaintext passwords via
-  the sasl secrets database, set "pwcheck_method" to "sasldb":
-  % cat /usr/lib/sasl/saslpasswd.conf
-  pwcheck_method: sasldb
-  %
+  % gcc dbconverter-1.5.5.c -lsasl -o dbconverter
 
   Run dbconverter as a user with sufficient permissions to write to
   /etc/sasldb as follows:

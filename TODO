@@ -6,7 +6,7 @@ Library
 ) Use libltdl---probably much better portability
 ) better support for including missing routines
 ) should be able use TLS's RC4 implementation
-) major/minor/version defines
+) check return settings (ssf, etc.) on auth failure
 
 Documentation
 ~~~~~~~~~~~~~
@@ -30,6 +30,7 @@ Digest-MD5
 ) support use of other RC4 libraries
 ) allow sending multiple realms from server to client
 ) reauth?
+) return SASL_NOUSER at the appropriate time
 
 Kerberos_V4
 ~~~~~~~~~~~

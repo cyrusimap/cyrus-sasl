@@ -1,3 +1,7 @@
+Mon Oct 11 00:02:25 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* version 1.5.10 released
+
 Sun Oct 10 13:37:08 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* acconfig.h: added SASL_GDBM/SASL_NDBM (for the conversion tool)

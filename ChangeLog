@@ -1,3 +1,6 @@
+2000-03-22  Walter Wong (wcw+@cmu.edu)
+	* pwcheck/Makefile.am: add LIB_SOCKET
+
 2000-04-06  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
 	* man/Makefile.am: moved all man pages to section 3

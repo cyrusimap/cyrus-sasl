@@ -53,9 +53,10 @@ javasasl.h: $(CLASSES)
 ${CLASSES}: classjavasasl.stamp
 
 install-data-local:
-	$(mkinstalldirs) $(javahtmldir)
-	$(CLASSPATH_ENV) $(JAVADOC) -d $(javahtmldir) sasl
-	-if test ! -h $(javahtmldir)/images; \
-	then \
-	  $(LN_S) $(JAVA_BASE)/docs/api/images $(javahtmldir)/images; \
-	fi
+# xxx broken
+#	$(mkinstalldirs) $(javahtmldir)
+#	$(CLASSPATH_ENV) $(JAVADOC) -d $(javahtmldir) sasl
+#	-if test ! -h $(javahtmldir)/images; \
+#	then \
+#	  $(LN_S) $(JAVA_BASE)/docs/api/images $(javahtmldir)/images; \
+#	fi

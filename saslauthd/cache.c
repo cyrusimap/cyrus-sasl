@@ -37,6 +37,8 @@
 /****************************************
  * includes
  *****************************************/
+#include "saslauthd.h"
+
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -48,7 +50,6 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <time.h>
-
 
 #include "cache.h"
 #include "utils.h"
@@ -85,8 +86,8 @@ int cache_init(void) {
 	if (!(flags & CACHE_ENABLED))
 		return 0;
 
-	memset(cache_magic, 0, 64);
-	strcpy(cache_magic, CACHE_CACHE_MAGIC);
+	memset(cache_magic, 0, sizeof(cache_magic));
+	strlcpy(cache_magic, CACHE_CACHE_MAGIC, sizeof(cache_magic));
 
 	/**************************************************************
 	 * Compute the size of the hash table. This and a stats 
@@ -204,9 +205,9 @@ int cache_lookup(const char *user, const char *realm, const char *service, const
 	 * the password.
 	 **************************************************************/
 
-	strcpy(userrealmserv, user);
-	strcat(userrealmserv, realm);
-	strcat(userrealmserv, service);
+	strlcpy(userrealmserv, user, sizeof(userrealmserv));
+	strlcat(userrealmserv, realm, sizeof(userrealmserv));
+	strlcat(userrealmserv, service, sizeof(userrealmserv));
 
 	hash_offset = cache_pjwhash(userrealmserv);
 
@@ -483,17 +484,19 @@ void *cache_alloc_mm(unsigned int bytes) {
 	int		rc;
 	int		chunk_count;
 	char		null_buff[1024];
-
+	size_t          mm_file_len;
+	
 	mm.bytes = bytes;
 
+	mm_file_len = strlen(run_path) + sizeof(CACHE_MMAP_FILE) + 1;
 	if (!(mm.file =
-	     (char *)malloc(strlen(run_path) + sizeof(CACHE_MMAP_FILE) + 1))) {
+	     (char *)malloc(mm_file_len))) {
 		logger(L_ERR, L_FUNC, "could not allocate memory");
 		return NULL;
 	}
 
-	strcpy(mm.file, run_path);
-	strcat(mm.file, CACHE_MMAP_FILE);
+	strlcpy(mm.file, run_path, mm_file_len);
+	strlcat(mm.file, CACHE_MMAP_FILE, mm_file_len);
 	
 	if ((file_fd =
 	     open(mm.file, O_RDWR|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR)) < 0) {
@@ -574,17 +577,17 @@ void cache_cleanup_mm(void) {
  * __FCNTL Impl__
  **************************************************************/
 int cache_init_lock(void) {
-
 	int	rc;
+	size_t  flock_file_len;
 
-
-	if ((lock.flock_file = (char *)malloc(strlen(run_path) + sizeof(CACHE_FLOCK_FILE) + 1)) == NULL) {
+	flock_file_len = strlen(run_path) + sizeof(CACHE_FLOCK_FILE) + 1;
+	if ((lock.flock_file = (char *)malloc(flock_file_len)) == NULL) {
 		logger(L_ERR, L_FUNC, "could not allocate memory");
 		return -1;
 	}
 
-	strcpy(lock.flock_file, run_path);
-	strcat(lock.flock_file, CACHE_FLOCK_FILE);
+	strlcpy(lock.flock_file, run_path, flock_file_len);
+	strlcat(lock.flock_file, CACHE_FLOCK_FILE, flock_file_len);
 
 	if ((lock.flock_fd = open(lock.flock_file, O_RDWR|O_CREAT|O_TRUNC, S_IWUSR|S_IRUSR)) == -1) {
 		rc = errno;

@@ -150,6 +150,7 @@ int main(int argc, char **argv) {
 	int 		x;
 	struct flock	lockinfo;
 	char            *auth_mech_name = NULL;
+	size_t		pid_file_size;
 
 	SET_AUTH_PARAMETERS(argc, argv);
 
@@ -270,13 +271,14 @@ int main(int argc, char **argv) {
 
 	umask(077);
 
-	if ((pid_file_lock = malloc(strlen(run_path) + sizeof(PID_FILE_LOCK) + 1)) == NULL) {
+	pid_file_size = strlen(run_path) + sizeof(PID_FILE_LOCK) + 1;
+	if ((pid_file_lock = malloc(pid_file_size)) == NULL) {
 		logger(L_ERR, L_FUNC, "could not allocate memory");
 		exit(1);
 	}
     
-	strcpy(pid_file_lock, run_path);
-	strcat(pid_file_lock, PID_FILE_LOCK);
+	strlcpy(pid_file_lock, run_path, pid_file_size);
+	strlcat(pid_file_lock, PID_FILE_LOCK, pid_file_size);
 
 	if ((pid_file_lock_fd = open(pid_file_lock, O_CREAT|O_TRUNC|O_RDWR, 644)) < 0) {
 		rc = errno;

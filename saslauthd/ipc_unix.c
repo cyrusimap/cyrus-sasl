@@ -103,6 +103,7 @@ static char			*accept_file;/* path to the accept() lock file     */
  **************************************************************/
 void ipc_init() {
 	int	rc;
+	size_t  sock_file_len;
 	
         /*********************************************************
 	 * When we're not preforking, using an accept lock is a
@@ -113,14 +114,16 @@ void ipc_init() {
 		flags &= ~USE_ACCEPT_LOCK;
 	
 	if (flags & USE_ACCEPT_LOCK) {
+		size_t accept_file_len;
 
-		if ((accept_file = malloc(strlen(run_path) + sizeof(ACCEPT_LOCK_FILE) + 1)) == NULL) {
+		accept_file_len = strlen(run_path) + sizeof(ACCEPT_LOCK_FILE) + 1;
+		if ((accept_file = malloc(accept_file_len)) == NULL) {
 			logger(L_ERR, L_FUNC, "could not allocate memory");
 			exit(1);
 		}
 
-		strcpy(accept_file, run_path);
-		strcat(accept_file, ACCEPT_LOCK_FILE);
+		strlcpy(accept_file, run_path, accept_file_len);
+		strlcat(accept_file, ACCEPT_LOCK_FILE, accept_file_len);
 
 		if ((accept_fd = open(accept_file, O_RDWR|O_CREAT|O_TRUNC, S_IWUSR|S_IRUSR)) == -1) {
 			rc = errno;
@@ -142,17 +145,18 @@ void ipc_init() {
 	/**************************************************************
 	 * Setup the UNIX domain socket
 	 **************************************************************/
-	if ((sock_file = malloc(strlen(run_path) + sizeof(SOCKET_FILE) + 1)) == NULL) {
+	sock_file_len = strlen(run_path) + sizeof(SOCKET_FILE) + 1;
+	if ((sock_file = malloc(sock_file_len)) == NULL) {
 		logger(L_ERR, L_FUNC, "could not allocate memory");
 		exit(1);
 	}
 
-	strcpy(sock_file, run_path);
-	strcat(sock_file, SOCKET_FILE);
+	strlcpy(sock_file, run_path, sock_file_len);
+	strlcat(sock_file, SOCKET_FILE, sock_file_len);
 
 	unlink(sock_file);
 	memset(&server, 0, sizeof(server));
-	strcpy(server.sun_path, sock_file);	
+	strlcpy(server.sun_path, sock_file, sizeof(server.sun_path));	
 	server.sun_family = AF_UNIX;
 	
 	if ((sock_fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {

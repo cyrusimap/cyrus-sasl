@@ -97,7 +97,8 @@ static int			door_fd;     /* Door file descriptor         */
  **************************************************************/
 void ipc_init() {
 	int	rc;
-	
+	size_t  door_file_len;
+
 	/**************************************************************
          * Doors detach immediately, otherwise the process gets confused.
          * (they don't follow fork() properly)
@@ -107,13 +108,14 @@ void ipc_init() {
 	/**************************************************************
 	 * Setup the door file and the door.
 	 **************************************************************/
-	if (!(door_file = malloc(strlen(run_path) + sizeof(DOOR_FILE) + 1))) {
+	door_file_len = strlen(run_path) + sizeof(DOOR_FILE) + 1;
+	if (!(door_file = malloc(door_file_len))) {
 		logger(L_ERR, L_FUNC, "could not allocate memory");
 		exit(1);
 	}
 
-	strcpy(door_file, run_path);
-	strcat(door_file, DOOR_FILE);
+	strlcpy(door_file, run_path, door_file_len);
+	strlcat(door_file, DOOR_FILE, door_file_len);
 	unlink(door_file);
 
 	if ((door_fd = open(door_file, O_CREAT|O_RDWR|O_TRUNC, 0666)) == -1) {

@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASLv2 README</title>
-<!-- $Id: readme.html,v 1.6 2002/01/30 20:11:40 ken3 Exp $ -->
+<!-- $Id: readme.html,v 1.7 2002/05/08 15:53:38 ken3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Read Me First</H1>
@@ -72,8 +72,6 @@ For a detailed guide on configuring libsasl, please look at
 <H2>KNOWN BUGS</H2>
 <ul>
 <li>There are some interoperability problems with the DIGEST-MD5 plugin.
-<li>There is an API issue with the username canonicalization functions which
-will be fixed by the next release.
 <li>libtool doesn't always link libraries together.  In our environment,
 we only have static Krb5 libraries; the GSSAPI plugin should link
 these libraries in on platforms that support it (Solaris and Linux

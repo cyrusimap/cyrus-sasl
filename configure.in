@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.70 2000/01/14 18:42:09 leg Exp $
+dnl $Id: configure.in,v 1.71 2000/01/27 19:55:47 leg Exp $
 dnl
 dnl         Copyright 1998 by Carnegie Mellon University
 dnl
@@ -222,6 +222,7 @@ AC_CHECK_FUNC(crypt, cmu_have_crypt=yes,
   AC_CHECK_LIB(crypt, crypt,
 	       LIB_CRYPT="-lcrypt"; cmu_have_crypt=yes,
 	       cmu_have_crypt=no))
+AC_SUBST(LIB_CRYPT)
 
 CMU_SOCKETS
 

@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.52 2000/03/11 21:04:31 leg Exp $
+ * $Id: cram.c,v 1.53 2000/03/12 02:20:00 leg Exp $
  */
 
 /* 
@@ -242,13 +242,9 @@ static int parseuser(sasl_utils_t *utils,
 	/* otherwise, we gotta get it from the user */
 	r = strchr(input, '@');
 	if (!r) {
-	    *realm = utils->malloc(1);
-	    if (*realm) {
-		*realm[0] = '\0';
-		ret = SASL_OK;
-	    } else {
-		ret = SASL_NOMEM;
-	    }
+	    /* hmmm, the user didn't specify a realm */
+	    /* we'll default to the serverFQDN */
+	    ret = cram_strdup(utils, serverFQDN, realm, NULL);
 	    if (ret == SASL_OK) {
 		ret = cram_strdup(utils, input, user, NULL);
 	    }

@@ -88,8 +88,8 @@
 	<ul>
 	  <li><a href="#sample_client"><tt>sample-client</tt> and <tt>sample-server</tt></a>
 
-	  <li><a href="#cyrus_imapd">Cyrus imapd v1.6.0 or later</a>
-	  <li><a href="#imtest"><tt>imtest</tt>, from cyrus imapd 1.6.0 or later</a>
+	  <li><a href="#cyrus_imapd">Cyrus imapd v2.1.0 or later</a>
+	  <li><a href="#imtest"><tt>imtest</tt>, from cyrus imapd 2.1.0 or later</a>
 	</ul>
 
       <li><a href="#random_things">Miscellaneous Information</a>
@@ -926,7 +926,37 @@
     sasl_client_init(callbacks);
 
     </pre>
-	
+
+    <a name="layers"><h3>Security layers</h3></a>
+
+<pre>rough notes
+alls well and good to authenticate, but if you don't use integrity or
+encryption, anyone can hijack your tcp session... thus...
+
+server sets SASL_SEC_PROPS with a desired buffer size X of the amount of data
+it will be using to read() from the socket.
+
+libsasl passes this number to the mechanism.
+
+the mechanism then negotiates with the other size so that "maxbuf" is less
+than or equal to this number X.
+
+libsasl then returns (via SASL_MAXOUTBUF) the maximum amount of plaintext
+material that can be encoded at any one time, Y.
+
+Y will be strictly less than X.  If the other side of the connection was good
+with X, Y will probably be only slightly less than X.
+
+the prot layer now calls sasl_encode every time Y bytes are written (the
+output buffer size is Y).  it will read in sizes of X (the input buffer size
+it told sasl).  since it reads in sizes of X, excluding pathological cases,
+every time it calls read() it will get at least one sasl blob which
+sasl_decode will return the plaintext data for.
+
+all is happy.
+
+it's the same for the client.
+</pre>	
 
 <a name="example_section"><h2>Example applications that come with the Cyrus SASL library</h2></a>
 

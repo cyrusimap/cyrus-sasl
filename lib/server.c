@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.53 1999/10/10 02:07:14 leg Exp $
+ * $Id: server.c,v 1.54 1999/10/10 17:38:45 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -306,7 +306,7 @@ int sasl_setpass(sasl_conn_t *conn,
     /* set/create password for PLAIN usage */
     tmpresult = _sasl_sasldb_set_pass(conn, user, pass, passlen, 
 				      s_conn->user_realm, flags, errstr);
-    if (tmpresult != SASL_OK) {
+    if (tmpresult != SASL_OK && tmpresult != SASL_NOCHANGE) {
 	result = SASL_FAIL;
 	_sasl_log(conn, SASL_LOG_ERR, "PLAIN", tmpresult,
 #ifndef WIN32
@@ -327,34 +327,32 @@ int sasl_setpass(sasl_conn_t *conn,
 
     /* now we let the mechanisms set their secrets */
     for (m = mechlist->mech_list; m; m = m->next) {
-	if (m->plug->setpass) {
-	    VL(("Setting it for mech %s\n", m->plug->mech_name));
-	    tmpresult = m->plug->setpass(m->plug->glob_context,
-					 ((sasl_server_conn_t *)conn)->sparams,
-					 user,
-					 pass,
-					 passlen,
-					 flags,
-					 errstr);
-	    if (tmpresult != SASL_OK) {
-		VL(("%s returned %i\n",m->plug->mech_name, tmpresult));
-		result = SASL_FAIL;
-		_sasl_log(conn, SASL_LOG_ERR, m->plug->mech_name, tmpresult,
+	if (!m->plug->setpass) {
+	    /* can't set pass for this mech */
+	    continue;
+	}
+	tmpresult = m->plug->setpass(m->plug->glob_context,
+				     ((sasl_server_conn_t *)conn)->sparams,
+				     user,
+				     pass,
+				     passlen,
+				     flags,
+				     errstr);
+	if (tmpresult == SASL_OK) {
+	    _sasl_log(conn, SASL_LOG_INFO, m->plug->mech_name, 0, 0,
+		      "set secret for %s", user);
+	} else if (tmpresult == SASL_NOCHANGE) {
+	    _sasl_log(conn, SASL_LOG_INFO, m->plug->mech_name, 0, 0,
+		      "secret not changed for %s", user);
+	} else {
+	    result = SASL_FAIL;
+	    _sasl_log(conn, SASL_LOG_ERR, m->plug->mech_name, tmpresult,
 #ifndef WIN32
-			  errno,
+		      errno,
 #else
-			  GetLastError(),
+		      GetLastError(),
 #endif
-			  "failed to set secret for %s: %z", user);
-	    } else {
-		VL(("%s succeeded!\n",m->plug->mech_name));
-		_sasl_log(conn,
-			  SASL_LOG_INFO,
-			  m->plug->mech_name,
-			  0, 0,
-			  "set secret for %s",
-			  user);
-	    }
+		      "failed to set secret for %s: %z", user);
 	}
     }
 

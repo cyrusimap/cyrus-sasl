@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.63 2002/04/29 20:32:41 rjs3 Exp $
+ * $Id: gssapi.c,v 1.64 2002/04/30 18:12:26 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -130,11 +130,8 @@ typedef struct context {
     char *out_buf;                   /* per-step mem management */
     unsigned out_buf_len;    
 
-    struct 
-    {
-	char *authid; /* hold the authid between steps - server */
-	const char *user;   /* hold the userid between steps - client */
-    } u;
+    char *authid; /* hold the authid between steps - server */
+    const char *user;   /* hold the userid between steps - client */
 } context_t;
 
 enum {
@@ -573,9 +570,9 @@ sasl_gss_free_context_contents(context_t *text)
       text->buffer = NULL;
   }
 
-  if (text->u.authid) { /* works for both client and server */
-      text->utils->free(text->u.authid);
-      text->u.authid = NULL;
+  if (text->authid) { /* works for both client and server */
+      text->utils->free(text->authid);
+      text->authid = NULL;
   }
 }
 
@@ -812,25 +809,21 @@ gssapi_server_mech_step(void *conn_context,
 	    equal = 0;
 	}
 
-	if (equal == 1) /* xxx True doesn't seem to exist in gssapi.h */
+	if (equal)
 	{
-	    text->u.authid =
-		(char *)params->utils->malloc(strlen(name_without_realm.value)+1);
-	    if (text->u.authid == NULL) {
+	    text->authid = strdup(name_without_realm.value);
+
+	    if (text->authid == NULL) {
 		MEMERROR(params->utils);
 		return SASL_NOMEM;
 	    }
-	    
-	    strcpy(text->u.authid, name_without_realm.value);
 	} else {
-	    text->u.authid =
-		(char *)params->utils->malloc(strlen(name_token.value)+1);
-	    if (text->u.authid == NULL) {
+	    text->authid = strdup(name_token.value);
+
+	    if (text->authid == NULL) {
 		MEMERROR(params->utils);
 		return SASL_NOMEM;
 	    }
-	    
-	    strcpy(text->u.authid, name_token.value);
 	}
 
 	if (name_token.value)
@@ -978,8 +971,8 @@ gssapi_server_mech_step(void *conn_context,
 	    }
 
 	    ret = params->canon_user(params->utils->conn,
-				     text->u.authid,
-				     0, /* strlen(text->u.authid) */
+				     text->authid,
+				     0, /* strlen(text->authid) */
 				     SASL_CU_AUTHID, oparams);
 	    if (ret != SASL_OK) {
 		sasl_gss_free_context_contents(text);
@@ -990,8 +983,8 @@ gssapi_server_mech_step(void *conn_context,
 	    int ret;
 
 	    ret = params->canon_user(params->utils->conn,
-				     text->u.authid,
-				     0, /* strlen(text->u.authid) */
+				     text->authid,
+				     0, /* strlen(text->authid) */
 				     SASL_CU_AUTHZID | SASL_CU_AUTHID,
 				     oparams);
 
@@ -1169,11 +1162,11 @@ gssapi_client_mech_step(void *conn_context,
     case SASL_GSSAPI_STATE_AUTHNEG:
       {
 	  /* try to get the userid */
-	  if (text->u.user ==NULL)
+	  if (text->user ==NULL)
 	  {
 	    int user_result = SASL_OK;
 
-	    user_result=_plug_get_userid(params->utils, &text->u.user,
+	    user_result=_plug_get_userid(params->utils, &text->user,
 					 prompt_need);
 
 	    if ((user_result!=SASL_OK) && (user_result!=SASL_INTERACT))
@@ -1338,9 +1331,9 @@ gssapi_client_mech_step(void *conn_context,
 		return SASL_FAIL;
 	    }
 	    
-	    if (text->u.user && text->u.user[0]) {
+	    if (text->user && text->user[0]) {
 		ret = params->canon_user(params->utils->conn,
-					 text->u.user, 0,
+					 text->user, 0,
 					 SASL_CU_AUTHZID, oparams);
 		if(ret == SASL_OK) 
 		    ret = params->canon_user(params->utils->conn,
@@ -1448,7 +1441,7 @@ gssapi_client_mech_step(void *conn_context,
 	 * Make sure the client actually requested it though, by checking
 	 * if our context was set.
 	 */
-	if (text->u.user && text->u.user[0])
+	if (text->user && text->user[0])
 	    alen = strlen(oparams->user);
 	else
 	    alen = 0;

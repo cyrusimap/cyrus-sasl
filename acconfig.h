@@ -71,7 +71,6 @@
 #undef STATIC_OTP
 #undef STATIC_PLAIN
 #undef STATIC_SRP
-#undef STATIC_SECURID
 #undef STATIC_SASLDB
 
 /* This is where plugins will live at runtime */

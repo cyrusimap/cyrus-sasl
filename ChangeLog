@@ -1,6 +1,8 @@
 2004-01-12  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* win32/include/config.h: fix VC++ 6.0 compiles
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+	* configure.in: Correct use of AC_LIBOBJ
+	  (Maciej W. Rozycki <macro@ds2.pg.gda.pl>)
 
 2004-01-08  Ken Murchison <ken@oceana.com>
 	* plugins/sql.c: better error logging

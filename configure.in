@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.180 2004/01/07 16:35:05 rjs3 Exp $
+dnl $Id: configure.in,v 1.181 2004/01/12 17:24:56 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -834,15 +834,12 @@ AC_SUBST(SMTPTEST_PROGRAM)
 AC_SUBST(SASL_UTIL_LIBS_EXTRA)
 AC_SUBST(SASL_UTIL_HEADERS_EXTRA)
 
-dnl Backwards compatibility with autoconf 2.13
-ifdef([m4_pattern_allow],[m4_pattern_allow([^LIBOBJS$])])
-
 dnl check for getsubopt
 sasl_cv_getsubopt=no
 AC_CHECK_FUNC(getsubopt, [AC_DEFINE(HAVE_GETSUBOPT,[],
 	[do we have getsubopt()?])], [sasl_cv_getsubopt=yes])
 if test $sasl_cv_getsubopt = yes; then
-	LIBOBJS="$LIBOBJS getsubopt.o"
+	AC_LIBOBJ(getsubopt)
 	GETSUBOPT="getsubopt.lo"
 fi
 AC_SUBST(GETSUBOPT)
@@ -853,7 +850,7 @@ SNPRINTFOBJS=""
 AC_CHECK_FUNC(snprintf, [AC_DEFINE(HAVE_SNPRINTF,[],[Does the system have snprintf()?])], [sasl_cv_snprintf=yes])
 AC_CHECK_FUNC(vsnprintf, [AC_DEFINE(HAVE_VSNPRINTF,[],[Does the system have vsnprintf()?])], [sasl_cv_snprintf=yes])
 if test $sasl_cv_snprintf = yes; then
-	LIBOBJS="$LIBOBJS snprintf.o"
+	AC_LIBOBJ(snprintf)
         SNPRINTFOBJS="snprintf.o"
         LTSNPRINTFOBJS="snprintf.lo"
 fi
@@ -870,7 +867,7 @@ IPv6_CHECK_FUNC(getaddrinfo, [IPv6_CHECK_FUNC(gai_strerror,
                 [AC_DEFINE(HAVE_GETADDRINFO,[],[Do we have a getaddrinfo() function?])
                 sasl_cv_getaddrinfo=no])])
 if test $sasl_cv_getaddrinfo = yes; then
-    LIBOBJS="$LIBOBJS getaddrinfo.o"
+    AC_LIBOBJ(getaddrinfo)
     GETADDRINFOOBJS="getaddrinfo.o"
     LTGETADDRINFOOBJS="getaddrinfo.lo"
 fi
@@ -883,15 +880,14 @@ sasl_cv_getnameinfo=no
 IPv6_CHECK_FUNC(getnameinfo,
 		[AC_DEFINE(HAVE_GETNAMEINFO,[],[Do we have a getnameinfo() function?])], [sasl_cv_getnameinfo=yes])
 if test $sasl_cv_getnameinfo = yes; then
-	LIBOBJS="$LIBOBJS getnameinfo.o"
+	AC_LIBOBJ(getnameinfo)
         GETNAMEINFOOBJS="getnameinfo.o"
         LTGETNAMEINFOOBJS="getnameinfo.lo"
 fi
 AC_SUBST(GETNAMEINFOOBJS)
 AC_SUBST(LTGETNAMEINFOOBJS)
 
-LTLIBOBJS=`echo "$LIBOBJS" | sed 's/\.o/.lo/g'`
-AC_SUBST(LIBOBJS)
+LTLIBOBJS=`echo "$LIB@&t@OBJS" | sed 's,\.[[^.]]* ,.lo ,g;s,\.[[^.]]*$,.lo,'`
 AC_SUBST(LTLIBOBJS)
 
 AC_C_CONST

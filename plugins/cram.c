@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.44 1999/12/01 20:37:56 tmartin Exp $
+ * $Id: cram.c,v 1.45 1999/12/23 22:48:19 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -564,20 +564,20 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
 
   /* Request secret */
   result = getsecret(getsecret_context, mech_name, "", "", &sec);
+  if (result == SASL_NOUSER) {
+      return SASL_NOUSER;
+  }
 
   /* check version */
-
-  if (sec!=NULL)
-  {
-      if (sec->len >= 4)
-      {
+  if (sec != NULL) {
+      if (sec->len >= 4) {
 	  memcpy(&version, sec->data, 4); 
 	  version = ntohl(version);
       }
+      free(sec);
   }
 
-  if (version != CRAM_MD5_VERSION)
-  {
+  if (version != CRAM_MD5_VERSION) {
       utils->log(utils->conn,
 		 0,
 		 mech_name,
@@ -588,13 +588,6 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
 
       return SASL_FAIL;
   }
-  
-
-  if (result == SASL_NOUSER) {
-    return SASL_NOUSER;
-  }
-
-  free_secret(utils, &sec);
 
   mydb_initialized = 1;
 

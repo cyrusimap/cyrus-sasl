@@ -2567,13 +2567,16 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
   result = getsecret(getsecret_context, mech_name, "", "", &sec);
 
   /* check version */
-  if (sec!=NULL)
+  if (sec != NULL)
   {
-      if (sec->len >= 4)
-      {
+      if (sec->len >= 4) {
 	  memcpy(&tmpversion, sec->data, 4); 
 	  tmpversion = ntohl(tmpversion);
       }
+      free(sec);
+  }
+  if (result == SASL_NOUSER) {
+      return SASL_NOUSER;
   }
 
   if (tmpversion != DIGEST_MD5_VERSION)
@@ -2589,15 +2592,7 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
       return SASL_FAIL;
   }
   
-
-  if (result == SASL_NOUSER) {
-    return SASL_NOUSER;
-  }
-
   mydb_initialized = 1;
-
-  if (sec!=NULL)
-    utils->free(sec);
 
   return result;
 }
@@ -2783,9 +2778,8 @@ int sasl_server_plug_init(sasl_utils_t * utils __attribute__((unused)),
   *plugcount = 1;
   *out_version = DIGEST_MD5_VERSION;
 
-  if ( mechanism_db_filled("DIGEST-MD5",utils) != SASL_OK)
-  {
-    return SASL_NOUSER;
+  if ( mechanism_db_filled("DIGEST-MD5",utils) != SASL_OK) {
+      return SASL_NOUSER;
   }
 
   return SASL_OK;

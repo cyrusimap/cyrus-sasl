@@ -1,3 +1,6 @@
+2003-08-12  Ken Murchison <ken@oceana.com>
+	* doc/index.html: added reference to a good NTLM document
+
 2003-07-29  Ken Murchison <ken@oceana.com>
 	* plugins/cram.c: don't truncate long secrets to 64 bytes on the
 	  client-side of CRAM-MD5 (jiang_xiong@yahoo.com)

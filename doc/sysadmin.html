@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.45 2003/07/25 15:06:20 rjs3 Exp $ -->
+<!-- $Id: sysadmin.html,v 1.46 2003/08/14 21:27:01 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -10,7 +10,8 @@ specifically those administrators who are installing a server that
 uses the Cyrus SASL library.  You may want to read
 <a href=components.html>this document</a> which presents an
 overview of the major components of the Cyrus SASL distribution
-and describes how they interact.
+and describes how they interact, as well as <a href=install.html>
+the installation guide</a>.
 
 <h2><A NAME="saslintro">What SASL is</A></h2>
 
@@ -61,7 +62,8 @@ password.
 
 <p>Applications can set their own proxy policies; by default, the SASL
 library will only allow the same user to act for another (that is,
-userid must equal authid).
+userid must equal authid).  See your application's documentation for
+details about changing the default proxy/authorization policies.
 
 <h3><a name="realms">Realms</a></h3>
 
@@ -85,7 +87,9 @@ harder for users to authenticate.
 <p>A single site might support multiple different realms.  This can
 confuse applications that weren't written in anticipation of this; make
 sure your application can support it before adding users from different
-realms into sasldb with <tt>saslpasswd2</tt>.  This is done using the
+realms into your databases.
+
+<p>To add users of different realms to sasldb, you can use the
 <tt>-u</tt> option to saslpasswd2.  The SQL plugin has a way of
 integrating the realm name into the query string with the '%r' macro.
 
@@ -93,6 +97,11 @@ integrating the realm name into the query string with the '%r' macro.
 realm.  Thus, the realm for Kerberos mechanisms defaults to the
 default Kerberos realm on the server.  They may support cross-realm
 authentication; check your application on how it deals with this.
+
+<p>Realms will be passed to saslauthd as part of the saslauthd protocol,
+however the way each saslauthd module deals with the situation is
+different (for example, the LDAP plugin allows you to use the realm
+to query the server, while the rimap and PAM plugins ignore it entirely).
 
 <p>Realms are represented in a username string by any text followinhg
 the '@' sign.  So, usernames like rjs3@ANDREW.CMU.EDU, is user 'rjs3'
@@ -333,36 +342,6 @@ information.  Check your application's documentation for specifics.
 configuration file, <tt>/etc/imapd.conf</tt>, by prepending all SASL
 options with "<tt>sasl_</tt>": the SASL option "pwcheck_method" is set
 by changing "sasl_pwcheck_method" in <tt>/etc/imapd.conf</tt>.
-
-<h2>Compiling and installing the library</h2>
-
-xxx this should move to install.html
-
-<h3>what configure options to use?</h3>
-
-<p><b>don't install a mechanism you aren't going to use.</b></p>
-
-<p>use <tt>--disable-krb4</tt> and <tt>--disable-gssapi</tt> if you
-aren't a kerberos site.</p>
-
-<p>use <tt>--disable-cram</tt> and <tt>--disable-digest</tt> if you
-can't use shared secret mechanisms.</p>
-
-<p>need pwcheck?  use <tt>--enable-pwcheck</tt>
-
-<h3>other stuff</h3>
-
-<p>what can go wrong with shared libraries?
-
-<p>make sure to make the /usr/lib/sasl symbolic link.
-
-<p>canon_user plugin selection: uses canon_user_plugin option
-
-<p>Unfortunately, since SASL is very flexible (allowing administrators to
-upgrade and install new authentication plugins without recompiling any
-applications) its flexibility can also make it a chore to compile.
-
-<p>I'll have some sage advice here when I find some.
 
 <h2>Troubleshooting</h2>
 

@@ -1,3 +1,46 @@
+1999-03-01  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* plugins/kerberos4.c: interaction and callback fixes.  This'll
+	probably break stuff -- but only stuff that shouldn't have been
+	written in the first place...
+
+	* lib/common.c: axed the user/realm stuff from sasl_conn_t,
+	rewrote common to use copies from oparams
+
+1999-02-25  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* plugins/anonymous.c (c_continue_step): added case for NULL user
+	(c_continue_step): fixed anon id creation
+
+	* lib/client.c: fixed various prompt_need assumptions
+
+	* lib/server.c (sasl_listmech): gracefully deal with NULL prefix,
+	sep, and suffix
+
+	* lib/client.c (sasl_client_new): SASL_FAIL => SASL_BADPARAM for
+	bad parameters
+
+	* lib/dlopen.c (_sasl_get_mech_list): added path defaulting
+
+1999-02-22  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* plugins/anonymous.c (continue_step): changes %*s to %s (len
+	doesn't work in log function), and NULL-terminated the client's
+	str.
+
+	* lib/common.c (add_string): cleaned up a bit
+
+	* doc: wrote Makefile.am, added relevant drafts and RFCs
+
+	* Makefile.am: added doc dir
+
+	* plugins/digestmd5.c: cleaned up some warnings
+
+	* plugins/kerberos4.c: cleaned up some warnings
+
+	* configure.in: removed -pedantic -ansi -fbuiltin; glibc-2.1 is
+ 	just too broken for this to work without lots of useless whining
+
 1999-02-21  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
 	* all: eliminated some warnings
@@ -24,8 +67,12 @@
 
 	* lib/common.c: fixed username error
 	
-
 1999-02-12  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* lib/client.c (sasl_client_start): added credentials consideration
+
+	* lib/saslint.h: moved oparams into sasl_conn_t (instead of
+	keeping a pointer to them); adjusted other code to match
 
 	* include/sasl.h: added credentials interface.  This may change at 
 	some point; it's nice and simple, but doesn't seperate the

@@ -189,8 +189,6 @@ int _sasl_conn_init(sasl_conn_t *conn,
   conn->external.ssf = 0;
   conn->external.auth_id = NULL;
   memset(&conn->oparams, 0, sizeof(conn->oparams));
-  conn->username = NULL;
-  conn->realm = NULL;
   conn->secflags = secflags;
   conn->open = 1;
   conn->got_ip_local = 0;
@@ -219,12 +217,6 @@ void sasl_dispose(sasl_conn_t **pconn)
   if (! *pconn) return;
 
   (*pconn)->destroy_conn(*pconn);
-  if ((*pconn)->username)
-    sasl_FREE((*pconn)->username);
-  if ((*pconn)->realm)
-    sasl_FREE((*pconn)->realm);
-  if ((*pconn)->external.auth_id)
-    sasl_FREE((*pconn)->external.auth_id);
   sasl_FREE(*pconn);
   *pconn=NULL;
 }
@@ -233,26 +225,17 @@ void _sasl_conn_dispose(sasl_conn_t *conn) {
   if (conn->service)
     sasl_FREE(conn->service);
 
+  if (conn->external.auth_id)
+    sasl_FREE(conn->external.auth_id);
+
   if (conn->oparams.user)
-  {
     sasl_FREE(conn->oparams.user);
-  }
 
   if (conn->oparams.authid)
-  {
     sasl_FREE(conn->oparams.authid);
-  }
 
   if (conn->oparams.realm)
-  {
     sasl_FREE(conn->oparams.realm);
-  }
-
-  if (conn->username)
-    sasl_FREE(conn->username);
-
-  if (conn->realm)
-    sasl_FREE(conn->realm);
 
   sasl_MUTEX_DISPOSE(conn->mutex);
 }
@@ -271,10 +254,10 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, void **pvalue)
   switch(propnum)
   {
     case SASL_USERNAME:
-      if (conn->username==NULL)
+      if (! conn->oparams.user)
 	result = SASL_NOTDONE;
-       else
-	*pvalue=conn->username;
+      else
+	*pvalue=conn->oparams.user;
       break;
     case SASL_SSF:
       *(sasl_ssf_t *)pvalue= conn->oparams.mech_ssf;
@@ -283,7 +266,10 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, void **pvalue)
       *(unsigned *)pvalue = conn->oparams.maxoutbuf;
       break;
     case SASL_REALM:
-      *pvalue = conn->realm;
+      if (! conn->oparams.realm)
+	result = SASL_NOTDONE;
+      else
+	*pvalue = conn->oparams.realm;
       break;
     case SASL_GETOPTCTX:
       /* ??? */
@@ -322,31 +308,6 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
 
   switch(propnum)
   {
-    case SASL_USERNAME:
-      result = _sasl_strdup(value, &str, NULL);
-      if (result != SASL_OK)
-	return result;
-      if (conn->username)
-	sasl_FREE(conn->username);
-      conn->username = str;
-      break;
-    case SASL_SSF:
-      conn->oparams.mech_ssf=* (sasl_ssf_t *) value;
-      break;
-    case SASL_MAXOUTBUF:
-      conn->oparams.maxoutbuf=* (int *) value;
-      break;
-    case SASL_REALM:
-      result = _sasl_strdup(value, &str, NULL);
-      if (result != SASL_OK)
-	return result;
-      if (conn->realm)
-	sasl_FREE(conn->realm);
-      conn->realm = str;
-      break;
-    case SASL_GETOPTCTX:
-      /* huh? */
-      break;
     case SASL_SSF_EXTERNAL:
     {
       sasl_external_properties_t *external
@@ -685,16 +646,12 @@ static int checksize(char **out, int *alloclen, int newlen)
 /* adds a string to the buffer; reallocing if need be */
 static int add_string(char **out, int *alloclen, int *outlen, char *add)
 {
-  int lup;
   int addlen=strlen(add); /* only compute once */
   if (checksize(out, alloclen, (*outlen)+addlen)!=SASL_OK)
     return SASL_NOMEM;
 
-  for (lup=0;lup<addlen;lup++) /* add the string at the end */
-  {
-    (*out)[*outlen]=add[lup];
-    (*outlen)++;
-  }
+  strncpy(*out + *outlen, add, addlen);
+  *outlen += addlen;
 
   return SASL_OK;
 }
@@ -773,6 +730,7 @@ static int sasl_log (sasl_conn_t *conn,
 	    ival = va_arg(ap, int); /* get the next arg */
 	    result = add_string(&out, &alloclen,
 				&outlen, (char *) ival);
+	      
 	    if (result != SASL_OK) /* add the string */
 	      return result;
 

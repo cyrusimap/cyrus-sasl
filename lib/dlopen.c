@@ -53,6 +53,7 @@ int _sasl_get_mech_list(const char *entryname,
   char str[PATH_MAX],tmp[PATH_MAX],c,prefix[PATH_MAX];
   int pos;
   char *path=NULL;
+  int free_path;
   int position;
   DIR *dp;
   struct dirent *dir;
@@ -69,11 +70,16 @@ int _sasl_get_mech_list(const char *entryname,
 
   if (result != SASL_OK)
     return result;
-  if (! path)
-    return SASL_FAIL;
+
+  if (! path) {
+    free_path = 0;
+    path = PLUGINDIR;
+  } else
+    free_path = 1;
 
   if (strlen(path)>=PATH_MAX) { /* no you can't buffer overrun */
-    sasl_FREE(path);
+    if (free_path)
+      sasl_FREE(path);
     return SASL_FAIL;
   }
 
@@ -143,7 +149,8 @@ int _sasl_get_mech_list(const char *entryname,
 
   } while ((c!='=') && (c!=0));
 
-  sasl_FREE(path);
+  if (free_path)
+    sasl_FREE(path);
 
   return SASL_OK;
 }

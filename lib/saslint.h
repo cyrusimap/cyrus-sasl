@@ -76,9 +76,6 @@ struct sasl_conn {
 
   sasl_security_properties_t props;
 
-  char *username;
-  char *realm;
-
   sasl_secret_t *secret;
 
   int uses_sec_layer;   /* if need to encrypt/decrpt all transmissions */

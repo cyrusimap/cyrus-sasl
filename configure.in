@@ -58,7 +58,7 @@ AM_DISABLE_STATIC
 CMU_PROG_LIBTOOL
 
 if test "$ac_cv_prog_gcc" = yes; then
-  CFLAGS="-pedantic -ansi -fbuiltin -Wall -W ${CFLAGS}"
+  CFLAGS="-Wall -W ${CFLAGS}"
 fi
 
 AC_ARG_WITH(purecov,[  --with-purecov          link with purecov])
@@ -156,6 +156,12 @@ AC_SUBST(SASL_DL_LIB)
 
 dnl See if we can provide a default logging function...
 AC_CHECK_FUNCS(vsyslog)
+
+LIB_CRYPT=""
+AC_CHECK_FUNC(crypt, cmu_have_crypt=yes,
+  AC_CHECK_LIB(crypt, crypt,
+	       LIB_CRYPT="-lcrypt"; cmu_have_crypt=yes,
+	       cmu_have_crypt=no))
 
 CMU_SOCKETS
 
@@ -255,7 +261,8 @@ if test "$gssapi" != no; then
      CPPFLAGS="$CPPFLAGS -I$gssapi/include"
      LDFLAGS="$LDFLAGS -L$gssapi/lib"
   fi
-  AC_CHECK_LIB(roken,base64_decode,gss_impl="heimdal")
+
+  AC_CHECK_LIB(roken,base64_decode,gss_impl="heimdal", $LIB_CRYPT)
 
   if test -d ${gssapi}; then
      GSSAPIBASE_LIBS="-L$gssapi"
@@ -264,7 +271,7 @@ if test "$gssapi" != no; then
   if test "$gss_impl" = mit; then
      GSSAPIBASE_LIBS="$GSSAPIBASE_LIBS/lib -lgssapi_krb5 -lkrb5 -lcrypto -lcom_err"
   elif test "$gss_impl" = "heimdal"; then
-     GSSAPIBASE_LIBS="$GSSAPIBASE_LIBS/lib -lgssapi -lkrb5 -ldes -lasn1 -lroken -lcom_err"
+     GSSAPIBASE_LIBS="$GSSAPIBASE_LIBS/lib -lgssapi -lkrb5 -ldes -lasn1 -lroken ${LIB_CRYPT} -lcom_err"
   else
      gssapi="no"
      AC_WARN(Disabling GSSAPI)
@@ -307,9 +314,12 @@ AC_ARG_ENABLE(plain, [  --enable-plain          enable PLAIN authentication [yes
 PLAIN_LIBS=""
 if test "$plain" != no; then
   dnl In order to compile plain, we need crypt.
-  AC_CHECK_FUNC(crypt,,
-    AC_CHECK_LIB(crypt, crypt, PLAIN_LIBS="-lcrypt",
-	AC_WARN(Disabling PLAIN); plain=no))
+  if test "$cmu_have_crypt" = yes; then
+    PLAIN_LIBS=$LIB_CRYPT
+  else
+    AC_WARN(Disabling PLAIN (no crypt))
+    plain=no
+  fi
 fi
 AC_SUBST(PLAIN_LIBS)
 
@@ -346,6 +356,6 @@ AC_CHECK_HEADER(sfio.h,
 AC_SUBST(SASL_UTIL_LIBS_EXTRA)
 AC_SUBST(SASL_UTIL_HEADERS_EXTRA)
 
-AC_CHECK_FUNCS(getdomainname)
+AC_CHECK_FUNCS(getdomainname getpassphrase)
 
-AC_OUTPUT(Makefile include/Makefile lib/Makefile plugins/Makefile sasl/Makefile utils/Makefile)
+AC_OUTPUT(Makefile include/Makefile lib/Makefile plugins/Makefile sasl/Makefile utils/Makefile doc/Makefile sample/Makefile)

@@ -74,7 +74,6 @@ external_client_step(void *conn_context __attribute__((unused)),
       || !params->utils
       || !params->utils->conn
       || !params->utils->getcallback
-      || !prompt_need
       || !clientout
       || !clientoutlen
       || !oparams)
@@ -86,7 +85,7 @@ external_client_step(void *conn_context __attribute__((unused)),
   if (serverinlen != 0)
     return SASL_BADPROT;
 
-  if (*prompt_need) {
+  if (prompt_need && *prompt_need) {
     /* Second time through; we used a SASL_INTERACT to get the user. */
     if (! (*prompt_need)[0].result)
       return SASL_BADPARAM;
@@ -103,14 +102,16 @@ external_client_step(void *conn_context __attribute__((unused)),
     switch (result) {
     case SASL_INTERACT:
       /* Set up the interaction... */
-      *prompt_need = params->utils->malloc(sizeof(sasl_interact_t) * 2);
-      if (! *prompt_need)
-	return SASL_FAIL;
-      memset(*prompt_need, 0, sizeof(sasl_interact_t) * 2);
-      (*prompt_need)[0].id = SASL_CB_USER;
-      (*prompt_need)[0].prompt = "Authorization Identity";
-      (*prompt_need)[0].defresult = "";
-      (*prompt_need)[1].id = SASL_CB_LIST_END;
+      if (prompt_need) {
+	*prompt_need = params->utils->malloc(sizeof(sasl_interact_t) * 2);
+	if (! *prompt_need)
+	  return SASL_FAIL;
+	memset(*prompt_need, 0, sizeof(sasl_interact_t) * 2);
+	(*prompt_need)[0].id = SASL_CB_USER;
+	(*prompt_need)[0].prompt = "Authorization Identity";
+	(*prompt_need)[0].defresult = "";
+	(*prompt_need)[1].id = SASL_CB_LIST_END;
+      }
       return SASL_INTERACT;
     case SASL_OK:
       if (getuser_cb &&
@@ -137,7 +138,8 @@ external_client_step(void *conn_context __attribute__((unused)),
     memcpy(*clientout, user, *clientoutlen);
   (*clientout)[*clientoutlen] = '\0';
   
-  *prompt_need = NULL;
+  if (prompt_need)
+    *prompt_need = NULL;
 
   result = _sasl_strdup(params->utils->conn->external.auth_id,
 			&oparams->authid,
@@ -358,7 +360,7 @@ static void client_dispose(sasl_conn_t *pconn)
 {
   sasl_client_conn_t *c_conn=(sasl_client_conn_t *) pconn;
 
-  if (c_conn->mech)
+  if (c_conn->mech && c_conn->mech->plug->mech_dispose)
     c_conn->mech->plug->mech_dispose(c_conn->base.context,
 				     c_conn->cparams->utils);
 
@@ -380,9 +382,8 @@ int sasl_client_new(const char *service,
 {
   int result;
   sasl_client_conn_t *conn;
-  if (! pconn) return SASL_FAIL;
-  if (! service) return SASL_FAIL;
-  if (! serverFQDN) return SASL_FAIL;
+  if (!pconn || !service || !serverFQDN)
+    return SASL_BADPARAM;
 
   *pconn=sasl_ALLOC(sizeof(sasl_client_conn_t));
   if (*pconn==NULL) return SASL_NOMEM;
@@ -468,7 +469,7 @@ int sasl_client_start(sasl_conn_t *conn,
   /* if prompt_need != NULL we've already been here
      and just need to do the continue step again */
    /* do a step */
-  if (*prompt_need!=NULL)
+  if (prompt_need && *prompt_need!=NULL)
       return c_conn->mech->plug->mech_step(conn->context,
 					   c_conn->cparams,
 					   NULL,
@@ -508,34 +509,44 @@ int sasl_client_start(sasl_conn_t *conn,
     pos++;
     name[place]=0;
 
-    VL(("mech - %s\n",name));
+    VL(("Considering mech %s\n",name));
 
     if (! place) continue;
 
-
     /* foreach in server list */
-    m=cmechlist->mech_list;
-    while (m!=NULL)
-    {
-      VL(("%s %s\n",name, m->plug->mech_name));
-      if (strcasecmp(m->plug->mech_name, name)==0)
-      {	
-	if (mech
-	    /*	    && have_prompts(conn, m->plug) please fix rob */
-		    && (! bestm || m->plug->max_ssf > bestssf)
-	    && m->plug->max_ssf >= minssf)
+    for (m = cmechlist->mech_list;
+	 m != NULL;
+	 m = m->next)
+      if (! strcasecmp(m->plug->mech_name, name)
+	  && have_prompts(conn, m->plug)
+	  && minssf <= m->plug->max_ssf
+	  && (! bestm
+	      || ((conn->props.security_flags
+		   & SASL_SEC_PASS_CREDENTIALS)
+		  && ! (bestm->plug->security_flags
+			& SASL_SEC_PASS_CREDENTIALS)
+		  && (m->plug->security_flags
+		      & SASL_SEC_PASS_CREDENTIALS))
+	      || ((! (conn->props.security_flags
+		      & SASL_SEC_PASS_CREDENTIALS)
+		   || ! ((bestm->plug->security_flags
+			  & SASL_SEC_PASS_CREDENTIALS)
+			 ^ (m->plug->security_flags
+			    & SASL_SEC_PASS_CREDENTIALS)))
+		  && m->plug->max_ssf > bestssf)))
 	{
-	  *mech=m->plug->mech_name;
+	  VL(("Best mech so far: %s\n", m->plug->mech_name));
+	  if (mech)
+	    *mech=m->plug->mech_name;
 	  bestssf=m->plug->max_ssf;
 	  bestm=m;
 	}
-      }
-      m=m->next;      
-    }
   }
 
-  if (bestm == NULL)
+  if (bestm == NULL) {
+    VL(("No worthy mechs found\n"));
     return SASL_NOMECH;
+  }
 
   /* make cparams */
   

@@ -23,7 +23,7 @@
 #PERFORMANCE OF THIS SOFTWARE.
 ################################################################
 
-SUBDIRS=include lib plugins utils @DIRS@
+SUBDIRS=include lib plugins utils doc sample @DIRS@
 
 dist-hook:
 	cp -r -p $(top_srcdir)/config $(srcdir)/win32 $(distdir)

@@ -568,29 +568,6 @@ static int sasl_strdup(sasl_utils_t *utils, const char *in, char **out, int *out
   return SASL_OK;
 }
 
-
-static int privacy_encode(void *context, 
-			  const char *input,
-			  unsigned inputlen,
-			  char **output,
-			  unsigned *outputlen)
-{
-
-  return SASL_FAIL;
-}
-
-
-static int privacy_decode(void *context, 
-			  const char *input, 
-			  unsigned inputlen,
-			  char **output, 
-			  unsigned *outputlen)
-{
-  /* not implemented */
-    return SASL_FAIL;
-}
-
-
 static unsigned int version=1;
 
 static int integrity_encode(void *context,
@@ -604,8 +581,6 @@ static int integrity_encode(void *context,
   unsigned char *param2;
   unsigned int tmpnum;
   context_t *text=(context_t *) context;
-
-  int lup;
 
   param2=(unsigned char *) text->malloc( inputlen+4 );
   if (param2==NULL) return SASL_NOMEM;
@@ -661,8 +636,6 @@ static int create_MAC(context_t *text,
   unsigned char *param2;
   unsigned int tmpnum;
 
-  int lup;
-
   if (inputlen<0) return SASL_FAIL;
         
   param2=(unsigned char *) text->malloc( inputlen+4 );
@@ -697,7 +670,6 @@ static int create_MAC(context_t *text,
 static int check_integrity(context_t *text,
 			   char *buf, int bufsize, char **output, unsigned *outputlen)
 {
-  int lup;
   char MAC[16];
   int result;
 
@@ -734,7 +706,7 @@ static int integrity_decode(void *context,
     unsigned int extralen=0;
     unsigned diff;
     int result;
-    int lup;
+    unsigned lup;
 
     printf("needsize=%i\n",text->needsize);
     for (lup=0;lup<inputlen;lup++)
@@ -1145,10 +1117,8 @@ static int server_continue_step (void *conn_context,
 		  }
 		  while (divaddr < xxx);
 
+		  sasl_strdup(sparams->utils, value, &qop, NULL);
 	*/
-
-		  
-
 
       } else if (strcmp(name,"digest-uri")==0) {
 
@@ -1340,6 +1310,8 @@ static int server_continue_step (void *conn_context,
 
     oparams->maxoutbuf=1024; /* no clue what this should be*/
   
+    oparams->encode=NULL;
+    oparams->decode=NULL;
 
     if (sasl_strdup(sparams->utils, realm, &oparams->realm, NULL)==SASL_NOMEM)
     {
@@ -1375,7 +1347,8 @@ static int server_continue_step (void *conn_context,
     text->malloc=sparams->utils->malloc;
     text->free=sparams->utils->free;
 
-
+    oparams->encode=&integrity_encode;
+    oparams->decode=&integrity_decode;
 
     /* used by layers */
     text->size=-1; 
@@ -1668,6 +1641,8 @@ static int c_continue_step (void *conn_context,
 	   (char **) &passwd, NULL);
 
     /*printf ("c_start step 2 : password is \"%s\"\n", passwd);*/
+
+    /*params->utils->free((void *) (*prompt_need)->result); //This doesn't work!!!*/
 
     /* free prompt */
     params->utils->free(*prompt_need);

@@ -170,6 +170,9 @@ typedef struct sasl_out_params {
      * are added.
      */
     int param_version;
+
+    /* Credentials passed by clients.  NOTE: this should ONLY
+     * be set by server plugins. */
     sasl_credentials_t *credentials;
 } sasl_out_params_t;
 
@@ -468,14 +471,14 @@ typedef struct sasl_server_plug {
      		 sasl_server_params_t *sparams);
 
      /* install credentials returned earlier by the plugin. */
-     int (*install_credentials)(void *glob_context,
+     int (*install_credentials)(void *conn_context,
 				sasl_credentials_t *credentials);
      /* uninstall credentials returned earlier by the plugin. */
-     int (*uninstall_credentials)(void *glob_context,
+     int (*uninstall_credentials)(void *conn_context,
 				  sasl_credentials_t *credentials);
      /* free credentials returned earlier by the plugin. */
-     int (*free_credentials)(void *glob_context,
-			     sasl_credentials_t *credentials);
+     int (*dispose_credentials)(void *conn_context,
+				sasl_credentials_t *credentials);
 } sasl_server_plug_t;
 
 #define SASL_SERVER_PLUG_VERSION 3

@@ -67,7 +67,7 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 
 #ifdef L_DEFAULT_GUARD
 # undef L_DEFAULT_GUARD
-# define L_DEFAULT_GUARD (0)
+# define L_DEFAULT_GUARD (1)
 #endif
 
 #ifdef sun
@@ -536,6 +536,9 @@ static int server_continue_step (void *conn_context,
     sout[2]=nchal >> 8;
     sout[3]=nchal ;
     sout[4]=1 | 2 | 4;     /* bitmask sec layers supported by server */
+    if (sparams->props.security_flags
+	& SASL_SEC_PASS_CREDENTIALS)
+      sout[4] |= 8;
     sout[5]=0xFF;  /* max ciphertext buffer size */
     sout[6]=0xFF;
     sout[7]=0xFF;
@@ -753,7 +756,7 @@ static int client_continue_step (void *conn_context,
 				 sasl_client_params_t *params,
 				 const char *serverin,
 				 int serverinlen,
-				 sasl_interact_t **prompt_need __attribute__((unused)),
+				 sasl_interact_t **prompt_need,
 				 char **clientout,
 				 int *clientoutlen,
 				 sasl_out_params_t *oparams)
@@ -845,17 +848,150 @@ static int client_continue_step (void *conn_context,
     unsigned long nchal;    
     unsigned char sout[1024];
     unsigned int lup;
-    int len;
+    unsigned len;
     unsigned char in[8];
-    char *userid;
+    const char *userid, *authid;
     int result;
     int external;
     krb_principal principal;
     sasl_security_properties_t secprops;
+    sasl_getsimple_t *getuser_cb;
+    void *getuser_context;
+    sasl_interact_t *prompt;
 
-    params->utils->getprop(params->utils->conn, SASL_USERNAME,
-			   (void **)&userid);
+    if (prompt_need && *prompt_need) {
+      /* If we requested prompts, make sure they're
+       * properly filled in. */
+      for (prompt = *prompt_need;
+	   prompt->id != SASL_CB_LIST_END;
+	   ++prompt)
+	if (! prompt->result)
+	  return SASL_BADPARAM;
 
+      /* Get the username */
+      if (! oparams->user)
+	for (prompt = *prompt_need;
+	     prompt->id != SASL_CB_LIST_END;
+	     ++prompt)
+	  if (prompt->id == SASL_CB_USER) {
+	    oparams->user
+	      = params->utils->malloc(strlen(prompt->result) + 1);
+	    if (! oparams->user)
+	      return SASL_NOMEM;
+	    strcpy(oparams->user, prompt->result);
+	    break;
+	  }
+
+      /* Get the authname */
+      if (! oparams->authid)
+	for (prompt = *prompt_need;
+	     prompt->id != SASL_CB_LIST_END;
+	     ++prompt)
+	  if (prompt->id == SASL_CB_AUTHNAME) {
+	    oparams->authid
+	      = params->utils->malloc(strlen(prompt->result) + 1);
+	    if (! oparams->authid)
+	      return SASL_NOMEM;
+	    strcpy(oparams->authid, prompt->result);
+	    break;
+	  }
+      
+      params->utils->free(*prompt_need);
+      *prompt_need = NULL;
+    }
+
+    /* Now, try to get the userid by normal means... */
+    if (! oparams->user) {
+      /* Try to get the callback... */
+      result = params->utils->getcallback(params->utils->conn,
+					  SASL_CB_USER,
+					  &getuser_cb,
+					  &getuser_context);
+      switch (result) {
+      case SASL_INTERACT:
+	/* We'll set up an interaction later. */
+	return SASL_INTERACT;
+      case SASL_OK:
+	if (! getuser_cb)
+	  return SASL_FAIL;
+	result = getuser_cb(getuser_context,
+			    SASL_CB_USER,
+			    &userid,
+			    NULL);
+	if (result != SASL_OK)
+	  return result;
+	if (! userid)
+	  return SASL_BADPARAM;
+	oparams->user = params->utils->malloc(strlen(userid) + 1);
+	if (! oparams->user)
+	  return SASL_NOMEM;
+	strcpy(oparams->user, userid);
+	break;
+      default:
+	return result;
+      }
+    }
+      
+    /* And the authid... */
+    if (! oparams->authid) {
+      /* Try to get the callback... */
+      result = params->utils->getcallback(params->utils->conn,
+					  SASL_CB_AUTHNAME,
+					  &getuser_cb,
+					  &getuser_context);
+      switch (result) {
+      case SASL_INTERACT:
+	/* We'll set up an interaction later. */
+	return SASL_INTERACT;
+      case SASL_OK:
+	if (! getuser_cb)
+	  return SASL_FAIL;
+	result = getuser_cb(getuser_context,
+			    SASL_CB_AUTHNAME,
+			    &authid,
+			    NULL);
+	if (result != SASL_OK)
+	  return result;
+	if (! authid)
+	  return SASL_BADPARAM;
+	oparams->authid = params->utils->malloc(strlen(authid) + 1);
+	if (! oparams->authid)
+	  return SASL_NOMEM;
+	strcpy(oparams->authid, authid);
+	break;
+      default:
+	return result;
+      }
+    }
+
+    /* And now, if we *still* don't have either of them,
+     * we need to set up a prompt. */
+    if (! oparams->authid || ! oparams->user) {
+      if (! prompt_need)
+	return SASL_INTERACT;
+      *prompt_need = params->utils->malloc(sizeof(sasl_interact_t) *
+					   ((! oparams->authid
+					     && ! oparams->user)
+					    ? 3 : 2));
+      if (! *prompt_need)
+	return SASL_NOMEM;
+      prompt = *prompt_need;
+      if (! oparams->user) {
+	prompt->id = SASL_CB_USER;
+	prompt->prompt = "Remote Userid";
+	prompt->defresult = NULL;
+	prompt++;
+      }
+      if (! oparams->authid) {
+	prompt->id = SASL_CB_AUTHNAME;
+	prompt->prompt = "Kerberos Identifier";
+	prompt->defresult = NULL;
+	prompt++;
+      }
+      prompt->id = SASL_CB_LIST_END;
+      return SASL_INTERACT;
+    }
+      
 #ifndef WIN32
     if (! userid) {
       krb_get_default_principal(principal.name,
@@ -884,14 +1020,14 @@ static int client_continue_step (void *conn_context,
       return SASL_BADAUTH;
     }
     memcpy(text->session, text->credentials.session, 8);
-    des_key_sched(text->session, text->init_keysched);
+    des_key_sched((des_cblock *)text->session, text->init_keysched);
 
-    des_key_sched(text->session, text->enc_keysched); /* make keyschedule for */
-    des_key_sched(text->session, text->dec_keysched); /* encryption and decryption */
+    des_key_sched((des_cblock *)text->session, text->enc_keysched); /* make keyschedule for */
+    des_key_sched((des_cblock *)text->session, text->dec_keysched); /* encryption and decryption */
 
 
     /* decrypt from server */
-    des_ecb_encrypt(in,in,text->init_keysched,DES_DECRYPT);
+    des_ecb_encrypt((des_cblock *)in, (des_cblock *)in, text->init_keysched,DES_DECRYPT);
 
     /* convert to 32bit int */
     testnum=(in[0]*256*256*256)+(in[1]*256*256)+(in[2]*256)+in[3];
@@ -972,10 +1108,8 @@ static int client_continue_step (void *conn_context,
 
 
     /* append userid */
-    for (lup=0;lup<strlen(userid);lup++)
-      sout[8+lup]=userid[lup];
-    
-    len=9+strlen(userid)-1;
+    strcpy(sout + 8, oparams->user);
+    len=9+strlen(oparams->user);
 
     /* append 0 based octets so is multiple of 8 */
     while(len%8)
@@ -985,10 +1119,13 @@ static int client_continue_step (void *conn_context,
     }
     sout[len]=0;
     
-    des_key_sched(text->session, text->init_keysched);
-    des_pcbc_encrypt((unsigned char *)sout,
-		     (unsigned char *)sout,
-		     len, text->init_keysched, text->session, DES_ENCRYPT);
+    des_key_sched((des_cblock *)text->session, text->init_keysched);
+    des_pcbc_encrypt((des_cblock *)sout,
+		     (des_cblock *)sout,
+		     len,
+		     text->init_keysched,
+		     (des_cblock *)text->session,
+		     DES_ENCRYPT);
 
     *clientout = params->utils->malloc(len);
     memcpy((char *) *clientout, sout, len);
@@ -998,9 +1135,6 @@ static int client_continue_step (void *conn_context,
     /*nothing more to do; should be authenticated */
     oparams->doneflag=1;
     oparams->maxoutbuf=1024; /* no clue what this should be */
-
-    oparams->user=userid;      /* set username */
-    oparams->authid=userid;
 
     oparams->param_version=0;
 

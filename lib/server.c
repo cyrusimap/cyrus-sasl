@@ -309,7 +309,7 @@ static void server_dispose(sasl_conn_t *pconn)
 {
   sasl_server_conn_t *s_conn=  (sasl_server_conn_t *) pconn;
 
-  if (s_conn->mech)
+  if (s_conn->mech && s_conn->mech->plug->mech_dispose)
     s_conn->mech->plug->mech_dispose(s_conn->base.context,
 				     s_conn->sparams->utils);
 
@@ -532,6 +532,8 @@ int sasl_server_new(const char *service,
 
   serverconn->sparams->transition = &_sasl_transition;
 
+  serverconn->sparams->props = serverconn->base.props;
+
   if (local_domain==NULL) {
     char name[MAXHOSTNAMELEN];
     memset(name, 0, sizeof(name));
@@ -741,15 +743,18 @@ int sasl_listmech(sasl_conn_t *conn,
   if (mechlist->mech_length<=0)
     return SASL_NOMECH;
 
-  resultlen = strlen(prefix)
-            + strlen(sep) * (mechlist->mech_length - 1)
+  resultlen = (prefix ? strlen(prefix) : 0)
+            + (sep ? strlen(sep) : 1) * (mechlist->mech_length - 1)
 	    + mech_names_len()
-    	    + strlen(suffix)
+            + (suffix ? strlen(suffix) : 0)
 	    + 1;
   *result=sasl_ALLOC(resultlen);
   if ((*result)==NULL) return SASL_NOMEM;
 
-  strcpy (*result,prefix);
+  if (prefix)
+    strcpy (*result,prefix);
+  else
+    **result = '\0';
 
   listptr=mechlist->mech_list;  
    
@@ -766,7 +771,10 @@ int sasl_listmech(sasl_conn_t *conn,
 
       if (listptr->next!=NULL)
       {
-	strcat(*result,sep);
+	if (sep)
+	  strcat(*result,sep);
+	else
+	  strcat(*result," ");
       }
 
     }
@@ -774,7 +782,8 @@ int sasl_listmech(sasl_conn_t *conn,
     listptr=listptr->next;
   }
 
-  strcat(*result,suffix);
+  if (suffix)
+    strcat(*result,suffix);
 
   if (plen!=NULL)
     *plen=resultlen - 1;	/* one for the null */

@@ -1,6 +1,6 @@
 Summary: SASL API Implementation
 Name: cyrus-sasl
-Version: v1.3b1
+Version: v1.4b1
 Release: 1
 Copyright: CMU
 Group: Libraries
@@ -36,7 +36,7 @@ if test -L /usr/lib/sasl; then
 fi
 
 %files
-%doc README COPYING ChangeLog NEWS AUTHORS
+%doc README COPYING ChangeLog NEWS AUTHORS doc/rfc2222.txt doc/draft-leach-digest-sasl-01.txt doc/draft-newman-auth-scram-03.txt doc/draft-newman-sasl-anon-00.txt 
 /usr/lib/sasl
 /usr/lib/libsasl.so.4.0.0
 /usr/lib/libsasl.so.4

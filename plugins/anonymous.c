@@ -81,6 +81,7 @@ continue_step (void *conn_context __attribute__((unused)),
 {
   int result;
   struct sockaddr_in remote_addr;   
+  char *clientdata;
 
   if (!sparams
       || !serverout
@@ -97,6 +98,17 @@ continue_step (void *conn_context __attribute__((unused)),
     return SASL_CONTINUE;
   }
 
+  /* NULL-terminate the clientin... */
+  if (! clientin[clientinlen])
+    clientdata = (char *) clientin;
+  else {
+    clientdata = sparams->utils->malloc(clientinlen + 1);
+    if (! clientdata)
+      return SASL_NOMEM;
+    strncpy(clientdata, clientin, clientinlen);
+    clientdata[clientinlen] = '\0';
+  }
+
   result = sparams->utils->getprop(sparams->utils->conn,
 				   SASL_IP_REMOTE, (void **)&remote_addr);
 
@@ -106,9 +118,8 @@ continue_step (void *conn_context __attribute__((unused)),
     sparams->utils->log(sparams->utils->conn,
 			SASL_LOG_INFO,
 			"ANONYMOUS", 0, 0,
-			"login: \"%*s\" from [%i.%i.%i.%i]",
-			clientinlen,
-			clientin,
+			"login: \"%s\" from [%i.%i.%i.%i]",
+			clientdata,
 			ipnum >> 24 & 0xFF,
 			ipnum >> 16 & 0xFF,
 			ipnum >> 8 &0xFF,
@@ -117,11 +128,13 @@ continue_step (void *conn_context __attribute__((unused)),
     sparams->utils->log(sparams->utils->conn,
 			SASL_LOG_INFO,
 			"ANONYMOUS", 0, 0,
-			"login: \"%*s\" from [no IP given]",
-			clientinlen,
-			clientin);
+			"login: \"%s\" from [no IP given]",
+			clientdata);
   }
 
+  if (clientdata != clientin)
+    sparams->utils->free(clientdata);
+  
   oparams->mech_ssf=0;
   oparams->maxoutbuf=0;
   oparams->encode=NULL;
@@ -215,7 +228,6 @@ c_continue_step(void *conn_context __attribute__((unused)),
   const char *user;
 
   if (!params
-      || !prompt_need
       || !clientout
       || !clientoutlen
       || !oparams)
@@ -229,7 +241,7 @@ c_continue_step(void *conn_context __attribute__((unused)),
     return SASL_TOOWEAK;
 
   /* Get the username */
-  if (*prompt_need) {
+  if (prompt_need && *prompt_need) {
     /* We used an interaction to get it. */
     if (! (*prompt_need)[0].result)
       return SASL_BADPARAM;
@@ -245,14 +257,16 @@ c_continue_step(void *conn_context __attribute__((unused)),
     switch (result) {
     case SASL_INTERACT:
       /* Set up the interaction... */
-      *prompt_need = params->utils->malloc(sizeof(sasl_interact_t) * 2);
-      if (! *prompt_need)
-	return SASL_FAIL;
-      memset(*prompt_need, 0, sizeof(sasl_interact_t) * 2);
-      (*prompt_need)[0].id = SASL_CB_USER;
-      (*prompt_need)[0].prompt = "Anonymous Identification";
-      (*prompt_need)[0].defresult = "";
-      (*prompt_need)[1].id = SASL_CB_LIST_END;
+      if (prompt_need) {
+	*prompt_need = params->utils->malloc(sizeof(sasl_interact_t) * 2);
+	if (! *prompt_need)
+	  return SASL_FAIL;
+	memset(*prompt_need, 0, sizeof(sasl_interact_t) * 2);
+	(*prompt_need)[0].id = SASL_CB_USER;
+	(*prompt_need)[0].prompt = "Anonymous Identification";
+	(*prompt_need)[0].defresult = "";
+	(*prompt_need)[1].id = SASL_CB_LIST_END;
+      }
       return SASL_INTERACT;
     case SASL_OK:
       if (! getuser_cb
@@ -271,13 +285,17 @@ c_continue_step(void *conn_context __attribute__((unused)),
     }
   }
   
+  if (! user)
+    user = "anonymous";
+  
   VL(("anonymous: user=%s\n",user));
 
   userlen = strlen(user);
 
   memset(hostname, 0, sizeof(hostname));
   gethostname(hostname,sizeof(hostname));
-
+  hostname[sizeof(hostname)] = '\0';
+  
   *clientoutlen = userlen + strlen(hostname) + 1;
 
   *clientout = params->utils->malloc(*clientoutlen + 1);
@@ -285,7 +303,7 @@ c_continue_step(void *conn_context __attribute__((unused)),
 
   strcpy(*clientout, user);
   (*clientout)[userlen] = '@';
-  strcpy(*clientout + userlen, hostname);
+  strcpy(*clientout + userlen + 1, hostname);
 
   VL(("anonymous: out=%s\n", *clientout));
 

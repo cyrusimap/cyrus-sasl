@@ -683,6 +683,7 @@ _sasl_getcallback(sasl_conn_t * conn,
   case SASL_CB_PROXY_POLICY:
     *pproc = (int (*)()) &_sasl_proxy_policy;
     *pcontext = NULL;
+    return SASL_OK;
   }
 
   /* Unable to find a callback... */

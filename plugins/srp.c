@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.24 2002/01/19 18:57:53 ken3 Exp $
+ * $Id: srp.c,v 1.25 2002/01/19 22:46:34 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2728,6 +2728,7 @@ static int server_step3(context_t *text,
     /* if we have a confidentiality layer we're done - send nothing */
     if (text->enabled & BIT_CONFIDENTIALITY) {
 
+	/* Set oparams */
 	oparams->doneflag=1;
 
 	oparams->param_version = 0;
@@ -2735,7 +2736,7 @@ static int server_step3(context_t *text,
 	*serverout = NULL;
 	*serveroutlen = 0;
 
-	text->state = 5;
+	text->state++; /* so fails if called again */
 	r = SASL_OK;
 	goto end;
     }
@@ -2772,16 +2773,13 @@ static int server_step3(context_t *text,
       goto end;
     }
 
-    /* If the protocol supports server-send-last, we're done */
-    if (params->flags & SASL_SUCCESS_DATA) {
-	text->state = 5;
-	r = SASL_OK;
-    }
-    /* otherwise, wait for an empty exchange */
-    else {
-	text->state++;
-	r = SASL_CONTINUE;
-    }
+    /* Set oparams */
+    oparams->doneflag=1;
+
+    oparams->param_version = 0;
+
+    text->state++; /* so fails if called again */
+    r = SASL_OK;
 
  end:
     if (osM2)   params->utils->free(osM2);
@@ -2790,32 +2788,6 @@ static int server_step3(context_t *text,
     if (M1)     params->utils->free(M1);
 
     return r;    
-}
-
-static int server_step4(context_t *text,
-			sasl_server_params_t *params,
-			const char *clientin __attribute__((unused)),
-			unsigned clientinlen,
-			const char **serverout,
-			unsigned *serveroutlen,
-			sasl_out_params_t *oparams)
-{
-    if (clientinlen > 0) {
-      params->utils->seterror(params->utils->conn, 0, 
-	"Data is not valid in SRP step 4");
-      return SASL_FAIL;
-    }
-
-    /* Set oparams */
-    oparams->doneflag=1;
-
-    oparams->param_version = 0;
-
-    *serverout = NULL;
-    *serveroutlen = 0;
-
-    text->state++;
-    return SASL_OK;
 }
 
 
@@ -2848,9 +2820,6 @@ static int srp_server_mech_step(void *conn_context,
 			      serverout, serveroutlen, oparams);
       case 3:
 	  return server_step3(text, sparams, clientin, clientinlen,
-			      serverout, serveroutlen, oparams);
-      case 4:
-	  return server_step4(text, sparams, clientin, clientinlen,
 			      serverout, serveroutlen, oparams);
       default:
 	  sparams->utils->seterror(sparams->utils->conn, 0,
@@ -3741,7 +3710,7 @@ static int client_step3(context_t *text,
 
     /* if we have a confidentiality layer we're done */
     if (text->enabled & BIT_CONFIDENTIALITY) {
-	text->state = 5;
+	text->state = 5; /* so fails if called again */
 	r = SASL_OK;
 	goto done;
     }
@@ -3823,10 +3792,10 @@ static int client_step4(context_t *text,
     /*
      * Send out: nothing
      */
-    *clientout = "";
+    *clientout = NULL;
     *clientoutlen = 0;
 
-    text->state++;
+    text->state++; /* so fails if called again */
     r = SASL_OK;
 
  done:

@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.c,v 1.16 2003/12/15 19:03:08 rjs3 Exp $
+ * $Id: plugin_common.c,v 1.17 2003/12/18 23:40:14 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -667,6 +667,10 @@ int _plug_decode(decode_context_t *text,
 		if (text->buffer == NULL) return SASL_NOMEM;
 
 		text->cursize = 0;
+	    } else {
+		/* We do NOT have the entire 4-byte size...
+		 * wait for more data */
+		return SASL_OK;
 	    }
 	}
 

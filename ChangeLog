@@ -1,5 +1,9 @@
+2002-08-28  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/client.c, lib/saslint.h: Properly handle client-side
+	  serverFQDN and clientFQDN
+
 2002-08-19  Rob Siemborski <rjs3@andrew.cmu.edu>
-	* use correct paths when a .la file is not present
+	* lib/dlopen.c: use correct paths when a .la file is not present
 	  (Justin Gibbs <gibbs@scsiguy.com>)
 
 2002-08-13  Rob Siemborski <rjs3@andrew.cmu.edu>

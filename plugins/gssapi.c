@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.76 2003/07/23 00:57:47 ken3 Exp $
+ * $Id: gssapi.c,v 1.77 2003/07/25 20:25:44 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -87,7 +87,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.76 2003/07/23 00:57:47 ken3 Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.77 2003/07/25 20:25:44 rjs3 Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -142,8 +142,13 @@ enum {
     SASL_GSSAPI_STATE_AUTHENTICATED = 4
 };
 
+/* sasl_gss_log: only logs status string returned from gss_display_status() */
+#define sasl_gss_log(x,y,z) sasl_gss_seterror_(x,y,z,1)
+#define sasl_gss_seterror(x,y,z) sasl_gss_seterror_(x,y,z,0)
+
 static void
-sasl_gss_seterror(const sasl_utils_t *utils, OM_uint32 maj, OM_uint32 min)
+sasl_gss_seterror_(const sasl_utils_t *utils, OM_uint32 maj, OM_uint32 min,
+	int logonly)
 {
     OM_uint32 maj_stat, min_stat;
     gss_buffer_desc msg;
@@ -167,9 +172,14 @@ sasl_gss_seterror(const sasl_utils_t *utils, OM_uint32 maj, OM_uint32 min)
 				      GSS_C_GSS_CODE, GSS_C_NULL_OID,
 				      &msg_ctx, &msg);
 	if(GSS_ERROR(maj_stat)) {
-	    utils->seterror(utils->conn, 0,
-			    "GSSAPI Failure "
-			    "(could not get major error message)");
+	    if (logonly) {
+		utils->log(utils->conn, SASL_LOG_FAIL,
+			"GSSAPI Failure: (could not get major error message)");
+	    } else {
+		utils->seterror(utils->conn, 0,
+				"GSSAPI Failure "
+				"(could not get major error message)");
+	    }
 	    utils->free(out);
 	    return;
 	}
@@ -207,9 +217,14 @@ sasl_gss_seterror(const sasl_utils_t *utils, OM_uint32 maj, OM_uint32 min)
 				      GSS_C_MECH_CODE, GSS_C_NULL_OID,
 				      &msg_ctx, &msg);
 	if(GSS_ERROR(maj_stat)) {
-	    utils->seterror(utils->conn, 0,
-			    "GSSAPI Failure "
-			    "(could not get minor error message)");
+	    if (logonly) {
+		utils->log(utils->conn, SASL_LOG_FAIL,
+			"GSSAPI Failure: (could not get minor error message)");
+	    } else {
+		utils->seterror(utils->conn, 0,
+				"GSSAPI Failure "
+				"(could not get minor error message)");
+	    }
 	    utils->free(out);
 	    return;
 	}
@@ -239,7 +254,11 @@ sasl_gss_seterror(const sasl_utils_t *utils, OM_uint32 maj, OM_uint32 min)
     
     strcat(out, ")");
     
-    utils->seterror(utils->conn, 0, out);
+    if (logonly) {
+	utils->log(utils->conn, SASL_LOG_FAIL, out);
+    } else {
+	utils->seterror(utils->conn, 0, out);
+    }
     utils->free(out);
 }
 
@@ -614,11 +633,11 @@ gssapi_server_mech_step(void *conn_context,
 				   NULL);
 	
 	if (GSS_ERROR(maj_stat)) {
+	    sasl_gss_log(text->utils, maj_stat, min_stat);
+	    text->utils->seterror(text->utils->conn, SASL_NOLOG, "GSSAPI Failure: gss_accept_sec_context");
 	    if (output_token->value) {
 		gss_release_buffer(&min_stat, output_token);
 	    }
-	    text->utils->seterror(text->utils->conn, SASL_NOLOG, "GSSAPI Failure: gss_accept_sec_context");
-	    text->utils->log(NULL, SASL_LOG_DEBUG, "GSSAPI Failure: gss_accept_sec_context");
 	    sasl_gss_free_context_contents(text);
 	    return SASL_BADAUTH;
 	}

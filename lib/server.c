@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.55 1999/11/10 21:52:36 tmartin Exp $
+ * $Id: server.c,v 1.56 1999/11/15 23:53:07 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -758,6 +758,14 @@ static int mech_permitted(sasl_conn_t *conn,
 
   /* security properties---if there are any flags that differ and are
      in what the connection are requesting, then fail */
+
+  /* special case PLAIN and no plaintext allowed */
+  if (( strcmp(plug->mech_name,"PLAIN")==0) && (conn->props.security_flags & SASL_SEC_NOPLAINTEXT)) {
+
+    /* if there's an external layer this is no longer plaintext */
+    if ((conn->props.min_ssf <= conn->external.ssf) && (conn->external.ssf > 0))
+      return 1;
+  }
 
   /* do we want to special case SASL_SEC_PASS_CREDENTIALS? nah.. */
   if (((conn->props.security_flags ^ plug->security_flags) 

@@ -1,6 +1,6 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Earhart
- * $Id: dlopen.c,v 1.3 1998/11/17 02:10:50 tmartin Exp $
+ * $Id: dlopen.c,v 1.4 1998/11/17 02:11:52 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -123,7 +123,7 @@ int _sasl_get_mech_list(const char *entryname,
 	  library=NULL;
 	  if (!(library=dlopen(tmp,RTLD_LAZY)))
 	    {
-	      VL(("can't dlopen!\n"));
+	      VL(("Unable to dlopen %s: %s\n", tmp, dlerror()));
 	      continue;
 	    }
 	}

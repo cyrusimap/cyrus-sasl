@@ -1,4 +1,4 @@
-2002-06-16  Rob Siemborski <rjs3+@andrew.cmu.edu>
+2002-07-16  Rob Siemborski <rjs3+@andrew.cmu.edu>
         * plugins/cram.c: Fix a security problem in the verification of
           the digest string. (Andrew Jones <arjones@simultan.dyndns.org>)
 	* Ready for 2.1.6

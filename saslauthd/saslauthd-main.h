@@ -84,7 +84,7 @@
 #define MAX_REQ_LEN		256     
 
 /* socket backlog when supported */
-#define SOCKET_BACKLOG  	5
+#define SOCKET_BACKLOG  	32
 
 /* saslauthd-main.c */
 extern char	*do_auth(const char *, const char *,

@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.71 2003/02/13 19:56:04 rjs3 Exp $
+ * $Id: gssapi.c,v 1.72 2003/03/31 22:07:32 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -87,7 +87,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.71 2003/02/13 19:56:04 rjs3 Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.72 2003/03/31 22:07:32 rjs3 Exp $";
 
 #ifndef HAVE_GSS_C_NT_HOSTBASED_SERVICE
 extern gss_OID gss_nt_service_name;
@@ -999,9 +999,10 @@ gssapi_server_mech_step(void *conn_context,
 	}	
 	
 	/* No matter what, set the rest of the oparams */
-        oparams->maxoutbuf = (((char *) output_token->value)[1] << 16) |
-            (((char *) output_token->value)[2] << 8) |
-            (((char *) output_token->value)[3] << 0);
+        oparams->maxoutbuf =
+	    (((unsigned char *) output_token->value)[1] << 16) |
+            (((unsigned char *) output_token->value)[2] << 8) |
+            (((unsigned char *) output_token->value)[3] << 0);
 
 	if (oparams->mech_ssf) {
 	    /* xxx this is probably too big */
@@ -1413,9 +1414,10 @@ static int gssapi_client_mech_step(void *conn_context,
 	    return SASL_TOOWEAK;
 	}
 	
-        oparams->maxoutbuf = (((char *) output_token->value)[1] << 16) |
-            (((char *) output_token->value)[2] << 8) |
-            (((char *) output_token->value)[3] << 0);
+        oparams->maxoutbuf =
+	    (((unsigned char *) output_token->value)[1] << 16) |
+            (((unsigned char *) output_token->value)[2] << 8) |
+            (((unsigned char *) output_token->value)[3] << 0);
 
 	if(oparams->mech_ssf) {
 	    /* xxx probably too large */

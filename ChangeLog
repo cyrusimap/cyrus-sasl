@@ -1,3 +1,8 @@
+Mon Nov 15 00:43:10 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* configure.in: kerberos v4 check now looks for the include file,
+ 	too
+
 1999-11-11  Larry Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/kerberos4.c (new_text): fixed the type to what is
@@ -5,7 +10,7 @@
 
 Thu Nov 11 00:10:33 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
-	* lib/checkpw.c: patches from Ronald Guilmette (rfg@monkeys.com)
+	* lib/checkpw.c: patches from Ronald Guilmette <rfg@monkeys.com>
 	to minimize warnings in kerberos code
 
 	* plugins/kerberos4.c: ditto
@@ -19,7 +24,7 @@ Thu Nov 11 00:10:33 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 1999-11-10  Timothy L Martin  <tmartin@andrew.cmu.edu>
 
 	* lib/checkpw.c (parseuser): Added patches from Claus Assmann
-	(ca+sasl@sendmail.org); fixes segfault
+	<ca+sasl@sendmail.org>; fixes segfault
 
 1999-11-06  Timothy L Martin  <tmartin@andrew.cmu.edu>
 
@@ -41,7 +46,7 @@ Thu Nov 11 00:10:33 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 Thu Oct 28 13:58:43 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* configure.in: applied patch from Joe Hohertz
-	(jhohertz@golden.net) to get pwcheck to compile.
+	<jhohertz@golden.net> to get pwcheck to compile.
 
 Mon Oct 25 14:46:04 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 

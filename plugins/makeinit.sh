@@ -48,11 +48,11 @@ done
 for mech in sasldb mysql ; do
 
 echo "
+#include <config.h>
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <config.h>
-#include <time.h>
 #ifndef macintosh
 #include <sys/stat.h>
 #endif

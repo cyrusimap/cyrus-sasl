@@ -1,3 +1,9 @@
+New in 1.2b2
+----------------------------------------
+* Win32 client support
+* Fixes to anonymous mech
+* Some signed lengths in the API changed to unsigned
+
 New in 1.2b1
 ----------------------------------------
 * Lots of bug fixes

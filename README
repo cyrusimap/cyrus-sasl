@@ -1,5 +1,6 @@
-This is the SASL API library. It can be used on the client or server
-side to provide authentication. See RFC 2222 for more information.
+This is the Cyrus SASL API implentation. It can be used on the client
+or server side to provide authentication. See RFC 2222 for more
+information.
 
 The following mechanisms are included in this distribution:
 ANONYMOUS

@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.27 2002/06/25 19:49:31 rjs3 Exp $
+ * $Id: testsuite.c,v 1.28 2002/09/19 18:43:36 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1097,10 +1097,10 @@ const sasl_security_properties_t security_props = {
 void set_properties(sasl_conn_t *conn, const sasl_security_properties_t *props)
 {
     if(!props) {
-	if (sasl_setprop(conn, SASL_SEC_PROPS, &security_props)!=SASL_OK)
-	    fatal("sasl_setprop() failed");
+	if (sasl_setprop(conn, SASL_SEC_PROPS, &security_props) != SASL_OK)
+	    fatal("sasl_setprop() failed - default properties");
     } else {
-       	if (sasl_setprop(conn, SASL_SEC_PROPS, props)!=SASL_OK)
+       	if (sasl_setprop(conn, SASL_SEC_PROPS, props) != SASL_OK)
 	    fatal("sasl_setprop() failed");
     }
 
@@ -2224,7 +2224,11 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
 	fatal("sasl_getprop in testseclayer");
     }
 
-    printf("  Testing SSF: %d (requested %d/%d with maxbufsize: %d)\n",
+    if(*this_ssf != 0 && !test_props[i]->maxbufsize) {
+	fatal("got nonzero SSF with zero maxbufsize");
+    }
+
+    printf("  SUCCESS Testing SSF: %d (requested %d/%d with maxbufsize: %d)\n",
 	   (unsigned)(*this_ssf),
 	   test_props[i]->min_ssf, test_props[i]->max_ssf,
 	   test_props[i]->maxbufsize);

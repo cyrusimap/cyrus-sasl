@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.91 2000/05/08 17:51:13 leg Exp $
+dnl $Id: configure.in,v 1.92 2000/05/22 20:46:46 leg Exp $
 dnl
 dnl Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -143,12 +143,17 @@ AC_ARG_WITH(dblib, [  --with-dblib=DBLIB      set the DB library to use [berkele
   dblib=auto_detect)
 SASL_DB_LIB=""
 case "$dblib" in
+dnl this is unbelievably painful due to confusion over what db-3 should be
+dnl named.  arg.
   berkeley)
 	AC_CHECK_HEADER(db.h,
+			AC_CHECK_LIB(db-3, db_create, SASL_DB_LIB="-ldb-3";
+			   dblib="berkeley",
+			AC_CHECK_LIB(db, db_create, SASL_DB_LIB="-ldb";
+			   dblib="berkeley",
 			AC_CHECK_LIB(db, db_open, SASL_DB_LIB="-ldb"; 
-				dblib="berkeley",
-                        	AC_CHECK_LIB(db, db_create, SASL_DB_LIB="-ldb";
-					dblib="berkeley", dblib="no")),
+			   dblib="berkeley",
+                        dblib="no"))),
 			dblib="no")
 	;;
   gdbm)
@@ -168,10 +173,13 @@ case "$dblib" in
   auto_detect)
         dnl How about berkeley db?
 	AC_CHECK_HEADER(db.h,
+			AC_CHECK_LIB(db-3, db_create, SASL_DB_LIB="-ldb-3";
+			   dblib="berkeley",
+			AC_CHECK_LIB(db, db_create, SASL_DB_LIB="-ldb";
+			   dblib="berkeley",
 			AC_CHECK_LIB(db, db_open, SASL_DB_LIB="-ldb"; 
-				dblib="berkeley",
-                        	AC_CHECK_LIB(db, db_create, SASL_DB_LIB="-ldb";
-					dblib="berkeley", dblib="no")),
+			   dblib="berkeley",
+                        dblib="no"))),
 			dblib="no")
 	if test "$dblib" = no; then
 	  dnl How about ndbm?

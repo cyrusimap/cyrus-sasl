@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.170 2003/07/17 19:04:17 ken3 Exp $
+dnl $Id: configure.in,v 1.171 2003/07/21 15:18:47 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -583,9 +583,6 @@ else
   AC_MSG_RESULT(disabled)
 fi
 
-
-############################################################################
-# Simon Loader tries to do auto conf
 dnl MySQL
 AC_ARG_WITH(mysql,  [  --with-mysql=PATH       use MySQL from PATH ],
   with_mysql=$withval,
@@ -615,13 +612,13 @@ case "$with_mysql" in
     no) true;;
     *)
      if test -d ${with_mysql}/lib/mysql; then
-         LIB_MYSQL="-L${with_mysql}/lib/mysql"
+         LIB_MYSQL="-L${with_mysql}/lib/mysql -R${with_mysql}/lib/mysql"
      elif test -d ${with_mysql}/mysql/lib; then
-         LIB_MYSQL="-L${with_mysql}/mysql/lib"
+         LIB_MYSQL="-L${with_mysql}/mysql/lib -R${with_mysql}/mysql/lib"
      elif test -d ${with_mysql}/lib; then
-         LIB_MYSQL="-L${with_mysql}/lib"
+         LIB_MYSQL="-L${with_mysql}/lib -R${with_mysql}/lib"
      else
-         LIB_MYSQL="-L${with_mysql}"
+         LIB_MYSQL="-L${with_mysql} -R${with_mysql}"
      fi
 
      LIB_MYSQL_DIR=$LIB_MYSQL
@@ -641,9 +638,6 @@ case "$with_mysql" in
          
 esac
 AC_SUBST(LIB_MYSQL)
-
-# simon finishes trying to do autoconf
-###############################################################################
 
 dnl PgSQL
 AC_ARG_WITH(pgsql,  [  --with-pgsql=PATH       use PostgreSQL from PATH ],
@@ -674,13 +668,13 @@ case "$with_pgsql" in
     no) true;;
     *)
      if test -d ${with_pgsql}/lib/pgsql; then
-         LIB_PGSQL="-L${with_pgsql}/lib/pgsql"
+         LIB_PGSQL="-L${with_pgsql}/lib/pgsql -R${with_pgsql}/lib/pgsql"
      elif test -d ${with_pgsql}/pgsql/lib; then
-         LIB_PGSQL="-L${with_pgsql}/pgsql/lib"
+         LIB_PGSQL="-L${with_pgsql}/pgsql/lib -R${with_pgsql}/pgsql/lib"
      elif test -d ${with_pgsql}/lib; then
-         LIB_PGSQL="-L${with_pgsql}/lib"
+         LIB_PGSQL="-L${with_pgsql}/lib -R${with_pgsql}/lib"
      else
-         LIB_PGSQL="-L${with_pgsql}"
+         LIB_PGSQL="-L${with_pgsql} -R${with_pgsql}"
      fi
 
      LIB_PGSQL_DIR=$LIB_PGSQL

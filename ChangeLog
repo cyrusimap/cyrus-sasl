@@ -1,3 +1,6 @@
+2003-07-21  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* configure.in: add runpath information for MySQL and Postgres
+
 2003-07-18  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/digestmd5.c: Client side of digest md5 doesn't
 	  have quotes around its cypher= directive (Bug 2113).

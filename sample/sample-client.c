@@ -1,4 +1,4 @@
-/* sasl-client.c -- sample SASL client
+/* sample-client.c -- sample SASL client
  * Rob Earhart
  */
 /***********************************************************
@@ -24,12 +24,7 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
 OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ******************************************************************/
 
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif /* HAVE_CONFIG_H */
-#ifdef WIN32
-#include <winconfig.h>
-#endif /* WIN32 */
 #include <sasl.h>
 #include <saslutil.h>
 #include <netinet/in.h>
@@ -395,8 +390,6 @@ main(int argc, char *argv[])
   secprops.max_ssf = 9999; /* xxx doesn't work on solaris? UINT_MAX; */
   memset(&extprops, 0L, sizeof(extprops));
 
-#ifndef HAVE_SUBOPT
-
   while ((c = getopt(argc, argv, "hb:e:m:f:i:p:s:n:u:a:?")) != EOF)
     switch (c) {
     case 'b':
@@ -528,8 +521,6 @@ main(int argc, char *argv[])
     /* We don't *have* extra arguments */
     errflag = 1;
   }
-
-#endif
 
   if (errflag) {
     fprintf(stderr, "%s: Usage: %s [-b min=N,max=N] [-e ssf=N,id=ID] [-m MECH] [-f FLAGS] [-i local=IP,remote=IP] [-p PATH] [-s NAME] [-n FQDN] [-u ID] [-a ID]\n"

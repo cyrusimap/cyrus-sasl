@@ -24,6 +24,6 @@
 ################################################################
 
 EXTRA_DIST =	rfc2222.txt \
-		draft-leach-digest-sasl-01.txt \
+		draft-leach-digest-sasl-02.txt \
 		draft-newman-auth-scram-03.txt \
 		draft-newman-sasl-anon-00.txt

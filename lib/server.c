@@ -25,12 +25,7 @@ SOFTWARE.
 
 /* local functions/structs don't start with sasl
  */
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif /* HAVE_CONFIG_H */
-#ifdef WIN32
-# include "winconfig.h"
-#endif /* WIN32 */
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -311,8 +306,17 @@ static void server_dispose(sasl_conn_t *pconn)
 {
   sasl_server_conn_t *s_conn=  (sasl_server_conn_t *) pconn;
 
-  if (s_conn->mech && s_conn->mech->plug->mech_dispose)
-    s_conn->mech->plug->mech_dispose(s_conn->base.context,
+  if (pconn->oparams.credentials)
+    if (s_conn->mech
+	&& s_conn->mech->plug->dispose_credentials)
+      s_conn->mech->plug->dispose_credentials(pconn->context,
+					      pconn->oparams.credentials);
+    else
+      sasl_FREE(pconn->oparams.credentials);
+
+  if (s_conn->mech
+      && s_conn->mech->plug->mech_dispose)
+    s_conn->mech->plug->mech_dispose(pconn->context,
 				     s_conn->sparams->utils);
 
   if (s_conn->local_domain)
@@ -325,12 +329,6 @@ static void server_dispose(sasl_conn_t *pconn)
 
   if (s_conn->sparams)
     sasl_FREE(s_conn->sparams);
-
-  if (s_conn->base.oparams.credentials)
-  {
-    /* xxx    s_conn->mech->plug->dispose_credentials(s_conn->base.context,
-       s_conn->base.oparams.credentials);*/
-  }
 
   _sasl_conn_dispose(pconn);
 }

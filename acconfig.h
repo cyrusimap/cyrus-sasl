@@ -42,6 +42,9 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 /* This is where plugins will live at runtime */
 #undef PLUGINDIR
 
+/* Make autoheader happy */
+#undef WITH_SYMBOL_UNDERSCORE
+
 @BOTTOM@
 
 /* Make Solaris happy... */

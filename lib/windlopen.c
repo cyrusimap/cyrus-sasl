@@ -23,7 +23,7 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
-#include <winconfig.h>
+#include <config.h>
 #include <sasl.h>
 
 /* gets the list of mechanisms */

@@ -24,12 +24,7 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
 OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ******************************************************************/
 
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif /* HAVE_CONFIG_H */
-#ifdef WIN32
-# include "winconfig.h"
-#endif /* WIN32 */
 #include <gdbm.h>
 #include <sys/stat.h>
 #include <stdlib.h>

@@ -23,12 +23,7 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif /* HAVE_CONFIG_H */
-#ifdef WIN32
-# include "winconfig.h"
-#endif /* WIN32 */
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -109,18 +104,15 @@ static void free_secret(sasl_utils_t *utils,
 static void free_string(sasl_utils_t *utils,
 			char **str)
 {
-  size_t lup;
-  int len;
+  char *s;
   VL(("Freeing string\n"));
 
   if (str==NULL) return;
   if (*str==NULL) return;
 
-  len=strlen(*str);
-
   /* overwrite the memory */
-  for (lup=0;lup<len;lup++)
-    (*str)[lup]='X';
+  for (s = *str; *s; s++)
+    *s = 'X';
 
   utils->free(*str);
 
@@ -429,18 +421,17 @@ static int c_start(void *glob_context __attribute__((unused)),
  * Returns it if found. NULL otherwise
  */
 
-static sasl_interact_t *find_prompt(sasl_interact_t *promptlist,
+static sasl_interact_t *find_prompt(sasl_interact_t **promptlist,
 				    unsigned int lookingfor)
 {
-  if (promptlist==NULL) return NULL;
+  sasl_interact_t *prompt;
 
-  while (promptlist->id!=SASL_CB_LIST_END)
-  {
-    if (promptlist->id==lookingfor)
-      return promptlist;
-
-    promptlist++;
-  }
+  if (promptlist && *promptlist)
+    for (prompt = *promptlist;
+	 prompt->id != SASL_CB_LIST_END;
+	 ++prompt)
+      if (prompt->id==lookingfor)
+	return prompt;
 
   return NULL;
 }
@@ -460,16 +451,16 @@ static int get_userid(sasl_client_params_t *params,
   sasl_interact_t *prompt;
 
   /* see if we were given the userid in the prompt */
-  prompt=find_prompt(*prompt_need,SASL_CB_USER);
+  prompt=find_prompt(prompt_need,SASL_CB_USER);
   if (prompt!=NULL)
-  {
-    /* copy it */
-    *userid=params->utils->malloc(strlen(prompt->result)+1);
-    if ((*userid)==NULL) return SASL_NOMEM;
-
-    strcpy(*userid, prompt->result);
-    return SASL_OK;
-  }
+    {
+      /* copy it */
+      *userid=params->utils->malloc(strlen(prompt->result)+1);
+      if ((*userid)==NULL) return SASL_NOMEM;
+	
+      strcpy(*userid, prompt->result);
+      return SASL_OK;
+    }
 
   /* Try to get the callback... */
   result = params->utils->getcallback(params->utils->conn,
@@ -510,7 +501,7 @@ static int get_authid(sasl_client_params_t *params,
   sasl_interact_t *prompt;
 
   /* see if we were given the authname in the prompt */
-  prompt=find_prompt(*prompt_need,SASL_CB_AUTHNAME);
+  prompt=find_prompt(prompt_need,SASL_CB_AUTHNAME);
   if (prompt!=NULL)
   {
     /* copy it */
@@ -563,7 +554,7 @@ static int get_password(sasl_client_params_t *params,
   sasl_interact_t *prompt;
 
   /* see if we were given the password in the prompt */
-  prompt=find_prompt(*prompt_need,SASL_CB_PASS);
+  prompt=find_prompt(prompt_need,SASL_CB_PASS);
   if (prompt!=NULL)
   {
     /* We prompted, and got.*/
@@ -614,7 +605,7 @@ static int get_password(sasl_client_params_t *params,
 }
 
 static void free_prompts(sasl_client_params_t *params,
-			sasl_interact_t *prompts)
+			 sasl_interact_t *prompts)
 {
   sasl_interact_t *ptr=prompts;
   if (ptr==NULL) return;
@@ -664,13 +655,11 @@ static int make_prompts(sasl_client_params_t *params,
     (prompts)->prompt="Please enter your userid";
     (prompts)->defresult=text->authid;
 
-    printf("id=%ld  %ld\n",(prompts)->id, SASL_CB_USER);
-    printf("%i\n",prompts);
+    printf("id=%ld %d\n",(prompts)->id, SASL_CB_USER);
+    printf("%p\n",prompts);
     prompts++;
-    printf("%i size=%i\n",prompts,sizeof(sasl_interact_t));
+    printf("%p size=%d\n",prompts,sizeof(sasl_interact_t));
   }
-
-
 
   if (auth_res==SASL_INTERACT)
   {
@@ -702,7 +691,7 @@ static int make_prompts(sasl_client_params_t *params,
   (prompts)->prompt   =NULL;
   (prompts)->defresult=NULL;
 
-  printf("id=%ld  %ld\n",(prompts)->id, SASL_CB_USER);
+  printf("id=%ld %d\n",(prompts)->id, SASL_CB_USER);
 
   return SASL_OK;
 }
@@ -744,12 +733,11 @@ static int client_continue_step (void *conn_context,
     {
       VL (("Trying to get userid\n"));
       user_result=get_userid(params,
-			&text->userid,
-			prompt_need);
+			     &text->userid,
+			     prompt_need);
 
       if ((user_result!=SASL_OK) && (user_result!=SASL_INTERACT))
 	return user_result;
-
     }
 
     /* try to get the authid */    
@@ -757,8 +745,8 @@ static int client_continue_step (void *conn_context,
     {
       VL (("Trying to get authid\n"));
       auth_result=get_authid(params,
-			&text->authid,
-			prompt_need);
+			     &text->authid,
+			     prompt_need);
 
       if ((auth_result!=SASL_OK) && (auth_result!=SASL_INTERACT))
 	return auth_result;
@@ -769,8 +757,8 @@ static int client_continue_step (void *conn_context,
     {
       VL (("Trying to get password\n"));
       pass_result=get_password(params,
-			  &text->password,
-			  prompt_need);
+			       &text->password,
+			       prompt_need);
       
       if ((pass_result!=SASL_OK) && (pass_result!=SASL_INTERACT))
 	return pass_result;
@@ -778,7 +766,8 @@ static int client_continue_step (void *conn_context,
 
     
     /* free prompts we got */
-    free_prompts(params,*prompt_need);
+    if (prompt_need)
+      free_prompts(params,*prompt_need);
 
     /* if there are prompts not filled in */
     if ((user_result==SASL_INTERACT) || (auth_result==SASL_INTERACT) ||
@@ -793,8 +782,11 @@ static int client_continue_step (void *conn_context,
       return SASL_INTERACT;
     }
     
+    /* Ok I think we got everything now... -- Tim
+     * WELL YOU WERE WRONG, TIM, WRONG WRONG WRONG.  FUCK. -- Rob */
+    if (!authid || !password)
+      return SASL_BADPARAM;
 
-    /* Ok I think we got everything now... */
     VL (("Got username, authid, and password\n"));
 
     /* send authorized id NUL authentication id NUL password */
@@ -813,7 +805,8 @@ static int client_continue_step (void *conn_context,
       *clientoutlen = (userid_len + 1
 		       + authid_len + 1
 		       + text->password->len);
-      printf("clientoutlen=%i %i %i %i\n",*clientoutlen,userid_len,authid_len,text->password->len);
+      printf("clientoutlen=%d %d %d %ld\n",
+	     *clientoutlen,userid_len,authid_len,text->password->len);
       *clientout=params->utils->malloc(*clientoutlen);
       if (! *clientout) return SASL_NOMEM;
       memset(*clientout, 0, *clientoutlen);
@@ -849,20 +842,13 @@ static int client_continue_step (void *conn_context,
   return SASL_FAIL; /* should never get here */
 }
 
-static const long client_required_prompts[] = {
-  SASL_CB_USER,
-  SASL_CB_AUTHNAME,
-  SASL_CB_PASS,
-  SASL_CB_LIST_END
-};
-
 static const sasl_client_plug_t client_plugins[] = 
 {
   {
     "PLAIN",
     0,
     0,
-    client_required_prompts,
+    NULL,
     NULL,
     &c_start,
     &client_continue_step,

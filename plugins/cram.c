@@ -23,12 +23,7 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif /* HAVE_CONFIG_H */
-#ifdef WIN32
-# include "winconfig.h"
-#endif /* WIN32 */
 #include <time.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -47,7 +42,7 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 
 #ifdef L_DEFAULT_GUARD
 # undef L_DEFAULT_GUARD
-# define L_DEFAULT_GUARD (1)
+# define L_DEFAULT_GUARD (0)
 #endif
 
 struct scram_entry
@@ -116,19 +111,16 @@ static void free_secret(sasl_utils_t *utils,
 static void free_string(sasl_utils_t *utils,
 			char **str)
 {
-  size_t lup;
-  int len;
+  char *s;
   VL(("Freeing string\n"));
 
   if (str==NULL) return;
   if (*str==NULL) return;
 
-  len=strlen(*str);
-
   /* overwrite the memory */
-  for (lup=0;lup<len;lup++)
-    (*str)[lup]='X';
-
+  for (s = *str; *s; s++)
+    *s = 'X';
+  
   utils->free(*str);
 
   *str=NULL;
@@ -510,7 +502,7 @@ setpass(void *glob_context __attribute__((unused)),
 
   /* clean up sensitive info */
   /* wish we could call free secret here */
-  
+  return result;
 }
 
 static const sasl_server_plug_t plugins[] = 

@@ -32,6 +32,7 @@
    unquoted password; should not do this, as it is not compatible with
    base-line IMAP4rev1 servers.
    */
+#include <config.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <ctype.h>

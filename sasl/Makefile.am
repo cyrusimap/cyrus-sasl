@@ -30,7 +30,10 @@ javahtmldir = $(prefix)/html/sasl
 
 INCLUDES=$(JAVA_INCLUDES) -I$(top_srcdir)/include
 
-CLASSES = BadAuthException.class GenericException.class InteractException.class NoMechException.class NotDoneException.class ClientConn.class ClientFactory.class CommonConn.class saslException.class saslFilterInputStream.class saslFilterOutputStream.class ServerConn.class ServerFactory.class Utils.class
+javasasl_JAVA = BadAuthException.java GenericException.java InteractException.java NoMechException.java NotDoneException.java ClientCB.java ClientConn.java ClientFactory.java CommonConn.java saslException.java saslFilterInputStream.java saslFilterOutputStream.java ServerConn.java ServerFactory.java Utils.java
+
+#CLASSES = BadAuthException.class GenericException.class InteractException.class NoMechException.class NotDoneException.class ClientConn.class ClientFactory.class CommonConn.class saslException.class saslFilterInputStream.class saslFilterOutputStream.class ServerConn.class ServerFactory.class Utils.class
+CLASSES = $(javasasl_JAVA:.java=.class)
 
 lib_LTLIBRARIES = libjavasasl.la
 libjavasasl_la_SOURCES = javasasl.c
@@ -42,8 +45,6 @@ javasasl.h: $(CLASSES)
 	$(CLASSPATH_ENV) $(JAVAH) -o $@ -jni $(patsubst %.class,sasl.%,$^)
 
 ${CLASSES}: classjavasasl.stamp
-
-javasasl_JAVA = BadAuthException.java GenericException.java InteractException.java NoMechException.java NotDoneException.java ClientConn.java ClientFactory.java CommonConn.java saslException.java saslFilterInputStream.java saslFilterOutputStream.java ServerConn.java ServerFactory.java Utils.java
 
 install-data-local:
 	$(mkinstalldirs) $(javahtmldir)

@@ -1,3 +1,70 @@
+1999-03-23  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* plugins/plain.c (client_plugins): deleted required prompts;
+	plain only *needs* the default (SASL_CB_AUTHNAME and SASL_CB_PASS).
+
+	* configure.in: switched java to default to no
+
+	* utils/saslpasswd.c (main): documented flags
+	(main): added user realm
+
+	* plugins/digestmd5.c (get_realm): flipped this to user_domain
+	(setpass): massive surgery to make this sort of work
+	fixed free_prompts call
+
+	* plugins/plain.c (find_prompt): minor surgery to make this work
+	fixed free_prompts call
+
+	* config/sasl.spec: massive update to build normal lib,
+	development package, and packages for each plugin
+
+	* doc/Makefile.am (EXTRA_DIST): updated digest-sasl doc
+
+1999-03-22  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* plugins/kerberos4.c (server_continue_step): fixed security layer 
+	negotiation code, used symbolic constants, eliminated context ssf
+
+1999-03-18  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* lib/server.c (server_dispose): fixed up credential disposal
+
+	* Moved winconfig.h to win32/include/config.h to remove a bunch of
+ 	ifdefs; windows project header paths will need to be adjusted.
+
+	* man/Makefile.am: created
+	
+1999-03-15  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* sample/sample-server.c: seperated saslfail/sasldebug, made
+	failure to obtain info at the end not cause fail
+
+	* testing.txt: rewrote
+
+	* config/cyrus-sasl.spec: Added sample code to docs
+
+	* configure.in: added optional compilation for sample code
+
+	* Makefile.am: split sample out to make it optionally compile
+
+1999-03-14  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* plugins/plain.c (free_string): removed warning, simplified
+	(client_continue_step): Fixed some printfs
+
+	* sasl/Makefile.am (javasasl_JAVA): Added new java classes
+
+	* plugins/cram.c (setpass): return something on function exit
+	(free_string): simplified, removing compiler warning
+
+	* plugins/Makefile.am: Updated plugin versions
+
+	* lib/Makefile.am (sasl_version): Updated revision
+
+1999-03-11  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* configure.in: Added kaffeh support
+
 1999-03-08  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
 	* plugins/plain.c: No sensetive information leaked

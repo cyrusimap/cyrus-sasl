@@ -1,13 +1,15 @@
 if test ! -x configure; then
+  echo libtoolize --automake
+  libtoolize --automake
   echo aclocal -I cmulocal
   aclocal -I cmulocal
   echo autoheader
   autoheader
   echo autoconf
   autoconf
-  echo automake
-  automake
+  echo automake --add-missing
+  automake --add-missing
 fi
 
 MAKE=gmake
-LNCOMMAND="${SRCDIR}/configure --prefix=/usr/local"
+LNCOMMAND="${SRCDIR}/configure --prefix=/usr/local --disable-java"

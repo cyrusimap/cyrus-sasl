@@ -1,4 +1,4 @@
-/* winconfig.h--SASL configuration for win32
+/* config.h--SASL configuration for win32
  * Ryan Troll
  */
 /***********************************************************
@@ -24,8 +24,8 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
 OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ******************************************************************/
 
-#ifndef _WINCONFIG_H_
-#define _WINCONFIG_H_
+#ifndef CONFIG_H
+#define CONFIG_H
 
 #include <windows.h>
 
@@ -33,7 +33,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define PACKAGE "cyrus-sasl"
 
 /* Our version */
-#define VERSION "v1.4b1"
+#define VERSION "1.4.1"
 
 /* Registry key that contains the locations of the plugins */
 #define SASL_KEY "SOFTWARE\\Carnegie Mellon\\Project Cyrus\\SASL Library\\Available Plugins"
@@ -77,4 +77,4 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #define __attribute__(foo)
 
-#endif /* _WINCONFIG_H_ */
+#endif /* CONFIG_H */

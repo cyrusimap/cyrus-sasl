@@ -23,23 +23,16 @@
 #
 
 # Library version info - here at the top, for sanity
-sasl_version = 4:0:0
+sasl_version = 5:0:0
 
 INCLUDES=-I$(top_srcdir)/include
 
 EXTRA_DIST = saslint.h makedbm.c windlopen.c
 
-EXTRA_PROGRAMS = test test-server test-client makedbm
-test_LDADD = libsasl.la $(LIB_SOCKET)
+EXTRA_PROGRAMS = makedbm
 
 makedbm_LDADD = libsasl.la -lsocket -lnsl
 makedbm_SOURCES = makedbm.c
-
-test_server_LDADD = $(test_LDADD)
-test_server_SOURCES = test-common.c test-server.c
-
-test_client_LDADD = $(test_LDADD)
-test_client_SOURCES = test-common.c test-client.c
 
 lib_LTLIBRARIES = libsasl.la
 

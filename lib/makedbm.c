@@ -23,6 +23,7 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
+#include <config.h>
 #define SCRAMDBPATH "~/pass"
 #include <gdbm.h>
 #include <stdlib.h>

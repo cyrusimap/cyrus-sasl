@@ -23,12 +23,7 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif /* HAVE_CONFIG_H */
-#ifdef WIN32
-# include "winconfig.h"
-#endif /* WIN32 */
 #include <krb.h>
 #include <des.h>
 #ifdef WIN32
@@ -67,7 +62,7 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 
 #ifdef L_DEFAULT_GUARD
 # undef L_DEFAULT_GUARD
-# define L_DEFAULT_GUARD (1)
+# define L_DEFAULT_GUARD (0)
 #endif
 
 #ifdef sun
@@ -76,6 +71,15 @@ extern int gethostname(char *, int);
 #endif
 
 #define KERBEROS_VERSION (3)
+
+#define KRB_SECFLAG_NONE (1)
+#define KRB_SECFLAG_INTEGRITY (2)
+#define KRB_SECFLAG_ENCRYPTION (4)
+#define KRB_SECFLAGS (7)
+#define KRB_SECFLAG_CREDENTIALS (8)
+
+#define KRB_DES_SECURITY_BITS (56)
+#define KRB_INTEGRITY_BITS (1)
 
 typedef struct context {
   int state;
@@ -104,8 +108,6 @@ typedef struct context {
 
   struct sockaddr_in ip_local;
   struct sockaddr_in ip_remote;
-
-  sasl_ssf_t ssf; /* security layer type */
 
   sasl_malloc_t *malloc;
   sasl_free_t *free;
@@ -435,7 +437,31 @@ static void mech_free(void *global_context, sasl_utils_t *utils)
   utils->free(global_context);  
 }
 
-
+static int cando_sec(sasl_security_properties_t *props,
+		     int secflag)
+{
+  switch (secflag) {
+  case KRB_SECFLAG_NONE:
+    if (props->min_ssf == 0)
+      return 1;
+    break;
+  case KRB_SECFLAG_INTEGRITY:
+    if ((props->min_ssf <= KRB_INTEGRITY_BITS)
+	&& (KRB_INTEGRITY_BITS <= props->max_ssf))
+      return 1;
+    break;
+  case KRB_SECFLAG_ENCRYPTION:
+    if ((props->min_ssf <= KRB_DES_SECURITY_BITS)
+	&& (KRB_DES_SECURITY_BITS <= props->max_ssf))
+      return 1;
+    break;
+  case KRB_SECFLAG_CREDENTIALS:
+    if (props->security_flags & SASL_SEC_PASS_CREDENTIALS)
+      return 1;
+    break;
+  }
+  return 0;
+}
 
 static int server_continue_step (void *conn_context,
 	      sasl_server_params_t *sparams,
@@ -529,16 +555,17 @@ static int server_continue_step (void *conn_context,
      * use DES ECB in the session key
      */
     
-    nchal=text->challenge+1;
-    
-    sout[0]=nchal >> 24;
-    sout[1]=nchal >> 16;
-    sout[2]=nchal >> 8;
-    sout[3]=nchal ;
-    sout[4]=1 | 2 | 4;     /* bitmask sec layers supported by server */
-    if (sparams->props.security_flags
-	& SASL_SEC_PASS_CREDENTIALS)
-      sout[4] |= 8;
+    nchal=htonl(text->challenge+1);
+    memcpy(sout, &nchal, 4);
+    sout[4]= 0;
+    if (cando_sec(&sparams->props, KRB_SECFLAG_NONE))
+      sout[4] |= KRB_SECFLAG_NONE;
+    if (cando_sec(&sparams->props, KRB_SECFLAG_INTEGRITY))
+      sout[4] |= KRB_SECFLAG_INTEGRITY;
+    if (cando_sec(&sparams->props, KRB_SECFLAG_ENCRYPTION))
+      sout[4] |= KRB_SECFLAG_ENCRYPTION;
+    if (cando_sec(&sparams->props, KRB_SECFLAG_CREDENTIALS))
+      sout[4] |= KRB_SECFLAG_CREDENTIALS;
     sout[5]=0xFF;  /* max ciphertext buffer size */
     sout[6]=0xFF;
     sout[7]=0xFF;
@@ -595,29 +622,28 @@ static int server_continue_step (void *conn_context,
       return SASL_BADAUTH;
     }
 
-    text->ssf=in[4];
-    /* get requested ssf */
+    if (! cando_sec(&sparams->props, in[4] & KRB_SECFLAGS))
+      return SASL_BADPROT;
     
-          
-    if (text->ssf==1)  /* no encryption */
-    {
+    switch (in[4] & KRB_SECFLAGS) {
+    case KRB_SECFLAG_NONE:
       oparams->encode=NULL;
       oparams->decode=NULL;
       oparams->mech_ssf=0;
-      text->ssf=1;
-    } else if (text->ssf==2) { /* integrity */
+      break;
+    case KRB_SECFLAG_INTEGRITY:
       oparams->encode=&integrity_encode;
       oparams->decode=&integrity_decode;
-      oparams->mech_ssf=1;
-      text->ssf=2;
-    } else if (text->ssf==4) { /* privacy */
+      oparams->mech_ssf=KRB_INTEGRITY_BITS;
+      break;
+    case KRB_SECFLAG_ENCRYPTION:
       oparams->encode=&privacy_encode;
       oparams->decode=&privacy_decode;
-      oparams->mech_ssf=56;
-      text->ssf=4;
-    } else {
+      oparams->mech_ssf=KRB_DES_SECURITY_BITS;
+      break;
+    default:
       /* not a supported encryption layer */
-      return SASL_FAIL;
+      return SASL_BADPROT;
     }
 
     /* get ip data */
@@ -695,7 +721,7 @@ static const sasl_server_plug_t plugins[] =
 {
   {
     "KERBEROS_V4",
-    56, /* max ssf */
+    KRB_DES_SECURITY_BITS,
     0,
     NULL,
     &server_start,
@@ -847,14 +873,12 @@ static int client_continue_step (void *conn_context,
     unsigned long testnum;
     unsigned long nchal;    
     unsigned char sout[1024];
-    unsigned int lup;
     unsigned len;
     unsigned char in[8];
     const char *userid, *authid;
     int result;
     int external;
     krb_principal principal;
-    sasl_security_properties_t secprops;
     sasl_getsimple_t *getuser_cb;
     void *getuser_context;
     sasl_interact_t *prompt;
@@ -1023,8 +1047,7 @@ static int client_continue_step (void *conn_context,
       return SASL_BADAUTH;
     }
 
-    for (lup=0;lup<8;lup++)
-      in[lup]=serverin[lup];
+    memcpy(in, serverin, 8);
 
     /* get credentials */
     if ((krb_get_cred((char *)params->service,
@@ -1063,61 +1086,48 @@ static int client_continue_step (void *conn_context,
      */
 
     /* get requested ssf */
-    secprops=params->props;
     external=params->external_ssf;
     VL (("external ssf=%u\n",external));
 
-    if (secprops.min_ssf>56)
+    if (params->props.min_ssf > KRB_DES_SECURITY_BITS)
     {
-      VL (("Minimum ssf too strong min_ssf=%u\n",secprops.min_ssf));
+      VL (("Minimum ssf too strong min_ssf=%u\n",
+	   params->props.min_ssf));
       return SASL_TOOWEAK;
     }
 
-    if (secprops.max_ssf<text->ssf)
-    {
-      VL (("ssf too strong"));
-      return SASL_FAIL;
-    }
+    /* create stuff to send to server */
+    nchal=htonl(text->challenge);
+    memcpy(sout, &nchal, 4);
 
-    VL (("minssf=%u maxssf=%u\n",secprops.min_ssf,secprops.max_ssf));
-    /* if client didn't set use strongest layer */
-    if (secprops.max_ssf>1)
-    {
+    if ((in[4] & KRB_SECFLAG_ENCRYPTION)
+	&& cando_sec(&params->props, KRB_SECFLAG_ENCRYPTION)) {
       /* encryption */
       oparams->encode=&privacy_encode;
       oparams->decode=&privacy_decode;
       oparams->mech_ssf=56;
-      text->ssf=4;
+      sout[4] = KRB_SECFLAG_ENCRYPTION;
       VL (("Using encryption layer\n"));
-    } else if ((secprops.min_ssf<=1) && (secprops.max_ssf>=1)) {
+    } else if ((in[4] & KRB_SECFLAG_INTEGRITY)
+	       && cando_sec(&params->props, KRB_SECFLAG_INTEGRITY)) {
       /* integrity */
       oparams->encode=&integrity_encode;
       oparams->decode=&integrity_decode;
       oparams->mech_ssf=1;
-      text->ssf=2;
+      sout[4] = KRB_SECFLAG_INTEGRITY;
       VL (("Using integrity layer\n"));
-    } else {
+    } else if ((in[4] & KRB_SECFLAG_NONE)
+	       && cando_sec(&params->props, KRB_SECFLAG_NONE)) {
       /* no layer */
       oparams->encode=NULL;
       oparams->decode=NULL;
       oparams->mech_ssf=0;
-      text->ssf=1;
+      sout[4] = KRB_SECFLAG_NONE;
       VL (("Using no layer\n"));
+    } else {
+      return SASL_BADPROT;
     }
 
-    /* server told me what layers support. make sure trying one it supports */
-    if ( (in[4] & text->ssf)==0)
-    {
-      return SASL_WRONGMECH;
-    }
-
-    /* create stuff to send to server */
-    nchal=text->challenge;
-    sout[0]=nchal >> 24;
-    sout[1]=nchal >> 16;
-    sout[2]=nchal >> 8;
-    sout[3]=nchal;
-    sout[4]= text->ssf;     /*bitmask sec layers */
     sout[5]=0x0F;  /* max ciphertext buffer size */
     sout[6]=0xFF;
     sout[7]=0xFF;
@@ -1181,7 +1191,7 @@ static const sasl_client_plug_t client_plugins[] =
 {
   {
     "KERBEROS_V4",
-    56, /* max ssf */
+    KRB_DES_SECURITY_BITS,
     0,
     NULL,
     NULL,

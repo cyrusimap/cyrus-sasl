@@ -23,12 +23,7 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif /* HAVE_CONFIG_H */
-#ifdef WIN32
-# include "winconfig.h"
-#endif /* WIN32 */
 #include <sasl.h>
 #include <saslplug.h>
 
@@ -47,7 +42,7 @@ static const char anonymous_id[] = "anonymous";
 
 #ifdef L_DEFAULT_GUARD
 # undef L_DEFAULT_GUARD
-# define L_DEFAULT_GUARD (1)
+# define L_DEFAULT_GUARD (0)
 #endif
 
 static int

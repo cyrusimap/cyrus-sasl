@@ -24,12 +24,7 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif /* HAVE_CONFIG_H */
-#ifdef WIN32
-#include "winconfig.h"
-#endif /* WIN32 */
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -62,7 +57,7 @@ VERSION " $";
 
 #ifdef L_DEFAULT_GUARD
 # undef L_DEFAULT_GUARD
-# define L_DEFAULT_GUARD (1)
+# define L_DEFAULT_GUARD (0)
 #endif
 
 /* external definitions */
@@ -161,18 +156,8 @@ static int htoi(unsigned char *hexin, int *res);
 
 
 
-
-
-
 static unsigned char *COLON=(unsigned char *) ":";
 
-static int min(int x, int y)
-{
-  if (x<=y)
-    return x;
-  return y;
-}
-							  
 void CvtHex(
     IN HASH Bin,
     OUT HASHHEX Hex
@@ -248,7 +233,8 @@ MD5_UTF8_8859_1 (IN sasl_utils_t * utils,
 static void DigestCalcSecret(IN sasl_utils_t *utils,
 			     IN unsigned char * pszUserName,
 			     IN unsigned char * pszRealm,
-			     IN sasl_secret_t * pszPassword,
+			     IN unsigned char * Password,
+			     IN size_t PasswordLen,
 			     IN bool IsUTF8,
 			     OUT HASH HA1)
 {
@@ -267,10 +253,9 @@ static void DigestCalcSecret(IN sasl_utils_t *utils,
   utils->MD5Update(&Md5Ctx, COLON, 1);
 
   if (IsUTF8)
-    utils->MD5Update (&Md5Ctx, pszPassword->data, pszPassword->len);
+    utils->MD5Update (&Md5Ctx, Password, PasswordLen);
   else
-    MD5_UTF8_8859_1 (utils, &Md5Ctx, pszPassword->data,
-		     pszPassword->len);
+    MD5_UTF8_8859_1 (utils, &Md5Ctx, Password, PasswordLen);
 
   utils->MD5Final(HA1, &Md5Ctx);
 }
@@ -293,7 +278,8 @@ void DigestCalcHA1(IN context_t *text,
       DigestCalcSecret(utils,			    
 		       pszUserName,
 		       pszRealm,
-		       pszPassword,
+		       pszPassword->data,
+		       pszPassword->len,
 		       IsUTF8,
 		       HA1);
 
@@ -911,7 +897,6 @@ static int integrity_decode(void *context,
     unsigned int extralen=0;
     unsigned diff;
     int result;
-    unsigned lup;
 
     printf("needsize=%i\n",text->needsize);
     /*    for (lup=0;lup<inputlen;lup++)
@@ -941,8 +926,8 @@ static int integrity_decode(void *context,
 	text->size=ntohl(text->size);
 	printf("text size = %i\n",text->size);
 	if (text->size>0xFFFF) return SASL_FAIL; /* too big probably error */
-	free(text->buffer);
-	text->buffer=malloc(text->size);
+	text->free(text->buffer);
+	text->buffer=text->malloc(text->size);
       }
 
       *outputlen=0;
@@ -1035,13 +1020,13 @@ static void mech_free(void *global_context, sasl_utils_t *utils)
 static int get_realm(sasl_server_params_t *params,
 		     char **realm)
 {
-  if (params->local_domain==NULL)
+  if (params->user_domain==NULL)
     {
       VL (("No way to obtain domain\n"));
       return SASL_FAIL;
     } else {
       printf("realm here\n");
-      *realm=(char *) params->local_domain;
+      *realm=(char *) params->user_domain;
     }
 
     
@@ -1184,7 +1169,7 @@ static int server_continue_step (void *conn_context,
     char *serverresponse = NULL;
 
     char *username = NULL;
-    bool *gotrealm = FALSE;
+    bool gotrealm = FALSE;
     char *realm = NULL;
     /*    unsigned char *nonce = NULL; */
     unsigned char *cnonce = NULL;
@@ -1211,9 +1196,6 @@ char *response_auth = NULL;
 
     int usernamelen;
     int realm_len;
-
-    char *xxx;
-    char *divaddr, *prevaddr;
 
     /* can we mess with clientin? copy it to be safe */
     char *in_start;
@@ -1683,7 +1665,7 @@ setpass(void *glob_context __attribute__((unused)),
 	sasl_server_params_t *sparams,
 	const char *user,
 	const char *pass,
-	unsigned passlen __attribute__((unused)),
+	size_t passlen,
 	int flags __attribute__((unused)),
 	const char **errstr)
 {
@@ -1692,14 +1674,25 @@ setpass(void *glob_context __attribute__((unused)),
   void *putsecret_context;
   sasl_secret_t *sec;
   HASH HA1;
+  char secbuf[sizeof(sasl_secret_t) + HASHLEN + 1];
 
-  sec=(sasl_secret_t *) malloc(sizeof(sasl_secret_t)+HASHLEN+1);
-  if (sec==NULL) return SASL_NOMEM;
+  if (!sparams
+      || !user
+      || !pass
+      || !errstr)
+    return SASL_BADPARAM;
+
+  if (! sparams->user_domain) {
+    return SASL_NOTDONE;
+  }
+
+  sec=(sasl_secret_t *) &secbuf;
 
   DigestCalcSecret(sparams->utils,			    
 		   (unsigned char *) user,
-		   (unsigned char *) "alive.andrew.cmu.edu", /* xxx fix */
-		   (sasl_secret_t *) sec,
+		   (unsigned char *) sparams->user_domain,
+		   (unsigned char *) pass,
+		   passlen,
 		   TRUE, /* use UTF-8 */
 		   HA1);
 
@@ -1843,18 +1836,17 @@ static int htoi(unsigned char *hexin, int *res)
  * Returns it if found. NULL otherwise
  */
 
-static sasl_interact_t *find_prompt(sasl_interact_t *promptlist,
+static sasl_interact_t *find_prompt(sasl_interact_t **promptlist,
 				    unsigned int lookingfor)
 {
-  if (promptlist==NULL) return NULL;
+  sasl_interact_t *prompt;
 
-  while (promptlist->id!=SASL_CB_LIST_END)
-  {
-    if (promptlist->id==lookingfor)
-      return promptlist;
-
-    promptlist++;
-  }
+  if (promptlist && *promptlist)
+    for (prompt = *promptlist;
+	 prompt->id != SASL_CB_LIST_END;
+	 ++prompt)
+      if (prompt->id==lookingfor)
+	return prompt;
 
   return NULL;
 }
@@ -1870,7 +1862,7 @@ static int get_authid(sasl_client_params_t *params,
   sasl_interact_t *prompt;
 
   /* see if we were given the authname in the prompt */
-  prompt=find_prompt(*prompt_need,SASL_CB_AUTHNAME);
+  prompt=find_prompt(prompt_need,SASL_CB_AUTHNAME);
   if (prompt!=NULL)
   {
     /* copy it */
@@ -1922,7 +1914,7 @@ static int get_password(sasl_client_params_t *params,
   sasl_interact_t *prompt;
 
   /* see if we were given the password in the prompt */
-  prompt=find_prompt(*prompt_need,SASL_CB_PASS);
+  prompt=find_prompt(prompt_need,SASL_CB_PASS);
   if (prompt!=NULL)
   {
     /* We prompted, and got.*/
@@ -2130,7 +2122,7 @@ static int c_continue_step (void *conn_context,
     {
       VL (("Trying to get authid\n"));
       auth_result=get_authid(params,
-			     &text->authid,
+			     (char **)&text->authid,
 			     prompt_need);
 
       if ((auth_result!=SASL_OK) && (auth_result!=SASL_INTERACT))
@@ -2152,7 +2144,8 @@ static int c_continue_step (void *conn_context,
 
     
     /* free prompts we got */
-    free_prompts(params,*prompt_need);
+    if (prompt_need)
+      free_prompts(params,*prompt_need);
 
     /* if there are prompts not filled in */
     if ((auth_result==SASL_INTERACT) ||
@@ -2319,12 +2312,6 @@ static int c_continue_step (void *conn_context,
     {
       VL (("Minimum ssf too strong min_ssf=%i\n",secprops.min_ssf));
       return SASL_TOOWEAK;
-    }
-
-    if (secprops.max_ssf<0)
-    {
-      VL (("ssf too strong"));
-      return SASL_FAIL;
     }
 
     VL (("minssf=%i maxssf=%i\n",secprops.min_ssf,secprops.max_ssf));

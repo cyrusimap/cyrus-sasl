@@ -23,18 +23,20 @@
 #PERFORMANCE OF THIS SOFTWARE.
 ################################################################
 
-SUBDIRS=include lib plugins utils doc sample @DIRS@
+SUBDIRS=include lib plugins utils doc man @DIRS@
 
 dist-hook:
-	cp -r -p $(top_srcdir)/config $(srcdir)/win32 $(distdir)
-	find $(distdir) -name CVS -print | xargs rm -rf
-	cp -r -p $(top_srcdir)/cmulocal $(distdir)
-	find $(distdir)/cmulocal -name CVS -print | xargs rm -rf
+	@for dir in config cmulocal sample win32; do		\
+	  if test ! -d $(distdir)/$dir; then			\
+	    (set -x; cp -r -p $(top_srcdir)/$dir $(distdir));	\
+	  fi;							\
+	done
+	@find $(distdir) -name CVS -print | xargs -t rm -rf
 
 install-exec-local:
 	@if test "$(plugindir)" != "$(prefix)/lib/sasl"; then \
 	  echo "********************************************************"; \
-	  echo "* WARNING:";			\
+	  echo "* WARNING:"; \
 	  echo "* Plugins are being installed into $(prefix)/lib/sasl,"; \
 	  echo "* but the library will look for them in $(plugindir)."; \
 	  echo "* You need to make sure that the plugins will eventually"; \

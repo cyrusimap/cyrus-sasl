@@ -23,16 +23,9 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif /* HAVE_CONFIG_H */
-#ifdef WIN32
-# include "winconfig.h"
-#endif /* WIN32 */
-
 #include <termios.h>
 #include <unistd.h>
-
 #include <sasl.h>
 
 #define PW_BUF_SIZE 2048
@@ -40,8 +33,6 @@ SOFTWARE.
 static const char build_ident[] = "$Build: saslpasswd " PACKAGE "-" VERSION " $";
 
 const char *progname = NULL;
-
-extern int _sasl_debug=-1;
 
 void read_password(const char *prompt,
 		   int flag_pipe,
@@ -113,6 +104,7 @@ main(int argc, char *argv[])
   const char *errstr = NULL;
   int result;
   sasl_conn_t *conn;
+  char *user_domain = NULL;
   
   if (! argv[0])
     progname = "saslpasswd";
@@ -124,7 +116,7 @@ main(int argc, char *argv[])
       progname = argv[0];
   }
 
-  while ((c = getopt(argc, argv, "pcd")) != EOF)
+  while ((c = getopt(argc, argv, "pcdu:h?")) != EOF)
     switch (c) {
     case 'p':
       flag_pipe = 1;
@@ -141,6 +133,9 @@ main(int argc, char *argv[])
       else
 	flag_disable = 1;
       break;
+    case 'u':
+      user_domain = optarg;
+      break;
     default:
       flag_error = 1;
     }
@@ -150,7 +145,11 @@ main(int argc, char *argv[])
 
   if (flag_error) {
     (void)fprintf(stderr,
-		  "%s: usage: %s [-p] [-c] [-d] userid\n",
+		  "%s: usage: %s [-p] [-c] [-d] [-u DOM] userid\n"
+		  "\t-p\tpipe mode -- no prompt, password read on stdin\n"
+		  "\t-c\tcreate -- ask mechs to create the account\n"
+		  "\t-d\tdisable -- ask mechs to disable the account\n"
+		  "\t-u DOM\tuse DOM for user domain\n",
 		  progname, progname);
     exit(-SASL_FAIL);
   }
@@ -161,7 +160,12 @@ main(int argc, char *argv[])
   if (result != SASL_OK)
     exit_sasl(result, NULL);
 
-  result = sasl_server_new("saslpasswd", NULL, NULL, NULL, 0, &conn);
+  result = sasl_server_new("saslpasswd",
+			   NULL,
+			   user_domain,
+			   NULL,
+			   0,
+			   &conn);
   if (result != SASL_OK)
     exit_sasl(result, NULL);
   

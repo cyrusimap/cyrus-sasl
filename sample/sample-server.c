@@ -1,4 +1,4 @@
-/* sasl-server.c -- sample SASL server
+/* sample-server.c -- sample SASL server
  * Rob Earhart
  */
 /***********************************************************
@@ -24,12 +24,7 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
 OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ******************************************************************/
 
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif /* HAVE_CONFIG_H */
-#ifdef WIN32
-#include <winconfig.h>
-#endif /* WIN32 */
 #include <sasl.h>
 #include <saslutil.h>
 #include <netinet/in.h>
@@ -161,7 +156,7 @@ static sasl_callback_t callbacks[] = {
 };
 
 static void
-saslfail(int why, const char *what, const char *errstr)
+sasldebug(int why, const char *what, const char *errstr)
 {
   fprintf(stderr, "%s: %s: %s",
 	  progname,
@@ -171,6 +166,12 @@ saslfail(int why, const char *what, const char *errstr)
     fprintf(stderr, " (%s)\n", errstr);
   else
     putc('\n', stderr);
+}
+
+static void
+saslfail(int why, const char *what, const char *errstr)
+{
+  sasldebug(why, what, errstr);
   exit(EXIT_FAILURE);
 }
 
@@ -281,8 +282,6 @@ main(int argc, char *argv[])
   secprops.maxbufsize = SAMPLE_SEC_BUF_SIZE;
   secprops.max_ssf = 9999; /* xxx solaris doesn't compile UINT_MAX; */
   memset(&extprops, 0L, sizeof(extprops));
-
-#ifdef HAVE_SUBOPT
 
   while ((c = getopt(argc, argv, "hb:e:m:f:i:p:s:l:u:?")) != EOF)
     switch (c) {
@@ -439,8 +438,6 @@ main(int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
 
-#endif
-
   result = sasl_server_init(callbacks, "sample");
   if (result != SASL_OK)
     saslfail(result, "Initializing libsasl", NULL);
@@ -536,18 +533,21 @@ main(int argc, char *argv[])
 
   result = sasl_getprop(conn, SASL_USERNAME, (void **)&data);
   if (result != SASL_OK)
-    saslfail(result, "Getting username property", NULL);
-  printf("Username: %s\n", data);
+    sasldebug(result, "Getting username property", NULL);
+  else
+    printf("Username: %s\n", data);
 
   result = sasl_getprop(conn, SASL_REALM, (void **)&data);
   if (result != SASL_OK)
-    saslfail(result, "Getting realm property", NULL);
-  printf("Realm: %s\n", data);
+    sasldebug(result, "Getting realm property", NULL);
+  else
+    printf("Realm: %s\n", data);
 
   result = sasl_getprop(conn, SASL_SSF, (void **)&ssf);
   if (result != SASL_OK)
-    saslfail(result, "Getting ssf property", NULL);
-  printf("SSF: %d\n", ssf);
+    sasldebug(result, "Getting ssf property", NULL);
+  else
+    printf("SSF: %d\n", ssf);
 
   return (EXIT_SUCCESS);
 }

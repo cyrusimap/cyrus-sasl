@@ -1,3 +1,17 @@
+2000-12-18  Larry Greenfield  <leg@yossarian.cc.cmu.edu>
+
+	* configure.in: look for gsskrb5_register_acceptor_identity();
+	heimdal call for changing keytab location
+
+	* plugins/gssapi.c: use heimdal krb5 call for keytab location
+
+	* plugins/digestmd5.c: bug in calculating HMAC for auth-int,
+	auth-conf fixed. breaks backward compatibility.  (HMAC was
+	reversed.)
+
+	bug in calculating response for auth-conf fixed.
+	(:00000000000000000000000000000000 wasn't being appended.)
+
 2000-10-16  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/checkpw.c: patch to SIA authentication to handle locked

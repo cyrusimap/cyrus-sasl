@@ -1,3 +1,10 @@
+2001-03-23  Larry Greenfield  <leg@yossarian.cc.cmu.edu>
+
+	* ready to 1.5.27
+
+	* saslauthd/Makefile.am (saslauthd_SOURCES): oops, header files
+	missing from saslauthd_SOURCES
+
 2001-03-22  Larry Greenfield  <leg@yossarian.cc.cmu.edu>
 
 	* plugins/digestmd5.c: disabled DES for now

@@ -247,12 +247,12 @@ static int saslauthd_verify_password(const char *saslauthd_path,
     close(s);
   
     if (!strncmp(response, "OK", 2)) {
-	fprintf(stderr, "Success.\n");
+	printf("OK \"Success.\"\n");
 	return 0;
     }
   
     response[count] = '\0';
-    fprintf(stderr,"authentication failed\n");
+    printf("NO \"authentication failed\"\n");
     return -1;
 }
 

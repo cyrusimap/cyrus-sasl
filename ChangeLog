@@ -1,5 +1,9 @@
 1999-03-30  Rob Earhart  <rob+@andrew.cmu.edu>
 
+	* configure.in: added digest des check
+
+	* plugins/digestmd5.c: diked out rc4 code
+
 	* configure.in: turned off use of nana by default
 
 	* plugins/cram.c: fixed endian bug

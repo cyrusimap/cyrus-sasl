@@ -45,6 +45,9 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 /* Make autoheader happy */
 #undef WITH_SYMBOL_UNDERSCORE
 
+/* Do we have the rc4 code? */
+#undef CMU_HAVE_RC4
+
 @BOTTOM@
 
 /* Make Solaris happy... */

@@ -24,3 +24,4 @@
 ################################################################
 
 man_MANS = sasl_client.1 sasl_server.1
+EXTRA_DIST = $(man_MANS)

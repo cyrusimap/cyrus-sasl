@@ -87,6 +87,10 @@
 #ifndef SASL_H
 #define SASL_H 1
 
+#define SASL_VERSION_MAJOR 1
+#define SASL_VERSION_MINOR 5
+#define SASL_VERSION_STEP 9
+
 /* The following ifdef block is the standard way of creating macros
  * which make exporting from a DLL simpler. All files within this DLL
  * are compiled with the LIBSASL_EXPORTS symbol defined on the command

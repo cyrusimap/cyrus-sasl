@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.11 2001/12/16 04:46:12 ken3 Exp $
+ * $Id: srp.c,v 1.12 2001/12/18 18:06:07 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -190,7 +190,6 @@ typedef struct context_s {
 
     mpz_t v;			/* verifier */
 
-    mpz_t b;
     mpz_t B;
 
     mpz_t a;
@@ -1211,7 +1210,12 @@ CalculateK_client(context_t *text,
     if (r) return r;
     mpz_init(u);
     DataToBigInt(hash, 4, &u);
-    if (!mpz_cmp_ui(u, 0)) return SASL_FAIL;
+
+    /* per Tom Wu: make sure u != 0 */
+    if (mpz_cmp_ui(u, 0) == 0) {
+	text->utils->log(NULL, SASL_LOG_ERR, "Illegal value for 'u'\n");
+	return SASL_FAIL;
+    }
 
     /* a + ux */
     mpz_init(aux);
@@ -1892,7 +1896,6 @@ static void srp_both_mech_dispose(void *conn_context,
   mpz_clear(text->N);
   mpz_clear(text->g);
   mpz_clear(text->v);
-  mpz_clear(text->b);
   mpz_clear(text->B);
   mpz_clear(text->a);
   mpz_clear(text->A);
@@ -2070,33 +2073,41 @@ CalculateV(context_t *text,
 
 static int
 ServerCalculateK(context_t *text, mpz_t v,
-		 mpz_t N, mpz_t g, mpz_t b, mpz_t B, mpz_t A,
+		 mpz_t N, mpz_t g, mpz_t B, mpz_t A,
 		 char **key, int *keylen)
 {
     unsigned char hash[EVP_MAX_MD_SIZE];
+    mpz_t b;
     mpz_t u;
     mpz_t S;
     int r;
 
-    /* B = (v + g^b) % N */
-    mpz_init(B);
+    do {
+	/* Generate b */
+	GetRandBigInt(b);
 
-    mpz_powm(B, g, b, N);
-    mpz_add(B, B, v);
-    mpz_mod(B, B, N);
+	/* Per [SRP]: make sure b > log[g](N) -- g is always 2 */
+	mpz_add_ui(b, b, mpz_sizeinbase(N, 2));
+
+	/* B = (v + g^b) % N */
+	mpz_init(B);
+
+	mpz_powm(B, g, b, N);
+	mpz_add(B, B, v);
+	mpz_mod(B, B, N);
+
+	/* u is first 32 bits of B hashed; MSB first */
+	r = HashBigInt(text, B, hash, NULL);
+	if (r) return r;
+	mpz_init(u);
+	DataToBigInt(hash, 4, &u);
+    } while (mpz_cmp_ui(u, 0) == 0); /* Per Tom Wu: make sure u != 0 */
 
     /* calculate K
      *
      * Host:  S = (Av^u) ^ b % N             (computes session key)
      * Host:  K = Hi(S)
      */
-
-    /* u is first 32 bits of B hashed; MSB first */
-    r = HashBigInt(text, B, hash, NULL);
-    if (r) return r;
-    mpz_init(u);
-    DataToBigInt(hash, 4, &u);
-    if (!mpz_cmp_ui(u, 0)) return SASL_FAIL;
 
     mpz_init(S);
     mpz_powm(S, v, u, N);
@@ -2404,8 +2415,8 @@ server_step2(context_t *text,
       return r;
     }
 
-    /* Check the value of A */
-    if (!mpz_cmp_ui(text->A, 0) || !mpz_cmp_ui(text->A, 1)) {
+    /* Per [SRP]: reject A <= 0 */
+    if (mpz_cmp_ui(text->A, 0) <= 0) {
 	params->utils->log(NULL, SASL_LOG_ERR, "Illegal value for 'A'\n");
 	return SASL_FAIL;
     }
@@ -2436,12 +2447,9 @@ server_step2(context_t *text,
       return SASL_FAIL;
     }
 
-    /* Generate b */
-    GetRandBigInt(text->b);
-
     /* Calculate K (and B) */
     r = ServerCalculateK(text, text->v,
-			 text->N, text->g, text->b, text->B, text->A,
+			 text->N, text->g, text->B, text->A,
 			 &text->K, &text->Klen);
     if (r) {
       params->utils->seterror(params->utils->conn, 0, 
@@ -3557,6 +3565,9 @@ client_step2(context_t *text,
     /* create an 'a' */
     GetRandBigInt(text->a);
 
+    /* Per [SRP]: make sure a > log[g](N) -- g is always 2 */
+    mpz_add_ui(text->a, text->a, mpz_sizeinbase(text->N, 2));
+
     /* calculate 'A' 
      *
      * A = g^a % N 
@@ -3655,8 +3666,8 @@ client_step3(context_t *text,
     r = GetMPI((unsigned char *) data, datalen, &text->B, &data, &datalen);
     if (r) return r;
 
-    /* Check the value of B */
-    if (!mpz_cmp_ui(text->B, 0) || !mpz_cmp_ui(text->B, 1)) {
+    /* Per [SRP]: reject B <= 0 */
+    if (mpz_cmp_ui(text->B, 0) <= 0) {
 	params->utils->log(NULL, SASL_LOG_ERR, "Illegal value for 'B'\n");
 	return SASL_FAIL;
     }

@@ -1,3 +1,6 @@
+2001-12-18  Ken Murchison <ken@oceana.com>
+	* plugins/srp.c: more constraint checks
+
 2001-12-17  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/saslauthd.c: Prefork a number of processes to handle
 	  connections.

@@ -3,7 +3,7 @@
 ** mysql Auxprop plugin
 **   by Simon Loader
 **
-** $Id: mysql.c,v 1.1 2002/06/25 17:07:09 rjs3 Exp $
+** $Id: mysql.c,v 1.2 2002/06/25 18:45:51 rjs3 Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -459,7 +459,7 @@ int mysql_auxprop_plug_init(const sasl_utils_t *utils,
     if(!out_version || !plug) return SASL_BADPARAM;
     
     /* We only support the "LDAP" plugin */
-    if(plugname && strcmp(plugname, "mysql")) return SASL_NOMECH;
+    if(plugname && strcmp(plugname, "MYSQL")) return SASL_NOMECH;
     
     if(max_version < SASL_AUXPROP_PLUG_VERSION) return SASL_BADVERS;
     *out_version = SASL_AUXPROP_PLUG_VERSION;

@@ -1,6 +1,9 @@
 2003-01-29  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/digestmd5.c: Fix a situation where the realm wasn't
 	  being set for the client context, causing a segfault
+	* config/kerberos_v4.m4: first check des_* then check DES_*
+	  during OpenSSL tests (based on ideas from
+	  Leena Heino <Leena.Heino@uta.fi>)
 
 2003-01-28  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* config/sasldb.m4: Don't build sasldb plugin if compiling

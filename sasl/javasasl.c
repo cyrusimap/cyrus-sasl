@@ -1,6 +1,6 @@
 /* javasasl.c--Java SASL JNI implementation
  * Tim Martin
- * $Id: javasasl.c,v 1.3 1998/11/17 00:50:28 rob Exp $
+ * $Id: javasasl.c,v 1.4 1998/11/17 01:07:21 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -393,6 +393,9 @@ JNIEXPORT void JNICALL Java_sasl_saslCommonConn_jni_1sasl_1set_1prop_1string
   const char *value = (*env)->GetStringUTFChars(env, val, 0);
 
   int result=sasl_setprop(conn, propnum, value);
+
+  printf("propnum=%i value=%s\n",propnum, value);
+
   if (result!=SASL_OK)
     throwexception(env,result);
 }

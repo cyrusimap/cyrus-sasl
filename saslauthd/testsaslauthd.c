@@ -119,10 +119,11 @@ static int retry_writev(int fd, struct iovec *iov, int iovcnt)
  * Keep calling the read() system call with 'fd', 'buf', and 'nbyte'
  * until all the data is read in or an error occurs.
  */
-int retry_read(int fd, char *buf, unsigned nbyte)
+int retry_read(int fd, void *inbuf, unsigned nbyte)
 {
     int n;
     int nread = 0;
+    char *buf = (char *)inbuf;
 
     if (nbyte == 0) return 0;
 

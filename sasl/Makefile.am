@@ -1,6 +1,6 @@
 # Makefile.am for the Java SASL library
 # Rob Earhart
-# $Id: Makefile.am,v 1.5 1998/11/17 00:50:27 rob Exp $
+# $Id: Makefile.am,v 1.6 1998/11/30 14:35:44 rob Exp $
 #
 ################################################################
 #        Copyright 1998 by Carnegie Mellon University
@@ -44,7 +44,7 @@ javasasl.h: $(CLASSES)
 
 ${CLASSES}: classjavasasl.stamp
 
-javasasl_JAVA = BadAuthException.java GenericException.java InteractException.java NoMechException.java NotDoneException.java saslClientConn.java saslClientFactory.java saslCommonConn.java saslException.java saslFilterInputStream.java saslFilterOutputStream.java saslMechList.java saslPrompt.java saslServerConn.java saslServerFactory.java saslUtils.java
+javasasl_JAVA = BadAuthException.java GenericException.java InteractException.java NoMechException.java NotDoneException.java saslClientConn.java saslClientFactory.java saslCommonConn.java saslException.java saslFilterInputStream.java saslFilterOutputStream.java saslPrompt.java saslServerConn.java saslServerFactory.java saslUtils.java
 
 install-data-local:
 	$(mkinstalldirs) $(javahtmldir)

@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.86 2002/11/26 20:01:06 leg Exp $
+ * $Id: common.c,v 1.87 2002/12/05 14:00:38 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1314,7 +1314,10 @@ _sasl_log (sasl_conn_t *conn,
     }
   }
 
-  out[outlen]=0; /* put 0 at end */
+  /* put 0 at end */
+  result = _buf_alloc(&out, &alloclen, outlen+1);
+  if (result != SASL_OK) goto done;
+  out[outlen]=0;
 
   va_end(ap);    
 

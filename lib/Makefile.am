@@ -1,6 +1,6 @@
 # Makefile.am for the SASL library
 # Rob Earhart
-# $Id: Makefile.am,v 1.64 2002/10/11 21:19:04 rjs3 Exp $
+# $Id: Makefile.am,v 1.65 2002/10/15 20:27:26 rjs3 Exp $
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -64,9 +64,11 @@ libsasl2_la_DEPENDENCIES = $(LTLIBOBJS)
 libsasl2_la_LIBADD = $(LTLIBOBJS) $(SASL_DL_LIB) $(LIB_SOCKET)
 
 plugin_common.lo: plugin_common.o
+	rm -f plugin_common.lo
 	ln -s $(top_builddir)/plugins/plugin_common.lo plugin_common.lo
 
 plugin_common.o:
+	rm -f plugin_common.o
 	ln -s $(top_builddir)/plugins/plugin_common.o plugin_common.o
 
 if MACOSX

@@ -1,3 +1,6 @@
+2002-05-06  Ken Murchison <ken@oceana.com>
+	* plugins/digestmd5.c: added client-side reauth
+
 2002-05-05  Ken Murchison <ken@oceana.com>
 	* lib/client.c: pass global_context to mech_new()
 	* lib/server.c: don't free global_context (the plugin should free it)

@@ -289,7 +289,7 @@ typedef struct sasl_client_plug {
      		 sasl_client_params_t *cparams);
 } sasl_client_plug_t;
 
-#define SASL_CLIENT_PLUG_VERSION 2
+#define SASL_CLIENT_PLUG_VERSION 3
 
 /* plug-in entry point:
  *  utils       -- utility callback functions

@@ -12,7 +12,7 @@
 
 # Makefile.am for the pwcheck daemon
 # Larry Greenfield
-# $Id: Makefile.in,v 1.6 1999/10/28 18:02:19 leg Exp $
+# $Id: Makefile.in,v 1.7 1999/11/11 05:10:10 leg Exp $
 #
 #         Copyright 1999 by Carnegie Mellon University
 #
@@ -110,6 +110,7 @@ PACKAGE = @PACKAGE@
 PLAIN_LIBS = @PLAIN_LIBS@
 PURECOV = @PURECOV@
 PURIFY = @PURIFY@
+PWCHECKMETH = @PWCHECKMETH@
 RANLIB = @RANLIB@
 SASL_DB_BACKEND = @SASL_DB_BACKEND@
 SASL_DB_LIB = @SASL_DB_LIB@
@@ -137,8 +138,8 @@ DEFS = @DEFS@ -I. -I$(srcdir) -I..
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
-pwcheck_SOURCES = pwcheck.c pwcheck_@PWCHECKMETH@.c
-pwcheck_OBJECTS =  pwcheck.o pwcheck_@PWCHECKMETH@.o
+pwcheck_SOURCES = pwcheck.c
+pwcheck_OBJECTS =  pwcheck.o
 pwcheck_LDADD = $(LDADD)
 pwcheck_DEPENDENCIES = 
 pwcheck_LDFLAGS = 

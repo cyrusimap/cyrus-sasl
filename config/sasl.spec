@@ -1,10 +1,10 @@
 Summary: SASL API implementation
 Name: sasl
-Version: 1.4.2
+Version: 1.5.3
 Release: 1
 Copyright: CMU
 Group: Libraries
-Source: ftp.andrew.cmu.edu:/pub/cyrus-mail/cyrus-sasl-1.4.1.tar.gz
+Source: ftp.andrew.cmu.edu:/pub/cyrus-mail/cyrus-sasl-1.5.3.tar.gz
 Packager: Rob Earhart <earhart@cmu.edu>
 Requires: gdbm
 

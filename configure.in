@@ -31,7 +31,7 @@ dnl
 dnl REMINDER: When changing the version number here, please also update
 dnl the values in win32/include/winconfig.h and config/cyrus-sasl.spec as well.
 dnl
-AM_INIT_AUTOMAKE(cyrus-sasl, 1.5.2)
+AM_INIT_AUTOMAKE(cyrus-sasl, 1.5.3)
 CMU_INIT_AUTOMAKE
 
 DIRS=""
@@ -328,7 +328,7 @@ if test "$gssapi" != no; then
   fi
 
   if test "$gss_impl" = mit; then
-     GSSAPIBASE_LIBS="$GSSAPIBASE_LIBS/lib -lgssapi_krb5 -lkrb5 -lcrypto -lcom_err"
+     GSSAPIBASE_LIBS="$GSSAPIBASE_LIBS/lib -lgssapi_krb5 -lkrb5 -lk5crypto -lcom_err"
   elif test "$gss_impl" = "heimdal"; then
      GSSAPIBASE_LIBS="$GSSAPIBASE_LIBS/lib -lgssapi -lkrb5 -ldes -lasn1 -lroken ${LIB_CRYPT} -lcom_err"
   else

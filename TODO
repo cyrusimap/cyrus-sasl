@@ -1,36 +1,42 @@
 Library
 ~~~~~~~
-) Work with our GSSAPI libs
 ) Better/FASTER random numbers (init time is pretty miserable)
 ) Test suite
 ) Add db support to pwcheck_method
-) use file callback on secrets db? (annoying!)
 ) Does shadow password stuff work? (maybe pwcheck?)
 ) configure stuff: static libs, etc.
 ) Use libltdl---probably much better portability
+) better support for including missing routines
 
 Documentation
 ~~~~~~~~~~~~~
 ) so much to do here
-) how to write an application using sasl
-) man pages
-) how to configure sasl
+) how to write an application using sasl (programmer's guide)
+) man pages (saslpasswd, individual functions, etc.)
+) how to configure sasl (sysadmin guide)
 
 Mechs to write
 ~~~~~~~~~~~~~~
 ) PASSDSS-3DES-1 (draft-newman-sasl-passdss-01.txt)
 ) OTP
+) LOGIN, if it's documented?!?
 
 Digest-MD5
 ~~~~~~~~~~
 ) Layers
 ) Checking wacko cases or even not so wacko cases
+) Realm callback
 ) Testing
+) Should require & use the SASL_CB_GETREALM callback
 
 Kerberos_V4
 ~~~~~~~~~~~
 ) Needs to check timestamps for replay attacks
 ) client never sets realm
+
+GSSAPI
+~~~~~~
+) Allow specification of alternate keytab file?
 
 Plain
 ~~~~~

@@ -1,4 +1,4 @@
-$Id: README,v 1.9 1999/06/29 19:36:21 leg Exp $
+$Id: README,v 1.10 1999/07/30 19:00:16 leg Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication. See RFC 2222 for more
@@ -15,11 +15,11 @@ FEATURES
 The following mechanisms are included in this distribution:
 ANONYMOUS
 CRAM-MD5
+DIGEST-MD5
+GSSAPI (MIT Kerberos 5 or Heimdal Kerberos 5)
 KERBEROS_V4
 PLAIN
 SCRAM-MD5 (deprecated)
-GSSAPI (MIT Kerberos 5 or Heimdal Kerberos 5; untested in this release)
-DIGEST-MD5 (partial)
 
 The library uses a gdbm or ndbm file on the server side to store
 per-user authentication secrets (except for the PLAIN mechanism, which
@@ -88,6 +88,13 @@ should not be used.
 * The RC4 library is not always correctly found and dynamically
 loaded.  This isn't regarded as a huge problem, since we aren't
 supporting encryption in DIGEST-MD5 at this time.
+
+* libtool doesn't always link libraries together.  In our environment,
+we only have static Kerb5 libraries; the GSSAPI plugin should link
+these libraries in on platforms that support it (Solaris and Linux
+among them) but it does not.
+
+* Also see the "TODO" file.
 
 AUTHORS
 -------

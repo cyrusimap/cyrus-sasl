@@ -262,7 +262,7 @@ client_continue_step(void *conn_context __attribute__((unused)),
 	  return SASL_FAIL;
 	memset(*prompt_need, 0, sizeof(sasl_interact_t) * 2);
 	(*prompt_need)[0].id = SASL_CB_AUTHNAME;
-	(*prompt_need)[0].prompt = "Anonymous Identification";
+	(*prompt_need)[0].prompt = "Anonymous identification";
 	(*prompt_need)[0].defresult = "";
 	(*prompt_need)[1].id = SASL_CB_LIST_END;
       }

@@ -5,7 +5,8 @@ Rob Earhart <earhart@cmu.edu> wrote the build/installation procedure,
 wrote and tested some of the code, and provided general guidance and
 coding advice.
 
-Leif Johansson <leifj@matematik.su.se> wrote the GSSAPI plugin.
+Leif Johansson <leifj@matematik.su.se>  wrote the  GSSAPI plugin, with
+contributions from Sam Hartman <hartmans@fundsxpress.com>.
 
 Alexey Melnikov <mel@messagingdirect.com> wrote the first pass of the
 DIGEST-MD5 plugin and continues to work on it.

@@ -23,3 +23,4 @@ LNCOMMAND="${SRCDIR}/configure --prefix=/usr/local --disable-java"
 CPPFLAGS=-I/usr/local/include/gssapi
 
 export CC CFLAGS CPPFLAGS
+# -lgssapi_krb5 -lkrb5 -lk5crypto -lndbm

@@ -59,13 +59,25 @@ extern gss_OID gss_nt_service_name;
 #define GSSAPI_VERSION (3)
 
 typedef struct context {
-  int state;
-  
-  gss_ctx_id_t gss_ctx;
-  gss_name_t   client_name;
-  gss_name_t   server_name;
-  gss_cred_id_t server_creds;
-  sasl_ssf_t ssf; /* security layer type */
+    int state;
+    
+    gss_ctx_id_t gss_ctx;
+    gss_name_t   client_name;
+    gss_name_t   server_name;
+    gss_cred_id_t server_creds;
+    sasl_ssf_t ssf; /* security layer type */
+
+    sasl_malloc_t *malloc;	/* encode and decode need these */
+    sasl_realloc_t *realloc;       
+    sasl_free_t *free;
+
+    /* layers buffering */
+    char *buffer;
+    int bufsize;
+    char sizebuf[4];
+    int cursize;
+    int size;
+    unsigned needsize;
 } context_t;
 
 #define SASL_GSSAPI_STATE_AUTHNEG 1
@@ -107,11 +119,21 @@ sasl_gss_encode(void *context, const char *input, unsigned inputlen,
       return SASL_FAIL;
     }
 
-  if (output_token->value && output)
-    *output = output_token->value;
-  if (outputlen)
-    *outputlen = output_token->length;
-  
+  if (output_token->value && output) {
+      /* this bites! */
+      int len;
+
+      *output = text->malloc(output_token->length + 4);
+      len = htonl(output_token->length);
+      memcpy(*output, &len, 4);
+      memcpy(*output + 4, output_token->value, output_token->length);
+      free(output_token->value);
+  }
+
+  if (outputlen) {
+      *outputlen = output_token->length + 4;
+  }
+
   return SASL_OK;
 }
 
@@ -130,44 +152,139 @@ sasl_gss_integrity_encode(void *context, const char *input, unsigned inputlen,
   return sasl_gss_encode(context,input,inputlen,output,outputlen,0);
 }
 
+#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+
 static int 
 sasl_gss_decode(void *context, const char *input, unsigned inputlen,
 		char **output, unsigned *outputlen)
 {
-  context_t *text = (context_t *)context;
-  OM_uint32 maj_stat, min_stat;
-  gss_buffer_t input_token, output_token;
-  gss_buffer_desc real_input_token, real_output_token;
+    context_t *text = (context_t *)context;
+    OM_uint32 maj_stat, min_stat;
+    gss_buffer_t input_token, output_token;
+    gss_buffer_desc real_input_token, real_output_token;
+    unsigned diff;
 
-  if (text->state != SASL_GSSAPI_STATE_AUTHENTICATED)
-    return SASL_FAIL;
-  
-  input_token = &real_input_token; 
-  real_input_token.value = (char *)input;
-  real_input_token.length = inputlen;
-  
-  output_token = &real_output_token;
-    
-  maj_stat = gss_unwrap (&min_stat,
-			 text->gss_ctx,
-			 input_token,
-			 output_token,
-			 NULL,
-			 NULL);
-    
-  if (GSS_ERROR(maj_stat))
-    {
-      if (output_token->value)
-	free(output_token->value);
-      return SASL_FAIL;
+    if (text->state != SASL_GSSAPI_STATE_AUTHENTICATED)
+	return SASL_FAIL;
+
+    /* first we need to extract a packet */
+    if (text->needsize > 0) {
+	/* how long is it? */
+	int tocopy = MIN(text->needsize, inputlen);
+
+	memcpy(text->sizebuf + 4 - text->needsize, input, tocopy);
+	text->needsize -= tocopy;
+	input += tocopy;
+	inputlen -= tocopy;
+
+	if (text->needsize == 0) {
+	    /* got the entire size */
+	    memcpy(&text->size, text->sizebuf, 4);
+	    text->size = ntohl(text->size);
+	    text->cursize = 0;
+
+	    if (text->size > 0xFFFF || text->size == 0) return SASL_FAIL;
+
+	    if (text->bufsize < text->size + 5) {
+		text->buffer = text->realloc(text->buffer, text->size + 5);
+		text->bufsize = text->size + 5;
+	    }
+	    if (text->buffer == NULL) return SASL_NOMEM;
+	}
+	if (inputlen == 0) {
+	    /* need more data ! */
+	    *outputlen = 0;
+	    *output = NULL;
+
+	    return SASL_OK;
+	}
     }
 
-  if (output_token->value && output)
-    *output = output_token->value;
-  if (outputlen)
-    *outputlen = output_token->length;
+    diff = text->size - text->cursize;
+
+    if (inputlen < diff) {
+	/* ok, let's queue it up; not enough data */
+	memcpy(text->buffer + text->cursize, input, inputlen);
+	text->cursize += inputlen;
+	*outputlen = 0;
+	*output = NULL;
+	return SASL_OK;
+    } else {
+	memcpy(text->buffer + text->cursize, input, diff);
+	input += diff;
+	inputlen -= diff;
+    }
+
+    input_token = &real_input_token; 
+    real_input_token.value = text->buffer;
+    real_input_token.length = text->size;
   
-  return SASL_OK;
+    output_token = &real_output_token;
+    
+    maj_stat = gss_unwrap (&min_stat,
+			   text->gss_ctx,
+			   input_token,
+			   output_token,
+			   NULL,
+			   NULL);
+    
+    if (GSS_ERROR(maj_stat))
+    {
+	if (output_token->value)
+	    free(output_token->value);
+	return SASL_FAIL;
+    }
+
+    if (output_token->value && output)
+	*output = output_token->value;
+    if (outputlen)
+	*outputlen = output_token->length;
+
+    /* reset for the next packet */
+    text->size = -1;
+    text->needsize = 4;
+  
+    if (inputlen != 0) { /* we received more then just one packet */
+	char *extra = NULL;
+	int extralen;
+
+	sasl_gss_decode(text, input, inputlen, &extra, &extralen);
+	if (extra != NULL) {
+	    /* merge the two packets together */
+	    *output = text->realloc(*output, *outputlen + extralen);
+	    memcpy(*output + *outputlen, extra, extralen);
+	    *outputlen += extralen;
+	    text->free(extra);
+	}
+    }
+
+    return SASL_OK;
+}
+
+static void
+sasl_gss_set_serv_context(context_t *text, sasl_server_params_t *params)
+{
+    text->malloc = params->utils->malloc;
+    text->realloc = params->utils->realloc;
+    text->free = params->utils->free;
+    text->buffer = NULL;
+    text->bufsize = 0;
+    text->cursize = 0;
+    text->size = 0;
+    text->needsize = 4;
+}
+
+static void
+sasl_gss_set_client_context(context_t *text, sasl_client_params_t *params)
+{
+    text->malloc = params->utils->malloc;
+    text->realloc = params->utils->realloc;
+    text->free = params->utils->free;
+    text->buffer = NULL;
+    text->bufsize = 0;
+    text->cursize = 0;
+    text->size = 0;
+    text->needsize = 4;
 }
 
 static int 
@@ -190,6 +307,8 @@ sasl_gss_server_start(void *glob_context __attribute__((unused)),
   text->server_creds = GSS_C_NO_CREDENTIAL;
   text->state = SASL_GSSAPI_STATE_AUTHNEG;
 
+  sasl_gss_set_serv_context(text, params);
+
   *conn = text;
 
   return SASL_OK;
@@ -211,6 +330,9 @@ sasl_gss_free_context_contents(context_t *text)
   
   if ( text->server_creds != GSS_C_NO_CREDENTIAL)
     maj_stat = gss_release_cred(&min_stat, &text->server_creds);
+
+  /* if we've allocated space for decryption, free it */
+  if (text->buffer) text->free(text->buffer);
    
 }
 
@@ -251,7 +373,7 @@ sasl_gss_server_step (void *conn_context,
     {
     case SASL_GSSAPI_STATE_AUTHNEG:
       
-      if ( clientin == NULL && clientinlen == 0)
+      if (clientinlen == 0)
 	{
 	  /* for IMAP's sake! */
 	  *serverout = params->utils->malloc(1);
@@ -548,6 +670,9 @@ sasl_gss_client_start(void *glob_context __attribute__((unused)),
   text->gss_ctx = GSS_C_NO_CONTEXT;
   text->client_name = GSS_C_NO_NAME;
   text->server_creds = GSS_C_NO_CREDENTIAL;
+
+  sasl_gss_set_client_context(text, params);
+
   *conn = text;
   
   return SASL_OK;

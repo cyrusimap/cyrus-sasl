@@ -256,7 +256,7 @@ static int privacy_decode(void *context,
 	    *output = text->realloc(*output, *outputlen+extralen);
 	    memcpy(*output + *outputlen, extra, extralen); 
 	    *outputlen += extralen;
-	    free(extra);
+	    text->free(extra);
 	}
     }
     
@@ -816,7 +816,7 @@ static int client_continue_step (void *conn_context,
   
   if (text->state==0)
   {
-    VL(("KEBREROS_V4 Step 1\n"));
+    VL(("KERBEROS_V4 Step 1\n"));
 
     *clientout = NULL;
     *clientoutlen = 0;

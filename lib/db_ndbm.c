@@ -32,6 +32,8 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "sasl.h"
 #include "saslint.h"
 
+static int db_ok = 0;
+
 /* This provides a version of _sasl_db_getsecret and
  * _sasl_db_putsecret which work with ndbm. */
 
@@ -73,7 +75,7 @@ getsecret(void *context __attribute__((unused)),
   DBM *db;
   datum dkey, dvalue;
 
-  if (! mechanism || ! auth_identity || ! secret)
+  if (! mechanism || ! auth_identity || ! secret || ! db_ok)
     return SASL_FAIL;
 
   result = alloc_key(mechanism,
@@ -171,3 +173,37 @@ putsecret(void *context __attribute__((unused)),
 
 sasl_server_getsecret_t *_sasl_db_getsecret = &getsecret;
 sasl_server_putsecret_t *_sasl_db_putsecret = &putsecret;
+
+int _sasl_server_check_db(const sasl_callback_t *verifyfile_cb)
+{
+    int ret = SASL_OK;
+    char *db = sasl_ALLOC(strlen(SASL_DB_PATH) + 5);
+
+    if (db == NULL) {
+	ret = SASL_NOMEM;
+    }
+    if (ret == SASL_OK) {
+	sprintf(db, "%s.pag", SASL_DB_PATH);
+	ret = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(
+	    verifyfile_cb->context,
+	    SASL_DB_PATH);
+    }
+    if (ret == SASL_OK) {
+	sprintf(db, "%s.pag", SASL_DB_PATH);
+	ret = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(
+	    verifyfile_cb->context,
+	    SASL_DB_PATH);
+    }
+    if (db) {
+	sasl_FREE(db);
+    }
+    if (ret == SASL_OK) {
+	db_ok = 1;
+    }
+
+    if (ret == SASL_OK || ret == SASL_CONTINUE) {
+	return SASL_OK;
+    } else {
+	return ret;
+    }
+}

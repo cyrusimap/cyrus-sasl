@@ -1,3 +1,35 @@
+Fri Jul 30 13:33:05 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+        * Version 1.5.3 released
+
+	* plugins/gssapi.c (sasl_gss_free_context_contents): free the
+	context buffer
+
+	* include/sasl.h: added SASL_CB_GETREALM callback
+
+Thu Jul 29 14:50:19 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c (DigestCalcSecret): removed a superfluous
+	call to MD5_UTF8_8859_1.
+
+	* lib/db_none.c (_sasl_server_check_db): made _sasl_server_check_db
+
+	* lib/db_ndbm.c (_sasl_server_check_db): made _sasl_server_check_db
+
+	* lib/db_gdbm.c (_sasl_server_check_db): made _sasl_server_check_db
+
+	* lib/server.c (sasl_server_init): made it call the verify db func
+
+	* plugins/gssapi.c (sasl_gss_decode): now conforms to SASL
+	convention of sending packet size
+	(sasl_gss_encode): ditto
+
+Mon Jul 26 00:16:40 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/gssapi.c (sasl_gss_server_step): made it look only at
+	clientinlen and not clientin when determining if we just received
+	an empty data exchange
+
 Fri Jul 23 14:47:33 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* sample/sample-client.c (sasl_my_log): ditto, changed to avoid

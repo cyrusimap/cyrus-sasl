@@ -306,9 +306,6 @@ DigestCalcSecret(IN sasl_utils_t * utils,
     UTF8_In_8859_1(Password, PasswordLen);
 
   /* We have to convert UTF-8 to ISO-8859-1 if possible */
-  MD5_UTF8_8859_1(utils, &Md5Ctx, In_8859_1,
-		  pszUserName, strlen((char *) pszUserName));
-
   utils->MD5Init(&Md5Ctx);
 
   MD5_UTF8_8859_1(utils, &Md5Ctx, In_8859_1,
@@ -2197,7 +2194,8 @@ server_continue_step(void *conn_context,
     }
     /* We use the user's DIGEST secret */
 
-    result = getsecret(getsecret_context, "DIGEST-MD5", userid /* not username!!! */ , &sec);
+    result = getsecret(getsecret_context, "DIGEST-MD5", 
+		       userid /* not username!!! */, &sec);
     if (result != SASL_OK) {
       VL(("Unable to getsecret for %s\n", userid));
       goto FreeAllMem;
@@ -3098,7 +3096,7 @@ c_continue_step(void *conn_context,
 
     VL(("minssf=%i maxssf=%i\n", secprops.min_ssf, secprops.max_ssf));
 
-    params->utils->free(qop);
+    params->utils->free(qop);	/* what the hell is this doing?? */
 
     /* if client didn't set use strongest layer */
     if ((secprops.max_ssf > 1) &&

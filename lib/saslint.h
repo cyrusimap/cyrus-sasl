@@ -146,6 +146,9 @@ extern sasl_server_getsecret_t *_sasl_db_getsecret;
 extern sasl_server_putsecret_t *_sasl_db_putsecret;
 
 extern int
+_sasl_server_check_db(const sasl_callback_t *verifyfile_cb);
+
+extern int
 _sasl_getcallback(sasl_conn_t * conn,
 		  unsigned long callbackid,
 		  int (**pproc)(),

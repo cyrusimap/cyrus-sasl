@@ -32,3 +32,8 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  * couldn't find a database library. */
 sasl_server_getsecret_t *_sasl_db_getsecret = 0;
 sasl_server_putsecret_t *_sasl_db_putsecret = 0;
+
+int _sasl_server_check_db(const sasl_callback_t *verifyfile_cb)
+{
+    return SASL_OK;
+}

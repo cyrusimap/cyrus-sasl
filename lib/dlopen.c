@@ -146,11 +146,10 @@ int _sasl_get_mech_list(const char *entryname,
 	  if (result!=SASL_OK) return result;
 	  
 	  library=NULL;
-	  if (!(library=dlopen(tmp,RTLD_NOW))) /* xxx no RTLD_LOCAL | on linux */
-	    {
-	      VL(("Unable to dlopen %s: %s\n", tmp, dlerror()));
-	      continue;
-	    }
+	  if (!(library=dlopen(tmp,RTLD_NOW))) {
+	      /* printf("unable to dlopen %s: %s\n", tmp, dlerror()); */
+		continue;
+	  }
 	}
 	entry_point=NULL;
 	entry_point = dlsym(library, entryname);

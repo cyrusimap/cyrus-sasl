@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.40 1999/07/23 13:58:22 diskin Exp $
+ * $Id: server.c,v 1.41 1999/07/30 19:00:19 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -566,6 +566,7 @@ int sasl_server_init(const sasl_callback_t *callbacks,
 		     const char *appname)
 {
   int ret;
+  const sasl_callback_t *vf;
 
   _sasl_server_cleanup_hook = &server_done;
   _sasl_server_idle_hook = &server_idle;
@@ -579,9 +580,14 @@ int sasl_server_init(const sasl_callback_t *callbacks,
   mechlist=sasl_ALLOC(sizeof(mech_list_t));
   if (mechlist==NULL) return SASL_NOMEM;
 
+  vf = _sasl_find_verifyfile_callback(callbacks);
+
   /* load config file if applicable */
-  ret=load_config(_sasl_find_verifyfile_callback(callbacks));
+  ret = load_config(vf);
   if ((ret!=SASL_OK) && (ret!=SASL_CONTINUE)) return ret;
+
+  /* check db */
+  ret = _sasl_server_check_db(vf);
 
   /* load plugins */
   ret=init_mechlist();

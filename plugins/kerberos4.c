@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.98 2004/09/02 15:24:01 shadow Exp $
+ * $Id: kerberos4.c,v 1.99 2005/01/10 07:08:53 shadow Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -115,7 +115,7 @@ extern int gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: kerberos4.c,v 1.98 2004/09/02 15:24:01 shadow Exp $";
+static const char plugin_id[] = "$Id: kerberos4.c,v 1.99 2005/01/10 07:08:53 shadow Exp $";
 
 #ifndef KEYFILE
 #define KEYFILE "/etc/srvtab";
@@ -518,6 +518,7 @@ static int kerberosv4_server_mech_step(void *conn_context,
 	KTEXT_ST ticket;
 	unsigned lup;
 	struct sockaddr_in addr;
+	char *dot;
 	
 	/* received authenticator */
 	
@@ -543,6 +544,14 @@ static int kerberosv4_server_mech_step(void *conn_context,
 	KRB_UNLOCK_MUTEX(sparams->utils);
 	
 	text->instance[sizeof(text->instance)-1] = 0;
+
+	/* At some sites, krb_get_phost() sensibly but
+	 * atypically returns FQDNs, versus the first component,
+	 * which is what we need for RFC2222 section 7.1
+	 */
+	dot = strchr(text->instance, '.');
+	if (dot) *dot = '\0';
+
 	memset(&addr, 0, sizeof(struct sockaddr_in));
 	
 #ifndef KRB4_IGNORE_IP_ADDRESS
@@ -961,6 +970,7 @@ static int kerberosv4_client_mech_step(void *conn_context,
 	 * We want to reply with an authenticator. */
 	int result;
 	KTEXT_ST ticket;
+	char *dot;
 	
 	memset(&ticket, 0L, sizeof(ticket));
 	ticket.length = MAX_KTXT_LEN;   
@@ -998,6 +1008,13 @@ static int kerberosv4_client_mech_step(void *conn_context,
 	
 	/* text->instance is NULL terminated unless it was too long */
 	text->instance[sizeof(text->instance)-1] = '\0';
+
+	/* At some sites, krb_get_phost() sensibly but
+	 * atypically returns FQDNs, versus the first component,
+	 * which is what we need for RFC2222 section 7.1
+	 */
+	dot = strchr(text->instance, '.');
+	if (dot) *dot = '\0';
 	
 #ifndef macintosh
 	if ((result = krb_mk_req(&ticket, (char *) cparams->service, 

@@ -8,9 +8,10 @@ saslauthd_SOURCES = mechanisms.c globals.h \
 		    auth_krb4.h auth_pam.c auth_pam.h auth_rimap.c \
 		    auth_rimap.h auth_shadow.c auth_shadow.h auth_sia.c \
 		    auth_sia.h auth_sasldb.c auth_sasldb.h lak.c lak.h \
-		    auth_ldap.c auth_ldap.h cache.c cache.h utils.c utils.h \
+		    auth_ldap.c auth_ldap.h cache.c cache.h cfile.c cfile.h \
+		    krbtf.c krbtf.h utils.c utils.h \
                     ipc_unix.c ipc_doors.c saslauthd-main.c saslauthd-main.h \
-		    md5.c saslauthd_md5.h md5global.h
+		    md5.c saslauthd_md5.h md5global.h 
 EXTRA_saslauthd_sources = getaddrinfo.c getnameinfo.c
 saslauthd_DEPENDENCIES = saslauthd-main.o @LTLIBOBJS@
 saslauthd_LDADD	= @SASL_KRB_LIB@ \

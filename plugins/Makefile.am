@@ -1,7 +1,7 @@
 # Makefile.am for the SASL plugins
 # Rob Siemborski
 # Rob Earhart
-# $Id: Makefile.am,v 1.75 2005/02/16 20:52:12 shadow Exp $
+# $Id: Makefile.am,v 1.76 2005/02/19 02:26:31 ken3 Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -58,7 +58,7 @@ plain_version = 2:20:0
 ntlm_version = 2:20:0
 otp_version = 2:20:0
 sql_version = 2:20:0
-ldapdb_version = 2:18:0
+ldapdb_version = 2:20:0
 srp_version = 2:20:0
 
 INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/sasldb -I$(top_builddir)/include
@@ -141,6 +141,7 @@ libsasldb_la_SOURCES = sasldb.c sasldb_init.c $(common_sources)
 libsasldb_la_LDFLAGS = -version-info $(sasldb_version)
 libsasldb_la_DEPENDENCIES = $(COMPAT_OBJS)
 libsasldb_la_LIBADD = ../sasldb/libsasldb.la $(SASL_DB_LIB) $(COMPAT_OBJS)
+
 libldapdb_la_SOURCES = ldapdb.c ldapdb_init.c $(common_sources)
 libldapdb_la_LDFLAGS = $(LIB_LDAP) -version-info $(ldapdb_version)
 libldapdb_la_DEPENDENCIES = $(COMPAT_OBJS)
@@ -155,8 +156,8 @@ libsql_la_LIBADD = $(COMPAT_OBJS)
 # Instructions for making the _init files
 
 init_src=anonymous_init.c crammd5_init.c digestmd5_init.c gssapiv2_init.c \
-kerberos4_init.c login_init.c plain_init.c srp_init.c otp_init.c ntlm_init.c ldapdb_init.c \
-passdss_init.c sasldb_init.c sql_init.c
+kerberos4_init.c login_init.c plain_init.c srp_init.c otp_init.c ntlm_init.c \
+passdss_init.c sasldb_init.c sql_init.c ldapdb_init.c
 
 
 CLEANFILES=$(init_src)

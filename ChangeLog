@@ -1,3 +1,7 @@
+2003-11-06  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* nmake install support for Win32
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>
+
 2003-11-03  Ken Murchison <ken@oceana.com>
 	* include/saslplug.h, lib/server.c, plugins/cram.c,
 	  plugins/digestmd5.c, plugins/ntlm.c, plugins/otp.c,

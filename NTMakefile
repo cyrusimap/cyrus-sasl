@@ -42,11 +42,18 @@
 #
 ################################################################
 
+!INCLUDE .\win32\common.mak
+
 SUBDIRS=lib plugins utils sample
+INCSUBDIRS=include sasldb win32\include
 
-all: all-recursive
+all-first: all
 
-#nmake doesn't have for construct?
+#nmake doesn't have "for" construct?
 #front ! will call the command replacing $? with a value from dependency list
-all-recursive install clean: $(SUBDIRS)
-	!cd $? && $(MAKE) /f NTMakefile $(MAKEFLAGS) $@
+all clean: $(SUBDIRS)
+	!cd $? && $(MAKE) /f NTMakefile $(MAKEFLAGS) VERBOSE=0 $@
+
+install: $(INCSUBDIRS) $(SUBDIRS)
+	!cd $? && $(MAKE) /f NTMakefile prefix=$(prefix) $@
+

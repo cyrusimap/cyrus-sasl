@@ -91,7 +91,7 @@ typedef unsigned char   *caddr_t;
 #define HAVE_MEMCPY 1
 
 #define SASL_PATH_ENV_VAR "SASL_PATH"
-#define PLUGINDIR "C:\\SASL-PLUGINS"
+#define PLUGINDIR "C:\\CMU\\bin\\sasl2"
 
 /* Windows calls these functions something else
  */

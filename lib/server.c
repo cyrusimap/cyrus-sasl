@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.58 1999/11/18 02:21:35 leg Exp $
+ * $Id: server.c,v 1.59 1999/12/01 20:37:56 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -342,6 +342,11 @@ int sasl_setpass(sasl_conn_t *conn,
 	if (tmpresult == SASL_OK) {
 	    _sasl_log(conn, SASL_LOG_INFO, m->plug->mech_name, 0, 0,
 		      "set secret for %s", user);
+
+	    m->condition = SASL_OK; /* if we previously thought the
+				       mechanism didn't have any user secrets 
+				       we now think it does */
+
 	} else if (tmpresult == SASL_NOCHANGE) {
 	    _sasl_log(conn, SASL_LOG_INFO, m->plug->mech_name, 0, 0,
 		      "secret not changed for %s", user);
@@ -445,6 +450,7 @@ static int add_plugin(void *p, void *library) {
       mech->plug=pluglist++;
       mech->version = version;
       
+      /* wheather this mech actually has any users in it's db */
       mech->condition = result; /* SASL_OK or SASL_NOUSER */
 
       /*

@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.43 1999/11/17 08:52:06 tmartin Exp $
+ * $Id: cram.c,v 1.44 1999/12/01 20:37:56 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -53,6 +53,9 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 # undef L_DEFAULT_GUARD
 # define L_DEFAULT_GUARD (1)
 #endif
+
+/* global: if we've already set a pass entry */
+static int mydb_initialized = 0;
 
 typedef struct context {
 
@@ -542,6 +545,7 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
   int result;
   sasl_server_getsecret_t *getsecret;
   void *getsecret_context;
+  int version = -1;
 
   /* get callback so we can request the secret */
   result = utils->getcallback(utils->conn,
@@ -558,16 +562,41 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
     return SASL_FAIL;
   }
 
-  /* We use the user's CRAM secret which is kinda 1/2 way thru the
-     hmac */
   /* Request secret */
-  result = getsecret(getsecret_context, mech_name, "DUMMY", "ENTRY", &sec);
+  result = getsecret(getsecret_context, mech_name, "", "", &sec);
 
-  if (result == SASL_NOUSER || !sec) {
+  /* check version */
+
+  if (sec!=NULL)
+  {
+      if (sec->len >= 4)
+      {
+	  memcpy(&version, sec->data, 4); 
+	  version = ntohl(version);
+      }
+  }
+
+  if (version != CRAM_MD5_VERSION)
+  {
+      utils->log(utils->conn,
+		 0,
+		 mech_name,
+		 SASL_FAIL,
+		 0,
+		 "CRAM-MD5 secrets database has incompatible version (%d). My version (%d)",
+		 version, CRAM_MD5_VERSION);
+
+      return SASL_FAIL;
+  }
+  
+
+  if (result == SASL_NOUSER) {
     return SASL_NOUSER;
   }
 
   free_secret(utils, &sec);
+
+  mydb_initialized = 1;
 
   return SASL_OK;
 }
@@ -585,6 +614,13 @@ static int mechanism_fill_db(char *mech_name, sasl_server_params_t *sparams)
   sasl_server_putsecret_t *putsecret;
   void *putsecret_context;
   sasl_secret_t *sec = NULL;
+  int version;
+
+  /* don't do this again if it's already set */
+  if (mydb_initialized == 1)
+  {
+      return SASL_OK;
+  }
 
   /* get the callback for saving to the password db */
   result = sparams->utils->getcallback(sparams->utils->conn,
@@ -597,24 +633,30 @@ static int mechanism_fill_db(char *mech_name, sasl_server_params_t *sparams)
 
   /* allocate a secret structure that we're going to save to disk */  
   sec=(sasl_secret_t *) sparams->utils->malloc(sizeof(sasl_secret_t)+
-					       1);
+					       4);
   if (sec == NULL) {
     result = SASL_NOMEM;
     return result;
   }
   
   /* set the size */
-  sec->len = 1;
+  sec->len = 4;
+
   /* and insert the data */
-  memcpy(sec->data,"X", 1);
+  version = htonl(CRAM_MD5_VERSION);
+  memcpy(sec->data, &version, 4);
 
   /* do the store */
   result = putsecret(putsecret_context,
 		     mech_name, 
-		     "DUMMY",
-		     "ENTRY",
+		     "",
+		     "",
 		     sec);
 
+  if (result == SASL_OK)
+  {
+      mydb_initialized = 1;
+  }
 
   return result;
 }

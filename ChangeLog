@@ -1,3 +1,12 @@
+1999-12-01  Timothy L Martin  <tmartin+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c: caches db has entries; checks db version
+
+	* plugins/cram.c: caches db has entries; checks db version
+
+	* lib/server.c (sasl_setpass): set secret exist condition to true
+ 	on sucessful mechanism setpass
+
 Tue Nov 30 16:45:12 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* configure.in: added test for res_search; suggested by tjs

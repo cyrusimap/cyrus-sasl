@@ -6,8 +6,8 @@ Library
 ) Use libltdl---probably much better portability
 ) parse the .la file instead of assuming we load the ".so" file
 ) better support for including missing routines
-) should be able use TLS's RC4 implementation
 ) check return settings (ssf, etc.) on auth failure
+) Make real global objects in cram, digest
 
 Documentation
 ~~~~~~~~~~~~~

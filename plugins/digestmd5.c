@@ -151,6 +151,9 @@ typedef int cipher_function_t(void *,
 typedef int cipher_init_t(void *, sasl_utils_t *,
 			  char [16], char [16]);
 
+/* global: if we've already set a pass entry */
+static int mydb_initialized = 0;
+
 /* context that stores info */
 typedef struct context {
   int state;			/* state in the authentication we are in */
@@ -226,7 +229,7 @@ typedef struct context {
 
 static int      htoi(unsigned char *hexin, int *res);
 
-#define DIGESTMD5_VERSION (3)
+#define DIGEST_MD5_VERSION (3)
 #define KEYS_FILE NULL
 
 static unsigned char *COLON = (unsigned char *) ":";
@@ -2542,6 +2545,7 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
   int result;
   sasl_server_getsecret_t *getsecret;
   void *getsecret_context;
+  int tmpversion = -1;
 
   /* get callback so we can request the secret */
   result = utils->getcallback(utils->conn,
@@ -2560,14 +2564,40 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
   }
 
   /* Request secret */
-  result = getsecret(getsecret_context, mech_name, "DUMMY", "ENTRY", &sec);
+  result = getsecret(getsecret_context, mech_name, "", "", &sec);
+
+  /* check version */
+  if (sec!=NULL)
+  {
+      if (sec->len >= 4)
+      {
+	  memcpy(&tmpversion, sec->data, 4); 
+	  tmpversion = ntohl(tmpversion);
+      }
+  }
+
+  if (tmpversion != DIGEST_MD5_VERSION)
+  {
+      utils->log(utils->conn,
+		 0,
+		 mech_name,
+		 SASL_FAIL,
+		 0,
+		 "DIGEST-MD5 secrets database has incompatible version (%d). My version (%d)",
+		 tmpversion, DIGEST_MD5_VERSION);
+
+      return SASL_FAIL;
+  }
+  
 
   if (result == SASL_NOUSER) {
     return SASL_NOUSER;
   }
 
+  mydb_initialized = 1;
+
   if (sec!=NULL)
-    utils->free(sec); /* xxx should zero out memory */
+    utils->free(sec);
 
   return result;
 }
@@ -2586,6 +2616,12 @@ static int mechanism_fill_db(char *mech_name, sasl_server_params_t *sparams)
   void *putsecret_context;
   sasl_secret_t *sec = NULL;
 
+  /* don't do this again if it's already set */
+  if (mydb_initialized == 1)
+  {
+      return SASL_OK;
+  }
+
   /* get the callback for saving to the password db */
   result = sparams->utils->getcallback(sparams->utils->conn,
 				       SASL_CB_SERVER_PUTSECRET,
@@ -2597,24 +2633,30 @@ static int mechanism_fill_db(char *mech_name, sasl_server_params_t *sparams)
 
   /* allocate a secret structure that we're going to save to disk */  
   sec=(sasl_secret_t *) sparams->utils->malloc(sizeof(sasl_secret_t)+
-					       1);
+					       4);
   if (sec == NULL) {
     result = SASL_NOMEM;
     return result;
   }
-  
+
   /* set the size */
-  sec->len = 1;
+  sec->len = 4;
+
   /* and insert the data */
-  memcpy(sec->data,"X", 1);
+  version = htonl(DIGEST_MD5_VERSION);
+  memcpy(sec->data, &version, 4);
 
   /* do the store */
   result = putsecret(putsecret_context,
 		     mech_name, 
-		     "DUMMY",
-		     "ENTRY",
+		     "",
+		     "",
 		     sec);
 
+  if (result == SASL_OK)
+  {
+      mydb_initialized = 1;
+  }
 
   return result;
 }
@@ -2739,7 +2781,7 @@ int sasl_server_plug_init(sasl_utils_t * utils __attribute__((unused)),
   *pluglist = plugins;
 
   *plugcount = 1;
-  *out_version = DIGESTMD5_VERSION;
+  *out_version = DIGEST_MD5_VERSION;
 
   if ( mechanism_db_filled("DIGEST-MD5",utils) != SASL_OK)
   {
@@ -3866,13 +3908,13 @@ int             sasl_client_plug_init(sasl_utils_t * utils __attribute__((unused
 				                      int *out_version,
 		                       const sasl_client_plug_t ** pluglist,
 				                      int *plugcount) {
-  if (maxversion < DIGESTMD5_VERSION)
+  if (maxversion < DIGEST_MD5_VERSION)
     return SASL_BADVERS;
 
   *pluglist = client_plugins;
 
   *plugcount = 1;
-  *out_version = DIGESTMD5_VERSION;
+  *out_version = DIGEST_MD5_VERSION;
 
   return SASL_OK;
 }

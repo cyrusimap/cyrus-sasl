@@ -29,6 +29,7 @@ all: all-recursive
 install: libsasl.dll
 	@echo libsasl.exp > $(exclude_list)
 	@echo libsasl.lib >> $(exclude_list)
+	@echo libsasl.res >> $(exclude_list)
 	@xcopy libsasl.* $(bindir) /I /F /Y /EXCLUDE:$(exclude_list)
 	@xcopy libsasl.l* $(libdir) /I /F /Y
 

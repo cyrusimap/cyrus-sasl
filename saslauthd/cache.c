@@ -642,8 +642,7 @@ int cache_get_wlock(unsigned int slot) {
 			logger(L_DEBUG, L_FUNC, "attempting a write lock on slot: %d", slot);
 
 		rc = fcntl(lock.flock_fd, F_SETLKW, &lock_st);
-
-	} while (errno == EINTR);
+	} while (rc != 0 && errno == EINTR);
 
 	if (rc != 0) {	
 		rc = errno;
@@ -680,8 +679,7 @@ int cache_get_rlock(unsigned int slot) {
 			logger(L_DEBUG, L_FUNC, "attempting a read lock on slot: %d", slot);
 
 		rc = fcntl(lock.flock_fd, F_SETLKW, &lock_st);
-
-	} while (errno == EINTR);
+	} while (rc != 0 && errno == EINTR);
 
 	if (rc != 0) {	
 		rc = errno;
@@ -715,9 +713,8 @@ int cache_un_lock(unsigned int slot) {
 		if (flags & VERBOSE)
 			logger(L_DEBUG, L_FUNC, "attempting to release lock on slot: %d", slot);
 
-		rc = fcntl(lock.flock_fd, F_SETLK, &lock_st);
-
-	} while (errno == EINTR);
+		rc = fcntl(lock.flock_fd, F_SETLKW, &lock_st);
+	} while (rc != 0 && errno == EINTR);
 
 	if (rc != 0) {	
 		rc = errno;

@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.8 1999/12/12 23:10:43 leg Exp $ -->
+<!-- $Id: sysadmin.html,v 1.9 1999/12/24 00:22:36 leg Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -269,10 +269,66 @@ Check your application's documentation for more information.
 
 <h2>Compiling and installing the library</h2>
 
-Unfortunately, since SASL is very flexible (allowing administrators to
+what configure options to use?
+
+<p>what can go wrong with shared libraries?
+
+<p>make sure to make the /usr/lib/sasl symbolic link.
+
+<p>Unfortunately, since SASL is very flexible (allowing administrators to
 upgrade and install new authentication plugins without recompiling any
 applications) its flexibility can also make it a chore to compile.
 
 <p>I'll have some sage advice here when I find some.
 
+<h2>Troubleshooting</h2>
+
+<dl compact>
+<dt><b>Q:</b>Why doesn't KERBEROS_V4 doesn't appear as an
+available mechanism?
+<dd>
+<p><b>A:</b> Check that the <tt>srvtab</tt> file is readable by the
+user running as the daemon.  For Cyrus imapd, it must be readable by
+the Cyrus user.  By default, the library looks for the srvtab in
+<tt>/etc/srvtab</tt>, but it's configurable using the <tt>srvtab</tt>
+option.
+
+<p>
+<dt><b>Q:</b>Why don't CRAM-MD5 and DIGEST-MD5 appear as an available
+mechanisms?
+<dd>
+<p><b>A:</b> The mechanisms won't appear until after some users have
+been created.  Use <tt>saslpasswd</tt> to create a user.
+
+<p>
+<dt><b>Q:</b>CRAM-MD5 and DIGEST-MD5 used to appear,
+but since I've upgraded they don't anymore!
+<dd>
+<p><b>A:</b> As of Cyrus SASL 1.5.13, we've added a versioning feature
+into the database.  If you're upgrading from before 1.5.13, you'll
+have to use <tt>saslpasswd</tt> to set a password.
+
+<p>If you're upgrading from 1.5.13 or later, check the syslog
+messages; if it indicates an incompatible version number, there's
+probably a conversion tool you'll have to run.
+
+<p>
+<dt><b>Q:</b>Is LOGIN supported?
+<dd>
+<p><b>A:</b> The LOGIN mechanism is a non-standard, undocumented
+plaintext mechanism.  We received a version of it, and it will
+hopefully be included in the next release.
+
+<p>
+<dt><b>Q:</b> How come PAM doesn't work as an plaintext verifier?
+<dd>
+<p><b>A:</b>Check your PAM configuration.  On Solaris, it's generally
+found in <tt>/etc/pam.conf</tt>.  On Linux, it's usually in the
+directory <tt>/etc/pam.d</tt>.  You'll have to configure PAM for the
+service you're providing: "smtp" for Sendmail, or "imap" and "pop" for
+Cyrus.
+
+</dl>
+
 </body>
+</html>

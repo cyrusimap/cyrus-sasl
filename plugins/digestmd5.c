@@ -40,7 +40,7 @@ SOFTWARE.
 #include <saslutil.h>
 
 /* defines */
-/* #define SEND_REATH_RESPONSE 0 */
+#define SEND_REATH_RESPONSE 1
 
 #define NONCE_SIZE (32)		/* arbitrary */
 #define DIGEST_NOLAYER    (1)
@@ -91,6 +91,7 @@ typedef unsigned char HASHHEX[HASHHEXLEN + 1];
 #define CIPHER_RC456 32  /* xxx this still here? */
 
 
+/* function definitions for cipher encode/decode */
 typedef int cipher_function_t(void *,
 			     const char *,
 			     unsigned,
@@ -147,7 +148,11 @@ typedef struct context {
   cipher_function_t *cipher_dec;
   cipher_init_t *cipher_init;
 
-  des_key_schedule keysched;   /* key schedule for des initialization */
+  des_key_schedule keysched_enc;   /* key schedule for des initialization */
+  des_key_schedule keysched_dec;   /* key schedule for des initialization */
+
+  des_key_schedule keysched_enc2;   /* key schedule for 3des initialization */
+  des_key_schedule keysched_dec2;   /* key schedule for 3des initialization */
 
   unsigned char *sbox; /* for rc4 */
   int i;
@@ -170,10 +175,10 @@ typedef struct context {
 static int      htoi(unsigned char *hexin, int *res);
 
 #define MAGIC_IC "Digest session key to client-to-server signing key magic constant"
-#define MAGIC_IS "Digest session key to server-to-client signing key magic constant"
+#define MAGIC_IS "Digest session key to client-to-server signing key magic constant"
 
 #define MAGIC_CC "Digest H(A1) to client-to-server sealing key magic constant"
-#define MAGIC_CS "Digest H(A1) to server-to-client sealing key magic constant"
+#define MAGIC_CS "Digest H(A1) to client-to-server sealing key magic constant"
 
 #define DIGESTMD5_VERSION (3)
 #define KEYS_FILE NULL
@@ -840,7 +845,356 @@ digest_strdup(sasl_utils_t * utils, const char *in, char **out, int *outlen)
   return SASL_OK;
 }
 
+/******************************
+ *
+ * 3DES functions
+ *
+ *****************************/
 
+static int dec_3des(context_t *text,
+		   const char *input,
+		   unsigned inputlen,
+		   char **output,
+		   unsigned *outputlen)
+{
+  int len;
+  int lup;
+  int tmp;
+
+  if (inputlen%8==0)
+    len=inputlen;
+  else
+    len=((inputlen/8)+1)*8; /* des encrpytes 8 bytes chunks */
+
+  *output = (char *) text->malloc(len);
+  if (*output==NULL) return SASL_NOMEM;
+  memset(*output, 0, len);
+  *outputlen=inputlen;  
+
+  for (lup=0;lup<len;lup+=8)
+  {
+    /* decrypt with 1st key */
+    tmp=des_ecb_encrypt((des_cblock *)(input+lup),
+		    (des_cblock *) ((*output)+lup),
+		    text->keysched_dec,
+		    DES_DECRYPT);
+
+    /* encrypt with 2nd key */
+    des_ecb_encrypt((des_cblock *) ((*output)+lup),
+		    (des_cblock *) ((*output)+lup),
+		    text->keysched_dec2,
+		    DES_ENCRYPT);
+
+    /* decrypt with 1st key */
+    des_ecb_encrypt((des_cblock *) ((*output)+lup),
+		    (des_cblock *) ((*output)+lup),
+		    text->keysched_dec,
+		    DES_DECRYPT);
+
+  }
+
+  while( (*output)[(*outputlen)-1]==0)
+    (*outputlen)--;
+
+  return SASL_OK;
+}
+
+int enc_3des(struct context *text,
+	     const char *input,
+	     unsigned inputlen,
+	     char **output,
+	     unsigned *outputlen)
+{
+  int len;
+  int lup;
+  char last[8];
+
+  if (inputlen%8==0)
+    len=inputlen;
+  else
+    len=((inputlen/8)+1)*8; /* des encrpytes 8 bytes chunks */
+
+  for (lup=0;lup<len;lup+=8)
+  {
+    if (inputlen-lup<8)
+    {
+      memset(last,0,8);
+      memcpy(last,input+lup,inputlen-lup);
+      /* encrpyt with 1st key */
+      des_ecb_encrypt((des_cblock *) last,
+		      (des_cblock *) ((*output)+lup),
+		      text->keysched_enc,
+		      DES_ENCRYPT);
+    } else {
+      /* encrpyt with 1st key */
+      des_ecb_encrypt((des_cblock *)(input+lup),
+		      (des_cblock *) ((*output)+lup),
+		      text->keysched_enc,
+		      DES_ENCRYPT);
+    }
+
+    /* decrpyt with 2nd key */
+    des_ecb_encrypt((des_cblock *) ((*output)+lup),
+		    (des_cblock *) ((*output)+lup),
+		    text->keysched_enc2,
+		    DES_DECRYPT);
+    /* encrpyt with 1st key */
+    des_ecb_encrypt((des_cblock *) ((*output)+lup),
+		    (des_cblock *) ((*output)+lup),
+		    text->keysched_enc,
+		    DES_ENCRYPT);
+  }
+
+  *outputlen=len;
+
+  return SASL_OK;
+}
+static int init_3des(context_t *text, char *key, int keylen)
+{
+  if (keylen<14) return SASL_FAIL;
+
+  VL(("initializing 3des\n"));
+
+  des_key_sched(key, text->keysched_enc); /* encryption and decryption */
+  des_key_sched(key, text->keysched_dec); /* encryption and decryption */
+
+  des_key_sched(key+7, text->keysched_enc2); /* encryption and decryption */
+  des_key_sched(key+7, text->keysched_dec2); /* encryption and decryption */
+
+  return SASL_OK;
+}
+
+
+/******************************
+ *
+ * DES functions
+ *
+ *****************************/
+
+static int dec_des(context_t *text,
+		   const char *input,
+		   unsigned inputlen,
+		   char **output,
+		   unsigned *outputlen)
+{
+  int len;
+  int lup;
+  int tmp;
+
+  if (inputlen%8==0)
+    len=inputlen;
+  else
+    len=((inputlen/8)+1)*8; /* des encrpytes 8 bytes chunks */
+
+  *output = (char *) text->malloc(len);
+  if (*output==NULL) return SASL_NOMEM;
+  memset(*output, 0, len);
+  *outputlen=inputlen;  
+
+  for (lup=0;lup<len;lup+=8)
+  {
+    /* decrypt with 1st key */
+    tmp=des_ecb_encrypt((des_cblock *)(input+lup),
+		    (des_cblock *) ((*output)+lup),
+		    text->keysched_dec,
+		    DES_DECRYPT);
+  }
+
+  while( (*output)[(*outputlen)-1]==0)
+    (*outputlen)--;
+
+  return SASL_OK;
+}
+
+static int enc_des(context_t *text,
+		   const char *input,
+		   unsigned inputlen,
+		   char **output,
+		   unsigned *outputlen)
+{
+  int len;
+  int lup;
+  char last[8];
+
+  if (inputlen%8==0)
+    len=inputlen;
+  else
+    len=((inputlen/8)+1)*8; /* des encrpytes 8 bytes chunks */
+
+  for (lup=0;lup<len;lup+=8)
+  {
+    if (inputlen-lup<8)
+    {
+      memset(last,0,8);
+      memcpy(last,input+lup,inputlen-lup);
+      /* encrpyt with 1st key */
+      des_ecb_encrypt((des_cblock *) last,
+		      (des_cblock *) ((*output)+lup),
+		      text->keysched_enc,
+		      DES_ENCRYPT);
+    } else {
+      /* encrpyt with 1st key */
+      des_ecb_encrypt((des_cblock *)(input+lup),
+		      (des_cblock *) ((*output)+lup),
+		      text->keysched_enc,
+		      DES_ENCRYPT);
+    }
+
+  }
+
+  *outputlen=len;
+
+  return SASL_OK;
+}
+static int init_des(context_t *text, char *key, int keylen)
+{
+  if (keylen<7) return SASL_FAIL;
+
+  VL(("initializing des\n"));
+
+  des_key_sched(key, text->keysched_enc); /* encryption and decryption */
+  des_key_sched(key, text->keysched_dec); /* encryption and decryption */
+
+  return SASL_OK;
+}
+
+/******************************
+ *
+ * RC4 functions
+ *
+ *****************************/
+
+static int init_rc4(context_t *text, char *key, int keylen)
+{
+  int lup;
+  int i, j;
+  unsigned char *K;
+
+  VL(("Initializing rc-4 with keylen=%i\n",keylen));
+
+  /* initialize sbox */
+  text->sbox=(char *) text->malloc(256);  
+  K=(char *) text->malloc(256);  
+
+  /* allocate for it */
+
+
+  /* fill in linearly s0=0 s1=1... */
+  for (lup=0;lup<256;lup++)
+    text->sbox[lup]=lup;
+
+  for (lup=0;lup<256;lup++)
+    K[lup]=key[ lup%keylen];
+
+  j=0;
+  for (i=0;i<256;i++)
+  {
+    char tmp;
+    /* j = (j + Si + Ki) mod 256 */
+    j=(j+text->sbox[i]+K[i])%256;
+
+    /* swap Si and Sj */
+    tmp=text->sbox[i];
+    text->sbox[i]=text->sbox[j];
+    text->sbox[j]=tmp;
+  }
+
+  /* zero and free K */
+  memset(K,0,256);
+  text->free(K);
+
+  /* counters initialized to 0 */
+  text->i=0;
+  text->j=0;
+
+  VL(("Initialized rc4\n"));
+
+  return SASL_OK;
+}
+
+static int enc_rc4(context_t *text,
+		   const char *input,
+		   unsigned inputlen,
+		   char **output,
+		   unsigned *outputlen)
+{
+  int tmp;
+  int i=text->i;
+  int j=text->j;
+  int t;
+  int K;
+  unsigned int lup;
+
+  *outputlen=inputlen;
+
+  for (lup=0;lup<inputlen;lup++)
+  {
+    i=(i+1) %256;
+
+    j=(j + text->sbox[i] ) %256;
+
+    /* swap Si and Sj */
+    tmp=text->sbox[i];
+    text->sbox[i]=text->sbox[j];
+    text->sbox[j]=tmp;
+  
+    t=( text->sbox[i] + text->sbox[j]) %256;
+    
+    K=text->sbox[t];
+
+    /* byte K is Xor'ed with plaintext */
+    (*output)[lup]=input[lup] ^ K;
+
+  }
+
+  text->i=i;
+  text->j=j;
+  return SASL_OK;
+}
+
+static int dec_rc4(context_t *text,
+		   const char *input,
+		   unsigned inputlen,
+		   char **output,
+		   unsigned *outputlen)
+{
+  int tmp;
+  int i=text->i;
+  int j=text->j;
+  int t;
+  int K;
+  unsigned int lup;
+
+  *output = (char *) text->malloc(inputlen);
+  if (*output==NULL) return SASL_NOMEM;
+  *outputlen=inputlen;
+
+  for (lup=0;lup<inputlen;lup++)
+  {
+    i=(i+1) %256;
+
+    j=(j + text->sbox[i] ) %256;
+
+    /* swap Si and Sj */
+    tmp=text->sbox[i];
+    text->sbox[i]=text->sbox[j];
+    text->sbox[j]=tmp;
+  
+    t=( text->sbox[i] + text->sbox[j]) %256;
+    
+    K=text->sbox[t];
+
+    /* byte K is Xor'ed with plaintext */
+    (*output)[lup]=input[lup] ^ K;
+
+  }
+
+  text->i=i;
+  text->j=j;
+  return SASL_OK;
+}
+
+static unsigned int version = 1;
 
 static int
 privacy_encode(void *context,
@@ -850,15 +1204,63 @@ privacy_encode(void *context,
 	       unsigned *outputlen)
 {
   context_t      *text = (context_t *) context;
-  printf("in privacy encode\n");
+  int tmp;
+  int tmpnum;
+  char *out;
+  unsigned char   digest[16];
+  char *param2;
+
+  *output = (char *) text->malloc(4+ /* for length */
+				  inputlen+7+ /* for encrypted text */
+				  16+ /* for MAC */
+				  10); /* for padding */
+  if (*output==NULL) return SASL_NOMEM;
+
+
+
+  /* put the encrpyed text in */
+  out=(*output)+4;
   
   text->cipher_enc(text,input,inputlen,
-		   output,outputlen);
+		   &out,outputlen);
+  out+=(*outputlen);
+
+  /* copy in version */
+  tmpnum = htonl(version);
+  memcpy(out, &tmpnum, 4);	/* 4 bytes = version */  
+  out+=4;
+
+  /* construct (seqnum, msg) */
+  param2 = (unsigned char *) text->malloc(inputlen + 4);
+  if (param2 == NULL) return SASL_NOMEM;
+  tmpnum = htonl(text->seqnum);
+  memcpy(param2, &tmpnum, 4);
+  memcpy(param2 + 4, input, inputlen);
+
+
+  /* HMAC(ki, (seqnum, msg) ) */
+  text->hmac_md5(text->Ki, HASHLEN,
+		 param2, inputlen + 4, digest);
+
+  /* MAC foo */
+  text->cipher_enc(text, digest, 8,
+		   &out, &tmpnum);
+
+  out+=8;
+
+  /* put in seqnum */
+  tmpnum = htonl(text->seqnum);
+  memcpy(out, &tmpnum, 4);	/* 4 bytes = version */  
+
+  (*outputlen)+=16; /* for CMAC */
+
   
+  /* put the 1st 4 bytes in */
+  tmp=htonl(*outputlen);  
+  memcpy(*output, &tmp, 4);
   
-  *output = (char *) text->malloc(inputlen);
-  memcpy(*output, input, inputlen);
-  *outputlen=inputlen;
+  (*outputlen)+=4;
+  text->seqnum++;
 
   return SASL_OK;
 }
@@ -870,18 +1272,133 @@ privacy_decode(void *context,
 		 char **output,
 		 unsigned *outputlen)
 {
-  context_t      *text = (context_t *) context;
+    int tocopy;
+    unsigned diff;
+    int result;
+    context_t      *text = (context_t *) context;
+    char *extra;
+    unsigned int extralen=0;
+    unsigned char   digest[16];
+    char *param2;
+    unsigned char *macmid;
+    int tmpnum;
+    int lup;
 
-  printf("in privacy decode\n");
-  *output = (char *) text->malloc(inputlen);
-  memcpy(*output, input, inputlen);
-  *outputlen=inputlen;
+    if (text->needsize>0) /* 4 bytes for how long message is */
+    {
+      /* if less than 4 bytes just copy those we have into text->size */
+      if (inputlen<4) 
+	tocopy=inputlen;
+      else
+	tocopy=4;
+      
+      if (tocopy>text->needsize)
+	tocopy=text->needsize;
 
-  return SASL_OK;
+      memcpy(text->sizebuf+4-text->needsize, input, tocopy);
+      text->needsize-=tocopy;
+
+      input+=tocopy;
+      inputlen-=tocopy;
+
+      if (text->needsize==0) /* got all of size */
+      {
+	memcpy(&(text->size), text->sizebuf, 4);
+	text->cursize=0;
+	text->size=ntohl(text->size);
+
+	if (text->size>0xFFFF) return SASL_FAIL; /* too big probably error */
+	
+	text->buffer=text->malloc(text->size+5);
+	if (text->buffer == NULL) return SASL_NOMEM;
+      }
+      *outputlen=0;
+      *output=NULL;
+      if (inputlen==0) /* have to wait until next time for data */
+	return SASL_OK;
+
+      if (text->size==0)  /* should never happen */
+	return SASL_FAIL;
+    }
+
+    diff=text->size - text->cursize; /* bytes need for full message */
+
+    if (! text->buffer)
+      return SASL_FAIL;
+
+    if (inputlen < diff) /* not enough for a decode */
+    {
+      memcpy(text->buffer+text->cursize, input, inputlen);
+      text->cursize+=inputlen;
+      *outputlen=0;
+      *output=NULL;
+      return SASL_OK;
+    } else {
+      memcpy(text->buffer+text->cursize, input, diff);
+      input+=diff;      
+      inputlen-=diff;
+    }
+
+    result=text->cipher_dec(text,text->buffer,text->size-16,
+		     output,outputlen);
+  
+    if (result!=SASL_OK)
+    {
+      text->free(text->buffer);
+      return result;
+    }
+
+    /* check the CMAC */
+
+    /* construct (seqnum, msg) */
+    param2 = (unsigned char *) text->malloc((*outputlen) + 4);
+    if (param2 == NULL) return SASL_NOMEM;
+    tmpnum = htonl(text->rec_seqnum);
+    memcpy(param2, &tmpnum, 4);
+    memcpy(param2 + 4, *output, *outputlen);
+
+    /* HMAC(ki, (seqnum, msg) ) */
+    text->hmac_md5(text->Ki, HASHLEN,
+		   param2, (*outputlen) + 4, digest);
+
+    macmid=(char *)malloc(10);
+
+    /* MAC foo */
+    text->cipher_dec(text, (text->buffer)+text->size-12, 8,
+		     (char **) &macmid, &tmpnum);
+
+		     
+    for (lup=0;lup<8;lup++)
+      if (macmid[lup]!=digest[lup])
+      {
+	VL(("CMAC doesn't match!\n"));
+	return SASL_FAIL;
+      }
+    
+    text->free(macmid);
+    text->free(text->buffer);
+
+    text->size=-1;
+    text->needsize=4;
+    text->rec_seqnum++;
+
+    /* if received more than the end of a packet */
+    if (inputlen!=0)
+    {
+      
+      privacy_decode(text, input, inputlen,
+			   &extra, &extralen);
+      if (extra!=NULL) /* if received 2 packets merge them together */
+      {	
+	*output=realloc( *output, *outputlen+extralen);
+	memcpy(*output+*outputlen, extra, extralen); 
+	*outputlen+=extralen;	
+      }
+    }
+     
+    return SASL_OK;
 }
 
-
-static unsigned int version = 1;
 
 static int
 integrity_encode(void *context,
@@ -1186,8 +1703,8 @@ server_continue_step(void *conn_context,
     char           *challenge = NULL;
     char           *realm;
     unsigned char  *nonce;
-    char           *qop = "auth,auth-int";
-    /*    char           *cipheropts="rc4";*/
+    char           *qop = "auth,auth-int,auth-conf";
+    char           *cipheropts="3des,des,rc4";
     char           *charset = "utf-8";
     /* char *algorithm="md5-sess"; */
 
@@ -1233,11 +1750,11 @@ server_continue_step(void *conn_context,
      *  Cipheropts - list of ciphers server supports
      */
     /* add cipher-opts to challenge */
-    /*    if (add_to_challenge(sparams->utils, &challenge, "cipher", (unsigned char *) cipheropts, 
+    if (add_to_challenge(sparams->utils, &challenge, "cipher", (unsigned char *) cipheropts, 
 			 TRUE) != SASL_OK) {
       VL(("add_to_challenge 3 failed\n"));
       return SASL_FAIL;
-      }*/
+    }
 
 
     /* "stale" not used in initial authentication */
@@ -1328,6 +1845,10 @@ server_continue_step(void *conn_context,
     /* can we mess with clientin? copy it to be safe */
     char           *in_start;
     char           *in = sparams->utils->malloc(clientinlen + 1);
+
+#ifdef SEND_REATH_RESPONSE
+    char *response_auth = NULL;
+#endif
 
     memcpy(in, clientin, clientinlen);
     in[clientinlen] = 0;
@@ -1444,31 +1965,36 @@ server_continue_step(void *conn_context,
     /* check which layer/cipher to use */
 
     if (strcmp(qop, "auth-conf") == 0) {
-      VL(("Privacy layer not supported\n"));
+      /*      VL(("Privacy layer not supported\n"));
       result = SASL_FAIL;
-      goto FreeAllMem;
-
-	/* for when privacy supported */
+      goto FreeAllMem;*/
+      
+      /* for when privacy supported */
       VL(("Client requested privacy layer\n"));
       VL(("Client cipher=%s\n",cipher));
       if (strcmp(cipher,"des")==0)
       {
-	/*	text->cipher_enc=enc_des;
-	text->cipher_dec=dec_des;
-	text->cipher_init=init_des;*/
-	
+	text->cipher_enc=(cipher_function_t *) &enc_des;
+	text->cipher_dec=(cipher_function_t *) &dec_des;
+	text->cipher_init=(cipher_init_t *) &init_des;	
+	oparams->mech_ssf = 56;
       } else if (strcmp(cipher,"3des")==0) {
-	/*	text->cipher=CIPHER_3DES;*/
+	text->cipher_enc=(cipher_function_t *) &enc_3des;
+	text->cipher_dec=(cipher_function_t *) &dec_3des;
+	text->cipher_init=(cipher_init_t *) &init_3des;
+	oparams->mech_ssf = 112;
       } else if (strcmp(cipher,"rc4")==0) {
-	/*	text->cipher_enc=enc_rc4;
-	text->cipher_dec=dec_rc4;
-	text->cipher_init=init_rc4;*/
+	text->cipher_enc=(cipher_function_t *) &enc_rc4;
+	text->cipher_dec=(cipher_function_t *) &dec_rc4;
+	text->cipher_init=(cipher_init_t *) &init_rc4;
+	oparams->mech_ssf = 64;
       } else {
 	VL(("Invalid or no cipher chosen\n"));
 	result = SASL_FAIL;
 	goto FreeAllMem;
       }
 
+    
       oparams->encode=&privacy_encode;
       oparams->decode=&privacy_decode;
       
@@ -1476,10 +2002,12 @@ server_continue_step(void *conn_context,
       VL(("Client requested integrity layer\n"));
       oparams->encode = &integrity_encode;
       oparams->decode = &integrity_decode;
+      oparams->mech_ssf = 1;
     } else if (strcmp(qop, "auth") == 0) {
       VL(("Client requested no layer\n"));
       oparams->encode = NULL;
       oparams->decode = NULL;
+      oparams->mech_ssf = 0;
     } else {
       VL(("Client requested undefined layer\n"));
       result = SASL_FAIL;
@@ -1647,7 +2175,6 @@ server_continue_step(void *conn_context,
      *//* Test-Server.C use this!!! */
 
     oparams->doneflag = 1;
-    oparams->mech_ssf = 0;	/* 1 - only integrity support */
     oparams->maxoutbuf = client_maxbuf;
 
     oparams->param_version = 0;
@@ -2097,7 +2624,6 @@ free_prompts(sasl_client_params_t * params,
     return;
 
   do {
-    /* xxx might be freeing static memory. is this ok? */
     if (ptr->result != NULL)
       params->utils->free(ptr->result);
 
@@ -2466,54 +2992,78 @@ c_continue_step(void *conn_context,
     params->utils->free(qop);
 
     /* if client didn't set use strongest layer */
-    if ((secprops.min_ssf > 1) &&
+    if ((secprops.max_ssf > 1) &&
 	((protection & DIGEST_PRIVACY) == DIGEST_PRIVACY)) {
-	VL(("Server doesn't support privacy layer\n"));
+
+      /*	VL(("Server doesn't support privacy layer\n"));
 	result = SASL_FAIL;
-	goto FreeAllocatedMem;
+	goto FreeAllocatedMem;*/
+
+      oparams->encode = &privacy_encode; 
+      oparams->decode = &privacy_decode;
+      qop = "auth-conf";
+      VL(("Using encryption layer\n"));
 
       /* Client request encryption, server support it */
-      /* xxx encryption */
-      
-      oparams->encode = &privacy_encode; 
-      oparams->decode = &privacy_decode; 
-      oparams->mech_ssf = 56; 
-      qop = "auth-conf";
-      cipher = "rc4"; /* xxx support others */
-
-      /*      text->cipher_enc=enc_des;
-      text->cipher_dec=dec_des;
-      text->cipher_init=init_des;*/
-      
-      /*      text->cipher_enc=enc_rc4;
-      text->cipher_dec=dec_rc4;
-      text->cipher_init=init_rc4;*/
-
-      VL(("Using encryption layer\n"));
-    } else if ((secprops.min_ssf <= 1) && (secprops.max_ssf >= 1) &&
-	       ((protection & DIGEST_INTEGRITY) == DIGEST_INTEGRITY)) {
-      /* integrity */
-      oparams->encode = &integrity_encode;
-      oparams->decode = &integrity_decode;
-      oparams->mech_ssf = 1;
-      qop = "auth-int";
-      VL(("Using integrity layer\n"));
-
-    } else {
-      /* no layer */
-      oparams->encode = NULL;
-      oparams->decode = NULL;
-      oparams->mech_ssf = 0;
-      qop = "auth";
-      VL(("Using no layer\n"));
-
-      /* See if server supports not having a layer */
-      if ((protection & DIGEST_NOLAYER) != DIGEST_NOLAYER) {
-	VL(("Server doesn't support \"no layer\"\n"));
-	result = SASL_FAIL;
-	goto FreeAllocatedMem;
+      /* encryption */
+      if ((secprops.max_ssf>=112) && ((ciphers & CIPHER_3DES) == CIPHER_3DES))
+      {
+	VL(("Trying to use 3des"));
+	cipher = "3des";
+	text->cipher_enc=(cipher_function_t *) &enc_3des;
+	text->cipher_dec=(cipher_function_t *) &dec_3des;
+	text->cipher_init=(cipher_init_t *) &init_3des;
+	oparams->mech_ssf = 112; 
+      } else if ((secprops.max_ssf>=64)  && ((ciphers & CIPHER_RC4) == CIPHER_RC4)) { /* rc4 */
+	VL(("Trying to use rc4"));
+	cipher = "rc4";
+	text->cipher_enc=(cipher_function_t *) &enc_rc4; /* uses same function both ways */
+	text->cipher_dec=(cipher_function_t *) &dec_rc4;
+	text->cipher_init=(cipher_init_t *) &init_rc4;
+	oparams->mech_ssf = 64; 
+      } else if ((secprops.max_ssf>=56)  && ((ciphers & CIPHER_DES) == CIPHER_DES)) { /* des */
+	VL(("Trying to use des"));
+	cipher = "des";
+	text->cipher_enc=(cipher_function_t *) &enc_des;
+	text->cipher_dec=(cipher_function_t *) &dec_des;
+	text->cipher_init=(cipher_init_t *) &init_des;
+	oparams->mech_ssf = 56; 
+      } else {
+	/* should try integrity or plain */
+	VL(("No good privacy layers\n"));
+	qop=NULL;
       }
+
+
     }
+
+    if (qop==NULL)
+      {
+      if ((secprops.min_ssf <= 1) && (secprops.max_ssf >= 1) &&
+	  ((protection & DIGEST_INTEGRITY) == DIGEST_INTEGRITY)) {
+	/* integrity */
+	oparams->encode = &integrity_encode;
+	oparams->decode = &integrity_decode;
+	oparams->mech_ssf = 1;
+	qop = "auth-int";
+	VL(("Using integrity layer\n"));
+	
+      } else {
+	/* no layer */
+	oparams->encode = NULL;
+	oparams->decode = NULL;
+	oparams->mech_ssf = 0;
+	qop = "auth";
+	VL(("Using no layer\n"));
+
+	/* See if server supports not having a layer */
+	if ((protection & DIGEST_NOLAYER) != DIGEST_NOLAYER) {
+	  VL(("Server doesn't support \"no layer\"\n"));
+	  result = SASL_FAIL;
+	  goto FreeAllocatedMem;
+	}
+      }
+      }
 
     /* get nonce XXX have to clean up after self if fail */
     cnonce = create_nonce(params->utils);
@@ -2646,7 +3196,6 @@ c_continue_step(void *conn_context,
     /* set oparams */
 
     oparams->doneflag = 1;
-    oparams->mech_ssf = 0;	/* 1 - only integrity support */
     oparams->maxoutbuf = 1024;	/* no clue what this should be */
 
     oparams->param_version = 0;

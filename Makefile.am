@@ -1,6 +1,6 @@
 # Top-level Makefile.am for SASL
 # Rob Earhart
-# $Id: Makefile.am,v 1.2 1998/11/17 23:24:39 rob Exp $
+# $Id: Makefile.am,v 1.3 1998/11/25 03:45:00 rob Exp $
 #
 ################################################################
 #        Copyright 1998 by Carnegie Mellon University
@@ -25,4 +25,4 @@
 ################################################################
 
 SUBDIRS=include lib plugins @DIRS@
-EXTRA_DIST=config/config.guess config/config.sub config/install-sh config/ltconfig config/ltmain.sh config/missing config/mkinstalldirs
+DIST_SUBDIRS=config win32

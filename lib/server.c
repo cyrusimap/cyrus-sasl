@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.8 1998/11/24 22:56:40 ryan Exp $
+ * $Id: server.c,v 1.9 1998/11/25 03:45:01 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -324,7 +324,7 @@ server_getsecret(void *context __attribute__((unused)),
     DBM *db;
     datum dkey, dvalue;
 
-    db = dbm_open(SASL_DB_PATH, DBM_RDONLY, S_IRUSR | S_IWUSR);
+    db = dbm_open(SASL_DB_PATH, O_RDONLY, S_IRUSR | S_IWUSR);
     if (! db) {
       result = SASL_FAIL;
       goto cleanup;

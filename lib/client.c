@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.52 2002/06/19 18:07:23 rjs3 Exp $
+ * $Id: client.c,v 1.53 2002/07/02 19:01:40 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -481,6 +481,30 @@ int sasl_client_start(sasl_conn_t *conn,
 		break;
 	    }
 #endif
+
+	    /* compare security flags, only take new mechanism if it has
+	     * more security flags than the previous one.
+	     *
+	     * From the mechanisms we ship with, this yields the order:
+	     *
+	     * SRP
+	     * GSSAPI + KERBEROS_V4
+	     * DIGEST + OTP
+	     * CRAM + EXTERNAL
+	     * PLAIN + LOGIN + ANONYMOUS
+	     *
+	     * This might be improved on by comparing the numeric value of
+	     * the bitwise-or'd security flags, which splits DIGEST/OTP,
+	     * CRAM/EXTERNAL, and PLAIN/LOGIN from ANONYMOUS, but then we
+	     * are depending on the numeric values of the flags (which may
+	     * change, and their ordering could be considered dumb luck.
+	     */
+
+	    if (bestm &&
+		((m->plug->security_flags ^ bestm->plug->security_flags) &
+		 bestm->plug->security_flags)) {
+		break;
+	    }
 
 	    if (mech) {
 		*mech = m->plug->mech_name;

@@ -1,6 +1,8 @@
 2002-07-02  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/auxprop.c: Can now select multiple auxprop plugins
 	* doc/options.html: updated for above
+	* lib/client.c: improve mechanism selection to include
+	  number of security flags
 
 2002-06-27  Ken Murchison <ken@oceana.com>
 	* doc/draft-zeilenga-sasl-plain-00.txt: added

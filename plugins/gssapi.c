@@ -81,7 +81,6 @@ typedef struct context {
     gss_name_t   client_name;
     gss_name_t   server_name;
     gss_cred_id_t server_creds;
-    sasl_ssf_t ssf; /* security layer type */
     sasl_ssf_t limitssf, requiressf; /* application defined bounds, for the
 					server */
 
@@ -623,6 +622,8 @@ sasl_gss_server_step (void *conn_context,
       }
     case SASL_GSSAPI_STATE_SSFREQ:
       {
+	int layerchoice;
+
 	real_input_token.value = (void *)clientin;
 	real_input_token.length = clientinlen;
 	
@@ -642,26 +643,26 @@ sasl_gss_server_step (void *conn_context,
 	    return SASL_FAIL;
 	}
 	
-	text->ssf = (int)(((char *)(output_token->value))[0]);
-	if (text->ssf == 1 && text->requiressf == 0) { /* no encryption */
+	layerchoice = (int)(((char *)(output_token->value))[0]);
+	if (layerchoice == 1 && text->requiressf == 0) { /* no encryption */
 	    oparams->encode = NULL;
 	    oparams->decode = NULL;
 	    oparams->mech_ssf = 0;
-	    text->ssf = 1;
-	} else if (text->ssf == 2 && text->requiressf <= 1 &&
+	} else if (layerchoice == 2 && text->requiressf <= 1 &&
 		   text->limitssf >= 1) { /* integrity */
 	    oparams->encode=&sasl_gss_integrity_encode;
 	    oparams->decode=&sasl_gss_decode;
 	    oparams->mech_ssf=1;
-	    text->ssf = 2;
-	} else if (text->ssf == 4 && text->requiressf <= 56 &&
+	} else if (layerchoice == 4 && text->requiressf <= 56 &&
 		   text->limitssf >= 56) { /* privacy */
 	    oparams->encode = &sasl_gss_privacy_encode;
 	    oparams->decode = &sasl_gss_decode;
 	    oparams->mech_ssf = 56;
-	    text->ssf = 4;
 	} else {
 	    /* not a supported encryption layer */
+	    params->utils->log(params->utils->conn, SASL_LOG_WARNING,
+			       "GSSAPI", SASL_FAIL, 0, 
+		    "protocol violation: client requested invalid layer");
 	    sasl_gss_free_context_contents(text);
 	    return SASL_FAIL;
 	}
@@ -1110,7 +1111,7 @@ sasl_gss_client_step (void *conn_context,
 	sasl_security_properties_t secprops = params->props;
 	unsigned int alen, external = params->external_ssf;
 	sasl_ssf_t need, allowed;
-	char serverhas;
+	char serverhas, mychoice;
 
 	if (serverinlen)
 	  {
@@ -1153,21 +1154,21 @@ sasl_gss_client_step (void *conn_context,
 	    oparams->encode = &sasl_gss_privacy_encode;
 	    oparams->decode = &sasl_gss_decode;
 	    oparams->mech_ssf = 56;
-	    text->ssf = 4;
+	    mychoice = 4;
 	    DEBUG ((stderr,"Using encryption layer\n"));
 	} else if (allowed >= 1 && need <= 1 && (serverhas & 2)) {
 	    /* integrity */
 	    oparams->encode = &sasl_gss_integrity_encode;
 	    oparams->decode = &sasl_gss_decode;
 	    oparams->mech_ssf = 1;
-	    text->ssf = 2;
+	    mychoice = 2;
 	    DEBUG ((stderr,"Using integrity layer\n"));
 	} else if (need <= 0 && (serverhas & 1)) {
 	    /* no layer */
 	    oparams->encode = NULL;
 	    oparams->decode = NULL;
 	    oparams->mech_ssf = 0;
-	    text->ssf = 1;
+	    mychoice = 1;
 	    DEBUG ((stderr,"Using no layer\n"));
 	} else {
 	    /* there's no appropriate layering for us! */
@@ -1190,7 +1191,7 @@ sasl_gss_client_step (void *conn_context,
 	memcpy((char *)input_token->value+4,oparams->user,alen);
 	
 	
-	((unsigned char *)input_token->value)[0] = text->ssf;
+	((unsigned char *)input_token->value)[0] = mychoice;
 	oparams->maxoutbuf = 1024; /* XXX do something real here */
 	((unsigned char *)input_token->value)[1] = 0x0F;
 	((unsigned char *)input_token->value)[2] = 0xFF;

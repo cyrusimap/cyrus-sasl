@@ -5,7 +5,7 @@
 ** Ken Murchison
 **   based on the original work of Simon Loader and Patrick Welche
 **
-** $Id: sql.c,v 1.15 2003/10/04 14:33:24 ken3 Exp $
+** $Id: sql.c,v 1.16 2003/10/04 15:35:02 ken3 Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -540,7 +540,6 @@ static void sql_get_settings(const sasl_utils_t *utils, void *glob_context)
     r = utils->getopt(utils->getopt_context,"SQL","sql_user",
 		      &settings->sql_user, NULL);
     if ( r || !settings->sql_user ) {
-	/* set it to a blank string */
 	settings->sql_user = SQL_BLANK_STRING;
     }
 
@@ -593,10 +592,13 @@ static void sql_get_settings(const sasl_utils_t *utils, void *glob_context)
 
     r = utils->getopt(utils->getopt_context, "SQL", "sql_usessl",
 		  &usessl, NULL);
-    if (r || !usessl) {
-	settings->sql_usessl = 0;
-    } else {
+    if (r || !usessl) usessl = "no";
+
+    if (*usessl == '1' || *usessl == 'y'  || *usessl == 't' ||
+	(*usessl == 'o' && usessl[1] == 'n')) {
 	settings->sql_usessl = 1;
+    } else {
+	settings->sql_usessl = 0;
     }
 }
 

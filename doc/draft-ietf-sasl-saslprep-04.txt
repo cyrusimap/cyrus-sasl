@@ -6,11 +6,11 @@
 
 INTERNET-DRAFT                                   Kurt D. Zeilenga
 Intended Category: Standards Track            OpenLDAP Foundation
-Expires in six months                                30 June 2003
+Expires in six months                             27 October 2003
 
 
         SASLprep: Stringprep profile for user names and passwords
-                    <draft-ietf-sasl-saslprep-03.txt>
+                    <draft-ietf-sasl-saslprep-04.txt>
 
 
 Status of Memo
@@ -48,19 +48,19 @@ Abstract
 
   This document describes how to prepare Unicode strings representing
   user names and passwords for comparison.  The document defines the
-  "SASLprep" "stringprep" profile to be used for both user names and
-  passwords.  This profile is intended to be used by Simple
-  Authentication and Security Layer (SASL) mechanisms (such as PLAIN,
-  CRAM-MD5, and DIGEST-MD5) as well as other protocols exchanging user
+  "SASLprep" profile of the "stringprep" algorithm to be used for both
+  user names and passwords.  This profile is intended to be used by
+  Simple Authentication and Security Layer (SASL) mechanisms (such as
+  PLAIN, CRAM-MD5, and DIGEST-MD5) as well as other protocols exchanging
 
 
 
 Zeilenga                        SASLprep                        [Page 1]
 
-INTERNET-DRAFT       draft-ietf-sasl-saslprep-03.txt        30 June 2003
+INTERNET-DRAFT       draft-ietf-sasl-saslprep-04.txt     27 October 2003
 
 
-  names and/or passwords.
+  user names and/or passwords.
 
 
 1. Introduction
@@ -74,7 +74,7 @@ INTERNET-DRAFT       draft-ietf-sasl-saslprep-03.txt        30 June 2003
   single algorithm is defined for both user names and passwords.
 
   This document defines the "SASLprep" profile of the "stringprep"
-  protocol [StringPrep].
+  algorithm [StringPrep].
 
   The profile is designed for use in Simple Authentication and Security
   Layer ([SASL]) mechanisms such as [PLAIN].  It may be applicable
@@ -113,7 +113,7 @@ INTERNET-DRAFT       draft-ietf-sasl-saslprep-03.txt        30 June 2003
 
 Zeilenga                        SASLprep                        [Page 2]
 
-INTERNET-DRAFT       draft-ietf-sasl-saslprep-03.txt        30 June 2003
+INTERNET-DRAFT       draft-ietf-sasl-saslprep-04.txt     27 October 2003
 
 
   This profile specifies:
@@ -169,7 +169,7 @@ INTERNET-DRAFT       draft-ietf-sasl-saslprep-03.txt        30 June 2003
 
 Zeilenga                        SASLprep                        [Page 3]
 
-INTERNET-DRAFT       draft-ietf-sasl-saslprep-03.txt        30 June 2003
+INTERNET-DRAFT       draft-ietf-sasl-saslprep-04.txt     27 October 2003
 
 
   passwords for comparison.  It is not intended to be used for to
@@ -212,22 +212,23 @@ INTERNET-DRAFT       draft-ietf-sasl-saslprep-03.txt        30 June 2003
 6. Normative References
 
   [StringPrep]  Hoffman P. and M. Blanchet, "Preparation of
-                Internationalized Strings ('stringprep')", RFC 3454,
-                December 2002.
+                Internationalized Strings ('stringprep')",
+                draft-hoffman-rfc3454bis-xx.txt, a work in progress.
 
-  [SASL]        Myers, J., "Simple Authentication and Security Layer
-                (SASL)", draft-myers-saslrev-xx.txt, a work in progress.
+  [SASL]        Melnikov, A. (Editor), "Simple Authentication and
+                Security Layer (SASL)",
+                draft-ietf-sasl-rfc2222bis-xx.txt, a work in progress.
 
   [Unicode]     The Unicode Consortium, "The Unicode Standard, Version
-                3.2.0" is defined by "The Unicode Standard, Version 3.0"
 
 
 
 Zeilenga                        SASLprep                        [Page 4]
 
-INTERNET-DRAFT       draft-ietf-sasl-saslprep-03.txt        30 June 2003
+INTERNET-DRAFT       draft-ietf-sasl-saslprep-04.txt     27 October 2003
 
 
+                3.2.0" is defined by "The Unicode Standard, Version 3.0"
                 (Reading, MA, Addison-Wesley, 2000. ISBN 0-201-61633-5),
                 as amended by the "Unicode Standard Annex #27: Unicode
                 3.1" (http://www.unicode.org/reports/tr27/) and by the
@@ -246,13 +247,13 @@ INTERNET-DRAFT       draft-ietf-sasl-saslprep-03.txt        30 June 2003
                 2000.
 
   [CRAM-MD5]    Nerenberg, L., "The CRAM-MD5 SASL Mechanism",
-                draft-nerenberg-sasl-crammd5-xx.txt, a work in progress.
+                draft-ietf-sasl-crammd5-xx.txt, a work in progress.
 
   [DIGEST-MD5]  Leach, P., C. Newman, and A. Melnikov, "Using Digest
                 Authentication as a SASL Mechanism",
                 draft-ietf-sasl-rfc2831bis-xx.txt, a work in progress.
 
-  [PLAIN]       Zeilenga, K., "The Plain SASL Mechanism",
+  [PLAIN]       Zeilenga, K. (Editor), "The Plain SASL Mechanism",
                 draft-ietf-sasl-plain-xx.txt, a work in progress.
 
 
@@ -275,15 +276,15 @@ Intellectual Property Rights
   procedures with respect to rights in standards-track and
   standards-related documentation can be found in BCP-11.  Copies of
   claims of rights made available for publication and any assurances of
-  licenses to be made available, or the result of an attempt made to
 
 
 
 Zeilenga                        SASLprep                        [Page 5]
 
-INTERNET-DRAFT       draft-ietf-sasl-saslprep-03.txt        30 June 2003
+INTERNET-DRAFT       draft-ietf-sasl-saslprep-04.txt     27 October 2003
 
 
+  licenses to be made available, or the result of an attempt made to
   obtain a general license or permission for the use of such proprietary
   rights by implementors or users of this specification can be obtained
   from the IETF Secretariat.
@@ -311,7 +312,6 @@ Full Copyright
   developing Internet standards in which case the procedures for
   copyrights defined in the Internet Standards process must be followed,
   or as required to translate it into languages other than English.
-
 
 
 

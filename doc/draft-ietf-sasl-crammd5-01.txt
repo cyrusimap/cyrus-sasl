@@ -1,8 +1,8 @@
 
 
-Network Working Group                                       L. Nerenberg
+Network Working Group                               L. Nerenberg, Editor
 Internet Draft: The CRAM-MD5 SASL Mechanism              Orthanc Systems
-Document: draft-ietf-sasl-crammd5-00.txt                       June 2003
+Document: draft-ietf-sasl-crammd5-01.txt                   November 2003
 
 
 
@@ -57,9 +57,9 @@ Abstract
 
 
 
-Nerenberg            draft-ietf-sasl-crammd5-00.txt             [Page 1]
+Nerenberg            draft-ietf-sasl-crammd5-01.txt             [Page 1]
 
-Internet Draft           CRAM-MD5 SASL Mechanism               June 2003
+Internet Draft           CRAM-MD5 SASL Mechanism           November 2003
 
 
      The data encoded in the challenge contains a presumptively arbi-
@@ -119,9 +119,9 @@ Internet Draft           CRAM-MD5 SASL Mechanism               June 2003
 
 
 
-Nerenberg            draft-ietf-sasl-crammd5-00.txt             [Page 2]
+Nerenberg            draft-ietf-sasl-crammd5-01.txt             [Page 2]
 
-Internet Draft           CRAM-MD5 SASL Mechanism               June 2003
+Internet Draft           CRAM-MD5 SASL Mechanism           November 2003
 
 
      challenges and responses is part of the IMAP4 AUTHENTICATE command,
@@ -181,9 +181,9 @@ Internet Draft           CRAM-MD5 SASL Mechanism               June 2003
 
 
 
-Nerenberg            draft-ietf-sasl-crammd5-00.txt             [Page 3]
+Nerenberg            draft-ietf-sasl-crammd5-01.txt             [Page 3]
 
-Internet Draft           CRAM-MD5 SASL Mechanism               June 2003
+Internet Draft           CRAM-MD5 SASL Mechanism           November 2003
 
 
 [KEYWORD]
@@ -234,33 +234,32 @@ Internet Draft           CRAM-MD5 SASL Mechanism               June 2003
      tion of intermediate results make it possible to avoid explicit
      clear-text storage of the shared secret on the server system by
      instead storing the intermediate results which are known as "con-
-     texts."
+     texts."  While the saving, on the server, of the MD5 "context" is
+     marginally better than saving the shared secrets in clear-text, it
+     is not sufficient to protect the secrets if the server itself is
+     compromised.  Consequently, servers that store the secrets or con-
+     texts must both be protected to a level appropriate to the poten-
+     tial information value in the data and services protected by this
 
-     While the saving, on the server, of the MD5 "context" is marginally
-     better than saving the shared secrets in clear-text, it is not suf-
-     ficient to protect the secrets if the server itself is compromised.
-     Consequently, servers that store the secrets or contexts must both
 
 
-
-Nerenberg            draft-ietf-sasl-crammd5-00.txt             [Page 4]
+Nerenberg            draft-ietf-sasl-crammd5-01.txt             [Page 4]
 
-Internet Draft           CRAM-MD5 SASL Mechanism               June 2003
+Internet Draft           CRAM-MD5 SASL Mechanism           November 2003
 
 
-     be protected to a level appropriate to the potential information
-     value in the data and services protected by this mechanism.  In
-     other words, techniques like this one involve a trade-off between
-     vulnerability to network sniffing and I/O buffer snooping and vul-
-     nerability of the server host's databases.  If one believes that
-     the host and its databases are subject to compromise, and the net-
-     work is not, this technique (and all others like it) is unattrac-
-     tive.  It is perhaps even less attractive than clear-text pass-
-     words, which are typically stored on hosts in one-way hash form.
-     On the other hand, if the server databases are perceived as reason-
-     ably secure, and one is concerned about client-side or network
-     interception of the passwords (secrets), then this (and similar)
-     techniques are preferable to clear-text passwords by a wide margin.
+     mechanism.  In other words, techniques like this one involve a
+     trade-off between vulnerability to network sniffing and I/O buffer
+     snooping and vulnerability of the server host's databases.  If one
+     believes that the host and its databases are subject to compromise,
+     and the network is not, this technique (and all others like it) is
+     unattractive.  It is perhaps even less attractive than clear-text
+     passwords, which are typically stored on hosts in one-way hash
+     form.  On the other hand, if the server databases are perceived as
+     reasonably secure, and one is concerned about client-side or net-
+     work interception of the passwords (secrets), then this (and simi-
+     lar) techniques are preferable to clear-text passwords by a wide
+     margin.
 
      As the length of the shared secret increases, so does the diffi-
      culty of deriving it.
@@ -278,6 +277,13 @@ Internet Draft           CRAM-MD5 SASL Mechanism               June 2003
      Even with the use of CRAM-MD5, users are still vulnerable to active
      attacks.  An example of an increasingly common active attack is
      'TCP Session Hijacking' as described in CERT Advisory CA-95:01.
+
+     CRAM-MD5 does not authenticate the server and does not include a
+     client-supplied nonce.  As a result, it is possible to construct a
+     server with a fixed challenge string that has pre-computed the
+     hashes for all possible passwords up to a certain length (or from a
+     dictionary).  Such a server could then immediately determine the
+     user's password if it is sufficiently short.
 
 
 5.  IANA Considerations
@@ -299,15 +305,9 @@ Internet Draft           CRAM-MD5 SASL Mechanism               June 2003
 
 
 
-
-
-
-
-
-
-Nerenberg            draft-ietf-sasl-crammd5-00.txt             [Page 5]
+Nerenberg            draft-ietf-sasl-crammd5-01.txt             [Page 5]
 
-Internet Draft           CRAM-MD5 SASL Mechanism               June 2003
+Internet Draft           CRAM-MD5 SASL Mechanism           November 2003
 
 
 7.  Intellectual Property
@@ -333,14 +333,14 @@ Internet Draft           CRAM-MD5 SASL Mechanism               June 2003
      tive Director.
 
 
-8.  Authors' Address
+8.  Editors' Address
 
      Lyndon Nerenberg
      Orthanc Systems
      1606 - 10770 Winterburn Road
      Edmonton, Alberta
      Canada T5S 1T6
-     Email: lyndon@orthanc.ab.ca
+     Email: lyndon+rfc-crammd5@orthanc.ca
 
 
 
@@ -367,9 +367,9 @@ Internet Draft           CRAM-MD5 SASL Mechanism               June 2003
 
 
 
-Nerenberg            draft-ietf-sasl-crammd5-00.txt             [Page 6]
+Nerenberg            draft-ietf-sasl-crammd5-01.txt             [Page 6]
 
-Internet Draft           CRAM-MD5 SASL Mechanism               June 2003
+Internet Draft           CRAM-MD5 SASL Mechanism           November 2003
 
 
 9.  Full Copyright Statement
@@ -429,5 +429,6 @@ Internet Draft           CRAM-MD5 SASL Mechanism               June 2003
 
 
 
-Nerenberg            draft-ietf-sasl-crammd5-00.txt             [Page 7]
+Nerenberg            draft-ietf-sasl-crammd5-01.txt             [Page 7]
 
+

@@ -6,12 +6,12 @@
 
 INTERNET-DRAFT                           Editor: Kurt D. Zeilenga
 Intended Category: Standards Track            OpenLDAP Foundation
-Expires in six months                                30 June 2003
+Expires in six months                             27 October 2003
 Updates: RFC 2595
 
 
                          The Plain SASL Mechanism
-                      <draft-ietf-sasl-plain-02.txt>
+                      <draft-ietf-sasl-plain-03.txt>
 
 
 Status of Memo
@@ -57,7 +57,7 @@ Abstract
 
 Zeilenga                  Plain SASL Mechanism                  [Page 1]
 
-INTERNET-DRAFT        draft-ietf-sasl-plain-02.txt          30 June 2003
+INTERNET-DRAFT        draft-ietf-sasl-plain-03.txt       27 October 2003
 
 
 Conventions
@@ -96,26 +96,27 @@ Conventions
 
   The mechanism consists of a single message from the client to the
   server.  The client sends the authorization identity (identity to
-  login as), followed by a NUL character, followed by the authentication
-  identity (identity whose password will be used), followed by a NUL
-  character, followed by the clear-text password.   The client leaves
-  the authorization identity empty if it wishes the server to derive the
-  authorization identity from the provided authentication identity.
+  login as), followed by a NUL (U+0000) character, followed by the
+  authentication identity (identity whose password will be used),
+  followed by a NUL (U+0000) character, followed by the clear-text
+  password.   The client leaves the authorization identity empty if it
+  wishes the server to derive the authorization identity from the
+  authentication identity.
 
   The formal grammar for the client message using Augmented BNF [ABNF]
   follows.
 
       message   = [authzid] NUL authcid NUL passwd
       authcid   = 1*SAFE ; MUST accept up to 255 octets
-      authzid   = 1*SAFE ; MUST accept up to 255 octets
 
 
 
 Zeilenga                  Plain SASL Mechanism                  [Page 2]
 
-INTERNET-DRAFT        draft-ietf-sasl-plain-02.txt          30 June 2003
+INTERNET-DRAFT        draft-ietf-sasl-plain-03.txt       27 October 2003
 
 
+      authzid   = 1*SAFE ; MUST accept up to 255 octets
       passwd    = 1*SAFE ; MUST accept up to 255 octets
       NUL       = %x00
 
@@ -161,16 +162,22 @@ INTERNET-DRAFT        draft-ietf-sasl-plain-02.txt          30 June 2003
   server stores only the hash of expected string, that string MUST be
   prepared before generation of the hash.
 
-  The verification function (using hashed password) can be written (in
-  pseudo-code):
-
+  When the no authorization identity is provided, the server SHALL
+  derive the authorization identity from the prepared representation of
 
 
 
 Zeilenga                  Plain SASL Mechanism                  [Page 3]
 
-INTERNET-DRAFT        draft-ietf-sasl-plain-02.txt          30 June 2003
+INTERNET-DRAFT        draft-ietf-sasl-plain-03.txt       27 October 2003
 
+
+  the provided authentication identity string.  This ensures that the
+  derivation of different representations of the authentication identity
+  produce the same authorization identity.
+
+  The verification function (using hashed password) can be written (in
+  pseudo-code):
 
       boolean Verify(string authzid, string authcid, string passwd) {
         string pAuthcid = SASLprep(authcid); # prepare authcid
@@ -191,7 +198,7 @@ INTERNET-DRAFT        draft-ietf-sasl-plain-02.txt          30 June 2003
           return false;     # incorrect password
         }
 
-        if (authzid == "") {
+        if (authzid == NULL) {
           authzid = DeriveAuthzid(pAuthcid);
           if (authzid == NULL || authzid == "") {
               return false; # could not derive authzid
@@ -205,13 +212,20 @@ INTERNET-DRAFT        draft-ietf-sasl-plain-02.txt          30 June 2003
         return true;
       }
 
-  Note that the parameters provided to the Authorize function are not
-  prepared.  The application-level SASL profile should be consulted to
-  determine what, if any, preparation is necessary.
+  Also note that the second parameter provided to the Authorize function
+  is not prepared by this code.  The application-level SASL profile
+  should be consulted to determine what, if any, preparation is
+  necessary.
 
   The server MAY also use the credentials to initialize any new
   authentication database, such as one suitable for [CRAM-MD5] or
   [DIGEST-MD5].
+
+
+
+Zeilenga                  Plain SASL Mechanism                  [Page 4]
+
+INTERNET-DRAFT        draft-ietf-sasl-plain-03.txt       27 October 2003
 
 
 4. Example
@@ -220,14 +234,6 @@ INTERNET-DRAFT        draft-ietf-sasl-plain-02.txt          30 June 2003
   authentication database using the Application Configuration Access
   Protocol ([ACAP]).  "C:" and "S:" indicate lines sent by the client
   and server respectively and <NUL> represents a single NUL (U+0000)
-
-
-
-Zeilenga                  Plain SASL Mechanism                  [Page 4]
-
-INTERNET-DRAFT        draft-ietf-sasl-plain-02.txt          30 June 2003
-
-
   character.
 
       S: * ACAP (SASL "CRAM-MD5") (STARTTLS)
@@ -270,19 +276,19 @@ INTERNET-DRAFT        draft-ietf-sasl-plain-02.txt          30 June 2003
 6. IANA Considerations
 
   It is requested that the SASL Mechanism registry [IANA-SASL] entry for
-  the PLAIN mechanism be updated to reflect that this document now
-  provides its technical specification.
-
-      To: iana@iana.org
-      Subject: Updated Registration of SASL mechanism PLAIN
-
 
 
 
 Zeilenga                  Plain SASL Mechanism                  [Page 5]
 
-INTERNET-DRAFT        draft-ietf-sasl-plain-02.txt          30 June 2003
+INTERNET-DRAFT        draft-ietf-sasl-plain-03.txt       27 October 2003
 
+
+  the PLAIN mechanism be updated to reflect that this document now
+  provides its technical specification.
+
+      To: iana@iana.org
+      Subject: Updated Registration of SASL mechanism PLAIN
 
       SASL mechanism name: PLAIN
       Security considerations: See RFC XXXX.
@@ -312,12 +318,13 @@ INTERNET-DRAFT        draft-ietf-sasl-plain-02.txt          30 June 2003
   [Keywords]    Bradner, S., "Key words for use in RFCs to Indicate
                 Requirement Levels", BCP 14, RFC 2119, March 1997
 
-  [SASL]        Myers, J., "Simple Authentication and Security Layer
-                (SASL)", draft-myers-saslrev-xx.txt, a work in progress.
+  [SASL]        Melnikov, A. (Editor), "Simple Authentication and
+                Security Layer (SASL)",
+                draft-ietf-sasl-rfc2222bis-xx.txt, a work in progress.
 
   [StringPrep]  Hoffman P. and M. Blanchet, "Preparation of
-                Internationalized Strings ('stringprep')", RFC 3454,
-                December 2002.
+                Internationalized Strings ('stringprep')",
+                draft-hoffman-rfc3454bis-xx.txt, a work in progress.
 
   [Unicode]     The Unicode Consortium, "The Unicode Standard, Version
                 3.2.0" is defined by "The Unicode Standard, Version 3.0"
@@ -325,22 +332,23 @@ INTERNET-DRAFT        draft-ietf-sasl-plain-02.txt          30 June 2003
                 as amended by the "Unicode Standard Annex #27: Unicode
                 3.1" (http://www.unicode.org/reports/tr27/) and by the
                 "Unicode Standard Annex #28: Unicode 3.2"
-                (http://www.unicode.org/reports/tr28/).
-
-                [UTF-8]       Yergeau, F., "UTF-8, a transformation
-                format of ISO 10646", draft-yergeau-rfc2279bis, a work
-                in progress.
-
-  [TLS]         Dierks, T. and, C. Allen, "The TLS Protocol Version
 
 
 
 Zeilenga                  Plain SASL Mechanism                  [Page 6]
 
-INTERNET-DRAFT        draft-ietf-sasl-plain-02.txt          30 June 2003
+INTERNET-DRAFT        draft-ietf-sasl-plain-03.txt       27 October 2003
 
 
-                1.0", RFC 2246, January 1999.
+                (http://www.unicode.org/reports/tr28/).
+
+  [UTF-8]       Yergeau, F., "UTF-8, a transformation format of ISO
+                10646", draft-yergeau-rfc2279bis-xx.txt, a work in
+                progress.
+
+  [TLS]         Dierks, T. and, E. Rescorla, "The TLS Protocol Version
+                1.1", draft-ietf-tls-rfc2246-bis-xx.txt, a work in
+                progress.
 
 
 9. Informative References
@@ -348,7 +356,7 @@ INTERNET-DRAFT        draft-ietf-sasl-plain-02.txt          30 June 2003
   [ACAP]        Newman, C. and J. Myers, "ACAP -- Application
                 Configuration Access Protocol", RFC 2244, November 1997.
   [CRAM-MD5]    Nerenberg, L., "The CRAM-MD5 SASL Mechanism",
-                draft-nerenberg-sasl-crammd5-xx.txt, a work in progress.
+                draft-ietf-sasl-crammd5-xx.txt, a work in progress.
 
   [DIGEST-MD5]  Leach, P., C. Newman, and A. Melnikov, "Using Digest
                 Authentication as a SASL Mechanism",
@@ -358,8 +366,9 @@ INTERNET-DRAFT        draft-ietf-sasl-plain-02.txt          30 June 2003
                 MECHANISMS", http://www.iana.org/assignments/sasl-
                 mechanisms.
 
-                [SMTP-AUTH]   Myers, J., "SMTP Service Extension for
-                Authentication", RFC 2554, March 1999.
+  [SMTP-AUTH]   Myers, J., "SMTP Service Extension for Authentication",
+                RFC 2554, March 1999.
+
 
 
 10. Editor's Address
@@ -379,6 +388,14 @@ Appendix A.  Changes since RFC 2595
   The specification details how the server is to compare client-provided
   character strings with stored character strings.
 
+
+
+
+Zeilenga                  Plain SASL Mechanism                  [Page 7]
+
+INTERNET-DRAFT        draft-ietf-sasl-plain-03.txt       27 October 2003
+
+
   The ABNF grammar was updated.  In particular, the grammar now allows
   LINE FEED (U+000A) and CARRIAGE RETURN (U+000D) characters in the
   authzid, authcid, passwd productions.   However, whether these control
@@ -387,13 +404,6 @@ Appendix A.  Changes since RFC 2595
   control characters are prohibited.  For authzid, one must consult the
   application-level SASL profile.
 
-
-
-
-
-Zeilenga                  Plain SASL Mechanism                  [Page 7]
-
-INTERNET-DRAFT        draft-ietf-sasl-plain-02.txt          30 June 2003
 
 
 Intellectual Property Rights
@@ -434,6 +444,14 @@ Full Copyright
   the copyright notice or references to the Internet Society or other
   Internet organizations, except as needed for the  purpose of
   developing Internet standards in which case the procedures for
+
+
+
+Zeilenga                  Plain SASL Mechanism                  [Page 8]
+
+INTERNET-DRAFT        draft-ietf-sasl-plain-03.txt       27 October 2003
+
+
   copyrights defined in the Internet Standards process must be followed,
   or as required to translate it into languages other than English.
 
@@ -447,5 +465,43 @@ Full Copyright
 
 
 
-Zeilenga                  Plain SASL Mechanism                  [Page 8]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga                  Plain SASL Mechanism                  [Page 9]
 

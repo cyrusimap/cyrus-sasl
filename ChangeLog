@@ -1,6 +1,12 @@
 2003-12-15  Rob Siemborksi <rjs3@andrew.cmu.edu>
 	* utils/saslauthd.c: Fix Typo
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+	* plugins/plugin_common.c: Fix potential memory leak
+	* lib/external.c: Limit size of authzids in EXTERNAL
+	* plugins/gssapi.c: Pre-init some variables
+	* lib/cram.c: Detect possible buffer overrun
+	* lib/checkpw.c: Post-fence bug
+	  (Leandro Santi <lesanti@uolsinectis.com.ar>)
 
 2003-12-12  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/lak.c: assign null to free

@@ -1,3 +1,7 @@
+2003-09-29  Ken Murchison <ken@oceana.com>
+	* plugins/sql.c, doc/options.html: added sql_update and sql_delete
+	  for a complete auxprop_store() implementation; logic cleanup
+
 2003-09-25  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* utils/saslpasswd.c: Win32 perror() related patch
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)

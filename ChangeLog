@@ -1,4 +1,4 @@
-2003-00-02  Ken Murchison <ken@oceana.com>
+2003-09-02  Ken Murchison <ken@oceana.com>
 	* plugins/ntlm.c, doc/options.html: added support for NTLMv2 responses;
 	  fixed potential buffer overflow
 

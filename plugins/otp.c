@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.7 2002/01/09 21:59:01 ken3 Exp $
+ * $Id: otp.c,v 1.8 2002/01/19 22:35:04 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -159,8 +159,6 @@ static void otp_server_mech_dispose(void *conn_context,
   otp_both_mech_dispose(conn_context, utils);
 }
 
-static const char blank_server_out[] = "";
-
 static int
 otp_server_mech_step(void *conn_context,
 		       sasl_server_params_t *params,
@@ -261,7 +259,7 @@ otp_server_mech_step(void *conn_context,
 	break;
     }
     
-    *serverout = blank_server_out;
+    *serverout = NULL;
     *serveroutlen = 0;
     text->state = 3; /* so fails if called again */
     return result;
@@ -312,7 +310,7 @@ otp_server_mech_step(void *conn_context,
 	break;
     }
     
-    *serverout = blank_server_out;
+    *serverout = NULL;
     *serveroutlen = 0;
     text->state = 3; /* so fails if called again */
     return result;

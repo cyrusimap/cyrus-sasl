@@ -623,6 +623,23 @@ typedef int sasl_canon_user_t(sasl_conn_t *conn,
 LIBSASL_API void sasl_version(const char **implementation,
 			      int *version);
 
+/* Extended version of sasl_version().
+ *
+ * This function is to be used for
+ *  for library version display and logging
+ *  for bug workarounds in old library versions
+ *
+ * The sasl_version_info is not to be used for API feature detection.
+ *
+ * All parameters are optional. If NULL is specified, the value is not returned.
+ */
+LIBSASL_API void sasl_version_info (const char **implementation,
+				const char **version_string,
+				int *version_major,
+				int *version_minor,
+				int *version_step,
+				int *version_patch);
+
 /* dispose of all SASL plugins.  Connection
  * states have to be disposed of before calling this.
  */

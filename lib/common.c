@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.98 2004/03/08 16:57:26 rjs3 Exp $
+ * $Id: common.c,v 1.99 2004/03/10 15:50:06 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -62,6 +62,13 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+
+static const char *implementation_string = "Cyrus SASL";
+
+#define	VSTR0(maj, min, step)	#maj "." #min "." #step
+#define	VSTR(maj, min, step)	VSTR0(maj, min, step)
+#define	SASL_VERSION_STRING	VSTR(SASL_VERSION_MAJOR, SASL_VERSION_MINOR, \
+				SASL_VERSION_STEP)
 
 static int _sasl_getpath(void *context __attribute__((unused)), const char **path);
 
@@ -158,11 +165,24 @@ int _sasl_add_string(char **out, size_t *alloclen,
  * low 16 bits are step # */
 void sasl_version(const char **implementation, int *version) 
 {
-    const char *implementation_string = "Cyrus SASL";
     if(implementation) *implementation = implementation_string;
     if(version) *version = (SASL_VERSION_MAJOR << 24) | 
 		           (SASL_VERSION_MINOR << 16) |
 		           (SASL_VERSION_STEP);
+}
+
+/* Extended version of sasl_version above */
+void sasl_version_info (const char **implementation, const char **version_string,
+		    int *version_major, int *version_minor, int *version_step,
+		    int *version_patch)
+{
+    if (implementation) *implementation = implementation_string;
+    if (version_string) *version_string = SASL_VERSION_STRING;
+    if (version_major) *version_major = SASL_VERSION_MAJOR;
+    if (version_minor) *version_minor = SASL_VERSION_MINOR;
+    if (version_step) *version_step = SASL_VERSION_STEP;
+    /* Version patch is always 0 for CMU SASL */
+    if (version_patch) *version_patch = 0;
 }
 
 /* security-encode a regular string.  Mostly a wrapper for sasl_encodev */

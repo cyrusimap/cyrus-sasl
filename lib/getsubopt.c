@@ -33,7 +33,7 @@
  * SUCH DAMAGE.
  */
 
-#ifndef WIN32
+#if ((!defined(WIN32))&&(!defined(macintosh)))
 #include <sys/cdefs.h>
 #endif /* WIN32 */
 #if defined(LIBC_SCCS) && !defined(lint)
@@ -49,7 +49,7 @@ __RCSID("$NetBSD: getsubopt.c,v 1.4 1998/02/03 18:44:15 perry Exp $");
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif /* HAVE_UNISTD_H */
-#if (defined(WIN32)||(defined(macintosh))
+#if (defined(WIN32)||(defined(macintosh)))
 #include "sasl.h"
 LIBSASL_API int getsubopt(char **optionp, char * const *tokens, char **valuep);
 #endif /* WIN32 */

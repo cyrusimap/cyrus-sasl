@@ -371,7 +371,7 @@ void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
     /* init if necessary */
     randinit(rpool);
     
-#if ((defined(WIN32)||defined(macintosh))
+#if (defined(WIN32)||defined(macintosh))
     for (lup=0;lup<len;lup++)
 	buf[lup] = (char) (rand() >> 8);
 #else /* WIN32 */

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: external.c,v 1.4 2002/01/21 05:34:30 rjs3 Exp $
+ * $Id: external.c,v 1.5 2002/01/30 21:53:33 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -95,12 +95,6 @@ external_server_step(void *conn_context __attribute__((unused)),
   if (!sparams->utils->conn->external.auth_id)
     return SASL_BADPROT;
 
-  if ((sparams->props.security_flags & SASL_SEC_NOANONYMOUS) &&
-      (!strcmp(sparams->utils->conn->external.auth_id, "anonymous"))) {
-      sasl_seterror(sparams->utils->conn,0,"anonymous login not allowed");
-      return SASL_NOAUTHZ;
-  }
-  
   if (! clientin) {
     /* No initial data; we're in a protocol which doesn't support it.
      * So we let the server app know that we need some... */
@@ -143,7 +137,6 @@ sasl_server_plug_t external_server_mech =
     "EXTERNAL",			/* mech_name */
     0,				/* max_ssf */
     SASL_SEC_NOPLAINTEXT
-    | SASL_SEC_NOANONYMOUS
     | SASL_SEC_NODICTIONARY,	/* security_flags */
     SASL_FEAT_WANT_CLIENT_FIRST,/* features */
     NULL,			/* glob_context */

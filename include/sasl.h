@@ -619,7 +619,9 @@ typedef int sasl_canon_user_t(sasl_conn_t *conn,
 
 /* get sasl library version information
  * implementation is a vendor-defined string
- * version is a vender-defined representation of the version # */
+ * version is a vender-defined representation of the version #
+ *
+ * this function is being deprecated in favor of sasl_version_info */
 LIBSASL_API void sasl_version(const char **implementation,
 			      int *version);
 

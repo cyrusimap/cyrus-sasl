@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.55 2002/05/13 15:32:41 rjs3 Exp $
+ * $Id: checkpw.c,v 1.56 2002/05/22 16:20:28 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -539,6 +539,7 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
     }
     response[arg.data_size] = '\0';
 
+    close(s);
 #else
     /* unix sockets */
 

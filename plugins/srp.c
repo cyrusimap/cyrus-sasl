@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.23 2002/01/19 17:21:07 ken3 Exp $
+ * $Id: srp.c,v 1.24 2002/01/19 18:57:53 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -3820,13 +3820,10 @@ static int client_step4(context_t *text,
 	}
     }
 
-    /* If the protocol supports server-send-last, send nothing */
-    if (params->flags & SASL_SUCCESS_DATA)
-	*clientout = NULL;
-    /* otherwise, send an empty exchange */
-    else
-	*clientout = "";
-
+    /*
+     * Send out: nothing
+     */
+    *clientout = "";
     *clientoutlen = 0;
 
     text->state++;

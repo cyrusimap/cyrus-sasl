@@ -1079,7 +1079,7 @@ sasl_gss_client_step (void *conn_context,
     case SASL_GSSAPI_STATE_SSFCAP:
       {
 	sasl_security_properties_t secprops = params->props;
-	unsigned int alen,external = params->external_ssf;
+	unsigned int alen, external = params->external_ssf, need = 0;
 
 	if (serverinlen)
 	  {
@@ -1105,48 +1105,41 @@ sasl_gss_client_step (void *conn_context,
 	  }
 	
 	/* taken from kerberos.c */
-	DEBUG ((stderr,"external ssf=%i\n",external));
-	
-	if (secprops.min_ssf>56+external)
-	  return SASL_TOOWEAK;
-	
-	if (secprops.max_ssf<external)
-	  return SASL_FAIL;
-	
-	if (secprops.min_ssf>secprops.max_ssf)
-	  return SASL_FAIL;
-	
-	DEBUG((stderr,"minssf=%i maxssf=%i\n",secprops.min_ssf,secprops.max_ssf));
-	/* if client didn't set use strongest layer */
-	if (secprops.max_ssf>1)
-	  {
-	    /* encryption */
-	    oparams->encode=&sasl_gss_privacy_encode;
-	    oparams->decode=&sasl_gss_decode;
-	    oparams->mech_ssf=56;
-	    text->ssf=4;
-	    DEBUG ((stderr,"Using encryption layer\n"));
-	  } else if ((secprops.min_ssf<=1+external) && (secprops.max_ssf>=1+external)) {
-	    /* integrity */
-	    oparams->encode=&sasl_gss_integrity_encode;
-	    oparams->decode=&sasl_gss_decode;
-	    oparams->mech_ssf=1;
-	    text->ssf=2;
-	    DEBUG ((stderr,"Using integrity layer\n"));
-	  } else if ((secprops.min_ssf<=external) && (secprops.max_ssf>=external)) {
-	    /* no layer */
-	    oparams->encode=NULL;
-	    oparams->decode=NULL;
-	    oparams->mech_ssf=0;
-	    text->ssf=1;
-	    DEBUG ((stderr,"Using no layer\n"));
-	  } else {
-	    /* error */
-	    sasl_gss_free_context_contents(text);
+	if (secprops.min_ssf > 56 + external) {
 	    return SASL_TOOWEAK;
-	  }
+	} else if (secprops.min_ssf > secprops.max_ssf) {
+	    return SASL_BADPARAM;
+	}
 
-	/* server told me what layers support. make sure trying one it supports */
+	/* need bits of layer */
+	need = secprops.max_ssf - external;
+
+	/* if client didn't set use strongest layer */
+	if (need > 1) {
+	    /* encryption */
+	    oparams->encode = &sasl_gss_privacy_encode;
+	    oparams->decode = &sasl_gss_decode;
+	    oparams->mech_ssf = 56;
+	    text->ssf = 4;
+	    DEBUG ((stderr,"Using encryption layer\n"));
+	} else if (need == 1) {
+	    /* integrity */
+	    oparams->encode = &sasl_gss_integrity_encode;
+	    oparams->decode = &sasl_gss_decode;
+	    oparams->mech_ssf = 1;
+	    text->ssf = 2;
+	    DEBUG ((stderr,"Using integrity layer\n"));
+	} else {
+	    /* no layer */
+	    oparams->encode = NULL;
+	    oparams->decode = NULL;
+	    oparams->mech_ssf = 0;
+	    text->ssf = 1;
+	    DEBUG ((stderr,"Using no layer\n"));
+	}
+
+	/* server told me what layers support. 
+	   make sure trying one it supports */
 	if ( (((char *)output_token->value)[0] & text->ssf) == 0 )
 	  {
 	    sasl_gss_free_context_contents(text);

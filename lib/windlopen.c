@@ -113,7 +113,6 @@ int _sasl_get_mech_list(const char *entryname,
         FreeLibrary(library);
         continue;
       }
-      VL(("added [%s] sucessfully\n",dir->d_name));
     }
   } /* End of registry value loop */
 

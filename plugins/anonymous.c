@@ -118,7 +118,6 @@ static int continue_step (void *conn_context,
 	      sasl_out_params_t *oparams,
 	      const char **errstr)
 {
-  int result;
   context_t *text;
   text=conn_context;
 

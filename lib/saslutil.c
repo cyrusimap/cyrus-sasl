@@ -186,7 +186,6 @@ parityof(unsigned char ch)
 static unsigned short* getranddata()
 {
   unsigned short *ret;
-  unsigned char *tmp;
   long curtime;
   FILE *f;
 

@@ -259,10 +259,8 @@ static int continue_step (void *conn_context,
     /* verify digest */
     char *in16;
     char userid[256];
-    unsigned char digest[1024];
     sasl_secret_t *sec=NULL;
     int lup,pos;
-    MD5_CTX ver_i, ver_o;
     int len=sizeof(MD5_CTX);
     int result;
     sasl_server_getsecret_t *getsecret;

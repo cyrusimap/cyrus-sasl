@@ -66,8 +66,6 @@
 # endif
 #endif
 
-static char rcsid[] = 
-
 /***************************************************************************
  *
  ***************************************************************************/
@@ -309,6 +307,9 @@ EndOfDashArgs:
   result = test_ReadBuf('S', 0, &serverin, &serverinlen);
   if (result == 0) Exit(conn);
 
+  if (Verbose)
+    fprintf(stderr, "read mechanisms '%s', looking for '%s'\n", serverin, Mechanism);
+
   /* 3: Let SASL client decide what mechanism to use */
   result=sasl_client_start(conn, Mechanism, /* serverin  / mechlist */
 			   secret, &client_interact,
@@ -336,7 +337,11 @@ EndOfDashArgs:
 
   /* ------------------------------------------------------------ */
 
-  result = SASL_CONTINUE;
+/* result is still set from the above sasl_client_start.  May be
+ * done already (IE: ANONYMOUS)
+ *
+ * result = SASL_CONTINUE;
+ */
 
   while (result == SASL_CONTINUE) {
 

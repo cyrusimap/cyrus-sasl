@@ -1,3 +1,18 @@
+1999-02-07  Ryan Troll <ryan+@andrew.cmu.edu>
+
+    * configure.in: Added reminder about version number in
+	winconfig.h
+
+	* include/sasl.h: Fixed WIN32 declarations
+
+	* include/winconfig.h: Added new defines, for compilation under
+	windows
+
+	* lib/test-client.c: fixed loop, so it will work with anonymous
+	mechanism
+
+	* Added saslDIGESTMD5 project to main workspace
+
 1999-02-05  Rob Earhart  <rob+@andrew.cmu.edu>
 
 	* lib/windlopen.c (_sasl_get_mech_list): added getpath_cb

@@ -1,4 +1,4 @@
-// libsasl.cpp : Defines the entry point for the DLL application.
+// saslDIGESTMD5.cpp : Defines the entry point for the DLL application.
 //
 
 #include "stdafx.h"
@@ -18,3 +18,4 @@ BOOL APIENTRY DllMain( HANDLE hModule,
     }
     return TRUE;
 }
+

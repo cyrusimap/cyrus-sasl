@@ -55,7 +55,7 @@ char *strchr(), *strrchr();
 
 #ifdef WIN32
 /* This must be after sasl.h, saslutil.h */
-# include "saslDIGEST.h"
+# include "saslDIGESTMD5.h"
 #endif /* WIN32 */
 
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -693,7 +693,6 @@ static int server_continue_step (void *conn_context,
 	char *response = NULL;
 
 	char *maxbufstr = NULL;
-	int   maxbuf;
 
     char *charset = NULL;
 	char *cipher = NULL;
@@ -1206,7 +1205,6 @@ static int c_continue_step (void *conn_context,
     char *passwd = NULL;
 
     char *maxbuf_str = NULL;
-    int   maxbuf;
 
     char *charset = NULL;
     char *cipher = NULL;

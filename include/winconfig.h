@@ -54,10 +54,14 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 #define HAVE_MEMCPY 1
 
-/* Windows calls these function something else
+#define SASL_PATH_ENV_VAR "SASL_PATH"
+#define PLUGINDIR "\\sasl-plugins"
+
+/* Windows calls these functions something else
  */
-#define strcasecmp stricmp
-#define strncasecmp strnicmp
+#define strcasecmp   stricmp
+#define snprintf    _snprintf
+#define strncasecmp  strnicmp
 
 #define MAXHOSTNAMELEN 1024
 
@@ -68,6 +72,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define I_DEFAULT_GUARD (0)
 #define I(foo)
 #define VL(foo)
+// #define VL(foo)  printf foo;
 #define VLP(foo,bar)
 
 #define __attribute__(foo)

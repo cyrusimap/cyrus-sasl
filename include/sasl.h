@@ -92,15 +92,15 @@
  * as extern.  (Technically, we don't even have to do that.) */
 #ifdef WIN32
 # ifdef LIBSASL_EXPORTS
-#  define LIBSASL_API __stdcall __declspec(dllexport)
+#  define LIBSASL_API  __declspec(dllexport)
 # else /* LIBSASL_EXPORTS */
-#  define LIBSASL_API __stdcall __declspec(dllimport)
+#  define LIBSASL_API  __declspec(dllimport)
 # endif /* LIBSASL_EXPORTS */
 #else /* WIN32 */
 # define LIBSASL_API extern
 #endif /* WIN32 */
 
-extern int _sasl_debug;
+LIBSASL_API int _sasl_debug;
 
 /*************
  * Basic API *

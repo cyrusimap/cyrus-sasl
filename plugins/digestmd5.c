@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.138 2002/08/06 17:13:18 ken3 Exp $
+ * $Id: digestmd5.c,v 1.139 2002/08/06 22:39:01 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -103,7 +103,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.138 2002/08/06 17:13:18 ken3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.139 2002/08/06 22:39:01 ken3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -159,10 +159,6 @@ typedef struct global_context {
     unsigned char *nonce;
     unsigned int nonce_count;
     unsigned char *cnonce;
-
-    /* server stuff */
-    time_t timeout;
-    time_t timestamp;
 
     /* client stuff */
     char *serverFQDN;
@@ -1633,8 +1629,6 @@ digestmd5_common_mech_dispose(void *conn_context, const sasl_utils_t *utils)
 static void
 clear_global_context(global_context_t *glob_context, const sasl_utils_t *utils)
 {
-    time_t timeout;
-
     if (glob_context->authid) utils->free(glob_context->authid);
     if (glob_context->realm) utils->free(glob_context->realm);
     if (glob_context->nonce) utils->free(glob_context->nonce);
@@ -1642,10 +1636,7 @@ clear_global_context(global_context_t *glob_context, const sasl_utils_t *utils)
 
     if (glob_context->serverFQDN) utils->free(glob_context->serverFQDN);
 
-    /* zero everything except for the reauth timeout */
-    timeout = glob_context->timeout;
     memset(glob_context, 0, sizeof(global_context_t));
-    glob_context->timeout = timeout;
 }
 
 static void
@@ -1849,7 +1840,7 @@ static int htoi(unsigned char *hexin, unsigned int *res)
     return SASL_OK;
 }
 
-static int digestmd5_server_mech_new(void *glob_context,
+static int digestmd5_server_mech_new(void *glob_context __attribute__((unused)),
 				     sasl_server_params_t * sparams,
 				     const char *challenge __attribute__((unused)),
 				     unsigned challen __attribute__((unused)),
@@ -1865,7 +1856,6 @@ static int digestmd5_server_mech_new(void *glob_context,
     
     text->state = 1;
     text->i_am = SERVER;
-    text->global = glob_context;
     
     *conn_context = text;
     return SASL_OK;
@@ -2437,15 +2427,7 @@ digestmd5_server_mech_step2(server_context_t *stext,
 	goto FreeAllMem;
     }
     
-    /* see if our nonce expired */
-    if (text->global->timeout &&
-	time(0) - stext->timestamp > text->global->timeout) {
-	SETERROR(sparams->utils, "server nonce expired");
-	stext->stale = 1;
-	result = SASL_BADAUTH;
-
-	goto FreeAllMem;
-    }
+    /* see if our nonce expired (stext->stale = 1) */
     
     /*
      * nothing more to do; authenticated set oparams information
@@ -2521,12 +2503,6 @@ digestmd5_server_mech_step2(server_context_t *stext,
 	}
 
 	/* setup for a potential reauth */
-	text->global->authid = username; username = NULL;
-	text->global->realm = stext->realm; stext->realm = NULL;
-	text->global->nonce = stext->nonce; stext->nonce = NULL;
-	text->global->nonce_count = ++stext->nonce_count;
-	text->global->cnonce = cnonce; cnonce = NULL;
-	text->global->timestamp = time(0);
 	
 	*serveroutlen = strlen(text->out_buf);
 	*serverout = text->out_buf;
@@ -2597,16 +2573,10 @@ digestmd5_server_mech_step(void *conn_context,
 	} else {
 	    stext->requiressf = sparams->props.min_ssf - sparams->external_ssf;
 	}
-
+#if 0
 	/* should we attempt reauth? */
-	if (clientin && text->global->timeout &&
-	    text->global->nonce && text->global->cnonce) {
-	    stext->authid = text->global->authid;
-	    stext->realm = text->global->realm;
-	    stext->nonce = text->global->nonce;
-	    stext->nonce_count = text->global->nonce_count;
-	    stext->cnonce = text->global->cnonce;
-	    stext->timestamp = text->global->timestamp;
+	if (clientin /* && we have reauth info */) {
+	    /* setup for reauth attempt */
 
 	    if (digestmd5_server_mech_step2(stext, sparams,
 					    clientin, clientinlen,
@@ -2618,12 +2588,11 @@ digestmd5_server_mech_step(void *conn_context,
 				    "DIGEST-MD5 reauth failed\n");
 	    }
 	}
-
+#endif
 	/* re-initialize everything for a fresh start */
 	*serverout = NULL;
 	*serveroutlen = 0;
 	memset(oparams, 0, sizeof(sasl_out_params_t));
-	clear_global_context(text->global, sparams->utils);
 	
 	return digestmd5_server_mech_step1(stext, sparams,
 					   clientin, clientinlen,
@@ -2641,6 +2610,21 @@ digestmd5_server_mech_step(void *conn_context,
     }
     
     return SASL_FAIL; /* should never get here */
+}
+
+static void
+digestmd5_server_mech_dispose(void *conn_context, const sasl_utils_t *utils)
+{
+    server_context_t *stext = (server_context_t *) conn_context;
+    
+    if (!stext || !utils) return;
+    
+    if (stext->authid) utils->free(stext->authid);
+    if (stext->realm) utils->free(stext->realm);
+    if (stext->nonce) utils->free(stext->nonce);
+    if (stext->cnonce) utils->free(stext->cnonce);
+
+    digestmd5_common_mech_dispose(conn_context, utils);
 }
 
 static sasl_server_plug_t digestmd5_server_plugins[] =
@@ -2661,8 +2645,8 @@ static sasl_server_plug_t digestmd5_server_plugins[] =
 	NULL,				/* glob_context */
 	&digestmd5_server_mech_new,	/* mech_new */
 	&digestmd5_server_mech_step,	/* mech_step */
-	&digestmd5_common_mech_dispose,	/* mech_dispose */
-	&digestmd5_common_mech_free,	/* mech_free */
+	&digestmd5_server_mech_dispose,	/* mech_dispose */
+	NULL,				/* mech_free */
 	NULL,				/* setpass */
 	NULL,				/* user_query */
 	NULL,				/* idle */
@@ -2671,36 +2655,14 @@ static sasl_server_plug_t digestmd5_server_plugins[] =
     }
 };
 
-#define DEFAULT_REAUTH_TIMEOUT 86400 /* 24 hours */
-
-int digestmd5_server_plug_init(sasl_utils_t *utils,
+int digestmd5_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
 			       int maxversion,
 			       int *out_version,
 			       sasl_server_plug_t **pluglist,
 			       int *plugcount) 
 {
-    global_context_t *glob_text;
-    const char *timeout = NULL;
-    unsigned int len;
-
     if (maxversion < SASL_SERVER_PLUG_VERSION)
 	return SASL_BADVERS;
-
-    /* holds global state are in */
-    glob_text = utils->malloc(sizeof(global_context_t));
-    if (glob_text == NULL)
-	return SASL_NOMEM;
-    memset(glob_text, 0, sizeof(global_context_t));
-    
-    /* fetch and canonify the reauth_timeout */
-    utils->getopt(utils->getopt_context, "DIGEST-MD5", "reauth_timeout",
-		  &timeout, &len);
-    if (timeout) glob_text->timeout = (time_t) 60 * strtol(timeout, NULL, 10);
-    if (!timeout ||
-	glob_text->timeout < 0 || glob_text->timeout > DEFAULT_REAUTH_TIMEOUT)
-	glob_text->timeout = DEFAULT_REAUTH_TIMEOUT;
-
-    digestmd5_server_plugins[0].glob_context = glob_text;
 
     *out_version = SASL_SERVER_PLUG_VERSION;
     *pluglist = digestmd5_server_plugins;

@@ -1,6 +1,6 @@
 /* Plain SASL plugin
  * Tim Martin 
- * $Id: plain.c,v 1.37 2000/02/23 01:16:14 tmartin Exp $
+ * $Id: plain.c,v 1.38 2000/02/27 20:46:45 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -26,15 +26,6 @@ SOFTWARE.
 
 #include <config.h>
 #include <stdio.h>
-#ifndef SASL_MINIMAL_SERVER
-#include <pwd.h>
-#endif /* SASL_MINIMAL_SERVER */
-#ifdef HAVE_CRYPT_H
-#include <crypt.h>
-#endif /* HAVE_CRYPT_H */
-#ifdef HAVE_SHADOW_H
-#include <shadow.h>
-#endif /* HAVE_SHADOW_H */
 #include <sasl.h>
 #include <saslplug.h>
 
@@ -120,26 +111,11 @@ static void mech_free(void *global_context, sasl_utils_t *utils)
   utils->free(global_context);  
 }
 
-#ifdef SASL_MINIMAL_SERVER
-
-static int server_continue_step (void *conn_context,
-	      sasl_server_params_t *params,
-	      const char *clientin,
-	      int clientinlen,
-	      char **serverout,
-	      int *serveroutlen,
-	      sasl_out_params_t *oparams,
-	      const char **errstr)
-{
-  return SASL_FAIL;
-}
-
-#else /* SASL_MINIMAL_SERVER */
-
 /* fills in password; remember to free password and wipe it out correctly */
 static
 int verify_password(sasl_server_params_t *params, 
-		    const char *user, const char *pass)
+		    const char *user, const char *pass,
+		    const char **errstr)
 {
     const char *mech = NULL;
     int result;
@@ -147,22 +123,10 @@ int verify_password(sasl_server_params_t *params,
     params->utils->getopt(params->utils->getopt_context, "PLAIN",
 			  "pwcheck_method", &mech, NULL);
 
-    if (mech == NULL) {
-#ifdef HAVE_PAM
-	mech = "PAM";
-#else
-#ifdef HAVE_KRB
-	mech = "kerberos_v4";
-#else
-	mech = "passwd";
-#endif /* HAVE_KRB */
-#endif /* HAVE_PAM */
-    }
-
-    VL(("Checking password with %s mechanism\n",mech));
-
+    /* if it's null, checkpass will default */
     result = params->utils->checkpass(params->utils->conn,
-				      mech, params->service, user, pass);
+				      mech, params->service, 
+				      user, pass, errstr);
     
     return result;
 }
@@ -180,8 +144,7 @@ server_continue_step (void *conn_context,
   context_t *text;
   text=conn_context;
 
-  if (errstr)
-    *errstr = NULL;
+  if (errstr) { *errstr = NULL; }
 
   oparams->mech_ssf=0;
 
@@ -268,7 +231,7 @@ server_continue_step (void *conn_context,
     passcopy[password_len] = '\0';
 
     /* verify password - return sasl_ok on success*/    
-    result = verify_password(params, authen, passcopy);
+    result = verify_password(params, authen, passcopy, errstr);
     
     for (lup = strlen(passcopy); lup >= 0; lup--) {
 	passcopy[lup] = '\0';
@@ -321,7 +284,6 @@ server_continue_step (void *conn_context,
 
   return SASL_FAIL; /* should never get here */
 }
-#endif /* SASL_MINIMAL_SERVER */
 
 static const sasl_server_plug_t plugins[] = 
 {

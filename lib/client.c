@@ -123,7 +123,7 @@ external_client_step(void *conn_context __attribute__((unused)),
       }
       /* Otherwise, drop through into the default we-lose case. */
     default:
-      /* We lose. */
+      /* Assume userid == authid. */
       user = NULL;
       *clientoutlen = 0;
     }
@@ -409,6 +409,34 @@ cleanup_conn:
   return result;
 }
 
+int have_prompts(sasl_conn_t *conn,
+		 const sasl_client_plug_t *mech)
+{
+  static const long default_prompts[] = {
+    SASL_CB_USER,
+    SASL_CB_PASS,
+    SASL_CB_LIST_END
+  };
+
+  const long *prompt;
+  int (*pproc)();
+  void *pcontext;
+  int result;
+
+  if (mech->required_prompts)
+    prompt = mech->required_prompts;
+  else
+    prompt = default_prompts;
+
+  while (*prompt != SASL_CB_LIST_END) {
+    result = _sasl_getcallback(conn, *prompt, &pproc, &pcontext);
+    if (result != SASL_OK && result != SASL_INTERACT)
+      return 0;			/* we don't have this required prompt */
+  }
+
+  return 1; /* we have all the prompts */
+}
+
 int sasl_client_start(sasl_conn_t *conn,
 		      const char *list,
 		      sasl_secret_t *secret,
@@ -486,6 +514,7 @@ int sasl_client_start(sasl_conn_t *conn,
       if (strcasecmp(m->plug->mech_name, name)==0)
       {	
 	if (mech
+	    && have_prompts(conn, m->plug)
 	    && (! bestm || m->plug->max_ssf > bestssf)
 	    && m->plug->max_ssf >= minssf)
 	{

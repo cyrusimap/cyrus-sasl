@@ -1,3 +1,12 @@
+1999-02-11  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* lib/saslint.h (_sasl_getcallback): added prototype
+
+	* lib/common.c (_sasl_getcallback): made non-static
+
+	* lib/client.c (have_prompts): implemented; checks whether or not
+	the app provides the prompts necessary for a given mechanism.
+
 1999-02-10  Rob Earhart  <rob+@andrew.cmu.edu>
 
 	* lib/common.c (_sasl_getcallback): returns SASL_INTERACT if

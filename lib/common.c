@@ -583,7 +583,7 @@ _sasl_getpath(void *context __attribute__((unused)),
   return _sasl_strdup(path, path_dest, NULL);
 }
 
-static int
+int
 _sasl_getcallback(sasl_conn_t * conn,
 		  unsigned long callbackid,
 		  int (**pproc)(),

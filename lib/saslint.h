@@ -146,4 +146,10 @@ extern sasl_server_getsecret_t *_sasl_db_getsecret;
 
 extern sasl_server_putsecret_t *_sasl_db_putsecret;
 
+extern int
+_sasl_getcallback(sasl_conn_t * conn,
+		  unsigned long callbackid,
+		  int (**pproc)(),
+		  void **pcontext);
+
 #endif /* SASLINT_H */

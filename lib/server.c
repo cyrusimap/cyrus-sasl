@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.127 2003/07/27 20:47:42 rjs3 Exp $
+ * $Id: server.c,v 1.128 2003/07/27 21:33:04 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1536,7 +1536,7 @@ static int _sasl_checkpass(sasl_conn_t *conn,
     sasl_getopt_t *getopt;
     sasl_server_userdb_checkpass_t *checkpass_cb;
     void *context;
-    const char *mlist, *mech;
+    const char *mlist = NULL, *mech = NULL;
     struct sasl_verify_password_s *v;
     const char *service = conn->service;
 
@@ -1658,7 +1658,7 @@ int sasl_user_exists(sasl_conn_t *conn,
 		     const char *user) 
 {
     int result=SASL_NOMECH;
-    const char *mlist, *mech;
+    const char *mlist = NULL, *mech = NULL;
     void *context;
     sasl_getopt_t *getopt;
     struct sasl_verify_password_s *v;

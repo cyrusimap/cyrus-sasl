@@ -78,7 +78,7 @@
  * END HISTORY */
 
 #ifdef __GNUC__
-#ident "$Id: saslauthd-doors.c,v 1.3 2002/04/25 18:32:19 leg Exp $"
+#ident "$Id: saslauthd-doors.c,v 1.4 2002/05/07 16:08:01 leg Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -457,6 +457,12 @@ main(
     close(open(path_mux, O_CREAT | O_RDWR, 0666));
     if (fattach(dfd, path_mux) < 0) {
 	syslog(LOG_ERR, "FATAL: fattach %s failed: %m", path_mux);
+	closelog();
+	exit(1);
+    }
+    /* make sure it's readable */
+    if (chmod(path_mux, 0644) < 0) {
+	syslog(LOG_ERR, "FATAL: chmod %s 0644 failed: %m", path_mux);
 	closelog();
 	exit(1);
     }

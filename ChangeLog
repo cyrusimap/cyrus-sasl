@@ -1,3 +1,7 @@
+2001-05-17  Rob Siemborski <rjs3+@andrew.cmu.edu>
+
+	* cleaned up a number of manpages
+
 2001-05-07  Lyndon Nerenberg  <lyndon@MessagingDirect.COM>
 
 	* Include a pre-formatted saslauthd.8 manpage, for sites that

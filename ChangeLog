@@ -2,6 +2,7 @@
 	* include/sasl.h, lib/server.c,
 	  plugins/digestmd5.c, gssapi.c, kerberos4.c, srp.c:
 	  added SASL_SEC_MUTUAL_AUTH
+	* plugins/srp.c: cleanup error messages and return codes
 	
 2002-01-30  Ken Murchison <ken@oceana.com>
 	* plugins/otp.c, plugins/otp.h: added non-OPIE client/server

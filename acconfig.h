@@ -92,6 +92,9 @@
 /* do we have OPIE for server-side OTP support? */
 #undef HAVE_OPIE
 
+/* should we support otp_setpass */
+#undef DO_OTP_SETPASS
+
 /* Do we have kerberos for plaintext password checking? */
 #undef HAVE_KRB
 

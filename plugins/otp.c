@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.2 2001/12/04 02:06:48 rjs3 Exp $
+ * $Id: otp.c,v 1.3 2001/12/04 15:36:57 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -316,6 +316,7 @@ otp_server_mech_step(void *conn_context,
   return SASL_FAIL; /* should never get here */
 }
 
+#ifdef DO_OTP_SETPASS
 static int otp_setpass(void *glob_context __attribute__((unused)),
 		       sasl_server_params_t *sparams,
 		       const char *user,
@@ -343,6 +344,7 @@ static int otp_setpass(void *glob_context __attribute__((unused)),
 
     return (rval ? SASL_FAIL : SASL_OK);
 }
+#endif /* DO_OTP_SETPASS */
 
 static int otp_mech_avail(void *glob_context __attribute__((unused)),
 	  	          sasl_server_params_t *sparams,
@@ -379,7 +381,11 @@ static sasl_server_plug_t otp_server_plugins[] =
     &otp_server_mech_step,
     &otp_server_mech_dispose,
     &otp_both_mech_free,
+#ifdef DO_OTP_SETPASS
     &otp_setpass,
+#else
+    NULL,
+#endif
     NULL,
     NULL,
     &otp_mech_avail,

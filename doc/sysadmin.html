@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.21 2001/12/04 02:05:17 rjs3 Exp $ -->
+<!-- $Id: sysadmin.html,v 1.22 2001/12/04 15:36:57 ken3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -251,7 +251,8 @@ user ID to be in <tt>/etc/passwd</tt> before creating the key in the
 opiekeys file, which makes it unusable on a closed system such as
 Cyrus IMAPD.  Because of this, the "<tt>saslpasswd</tt>" utility can
 be used to change the keys in the opiekeys database (in addition to
-changing the secrets in sasldb).
+changing the secrets in sasldb).  You MUST configure SASL with the
+<tt>--enable-otp-setpass</tt> option to enable this functionality.
 
 <h2>How to set configuration options</h2>
 

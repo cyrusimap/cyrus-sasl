@@ -1,3 +1,8 @@
+2001-12-04  Ken Murchison <ken@oceana.com>
+	* acconfig.h, configure.in:
+	* doc/sysadmin.html:
+	* plugins/otp.c: made otp_setpass() a compile-time option (default=off)
+
 2001-12-02  Ken Murchison <ken@oceana.com>
 	* plugins/srp.c: fixed SHA1 support
 	* plugins/srp.c: changed calculation of 'x' to coincide with draft -05

@@ -78,7 +78,7 @@
  * END HISTORY */
 
 #ifdef __GNUC__
-#ident "$Id: saslauthd-doors.c,v 1.4 2002/05/07 16:08:01 leg Exp $"
+#ident "$Id: saslauthd-doors.c,v 1.5 2002/05/17 16:43:22 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -110,8 +110,7 @@ authmech_t *authmech;		/* Authentication mechanism we're using  */
 authmech_t *proxymech;		/* Auth mechanism to proxy accounts from */
 int	debug;			/* Debugging level.                      */
 int	flag_use_tod;		/* Pay attention to TOD restrictions.    */
-char	*r_host;		/* Remote host for rimap driver		 */
-char	*r_service;		/* Remote service for rimap driver	 */
+char	*mech_option;		/* mechanism-specific option		 */
 #if defined(AUTH_SIA)
 int	g_argc;			/* Copy of argc for sia_* routines	 */
 char	**g_argv;		/* Copy of argv for sia_* routines       */
@@ -177,12 +176,12 @@ main(
     debug = 0;
     flag_use_tod = 0;
     path_mux = PATH_SASLAUTHD_RUNDIR "/mux";
-    r_host = NULL;
+    mech_option = NULL;
     openlog("saslauthd", LOG_PID|LOG_NDELAY, LOG_AUTH);
     syslog(LOG_INFO, "START: saslauthd %s", VERSION);
 
     /* parse the command line arguments */
-    while ((c = getopt(argc, argv, "a:dF:H:m:n:P:Tv")) != -1)
+    while ((c = getopt(argc, argv, "a:dF:H:O:m:n:P:Tv")) != -1)
 	switch (c) {
 
 	  case 'a':			/* authentication mechanism */
@@ -206,8 +205,14 @@ main(
 	    break;
 
 	  case 'H':
-	    r_host = strdup(optarg);
-	    break;
+	  case 'O':
+	      if(mech_option) {
+		  fprintf(stderr,
+			  "cannot specify more than one mechanism-specific option\n");
+		  exit(1);
+	      }
+	      mech_option = strdup(optarg);
+	      break;
 	    
 	  case 'm':			/* alternate MUX location */
 	    if (*optarg != '/') {

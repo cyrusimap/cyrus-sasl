@@ -53,7 +53,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_rimap.c,v 1.5 2001/12/04 02:06:54 rjs3 Exp $"
+#ident "$Id: auth_rimap.c,v 1.6 2002/05/17 16:43:22 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -80,6 +80,7 @@
 /* END PUBLIC DEPENDENCIES */
 
 /* PRIVATE DEPENDENCIES */
+static const char *r_host = NULL;       /* remote hostname (mech_option) */
 static struct addrinfo *ai = NULL;	/* remote authentication host    */
 /* END PRIVATE DEPENDENCIES */
 
@@ -218,9 +219,11 @@ auth_rimap_init (
     char *c;				/* scratch pointer               */
     /* END VARIABLES */
 
-    if (r_host == NULL) {
+    if (mech_option == NULL) {
 	syslog(LOG_ERR, "rimap_init: no hostname specified");
 	return -1;
+    } else {
+	r_host = mech_option;
     }
 
     /* Determine the port number to connect to.

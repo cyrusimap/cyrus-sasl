@@ -1,4 +1,4 @@
-.\" $Id: saslauthd.mdoc,v 1.8 2002/02/27 17:22:11 rjs3 Exp $
+.\" $Id: saslauthd.mdoc,v 1.9 2002/05/17 16:43:22 rjs3 Exp $
 .\" Copyright 1997-2001 Messaging Direct Ltd. All rights reserved.
 .\"
 .\" This manpage uses the BSD mdoc manpage macros. Please don't
@@ -20,7 +20,7 @@
 .Fl a
 .Ar authmech
 .Op Fl \&Tv
-.Op Fl H Ar hostname
+.Op Fl O Ar option
 .Op Fl m Ar mux_path
 .Op Fl n Ar threads
 .Sh DESCRIPTION
@@ -56,10 +56,12 @@ Use
 as the authentication mechanism. (See the
 .Sx AUTHENTICATION MECHANISMS
 section below.) This parameter is mandatory.
+.It Fl O Ar option
+A mechanism specific option (e.g. rimap hostname or config file path)
 .It Fl H Ar hostname
 The remote host to be contacted by the
 .Li rimap
-authentication mechanism.
+authentication mechanism. (Depricated, use -O instead)
 .It Fl m Ar path
 Use
 .Ar path
@@ -91,7 +93,7 @@ supports one or more
 .Qq authentication mechanisms ,
 dependent upon the facilities provided by the underlying operating system.
 The mechanism is selected by the
-.Fl a
+.Fl aho
 flag from the following list of choices:
 .Bl -tag -width "kerberos4"
 .It Li dce
@@ -125,7 +127,7 @@ Authenticate using Pluggable Authentication Modules (PAM).
 .Em (All platforms)
 .Pp
 Forward authentication requests to a remote IMAP server. This driver
-connects to a remote IMAP server, specified using the -H flag,
+connects to a remote IMAP server, specified using the -O flag,
 and attempts to login (via an IMAP
 .Ql LOGIN
 command) using the credentials 
@@ -138,9 +140,9 @@ command is received from the remote
 server.
 .Pp
 The
-.Ar hostname
+.Ar option
 parameter to the
-.Fl H
+.Fl O
 flag describes the remote server to forward
 authentication requests to.
 .Ar hostname
@@ -156,7 +158,7 @@ to the
 argument.
 .Pp
 The
-.Fl H
+.Fl O
 flag and argument are mandatory when using the
 .Li rimap
 mechanism.

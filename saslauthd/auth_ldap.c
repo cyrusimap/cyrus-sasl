@@ -31,13 +31,14 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_ldap.c,v 1.7 2002/05/08 21:08:33 rjs3 Exp $"
+#ident "$Id: auth_ldap.c,v 1.8 2002/05/08 21:48:11 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <ctype.h>
 #include "mechanisms.h"
 
 /* END PUBLIC DEPENDENCIES */

@@ -1,3 +1,11 @@
+New in 2.1.10
+-------------
+* Further DIGEST-MD5 DES interoperability fixes.  Now works against Active
+  Directory.
+* Fix some potential buffer overflows.
+* Misc. cleanups in the saslauthd LDAP module
+* Fix security properties of NTLM and EXTERNAL
+
 New in 2.1.9
 ------------
 * Include missing lib/staticopen.h file.

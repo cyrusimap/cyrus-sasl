@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.6 1998/11/17 05:25:57 rob Exp $
+ * $Id: kerberos4.c,v 1.7 1998/11/17 05:34:59 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -65,7 +65,9 @@ typedef struct context {
 
   char *service;
   char instance[ANAME_SZ];
-
+  char pname[ANAME_SZ];
+  char pinst[INST_SZ];
+  char prealm[REALM_SZ];
   char *hostname;
   char *realm;
   char *auth;
@@ -500,6 +502,9 @@ static int server_continue_step (void *conn_context,
     sout[7]=0xFF;
 
     memcpy(text->session, ad.session, 8);
+    memcpy(text->pname, ad.pname, sizeof(text->pname));
+    memcpy(text->pinst, ad.pinst, sizeof(text->pinst));
+    memcpy(text->prealm, ad.prealm, sizeof(text->prealm));
     des_key_sched(ad.session, text->init_keysched);
 
     des_key_sched(ad.session, text->enc_keysched); /* make keyschedule for */
@@ -587,17 +592,17 @@ static int server_continue_step (void *conn_context,
     oparams->param_version=0;
     
     {
-      size_t len = strlen(ad.pname);
-      if (ad.pinst[0])
-	len += strlen(ad.pinst) + 1 /* for the . */;
+      size_t len = strlen(text->pname);
+      if (text->pinst[0])
+	len += strlen(text->pinst) + 1 /* for the . */;
 
       oparams->authid = sparams->utils->malloc(len + 1);
       if (! oparams->authid)
 	return SASL_NOMEM;
-      strcpy(oparams->authid, ad.pname);
-      if (ad.pinst[0]) {
+      strcpy(oparams->authid, text->pname);
+      if (text->pinst[0]) {
 	strcat(oparams->authid, ".");
-	strcat(oparams->authid, ad.pinst);
+	strcat(oparams->authid, text->pinst);
       }
 
       oparams->user = sparams->utils->malloc(len + 1);
@@ -605,19 +610,19 @@ static int server_continue_step (void *conn_context,
 	sparams->utils->free(oparams->authid);
 	return SASL_NOMEM;
       }
-      strcpy(oparams->user, ad.pname);
-      if (ad.pinst[0]) {
+      strcpy(oparams->user, text->pname);
+      if (text->pinst[0]) {
 	strcat(oparams->user, ".");
-	strcat(oparams->user, ad.pinst);
+	strcat(oparams->user, text->pinst);
       }
 
-      oparams->realm = sparams->utils->malloc(strlen(ad.prealm) + 1);
+      oparams->realm = sparams->utils->malloc(strlen(text->prealm) + 1);
       if (! oparams->realm) {
 	sparams->utils->free(oparams->authid);
 	sparams->utils->free(oparams->user);
 	return SASL_NOMEM;
       }
-      strcpy(oparams->realm, ad.prealm);
+      strcpy(oparams->realm, text->prealm);
     }
 
     /* output */

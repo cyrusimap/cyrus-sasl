@@ -89,16 +89,17 @@ static char *lak_escape(LAK *conf, char *s)
 		return NULL;
 	}
 
-	buf = malloc(sizeof(s) * 2 + 1);
+	buf = malloc(strlen(s) * 2 + 1);
 	if (buf == NULL) {
 		syslog(LOG_ERR|LOG_AUTH, "%s: Cannot allocate memory", myname);
 		return NULL;
 	}
 
+	buf[0] = '\0';
 	ptr = s;
-	end = (char *) ptr + strlen((char *) ptr);
+	end = ptr + strlen(ptr);
 
-	while (((temp = (char *)strpbrk((char *)ptr, "*()\\\0"))!=NULL) && (temp < end)) {
+	while (((temp = strpbrk(ptr, "*()\\\0"))!=NULL) && (temp < end)) {
 
 		if ((temp-ptr) > 0)
 			strncat(buf, ptr, temp-ptr);
@@ -123,7 +124,7 @@ static char *lak_escape(LAK *conf, char *s)
 		ptr=temp+1;
 	}
 	if (temp<end)
-		strcat(buf, (char *) ptr);
+		strcat(buf, ptr);
 
 	if (conf->verbose)
 		syslog(LOG_INFO|LOG_AUTH,"%s: After escaping, it's %s", myname, buf);
@@ -141,7 +142,7 @@ static char *lak_escape(LAK *conf, char *s)
  */
 static char *lak_filter(LAK *conf, char *user, char *realm) 
 {
-    	char *myname = "lak_filter";
+    	const char *myname = "lak_filter";
 
 	char *buf; 
 	char *end, *ptr, *temp;
@@ -157,15 +158,17 @@ static char *lak_filter(LAK *conf, char *user, char *realm)
 		return NULL;
 	}
 
-	if ((buf=(char *)malloc(sizeof(conf->filter)+sizeof(user)+sizeof(realm)+1))==NULL) {
+	buf=malloc(strlen(conf->filter)+strlen(user)+strlen(realm)+1);
+	if(buf == NULL) {
 		syslog(LOG_ERR|LOG_AUTH, "%s: Cannot allocate memory", myname);
 		return NULL;
 	}
+	buf[0] = '\0';
 	
 	ptr=conf->filter;
-	end = (char *) ptr + strlen((char *) ptr);
+	end = ptr + strlen(ptr);
 
-	while ((temp=(char *)strchr(ptr,'%'))!=NULL ) {
+	while ((temp=strchr(ptr,'%'))!=NULL ) {
 
 		if ((temp-ptr) > 0)
 			strncat(buf, ptr, temp-ptr);

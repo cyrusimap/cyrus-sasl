@@ -2,7 +2,7 @@
  * Ryan Troll
  */
 /* 
- * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 1998-2004 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,7 +60,12 @@
 /* Visual Studio supports prototypes */
 #define PROTOTYPES     1
 
+#ifndef HAVE_CADDR_T
+#ifndef	caddr_t
 typedef unsigned char   *caddr_t;
+#define HAVE_CADDR_T	1
+#endif
+#endif
 
 #ifndef _INTPTR_T_DEFINED
 

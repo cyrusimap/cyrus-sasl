@@ -259,9 +259,9 @@ static int lak_config(const char *configFile, LAK_CONF **ret)
 		}
 	}
 	conf->debug = lak_config_getint("ldap_debug", 0);
-	conf->tls_check_peer = lak_config_getint("ldap_tls_checkpeer", 0);
-	conf->tls_cacert_file = (char *) lak_config_getstring("ldap_tls_cacertfile", NULL);
-	conf->tls_cacert_dir = (char *) lak_config_getstring("ldap_tls_cacertdir", NULL);
+	conf->tls_check_peer = lak_config_getint("ldap_tls_check_peer", 0);
+	conf->tls_cacert_file = (char *) lak_config_getstring("ldap_tls_cacert_file", NULL);
+	conf->tls_cacert_dir = (char *) lak_config_getstring("ldap_tls_cacert_dir", NULL);
 	conf->tls_ciphers = (char *) lak_config_getstring("ldap_tls_ciphers", NULL);
 	conf->tls_cert = (char *) lak_config_getstring("ldap_tls_cert", NULL);
 	conf->tls_key = (char *) lak_config_getstring("ldap_tls_key", NULL);

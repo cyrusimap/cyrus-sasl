@@ -119,8 +119,9 @@ typedef struct sasl_utils {
 
     /* format a message and then pass it to the SASL_CB_LOG callback
      *
-     * use syslog()-style formatting (printf with %m as most recent errno
-     * error).  The implementation may use a fixed size buffer not smaller
+     * use syslog()-style formatting (printf with %m as a human readable text
+     * (strerror()) for the error specified as the parameter).
+     * The implementation may use a fixed size buffer not smaller
      * than 512 octets if it securely truncates the message.
      *
      * level is a SASL_LOG_* level (see sasl.h)

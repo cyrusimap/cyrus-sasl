@@ -67,10 +67,6 @@ void p_oserror (const char *string);
 
 #include <sasl.h>
 #include <saslplug.h>
-#include "../sasldb/sasldb.h"
-
-/* Cheating to make the utils work out right */
-LIBSASL_VAR const sasl_utils_t *sasl_global_utils;
 
 char myhostname[1025];
 
@@ -314,6 +310,11 @@ main(int argc, char *argv[])
   sasl_conn_t *conn;
   char *user_domain = NULL;
   char *appname = "saslpasswd";
+  char *sasl_implementation;
+  int libsasl_version;
+  int libsasl_major;
+  int libsasl_minor;
+  int libsasl_step;
 
 #ifdef WIN32
   /* initialize winsock */
@@ -339,7 +340,7 @@ main(int argc, char *argv[])
       progname = argv[0];
   }
 
-  while ((c = getopt(argc, argv, "pcdnf:u:a:h?")) != EOF)
+  while ((c = getopt(argc, argv, "vpcdnf:u:a:h?")) != EOF)
     switch (c) {
     case 'p':
       flag_pipe = 1;
@@ -372,6 +373,20 @@ main(int argc, char *argv[])
         exit(-(SASL_FAIL));
       }
       break;
+    case 'v':
+      sasl_version (&sasl_implementation, &libsasl_version);
+      libsasl_major = libsasl_version >> 24;
+      libsasl_minor = (libsasl_version >> 16) & 0xFF;
+      libsasl_step = libsasl_version & 0xFFFF;
+
+      (void)fprintf(stderr, "\nThis product includes software developed by Computing Services\n"
+	 "at Carnegie Mellon University (http://www.cmu.edu/computing/).\n\n"
+	 "Built against SASL API version %u.%u.%u\n"
+	 "LibSasl version %u.%u.%u by \"%s\"\n",
+	 SASL_VERSION_MAJOR, SASL_VERSION_MINOR, SASL_VERSION_STEP,
+	 libsasl_major, libsasl_minor, libsasl_step, sasl_implementation);
+      exit(0);
+      break;
     default:
       flag_error = 1;
       break;
@@ -382,7 +397,9 @@ main(int argc, char *argv[])
 
   if (flag_error) {
     (void)fprintf(stderr,
-	"%s: usage: %s [-c [-p] [-n]] [-d] [-a appname] [-f sasldb] [-u DOM] userid\n"
+	"\nThis product includes software developed by Computing Services\n"
+	 "at Carnegie Mellon University (http://www.cmu.edu/computing/).\n\n"
+	"%s: usage: %s [-v] [-c [-p] [-n]] [-d] [-a appname] [-f sasldb] [-u DOM] userid\n"
 		  "\t-p\tpipe mode -- no prompt, password read on stdin\n"
 		  "\t-c\tcreate -- ask mechs to create the account\n"
 		  "\t-d\tdisable -- ask mechs to disable/delete the account\n"
@@ -390,7 +407,8 @@ main(int argc, char *argv[])
 		  "\t  \t                   (only set mechanism-specific secrets)\n"
 		  "\t-f sasldb\tuse given file as sasldb\n"
 		  "\t-a appname\tuse appname as application name\n"
-		  "\t-u DOM\tuse DOM for user domain\n",
+		  "\t-u DOM\tuse DOM for user domain\n"
+		  "\t-v\tprint version numbers and exit\n",
 		  progname, progname);
     exit(-(SASL_FAIL));
   }

@@ -62,16 +62,6 @@ typedef unsigned char   *caddr_t;
 #define SASL_KEY_V1 SASL_ROOT_KEY "\\Available Plugins"
 #define SASL_PATH_SUBKEY "SearchPath"
 
-/* We only want minimal server functionality.  Cripple the server functionality when necessary to get
- * things to compile.
- *
- * Currently only cripples PLAIN.
- */
-#define SASL_MINIMAL_SERVER 1
-
-/* DB Type */
-#undef SASL_DB_TYPE
-
 /* : This should probably be replaced with a call to a function
    : that gets the proper value from Registry */
 #define SASL_DB_PATH "c:\\CMU\\sasldb2"
@@ -117,7 +107,6 @@ typedef unsigned char   *caddr_t;
 #define L_DEFAULT_GUARD (0)
 #define I_DEFAULT_GUARD (0)
 #define I(foo)
-//#define VL(foo)
 #define VL(foo)  printf foo;
 #define VLP(foo,bar)
 

@@ -1,5 +1,11 @@
 2003-09-30  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/digestmd5.c: Clean up some warnings
+	* lib/canonusr.c, win32/include/config.h, win32/common.mak,
+	  include/saslplug.h: Minor Cleanup
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+	* utils/NTMakefile, utils/sasldblistusers.c, utils/saslpasswd.c:
+	  Add version options to command line utilities
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
 
 2003-09-29  Ken Murchison <ken@oceana.com>
 	* plugins/sql.c, doc/options.html: added sql_update and sql_delete

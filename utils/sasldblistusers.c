@@ -1,5 +1,5 @@
 /* sasldblistusers.c -- list users in sasldb
- * $Id: sasldblistusers.c,v 1.20 2003/08/29 15:45:17 rjs3 Exp $
+ * $Id: sasldblistusers.c,v 1.21 2003/09/30 18:38:35 rjs3 Exp $
  * Rob Siemborski
  * Tim Martin
  */
@@ -59,7 +59,6 @@
 #include <saslutil.h>
 __declspec(dllimport) char *optarg;
 __declspec(dllimport) int optind;
-__declspec(dllimport) int getsubopt(char **optionp, char * const *tokens, char **valuep);
 #endif
 
 /* Cheating to make the utils work out right */
@@ -151,6 +150,11 @@ int main(int argc, char **argv)
     sasl_conn_t *conn;
     int bad_option = 0;
     int display_usage = 0;
+    const char *sasl_implementation;
+    int libsasl_version;
+    int libsasl_major;
+    int libsasl_minor;
+    int libsasl_step;
 
     if (! argv[0])
        progname = "sasldblistusers2";
@@ -168,7 +172,7 @@ int main(int argc, char **argv)
 	goto START_WORK;
     }
 
-    while ((c = getopt(argc, argv, "f:h?")) != EOF) {
+    while ((c = getopt(argc, argv, "vf:h?")) != EOF) {
        switch (c) {
          case 'f':
 	   sasldb_path = optarg;
@@ -177,6 +181,21 @@ int main(int argc, char **argv)
            bad_option = 0;
             display_usage = 1;
            break;
+	 case 'v':
+	   sasl_version (&sasl_implementation, &libsasl_version);
+	   libsasl_major = libsasl_version >> 24;
+	   libsasl_minor = (libsasl_version >> 16) & 0xFF;
+	   libsasl_step = libsasl_version & 0xFFFF;
+
+	   (void)fprintf(stderr, "\nThis product includes software developed by Computing Services\n"
+		"at Carnegie Mellon University (http://www.cmu.edu/computing/).\n\n"
+		"Built against SASL API version %u.%u.%u\n"
+		"LibSasl version %u.%u.%u by \"%s\"\n",
+		SASL_VERSION_MAJOR, SASL_VERSION_MINOR, SASL_VERSION_STEP,
+		libsasl_major, libsasl_minor, libsasl_step, sasl_implementation);
+	   exit(0);
+	   break;
+
          default:
            bad_option = 1;
             display_usage = 1;
@@ -188,10 +207,14 @@ int main(int argc, char **argv)
        display_usage = 1;
 
     if (display_usage) {
-       (void)fprintf(stderr,
-           "%s: usage: %s [[-f] sasldb]\n"
-           "\t-f sasldb\tuse given file as sasldb\n",
-           progname, progname);
+           fprintf(stderr,
+             "\nThis product includes software developed by Computing Services\n"
+             "at Carnegie Mellon University (http://www.cmu.edu/computing/).\n\n");
+
+           fprintf(stderr, "%s: usage: %s [-v] [[-f] sasldb]\n",
+		   progname, progname);
+           fprintf(stderr, "\t-f sasldb\tuse given file as sasldb\n"
+                           "\t-v\tprint version numbers and exit\n");
        if (bad_option) {
            fprintf(stderr, "Unrecognized command line option\n");
        }

@@ -32,3 +32,12 @@ DB_LIBPATH=c:\work\isode\db\build_win32\Release_static
 !MESSAGE Defaulting SleepyCat library path to $(DB_LIBPATH).
 !ENDIF
 
+!IF "$(OPENSSL_INCLUDE)" == ""
+OPENSSL_INCLUDE="D:\openssl\engine-0.9.6g-md3\include"
+!MESSAGE Defaulting OpenSSL Include path to $(OPENSSL_INCLUDE).
+!ENDIF
+
+!IF "$(OPENSSL_LIBPATH)" == ""
+OPENSSL_LIBPATH="D:\openssl\engine-0.9.6g-md3\lib"
+!MESSAGE Defaulting OpenSSL library path to $(OPENSSL_LIBPATH).
+!ENDIF

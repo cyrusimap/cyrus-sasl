@@ -49,6 +49,7 @@ CODEGEN=/MTd
 !ELSE
 CODEGEN=/MDd
 !ENDIF 
+!MESSAGE Codegeneration defaulting to $(CODEGEN).
 
 CPP_PROJ=/nologo $(CODEGEN) /W3 /Gm /GX /ZI /Od /D "_DEBUG" $(CPPFLAGS) /FD /GZ /c 
 

@@ -1,6 +1,6 @@
 /* canonusr.c - user canonicalization support
  * Rob Siemborski
- * $Id: canonusr.c,v 1.12 2003/02/13 19:55:53 rjs3 Exp $
+ * $Id: canonusr.c,v 1.13 2003/09/30 18:38:34 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -65,7 +65,7 @@ static canonuser_plug_list_t *canonuser_head = NULL;
  *                   null-terminate, and get into the outparams
  *
  *                   (handled by INTERNAL plugin) */
-/* Also does auxprop lookups once username is canonoicalized */
+/* Also does auxprop lookups once username is canonicalized */
 /* a zero ulen or alen indicates that it is strlen(value) */
 int _sasl_canon_user(sasl_conn_t *conn,
                      const char *user, unsigned ulen,

@@ -3,6 +3,7 @@
 	* configure.in: Make --with-ldap show up in top level configure script
 	* lib/saslutil.c: use read() and not fread() on /dev/random to preserve
 	  entropy
+	* doc/sysadmin.html: Add note about using /dev/urandom
 
 2002-07-19  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* doc/sysadmin.html, doc/readme.html, doc/upgrading.html:

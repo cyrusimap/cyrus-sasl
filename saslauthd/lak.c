@@ -43,13 +43,16 @@
 #include <unistd.h>
 #endif
 
-#ifdef HAVE_OPENSSL
-#include <openssl/evp.h>
-#include <openssl/des.h>
-#endif
-
 #ifdef HAVE_CRYPT_H
 #include <crypt.h>
+#endif
+
+#ifdef HAVE_OPENSSL
+#ifndef OPENSSL_DISABLE_OLD_DES_SUPPORT
+#define OPENSSL_DISABLE_OLD_DES_SUPPORT
+#endif
+#include <openssl/evp.h>
+#include <openssl/des.h>
 #endif
 
 #include <ldap.h>

@@ -384,11 +384,11 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
 
 int sasl_usererr(int saslerr)
 {
-  if (saslerr==SASL_NOUSER)
-    return SASL_BADAUTH;
+    if (saslerr == SASL_NOUSER)
+	return SASL_BADAUTH;
 
-  /* return the error given; no transform necessary */
-  return saslerr;
+    /* return the error given; no transform necessary */
+    return saslerr;
 }
 
 const char *sasl_errstring(int saslerr,
@@ -517,25 +517,28 @@ static int _sasl_syslog(void *context __attribute__((unused)),
 			int priority,
 			const char *message)
 {
-  int syslog_priority;
+    int syslog_priority;
 
-  /* set syslog priority */
-  switch(priority) {
-  case SASL_LOG_ERR:
-    syslog_priority = LOG_ERR;
-  case SASL_LOG_WARNING:
-    syslog_priority = LOG_WARNING;
-  case SASL_LOG_INFO:
-    syslog_priority = LOG_INFO;
-    break;
-  default:
-    return SASL_BADPARAM;
-  }
-
-  /* do the syslog call. do not need to call openlog */
-  syslog(syslog_priority | LOG_AUTH, message);
-  
-  return SASL_OK;
+    /* set syslog priority */
+    switch(priority) {
+    case SASL_LOG_ERR:
+	syslog_priority = LOG_ERR;
+	break;
+    case SASL_LOG_WARNING:
+	syslog_priority = LOG_WARNING;
+	break;
+    case SASL_LOG_INFO:
+	syslog_priority = LOG_INFO;
+	break;
+    default:
+	syslog_priority = LOG_DEBUG;
+	break;
+    }
+    
+    /* do the syslog call. do not need to call openlog */
+    syslog(syslog_priority | LOG_AUTH, message);
+    
+    return SASL_OK;
 }
 
 

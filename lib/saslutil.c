@@ -1,6 +1,6 @@
 /* saslutil.c
  * Tim Martin 5/20/98
- * $Id: saslutil.c,v 1.3 1998/11/17 00:50:23 rob Exp $
+ * $Id: saslutil.c,v 1.4 1998/11/17 19:28:45 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -30,7 +30,19 @@ SOFTWARE.
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
-#include <string.h>
+#if STDC_HEADERS
+# include <string.h>
+#else
+# ifndef HAVE_STRCHR
+#  define strchr index
+#  define strrchr rindex
+# endif
+char *strchr(), *strrchr();
+# ifndef HAVE_MEMCPY
+#  define memcpy(d, s, n) bcopy ((s), (d), (n))
+#  define memmove(d, s, n) bcopy ((s), (d), (n))
+# endif
+#endif
 #include "sasl.h"
 #include "saslint.h"
 

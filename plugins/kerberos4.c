@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.7 1998/11/17 05:34:59 rob Exp $
+ * $Id: kerberos4.c,v 1.8 1998/11/17 19:28:47 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -28,7 +28,19 @@ SOFTWARE.
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
 #include <stdlib.h>
-#include <string.h>
+#if STDC_HEADERS
+# include <string.h>
+#else
+# ifndef HAVE_STRCHR
+#  define strchr index
+#  define strrchr rindex
+# endif
+char *strchr(), *strrchr();
+# ifndef HAVE_MEMCPY
+#  define memcpy(d, s, n) bcopy ((s), (d), (n))
+#  define memmove(d, s, n) bcopy ((s), (d), (n))
+# endif
+#endif
 #include <krb.h>
 #include <des.h>
 #include <sys/types.h>
@@ -37,7 +49,10 @@ SOFTWARE.
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include <unistd.h>
+#if HAVE_UNISTD_H
+# include <sys/types.h>
+# include <unistd.h>
+#endif
 #include <fcntl.h>
 #include <sasl.h>
 #include <saslutil.h>

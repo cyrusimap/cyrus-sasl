@@ -1,6 +1,6 @@
 /* common.c - Functions that are common to server and clinet
  * Tim Martin
- * $Id: common.c,v 1.6 1998/11/17 05:11:41 rob Exp $
+ * $Id: common.c,v 1.7 1998/11/17 19:28:45 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -29,7 +29,19 @@ SOFTWARE.
 #endif /* HAVE_CONFIG_H */
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
+#if STDC_HEADERS
+# include <string.h>
+#else
+# ifndef HAVE_STRCHR
+#  define strchr index
+#  define strrchr rindex
+# endif
+char *strchr(), *strrchr();
+# ifndef HAVE_MEMCPY
+#  define memcpy(d, s, n) bcopy ((s), (d), (n))
+#  define memmove(d, s, n) bcopy ((s), (d), (n))
+# endif
+#endif
 #include <limits.h>
 #ifdef HAVE_VSYSLOG
 #include <syslog.h>

@@ -1,6 +1,6 @@
 /* Anonymous SASL plugin
  * Tim Martin 
- * $Id: anonymous.c,v 1.4 1998/11/17 02:32:29 rob Exp $
+ * $Id: anonymous.c,v 1.5 1998/11/17 19:28:46 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -28,8 +28,23 @@ SOFTWARE.
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
 #include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
+#if HAVE_UNISTD_H
+# include <sys/types.h>
+# include <unistd.h>
+#endif
+#if STDC_HEADERS
+# include <string.h>
+#else
+# ifndef HAVE_STRCHR
+#  define strchr index
+#  define strrchr rindex
+# endif
+char *strchr(), *strrchr();
+# ifndef HAVE_MEMCPY
+#  define memcpy(d, s, n) bcopy ((s), (d), (n))
+#  define memmove(d, s, n) bcopy ((s), (d), (n))
+# endif
+#endif
 #include <netinet/in.h>
 #include <sasl.h>
 #include <saslplug.h>

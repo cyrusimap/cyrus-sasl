@@ -1,6 +1,6 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Earhart
- * $Id: dlopen.c,v 1.4 1998/11/17 02:11:52 rob Exp $
+ * $Id: dlopen.c,v 1.5 1998/11/17 19:28:45 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -27,7 +27,19 @@ SOFTWARE.
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
-#include <string.h>
+#if STDC_HEADERS
+# include <string.h>
+#else
+# ifndef HAVE_STRCHR
+#  define strchr index
+#  define strrchr rindex
+# endif
+char *strchr(), *strrchr();
+# ifndef HAVE_MEMCPY
+#  define memcpy(d, s, n) bcopy ((s), (d), (n))
+#  define memmove(d, s, n) bcopy ((s), (d), (n))
+# endif
+#endif
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <limits.h>

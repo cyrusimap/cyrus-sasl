@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.6 1998/11/17 05:11:41 rob Exp $
+dnl $Id: configure.in,v 1.7 1998/11/17 19:28:44 rob Exp $
 dnl
 dnl
 dnl         Copyright 1998 by Carnegie Mellon University
@@ -23,7 +23,7 @@ dnl WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
 dnl ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 dnl SOFTWARE.
 dnl
-AC_REVISION($Id: configure.in,v 1.6 1998/11/17 05:11:41 rob Exp $)
+AC_REVISION($Id: configure.in,v 1.7 1998/11/17 19:28:44 rob Exp $)
 AC_INIT(lib/saslint.h)
 AC_CONFIG_AUX_DIR(config)
 AM_CONFIG_HEADER(config.h)
@@ -314,7 +314,8 @@ AC_SUBST(plugindir)
 
 AC_HEADER_DIRENT
 AC_HEADER_STDC
-AC_CHECK_HEADERS(getopt.h)
+AC_CHECK_FUNCS(strchr memcpy)
+AC_CHECK_HEADERS(getopt.h unistd.h)
 AC_C_CONST
 AC_C_INLINE
 

@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: client.c,v 1.3 1998/11/17 02:10:47 tmartin Exp $
+ * $Id: client.c,v 1.4 1998/11/17 19:28:44 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -50,7 +50,20 @@ SOFTWARE.
 #  include <ndir.h>
 # endif
 #endif
-#include <string.h>
+#if STDC_HEADERS
+# include <string.h>
+#else
+# ifndef HAVE_STRCHR
+#  define strchr index
+#  define strrchr rindex
+# endif
+char *strchr(), *strrchr();
+
+# ifndef HAVE_MEMCPY
+#  define memcpy(d, s, n) bcopy ((s), (d), (n))
+#  define memmove(d, s, n) bcopy ((s), (d), (n))
+# endif
+#endif
 
 typedef struct cmechanism
 {

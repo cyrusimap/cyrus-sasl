@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.5 1998/11/17 05:25:57 rob Exp $
+ * $Id: server.c,v 1.6 1998/11/17 19:28:45 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -32,7 +32,10 @@ SOFTWARE.
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
-#include <unistd.h>
+#if HAVE_UNISTD_H
+# include <sys/types.h>
+# include <unistd.h>
+#endif
 #include <netdb.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -65,7 +68,20 @@ SOFTWARE.
 #  include <ndir.h>
 # endif
 #endif
-#include <string.h>
+#if STDC_HEADERS
+# include <string.h>
+#else
+# ifndef HAVE_STRCHR
+#  define strchr index
+#  define strrchr rindex
+# endif
+char *strchr(), *strrchr();
+
+# ifndef HAVE_MEMCPY
+#  define memcpy(d, s, n) bcopy ((s), (d), (n))
+#  define memmove(d, s, n) bcopy ((s), (d), (n))
+# endif
+#endif
 
 #ifdef sun
 /* gotta define gethostname ourselves on suns */

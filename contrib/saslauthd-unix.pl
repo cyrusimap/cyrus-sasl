@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: saslauthd-unix.pl,v 1.1 2003/04/28 18:05:09 rjs3 Exp $
+# $Id: saslauthd-unix.pl,v 1.2 2003/04/28 20:15:10 rjs3 Exp $
 
 # This is a sample perl script for communicating with saslauthd running
 # on a unix socket.  Simply call the function with 4 parameters and you're
@@ -53,8 +53,6 @@ sub saslauthd_verify_password {
 
 	die "Bad saslauthd response" unless defined $size;
 	($size, $response) = unpack("na".$size, $buf);
-
-	print "got repsonse: $response\n";
 
 	if($response =~ /^OK/) {
 	    return 1;

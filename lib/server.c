@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.68 2000/02/24 01:36:22 leg Exp $
+ * $Id: server.c,v 1.69 2000/02/27 20:45:13 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -70,7 +70,8 @@ extern int gethostname(char *, int);
 
 static int _sasl_checkpass(sasl_conn_t *conn,
 			   const char *mech, const char *service, 
-			   const char *user, const char *pass);
+			   const char *user, const char *pass,
+			   const char **errstr);
 
 static int
 external_server_new(void *glob_context __attribute__((unused)),
@@ -230,21 +231,17 @@ typedef struct mech_list {
 } mech_list_t;
 
 typedef struct sasl_server_conn {
-  sasl_conn_t base; /* parts common to server + client */
-
-  char *user_realm; /* domain the user authenticating is in This is
-		      * usually simply their hostname */
-
-  int authenticated;
-  mechanism_t *mech; /* mechanism trying to use */
-  sasl_server_params_t *sparams;
-
+    sasl_conn_t base; /* parts common to server + client */
+    
+    char *user_realm; /* domain the user authenticating is in */
+    int authenticated;
+    mechanism_t *mech; /* mechanism trying to use */
+    sasl_server_params_t *sparams;
 } sasl_server_conn_t;
 
 static mech_list_t *mechlist; /* global var which holds the list */
 
 static sasl_global_callbacks_t global_callbacks;
-
 
 /* set the password for a user
  *  conn        -- SASL connection
@@ -742,7 +739,7 @@ int sasl_server_new(const char *service,
   serverconn->sparams=sasl_ALLOC(sizeof(sasl_server_params_t));
   if (serverconn->sparams==NULL) return SASL_NOMEM;
 
-  /* set util functions - need to do rest*/
+  /* set util functions - need to do rest */
   serverconn->sparams->utils=_sasl_alloc_utils(*pconn, &global_callbacks);
   if (serverconn->sparams->utils==NULL)
     return SASL_NOMEM;
@@ -759,11 +756,10 @@ int sasl_server_new(const char *service,
     result = _sasl_strdup(user_realm, &serverconn->user_realm, NULL);
   }
 
-  if (result!=SASL_OK)
-  {
-    _sasl_conn_dispose(*pconn);
-    sasl_FREE(*pconn);
-    *pconn = NULL;
+  if (result!=SASL_OK) {
+      _sasl_conn_dispose(*pconn);
+      sasl_FREE(*pconn);
+      *pconn = NULL;
   }
 
   return result;
@@ -1111,42 +1107,23 @@ static int is_mech(const char *t, const char *m)
 /* returns OK if it's valid */
 static int _sasl_checkpass(sasl_conn_t *conn,
 			   const char *mech, const char *service,
-			   const char *user, const char *pass)
+			   const char *user, const char *pass,
+			   const char **errstr)
 {
     sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;
     int result = SASL_NOMECH;
+    struct sasl_verify_password_s *v;
 
-#ifdef HAVE_PAM
-    if (is_mech(mech, "PAM")) {
-	result = _sasl_PAM_verify_password(conn, user, pass, service, NULL);
-    } else
-#endif
-#ifndef SASL_MINIMAL_SERVER
-    if (is_mech(mech, "passwd")) {
-	result = _sasl_passwd_verify_password(conn, user, pass, NULL);
-    } else
-    if (is_mech(mech, "shadow")) {
-	result = _sasl_shadow_verify_password(conn, user, pass, NULL);
-    } else
-#endif /* SASL_MINIMAL_SERVER */
-#ifdef HAVE_KRB
-    if (is_mech(mech, "kerberos_v4")) {
-	/* check against krb */
-	result = _sasl_kerberos_verify_password(conn, user, pass, 
-						service, NULL);
-    } else
-#endif
-#ifdef HAVE_PWCHECK
-    if (is_mech(mech, "pwcheck")) {
-	/* check against pwcheck daemon */
-	result = _sasl_pwcheck_verify_password(conn, user, pass, NULL);
-    } else
-#endif
-    if (is_mech(mech, "sasldb")) {
-	/* check sasl database */
-	result = _sasl_sasldb_verify_password(conn, user, pass, 
-					      s_conn->user_realm, NULL);
-    } else {
+    if (mech == NULL) mech = DEFAULT_PLAIN_MECHANISM;
+    for (v = _sasl_verify_password; v->name; v++) {
+	if (is_mech(mech, v->name)) {
+	    result = v->verify(conn, user, pass, 
+			       service, s_conn->user_realm, errstr);
+	    break;
+	}
+    }
+
+    if (result == SASL_NOMECH) {
 	/* no mechanism available ?!? */
 	_sasl_log(conn, SASL_LOG_ERR, NULL, 0, 0,
 		  "unrecognized plaintext verifier %s", mech);
@@ -1189,13 +1166,8 @@ int sasl_checkpass(sasl_conn_t *conn,
 	getopt(context, NULL, "pwcheck_method", &mech, NULL);
     }
 
-    if (mech == NULL) {
-	mech = DEFAULT_PLAIN_MECHANISM;
-    }
-
-    result = _sasl_checkpass(conn, mech, conn->service, user, pass);
-    if ( errstr !=NULL)
-      *errstr = NULL;
+    if (errstr != NULL) { *errstr = NULL; }
+    result = _sasl_checkpass(conn, mech, conn->service, user, pass, errstr);
 
     if (result == SASL_OK) {
 	result = _sasl_strdup(user, &(conn->oparams.authid), NULL);

@@ -1,6 +1,6 @@
 /* auxprop.c - auxilliary property support
  * Rob Siemborski
- * $Id: auxprop.c,v 1.6 2002/07/02 16:41:59 rjs3 Exp $
+ * $Id: auxprop.c,v 1.7 2002/07/24 16:41:54 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -846,11 +846,11 @@ void _sasl_auxprop_lookup(sasl_server_params_t *sparams,
 	    char *p;
 	    int last=0;
 	    
-	    while(*thisplugin && isspace(*thisplugin)) thisplugin++;
+	    while(*thisplugin && isspace((int)*thisplugin)) thisplugin++;
 	    if(!(*thisplugin)) break;
 	    
-	    for(p = thisplugin;*p && !isspace(*p); p++);
-	    if(!*p) last = 1;
+	    for(p = thisplugin;*p != '\0' && !isspace((int)*p); p++);
+	    if(*p == '\0') last = 1;
 	    else *p='\0';
 	    
 	    for(ptr = auxprop_head; ptr; ptr = ptr->next) {

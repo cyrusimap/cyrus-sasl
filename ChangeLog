@@ -1,5 +1,8 @@
 2000-10-13  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
+	* plugins/digestmd5.c: patch from alexey to check for a
+	short-string condition
+
 	* plugins/digestmd5.c: switch to using an internal implementation
 	of rc4 to remove at least one dependency on openssl, just makes
 	things easier to compile/use

@@ -1,3 +1,12 @@
+2000-07-10  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/server.c: serious bug fixed!  do authorization if
+	sasl_server_start() returns SASL_OK.
+	
+	pointed out by Jerzy Balamut <jurekb@dione.ids.pl>, vulnerabilty
+	obvious with EXTERNAL calls, PLAIN in a protocol with
+	client-sends-first.
+
 2000-07-05  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/checkpw.c: added pwcheck method "sia" for the Digital Unix

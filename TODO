@@ -3,10 +3,11 @@ Library
 ) Better/FASTER random numbers (init time is pretty miserable)
 ) Test suite
 ) Add db support to pwcheck_method
-) Does shadow password stuff work? (maybe pwcheck?)
 ) configure stuff: static libs, etc.
 ) Use libltdl---probably much better portability
 ) better support for including missing routines
+) atomic updates of passwords (we can crash and leave the user with 
+  different passwords for different mechanisms)
 
 Documentation
 ~~~~~~~~~~~~~
@@ -25,28 +26,30 @@ Digest-MD5
 ~~~~~~~~~~
 ) Layers
 ) Checking wacko cases or even not so wacko cases
-) Realm callback
 ) Testing
 ) Should require & use the SASL_CB_GETREALM callback
+) correct deletion of user account
 
 Kerberos_V4
 ~~~~~~~~~~~
 ) Needs to check timestamps for replay attacks
-) client never sets realm - how to handle different realm
 
 GSSAPI
 ~~~~~~
 ) Allow specification of alternate keytab file?
+) check cross-realm functioning
 
 Plain
 ~~~~~
-) How do I set sasldb?  What if I don't want plaintext passwords in sasldb?
 ) any way to handle realms?
+) correct deletion of user account
+) evaluate pwcheck patch
 
 Cram-MD5
 ~~~~~~~~
 ) needs snprintf support
 ) any way to handle realms?
+) correct deletion of user account
 
 Database stuff
 ~~~~~~~~~~~~~~

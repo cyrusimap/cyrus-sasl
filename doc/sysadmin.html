@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.1 1999/08/09 15:59:00 leg Exp $ -->
+<!-- $Id: sysadmin.html,v 1.2 1999/08/13 16:19:51 leg Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -170,10 +170,20 @@ Each of these methods pose their own problems:
   restrictions beyond correct password on an application that uses
   SASL for authentication.<p>
 
-<dt><i>sasldb</i><dd> The SASL secrets database ******
-  to be written (documentation)
+<dt><i>sasldb</i><dd> This stores passwords in the SASL secrets
+  database, the same database that stores the secrets for shared
+  secret methods.  Its principal advantage is that it means that the
+  passwords used by the shared secrets mechanisms will be in sync with
+  the plaintext password mechanisms.  However, system built-in
+  routines will not use sasldb.<p>
 
-  how to enable setting PLAIN secrets in sasldb<p>
+  Note that to <i>set</i> plaintext passwords in sasldb,
+  you need to configure "<tt>saslpasswd</tt>" to do so.  The
+  "<tt>saslpasswd</tt>" uses the same configuration files like any
+  SASL server.  Make <tt>/usr/lib/sasl/saslpasswd.conf</tt> contain
+  the line "<tt>pwcheck_method: sasldb</tt>" to instruct
+  "<tt>saslpasswd</tt>" to create plaintext secrets in addition to the
+  normal secrets.<p>
 
 <dt><i>write your own</i><dd> Last, but not least, the most flexible
   method of authentication for PLAIN is to write your own.  If you do
@@ -223,12 +233,11 @@ standard system library; it only affects secrets stored in sasldb.
 
 <p>Finally, system administrators should think if they want to enable
 "auto_transition".  If set, the library will automatically create
-secrets in sasldb when a user uses PLAIN to successfully
-authenticate.  However, this means that the individual servers, such
-as imapd, need read/write access to sasldb, not just read access.  By
-default, "auto_transition" is set to false; set it to true to enable.
-This is only useful if the method of plaintext authentication is not
-"sasldb".
+secrets in sasldb when a user uses PLAIN to successfully authenticate.
+However, this means that the individual servers, such as imapd, need
+read/write access to sasldb, not just read access.  By default,
+"auto_transition" is set to false; set it to true to enable.  (There's
+no point in enabling this option if "pwcheck_method" is "sasldb".)
 
 <h3>Kerberos mechanisms</h3>
 
@@ -248,7 +257,7 @@ not configurable and defaults to the system default (probably
 <tt>/etc/srvtab</tt>, but this is modifiable by the "srvtab" option.
 Different SASL applications can use different srvtab files.
 
-<p>A SASL application must be able to read it's srvtab or keytab file.
+<p>A SASL application must be able to read its srvtab or keytab file.
 
 <h2>How to set configuration options</h2>
 
@@ -261,11 +270,11 @@ where the library gets it's configuration options from.
 <p>By default, the Cyrus SASL library reads it's options from
 <tt>/usr/lib/sasl/App.conf</tt> (where "App" is the application
 defined name of the application).  For instance, Sendmail reads it's
-configuration from "<tt>/usr/lib/sasl/Sendmail.conf</tt>" (check
-case!) and the sample server application included with the library
-looks in "<tt>/usr/lib/sasl/sample.conf</tt>".
+configuration from "<tt>/usr/lib/sasl/Sendmail.conf</tt>" and the
+sample server application included with the library looks in
+"<tt>/usr/lib/sasl/sample.conf</tt>".
 
-<p>A Cyrus SASL configuration file looks like: 
+<p>A standard Cyrus SASL configuration file looks like: 
 <pre>
 srvtab: /var/app/srvtab
 pwcheck_method: kerberos_v4
@@ -276,7 +285,7 @@ pwcheck_method: kerberos_v4
 Applications can redefine how the SASL library looks for configuration
 information.  Check your application's documentation for specifics.
 
-<p>For instance, Cyrus imapd reads it's sasl options from it's own
+<p>For instance, Cyrus imapd reads its sasl options from it's own
 configuration file, <tt>/etc/imapd.conf</tt>, by prepending all SASL
 options with "<tt>sasl_</tt>": the SASL option "pwcheck_method" is set
 by changing "sasl_pwcheck_option" in <tt>/etc/imapd.conf</tt>.
@@ -289,4 +298,4 @@ Unfortunately, since SASL is very flexible (allowing administrators to
 upgrade and install new authentication plugins without recompiling any
 applications) its flexibility can also make it a chore to compile.
 
-
+<p>Eventually, I'll hopefully have some advice here.

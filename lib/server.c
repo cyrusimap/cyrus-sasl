@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.45 1999/08/10 20:04:32 leg Exp $
+ * $Id: server.c,v 1.46 1999/08/13 16:19:52 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -279,75 +279,103 @@ int sasl_setpass(sasl_conn_t *conn,
 		 int flags,
 		 const char **errstr)
 {
-  int result=SASL_OK, tmpresult;
-  sasl_server_conn_t *s_conn=  (sasl_server_conn_t *) conn;
-  mechanism_t *m;
+    int result=SASL_OK, tmpresult;
+    sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;
+    mechanism_t *m;
+    sasl_getopt_t *getopt;
+    void *context;
+    const char *plainmech;
 
-  /* Zowie -- we have the user's plaintext password.
-   * Let's tell all our mechanisms about it...
-   */
+    /* Zowie -- we have the user's plaintext password.
+     * Let's tell all our mechanisms about it...
+     */
 
-  if (! conn || ! pass)
-    return SASL_FAIL;
+    if (!conn || !pass || !mechlist)
+	return SASL_FAIL;
 
-  if (! mechlist)		/* if haven't init'ed yet */
-    return SASL_FAIL;
+    VL(("Setting password for \"%s\" to \"%*s\" (len is %d)\n",
+	user, passlen, pass, passlen));
 
-  VL(("Setting password for \"%s\" to \"%*s\" (len is %d)\n",
-      user, passlen, pass, passlen));
+    _sasl_log(conn, SASL_LOG_INFO, NULL, 0, 0,
+	      "updating secrets for %s", user);
 
-  /* copy info into sparams */
-  s_conn->sparams->serverFQDN=conn->serverFQDN;
-  s_conn->sparams->service=conn->service;
-  s_conn->sparams->user_realm=s_conn->user_realm;
-
-  _sasl_log(conn,
-	    SASL_LOG_WARNING,
-	    NULL,
-	    0, 0,
-	    "Updating secrets for %s",
-	    user);
-
-  for (m = mechlist->mech_list;
-       m;
-       m = m->next)
-    if (m->plug->setpass)
-    {
-      VL(("Setting it for mech %s\n", m->plug->mech_name));
-      tmpresult=m->plug->setpass(m->plug->glob_context,
-			   ((sasl_server_conn_t *)conn)->sparams,
-			   user,
-			   pass,
-			   passlen,
-			   flags,
-			   errstr);
-      if (tmpresult!=SASL_OK)
-      {
-	VL(("%s returned %i\n",m->plug->mech_name, tmpresult));
-	result = SASL_FAIL;
-	_sasl_log(conn,
-		  SASL_LOG_WARNING,
-		  m->plug->mech_name,
-		  tmpresult,
-#ifndef WIN32
-		  errno,
-#else
-		  GetLastError(),
-#endif //WIN32
-		  "Failed to set secret for %s: %z",
-		  user);
-      } else {
-	VL(("%s succeeded!\n",m->plug->mech_name));
-	_sasl_log(conn,
-		 SASL_LOG_WARNING,
-		  m->plug->mech_name,
-		  0, 0,
-		  "Set secret for %s",
-		  user);
-      }
+    if (_sasl_getcallback(conn, SASL_CB_GETOPT, 
+			  &getopt, &context) == SASL_OK) {
+	getopt(context, NULL, "pwcheck_method", &plainmech, NULL);
     }
 
-  return result;
+    if (plainmech != NULL && !strcmp(plainmech, "sasldb")) {
+	/* we store the user's password for plaintext checking */
+	sasl_secret_t *sec = NULL;
+	char salt[16];
+	sasl_rand_t *rpool;
+	int ret;
+	sasl_server_putsecret_t *putsec;
+	void *context;
+
+	ret = sasl_randcreate(&rpool);
+	if (ret == SASL_OK) {
+	    sasl_rand(rpool, salt, 16);
+	    ret = _sasl_make_plain_secret(salt, pass, passlen, &sec);
+	}
+	if (ret == SASL_OK) {
+	    ret = _sasl_getcallback(conn, SASL_CB_SERVER_PUTSECRET, &putsec,
+				    &context);
+	}
+	if (ret == SASL_OK) {
+	    ret = putsec(context, "PLAIN", user, sec);
+	}
+	if (ret != SASL_OK) {
+	    _sasl_log(conn, SASL_LOG_ERR, NULL, ret, 0,
+		      "failed to set plaintext secret for %s: %z", user);
+	}
+	if (rpool) {
+	    sasl_randfree(&rpool);
+	}
+	if (sec) {
+	    sasl_free_secret(&sec);
+	}
+    }
+
+    /* copy info into sparams */
+    s_conn->sparams->serverFQDN = conn->serverFQDN;
+    s_conn->sparams->service = conn->service;
+    s_conn->sparams->user_realm = s_conn->user_realm;
+
+    /* now we let the mechanisms set their secrets */
+    for (m = mechlist->mech_list; m; m = m->next) {
+	if (m->plug->setpass) {
+	    VL(("Setting it for mech %s\n", m->plug->mech_name));
+	    tmpresult = m->plug->setpass(m->plug->glob_context,
+					 ((sasl_server_conn_t *)conn)->sparams,
+					 user,
+					 pass,
+					 passlen,
+					 flags,
+					 errstr);
+	    if (tmpresult != SASL_OK) {
+		VL(("%s returned %i\n",m->plug->mech_name, tmpresult));
+		result = SASL_FAIL;
+		_sasl_log(conn, SASL_LOG_ERR, m->plug->mech_name, tmpresult,
+#ifndef WIN32
+			  errno,
+#else
+			  GetLastError(),
+#endif
+			  "failed to set secret for %s: %z", user);
+	    } else {
+		VL(("%s succeeded!\n",m->plug->mech_name));
+		_sasl_log(conn,
+			  SASL_LOG_INFO,
+			  m->plug->mech_name,
+			  0, 0,
+			  "set secret for %s",
+			  user);
+	    }
+	}
+    }
+
+    return result;
 }
 
 

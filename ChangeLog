@@ -1,3 +1,15 @@
+Fri Aug 13 00:54:29 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* doc/sysadmin.html: updated to reflect sasldb pwcheck_method
+
+Thu Aug 12 23:56:50 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/checkpw.c (_sasl_make_plain_secret): created; makes a hash
+	of the password for later plaintext checking
+
+	* lib/server.c (sasl_setpass): made it set the plaintext secret if
+	pwcheck_method is "sasldb"
+
 Mon Aug  9 19:17:30 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/kerberos4.c (server_continue_step): made kerberos append
@@ -5,7 +17,7 @@ Mon Aug  9 19:17:30 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 1999-08-08  Larry Greenfield  <leg+@andrew.cmu.edu>
 
-	* Added sysadmin.html to doc directory
+	* doc/sysadmin.html: added to doc directory
 
 	* lib/saslint.h (_sasl_sasldb_verify_password): added prototype
 

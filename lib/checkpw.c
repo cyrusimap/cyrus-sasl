@@ -61,10 +61,10 @@ SOFTWARE.
 
 #ifdef HAVE_KRB
 
-/* This defines the Andrew string_to_key function.  It accepts a password
- * string as input and converts its via a one-way encryption algorithm to a DES
- * encryption key.  It is compatible with the original Andrew authentication
- * service password database.
+/* This defines the Andrew string_to_key function.  It accepts a
+ * password string as input and converts its via a one-way encryption
+ * algorithm to a DES encryption key.  It is compatible with the
+ * original Andrew authentication service password database.  
  */
 
 static int
@@ -430,6 +430,36 @@ pam_err:
 
 #endif /* HAVE_PAM */
 
+/* we store the following secret to check plaintext passwords:
+ *
+ * <salt> \0 <secret>
+ *
+ * where <secret> = MD5(<salt>, "sasldb", <pass>)
+ */
+int _sasl_make_plain_secret(const char *salt, const char *passwd, int passlen,
+			    sasl_secret_t **secret)
+{
+    MD5_CTX ctx;
+    unsigned sec_len = 16 + 1 + 16; /* salt + "\0" + hash */
+
+    *secret = (sasl_secret_t *) sasl_ALLOC(sizeof(sasl_secret_t) +
+					   sec_len * sizeof(char));
+    if (*secret == NULL) {
+	return SASL_NOMEM;
+    }
+
+    MD5Init(&ctx);
+    MD5Update(&ctx, salt, 16);
+    MD5Update(&ctx, "sasldb", 6);
+    MD5Update(&ctx, passwd, passlen);
+    memcpy((*secret)->data, salt, 16);
+    memcpy((*secret)->data + 16, "\0", 1);
+    MD5Final((*secret)->data + 17, &ctx);
+    (*secret)->len = sec_len;
+    
+    return SASL_OK;
+}
+
 int _sasl_sasldb_verify_password(sasl_conn_t *conn,
 				 const char *userid, const char *passwd,
 				 const char **reply)
@@ -437,7 +467,8 @@ int _sasl_sasldb_verify_password(sasl_conn_t *conn,
     sasl_server_getsecret_t *getsec;
     void *context;
     int ret;
-    sasl_secret_t *secret;
+    sasl_secret_t *secret = NULL;
+    sasl_secret_t *construct = NULL;
 
     if (!userid || !passwd) {
 	return SASL_BADPARAM;
@@ -453,18 +484,22 @@ int _sasl_sasldb_verify_password(sasl_conn_t *conn,
 	return ret;
     }
 
-    if (strlen(passwd) != secret->len) {
+    ret = _sasl_make_plain_secret(secret->data, passwd, strlen(passwd),
+				  &construct);
+    if (ret != SASL_OK) {
 	sasl_free_secret(&secret);
-	return SASL_BADAUTH;
+	if (construct) { sasl_free_secret(&construct); }
+	return ret;
     }
 
-    if (!strcmp(passwd, secret->data)) {
+    if (!memcmp(secret->data, construct->data, secret->len)) {
 	ret = SASL_OK;
     } else {
 	ret = SASL_BADAUTH;
     }
 
     sasl_free_secret(&secret);
+    sasl_free_secret(&construct);
     return ret;
 }
 

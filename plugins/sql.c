@@ -3,7 +3,7 @@
 ** SQL Auxprop plugin
 **   based on the original work of Simon Loader and Patrick Welche
 **
-** $Id: sql.c,v 1.1 2003/07/15 17:38:59 ken3 Exp $
+** $Id: sql.c,v 1.2 2003/07/15 20:16:08 ken3 Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -17,6 +17,7 @@
 **  sql_database: <database to connect to>
 **  sql_statement: <select statement to use>
 **  sql_verbose:  ( if it exists will print select statement to syslog )
+**  sql_usessl:  ( if it exists will make a secured connection to server )
 **
 **   The select statement used in the option sql_statement is parsed
 ** for 3 place holders %u %r and %p they are replaced with username
@@ -62,7 +63,7 @@
 
 typedef struct sql_engine {
     const char *name;
-    void *(*sql_open)(char *host, char *port,
+    void *(*sql_open)(char *host, char *port, int usessl,
 		      const char *user, const char *password,
 		      const char *database, const sasl_utils_t *utils);
     int (*sql_escape_str)(char *to, const char *from);
@@ -79,6 +80,7 @@ typedef struct sql_settings {
     const char *sql_database;
     const char *sql_statement;
     int sql_verbose;
+    int sql_usessl;
 } sql_settings_t;
 
 static const char * SQL_BLANK_STRING = "";
@@ -87,7 +89,7 @@ static const char * SQL_BLANK_STRING = "";
 #if HAVE_MYSQL
 #include <mysql.h>
 
-static void *_mysql_open(char *host, char *port,
+static void *_mysql_open(char *host, char *port, int usessl,
 			 const char *user, const char *password,
 			 const char *database, const sasl_utils_t *utils)
 {
@@ -100,7 +102,8 @@ static void *_mysql_open(char *host, char *port,
     }
 
     return mysql_real_connect(mysql, host, user, password, database,
-			      port ? strtoul(port, NULL, 10) : 0, NULL, 0);
+			      port ? strtoul(port, NULL, 10) : 0, NULL,
+			      usessl ? CLIENT_SSL : 0);
 }
 
 static int _mysql_escape_str(char *to, const char *from)
@@ -159,12 +162,16 @@ static void _mysql_close(void *conn)
 #include <libpq-fe.h>
 
 static void *_pgsql_open(char *host, char *port,
+			 int usessl  __attribute__((unused)),
 			 const char *user, const char *password,
 			 const char *database,
 			 const sasl_utils_t *utils __attribute__((unused)))
 {
     PGconn *conn = NULL;
 
+    /* XXX This should be re-written to use PQconnectdb().  This will
+       also allow us to set 'requiressl'
+    */
     conn = PQsetdbLogin(host, port, NULL, NULL, database, user, password);
     return (PQstatus(conn) != CONNECTION_OK) ? NULL : conn;
 }
@@ -315,7 +322,7 @@ static char *sql_create_statement(sasl_server_params_t *sparams,
 void sql_get_settings(const sasl_utils_t *utils, void *glob_context) {
     sql_settings_t *settings;
     int r;
-    const char *verbose, *engine_name;
+    const char *verbose, *usessl, *engine_name;
     const sql_engine_t *e;
     
     settings = (sql_settings_t *) glob_context;
@@ -328,6 +335,14 @@ void sql_get_settings(const sasl_utils_t *utils, void *glob_context) {
 		   "sql auxprop plugin being initialized\n");
     } else {
 	settings->sql_verbose = 0;
+    }
+	
+    utils->getopt(utils->getopt_context, "SQL", "sql_usessl",
+		  &usessl, NULL);
+    if (usessl) {
+	settings->sql_usessl = 1;
+    } else {
+	settings->sql_usessl = 0;
     }
 	
     r = utils->getopt(utils->getopt_context,"SQL","sql_user",
@@ -467,14 +482,16 @@ static void sql_auxprop_lookup(void *glob_context,
 	
 	if (settings->sql_verbose)
 	    sparams->utils->log(NULL, SASL_LOG_NOTE,
-				"sql plugin trying to open db '%s' on host '%s'\n",
-				settings->sql_database, cur_host);
+				"sql plugin trying to open db '%s' on host '%s'%s\n",
+				settings->sql_database, cur_host,
+				settings->sql_usessl ? " using SSL" : "");
 
 	/* set the optional port */
 	if ((cur_port = strchr(cur_host, ':')))
 	    *cur_port++ = '\0';
 
 	conn = settings->sql_engine->sql_open(cur_host, cur_port,
+					      settings->sql_usessl,
 					      settings->sql_user,
 					      settings->sql_passwd,
 					      settings->sql_database,

@@ -1,4 +1,7 @@
 2003-07-15  Ken Murchison <ken@oceana.com>
+	* plugins/sql.c, doc/options.html: added sql_usessl option
+
+2003-07-15  Ken Murchison <ken@oceana.com>
 	* plugins/mysql.c: deleted
 	* plugins/sql.c: added
 	* acconfig.h, configure.in,

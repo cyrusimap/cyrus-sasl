@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.124 2003/07/17 19:04:20 ken3 Exp $
+ * $Id: server.c,v 1.125 2003/07/17 19:22:27 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -146,7 +146,7 @@ int sasl_setpass(sasl_conn_t *conn,
     /* Do we want to store SASL_AUX_PASSWORD_PROP (plain text)?  and
      * Do we have an auxprop backend that can store properties?
      */
-    if (flags & SASL_SET_DISABLE && !(flags & SASL_SET_NOPLAIN) &&
+    if ((flags & SASL_SET_DISABLE || !(flags & SASL_SET_NOPLAIN)) &&
 	sasl_auxprop_store(NULL, NULL, NULL) == SASL_OK) {
 
 	if (flags & SASL_SET_DISABLE) {

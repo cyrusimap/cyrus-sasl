@@ -194,7 +194,7 @@ sasl_cv_getaddrinfo=no
 IPv6_CHECK_FUNC(getaddrinfo,
 		[AC_DEFINE(HAVE_GETADDRINFO,[],[Do we have a getaddrinfo() function?])], [sasl_cv_getaddrinfo=yes])
 if test $sasl_cv_getaddrinfo = yes; then
-    COMPAT_OBJ="$COMPAT_OBJ getaddrinfo.o"
+	AC_LIBOBJ(getaddrinfo)
 fi
 
 dnl Check for getnameinfo
@@ -203,10 +203,8 @@ sasl_cv_getnameinfo=no
 IPv6_CHECK_FUNC(getnameinfo,
 		[AC_DEFINE(HAVE_GETNAMEINFO,[],[Do we have a getnameinfo() function?])], [sasl_cv_getnameinfo=yes])
 if test $sasl_cv_getnameinfo = yes; then
-	COMPAT_OBJ="$COMPAT_OBJ getnameinfo.o"
+	AC_LIBOBJ(getnameinfo)
 fi
-
-AC_SUBST(COMPAT_OBJ)
 
 IPv6_CHECK_SS_FAMILY()
 IPv6_CHECK_SA_LEN()

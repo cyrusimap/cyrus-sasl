@@ -11,18 +11,15 @@ saslauthd_SOURCES = mechanisms.c globals.h \
                     ipc_unix.c ipc_doors.c saslauthd-main.c saslauthd-main.h \
 		    md5.c saslauthd_md5.h md5global.h
 EXTRA_saslauthd_sources = getaddrinfo.c getnameinfo.c
-saslauthd_DEPENDENCIES = saslauthd-main.o @COMPAT_OBJ@
-saslauthd_LDADD	= @COMPAT_OBJ@ @SASL_KRB_LIB@ \
+saslauthd_DEPENDENCIES = saslauthd-main.o
+saslauthd_LDADD	= @SASL_KRB_LIB@ \
 		  @GSSAPIBASE_LIBS@ @GSSAPI_LIBS@ @LIB_CRYPT@ @LIB_SIA@ \
 		  @LIB_SOCKET@ @SASL_DB_LIB@ @LIB_PAM@ @LDAP_LIBS@
 
 testsaslauthd_SOURCES = testsaslauthd.c utils.c
-testsaslauthd_DEPENDENCIES = @COMPAT_OBJ@
-testsaslauthd_LDADD = @COMPAT_OBJ@ @LIB_SOCKET@
+testsaslauthd_LDADD = @LIB_SOCKET@
 
 saslcache_SOURCES = saslcache.c
-saslcache_DEPENDENCIES = @COMPAT_OBJ@
-saslcache_LDADD = @COMPAT_OBJ@
 
 EXTRA_DIST	= saslauthd.8 saslauthd.mdoc config include \
 		  getnameinfo.c getaddrinfo.c LDAP_SASLAUTHD

@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.49 2003/07/25 19:17:10 ken3 Exp $
+ * $Id: srp.c,v 1.50 2003/07/25 20:26:46 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -103,7 +103,7 @@ typedef unsigned short uint32;
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: srp.c,v 1.49 2003/07/25 19:17:10 ken3 Exp $";
+static const char plugin_id[] = "$Id: srp.c,v 1.50 2003/07/25 20:26:46 ken3 Exp $";
 
 /* Size limit of cipher block size */
 #define SRP_MAXBLOCKSIZE 16
@@ -273,7 +273,6 @@ typedef struct context {
     int seqnum_in;
     
     /* for encoding/decoding mem management */
-    buffer_info_t  *enc_in_buf;
     char           *encode_buf, *decode_buf, *decode_pkt_buf;
     unsigned       encode_buf_len, decode_buf_len, decode_pkt_buf_len;
     
@@ -289,7 +288,7 @@ static int srp_encode(void *context,
 		      unsigned *outputlen)
 {
     context_t *text = (context_t *) context;
-    struct buffer_info *inblob, bufinfo;
+    unsigned i;
     char *input;
     unsigned long inputlen, tmpnum;
     int ret;
@@ -299,21 +298,11 @@ static int srp_encode(void *context,
 	return SASL_BADPARAM;
     }
 
-    if (numiov > 1) {
-	ret = _plug_iovec_to_buf(text->utils, invec, numiov,
-				 &text->enc_in_buf);
-	if (ret != SASL_OK) return ret;
-	inblob = text->enc_in_buf;
-    } else {
-	/* avoid the data copy */
-	bufinfo.data = invec[0].iov_base;
-	bufinfo.curlen = invec[0].iov_len;
-	inblob = &bufinfo;
-    }
-    
-    input = inblob->data;
-    inputlen = inblob->curlen;
-    
+    /* calculate total size of input */
+    for (i = 0, inputlen = 0; i < numiov; i++)
+	inputlen += invec[i].iov_len;
+
+    /* allocate a buffer for the output */
     ret = _plug_buf_alloc(text->utils, &text->encode_buf,
 			  &text->encode_buf_len,
 			  4 +			/* for length */
@@ -323,35 +312,46 @@ static int srp_encode(void *context,
     if (ret != SASL_OK) return ret;
 
     *outputlen = 4; /* length */
+
+    /* operate on each iovec */
+    for (i = 0; i < numiov; i++) {
+	input = invec[i].iov_base;
+	inputlen = invec[i].iov_len;
+    
+	if (text->layer & BIT_CONFIDENTIALITY) {
+	    unsigned enclen;
+
+	    /* encrypt the data into the output buffer */
+	    EVP_EncryptUpdate(&text->cipher_enc_ctx,
+			      text->encode_buf + *outputlen, &enclen,
+			      input, inputlen);
+	    *outputlen += enclen;
+
+	    /* switch the input to the encrypted data */
+	    input = text->encode_buf + 4;
+	    inputlen = *outputlen - 4;
+	}
+	else {
+	    /* copy the raw input to the output */
+	    memcpy(text->encode_buf + *outputlen, input, inputlen);
+	    *outputlen += inputlen;
+	}
+    }
     
     if (text->layer & BIT_CONFIDENTIALITY) {
 	unsigned enclen;
 
-	/* encrypt the data into the output buffer */
-	EVP_EncryptUpdate(&text->cipher_enc_ctx,
-			  text->encode_buf + *outputlen, &enclen,
-			  input, inputlen);
-	*outputlen += enclen;
-	
+	/* encrypt the last block of data into the output buffer */
 	EVP_EncryptFinal(&text->cipher_enc_ctx,
 			 text->encode_buf + *outputlen, &enclen);
 	*outputlen += enclen;
+    }
 
-	/* switch the input to the encrypted data */
-	input = text->encode_buf + 4;
-	inputlen = *outputlen - 4;
-    }
-    else {
-	/* copy the raw input to the output */
-	memcpy(text->encode_buf + *outputlen, input, inputlen);
-	*outputlen += inputlen;
-    }
-    
     if (text->layer & BIT_INTEGRITY) {
 	unsigned hashlen;
 
 	/* hash the content */
-	HMAC_Update(&text->hmac_send_ctx, input, inputlen);
+	HMAC_Update(&text->hmac_send_ctx, text->encode_buf+4, *outputlen-4);
 	
 	if (text->layer & BIT_REPLAY_DETECTION) {
 	    /* hash the sequence number */
@@ -1515,11 +1515,6 @@ static void srp_common_mech_dispose(void *conn_context,
     if (text->decode_buf)	utils->free(text->decode_buf);
     if (text->decode_pkt_buf)	utils->free(text->decode_pkt_buf);
     if (text->out_buf)		utils->free(text->out_buf);
-    
-    if (text->enc_in_buf) {
-	if (text->enc_in_buf->data) utils->free(text->enc_in_buf->data);
-	utils->free(text->enc_in_buf);
-    }
     
     utils->free(text);
 }

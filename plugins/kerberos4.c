@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.3 1998/11/17 01:02:03 tmartin Exp $
+ * $Id: kerberos4.c,v 1.4 1998/11/17 02:32:29 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -44,6 +44,11 @@ SOFTWARE.
 #include <saslplug.h>
 
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
+
+#ifdef L_DEFAULT_GUARD
+# undef L_DEFAULT_GUARD
+# define L_DEFAULT_GUARD (0)
+#endif
 
 #ifdef sun
 /* gotta define gethostname ourselves on suns */

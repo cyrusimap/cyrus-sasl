@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.2 1998/11/17 00:50:25 rob Exp $
+ * $Id: cram.c,v 1.3 1998/11/17 02:32:29 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -41,6 +41,11 @@ SOFTWARE.
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
 
 #define CRAM_MD5_VERSION 2;
+
+#ifdef L_DEFAULT_GUARD
+# undef L_DEFAULT_GUARD
+# define L_DEFAULT_GUARD (0)
+#endif
 
 struct scram_entry
 {

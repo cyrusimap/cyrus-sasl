@@ -1,6 +1,6 @@
 /* Anonymous SASL plugin
  * Tim Martin 
- * $Id: anonymous.c,v 1.3 1998/11/17 00:50:24 rob Exp $
+ * $Id: anonymous.c,v 1.4 1998/11/17 02:32:29 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -37,6 +37,11 @@ SOFTWARE.
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
 
 #define ANONYMOUS_VERSION 2;
+
+#ifdef L_DEFAULT_GUARD
+# undef L_DEFAULT_GUARD
+# define L_DEFAULT_GUARD (0)
+#endif
 
 typedef struct context {
   int state;

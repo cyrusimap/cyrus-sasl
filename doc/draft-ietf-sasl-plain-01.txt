@@ -6,12 +6,12 @@
 
 INTERNET-DRAFT                           Editor: Kurt D. Zeilenga
 Intended Category: Standards Track            OpenLDAP Foundation
-Expires in six months                             10 Febuary 2003
+Expires in six months                                  4 May 2003
 Updates: RFC 2595
 
 
                          The Plain SASL Mechanism
-                      <draft-ietf-sasl-plain-00.txt>
+                      <draft-ietf-sasl-plain-01.txt>
 
 
 Status of Memo
@@ -57,7 +57,7 @@ Abstract
 
 Zeilenga                  Plain SASL Mechanism                  [Page 1]
 
-INTERNET-DRAFT        draft-ietf-sasl-plain-00.txt       10 Febuary 2003
+INTERNET-DRAFT        draft-ietf-sasl-plain-01.txt            4 May 2003
 
 
 Conventions
@@ -77,7 +77,7 @@ Conventions
 
   This document defines the PLAIN Simple Authentication and Security
   Layer ([SASL]) mechanism for use in protocols with no clear-text login
-  command (e.g., ACAP).
+  command (e.g., [ACAP]).
 
   The name associated with this mechanism is "PLAIN".
 
@@ -100,7 +100,7 @@ Conventions
   identity (identity whose password will be used), followed by a NUL
   character, followed by the clear-text password.   The client leaves
   the authorization identity empty if wishes the server to derive the
-  authorization identity from the provided the authentication identity.
+  authorization identity from the provided authentication identity.
 
   The formal grammar for the client message using Augmented BNF [ABNF]
   follows.
@@ -113,21 +113,21 @@ Conventions
 
 Zeilenga                  Plain SASL Mechanism                  [Page 2]
 
-INTERNET-DRAFT        draft-ietf-sasl-plain-00.txt       10 Febuary 2003
+INTERNET-DRAFT        draft-ietf-sasl-plain-01.txt            4 May 2003
 
 
       passwd    = 1*SAFE ; MUST accept up to 255 octets
       NUL       = %x00
 
-      SAFE      = UTF1 / UTF2 / UTF3 / UTF4 / UTF5 / UTF6 / UTF7
+      SAFE      = UTF1 / UTF2 / UTF3 / UTF4
                   ;; any UTF-8 encoded Unicode character except NUL
 
-      UTF1      = %x01-7F
-      UTF2      = %xC0-DF 1(UTF0)
-      UTF3      = %xE0-EF 2(UTF0)
-      UTF4      = %xF0-F7 3(UTF0)
-      UTF5      = %xF8-FB 4(UTF0)
-      UTF6      = %xFC-FD 5(UTF0)
+      UTF1      = %x01-7F ;; except NULL
+      UTF2      = %xC2-DF UTF0
+      UTF3      = %xE0 %xA0-BF UTF0 / %xE1-EC 2(UTF0) /
+                  %xED %x80-9F UTF0 / %xEE-EF 2(UTF0)
+      UTF4      = %xF0 %x90-BF 2(UTF0) / %xF1-F3 3(UTF0) /
+                  %xF4 %x80-8F 2(UTF0)
       UTF0      = %x80-BF
 
   The authorization identity (authzid), authentication identity
@@ -155,44 +155,43 @@ INTERNET-DRAFT        draft-ietf-sasl-plain-00.txt       10 Febuary 2003
   The presented authentication identity and password strings are not be
   compared directly with stored strings.  The server SHALL first prepare
   authentication identity strings and password strings using the
-  "username" and "password" profiles [SASLPrep], respectively, of the
-  "stringprep" algorithm [StringPrep].  If preparation fails or results
-  in an empty string, verification SHALL fail.  If the server stores
-  only the hash of expected string, that string MUST be prepared before
-  generation of the hash.
+  [SASLPrep] profile of the [StringPrep] algorithm.  If preparation
+  fails or results in an empty string, verification SHALL fail.  If the
+  server stores only the hash of expected string, that string MUST be
+  prepared before generation of the hash.
 
   The verification function (using hashed password) can be written (in
   psuedo-code):
 
+      boolean Verify(string authzid, string authcid, string passwd) {
 
 
 
 Zeilenga                  Plain SASL Mechanism                  [Page 3]
 
-INTERNET-DRAFT        draft-ietf-sasl-plain-00.txt       10 Febuary 2003
+INTERNET-DRAFT        draft-ietf-sasl-plain-01.txt            4 May 2003
 
 
-      boolean Verify( string authzid, string authcid, string passwd ) {
-        string pAuthcid = prepareUserName( authcid ); # prepare authcid
-        string pPasswd = preparePassword( passwd );   # prepare passwd
-        if(pAuthcid == NULL || pPasswd == NULL) {
-          return false;    # preparation failed
+        string pAuthcid = SASLprep(authcid); # prepare authcid
+        string pPasswd = SASLprep(passwd);   # prepare passwd
+        if (pAuthcid == NULL || pPasswd == NULL) {
+          return false;     # preparation failed
         }
-        if(pAuthcid == "" || pPasswd == "") {
+        if (pAuthcid == "" || pPasswd == "") {
           return false;     # empty prepared string
         }
 
-        storedHash = fetchPasswordHash(pAuthcid);
+        storedHash = FetchPasswordHash(pAuthcid);
         if (storedHash == NULL || storedHash == "") {
           return false;     # error or unknown authcid
         }
 
-        if (!compare( storedHash, Hash(pPassword))) {
+        if (!Compare(storedHash, Hash(pPassword))) {
           return false;     # incorrect password
         }
 
         if (authzid == "") {
-          authzid = deriveAuthzid( pAuthcid );
+          authzid = DeriveAuthzid(pAuthcid);
           if (authzid == NULL || authzid == "") {
               return false; # could not derive authzid
           }
@@ -205,6 +204,10 @@ INTERNET-DRAFT        draft-ietf-sasl-plain-00.txt       10 Febuary 2003
         return true;
       }
 
+  Note that the parameters provided to the Authorize function are not
+  prepared.  The application-level SASL profile should be consulted to
+  determine what, if any, preparation is necessary.
+
   The server MAY also use the password to initialize any new
   authentication database, such as one suitable for [CRAM-MD5] or
   [DIGEST-MD5].
@@ -213,21 +216,22 @@ INTERNET-DRAFT        draft-ietf-sasl-plain-00.txt       10 Febuary 2003
 4. Example
 
   Here is an example of how this might be used to initialize a CRAM-MD5
-  authentication database for ACAP.  "C:" and "S:" indicate lines sent
-  by the client and server respectively.
-
-      S: * ACAP (SASL "CRAM-MD5") (STARTTLS)
-      C: a001 AUTHENTICATE "CRAM-MD5"
-      S: + "<1896.697170952@postoffice.reston.mci.net>"
-      C: "tim b913a602c7eda7a495b4e6e7334d3890"
+  authentication database using the Application Configuration Access
+  Protocol ([ACAP]).  "C:" and "S:" indicate lines sent by the client
+  and server respectively and <NUL> represents a single NUL (U+0000)
+  character.
 
 
 
 Zeilenga                  Plain SASL Mechanism                  [Page 4]
 
-INTERNET-DRAFT        draft-ietf-sasl-plain-00.txt       10 Febuary 2003
+INTERNET-DRAFT        draft-ietf-sasl-plain-01.txt            4 May 2003
 
 
+      S: * ACAP (SASL "CRAM-MD5") (STARTTLS)
+      C: a001 AUTHENTICATE "CRAM-MD5"
+      S: + "<1896.697170952@postoffice.reston.mci.net>"
+      C: "tim b913a602c7eda7a495b4e6e7334d3890"
       S: a001 NO (TRANSITION-NEEDED)
          "Please change your password, or use TLS to login"
       C: a002 STARTTLS
@@ -238,7 +242,6 @@ INTERNET-DRAFT        draft-ietf-sasl-plain-00.txt       10 Febuary 2003
       C: <NUL>tim<NUL>tanstaaftanstaaf
       S: a003 OK CRAM-MD5 password initialized
 
-  In this example, <NUL> represents a single NUL (U+0000) character.
 
 
 5. Security Considerations
@@ -273,17 +276,17 @@ INTERNET-DRAFT        draft-ietf-sasl-plain-00.txt       10 Febuary 2003
       Subject: Updated Registration of SASL mechanism PLAIN
 
       SASL mechanism name: PLAIN
-      Security considerations: See RFC XXXX.
-      Published specification (optional, recommended): RFC XXXX
-      Person & email address to contact for further information:
 
 
 
 Zeilenga                  Plain SASL Mechanism                  [Page 5]
 
-INTERNET-DRAFT        draft-ietf-sasl-plain-00.txt       10 Febuary 2003
+INTERNET-DRAFT        draft-ietf-sasl-plain-01.txt            4 May 2003
 
 
+      Security considerations: See RFC XXXX.
+      Published specification (optional, recommended): RFC XXXX
+      Person & email address to contact for further information:
           Kurt Zeilenga <kurt@openldap.org>
           Chris Neuman <chris.newman@innosoft.com>
       Intended usage: COMMON
@@ -293,7 +296,9 @@ INTERNET-DRAFT        draft-ietf-sasl-plain-00.txt       10 Febuary 2003
 
 7. Acknowledgement
 
-  This document is a revision of RFC 2595 by Chris Newman.
+  This document is a revision of RFC 2595 by Chris Newman.  Portions of
+  the grammar defined in Section 2 were borrowed from [UTF-8] by
+  Francois Yergeau.
 
 
 8. Normative References
@@ -307,8 +312,8 @@ INTERNET-DRAFT        draft-ietf-sasl-plain-00.txt       10 Febuary 2003
   [SASL]       J. Myers, "Simple Authentication and Security Layer
                (SASL)", RFC 2222bis (a work in progress).
 
-  [SASLPrep]   TBD, "SASL String Preparation Profiles", (a work to
-               come).
+  [SASLPrep]   K. Zeilenga, "SASL String Preparation Profiles", draft-
+               ietf-sasl-saslprep (a work in progress).
 
   [Stringprep] P. Hoffman, M. Blanchet, "Preparation of
                Internationalized Strings ("stringprep")", RFC 3454,
@@ -327,18 +332,22 @@ INTERNET-DRAFT        draft-ietf-sasl-plain-00.txt       10 Febuary 2003
                2246, January 1999.
 
 
-9. Informative References
-
-  [CRAM-MD5]   J. Klensin, R. Catoe, and P. Krumviede, "IMAP/POP
-               AUTHorize Extension for Simple Challenge/Response", RFC
-               2195, September 1997.
 
 
 
 Zeilenga                  Plain SASL Mechanism                  [Page 6]
 
-INTERNET-DRAFT        draft-ietf-sasl-plain-00.txt       10 Febuary 2003
+INTERNET-DRAFT        draft-ietf-sasl-plain-01.txt            4 May 2003
 
+
+9. Informative References
+
+  [ACAP]       C. Newman, and J. Myers, "ACAP -- Application
+               Configuration Access Protocol", RFC 2244, November 1997.
+
+  [CRAM-MD5]   J. Klensin, R. Catoe, and P. Krumviede, "IMAP/POP
+               AUTHorize Extension for Simple Challenge/Response", RFC
+               2195, September 1997.
 
   [DIGEST-MD5] P. Leach, C. Newman, "Using Digest Authentication as a
                SASL Mechanism", RFC 2831, May 2000.
@@ -369,9 +378,9 @@ Appendix A.  Changes since RFC 2595
   LINE FEED (U+000A) and CARRIAGE RETURN (U+000D) characters in the
   authzid, authcid, passwd productions.   However, whether these control
   characters may be used depends on the string preparation rules
-  applicable to the production.   For authcid, control characters are
-  prohibited.  For passwd, control characters are allowed.  For authzid,
-  one must consult the application-level SASL profile.
+  applicable to the production.   For passwd and authcid productions,
+  control characters are prohibited.  For authzid, one must consult the
+  application-level SASL profile.
 
 
 Full Copyright Statement
@@ -379,6 +388,14 @@ Full Copyright Statement
   Copyright 2003, The Internet Society.  All Rights Reserved.
 
   This document and translations of it may be copied and furnished to
+
+
+
+Zeilenga                  Plain SASL Mechanism                  [Page 7]
+
+INTERNET-DRAFT        draft-ietf-sasl-plain-01.txt            4 May 2003
+
+
   others, and derivative works that comment on or otherwise explain it
   or assist in its implementation may be prepared, copied, published and
   distributed, in whole or in part, without restriction of any kind,
@@ -388,14 +405,6 @@ Full Copyright Statement
   the copyright notice or references to the Internet Society or other
   Internet organizations, except as needed for the  purpose of
   developing Internet standards in which case the procedures for
-
-
-
-Zeilenga                  Plain SASL Mechanism                  [Page 7]
-
-INTERNET-DRAFT        draft-ietf-sasl-plain-00.txt       10 Febuary 2003
-
-
   copyrights defined in the Internet Standards process must be followed,
   or as required to translate it into languages other than English.
 
@@ -408,15 +417,6 @@ INTERNET-DRAFT        draft-ietf-sasl-plain-00.txt       10 Febuary 2003
   INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
   INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
-
-
-
-
-
-
-
-
-
 
 
 

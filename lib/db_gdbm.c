@@ -179,7 +179,7 @@ putsecret(void *context,
       result = SASL_FAIL;
   } else {
     if (gdbm_delete(db, gkey))
-      result = SASL_FAIL;
+      result = SASL_NOUSER;
   }
   gdbm_close(db);
 

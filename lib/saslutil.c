@@ -93,6 +93,9 @@ int sasl_encode64(const char *_in, unsigned inlen,
     char *blah;
     unsigned olen;
 
+    /* check params */
+    if ((inlen >0) && (in == NULL)) return SASL_BADPARAM;
+    
     /* Will it fit? */
     olen = (inlen + 2) / 3 * 4;
     if (outlen)
@@ -314,20 +317,22 @@ void sasl_randseed (sasl_rand_t *rpool, const char *seed, unsigned len)
 {
     /* is it acceptable to just use the 1st 3 char's given??? */
     unsigned int lup;
-    
+
+    /* check params */
+    if (seed == NULL) return;
+    if (rpool == NULL) return;
+
     rpool->initialized = 1;
     if (len > 6) len = 6;
     for (lup = 0; lup < len; lup += 2)
 	rpool->pool[lup] = (seed[lup] << 8) + seed[lup + 1];
 }
 
-void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
+static void randinit(sasl_rand_t *rpool)
 {
     unsigned short *data;
-    unsigned int lup;
-    if (buf==NULL) return;
-    
-    /* see if we need to init now */
+
+   /* see if we need to init now */
     if (rpool->initialized == -1) {
 	data = getranddata();
 	if (data == NULL) return; /* yikes! */
@@ -337,6 +342,16 @@ void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
 	memset(data, 0, 6); /* wipe it out */
 	rpool->initialized = 1;
     }
+}
+
+void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
+{
+    unsigned int lup;
+    /* check params */
+    if (buf==NULL) return;    
+    
+    /* init if necessary */
+    randinit(rpool);
     
 #ifdef WIN32
     for (lup=0;lup<len;lup++)
@@ -351,6 +366,13 @@ void sasl_churn (sasl_rand_t *rpool, const char *data, unsigned len)
 {
   unsigned int lup,spot;
   spot=0;
+
+  /* check params */
+  if (rpool == NULL) return;
+  if (data == NULL) return;
+
+  /* init if necessary */
+  randinit(rpool);
 
   for (lup=0;lup<len;lup++)
   {

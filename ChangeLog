@@ -1,3 +1,27 @@
+2000-02-23  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* lib/db_ndbm.c (putsecret): return SASL_NOUSER on delete failures
+	* lib/db_gdbm.c (putsecret): return SASL_NOUSER on delete failures
+
+	* lib/db_berkeley.c (putsecret): return SASL_NOUSER if not found in delete
+
+	* lib/server.c (sasl_setpass): propogate up the specific error code
+
+	* lib/saslutil.c (sasl_randseed): check params
+	(sasl_churn): check params
+	(sasl_churn): init pool if necessary
+	(sasl_encode64): check params
+
+	* plugins/digestmd5.c (c_continue_step): check params
+
+	* plugins/kerberos4.c (server_continue_step): checks everywhere if errstr exists before setting to it
+
+	* plugins/gssapi.c (sasl_gss_server_step): function frees memory so we don't have to
+
+	* plugins/kerberos4.c (server_continue_step): only set errstr if non-null
+
+	* plugins/digestmd5.c (c_continue_step): imid
+	
 2000-02-23  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/common.c, lib/db_berkeley.c, lib/db_ndbm.c, lib/db_gdbm.c,
@@ -30,6 +54,8 @@
 	restore the original ticket cache (inherently not thread safe)
 
 2000-02-22  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c (c_continue_step): if bad client reauth then fail
 
 	* plugins/gssapi.c (sasl_gss_server_step): don't return the realm
 	for local (local kerberos realm) users

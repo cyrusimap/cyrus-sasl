@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.66 2000/02/23 07:15:27 leg Exp $
+ * $Id: server.c,v 1.67 2000/02/23 19:54:42 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -286,11 +286,17 @@ int sasl_setpass(sasl_conn_t *conn,
     void *context;
     const char *plainmech;
 
+    /* check params */
     if (!conn)
 	return SASL_BADPARAM;
     
     if (!mechlist) {
 	return SASL_FAIL;
+    }
+    if (passlen == 0)
+    {
+	if (errstr) *errstr = "Password must be at least one character long";
+	return SASL_BADPARAM;
     }
 
     if ((flags & SASL_SET_CREATE) && (flags & SASL_SET_DISABLE)) {
@@ -351,7 +357,7 @@ int sasl_setpass(sasl_conn_t *conn,
 	    _sasl_log(conn, SASL_LOG_INFO, m->plug->mech_name, 0, 0,
 		      "secret not changed for %s", user);
 	} else {
-	    result = SASL_FAIL;
+	    result = tmpresult;
 	    _sasl_log(conn, SASL_LOG_ERR, m->plug->mech_name, tmpresult,
 #ifndef WIN32
 		      errno,

@@ -185,7 +185,7 @@ putsecret(void *context,
       result = SASL_FAIL;
   } else
     if (dbm_delete(db, dkey))
-      result = SASL_FAIL;
+      result = SASL_NOUSER;
   dbm_close(db);
 
  cleanup:

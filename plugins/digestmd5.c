@@ -3261,6 +3261,10 @@ c_continue_step(void *conn_context,
   context_t      *text;
   text = conn_context;
 
+  /* check params */
+  if (serverinlen < 0)
+      return SASL_BADPARAM;
+
   if (text->state == 1) {
     VL(("Digest-MD5 Step 1\n"));
 

@@ -1,6 +1,6 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Tim Martin
- * $Id: db_berkeley.c,v 1.10 2000/02/23 07:15:27 leg Exp $
+ * $Id: db_berkeley.c,v 1.11 2000/02/23 19:54:42 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -294,7 +294,11 @@ putsecret(void *context,
 		 "error deleting entry from sasldb: %s", strerror(result));
       VL(("DBERROR: error deleting entry for database for %s: %s",
 	  key, strerror(result)));
-      result = SASL_FAIL;
+
+      if (result == DB_NOTFOUND)
+	  result = SASL_NOUSER;
+      else	  
+	  result = SASL_FAIL;
       goto cleanup;
     }
 

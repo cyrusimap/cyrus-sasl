@@ -180,6 +180,9 @@
 #undef HAVE_SOCKLEN_T
 #undef HAVE_SOCKADDR_SA_LEN
 
+/* do we use doors for IPC? */
+#undef USE_DOORS
+
 @BOTTOM@
 
 /* Create a struct iovec if we need one */

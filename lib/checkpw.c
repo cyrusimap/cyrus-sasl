@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.50 2002/04/10 16:34:34 rjs3 Exp $
+ * $Id: checkpw.c,v 1.51 2002/04/26 15:59:39 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -56,6 +56,10 @@
 #include <assert.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#include <fcntl.h>
+#ifdef USE_DOORS
+#include <door.h>
 #endif
 
 #include <stdlib.h>
@@ -442,12 +446,14 @@ static int retry_read(int fd, void *buf, unsigned nbyte)
 
 /* saslauthd-authenticated login */
 static int saslauthd_verify_password(sasl_conn_t *conn,
-				   const char *userid, 
-				   const char *passwd,
-				   const char *service,
-				   const char *user_realm)
+				     const char *userid, 
+				     const char *passwd,
+				     const char *service,
+				     const char *user_realm)
 {
-    static char response[1024];
+    char response[1024];
+    char query[8192];
+    char *query_end = query;
     int s;
     struct sockaddr_un srvaddr;
     int r;
@@ -456,6 +462,9 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
     void *context;
     char pwpath[sizeof(srvaddr.sun_path)];
     const char *p = NULL;
+#ifdef USE_DOORS
+    door_arg_t arg;
+#endif
 
     /* check to see if the user configured a rundir */
     if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context) == SASL_OK) {
@@ -471,6 +480,75 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 	strcat(pwpath, "/mux");
     }
 
+    /*
+     * build request of the form:
+     *
+     * count authid count password count service count realm
+     */
+    {
+ 	unsigned short u_len, p_len, s_len, r_len;
+ 	struct iovec iov[8];
+ 
+ 	u_len = (strlen(userid));
+ 	p_len = (strlen(passwd));
+	s_len = (strlen(service));
+	r_len = ((user_realm ? strlen(user_realm) : 0));
+
+	if (u_len + p_len + s_len + r_len + 30 > sizeof(query)) {
+	    /* request just too damn big */
+            sasl_seterror(conn, 0, "saslauthd request too large");
+	    return SASL_FAIL;
+	}
+
+	u_len = htons(u_len);
+	p_len = htons(p_len);
+	s_len = htons(s_len);
+	r_len = htons(r_len);
+
+	memcpy(query_end, &u_len, sizeof(unsigned short));
+	query_end += sizeof(unsigned short);
+	while (*userid) *query_end++ = *userid++;
+
+	memcpy(query_end, &p_len, sizeof(unsigned short));
+	query_end += sizeof(unsigned short);
+	while (*passwd) *query_end++ = *passwd++;
+
+	memcpy(query_end, &s_len, sizeof(unsigned short));
+	query_end += sizeof(unsigned short);
+	while (*service) *query_end++ = *service++;
+
+	memcpy(query_end, &r_len, sizeof(unsigned short));
+	query_end += sizeof(unsigned short);
+	if (user_realm) while (*user_realm) *query_end++ = *user_realm++;
+    }
+
+#ifdef USE_DOORS
+    s = open(pwpath, O_RDWR);
+    if (s < 0) {
+	perror("open");
+	return -1;
+    }
+
+    arg.data_ptr = query;
+    arg.data_size = query_end - query;
+    arg.desc_ptr = NULL;
+    arg.desc_num = 0;
+    arg.rbuf = response;
+    arg.rsize = sizeof(response);
+
+    door_call(s, &arg);
+
+    if (arg.data_ptr != response || arg.data_size >= sizeof(response)) {
+	/* oh damn, we got back a really long response */
+	munmap(arg.rbuf, arg.rsize);
+	sasl_seterror(conn, 0, "saslauthd sent an overly long response");
+	return SASL_FAIL;
+    }
+    response[arg.data_size] = '\0';
+
+#else
+    /* unix sockets */
+
     s = socket(AF_UNIX, SOCK_STREAM, 0);
     if (s == -1)
 	return errno;
@@ -485,38 +563,13 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 	return SASL_FAIL;
     }
 
-    /*
-     * build request of the form:
-     *
-     * count authid count password count service count realm
-     */
     {
- 	unsigned short u_len, p_len, s_len, r_len;
  	struct iovec iov[8];
  
- 	u_len = htons(strlen(userid));
- 	p_len = htons(strlen(passwd));
-	s_len = htons(strlen(service));
-	r_len = htons((user_realm ? strlen(user_realm) : 0));
+	iov[0].iov_len = query_end - query;
+	iov[0].iov_base = query;
 
-	iov[0].iov_base = &u_len;
- 	iov[0].iov_len = sizeof(u_len);
-        iov[1].iov_base = (void*) userid;
-	iov[1].iov_len = strlen(userid);
-	iov[2].iov_base = &p_len;
-	iov[2].iov_len = sizeof(p_len);
-	iov[3].iov_base = (void*) passwd;
-	iov[3].iov_len = strlen(passwd);
-	iov[4].iov_base = &s_len;
-	iov[4].iov_len = sizeof(s_len);
-	iov[5].iov_base = (void*) service;
-	iov[5].iov_len = strlen(service);
-	iov[6].iov_base = &r_len;
-        iov[6].iov_len = sizeof(r_len);
-	iov[7].iov_base = user_realm ? (void*) user_realm : "";
-	iov[7].iov_len = user_realm ? strlen(user_realm) : 0;
-
-	if (retry_writev(s, iov, 8) == -1) {
+	if (retry_writev(s, iov, 1) == -1) {
             sasl_seterror(conn, 0, "write failed");
   	    return SASL_FAIL;
   	}
@@ -547,9 +600,11 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
     }
   
     close(s);
+#endif /* USE_DOORS */
   
-    if (!strncmp(response, "OK", 2))
-      return SASL_OK;
+    if (!strncmp(response, "OK", 2)) {
+	return SASL_OK;
+    }
   
     response[count] = '\0';
     sasl_seterror(conn, SASL_NOLOG, "authentication failed");

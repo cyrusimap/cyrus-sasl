@@ -1,7 +1,6 @@
 /* MODULE: auth_dce */
-
 /* COPYRIGHT
- * Copyright (c) 1997-2000 Messaging Direct Ltd.
+ * Copyright (c) 2002-2002 Igor Brezac
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -13,10 +12,10 @@
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY MESSAGING DIRECT LTD. ``AS IS'' AND ANY
+ * THIS SOFTWARE IS PROVIDED BY IGOR BREZAC. ``AS IS'' AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL MESSAGING DIRECT LTD. OR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL IGOR BREZAC OR
  * ITS EMPLOYEES OR AGENTS BE LIABLE FOR ANY DIRECT, INDIRECT,
  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
  * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
@@ -32,7 +31,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_ldap.c,v 1.1 2002/05/03 18:59:30 rjs3 Exp $"
+#ident "$Id: auth_ldap.c,v 1.2 2002/05/03 19:40:22 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */

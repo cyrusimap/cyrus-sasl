@@ -1,3 +1,6 @@
+2002-01-19  Ken Murchison <ken@oceana.com>
+	* plugins/srp.c: added SASL_SUCCESS_DATA checks
+
 2002-01-18  Ken Murchison <ken@oceana.com>
 	* plugins/srp.c: updated to draft-burdis-cat-srp-sasl-06
 	* plugins/srp.c: server uses external SSF

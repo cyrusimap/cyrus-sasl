@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: sasldb.c,v 1.3 2002/04/17 20:46:17 rjs3 Exp $
+ * $Id: sasldb.c,v 1.4 2002/04/27 14:04:05 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -137,7 +137,7 @@ static void sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
     if(!to_fetch) goto done;
 
     for(cur = to_fetch; cur->name; cur++) {
-	char *realname = cur->name;
+	const char *realname = cur->name;
 	
 	/* Only look up properties that apply to this lookup! */
 	if(cur->name[0] == '*' && (flags & SASL_AUXPROP_AUTHZID)) continue;

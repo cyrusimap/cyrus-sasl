@@ -1,7 +1,7 @@
 /* Login SASL plugin
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.5 2000/04/26 17:01:14 tmartin Exp $
+ * $Id: login.c,v 1.6 2001/02/19 19:15:12 leg Exp $
  */
 /* 
  * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -705,10 +705,13 @@ static int client_continue_step (void *conn_context,
 
     VL (("Got username, authid, and password\n"));
 
-    *clientout = params->utils->malloc(1);
-    if (! *clientout) return SASL_NOMEM;
-    (*clientout)[0] = '\0';
-    *clientoutlen = 0;
+    if (clientout) {
+	/* watch out for no initial client-send */
+	*clientout = params->utils->malloc(1);
+	if (! *clientout) return SASL_NOMEM;
+	(*clientout)[0] = '\0';
+	*clientoutlen = 0;
+    }
 
     /* set oparams */
     oparams->mech_ssf=0;

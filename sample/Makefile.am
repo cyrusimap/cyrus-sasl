@@ -25,18 +25,10 @@
 
 INCLUDES=-I$(top_srcdir)/include
 
-EXTRA_DIST = getsubopt.c
-
 noinst_PROGRAMS = sample-client sample-server
 
 sample_client_SOURCES = sample-client.c
 sample_server_SOURCES = sample-server.c
 
-EXTRA_sample_client_SOURCES = getsubopt.c
-EXTRA_sample_server_SOURCES = getsubopt.c
-
-sample_client_DEPENDENCIES = @GETSUBOPT@
-sample_server_DEPENDENCIES = @GETSUBOPT@
-
-sample_client_LDADD = @GETSUBOPT@ ../lib/libsasl.la $(LIB_SOCKET)
-sample_server_LDADD = @GETSUBOPT@ ../lib/libsasl.la $(LIB_SOCKET)
+sample_client_LDADD = ../lib/libsasl.la $(LIB_SOCKET)
+sample_server_LDADD = ../lib/libsasl.la $(LIB_SOCKET)

@@ -39,7 +39,6 @@ SOFTWARE.
 #include <stdio.h>
 #include <ctype.h>
 #include <syslog.h>
-#include <com_err.h>
 
 struct configlist {
     char *key;

@@ -31,7 +31,7 @@ dnl
 dnl REMINDER: When changing the version number here, please also update
 dnl the values in win32/include/winconfig.h and config/cyrus-sasl.spec as well.
 dnl
-AM_INIT_AUTOMAKE(cyrus-sasl, 1.5.0)
+AM_INIT_AUTOMAKE(cyrus-sasl, 1.5.1)
 CMU_INIT_AUTOMAKE
 
 DIRS=""
@@ -427,8 +427,30 @@ AC_SUBST(LIB_RC4)
 AC_HEADER_DIRENT
 AC_HEADER_STDC
 AC_CHECK_FUNCS(strchr memcpy getspnam)
-AC_CHECK_FUNCS(getsubopt, GETSUBOPT="", GETSUBOPT="getsubopt.o")
+
+dnl check for getsubopt
+sasl_cv_getsubopt=no
+AC_CHECK_FUNC(getsubopt, [AC_DEFINE(HAVE_GETSUBOPT)], [sasl_cv_getsubopt=yes])
+if test $sasl_cv_getsubopt = yes; then
+	LIBOBJS="$LIBOBJS getsubopt.o"
+	GETSUBOPT="getsubopt.lo"
+fi
 AC_SUBST(GETSUBOPT)
+
+dnl Check for snprintf
+sasl_cv_snprintf=no
+SNPRINTFOBJS=""
+AC_CHECK_FUNC(snprintf, [AC_DEFINE(HAVE_SNPRINTF)], [sasl_cv_snprintf=yes])
+AC_CHECK_FUNC(vsnprintf, [AC_DEFINE(HAVE_VSNPRINTF)], [sasl_cv_snprintf=yes])
+if test $sasl_cv_snprintf = yes; then
+	LIBOBJS="$LIBOBJS snprintf.o"
+        SNPRINTFOBJS="snprintf.o"
+fi
+AC_SUBST(SNPRINTFOBJS)
+
+LTLIBOBJS=`echo "$LIBOBJS" | sed 's/\.o/.lo/g'`
+AC_SUBST(LTLIBOBJS)
+
 AC_CHECK_HEADERS(getopt.h unistd.h crypt.h shadow.h)
 AC_C_CONST
 AC_C_INLINE

@@ -54,6 +54,15 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 /* do we have PAM for plaintext password checking? */
 #undef HAVE_PAM
 
+/* do we have getsubopt()? */
+#undef HAVE_GETSUBOPT
+
+/* Does your system have the snprintf() call? */
+#undef HAVE_SNPRINTF
+
+/* Does your system have the vsnprintf() call? */
+#undef HAVE_VSNPRINTF
+
 @BOTTOM@
 
 /* Make Solaris happy... */

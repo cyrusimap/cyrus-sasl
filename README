@@ -1,4 +1,4 @@
-$Id: README,v 1.7 1999/06/22 21:16:38 leg Exp $
+$Id: README,v 1.8 1999/06/23 20:38:07 leg Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication. See RFC 2222 for more
@@ -6,6 +6,9 @@ information.
 
 It is available at:
 ftp://ftp.andrew.cmu.edu/pub/cyrus/cyrus-sasl-1.5.0.tar.gz
+
+There's a mailing list for Cyrus SASL.  Subscribe by sending a message
+to majordomo@lists.andrew.cmu.edu with the body "subscribe cyrus-sasl".
 
 FEATURES
 --------

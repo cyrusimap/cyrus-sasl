@@ -325,8 +325,8 @@ static void server_dispose(sasl_conn_t *pconn)
 
   if (s_conn->base.oparams.credentials)
   {
-    s_conn->mech->plug->dispose_credentials(s_conn->base.context,
-					    s_conn->base.oparams.credentials);
+    /* xxx    s_conn->mech->plug->dispose_credentials(s_conn->base.context,
+       s_conn->base.oparams.credentials);*/
   }
 
   _sasl_conn_dispose(pconn);
@@ -357,8 +357,15 @@ static int add_plugin(void *p, void *library) {
   result = entry_point(mechlist->utils, SASL_SERVER_PLUG_VERSION, &version,
 		       &pluglist, &plugcount);
   if (version != SASL_SERVER_PLUG_VERSION)
+  {
+    VL(("Version mismatch\n"));
     result = SASL_FAIL;
-  if (result != SASL_OK) return result;
+  }
+  if (result != SASL_OK)
+  {
+    VL(("entry_point error %i\n",result));
+    return result;
+  }
 
   for (lupe=0;lupe< plugcount ;lupe++)
     {
@@ -707,7 +714,7 @@ static unsigned mech_names_len()
 }
 
 int sasl_listmech(sasl_conn_t *conn,
-		  const char *user,
+		  const char *user __attribute__((unused)),
 		  const char *prefix,
 		  const char *sep,
 		  const char *suffix,

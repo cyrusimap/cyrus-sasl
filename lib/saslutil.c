@@ -81,6 +81,8 @@ int sasl_encode64(const char *_in, unsigned inlen,
     char *blah;
     unsigned olen;
 
+    *outlen=0;
+
     /* Will it fit? */
     olen = (inlen + 2) / 3 * 4;
     if (outlen)
@@ -91,23 +93,29 @@ int sasl_encode64(const char *_in, unsigned inlen,
     /* Do the work... */
     blah=(char *) out;
     while (inlen >= 3) {
+      /* user provided max buffer size; make sure we don't go over it */
+      if ((*outlen)+4>outmax) return SASL_FAIL; 
         *out++ = basis_64[in[0] >> 2];
         *out++ = basis_64[((in[0] << 4) & 0x30) | (in[1] >> 4)];
         *out++ = basis_64[((in[1] << 2) & 0x3c) | (in[2] >> 6)];
         *out++ = basis_64[in[2] & 0x3f];
+	(*outlen)+=4;
         in += 3;
         inlen -= 3;
     }
     if (inlen > 0) {
+      /* user provided max buffer size; make sure we don't go over it */
+      if ((*outlen)+4>outmax) return SASL_FAIL;
         *out++ = basis_64[in[0] >> 2];
         oval = (in[0] << 4) & 0x30;
         if (inlen > 1) oval |= in[1] >> 4;
         *out++ = basis_64[oval];
         *out++ = (inlen < 2) ? '=' : basis_64[(in[1] << 2) & 0x3c];
         *out++ = '=';
+	(*outlen)+=4;
     }
     *out = '\0';
-
+    
     return SASL_OK;
 }
 
@@ -118,19 +126,23 @@ int sasl_decode64(const char *in, unsigned inlen,
     unsigned len = 0,lup;
     int c1, c2, c3, c4;
 
+    /* check parameters */
+    if (out==NULL) return SASL_FAIL;
+
+    /* xxx these necessary? */
     if (in[0] == '+' && in[1] == ' ') in += 2;
-    if (*in == '\r') return (0);
+    if (*in == '\r') return SASL_FAIL;
 
     for (lup=0;lup<inlen/4;lup++)
     {
         c1 = in[0];
-        if (CHAR64(c1) == -1) return (-1);
+        if (CHAR64(c1) == -1) return SASL_FAIL;
         c2 = in[1];
-        if (CHAR64(c2) == -1) return (-1);
+        if (CHAR64(c2) == -1) return SASL_FAIL;
         c3 = in[2];
-        if (c3 != '=' && CHAR64(c3) == -1) return (-1); 
+        if (c3 != '=' && CHAR64(c3) == -1) return SASL_FAIL; 
         c4 = in[3];
-        if (c4 != '=' && CHAR64(c4) == -1) return (-1);
+        if (c4 != '=' && CHAR64(c4) == -1) return SASL_FAIL;
         in += 4;
         *out++ = (CHAR64(c1) << 2) | (CHAR64(c2) >> 4);
         ++len;

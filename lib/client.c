@@ -512,10 +512,10 @@ int sasl_client_start(sasl_conn_t *conn,
       VL(("%s %s\n",name, m->plug->mech_name));
       if (strcasecmp(m->plug->mech_name, name)==0)
       {	
-	if (mech
+	/*xxx	if (mech
 	    && have_prompts(conn, m->plug)
 	    && (! bestm || m->plug->max_ssf > bestssf)
-	    && m->plug->max_ssf >= minssf)
+	    && m->plug->max_ssf >= minssf)*/
 	{
 	  *mech=m->plug->mech_name;
 	  bestssf=m->plug->max_ssf;
@@ -564,6 +564,7 @@ int sasl_client_step(sasl_conn_t *conn,
 		     unsigned *clientoutlen)
 {
   sasl_client_conn_t *c_conn= (sasl_client_conn_t *) conn;
+
   /* do a step */
    return c_conn->mech->plug->mech_step(conn->context,
 				    c_conn->cparams,

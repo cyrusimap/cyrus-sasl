@@ -323,7 +323,7 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
   switch(propnum)
   {
     case SASL_USERNAME:
-      result = _sasl_strdup(value, &conn->username, NULL);
+      result = _sasl_strdup(value, &str, NULL);
       if (result != SASL_OK)
 	return result;
       if (conn->username)

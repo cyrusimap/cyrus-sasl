@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.98 2002/01/19 22:24:03 rjs3 Exp $
+ * $Id: server.c,v 1.99 2002/01/21 05:34:30 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1047,6 +1047,9 @@ int sasl_server_start(sasl_conn_t *conn,
     
     if (!mech || ((clientin==NULL) && (clientinlen>0)))
 	PARAMERROR(conn);
+
+    if(serverout) *serverout = NULL;
+    if(serveroutlen) *serveroutlen = 0;
 
     while (m!=NULL)
     {

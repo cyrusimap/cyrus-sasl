@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: external.c,v 1.3 2001/12/06 22:27:27 rjs3 Exp $
+ * $Id: external.c,v 1.4 2002/01/21 05:34:30 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -334,6 +334,10 @@ static void external_client_dispose(void *conn_context,
     sasl_FREE(text);
 }
 
+static const long external_client_required_prompts[] = {
+  SASL_CB_USER,
+  SASL_CB_LIST_END
+};
 
 sasl_client_plug_t external_client_mech =
 {
@@ -342,7 +346,7 @@ sasl_client_plug_t external_client_mech =
     SASL_SEC_NOPLAINTEXT
     | SASL_SEC_NODICTIONARY,	/* security_flags */
     SASL_FEAT_WANT_CLIENT_FIRST,/* features */
-    NULL,			/* required_prompts */
+    external_client_required_prompts,	/* required_prompts */
     NULL,			/* glob_context */
     &external_client_new,	/* mech_new */
     &external_client_step,	/* mech_step */

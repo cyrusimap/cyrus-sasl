@@ -619,6 +619,7 @@ int sasl_server_start(sasl_conn_t *conn,
   s_conn->sparams->local_domain=conn->local_domain;
   s_conn->sparams->service=conn->service;
   s_conn->sparams->user_domain=s_conn->user_domain;
+  s_conn->sparams->props=conn->props;
 
   result = s_conn->mech->plug->mech_new(s_conn->mech->plug->glob_context,
 					s_conn->sparams,
@@ -725,17 +726,20 @@ int sasl_listmech(sasl_conn_t *conn,
     /* XXX This should be done with a callback function */
     if (mech_permitted(conn, listptr->plug))
     {
-      strcat(*result,listptr->plug->mech_name);
       if (pcount!=NULL)
 	(*pcount)++;
 
-      if (listptr->next!=NULL)
+      /* print seperator */      
+      if (lup>0)
       {
 	if (sep)
 	  strcat(*result,sep);
 	else
-	  strcat(*result," ");
+	  strcat(*result," "); /* if seperator is NULL give it space */
       }
+
+      /* now print the mechanism name */
+      strcat(*result,listptr->plug->mech_name);
 
     }
 

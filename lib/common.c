@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.96 2003/09/02 15:34:02 rjs3 Exp $
+ * $Id: common.c,v 1.97 2003/10/20 15:19:58 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -129,7 +129,7 @@ int _sasl_strdup(const char *in, char **out, size_t *outlen)
 {
   size_t len = strlen(in);
   if (outlen) *outlen = len;
-  *out=sasl_ALLOC(len + 1);
+  *out=sasl_ALLOC((unsigned) len + 1);
   if (! *out) return SASL_NOMEM;
   strcpy((char *) *out, in);
   return SASL_OK;
@@ -226,7 +226,7 @@ int sasl_encodev(sasl_conn_t *conn,
 	if(result != SASL_OK) INTERROR(conn, result);
        
 	*output = conn->encode_buf->data;
-	*outputlen = conn->encode_buf->curlen;
+	*outputlen = (unsigned) conn->encode_buf->curlen;
 
     } else {
 	result = conn->oparams.encode(conn->context, invec, numiov,
@@ -729,12 +729,12 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
 	      ((sasl_client_conn_t *)conn)->cparams->ipremoteport
 		  = conn->ipremoteport;
 	      ((sasl_client_conn_t *)conn)->cparams->ipremlen =
-		  strlen(conn->ipremoteport);
+		  (unsigned) strlen(conn->ipremoteport);
 	  } else if (conn->type == SASL_CONN_SERVER) {
 	      ((sasl_server_conn_t *)conn)->sparams->ipremoteport
 		  = conn->ipremoteport;
 	      ((sasl_server_conn_t *)conn)->sparams->ipremlen =
-		  strlen(conn->ipremoteport);
+		  (unsigned) strlen(conn->ipremoteport);
 	  }
       } else {
 	  if(conn->type == SASL_CONN_CLIENT) {
@@ -770,12 +770,12 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
 	      ((sasl_client_conn_t *)conn)->cparams->iplocalport
 		  = conn->iplocalport;
 	      ((sasl_client_conn_t *)conn)->cparams->iploclen
-		  = strlen(conn->iplocalport);
+		  = (unsigned) strlen(conn->iplocalport);
 	  } else if (conn->type == SASL_CONN_SERVER) {
 	      ((sasl_server_conn_t *)conn)->sparams->iplocalport
 		  = conn->iplocalport;
 	      ((sasl_server_conn_t *)conn)->sparams->iploclen
-		  = strlen(conn->iplocalport);
+		  = (unsigned) strlen(conn->iplocalport);
 	  }
       } else {
 	  if(conn->type == SASL_CONN_CLIENT) {
@@ -870,7 +870,7 @@ const char *sasl_errdetail(sasl_conn_t *conn)
     snprintf(leader,128,"SASL(%d): %s: ",
 	     sasl_usererr(conn->error_code), errstr);
     
-    need_len = strlen(leader) + strlen(conn->error_buf) + 12;
+    need_len = (unsigned) (strlen(leader) + strlen(conn->error_buf) + 12);
     _buf_alloc(&conn->errdetail_buf, &conn->errdetail_buf_len, need_len);
 
     snprintf(conn->errdetail_buf, need_len, "%s%s", leader, conn->error_buf);
@@ -913,7 +913,7 @@ static int _sasl_global_getopt(void *context,
   /* look it up in our configuration file */
   *result = sasl_config_getstring(option, NULL);
   if (*result != NULL) {
-      if (len) { *len = strlen(*result); }
+      if (len) { *len = (unsigned) strlen(*result); }
       return SASL_OK;
   }
 
@@ -1526,7 +1526,7 @@ _sasl_find_verifyfile_callback(const sasl_callback_t *callbacks)
 int _buf_alloc(char **rwbuf, size_t *curlen, size_t newlen) 
 {
     if(!(*rwbuf)) {
-	*rwbuf = sasl_ALLOC(newlen);
+	*rwbuf = sasl_ALLOC((unsigned)newlen);
 	if (*rwbuf == NULL) {
 	    *curlen = 0;
 	    return SASL_NOMEM;
@@ -1538,7 +1538,7 @@ int _buf_alloc(char **rwbuf, size_t *curlen, size_t newlen)
 	while(needed < newlen)
 	    needed *= 2;
 
-	*rwbuf = sasl_REALLOC(*rwbuf, needed);
+	*rwbuf = sasl_REALLOC(*rwbuf, (unsigned)needed);
 	
 	if (*rwbuf == NULL) {
 	    *curlen = 0;

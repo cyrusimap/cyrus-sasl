@@ -1,6 +1,6 @@
 /* windlopen.c--Windows dynamic loader interface
  * Ryan Troll
- * $Id: windlopen.c,v 1.15 2003/02/13 19:55:55 rjs3 Exp $
+ * $Id: windlopen.c,v 1.16 2003/10/20 15:19:59 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -168,7 +168,7 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
     int position;
     const add_plugin_list_t *cur_ep;
     struct stat statbuf;		/* filesystem entry information */
-    long fhandle;			/* file handle for _findnext function */
+    intptr_t fhandle;			/* file handle for _findnext function */
     struct _finddata_t finddata;	/* data returned by _findnext() */
     size_t prefix_len;
 

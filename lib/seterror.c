@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * split from common.c by Rolf Braun
- * $Id: seterror.c,v 1.7 2003/02/13 19:55:55 rjs3 Exp $
+ * $Id: seterror.c,v 1.8 2003/10/20 15:19:59 rjs3 Exp $
  */
 
 /* 
@@ -105,8 +105,8 @@ void sasl_seterror(sasl_conn_t *conn,
 		   const char *fmt, ...) 
 {
   size_t outlen=0; /* current length of output buffer */
-  int pos=0; /* current position in format string */
-  int formatlen;
+  size_t pos = 0; /* current position in format string */
+  size_t formatlen;
   int result;
   sasl_log_t *log_cb;
   void *log_ctx;

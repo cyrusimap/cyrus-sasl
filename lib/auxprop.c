@@ -1,6 +1,6 @@
 /* auxprop.c - auxilliary property support
  * Rob Siemborski
- * $Id: auxprop.c,v 1.12 2003/08/18 15:47:17 rjs3 Exp $
+ * $Id: auxprop.c,v 1.13 2003/10/20 15:19:58 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -162,14 +162,15 @@ int prop_dup(struct propctx *src_ctx, struct propctx **dst_ctx)
     struct propctx *retval = NULL;
     unsigned i;
     int result;
-    size_t total_size = 0, values_size;
+    unsigned total_size = 0;
+    size_t values_size;
     
     if(!src_ctx || !dst_ctx) return SASL_BADPARAM;
 
     /* What is the total allocated size of src_ctx? */
     pool = src_ctx->mem_base;
     while(pool) {
-	total_size += pool->size;
+	total_size += (unsigned) pool->size;
 	pool = pool->next;
     }
 
@@ -256,7 +257,7 @@ int prop_request(struct propctx *ctx, const char **names)
 	unsigned max_in_pool;
 
 	/* Do we need a larger base pool? */
-	max_in_pool = ctx->mem_base->size / sizeof(struct propval);
+	max_in_pool = (unsigned) (ctx->mem_base->size / sizeof(struct propval));
 	
 	if(total_values <= max_in_pool) {
 	    /* Don't increase the size of the base pool, just use what
@@ -477,14 +478,17 @@ int prop_format(struct propctx *ctx, const char *sep, int seplen,
     unsigned needed, flag = 0;
     struct propval *val;
     
-    if(!ctx || !outbuf) return SASL_BADPARAM;
+    if (!ctx || !outbuf) return SASL_BADPARAM;
 
-    if(!sep) seplen = 0;    
-    if(seplen < 0) seplen = strlen(sep);
+    if (!sep) seplen = 0;    
+    if (seplen < 0) seplen = (int) strlen(sep);
+/* If seplen is negative now we have overflow.
+   But if you have a string longer than 2Gb, you are an idiot anyway */
+    if (seplen < 0) return SASL_BADPARAM;
 
     needed = seplen * (ctx->used_values - 1);
     for(val = ctx->values; val->name; val++) {
-	needed += strlen(val->name);
+	needed += (unsigned) strlen(val->name);
     }
     
     if(!outmax) return (needed + 1); /* Because of unsigned funkiness */
@@ -640,7 +644,7 @@ int prop_set(struct propctx *ctx, const char *name,
 	cur->values[nvalues - 2] = ctx->data_end;
 
 	cur->nvalues++;
-	cur->valsize += (size - 1);
+	cur->valsize += ((unsigned) size - 1);
     } else /* Appending an entry */ {
 	char **tmp;
 	size_t size;
@@ -702,7 +706,7 @@ int prop_set(struct propctx *ctx, const char *name,
 	*tmp = ctx->data_end;
 
 	cur->nvalues++;
-	cur->valsize += (size - 1);
+	cur->valsize += ((unsigned) size - 1);
     }
     
     return SASL_OK;
@@ -925,7 +929,7 @@ int sasl_auxprop_store(sasl_conn_t *conn,
 	    return SASL_BADPARAM;
 
 	sparams = ((sasl_server_conn_t *) conn)->sparams;
-	userlen = strlen(user);
+	userlen = (unsigned) strlen(user);
     }
     
     if(_sasl_getcallback(NULL, SASL_CB_GETOPT, &getopt, &context) == SASL_OK) {

@@ -1,6 +1,6 @@
 /* canonusr.c - user canonicalization support
  * Rob Siemborski
- * $Id: canonusr.c,v 1.13 2003/09/30 18:38:34 rjs3 Exp $
+ * $Id: canonusr.c,v 1.14 2003/10/20 15:19:58 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -270,7 +270,7 @@ static int _canonuser_internal(const sasl_utils_t *utils,
     unsigned i;
     char *in_buf, *userin;
     const char *begin_u;
-    unsigned u_apprealm = 0;
+    size_t u_apprealm = 0;
     sasl_server_conn_t *sconn = NULL;
 
     if(!utils || !user) return SASL_BADPARAM;

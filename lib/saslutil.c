@@ -1,7 +1,7 @@
 /* saslutil.c
  * Rob Siemborski
  * Tim Martin
- * $Id: saslutil.c,v 1.41 2003/03/19 18:25:28 rjs3 Exp $
+ * $Id: saslutil.c,v 1.42 2003/10/20 15:19:58 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -237,7 +237,7 @@ int sasl_mkchal(sasl_conn_t *conn,
     + (2 * 20);			/* 2 numbers, 20 => max size of 64bit
 				 * ulong in base 10 */
   if (hostflag && conn->serverFQDN)
-    len += strlen(conn->serverFQDN) + 1 /* for the @ */;
+    len += (unsigned) strlen(conn->serverFQDN) + 1 /* for the @ */;
 
   if (maxlen < len)
     return 0;
@@ -255,7 +255,7 @@ int sasl_mkchal(sasl_conn_t *conn,
   else
     snprintf(buf,maxlen, "<%lu.%lu>", randnum, now);
 
-  return strlen(buf);
+  return (int) strlen(buf);
 }
 
   /* borrowed from larry. probably works :)

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.130 2003/09/18 17:33:49 ken3 Exp $
+ * $Id: server.c,v 1.131 2003/10/20 15:19:58 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -433,9 +433,9 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
   int result;
   const char *path_to_config=NULL;
   const char *c;
-  unsigned path_len;
+  size_t path_len;
   char *config_filename=NULL;
-  int len;
+  size_t len;
   const sasl_callback_t *getpath_cb=NULL;
 
   /* get the path to the plugins; for now the config file will reside there */
@@ -467,7 +467,7 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
   }
 
   /* construct the filename for the config file */
-  config_filename = sasl_ALLOC(len);
+  config_filename = sasl_ALLOC((unsigned)len);
   if (! config_filename) {
       result = SASL_NOMEM;
       goto done;
@@ -872,17 +872,17 @@ int sasl_server_new(const char *service,
   }
 
   serverconn->sparams->service = (*pconn)->service;
-  serverconn->sparams->servicelen = strlen((*pconn)->service);
+  serverconn->sparams->servicelen = (unsigned) strlen((*pconn)->service);
 
   serverconn->sparams->appname = global_callbacks.appname;
-  serverconn->sparams->applen = strlen(global_callbacks.appname);
+  serverconn->sparams->applen = (unsigned) strlen(global_callbacks.appname);
 
   serverconn->sparams->serverFQDN = (*pconn)->serverFQDN;
-  serverconn->sparams->slen = strlen((*pconn)->serverFQDN);
+  serverconn->sparams->slen = (unsigned) strlen((*pconn)->serverFQDN);
 
   if (user_realm) {
       result = _sasl_strdup(user_realm, &serverconn->user_realm, NULL);
-      serverconn->sparams->urlen = strlen(user_realm);
+      serverconn->sparams->urlen = (unsigned) strlen(user_realm);
       serverconn->sparams->user_realm = serverconn->user_realm;
   } else {
       serverconn->user_realm = NULL;
@@ -1096,7 +1096,7 @@ static int do_authorization(sasl_server_conn_t *s_conn)
 		   s_conn->base.oparams.user, s_conn->base.oparams.ulen,
 		   s_conn->base.oparams.authid, s_conn->base.oparams.alen,
 		   s_conn->user_realm,
-		   (s_conn->user_realm ? strlen(s_conn->user_realm) : 0),
+		   (s_conn->user_realm ? (unsigned) strlen(s_conn->user_realm) : 0),
 		   s_conn->sparams->propctx);
 
     RETURN(&s_conn->base, ret);
@@ -1401,7 +1401,7 @@ static unsigned mech_names_len()
   for (listptr = mechlist->mech_list;
        listptr;
        listptr = listptr->next)
-    result += strlen(listptr->plug->mech_name);
+    result += (unsigned) strlen(listptr->plug->mech_name);
 
   return result;
 }
@@ -1422,7 +1422,7 @@ int _sasl_server_listmech(sasl_conn_t *conn,
   int lup;
   mechanism_t *listptr;
   int ret;
-  int resultlen;
+  size_t resultlen;
   int flag;
   const char *mysep;
 
@@ -1490,7 +1490,7 @@ int _sasl_server_listmech(sasl_conn_t *conn,
       strcat(conn->mechlist_buf,suffix);
 
   if (plen!=NULL)
-      *plen=strlen(conn->mechlist_buf);
+      *plen = (unsigned) strlen(conn->mechlist_buf);
 
   *result = conn->mechlist_buf;
 
@@ -1536,7 +1536,7 @@ sasl_string_list_t *_sasl_server_mechs(void)
 #define EOSTR(s,n) (((s)[n] == '\0') || ((s)[n] == ' ') || ((s)[n] == '\t'))
 static int is_mech(const char *t, const char *m)
 {
-    int sl = strlen(m);
+    size_t sl = strlen(m);
     return ((!strncasecmp(m, t, sl)) && EOSTR(t, sl));
 }
 
@@ -1556,8 +1556,8 @@ static int _sasl_checkpass(sasl_conn_t *conn,
     struct sasl_verify_password_s *v;
     const char *service = conn->service;
 
-    if (!userlen) userlen = strlen(user);
-    if (!passlen) passlen = strlen(pass);
+    if (!userlen) userlen = (unsigned) strlen(user);
+    if (!passlen) passlen = (unsigned) strlen(pass);
 
     /* call userdb callback function, if available */
     result = _sasl_getcallback(conn, SASL_CB_SERVER_USERDB_CHECKPASS,

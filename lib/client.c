@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.61 2003/04/16 19:36:00 rjs3 Exp $
+ * $Id: client.c,v 1.62 2003/10/20 15:19:58 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -574,13 +574,13 @@ int sasl_client_start(sasl_conn_t *conn,
 
     /* make (the rest of) cparams */
     c_conn->cparams->service = conn->service;
-    c_conn->cparams->servicelen = strlen(conn->service);
+    c_conn->cparams->servicelen = (unsigned) strlen(conn->service);
     
     c_conn->cparams->serverFQDN = conn->serverFQDN; 
-    c_conn->cparams->slen = strlen(conn->serverFQDN);
+    c_conn->cparams->slen = (unsigned) strlen(conn->serverFQDN);
 
     c_conn->cparams->clientFQDN = c_conn->clientFQDN; 
-    c_conn->cparams->clen = strlen(c_conn->clientFQDN);
+    c_conn->cparams->clen = (unsigned) strlen(c_conn->clientFQDN);
 
     c_conn->cparams->external_ssf = conn->external.ssf;
     c_conn->cparams->props = conn->props;
@@ -696,7 +696,7 @@ static unsigned mech_names_len()
   for (listptr = cmechlist->mech_list;
        listptr;
        listptr = listptr->next)
-    result += strlen(listptr->plug->mech_name);
+    result += (unsigned) strlen(listptr->plug->mech_name);
 
   return result;
 }
@@ -713,7 +713,7 @@ int _sasl_client_listmech(sasl_conn_t *conn,
     cmechanism_t *m=NULL;
     sasl_ssf_t minssf = 0;
     int ret;
-    unsigned int resultlen;
+    size_t resultlen;
     int flag;
     const char *mysep;
 
@@ -806,7 +806,7 @@ int _sasl_client_listmech(sasl_conn_t *conn,
       strcat(conn->mechlist_buf,suffix);
 
   if (plen!=NULL)
-      *plen=strlen(conn->mechlist_buf);
+      *plen = (unsigned) strlen(conn->mechlist_buf);
 
   *result = conn->mechlist_buf;
 

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: external.c,v 1.19 2003/04/08 17:30:54 rjs3 Exp $
+ * $Id: external.c,v 1.20 2003/10/20 15:19:58 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -57,7 +57,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: external.c,v 1.19 2003/04/08 17:30:54 rjs3 Exp $";
+static const char plugin_id[] = "$Id: external.c,v 1.20 2003/10/20 15:19:58 rjs3 Exp $";
 
 /*****************************  Server Section  *****************************/
 
@@ -301,7 +301,7 @@ external_client_mech_step(void *conn_context,
 	return SASL_INTERACT;
     }
     
-    *clientoutlen = user ? strlen(user) : 0;
+    *clientoutlen = user ? (unsigned) strlen(user) : 0;
     
     result = _buf_alloc(&text->out_buf, &text->out_buf_len, *clientoutlen + 1);
     

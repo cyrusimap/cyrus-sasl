@@ -259,7 +259,7 @@ BEGIN
             VALUE "FileDescription", "CMU SASL $(@B) plugin\0"
             VALUE "FileVersion", "$(SASL_VERSION_MAJOR).$(SASL_VERSION_MINOR).$(SASL_VERSION_STEP).0\0"
             VALUE "InternalName", "$(@B)\0"
-            VALUE "LegalCopyright", "Copyright (c) Carnegie Mellon University 2004\0"
+            VALUE "LegalCopyright", "Copyright (c) Carnegie Mellon University 2005\0"
             VALUE "OriginalFilename", "$(@B).dll\0"
             VALUE "ProductName", "Carnegie Mellon University SASL\0"
             VALUE "ProductVersion", "$(SASL_VERSION_MAJOR).$(SASL_VERSION_MINOR).$(SASL_VERSION_STEP)-0"

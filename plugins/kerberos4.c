@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.77 2002/04/18 18:19:31 rjs3 Exp $
+ * $Id: kerberos4.c,v 1.78 2002/04/26 19:23:05 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -269,10 +269,10 @@ static int kerberosv4_decode_once(void *context,
 				  const char **input, unsigned *inputlen,
 				  char **output, unsigned *outputlen)
 {
+    context_t *text = (context_t *) context;
     int tocopy, result;
     unsigned diff;
     MSG_DAT data;
-    context_t *text=context;
 
     if (text->needsize>0) { /* 4 bytes for how long message is */
 	/* if less than 4 bytes just copy those we have into text->size */
@@ -390,37 +390,16 @@ static int kerberosv4_decode(void *context,
 			     const char *input, unsigned inputlen,
 			     const char **output, unsigned *outputlen)
 {
-    char *tmp = NULL;
-    unsigned tmplen = 0;
-    context_t *text=context;
+    context_t *text = (context_t *) context;
     int ret;
-    
-    *outputlen = 0;
 
-    while (inputlen!=0)
-    {
-      /* No need to free tmp, it will be reused */
-      ret = kerberosv4_decode_once(text, &input, &inputlen, &tmp, &tmplen);
-      if(ret != SASL_OK) return ret;
+    ret = _plug_decode(text->utils, context, input, inputlen,
+		       &text->decode_buf, &text->decode_buf_len, outputlen,
+		       kerberosv4_decode_once);
 
-      if (tmp!=NULL) /* if received 2 packets merge them together */
-      {
-	  ret = _plug_buf_alloc(text->utils, &text->decode_buf,
-				&text->decode_buf_len,
-				*outputlen + tmplen + 1);
-	  if(ret != SASL_OK) return ret;
+    *output = text->decode_buf;
 
-	  *output = text->decode_buf;
-	  memcpy(text->decode_buf + *outputlen, tmp, tmplen);
-
-	  /* Protect stupid clients */
-	  *(text->decode_buf + *outputlen + tmplen) = '\0';	  
-
-	  *outputlen+=tmplen;
-      }
-    }
-
-    return SASL_OK;
+    return ret;
 }
 
 static int

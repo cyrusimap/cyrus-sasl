@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.c,v 1.3 2002/04/26 18:02:23 ken3 Exp $
+ * $Id: plugin_common.c,v 1.4 2002/04/26 19:23:05 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -352,6 +352,9 @@ int _plug_get_simple(sasl_client_params_t *params, unsigned int id,
     return ret;
 }
 
+/*
+ * Retrieve a user secret.
+ */
 int _plug_get_secret(sasl_client_params_t *params, sasl_secret_t **secret,
 		     unsigned int *iscopy, sasl_interact_t **prompt_need)
 {
@@ -406,4 +409,49 @@ int _plug_get_secret(sasl_client_params_t *params, sasl_secret_t **secret,
     }
 
     return ret;
+}
+
+/*
+ * Decode and concatenate multiple packets using the given function
+ * to decode each packet.
+ */
+int _plug_decode(const sasl_utils_t *utils,
+		 void *context,
+		 const char *input, unsigned inputlen,
+		 char **output,		/* output buffer */
+		 unsigned *outputsize,	/* current size of output buffer */
+		 unsigned *outputlen,	/* length of data in output buffer */
+		 int (*decode_pkt)(void *context,
+				   const char **input, unsigned *inputlen,
+				   char **output, unsigned *outputlen))
+{
+    char *tmp = NULL;
+    unsigned tmplen = 0;
+    int ret;
+    
+    *outputlen = 0;
+
+    while (inputlen!=0)
+    {
+	/* no need to free tmp */
+      ret = decode_pkt(context, &input, &inputlen, &tmp, &tmplen);
+
+      if(ret != SASL_OK) return ret;
+
+      if (tmp!=NULL) /* if received 2 packets merge them together */
+      {
+	  ret = _plug_buf_alloc(utils, output, outputsize,
+				*outputlen + tmplen + 1);
+	  if(ret != SASL_OK) return ret;
+
+	  memcpy(*output + *outputlen, tmp, tmplen);
+
+	  /* Protect stupid clients */
+	  *(*output + *outputlen + tmplen) = '\0';
+
+	  *outputlen+=tmplen;
+      }
+    }
+
+    return SASL_OK;    
 }

@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.33 2002/04/26 18:02:23 ken3 Exp $
+ * $Id: srp.c,v 1.34 2002/04/26 19:23:05 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -380,12 +380,14 @@ static int srp_encode(void *context,
   return SASL_OK;
 }
 
-static int srp_decode_once(context_t *text,
+/* decode a single SRP packet */
+static int srp_decode_once(void *context,
 			   const char **input,
 			   unsigned *inputlen,
 			   char **output,
 			   unsigned *outputlen)
 {
+    context_t *text = (context_t *) context;
     int tocopy;
     unsigned diff;
     int ret;
@@ -555,42 +557,21 @@ static int srp_decode_once(context_t *text,
     return SASL_OK;
 }
 
+/* decode and concatenate multiple SRP packets */
 static int srp_decode(void *context,
 		      const char *input, unsigned inputlen,
 		      const char **output, unsigned *outputlen)
 {
-    char *tmp = NULL;
-    unsigned tmplen = 0;
-    context_t *text=context;
+    context_t *text = (context_t *) context;
     int ret;
-    
-    *outputlen = 0;
 
-    while (inputlen!=0)
-    {
-	/* no need to free tmp */
-      ret = srp_decode_once(text, &input, &inputlen, &tmp, &tmplen);
+    ret = _plug_decode(text->utils, context, input, inputlen,
+		       &text->decode_buf, &text->decode_buf_len, outputlen,
+		       srp_decode_once);
 
-      if(ret != SASL_OK) return ret;
+    *output = text->decode_buf;
 
-      if (tmp!=NULL) /* if received 2 packets merge them together */
-      {
-	  ret = _plug_buf_alloc(text->utils, &(text->decode_buf),
-				&(text->decode_buf_len),
-				*outputlen + tmplen + 1);
-	  if(ret != SASL_OK) return ret;
-
-	  *output = text->decode_buf;
-	  memcpy(text->decode_buf + *outputlen, tmp, tmplen);
-
-	  /* Protect stupid clients */
-	  *(text->decode_buf + *outputlen + tmplen) = '\0';
-
-	  *outputlen+=tmplen;
-      }
-    }
-
-    return SASL_OK;    
+    return ret;
 }
 
 /*******************************************

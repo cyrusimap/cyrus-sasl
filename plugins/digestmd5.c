@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.114 2002/04/26 18:02:22 ken3 Exp $
+ * $Id: digestmd5.c,v 1.115 2002/04/26 19:23:04 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1432,12 +1432,13 @@ digestmd5_privacy_encode(void *context,
 }
 
 static int
-digestmd5_privacy_decode_once(context_t *text,
+digestmd5_privacy_decode_once(void *context,
 			      const char **input,
 			      unsigned *inputlen,
 			      char **output,
 			      unsigned *outputlen)
 {
+    context_t *text = (context_t *) context;
     int tocopy;
     unsigned diff;
     int result;
@@ -1592,39 +1593,16 @@ static int digestmd5_privacy_decode(void *context,
 				    const char *input, unsigned inputlen,
 				    const char **output, unsigned *outputlen)
 {
-    char *tmp = NULL;
-    unsigned tmplen = 0;
-    context_t *text=context;
+    context_t *text = (context_t *) context;
     int ret;
     
-    *outputlen = 0;
+    ret = _plug_decode(text->utils, context, input, inputlen,
+		       &text->decode_buf, &text->decode_buf_len, outputlen,
+		       digestmd5_privacy_decode_once);
 
-    while (inputlen!=0)
-    {
-	/* no need to free tmp */
-      ret = digestmd5_privacy_decode_once(text, &input, &inputlen,
-					  &tmp, &tmplen);
+    *output = text->decode_buf;
 
-      if(ret != SASL_OK) return ret;
-
-      if (tmp!=NULL) /* if received 2 packets merge them together */
-      {
-	  ret = _plug_buf_alloc(text->utils, &text->decode_buf,
-				&text->decode_buf_len,
-				*outputlen + tmplen + 1);
-	  if(ret != SASL_OK) return ret;
-
-	  *output = text->decode_buf;
-	  memcpy(text->decode_buf + *outputlen, tmp, tmplen);
-
-	  /* Protect stupid clients */
-	  *(text->decode_buf + *outputlen + tmplen) = '\0';	  
-
-	  *outputlen+=tmplen;
-      }
-    }
-
-    return SASL_OK;
+    return ret;
 }
 
 static int
@@ -1779,8 +1757,8 @@ digestmd5_integrity_decode_once(void *context,
 				char **output,
 				unsigned *outputlen)
 {
+  context_t      *text = (context_t *) context;
   int             tocopy;
-  context_t      *text = context;
   unsigned        diff;
   int             result;
 
@@ -1858,39 +1836,16 @@ static int digestmd5_integrity_decode(void *context,
 				      const char *input, unsigned inputlen,
 				      const char **output, unsigned *outputlen)
 {
-    char *tmp = NULL;
-    unsigned tmplen = 0;
-    context_t *text=context;
+    context_t *text = (context_t *) context;
     int ret;
     
-    *outputlen = 0;
+    ret = _plug_decode(text->utils, context, input, inputlen,
+		       &text->decode_buf, &text->decode_buf_len, outputlen,
+		       digestmd5_integrity_decode_once);
 
-    while (inputlen!=0)
-    {
-	/* no need to free tmp */
-      ret = digestmd5_integrity_decode_once(text, &input, &inputlen,
-					    &tmp, &tmplen);
+    *output = text->decode_buf;
 
-      if(ret != SASL_OK) return ret;
-
-      if (tmp!=NULL) /* if received 2 packets merge them together */
-      {
-	  ret = _plug_buf_alloc(text->utils, &text->decode_buf,
-				&text->decode_buf_len,
-				*outputlen + tmplen + 1);
-	  if(ret != SASL_OK) return ret;
-
-	  *output = text->decode_buf;
-	  memcpy(text->decode_buf + *outputlen, tmp, tmplen);
-
-	  /* Protect stupid clients */
-	  *(text->decode_buf + *outputlen + tmplen) = '\0';
-
-	  *outputlen+=tmplen;
-      }
-    }
-
-    return SASL_OK;
+    return ret;
 }
 
 static int digestmd5_server_mech_new(void *glob_context __attribute__((unused)),

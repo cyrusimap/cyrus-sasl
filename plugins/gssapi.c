@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.57 2002/04/26 18:02:22 ken3 Exp $
+ * $Id: gssapi.c,v 1.58 2002/04/26 19:23:04 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -462,39 +462,16 @@ static int gssapi_decode(void *context,
 			 const char *input, unsigned inputlen,
 			 const char **output, unsigned *outputlen)
 {
-    char *tmp = NULL;
-    unsigned tmplen = 0;
-    context_t *text=context;
+    context_t *text = (context_t *) context;
     int ret;
-    
-    *outputlen = 0;
 
-    while (inputlen!=0)
-    {
-	/* no need to free tmp */
-      ret = gssapi_decode_once(text, &input, &inputlen,
-			       &tmp, &tmplen);
+    ret = _plug_decode(text->utils, context, input, inputlen,
+		       &text->decode_buf, &text->decode_buf_len, outputlen,
+		       gssapi_decode_once);
 
-      if(ret != SASL_OK) return ret;
+    *output = text->decode_buf;
 
-      if (tmp!=NULL) /* if received 2 packets merge them together */
-      {
-	  ret = _plug_buf_alloc(text->utils, &(text->decode_buf),
-				&(text->decode_buf_len),
-				*outputlen + tmplen + 1);
-	  if(ret != SASL_OK) return ret;
-
-	  *output = text->decode_buf;
-	  memcpy(text->decode_buf + *outputlen, tmp, tmplen);
-
-	  /* Protect stupid clients */
-	  *(text->decode_buf + *outputlen + tmplen) = '\0';
-
-	  *outputlen+=tmplen;
-      }
-    }
-
-    return SASL_OK;    
+    return ret;
 }
 
 static context_t *gss_new_context(const sasl_utils_t *utils)

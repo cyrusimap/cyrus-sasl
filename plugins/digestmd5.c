@@ -2005,6 +2005,17 @@ dispose(void *conn_context, sasl_utils_t * utils)
     utils->free(text->userid);
   }
   
+#ifdef WITH_RC4
+  if (text->rc4_enc_context!=NULL)
+  {
+      utils->free(text->rc4_enc_context);
+  }
+  
+  if (text->rc4_dec_context!=NULL)
+  {
+      utils->free(text->rc4_dec_context);
+  }
+#endif /* WITH_RC4 */
 
   utils->free(conn_context);
 }
@@ -2678,6 +2689,9 @@ server_continue_step(void *conn_context,
     }
     if (qop!=NULL) {
 	sparams->utils->free (qop);  
+    }
+    if (cipher!=NULL) {
+	sparams->utils->free (cipher);
     }
 
     if (result == SASL_CONTINUE)

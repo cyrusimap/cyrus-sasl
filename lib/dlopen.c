@@ -1,7 +1,7 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Siemborski
  * Rob Earhart
- * $Id: dlopen.c,v 1.44 2003/02/13 19:55:54 rjs3 Exp $
+ * $Id: dlopen.c,v 1.45 2003/07/14 20:08:50 rbraun Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -165,7 +165,7 @@ int _sasl_locate_entry(void *library, const char *entryname,
 #ifdef DO_DLOPEN
 /* note that we still check for known problem systems in
  * case we are cross-compiling */
-#if defined(DLSYM_NEEDS_UNDERSCORE) || defined(__OpenBSD__) || defined(__APPLE__)
+#if defined(DLSYM_NEEDS_UNDERSCORE) || defined(__OpenBSD__)
     char adj_entryname[1024];
 #else
 #define adj_entryname entryname
@@ -189,7 +189,7 @@ int _sasl_locate_entry(void *library, const char *entryname,
 	return SASL_BADPARAM;
     }
 
-#if defined(DLSYM_NEEDS_UNDERSCORE) || defined(__OpenBSD__) || defined(__APPLE__)
+#if defined(DLSYM_NEEDS_UNDERSCORE) || defined(__OpenBSD__)
     snprintf(adj_entryname, sizeof adj_entryname, "_%s", entryname);
 #endif
 

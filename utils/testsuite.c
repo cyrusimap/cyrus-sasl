@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.33 2003/03/28 19:59:45 rjs3 Exp $
+ * $Id: testsuite.c,v 1.34 2003/04/15 17:25:26 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -589,25 +589,27 @@ void test_init(void)
 
     /* sasl_done() before anything */
     sasl_done();
+    if(mem_stat() != SASL_OK) fatal("memory error after sasl_done test");
 
     /* Try passing appname a really long string (just see if it crashes it)*/
 
     result = sasl_server_init(NULL,really_long_string);
     sasl_done();
+    if(mem_stat() != SASL_OK) fatal("memory error after long appname test");
 
     /* try passing NULL name */
     result = sasl_server_init(emptysasl_cb, NULL);
-
     if (result == SASL_OK) fatal("Allowed null name to sasl_server_init");
 
     /* this calls sasl_done when it wasn't inited */
     sasl_done();
+    if(mem_stat() != SASL_OK) fatal("memory error after null appname test");
 
     /* try giving it a different path for where the plugins are */
     result = sasl_server_init(withokpathsasl_cb, "Tester");
-
     if (result!=SASL_OK) fatal("Didn't deal with ok callback path very well");
     sasl_done();
+    if(mem_stat() != SASL_OK) fatal("memory error after callback path test");
 
     /* and the client */
     result = sasl_client_init(withokpathsasl_cb);
@@ -615,12 +617,14 @@ void test_init(void)
     if (result!=SASL_OK)
 	fatal("Client didn't deal with ok callback path very well");
     sasl_done();
+    if(mem_stat() != SASL_OK) fatal("memory error after client test");
 
     /* try giving it an invalid path for where the plugins are */
     result = sasl_server_init(withbadpathsasl_cb, NULL);
 
     if (result==SASL_OK) fatal("Allowed invalid path");
     sasl_done();
+    if(mem_stat() != SASL_OK) fatal("memory error after bad path test");
 
     /* and the client - xxx is this necessary?*/
 #if 0

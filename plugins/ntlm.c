@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.8 2003/08/26 00:10:35 ken3 Exp $
+ * $Id: ntlm.c,v 1.9 2003/08/26 18:14:50 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -68,7 +68,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.8 2003/08/26 00:10:35 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.9 2003/08/26 18:14:50 ken3 Exp $";
 
 #define NTLM_SIGNATURE		"NTLMSSP"
 
@@ -1173,7 +1173,7 @@ static int ntlm_server_mech_step1(server_context_t *text,
     sparams->utils->log(NULL, SASL_LOG_DEBUG,
 			"client flags: %x", text->flags);
 
-    text->flags &= NTLM_FLAGS_MASK;
+    text->flags &= NTLM_FLAGS_MASK; /* mask off the bits we don't support */
 
     /* if client can do Unicode, turn off ASCII */
     if (text->flags & NTLM_USE_UNICODE) text->flags &= ~NTLM_USE_ASCII;
@@ -1459,8 +1459,8 @@ static int create_request(const sasl_utils_t *utils,
 {
     ntlm_request_t *req;
     uint32 type = NTLM_REQUEST;
-    uint32 flags = NTLM_USE_UNICODE | NTLM_USE_ASCII |
-	NTLM_ASK_TARGET | NTLM_AUTH_NTLM | NTLM_ALWAYS_SIGN;
+    uint32 flags = (NTLM_USE_UNICODE | NTLM_USE_ASCII | 
+		    NTLM_ASK_TARGET | NTLM_AUTH_NTLM);
     uint32 offset = sizeof(ntlm_request_t);
 
     *outlen = sizeof(ntlm_request_t) + xstrlen(domain) + xstrlen(wkstn);
@@ -1496,13 +1496,15 @@ static int create_response(const sasl_utils_t *utils,
     uint32 type = NTLM_RESPONSE;
     uint32 offset = sizeof(ntlm_response_t);
 
-    if (!lm_resp || !nt_resp) {
-	SETERROR(utils, "need NTLM responses");
+    if (!lm_resp && !nt_resp) {
+	SETERROR(utils, "need at least one NT/LM response");
 	return SASL_FAIL;
     }
 
-    *outlen = sizeof(ntlm_response_t) + 2*NTLM_RESP_LENGTH + 
-	2*xstrlen(domain) + 2*xstrlen(user) + 2*xstrlen(wkstn);
+    *outlen = sizeof(ntlm_response_t) + 2*xstrlen(domain) +
+	2*xstrlen(user) + 2*xstrlen(wkstn);
+    if (lm_resp) *outlen += NTLM_RESP_LENGTH;
+    if (nt_resp) *outlen += NTLM_RESP_LENGTH;
     if (key) *outlen += NTLM_SESSKEY_LENGTH;
 
     if (_plug_buf_alloc(utils, &text->out_buf, &text->out_buf_len,
@@ -1515,9 +1517,9 @@ static int create_response(const sasl_utils_t *utils,
     memcpy(resp->sig, NTLM_SIGNATURE, sizeof(NTLM_SIGNATURE));
     UINT32_TO_INTEL(type, resp->type);
 
-    load_buffer(&resp->lm_resp, lm_resp, NTLM_RESP_LENGTH, 0,
+    load_buffer(&resp->lm_resp, lm_resp, lm_resp ? NTLM_RESP_LENGTH : 0, 0,
 		(u_char *) resp, &offset);
-    load_buffer(&resp->nt_resp, nt_resp, NTLM_RESP_LENGTH, 0,
+    load_buffer(&resp->nt_resp, nt_resp, nt_resp ? NTLM_RESP_LENGTH : 0, 0,
 		(u_char *) resp, &offset);
     load_buffer(&resp->domain, ucase(domain, 0), xstrlen(domain),
 		flags & NTLM_USE_UNICODE,
@@ -1604,7 +1606,7 @@ static int ntlm_client_mech_step2(client_context_t *text,
     int pass_result = SASL_OK;
     uint32 flags = 0;
     unsigned char hash[NTLM_HASH_LENGTH];
-    unsigned char lm_resp[NTLM_RESP_LENGTH], nt_resp[NTLM_RESP_LENGTH];
+    unsigned char resp[NTLM_RESP_LENGTH], *lm_resp = NULL, *nt_resp = NULL;
     int result;
 
     if (!challenge || serverinlen < sizeof(ntlm_challenge_t)) {
@@ -1658,16 +1660,31 @@ static int ntlm_client_mech_step2(client_context_t *text,
     if (result != SASL_OK) goto cleanup;
 
     UINT32_FROM_INTEL(challenge->flags, flags);
-    flags &= NTLM_FLAGS_MASK;
+    params->utils->log(NULL, SASL_LOG_DEBUG,
+		       "server flags: %x", flags);
+
+    flags &= NTLM_FLAGS_MASK; /* mask off the bits we don't support */
 
     result = unload_buffer(params->utils, &challenge->domain,
 			   (u_char **) &domain, NULL,
 			   flags & NTLM_USE_UNICODE,
 			   (u_char *) challenge, serverinlen);
     if (result != SASL_OK) goto cleanup;
+    params->utils->log(NULL, SASL_LOG_DEBUG,
+		       "server domain: %s", domain);
 
-    P24(lm_resp, P21(hash, password->data, P16_lm), challenge->nonce);
-    P24(nt_resp, P21(hash, password->data, P16_nt), challenge->nonce);
+    if (flags & NTLM_AUTH_NTLM) {
+	params->utils->log(NULL, SASL_LOG_DEBUG,
+			   "calculating NT response");
+	P24(resp, P21(hash, password->data, P16_nt), challenge->nonce);
+	nt_resp = resp;
+    }
+    else {
+	params->utils->log(NULL, SASL_LOG_DEBUG,
+			   "calculating LM response");
+	P24(resp, P21(hash, password->data, P16_lm), challenge->nonce);
+	lm_resp = resp;
+    }
 
     /* we don't care about wkstn or session key */
     result = create_response(params->utils, text, lm_resp, nt_resp,

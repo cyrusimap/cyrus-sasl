@@ -1,4 +1,7 @@
-2003-08-25  Ken Murchison <ken@oceana.com>
+2003-08-26  Ken Murchison <ken@oceana.com>
+	* plugins/ntlm.c: only send one NT/LM response to server (NT preferred)
+
+2003-08-24  Ken Murchison <ken@oceana.com>
 	* plugins/ntlm.c, doc/options.html: allow NTLM authentication to
 	  be optionally proxied to an NT server (ntlm_server option)
 

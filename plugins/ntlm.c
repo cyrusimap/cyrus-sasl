@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.1 2002/09/10 17:14:47 ken3 Exp $
+ * $Id: ntlm.c,v 1.2 2002/09/10 17:40:59 ken3 Exp $
  */
 /* 
  * Copyright (c) 2002 Carnegie Mellon University.  All rights reserved.
@@ -55,26 +55,17 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.1 2002/09/10 17:14:47 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.2 2002/09/10 17:40:59 ken3 Exp $";
 
 /*****************************  Server Section  *****************************/
 
-int ntlm_server_plug_init(const sasl_utils_t *utils,
-			  int maxversion,
-			  int *out_version,
-			  sasl_server_plug_t **pluglist,
-			  int *plugcount)
+int ntlm_server_plug_init(const sasl_utils_t *utils __attribute__((unused)),
+			  int maxversion __attribute__((unused)),
+			  int *out_version __attribute__((unused)),
+			  sasl_server_plug_t **pluglist __attribute__((unused)),
+			  int *plugcount __attribute__((unused)))
 {
-    if (maxversion < SASL_SERVER_PLUG_VERSION) {
-	SETERROR(utils, "NTLM version mismatch");
-	return SASL_BADVERS;
-    }
-    
-    *out_version = SASL_SERVER_PLUG_VERSION;
-    *pluglist = NULL;
-    *plugcount = 0;
-    
-    return SASL_OK;
+    return SASL_NOMECH;
 }
 
 /*****************************  Client Section  *****************************/

@@ -1,3 +1,6 @@
+2002-07-27  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/auth_sasldb.c: Include mechanisms.h in a reasonable place.
+
 2002-07-24  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/Makefile.am: Fix DEFS to still supply -I. and -I..
 	* configure.in: Make --with-ldap show up in top level configure script,

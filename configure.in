@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.174 2003/07/21 21:31:49 rjs3 Exp $
+dnl $Id: configure.in,v 1.175 2003/07/25 20:15:49 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -597,6 +597,7 @@ AC_ARG_WITH(mysql,  [  --with-mysql=PATH       use MySQL from PATH ],
 # find location of library 
 # presuing if one given then correct
 if test "${with_mysql}" = "yes"; then
+  with_mysql=notfound
   for mysqlloc in lib/mysql lib mysql/lib
   do
     if test -f ${prefix}/${mysqlloc}/libmysqlclient.a; then
@@ -616,6 +617,7 @@ LIB_MYSQL=""
 
 case "$with_mysql" in
     no) true;;
+    notfound) AC_WARN([MySQL Library not found]); true;;
     *)
      if test -d ${with_mysql}/lib/mysql; then
          LIB_MYSQL="-L${with_mysql}/lib/mysql -R${with_mysql}/lib/mysql"
@@ -640,7 +642,7 @@ case "$with_mysql" in
          CPPFLAGS="${CPPFLAGS} -I${with_mysql}"
      fi
        AC_CHECK_LIB(mysqlclient, mysql_select_db, AC_DEFINE(HAVE_MYSQL),
-           [AC_WARN([MYSQL library mysqlclient not found])
+           [AC_WARN([MySQL library mysqlclient does not work])
 	    with_mysql=no], $LIB_MYSQL_DIR);;
          
 esac
@@ -654,6 +656,7 @@ AC_ARG_WITH(pgsql,  [  --with-pgsql=PATH       use PostgreSQL from PATH ],
 # find location of library 
 # presuing if one given then correct
 if test "${with_pgsql}" = "yes"; then
+  with_pgsql=notfound
   for pgsqlloc in lib/pgsql lib pgsql/lib
   do
     if test -f ${prefix}/${pgsqlloc}/libpq.a; then
@@ -673,6 +676,7 @@ LIB_PGSQL=""
 
 case "$with_pgsql" in
     no) true;;
+    notfound) AC_WARN([PostgreSQL Library not found]); true;;
     *)
      if test -d ${with_pgsql}/lib/pgsql; then
          LIB_PGSQL="-L${with_pgsql}/lib/pgsql -R${with_pgsql}/lib/pgsql"
@@ -697,7 +701,7 @@ case "$with_pgsql" in
          CPPFLAGS="${CPPFLAGS} -I${with_pgsql}"
      fi
        AC_CHECK_LIB(pq, PQsetdbLogin, AC_DEFINE(HAVE_PGSQL),
-           [AC_WARN([PostgreSQL library pq not found])
+           [AC_WARN([PostgreSQL Library pq does not work])
 	    with_pgsql=no], $LIB_PGSQL_DIR);;
          
 esac

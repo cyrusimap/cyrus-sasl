@@ -8,6 +8,8 @@ C
 ) No fixed-length buffers
 ) Zero sensitive data after use
 ) Better/FASTER random numbers (init time is pretty miserable)
+) sasl_setpass
+) saslpasswd -- utility to set a user's SASL password
 ) Test suite
 
 Java

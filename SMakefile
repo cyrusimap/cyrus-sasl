@@ -3,10 +3,10 @@ if test ! -x configure; then
   aclocal
   echo autoheader
   autoheader
-  echo automake
-  automake
   echo autoconf
   autoconf
+  echo automake
+  automake
 fi
 
 MAKE=gmake

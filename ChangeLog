@@ -1,4 +1,12 @@
+1998-12-01  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* TODO: added setpass stuff
+
 1998-11-30  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* Version 1.2b3 released
+
+	* SMakefile: switched order of automake and autoconf
 
 	* plugins/Makefile.am: added PLAIN_LIBS to libplain_la_LIBADD
 
@@ -66,5 +74,5 @@
 
 1998-11-25  Rob Earhart  <rob+@andrew.cmu.edu>
 
-	* 1.2b2 released
+	* Version 1.2b2 released
 

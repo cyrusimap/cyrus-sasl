@@ -1,6 +1,6 @@
 /* canonusr.c - user canonicalization support
  * Rob Siemborski
- * $Id: canonusr.c,v 1.6 2002/02/13 20:31:52 rjs3 Exp $
+ * $Id: canonusr.c,v 1.7 2002/04/17 20:46:15 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -173,20 +173,25 @@ int _sasl_canon_user(sasl_conn_t *conn,
     /* Set the appropriate oparams (lengths have already been set by lenp) */
     if(flags & SASL_CU_AUTHID) {
 	oparams->authid = conn->authid_buf;
-#ifndef macintosh
-	/* do auxprop lookups (server only) */
-	/* AUTHZID lookups do not occur until after authentication
-	   is complete */
-	if(sconn) {
-	    _sasl_auxprop_lookup(sconn->sparams, 0,
-			     oparams->authid, oparams->alen);
-	}
-#endif
     }
 
     if (flags & SASL_CU_AUTHZID) {
 	oparams->user = conn->user_buf;
     }
+
+#ifndef macintosh
+    /* do auxprop lookups (server only) */
+    if(sconn) {
+	if(flags & SASL_CU_AUTHID) {
+	    _sasl_auxprop_lookup(sconn->sparams, 0,
+				 oparams->authid, oparams->alen);
+	}
+	if(flags & SASL_CU_AUTHZID) {
+	    _sasl_auxprop_lookup(sconn->sparams, SASL_AUXPROP_AUTHZID,
+				 oparams->user, oparams->ulen);
+	}
+    }
+#endif
 
 
     RETURN(conn, SASL_OK);

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: sasldb.c,v 1.2 2001/12/04 02:06:49 rjs3 Exp $
+ * $Id: sasldb.c,v 1.3 2002/04/17 20:46:17 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -137,6 +137,15 @@ static void sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
     if(!to_fetch) goto done;
 
     for(cur = to_fetch; cur->name; cur++) {
+	char *realname = cur->name;
+	
+	/* Only look up properties that apply to this lookup! */
+	if(cur->name[0] == '*' && (flags & SASL_AUXPROP_AUTHZID)) continue;
+	if(!(flags & SASL_AUXPROP_AUTHZID)) {
+	    if(cur->name[0] != '*') continue;
+	    else realname = cur->name + 1;
+	}
+	
 	/* If it's there already, we want to see if it needs to be
 	 * overridden */
 	if(cur->values && !(flags & SASL_AUXPROP_OVERRIDE))
@@ -146,7 +155,7 @@ static void sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
 	    
 	ret = _sasldb_getdata(sparams->utils,
 			      sparams->utils->conn, userid, realm,
-			      cur->name, value, 8192, &value_len);
+			      realname, value, 8192, &value_len);
 	if(ret != SASL_OK) {
 	    /* We didn't find it, leave it as not found */
 	    continue;

@@ -1,3 +1,12 @@
+2002-04-17  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/cram.c, digestmd5.c, srp.c: Adjust cmusaslsecretFOO to
+	  *cmusaslsecretFOO
+	* plugins/sasldb.c: correctly handle *(property)
+	* lib/canonusr.c, server.c: Lookup authzid and authid auxprops
+	  correctly (and in the same place).
+	* include/sasl.h, saslplug.h: Fix auxprop lookups
+	  (e.g. SASL_AUXPROP_AUTHZID)
+
 2002-04-15  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/gssapi.c: Handle null authzid's correctly
 	* lib/server.c: fix a strcmp() that should be a memcmp()

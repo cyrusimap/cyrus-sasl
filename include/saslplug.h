@@ -829,6 +829,10 @@ typedef struct sasl_auxprop_plug {
 #define SASL_AUXPROP_OVERRIDE 0x01 /* if clear, ignore auxiliary properties
 				    * with non-zero len field.  If set,
 				    * override value of those properties */
+#define SASL_AUXPROP_AUTHZID  0x02 /* if clear, we are looking up the
+				    * authid flags (prefixed with *), otherwise
+				    * we are looking up the authzid flags
+				    * (no prefix) */
 
 #define SASL_AUXPROP_PLUG_VERSION 4
 

@@ -1054,7 +1054,7 @@ LIBSASL_API int sasl_setpass(sasl_conn_t *conn,
 #define SASL_AUX_END      NULL	/* last auxiliary property */
 
 /* traditional Posix items (should be implemented on Posix systems) */
-#define SASL_AUX_PASSWORD "userPassword" /* User Password */
+#define SASL_AUX_PASSWORD "*userPassword" /* User Password (of authid) */
 #define SASL_AUX_UIDNUM   "uidNumber"	/* UID number for the user */
 #define SASL_AUX_GIDNUM   "gidNumber"	/* GID for the user */
 #define SASL_AUX_FULLNAME "gecos"	/* full name of the user, unix-style */

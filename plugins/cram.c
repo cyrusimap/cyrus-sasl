@@ -1,7 +1,7 @@
 /* CRAM-MD5 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: cram.c,v 1.63 2002/01/21 21:04:49 rjs3 Exp $
+ * $Id: cram.c,v 1.64 2002/04/17 20:46:16 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -363,7 +363,7 @@ static int crammd5_server_mech_step (void *conn_context,
     int lup,pos,len;
     int result = SASL_FAIL;
     const char *password_request[] = { SASL_AUX_PASSWORD,
-				       "cmusaslsecretCRAM-MD5",
+				       "*cmusaslsecretCRAM-MD5",
 				       NULL };
     struct propval auxprop_values[3];
     HMAC_MD5_CTX tmphmac;

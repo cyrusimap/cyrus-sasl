@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.105 2002/04/16 18:02:26 rjs3 Exp $
+ * $Id: server.c,v 1.106 2002/04/17 20:46:15 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1276,16 +1276,9 @@ int sasl_server_step(sasl_conn_t *conn,
 
 	if(conn->oparams.user == NULL || conn->oparams.authid == NULL) {
 	    sasl_seterror(conn, 0,
-			  "mech did not call canon_user for both authzid and authid");
+			  "mech did not call canon_user for both authzid " \
+			  "and authid");
 	    ret = SASL_BADPROT;
-	} else if(conn->oparams.ulen != conn->oparams.alen ||
-		  memcmp(conn->oparams.user, conn->oparams.authid,
-			 conn->oparams.ulen)) {
-	/* If authorization id is not the same as authenticationid, get
-	 * the real auxprops */	
-	    prop_clear(s_conn->sparams->propctx,0);
-	    _sasl_auxprop_lookup(s_conn->sparams, 0,
-				 conn->oparams.user, conn->oparams.ulen);
 	}	
     }
     

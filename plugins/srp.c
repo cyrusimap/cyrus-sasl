@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.29 2002/02/11 15:42:49 ken3 Exp $
+ * $Id: srp.c,v 1.30 2002/04/17 20:46:17 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2317,7 +2317,7 @@ static int server_step1(context_t *text,
     char *realm = NULL;
     char *user = NULL;
     const char *password_request[] = { SASL_AUX_PASSWORD,
-				       "cmusaslsecretSRP",
+				       "*cmusaslsecretSRP",
 				       NULL };
     struct propval auxprop_values[3];
 

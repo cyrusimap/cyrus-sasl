@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.107 2002/01/31 17:58:36 ken3 Exp $
+ * $Id: digestmd5.c,v 1.108 2002/04/17 20:46:16 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2204,7 +2204,7 @@ digestmd5_server_mech_step(void *conn_context,
 
     /* password prop_request */
     const char *password_request[] = { SASL_AUX_PASSWORD,
-				       "cmusaslsecretDIGEST-MD5",
+				       "*cmusaslsecretDIGEST-MD5",
 				       NULL };
     unsigned len;
     struct propval auxprop_values[2];

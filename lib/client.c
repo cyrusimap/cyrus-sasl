@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.55 2002/08/28 20:26:56 rjs3 Exp $
+ * $Id: client.c,v 1.56 2002/09/05 19:21:14 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -49,6 +49,9 @@
 #include <limits.h>
 #include <ctype.h>
 #include <string.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 /* SASL Headers */
 #include "sasl.h"
@@ -186,8 +189,8 @@ int sasl_client_init(const sasl_callback_t *callbacks)
 {
   int ret;
   const add_plugin_list_t ep_list[] = {
-      { "sasl_client_plug_init", (void *)&sasl_client_add_plugin },
-      { "sasl_canonuser_init", (void *)&sasl_canonuser_add_plugin },
+      { "sasl_client_plug_init", (add_plugin_t *)sasl_client_add_plugin },
+      { "sasl_canonuser_init", (add_plugin_t *)sasl_canonuser_add_plugin },
       { NULL, NULL }
   };
 

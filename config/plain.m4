@@ -29,8 +29,10 @@ dnl PLAIN
  if test "$plain" != no; then
   AC_MSG_RESULT(enabled)
   SASL_MECHS="$SASL_MECHS libplain.la"
-  SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/plain.o"
-  AC_DEFINE(STATIC_PLAIN)
+  if test "$enable_static" = yes; then
+    SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/plain.o"
+    AC_DEFINE(STATIC_PLAIN)
+  fi
  else
   AC_MSG_RESULT(disabled)
  fi

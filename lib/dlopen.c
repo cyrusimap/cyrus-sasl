@@ -1,7 +1,7 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Siemborski
  * Rob Earhart
- * $Id: dlopen.c,v 1.42 2002/09/03 15:11:52 rjs3 Exp $
+ * $Id: dlopen.c,v 1.43 2002/09/05 19:21:14 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -44,9 +44,9 @@
  */
 
 #include <config.h>
-#ifndef __hpux
+#ifdef HAVE_DLFCN_H
 #include <dlfcn.h>
-#endif /* !__hpux */
+#endif
 
 #include <stdlib.h>
 #include <errno.h>
@@ -56,8 +56,12 @@
 #include <sasl.h>
 #include "saslint.h"
 
-const int _is_sasl_server_static = 0;
+#ifndef PIC
+#include <saslplug.h>
+#include "staticopen.h"
+#endif
 
+#ifdef DO_DLOPEN
 #if HAVE_DIRENT_H
 # include <dirent.h>
 # define NAMLEN(dirent) strlen((dirent)->d_name)
@@ -153,9 +157,12 @@ typedef struct lib_list
 
 static lib_list_t *lib_list_head = NULL;
 
+#endif /* DO_DLOPEN */
+
 int _sasl_locate_entry(void *library, const char *entryname,
 		       void **entry_point) 
 {
+#ifdef DO_DLOPEN
 /* note that we still check for known problem systems in
  * case we are cross-compiling */
 #if defined(DLSYM_NEEDS_UNDERSCORE) || defined(__OpenBSD__) || defined(__APPLE__)
@@ -198,7 +205,12 @@ int _sasl_locate_entry(void *library, const char *entryname,
     }
 
     return SASL_OK;
+#else
+    return SASL_FAIL;
+#endif /* DO_DLOPEN */
 }
+
+#ifdef DO_DLOPEN
 
 static int _sasl_plugin_load(char *plugin, void *library,
 			     const char *entryname,
@@ -318,12 +330,14 @@ static int _parse_la(const char *prefix, const char *in, char *out)
 
     return SASL_OK;
 }
+#endif /* DO_DLOPEN */
 
 /* loads a plugin library */
 int _sasl_get_plugin(const char *file,
 		     const sasl_callback_t *verifyfile_cb,
 		     void **libraryptr)
 {
+#ifdef DO_DLOPEN
     int r = 0;
     int flag;
     void *library;
@@ -355,6 +369,9 @@ int _sasl_get_plugin(const char *file,
 
     *libraryptr = library;
     return SASL_OK;
+#else
+    return SASL_FAIL;
+#endif /* DO_DLOPEN */
 }
 
 /* gets the list of mechanisms */
@@ -363,6 +380,8 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
 		       const sasl_callback_t *verifyfile_cb)
 {
     int result;
+    const add_plugin_list_t *cur_ep;
+#ifdef DO_DLOPEN
     char str[PATH_MAX], tmp[PATH_MAX+2], prefix[PATH_MAX+2];
 				/* 1 for '/' 1 for trailing '\0' */
     char c;
@@ -371,7 +390,12 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
     int position;
     DIR *dp;
     struct dirent *dir;
-    const add_plugin_list_t *cur_ep;
+#endif
+#ifndef PIC
+    add_plugin_t *add_plugin;
+    _sasl_plug_type type;
+    _sasl_plug_rec *p;
+#endif
 
     if (! entrypoints
 	|| ! getpath_cb
@@ -382,6 +406,42 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
 	|| ! verifyfile_cb->proc)
 	return SASL_BADPARAM;
 
+#ifndef PIC
+    /* do all the static plugins first */
+
+    for(cur_ep = entrypoints; cur_ep->entryname; cur_ep++) {
+
+	/* What type of plugin are we looking for? */
+	if(!strcmp(cur_ep->entryname, "sasl_server_plug_init")) {
+	    type = SERVER;
+	    add_plugin = (add_plugin_t *)sasl_server_add_plugin;
+	} else if (!strcmp(cur_ep->entryname, "sasl_client_plug_init")) {
+	    type = CLIENT;
+	    add_plugin = (add_plugin_t *)sasl_client_add_plugin;
+	} else if (!strcmp(cur_ep->entryname, "sasl_auxprop_plug_init")) {
+	    type = AUXPROP;
+	    add_plugin = (add_plugin_t *)sasl_auxprop_add_plugin;
+	} else if (!strcmp(cur_ep->entryname, "sasl_canonuser_init")) {
+	    type = CANONUSER;
+	    add_plugin = (add_plugin_t *)sasl_canonuser_add_plugin;
+	} else {
+	    /* What are we looking for then? */
+	    return SASL_FAIL;
+	}
+	for (p=_sasl_static_plugins; p->type; p++) {
+	    if(type == p->type)
+	    	result = add_plugin(p->name, p->plug);
+	}
+    }
+#endif /* !PIC */
+
+/* only do the following if:
+ * 
+ * we support dlopen()
+ *  AND we are not staticly compiled
+ *      OR we are staticly compiled and TRY_DLOPEN_WHEN_STATIC is defined
+ */
+#if defined(DO_DLOPEN) && (defined(PIC) || (!defined(PIC) && defined(TRY_DLOPEN_WHEN_STATIC)))
     /* get the path to the plugins */
     result = ((sasl_getpath_t *)(getpath_cb->proc))(getpath_cb->context,
 						    &path);
@@ -457,6 +517,7 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
 	}
 
     } while ((c!='=') && (c!=0));
+#endif /* defined(DO_DLOPEN) && (!defined(PIC) || (defined(PIC) && defined(TRY_DLOPEN_WHEN_STATIC))) */
 
     return SASL_OK;
 }
@@ -464,6 +525,7 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
 int
 _sasl_done_with_plugins(void)
 {
+#ifdef DO_DLOPEN
     lib_list_t *libptr, *libptr_next;
     
     for(libptr = lib_list_head; libptr; libptr = libptr_next) {
@@ -474,6 +536,6 @@ _sasl_done_with_plugins(void)
     }
 
     lib_list_head = NULL;
-
+#endif /* DO_DLOPEN */
     return SASL_OK;
 }

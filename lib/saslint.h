@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.43 2002/08/28 20:26:56 rjs3 Exp $
+ * $Id: saslint.h,v 1.44 2002/09/05 19:21:14 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -117,10 +117,12 @@ typedef struct buffer_info
     size_t reallen;
 } buffer_info_t;
 
+typedef int add_plugin_t(const char *, void *);
+
 typedef struct add_plugin_list 
 {
     const char *entryname;
-    int (*add_plugin)(const char *, void *);
+    add_plugin_t *add_plugin;
 } add_plugin_list_t;
 
 enum Sasl_conn_type { SASL_CONN_UNKNOWN = 0,
@@ -291,11 +293,6 @@ extern sasl_mutex_utils_t _sasl_mutex_utils;
  * checkpw.c
  */
 extern struct sasl_verify_password_s _sasl_verify_password[];
-
-/*
- * dlopen.c and staticopen.c
- */
-extern const int _is_sasl_server_static;
 
 /*
  * server.c

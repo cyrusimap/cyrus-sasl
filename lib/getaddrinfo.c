@@ -1,6 +1,6 @@
 /*
  * Mar  8, 2000 by Hajimu UMEMOTO <ume@mahoroba.org>
- * $Id: getaddrinfo.c,v 1.4 2002/09/03 15:11:52 rjs3 Exp $
+ * $Id: getaddrinfo.c,v 1.5 2002/09/05 19:21:14 rjs3 Exp $
  *
  * This module is based on ssh-1.2.27-IPv6-1.5 written by
  * KIKUCHI Takahiro <kick@kyoto.wide.ad.jp>
@@ -65,7 +65,7 @@
 #include <ctype.h>
 
 static struct addrinfo *
-malloc_ai(int port, u_long addr, int socktype, int proto)
+malloc_ai(int port, unsigned long addr, int socktype, int proto)
 {
     struct addrinfo *ai;
 

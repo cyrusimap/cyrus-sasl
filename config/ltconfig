@@ -2236,6 +2236,9 @@ echo "$ac_t$enable_shared" 1>&6
 # Make sure either enable_shared or enable_static is yes.
 test "$enable_shared" = yes || enable_static=yes
 
+# Propagate what we've learned...
+ac_cv_can_build_shared="$can_build_shared"
+
 echo "checking whether to build static libraries... $enable_static" 1>&6
 
 if test "$hardcode_action" = relink; then

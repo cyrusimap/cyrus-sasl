@@ -145,21 +145,12 @@ SASL_DB_MANS="saslpasswd2.8 sasldblistusers2.8"
 
 case "$dblib" in
   gdbm) 
-    SASL_MECHS="$SASL_MECHS libsasldb.la"
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/sasldb.o"
-    AC_DEFINE(STATIC_SASLDB)
     AC_DEFINE(SASL_GDBM)
     ;;
   ndbm)
-    SASL_MECHS="$SASL_MECHS libsasldb.la"
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/sasldb.o"
-    AC_DEFINE(STATIC_SASLDB)
     AC_DEFINE(SASL_NDBM)
     ;;
   berkeley)
-    SASL_MECHS="$SASL_MECHS libsasldb.la"
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/sasldb.o"
-    AC_DEFINE(STATIC_SASLDB)
     AC_DEFINE(SASL_BERKELEYDB)
     ;;
   *)
@@ -171,6 +162,12 @@ case "$dblib" in
     SASL_DB_LIB=""
     ;;
 esac
+
+SASL_MECHS="$SASL_MECHS libsasldb.la"
+if test "$enable_static" = yes; then
+      SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/sasldb.o $SASL_DB_BACKEND_STATIC"
+      AC_DEFINE(STATIC_SASLDB)
+fi
 AC_SUBST(SASL_DB_UTILS)
 AC_SUBST(SASL_DB_MANS)
 AC_SUBST(SASL_DB_BACKEND)

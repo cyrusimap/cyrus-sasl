@@ -77,9 +77,6 @@
 /* This is where plugins will live at runtime */
 #undef PLUGINDIR
 
-/* Do we need a leading _ for dlsym? */
-#undef DLSYM_NEEDS_UNDERSCORE
-
 /* Make autoheader happy */
 #undef WITH_SYMBOL_UNDERSCORE
 
@@ -174,6 +171,16 @@
 /* stdarg.h? varargs.h? */
 #undef HAVE_STDARG_H
 #undef HAVE_VARARGS_H
+
+/* Do we need a leading _ for dlsym? */
+#undef DLSYM_NEEDS_UNDERSCORE
+
+/* Does libtool support shared libs on this system? */
+#undef HAVE_DLFCN_H
+#undef DO_DLOPEN
+
+/* Should we try to dlopen stuff when we are staticly compiled? */
+#undef TRY_DLOPEN_WHEN_STATIC
 
 /* define if your system has getaddrinfo() */
 #undef HAVE_GETADDRINFO

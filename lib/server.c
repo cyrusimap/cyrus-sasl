@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.114 2002/07/30 17:06:16 rjs3 Exp $
+ * $Id: server.c,v 1.115 2002/09/05 19:21:15 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -578,13 +578,15 @@ int sasl_server_init(const sasl_callback_t *callbacks,
     int ret;
     const sasl_callback_t *vf;
     const char *pluginfile = NULL;
+#ifdef PIC
     sasl_getopt_t *getopt;
     void *context;
+#endif
 
     const add_plugin_list_t ep_list[] = {
-	{ "sasl_server_plug_init", (void *)&sasl_server_add_plugin },
-	{ "sasl_auxprop_plug_init", (void *)&sasl_auxprop_add_plugin },
-	{ "sasl_canonuser_init", (void *)&sasl_canonuser_add_plugin },
+	{ "sasl_server_plug_init", (add_plugin_t *)sasl_server_add_plugin },
+	{ "sasl_auxprop_plug_init", (add_plugin_t *)sasl_auxprop_add_plugin },
+	{ "sasl_canonuser_init", (add_plugin_t *)sasl_canonuser_add_plugin },
 	{ NULL, NULL }
     };
 
@@ -622,15 +624,16 @@ int sasl_server_init(const sasl_callback_t *callbacks,
     /* load internal plugins */
     sasl_server_add_plugin("EXTERNAL", &external_server_plug_init);
 
+#ifdef PIC
     /* delayed loading of plugins? (DSO only, as it doesn't
      * make much [any] sense to delay in the static library case) */
-    if (!_is_sasl_server_static &&
-	_sasl_getcallback(NULL, SASL_CB_GETOPT, &getopt, &context) 
+    if (_sasl_getcallback(NULL, SASL_CB_GETOPT, &getopt, &context) 
 	   == SASL_OK) {
 	/* No sasl_conn_t was given to getcallback, so we provide the
 	 * global callbacks structure */
 	ret = getopt(&global_callbacks, NULL, "plugin_list", &pluginfile, NULL);
     }
+#endif
     
     if (pluginfile != NULL) {
 	/* this file should contain a list of plugins available.

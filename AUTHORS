@@ -24,10 +24,16 @@ LDAP module.
 
 Simon Loader <simon@surf.org.uk> wrote the MySQL auxprop module.
 
+Rolf Braun <rbraun@andrew.cmu.edu> wrote the MacOS ports.
+
+Howard Chu <hyc@highlandsun.com> put a good deal of work into OS/390
+portability, correct building of static libraries, and a slew
+of misc. bugfixes.
+
 Larry Greenfield <leg+sasl@andrew.cmu.edu> complained. a lot.
 
 Chris Newman <chris.newman@innosoft.com> wrote the initial version of the
 SASL API, as well as the version 2 SASL API (documented in sasl.h,
 saslutil.h, saslplug.h, and prop.h).
 
-$Id: AUTHORS,v 1.10 2002/07/05 15:56:05 rjs3 Exp $
+$Id: AUTHORS,v 1.11 2002/09/05 19:21:10 rjs3 Exp $

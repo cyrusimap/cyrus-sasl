@@ -1,3 +1,8 @@
+2001-06-06  Rob Siemborski <rjs3+@andrew.cmu.edu>
+
+	* Corrected a getopt call in server.c to have the correct parameters
+	  passed to it.  Also fixed unused variable warnings in sasl_setpass.
+
 2001-06-04  Rob Siemborski <rjs3+@andrew.cmu.edu>
 
 	* Corrected small off-by-one error in client.c, as reported

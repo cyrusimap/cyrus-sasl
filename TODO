@@ -7,6 +7,7 @@ C
 ) No buffers on the stack
 ) No fixed-length buffers
 ) Zero sensitive data after use
+) Better/FASTER random numbers (init time is pretty miserable)
 ) Test suite
 
 Java

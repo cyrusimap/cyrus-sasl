@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.67 2001/06/20 10:36:49 n3liw Exp $
+ * $Id: kerberos4.c,v 1.68 2001/06/20 11:36:09 n3liw Exp $
  */
 /* 
  * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -1000,7 +1000,7 @@ static int client_continue_step (void *conn_context,
 	memset(&text->credentials,0,sizeof(text->credentials));
     result=kcglue_krb_mk_req(ticket.dat,
     		   &ticket.length,
-    		   service,
+    		   params->service,
     		   text->instance,
 			   text->realm,
 			   text->challenge,

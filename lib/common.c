@@ -579,7 +579,7 @@ static int _sasl_syslog(void *context __attribute__((unused)),
     }
     
     /* do the syslog call. do not need to call openlog */
-    syslog(syslog_priority | LOG_AUTH, message);
+    syslog(syslog_priority | LOG_AUTH, "%s", message);
     
     return SASL_OK;
 }

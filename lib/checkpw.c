@@ -516,6 +516,11 @@ static int pam_verify_password(sasl_conn_t *conn __attribute__((unused)),
     if (!userid || !password) {
 	return SASL_BADPARAM;
     }
+    /* protect against a bogus PAM plugin */
+    if (!*userid || !*password) {
+	return SASL_FAIL;
+    }
+
     if (reply) { *reply = NULL; }
 
     my_conv.appdata_ptr = &pd;

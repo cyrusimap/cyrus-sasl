@@ -7,7 +7,7 @@
 ** Simon Loader -- original mysql plugin
 ** Patrick Welche -- original pgsql plugin
 **
-** $Id: sql.c,v 1.24 2003/10/09 14:01:09 ken3 Exp $
+** $Id: sql.c,v 1.25 2004/01/08 15:30:26 ken3 Exp $
 **
 */
 
@@ -99,6 +99,8 @@ static int _mysql_exec(void *conn, const char *cmd, char *value, size_t size,
 
     /* run the query */
     if ((mysql_real_query(conn, cmd, len) < 0)) {
+	utils->log(NULL, SASL_LOG_ERR, "sql query failed: %s",
+		   mysql_error(conn));
 	return -1;
     }
 
@@ -112,6 +114,7 @@ static int _mysql_exec(void *conn, const char *cmd, char *value, size_t size,
     result = mysql_store_result(conn);
     if (!result) {
 	/* umm nothing found */
+	utils->log(NULL, SASL_LOG_NOTE, "sql plugin: no result found");
 	return -1;
     }
 
@@ -120,6 +123,7 @@ static int _mysql_exec(void *conn, const char *cmd, char *value, size_t size,
     if (!row_count) {
 	/* umm nothing found */
 	mysql_free_result(result);
+	utils->log(NULL, SASL_LOG_NOTE, "sql plugin: no result found");
 	return -1;
     }
     if (row_count > 1) {
@@ -132,6 +136,7 @@ static int _mysql_exec(void *conn, const char *cmd, char *value, size_t size,
     row = mysql_fetch_row(result);
     if (!row || !row[0]) {
 	/* umm nothing found */
+	utils->log(NULL, SASL_LOG_NOTE, "sql plugin: no result found");
 	mysql_free_result(result);
 	return -1;
     }
@@ -284,6 +289,7 @@ static int _pgsql_exec(void *conn, const char *cmd, char *value, size_t size,
     row_count = PQntuples(result);
     if (!row_count) {
 	/* umm nothing found */
+	utils->log(NULL, SASL_LOG_NOTE, "sql plugin: no result found");
 	PQclear(result);
 	return -1;
     }

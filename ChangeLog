@@ -1,3 +1,6 @@
+2004-01-08  Ken Murchison <ken@oceana.com>
+	* plugins/sql.c: better error logging
+
 2004-01-07  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/checkpw.c & others: Support for Courier-IMAP authdaemond
 	  use during password verification (Leandro Santi

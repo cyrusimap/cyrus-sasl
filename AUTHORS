@@ -1,8 +1,8 @@
 Rob Siemborski <rjs3+@andrew.cmu.edu> wrote and tested the conversion
 to the SASLv2 API.
 
-Ken Murchison <ken@oceana.com> worked on the OTP and SRP plugins, as well
-as helping to track down bugs as they appear.
+Ken Murchison <ken@oceana.com> worked on the OTP, NTLM, SRP and SQL
+plugins, as well as helping to track down bugs as they appear.
 
 Rob Earhart <earhart@cmu.edu> wrote the build/installation procedure,
 wrote and tested some of the code, and provided general guidance and
@@ -44,4 +44,4 @@ getaddrinfo.c was written by Hajimu UMEMOTO <ume@mahoroba.org>
 which is based on the IPv6 code written by KIKUCHI Takahiro
 <kick@kyoto.wide.ad.jp>
 
-$Id: AUTHORS,v 1.16 2004/01/07 16:35:04 rjs3 Exp $
+$Id: AUTHORS,v 1.17 2004/01/08 15:30:25 ken3 Exp $

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.96 2002/01/11 20:44:34 rjs3 Exp $
+ * $Id: server.c,v 1.97 2002/01/16 22:15:56 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -834,7 +834,7 @@ static int mech_permitted(sasl_conn_t *conn,
     void *context;
     sasl_ssf_t minssf = 0;
 
-    if(!conn) return SASL_BADPARAM;
+    if(!conn) return 0;
 
     if(! mech || ! mech->plug) {
 	PARAMERROR(conn);
@@ -880,7 +880,7 @@ static int mech_permitted(sasl_conn_t *conn,
     for(cur = s_conn->mech_contexts; cur; cur=cur->next) {
 	if(cur->mech == mech) {
 	    /* If it's not mech_avail'd, then stop now */
-	    if(!cur->context) return SASL_NOMECH;
+	    if(!cur->context) return 0;
 	    break;
 	}
     }

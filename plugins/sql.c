@@ -7,7 +7,7 @@
 ** Simon Loader -- original mysql plugin
 ** Patrick Welche -- original pgsql plugin
 **
-** $Id: sql.c,v 1.22 2003/10/07 20:23:40 ken3 Exp $
+** $Id: sql.c,v 1.23 2003/10/07 20:48:32 ken3 Exp $
 **
 */
 
@@ -274,7 +274,7 @@ static int _pgsql_exec(void *conn, const char *cmd, char *value, size_t size,
     }
     else if (status != PGRES_TUPLES_OK) {
 	/* error */
-	utils->log(NULL, SASL_LOG_NOTE, "sql plugin: %s ",
+	utils->log(NULL, SASL_LOG_DEBUG, "sql plugin: %s ",
 		   PQresStatus(status));
 	PQclear(result);
 	return -1;

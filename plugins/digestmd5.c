@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.173 2004/07/29 19:21:57 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.174 2004/12/24 16:06:44 shadow Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -120,7 +120,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.173 2004/07/29 19:21:57 rjs3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.174 2004/12/24 16:06:44 shadow Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -2242,7 +2242,8 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     }
 
     /* Sanity check the parameters */
-    if (strcmp(realm, text->realm) != 0) {
+    if (((realm != NULL) && (strcmp(realm, text->realm) != 0)) ||
+	(text->realm[0] != 0)) {
 	SETERROR(sparams->utils,
 		 "realm changed: authentication aborted");
 	result = SASL_BADAUTH;

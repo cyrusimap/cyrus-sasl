@@ -1,3 +1,11 @@
+New in 2.1.11
+-------------
+* Add the fastbind auth method to the saslauthd LDAP module.
+* Fix a potential memory leak in the doors version of saslauthd.
+* NTLM now only requires one of LM or NT, not both.
+* Fix a variety of Berkeley DB, LDAP, OpenSSL, and other build issues.
+* Win32 support compiles, but no documentation as of yet.
+
 New in 2.1.10
 -------------
 * Further DIGEST-MD5 DES interoperability fixes.  Now works against Active

@@ -121,7 +121,7 @@
 
 #define SASL_VERSION_MAJOR 2
 #define SASL_VERSION_MINOR 1
-#define SASL_VERSION_STEP 10
+#define SASL_VERSION_STEP 11
 
 #include "prop.h"
 

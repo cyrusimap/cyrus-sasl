@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.c,v 1.18 2004/02/06 17:23:51 rjs3 Exp $
+ * $Id: plugin_common.c,v 1.19 2004/02/20 23:54:53 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -890,3 +890,12 @@ SKIP_OS_INFO:
     snprintf(osbuf, osbuf_len, "%s %s", os.sysname, os.release);
 #endif /* WIN32 */
 }
+
+#if defined(WIN32)
+unsigned int plug_sleep (unsigned int seconds)
+{
+    long dwSec = seconds*1000;
+    Sleep (dwSec);
+    return 0;
+}
+#endif

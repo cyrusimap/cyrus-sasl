@@ -172,4 +172,9 @@ typedef int ssize_t;
 
 #define HIER_DELIMITER '\\'
 
+#ifndef sleep
+#define sleep(seconds)		plug_sleep(seconds)
+unsigned int plug_sleep(unsigned int seconds);
+#endif
+
 #endif /* CONFIG_H */

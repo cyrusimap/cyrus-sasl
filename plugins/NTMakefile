@@ -14,6 +14,10 @@ PLUGINS_EXT=$(PLUGINS_EXT) saslGSSAPI.dll
 PLUGINS_EXT=$(PLUGINS_EXT) saslSRP.dll
 !ENDIF 
 
+!IF "$(OTP)" == "1"
+PLUGINS_EXT=$(PLUGINS_EXT) saslOTP.dll
+!ENDIF
+
 PLUGINS=saslANONYMOUS.dll \
 	saslPLAIN.dll \
 	saslCRAMMD5.dll \
@@ -60,7 +64,11 @@ saslSRP_sources = srp.c srp_init.c $(common_sources)
 saslSRP_objs = srp.obj srp_init.obj $(common_objs)
 saslSRP_out = saslSRP.dll saslSRP.exp saslSRP.lib
 
-!IF "$(NTLM)" == "1" || "$(SRP)" == "1"
+saslOTP_sources = otp.c otp_init.c $(common_sources)
+saslOTP_objs = otp.obj otp_init.obj $(common_objs)
+saslOTP_out = saslOTP.dll saslOTP.exp saslOTP.lib
+
+!IF "$(NTLM)" == "1" || "$(SRP)" == "1" || "$(OTP)" == "1"
 OPENSLL_FLAGS= /I $(OPENSSL_INCLUDE)
 !ELSE 
 OPENSLL_FLAGS=
@@ -82,8 +90,8 @@ saslSASLDB_sources = sasldb.c sasldb_init.c $(libsasldb_sources) $(common_source
 saslSASLDB_objs = sasldb.obj sasldb_init.obj $(libsasldb_objs) $(common_objs)
 saslSASLDB_out = saslSASLDB.dll saslSASLDB.exp saslSASLDB.lib
 
-all_objs = $(saslANONYMOUS_objs) $(saslPLAIN_objs) $(saslCRAMMD5_objs) $(saslDIGESTMD5_objs) $(saslLOGIN_objs) $(saslNTLM_objs) $(saslGSSAPI_objs) $(saslSRP_objs) $(saslSASLDB_objs)
-all_out = $(saslANONYMOUS_out) $(saslPLAIN_out) $(saslCRAMMD5_out) $(saslDIGESTMD5_out) $(saslLOGIN_out) $(saslNTLM_out) $(saslGSSAPI_out) $(saslSRP_out) $(saslSASLDB_out)
+all_objs = $(saslANONYMOUS_objs) $(saslPLAIN_objs) $(saslCRAMMD5_objs) $(saslDIGESTMD5_objs) $(saslLOGIN_objs) $(saslNTLM_objs) $(saslGSSAPI_objs) $(saslSRP_objs) $(saslOTP_objs) $(saslSASLDB_objs)
+all_out = $(saslANONYMOUS_out) $(saslPLAIN_out) $(saslCRAMMD5_out) $(saslDIGESTMD5_out) $(saslLOGIN_out) $(saslNTLM_out) $(saslGSSAPI_out) $(saslSRP_out) $(saslOTP_out) $(saslSASLDB_out)
 
 # LIBSASL_EXPORTS is required to export additional DB routines from sasldb
 DB_FLAGS = /I $(DB_INCLUDE) /I "..\sasldb" /D "LIBSASL_EXPORTS"
@@ -157,6 +165,10 @@ saslGSSAPI.dll: $(saslGSSAPI_objs)
 
 saslSRP.dll: $(saslSRP_objs)
 	$(LINK32DLL) @<< $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslSRP.dll" /implib:"saslSRP.lib" $(saslSRP_objs)
+<<
+
+saslOTP.dll: $(saslOTP_objs)
+	$(LINK32DLL) @<< $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslOTP.dll" /implib:"saslOTP.lib" $(saslOTP_objs)
 <<
 
 saslSASLDB.dll: $(saslSASLDB_objs)

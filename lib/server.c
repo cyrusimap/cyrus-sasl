@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.136 2004/02/20 17:23:58 rjs3 Exp $
+ * $Id: server.c,v 1.137 2004/02/20 23:54:51 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -355,7 +355,7 @@ int sasl_server_add_plugin(const char *plugname,
 	mech->version = version;
 
 	/* wheather this mech actually has any users in it's db */
-	mech->condition = result; /* SASL_OK or SASL_NOUSER */
+	mech->condition = result; /* SASL_OK, SASL_CONTINUE or SASL_NOUSER */
 
 	mech->next = mechlist->mech_list;
 	mechlist->mech_list = mech;
@@ -1487,7 +1487,7 @@ int _sasl_server_listmech(sasl_conn_t *conn,
 	  if (pcount != NULL)
 	      (*pcount)++;
 
-	  /* print seperator */
+	  /* print separator */
 	  if (flag) {
 	      strcat(conn->mechlist_buf, mysep);
 	  } else {

@@ -1,6 +1,11 @@
 2004-02-20  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/server.c, include/saslplug.h: Allow "temporary failure"
 	  return values from mech_avail
+	* lib/canonusr.c, lib/server.c: Comment Nits
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+	* plugins/NTMakefile, plugins/plugin_common.h, 
+	  plugins/plugin_common.c, plugins/otp.c: build OTP on Windows
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
 
 2004-02-19  Ken Murchison <ken@oceana.com>
 	* plugins/ntlm.c, sample/server.c, sample/client.c:

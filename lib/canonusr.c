@@ -1,6 +1,6 @@
 /* canonusr.c - user canonicalization support
  * Rob Siemborski
- * $Id: canonusr.c,v 1.14 2003/10/20 15:19:58 rjs3 Exp $
+ * $Id: canonusr.c,v 1.15 2004/02/20 23:54:51 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -238,7 +238,7 @@ int sasl_canonuser_add_plugin(const char *plugname,
     }
 
     if(!plug->canon_user_server && !plug->canon_user_client) {
-	/* We need atleast one of these implemented */
+	/* We need at least one of these implemented */
 	_sasl_log(NULL, SASL_LOG_ERR,
 		  "canonuser plugin without either client or server side");
 	return SASL_BADPROT;

@@ -4,8 +4,9 @@
 2002-04-26  Ken Murchison <ken@oceana.com>
 	* lib/client.c, server.c: check 'doneflag' just before mech_step()
 	* plugins/plugin_common.[ch], anonymous.c, cram.c, digestmd5.c,
-	  gssapi.c, kerberosv4.c, login.c, otp.c, plain.c, srp.c:
-	  move callback/interaction stuff into plugin_common
+	  gssapi.c, kerberosv4.c, login.c, otp.c, plain.c, srp.c,
+	  lib/external.c, Makefile.am: move callback/interaction stuff
+	  into plugin_common
 	* plugins/plugin_common.[ch], digestmd5.c, gssapi.c,
 	  kerberosv4.c, srp.c: move decode/concatenation of multiple
 	  packets into plugin_common

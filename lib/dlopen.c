@@ -1,7 +1,7 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Siemborski
  * Rob Earhart
- * $Id: dlopen.c,v 1.39 2002/04/17 18:45:53 rjs3 Exp $
+ * $Id: dlopen.c,v 1.40 2002/04/17 18:55:03 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -234,6 +234,9 @@ static int _parse_la(const char *prefix, const char *in, char *out)
 
     if(!in || !out || !prefix) return SASL_BADPARAM;
 
+    /* Set this so we can detect failure */
+    *out = '\0';
+
     length = strlen(in);
 
     if (strcmp(in + (length - strlen(LA_SUFFIX)), LA_SUFFIX)) {
@@ -304,6 +307,13 @@ static int _parse_la(const char *prefix, const char *in, char *out)
 	return SASL_FAIL;
     }
     fclose(file);
+
+    if(!(*out)) {
+	_sasl_log(NULL, SASL_LOG_WARN,
+		  "Could not find a dlname line in .la file: %s", in);
+	return SASL_FAIL;
+    }
+
     return SASL_OK;
 }
 

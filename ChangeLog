@@ -1,3 +1,7 @@
+2001-12-13  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* lib/server.c, lib/common.c: Fix handling of
+	  global callbacks so that plugin_list works again
+
 2001-12-12  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* pwcheck/Makefile.am: Added include of ../lib
 	  (from Hajimu UMEMOTO <ume@mahoroba.org>)

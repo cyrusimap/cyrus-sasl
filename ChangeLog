@@ -3,6 +3,8 @@
 	  for lookup of secret. (Jonas Oberg <jonas@gnu.org>)
 	* plugins/gssapi.c: Correct handling of client-side authid and
 	  authzid (Howard Chu, <hyc@highlandsun.com>)
+	* lib/external.c: Better handling of user canonicalization
+	  (Howard Chu, <hyc@highlandsun.com>)
 
 2002-04-17  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/cram.c, digestmd5.c, srp.c: Adjust cmusaslsecretFOO to

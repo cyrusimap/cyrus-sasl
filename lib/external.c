@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: external.c,v 1.6 2002/01/31 15:52:42 ken3 Exp $
+ * $Id: external.c,v 1.7 2002/04/18 17:30:54 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -81,7 +81,6 @@ external_server_step(void *conn_context __attribute__((unused)),
 		     sasl_out_params_t *oparams)
 {
   int result;
-  const char *user;
   
   if (!sparams
       || !sparams->utils
@@ -112,18 +111,18 @@ external_server_step(void *conn_context __attribute__((unused)),
   if (clientinlen) {		/* if we have a non-zero authorization id */
       /* The user's trying to authorize as someone they didn't
        * authenticate as */
-      user = clientin;
+      result = sparams->canon_user(sparams->utils->conn,
+				   clientin, 0, SASL_CU_AUTHZID, oparams);
+      if(result != SASL_OK) return result;
+      result = sparams->canon_user(sparams->utils->conn,
+				   sparams->utils->conn->external.auth_id, 0,
+				   SASL_CU_AUTHID, oparams);
   } else {
-      user = sparams->utils->conn->external.auth_id;
+      result = sparams->canon_user(sparams->utils->conn,
+				   sparams->utils->conn->external.auth_id, 0,
+				   SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
   }
 
-  result = sparams->canon_user(sparams->utils->conn,
-			       user, 0, SASL_CU_AUTHZID, oparams);
-  if(result != SASL_OK) return result;
-
-  result = sparams->canon_user(sparams->utils->conn,
-			       sparams->utils->conn->external.auth_id, 0,
-			       SASL_CU_AUTHID, oparams);
   if (result != SASL_OK) return result;
 
   oparams->doneflag = 1;
@@ -276,7 +275,7 @@ external_client_step(void *conn_context,
       /* Otherwise, drop through into the default we-lose case. */
     default:
       /* Assume userid == authid. */
-      user = params->utils->conn->external.auth_id;
+      user = NULL;
       *clientoutlen = 0;
     }
   }
@@ -285,23 +284,28 @@ external_client_step(void *conn_context,
 
   if (result != SASL_OK) return result;
 
-  if (user)
-    memcpy(text->out_buf, user, *clientoutlen);
-
+  if (user && *user) {
+      result = params->canon_user(params->utils->conn,
+				  user, 0, SASL_CU_AUTHZID, oparams);
+      if(result != SASL_OK) return result;
+      
+      result = params->canon_user(params->utils->conn,
+				  params->utils->conn->external.auth_id, 0,
+				  SASL_CU_AUTHID, oparams);
+      
+      memcpy(text->out_buf, user, *clientoutlen);
+  } else {
+      result = params->canon_user(params->utils->conn,
+				  params->utils->conn->external.auth_id, 0,
+				  SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
+  }
+  
   text->out_buf[*clientoutlen] = '\0';
   
   *clientout = text->out_buf;
 
   if (prompt_need)
     *prompt_need = NULL;
-
-  result = params->canon_user(params->utils->conn,
-			      user, 0, SASL_CU_AUTHZID, oparams);
-  if(result != SASL_OK) return result;
-
-  result = params->canon_user(params->utils->conn,
-			      params->utils->conn->external.auth_id, 0,
-			      SASL_CU_AUTHID, oparams);
 
   if (result == SASL_OK)
   {

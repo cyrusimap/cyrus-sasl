@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb5.c,v 1.13 2004/05/21 20:38:57 rjs3 Exp $"
+#ident "$Id: auth_krb5.c,v 1.14 2004/11/19 17:28:46 shadow Exp $"
 #endif
 
 /* ok, this is  wrong but the most convenient way of doing 
@@ -128,7 +128,7 @@ auth_krb5 (
   /* PARAMETERS */
   const char *user,			/* I: plaintext authenticator */
   const char *password,			/* I: plaintext password */
-  const char *service __attribute__((unused)),
+  const char *service,
   const char *realm __attribute__((unused))
   /* END PARAMETERS */
   )
@@ -203,7 +203,7 @@ auth_krb5 (
 	return strdup("NO saslauthd internal error");
     }
 
-    if (krb5_verify_user(context, auth_user, ccache, password, 1, NULL)) {
+    if (krb5_verify_user(context, auth_user, ccache, password, 1, service)) {
 	result = strdup("NO krb5_verify_user failed");
     } else {
 	result = strdup("OK");

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.56 2002/09/05 19:21:14 rjs3 Exp $
+ * $Id: client.c,v 1.57 2002/10/09 15:57:03 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -456,6 +456,8 @@ int sasl_client_start(sasl_conn_t *conn,
 
 	/* foreach in server list */
 	for (m = cmechlist->mech_list; m != NULL; m = m->next) {
+	    int myflags;
+	    
 	    /* Is this the mechanism the server is suggesting? */
 	    if (strcasecmp(m->plug->mech_name, name))
 		continue; /* no */
@@ -469,8 +471,15 @@ int sasl_client_start(sasl_conn_t *conn,
 		break;
 
 	    /* Does it meet our security properties? */
-	    if (((conn->props.security_flags ^ m->plug->security_flags)
-		 & conn->props.security_flags) != 0) {
+	    myflags = conn->props.security_flags;
+	    
+	    /* if there's an external layer this is no longer plaintext */
+	    if ((conn->props.min_ssf <= conn->external.ssf) && 
+		(conn->external.ssf > 1)) {
+		myflags &= ~SASL_SEC_NOPLAINTEXT;
+	    }
+
+	    if (((myflags ^ m->plug->security_flags) & myflags) != 0) {
 		break;
 	    }
 
@@ -501,7 +510,7 @@ int sasl_client_start(sasl_conn_t *conn,
 #endif
 
 	    /* compare security flags, only take new mechanism if it has
-	     * more security flags than the previous one.
+	     * all the security flags of the previous one.
 	     *
 	     * From the mechanisms we ship with, this yields the order:
 	     *

@@ -1,3 +1,10 @@
+2001-12-05  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* saslauthd/Makefile.am, saslauthd/acconfig.h, saslauthd/configure.in:
+	  Solaris 7 and FreeBSD (FreeBSD is courtesy of Claus Assmann
+	  <ca+sasl@sendmail.org>)
+	* sasldb/Makefile.am: link order fix (Courtesy Claus Assmann
+	  <ca+sasl@sendmail.org>)
+
 2001-12-05  Ken Murchison <ken@oceana.com>
 	* configure.in:
 	* plugins/Makefile.am: only build SRP with sasldb libs when

@@ -103,4 +103,34 @@ AC_TYPE_SIGNAL
 AC_CHECK_FUNCS(gethostname mkdir socket strdup)
 AC_CHECK_FUNCS(getspnam getuserpw, break)
 
+dnl Check for getaddrinfo
+GETADDRINFOOBJS=""
+sasl_cv_getaddrinfo=no
+IPv6_CHECK_FUNC(getaddrinfo,
+		[AC_DEFINE(HAVE_GETADDRINFO)], [sasl_cv_getaddrinfo=yes])
+if test $sasl_cv_getaddrinfo = yes; then
+    COMPAT_SRC="$COMPAT_SRC getaddrinfo.c"
+    COMPAT_OBJ="$COMPAT_OBJ getaddrinfo.o"
+fi
+
+dnl Check for getnameinfo
+GETNAMEINFOOBJS=""
+sasl_cv_getnameinfo=no
+IPv6_CHECK_FUNC(getnameinfo,
+		[AC_DEFINE(HAVE_GETNAMEINFO)], [sasl_cv_getnameinfo=yes])
+if test $sasl_cv_getnameinfo = yes; then
+	COMPAT_SRC="$COMPAT_SRC getnameinfo.c"
+	COMPAT_OBJ="$COMPAT_OBJ getnameinfo.o"
+fi
+
+AC_SUBST(COMPAT_SRC)
+AC_SUBST(COMPAT_OBJ)
+
+IPv6_CHECK_SS_FAMILY()
+IPv6_CHECK_SA_LEN()
+IPv6_CHECK_SOCKLEN_T()
+
+AC_EGREP_HEADER(sockaddr_storage, sys/socket.h,
+                AC_DEFINE(HAVE_STRUCT_SOCKADDR_STORAGE))
+
 AC_OUTPUT(Makefile)

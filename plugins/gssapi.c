@@ -51,14 +51,20 @@
 #endif
 
 #ifdef WIN32
-#include <winsock.h>
+#  include <winsock.h>
+
+#  ifndef R_OK
+#    define R_OK 04
+#  endif
+   /* we also need io.h for access() prototype */
+#  include <io.h>
 #else
-#include <sys/param.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#endif /*WIN32*/
+#  include <sys/param.h>
+#  include <sys/socket.h>
+#  include <netinet/in.h>
+#  include <arpa/inet.h>
+#  include <netdb.h>
+#endif /* WIN32 */
 #include <fcntl.h>
 #include <stdio.h>
 #include <sasl.h>
@@ -872,7 +878,6 @@ static const sasl_server_plug_t plugins[] =
   }
 };
 
-
 int 
 sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)), 
 		      int maxversion,
@@ -880,15 +885,36 @@ sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
 		      const sasl_server_plug_t **pluglist,
 		      int *plugcount)
 {
-  if (maxversion<GSSAPI_VERSION)
-    return SASL_BADVERS;
+#ifdef HAVE_GSSKRB5_REGISTER_ACCEPTOR_IDENTITY
+    const char *keytab;
+    unsigned int rl;
+#endif
 
-  *pluglist=plugins;
+    if (maxversion < GSSAPI_VERSION) {
+	return SASL_BADVERS;
+    }
 
-  *plugcount=1;  
-  *out_version=GSSAPI_VERSION;
+#ifdef HAVE_GSSKRB5_REGISTER_ACCEPTOR_IDENTITY
+    /* unfortunately, we don't check for readability of keytab if it's
+       the standard one, since we don't know where it is */
 
-  return SASL_OK;
+    utils->getopt(utils->getopt_context, "GSSAPI", "keytab", &keytab, &rl);
+    if (keytab != NULL) {
+	if (access(keytab, R_OK) != 0) {
+	    utils->log(NULL, SASL_LOG_ERR, "GSSAPI", SASL_FAIL, errno,
+		       "can't access keytab file %s: %m", keytab);
+	    return SASL_FAIL;
+	}
+
+	gsskrb5_register_acceptor_identity(keytab);
+    }
+#endif
+
+    *pluglist = plugins;
+    *plugcount = 1;  
+    *out_version = GSSAPI_VERSION;
+
+    return SASL_OK;
 }
 
 static int 

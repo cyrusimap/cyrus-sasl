@@ -139,7 +139,6 @@ case "$dblib" in
 	;;
   auto_detect)
 	dnl How about ndbm?
-	echo "hiya"
 	AC_CHECK_HEADER(ndbm.h, 
 			AC_CHECK_LIB(ndbm, dbm_open,
 				     dblib="ndbm"; SASL_DB_LIB="-lndbm",

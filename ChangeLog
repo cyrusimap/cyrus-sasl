@@ -1,5 +1,8 @@
 Tue Jun 29 00:35:08 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
+	* configure.in (SASL_DB_LIB): fixed config problem with
+	autodetecting gdbm brought up by ryan troll
+
 	* plugins/plain.c (client_continue_step): fixing auth/user problem
 
 Mon Jun 28 00:50:02 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>

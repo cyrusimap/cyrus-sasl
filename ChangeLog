@@ -1,4 +1,8 @@
 2002-04-15  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/gssapi.c: Handle null authzid's correctly
+	* lib/server.c: fix a strcmp() that should be a memcmp()
+
+2002-04-15  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/gssapi.c: fix how name_token and name_without_realm are
 	  freed.
 

@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.39 2002/12/25 00:25:14 leg Exp $ -->
+<!-- $Id: sysadmin.html,v 1.40 2003/06/28 17:19:36 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -80,14 +80,21 @@ server could have it's own realm. Certain mechanisms force the user
 harder for users to authenticate.
 
 <p>A single site might support multiple different realms.  This can
-confuse applications that weren't written in anticipation of this;
-make sure your application can support it before adding users from
-different realms into sasldb with <tt>saslpasswd2</tt>.
+confuse applications that weren't written in anticipation of this; make
+sure your application can support it before adding users from different
+realms into sasldb with <tt>saslpasswd2</tt>.  This is done using the
+<tt>-u</tt> option to saslpasswd2.  The MySQL plugin has a way of
+integrating the realm name into the query string with the '%r' macro.
 
 <p>The Kerberos mechanisms treat the SASL realm as the Kerberos
 realm.  Thus, the realm for Kerberos mechanisms defaults to the
 default Kerberos realm on the server.  They may support cross-realm
 authentication; check your application on how it deals with this.
+
+<p>Realms are represented in a username string by any text followinhg
+the '@' sign.  So, usernames like rjs3@ANDREW.CMU.EDU, is user 'rjs3'
+in the realm 'ANDREW.CMU.EDU'.  If no realm is provided, the server's
+FQDN is assumed (likewise when specifying a realm for saslpasswd2).
 
 <h2><a name="saslhow">How SASL works</a></h2>
 

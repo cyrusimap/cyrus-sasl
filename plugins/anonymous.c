@@ -54,12 +54,12 @@ server_start(void *glob_context __attribute__((unused)),
       const char **errstr)
 {
   /* holds state are in */
-  if (!conn
-      || !errstr)
-    return SASL_BADPARAM;
+  if (!conn)
+      return SASL_BADPARAM;
   
   *conn = NULL;
-  *errstr = NULL;
+  if (errstr)
+      *errstr = NULL;
 
   return SASL_OK;
 }
@@ -81,11 +81,11 @@ server_continue_step (void *conn_context __attribute__((unused)),
   if (!sparams
       || !serverout
       || !serveroutlen
-      || !oparams
-      || !errstr)
+      || !oparams)
     return SASL_BADPARAM;
 
-  *errstr = NULL;
+  if (errstr)
+      *errstr = NULL;
 
   if (! clientin) {
     *serverout = NULL;

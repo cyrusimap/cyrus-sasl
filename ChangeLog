@@ -1,3 +1,9 @@
+1999-07-20  Larry Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/anonymous.c (server_start): removed the need for
+	anonymous to get a non-NULL errstr
+	(server_continue_step): and again with the errstr
+
 Thu Jul 15 14:29:35 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/common.c (_sasl_getcallback): oops, forgot a return

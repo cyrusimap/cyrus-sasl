@@ -78,7 +78,7 @@
  * END HISTORY */
 
 #ifdef __GNUC__
-#ident "$Id: saslauthd-unix.c,v 1.2 2002/05/17 16:43:22 rjs3 Exp $"
+#ident "$Id: saslauthd-unix.c,v 1.3 2002/09/16 20:56:53 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -807,10 +807,11 @@ do_request
  * Keep calling the read() system call with 'fd', 'buf', and 'nbyte'
  * until all the data is read in or an error occurs.
  * END SYNOPSIS */
-int retry_read(int fd, void *buf, unsigned nbyte)
+int retry_read(int fd, void *inbuf, unsigned nbyte)
 {
     int n;
     int nread = 0;
+    char *buf = (char *)inbuf;
 
     if (nbyte == 0) return 0;
 

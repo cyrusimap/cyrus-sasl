@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.105 2001/03/24 01:47:27 leg Exp $
+dnl $Id: configure.in,v 1.106 2001/05/07 23:08:40 esys Exp $
 dnl
 dnl Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -701,5 +701,4 @@ java/javax/security/auth/Makefile
 java/javax/security/auth/callback/Makefile
 pwcheck/Makefile
 saslauthd/Makefile
-saslauthd/saslauthd.8
 man/Makefile)

@@ -1,10 +1,20 @@
-.\" $Id: saslauthd.8.in,v 1.2 2001/02/11 09:17:23 esys Exp $
-.\" Copyright 1997-2000 Messaging Direct Ltd. All rights reserved.
+.\" $Id: saslauthd.mdoc,v 1.1 2001/05/07 23:08:41 esys Exp $
+.\" Copyright 1997-2001 Messaging Direct Ltd. All rights reserved.
+.\"
+.\" This manpage uses the BSD mdoc manpage macros. Please don't
+.\" downgrade it to -man. The -mdoc macros are included with
+.\" GNU roff, and, of course, with the BSD distributions.
+.\"
+.\" To make life easier for sites that don't support -mdoc,
+.\" please generate (and commit!) an updated pre-formatted
+.\" manpage in saslauthd.8 whenever you change this source
+.\" version. Only the pre-formatted manpage is installed.
+.\"
 .Dt SASLAUTHD 8
 .Os "CMU-SASL"
 .Sh NAME
 .Nm saslauthd
-.Nd message store authentication server
+.Nd sasl authentication server
 .Sh SYNOPSIS
 .Nm
 .Fl a
@@ -182,13 +192,13 @@ these ticket files can cause serious performance degradation on busy
 servers. (Kerberos
 was never intended to be used in this manner, anyway.)
 .Sh FILES
-.Bl -tag -compact
-.It Pa @MAN_PATH_SASLAUTHD_RUNDIR@/mux
+.Bl -tag -width "/var/run/saslauthd/mux"
+.It Pa /var/run/saslauthd/mux
 The default communications socket.
 .Sh SEE ALSO
 .Xr passwd 1 ,
 .Xr getpwent 3 ,
 .Xr getspnam 3 ,
 .Xr getuserpw 3 ,
+.Xr sasl_checkpass 3
 .Xr sia_authenticate_user 3 ,
-.Xr saslpasswd 8

@@ -78,7 +78,7 @@
  * END HISTORY */
 
 #ifdef __GNUC__
-#ident "$Id: saslauthd.c,v 1.9 2002/01/21 18:01:41 rjs3 Exp $"
+#ident "$Id: saslauthd.c,v 1.10 2002/01/21 21:18:34 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -556,7 +556,7 @@ main(
 
     while (1) {
 	/* The idea here is we only want one process to be waiting on
-	 * an accept() at a time, so that only one wakes up at a time *
+	 * an accept() at a time, so that only one wakes up at a time */
 
 	/* Only when not in forking or debug mode */
 	if(!debug && num_threads > 0) {

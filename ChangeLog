@@ -1,3 +1,6 @@
+2002-09-10  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/server.c: Better handling of add_plugin failures
+
 2002-09-10  Ken Murchison <ken@oceana.com>
 	* acconfig.h, configure.in: enable/disable NTLM
 	* lib/staticopen.h, plugins/Makefile.am, makeinit.sh, ntlm.c:

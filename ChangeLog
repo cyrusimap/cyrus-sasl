@@ -1,3 +1,8 @@
+2002-01-31  Ken Murchison <ken@oceana.com>
+	* include/sasl.h, lib/server.c,
+	  plugins/digestmd5.c, gssapi.c, kerberos4.c, srp.c:
+	  added SASL_SEC_MUTUAL_AUTH
+	
 2002-01-30  Ken Murchison <ken@oceana.com>
 	* plugins/otp.c, plugins/otp.h: added non-OPIE client/server
 	  implementation (requires OpenSSL)

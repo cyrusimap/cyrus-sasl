@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.106 2002/01/21 21:04:49 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.107 2002/01/31 17:58:36 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2653,7 +2653,7 @@ static sasl_server_plug_t digestmd5_server_plugins[] =
 #else 
     0,
 #endif
-    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
+    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS | SASL_SEC_MUTUAL_AUTH,
     0,
     NULL,
     &digestmd5_server_mech_new,
@@ -3838,7 +3838,7 @@ static sasl_client_plug_t digestmd5_client_plugins[] =
 #else
     0,
 #endif
-    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
+    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS | SASL_SEC_MUTUAL_AUTH,
     0,
     NULL,
     NULL,

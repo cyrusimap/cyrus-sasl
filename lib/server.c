@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.100 2002/01/21 21:04:47 rjs3 Exp $
+ * $Id: server.c,v 1.101 2002/01/31 17:58:36 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -495,6 +495,7 @@ struct secflag_map_s secflag_map[] = {
     { "forward_secrecy", SASL_SEC_FORWARD_SECRECY },
     { "noanonymous", SASL_SEC_NOANONYMOUS },
     { "pass_credentials", SASL_SEC_PASS_CREDENTIALS },
+    { "mutual_auth", SASL_SEC_MUTUAL_AUTH },
     { NULL, 0x0 }
 };
 

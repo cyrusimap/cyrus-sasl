@@ -281,6 +281,8 @@ typedef unsigned sasl_ssf_t;
  * PASS_CREDENTIALS     -- require mechanisms which pass client
  *			   credentials, and allow mechanisms which can pass
  *			   credentials to do so
+ * MUTUAL_AUTH          -- require mechanisms which provide mutual
+ *			   authentication
  */
 #define SASL_SEC_NOPLAINTEXT      0x0001
 #define SASL_SEC_NOACTIVE         0x0002
@@ -288,7 +290,8 @@ typedef unsigned sasl_ssf_t;
 #define SASL_SEC_FORWARD_SECRECY  0x0008
 #define SASL_SEC_NOANONYMOUS      0x0010
 #define SASL_SEC_PASS_CREDENTIALS 0x0020
-#define SASL_SEC_MAXIUMUM         0x00FF
+#define SASL_SEC_MUTUAL_AUTH      0x0040
+#define SASL_SEC_MAXIMUM          0x00FF
 
 typedef struct sasl_security_properties 
 { 

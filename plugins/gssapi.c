@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.45 2002/01/09 19:14:17 rjs3 Exp $
+ * $Id: gssapi.c,v 1.46 2002/01/31 17:58:37 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1046,7 +1046,8 @@ static sasl_server_plug_t gssapi_server_plugins[] =
   {
     "GSSAPI",
     56, /* max ssf */
-    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOACTIVE | SASL_SEC_NOANONYMOUS,
+    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOACTIVE | SASL_SEC_NOANONYMOUS
+    | SASL_SEC_MUTUAL_AUTH,
     SASL_FEAT_WANT_CLIENT_FIRST,
     NULL,
     &gssapi_server_mech_new,
@@ -1604,7 +1605,8 @@ static sasl_client_plug_t gssapi_client_plugins[] =
   {
     "GSSAPI",
     56, /* max ssf */
-    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOACTIVE | SASL_SEC_NOANONYMOUS,
+    SASL_SEC_NOPLAINTEXT | SASL_SEC_NOACTIVE | SASL_SEC_NOANONYMOUS
+    | SASL_SEC_MUTUAL_AUTH,
     SASL_FEAT_WANT_CLIENT_FIRST,
     gssapi_client_required_prompts,
     NULL,

@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.25 2002/01/19 22:46:34 ken3 Exp $
+ * $Id: srp.c,v 1.26 2002/01/31 17:58:37 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2986,7 +2986,8 @@ static sasl_server_plug_t srp_server_plugins[] =
     | SASL_SEC_NOANONYMOUS
     | SASL_SEC_NOACTIVE
     | SASL_SEC_NODICTIONARY
-    | SASL_SEC_FORWARD_SECRECY,	/* security_flags */
+    | SASL_SEC_FORWARD_SECRECY
+    | SASL_SEC_MUTUAL_AUTH,	/* security_flags */
     SASL_FEAT_WANT_CLIENT_FIRST,/* features */
     NULL,			/* glob_context */
     &srp_server_mech_new,	/* mech_new */
@@ -3851,7 +3852,8 @@ static sasl_client_plug_t srp_client_plugins[] =
     | SASL_SEC_NOANONYMOUS
     | SASL_SEC_NOACTIVE
     | SASL_SEC_NODICTIONARY
-    | SASL_SEC_FORWARD_SECRECY,	/* security_flags */
+    | SASL_SEC_FORWARD_SECRECY
+    | SASL_SEC_MUTUAL_AUTH,	/* security_flags */
     SASL_FEAT_WANT_CLIENT_FIRST,/* features */
     NULL,			/* required_prompts */
     NULL,			/* glob_context */

@@ -290,31 +290,5 @@ public abstract class GenericCommon
 	complete = true;
     }
 
-    /**
-     * unwraps the integrity or privacy protection from a byte array
-     */
-    public byte[] unwrap(byte[] incoming,
-			 int offset,
-			 int len) throws SaslException
-    {
-	throw new SaslException("unwrap() not implemented");
-    }
-    
-    /**
-     * wraps a byte array with integrity or privacy protection
-     */
-    public byte[] wrap(byte[] outgoing,
-		       int offset,
-		       int len) throws SaslException
-    {
-	throw new SaslException("wrap() not implemented");
-    }
 
-    /**
-     * disposes of any system resources or sensitive information
-     */
-    public void dispose() throws SaslException
-    {
-	throw new SaslException("dispose() not implemented");
-    }
 }

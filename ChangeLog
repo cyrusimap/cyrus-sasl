@@ -1,3 +1,6 @@
+2002-09-19  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/gssapi.c: endinaness corrections
+
 2002-09-19  Ken Murchison <ken@oceana.com>
 	* plugins/plugin_common.[ch]: make SASL_CB_USER and result optional
 	* plugins/anonymous.c: use SASL_CB_USER for fetching trace info,

@@ -1,6 +1,6 @@
 /* javasasl.c--Java SASL JNI implementation
  * Tim Martin
- * $Id: javasasl.c,v 1.1 1998/11/16 20:06:38 rob Exp $
+ * $Id: javasasl.c,v 1.2 1998/11/16 23:03:21 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -129,7 +129,7 @@ JNIEXPORT jint JNICALL Java_sasl_saslClientFactory_jni_1sasl_1client_1init
 
 /* server new */
 
-JNIEXPORT jint JNICALL Java_sasl_saslServerConnection_jni_1sasl_1server_1new
+JNIEXPORT jint JNICALL Java_sasl_saslServerFactory_jni_1sasl_1server_1new
   (JNIEnv *env, jobject obj, jstring jservice, jstring jlocal, 
    jstring juser, jint jsecflags)
 {
@@ -154,7 +154,7 @@ JNIEXPORT jint JNICALL Java_sasl_saslServerConnection_jni_1sasl_1server_1new
 }
 
 
-JNIEXPORT jint JNICALL Java_sasl_saslClientConnection_jni_1sasl_1client_1new
+JNIEXPORT jint JNICALL Java_sasl_saslClientFactory_jni_1sasl_1client_1new
   (JNIEnv *env, jobject obj,
    jstring jservice, jstring jserver, jint jsecflags)
 {

@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.116 2001/12/04 21:42:20 ken3 Exp $
+dnl $Id: configure.in,v 1.117 2001/12/05 21:41:06 ken3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -450,7 +450,6 @@ dnl See if we have OpenSSL for SHA1 support
 	SRP_LIBS="$SRP_LIBS -lcrypto"
   fi
 
-  AC_SUBST(SRP_LIBS)
   SASL_MECHS="$SASL_MECHS libsrp.la"
   SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/srp.o"
   AC_DEFINE(STATIC_SRP)
@@ -464,10 +463,12 @@ dnl srp_setpass support
   if test "$srp_setpass" != no; then
     AC_MSG_RESULT(enabled)
     AC_DEFINE(DO_SRP_SETPASS)
+    SRP_LIBS="$SRP_LIBS ../sasldb/libsasldb.la \$(SASL_DB_LIB)"
   else
     AC_MSG_RESULT(disabled)
   fi
 
+  AC_SUBST(SRP_LIBS)
 else
   AC_MSG_RESULT(disabled)
 fi

@@ -1,3 +1,15 @@
+2001-12-05  Ken Murchison <ken@oceana.com>
+	* configure.in:
+	* plugins/Makefile.am: only build SRP with sasldb libs when
+	  srp_setpass() is enabled
+	* plugins/srp.c: added HMAC-SHA-160 integrity layer
+	* plugins/srp.c: don't offer integrity layers unless HMAC-SHA-160
+	  is available (mandatory)
+	* plugins/srp.c: fixed multiple integrity/confidentiality layer
+	  client-side bug
+	* plugins/srp.c: fixed delete SRP secret bug
+	* plugins/srp.c: removed VL() stuff
+
 2001-12-04  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* utils/Makefile.am, config/sasldb.m4: Build sasldblistusers2
 	  and saslpasswd2.  Default database now /etc/sasldb2

@@ -1,7 +1,7 @@
 # Makefile.am for the SASL plugins
 # Rob Siemborski
 # Rob Earhart
-# $Id: Makefile.am,v 1.42 2001/12/04 18:03:06 rjs3 Exp $
+# $Id: Makefile.am,v 1.43 2001/12/05 21:41:07 ken3 Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -113,7 +113,7 @@ liblogin_la_LIBADD = $(PLAIN_LIBS) $(COMPAT_OBJS)
 libsrp_la_SOURCES = srp.c srp_init.c $(common_sources)
 libsrp_la_LDFLAGS = -version-info $(srp_version)
 libsrp_la_DEPENDENCIES = $(COMPAT_OBJS)
-libsrp_la_LIBADD = $(SRP_LIBS) ../sasldb/libsasldb.la $(SASL_DB_LIB) $(COMPAT_OBJS)
+libsrp_la_LIBADD = $(SRP_LIBS) $(COMPAT_OBJS)
 
 libotp_la_SOURCES = otp.c otp_init.c $(common_sources)
 libotp_la_LDFLAGS = -version-info $(otp_version)

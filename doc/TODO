@@ -19,8 +19,7 @@ Mechs to write
 SRP
 ~~~
 ) Add confidentiality layers
-) Add HMAC-SHA-160 integrity layer
-) Cleanup code (debugging messages, etc)
+) Cleanup code (debug/error messages, etc)
 
 OTP
 ~~~

@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.5 2001/12/04 21:42:20 ken3 Exp $
+ * $Id: srp.c,v 1.6 2001/12/05 21:41:07 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -46,6 +46,7 @@
 #include <config.h>
 #include <assert.h>
 #include <ctype.h>
+#include <stdio.h>
 
 /* for big number support */
 #include <gmp.h>
@@ -82,9 +83,6 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 #define BITSFORab 64
 /* How many bytes big should the salt be? */
 #define SRP_SALT_SIZE 16
-
-#include <stdio.h>
-#define VL(x) printf x
 
 /* Generic Hash function definitions */
 typedef int  (*srp_hash_len_t)(const sasl_utils_t *utils);
@@ -147,7 +145,110 @@ srp_sha1Final(const sasl_utils_t *utils __attribute__((unused)),
 
     utils->free(ctx);
 }
+
+/***************** SHA1 Hash Functions for Integrity Layer ****************/
+
+typedef struct HMAC_SHA_CTX_s {
+    SHA_CTX ictx, octx;
+} HMAC_SHA_CTX;
+
+static int
+srp_hmac_sha1Len(const sasl_utils_t *utils __attribute__((unused)))
+{
+    return 20;
+}
+
+static int
+srp_hmac_sha1Init(const sasl_utils_t *utils, char *key, int keylen, void **ctx)
+{
+    HMAC_SHA_CTX *ret;
+    unsigned char k_ipad[65];    /* inner padding -
+				  * key XORd with ipad
+				  */
+    unsigned char k_opad[65];    /* outer padding -
+				  * key XORd with opad
+				  */
+    unsigned char tk[20];
+    int i;
+
+    ret = utils->malloc(sizeof(HMAC_SHA_CTX));
+    if (!ret) return SASL_NOMEM;
+
+    /* if key is longer than 64 bytes reset it to key=SHA1(key) */
+    if (keylen > 64) {
+    
+	SHA_CTX      tctx;
+
+	SHA1_Init(&tctx);
+	SHA1_Update(&tctx, key, keylen);
+	SHA1_Final(tk, &tctx);
+
+	key = tk;
+	keylen = 20;
+    } 
+
+    /*
+     * the HMAC_SHA1 transform looks like:
+     *
+     * SHA1(K XOR opad, SHA1(K XOR ipad, text))
+     *
+     * where K is an n byte key
+     * ipad is the byte 0x36 repeated 64 times
+     * opad is the byte 0x5c repeated 64 times
+     * and text is the data being protected
+     */
+
+    /* start out by storing key in pads */
+    memset(k_ipad, '\0', sizeof k_ipad);
+    memset(k_opad, '\0', sizeof k_opad);
+    memcpy(k_ipad, key, keylen);
+    memcpy(k_opad, key, keylen);
+
+    /* XOR key with ipad and opad values */
+    for (i=0; i<64; i++) {
+	k_ipad[i] ^= 0x36;
+	k_opad[i] ^= 0x5c;
+    }
+
+    SHA1_Init(&ret->ictx);                   /* init inner context */
+    SHA1_Update(&ret->ictx, k_ipad, 64);     /* apply inner pad */
+
+    SHA1_Init(&ret->octx);                   /* init outer context */
+    SHA1_Update(&ret->octx, k_opad, 64);     /* apply outer pad */
+
+    /* scrub the pads and key context (if used) */
+    memset(&k_ipad, 0, sizeof(k_ipad));
+    memset(&k_opad, 0, sizeof(k_opad));
+    memset(&tk, 0, sizeof(tk));
+
+    /* and we're done. */
+    *ctx = ret;
+
+    return SASL_OK;
+}
+
+static void
+srp_hmac_sha1Update(const sasl_utils_t *utils __attribute__((unused)),
+		    void *context, char *data, int datalen)
+{
+    HMAC_SHA_CTX *ctx = (HMAC_SHA_CTX *)context;
+
+    SHA1_Update(&ctx->ictx, data, datalen);    
+}
+
+static void
+srp_hmac_sha1Final(const sasl_utils_t *utils, char *outdata, void *context)
+{
+    HMAC_SHA_CTX *ctx = (HMAC_SHA_CTX *)context;
+
+    SHA1_Final(outdata, &ctx->ictx);  /* Finalize inner sha1 */
+    SHA1_Update(&ctx->octx, outdata, 20); /* Update outer ctx */
+    SHA1_Final(outdata, &ctx->octx); /* Finalize outer sha1 */
+
+    utils->free(ctx);
+}
 #endif /* WITH_SHA1 */
+
 
 /***************** MD5 Hash Functions ****************/
 
@@ -250,8 +351,13 @@ typedef struct layer_option_s {
 } layer_option_t;
 
 static layer_option_t integrity_options[] = {
-    {"hmac-md5", 0x1, 0,	&srp_hmac_md5Len,	&srp_hmac_md5Init,
+    /* can't advertise integrity w/o HMAC_SHA-160 */
+#ifdef WITH_SHA1
+    {"HMAC-SHA-160", 0x1, 0,	&srp_hmac_sha1Len,	&srp_hmac_sha1Init,
+     &srp_hmac_sha1Update,	&srp_hmac_sha1Final},
+    {"HMAC-MD5-120", 0x2, 0,	&srp_hmac_md5Len,	&srp_hmac_md5Init,
      &srp_hmac_md5Update,	&srp_hmac_md5Final},
+#endif /* WITH_SHA1 */
     {NULL,       0x0, 0,	NULL,			NULL,
      NULL,			NULL}
 };
@@ -425,7 +531,9 @@ decode(context_t *text,
 	hashlen = text->IntegHashLen; /* xxx */
 
 	if ((int)inputlen < hashlen) {
-	    VL(("Input is smaller than hash length: %d vs %d\n",inputlen, hashlen));
+	    text->utils->log(NULL, SASL_LOG_ERR,
+			     "Input is smaller than hash length: %d vs %d\n",
+			     inputlen, hashlen);
 	    return SASL_FAIL;
 	}
 
@@ -446,7 +554,7 @@ decode(context_t *text,
 	/* compare to hash given */
 	for (i = 0; i < hashlen; i++) {
 	    if (hashdata[i] != input[inputlen - hashlen + i]) {
-		VL(("Hash is incorrect\n"));
+		text->utils->log(NULL, SASL_LOG_ERR, "Hash is incorrect\n");
 		return SASL_FAIL;
 	    }
 	}
@@ -499,7 +607,8 @@ layer_decode(void *context,
 	    
 	    /* too big? */
 	    if ((text->size>0xFFFF) || (text->size < 0)) {
-		VL(("Size out of range: %d\n",text->size));
+		text->utils->log(NULL, SASL_LOG_ERR,
+				 "Size out of range: %d\n",text->size);
 		return SASL_FAIL;
 	    }
 	    
@@ -663,14 +772,15 @@ MakeBuffer(const sasl_utils_t *utils,
     char *out2;
 
     if (!in1) {
-	VL(("At least one buffer must be active\n"));
+	utils->log(NULL, SASL_LOG_ERR, "At least one buffer must be active\n");
 	return SASL_FAIL;
     }
 
     len = in1len + in2len + in3len + in4len;
 
     if (len > MAX_BUFFER_LEN) {
-	VL(("String too long to create SRP buffer string\n"));
+	utils->log(NULL, SASL_LOG_ERR,
+		   "String too long to create SRP buffer string\n");
 	return SASL_FAIL;
     }
 
@@ -711,7 +821,7 @@ UnBuffer(char *in, int inlen, char **out, int *outlen)
     int len;
 
     if ((!in) || (inlen < 4)) {
-	VL(("Buffer is not big enough to be SRP buffer: %d\n", inlen));
+	/*VL(("Buffer is not big enough to be SRP buffer: %d\n", inlen));*/
 	return SASL_FAIL;
     }
 
@@ -721,7 +831,7 @@ UnBuffer(char *in, int inlen, char **out, int *outlen)
 
     /* make sure it's right */
     if (len + 4 != inlen) {
-	VL(("SRP Buffer isn't of the right length\n"));
+	/*VL(("SRP Buffer isn't of the right length\n"));*/
 	return SASL_FAIL;
     }
 
@@ -742,7 +852,7 @@ MakeUTF8(const sasl_utils_t *utils,
     short inbyteorder;
 
     if (!in) {
-	VL(("Can't create utf8 string from null"));
+	utils->log(NULL, SASL_LOG_ERR, "Can't create utf8 string from null");
 	return SASL_FAIL;
     }
 
@@ -751,7 +861,8 @@ MakeUTF8(const sasl_utils_t *utils,
     llen = strlen(in);
 
     if (llen > MAX_UTF8_LEN) {
-	VL(("String too long to create utf8 string\n"));
+	utils->log(NULL, SASL_LOG_ERR,
+		   "String too long to create utf8 string\n");
 	return SASL_FAIL;
     }
     len = (short)llen;
@@ -779,7 +890,8 @@ GetUTF8(const sasl_utils_t *utils, char *data, int datalen,
     int len;
 
     if ((!data) || (datalen < 2)) {
-	VL(("Buffer is not big enough to be SRP UTF8\n"));
+	utils->log(NULL, SASL_LOG_ERR,
+		   "Buffer is not big enough to be SRP UTF8\n");
 	return SASL_FAIL;
     }
 
@@ -789,7 +901,7 @@ GetUTF8(const sasl_utils_t *utils, char *data, int datalen,
 
     /* make sure it's right */
     if (len + 2 > datalen) {
-	VL(("Not enough data for this SRP UTF8\n"));
+	utils->log(NULL, SASL_LOG_ERR, "Not enough data for this SRP UTF8\n");
 	return SASL_FAIL;
     }
 
@@ -813,12 +925,13 @@ MakeOS(const sasl_utils_t *utils,
        int *outlen)
 {
     if (!in) {
-	VL(("Can't create SRP os string from null"));
+	utils->log(NULL, SASL_LOG_ERR, "Can't create SRP os string from null");
 	return SASL_FAIL;
     }
 
     if (inlen > MAX_OS_LEN) {
-	VL(("String too long to create SRP os string\n"));
+	utils->log(NULL, SASL_LOG_ERR,
+		   "String too long to create SRP os string\n");
 	return SASL_FAIL;
     }
 
@@ -843,7 +956,8 @@ GetOS(const sasl_utils_t *utils, char *data, int datalen,
     int len;
 
     if ((!data) || (datalen < 1)) {
-	VL(("Buffer is not big enough to be SRP os\n"));
+	utils->log(NULL, SASL_LOG_ERR,
+		   "Buffer is not big enough to be SRP os\n");
 	return SASL_FAIL;
     }
 
@@ -852,7 +966,7 @@ GetOS(const sasl_utils_t *utils, char *data, int datalen,
 
     /* make sure it's right */
     if (len + 1 > datalen) {
-	VL(("Not enough data for this SRP os\n"));
+	utils->log(NULL, SASL_LOG_ERR, "Not enough data for this SRP os\n");
 	return SASL_FAIL;
     }
 
@@ -996,7 +1110,7 @@ GetMPI(unsigned char *data, int datalen, mpz_t *outnum,
     int len;
 
     if ((!data) || (datalen < 2)) {
-	VL(("Buffer is not big enough to be SRP MPI: %d\n", datalen));
+	/*VL(("Buffer is not big enough to be SRP MPI: %d\n", datalen));*/
 	return SASL_FAIL;
     }
 
@@ -1006,7 +1120,8 @@ GetMPI(unsigned char *data, int datalen, mpz_t *outnum,
 
     /* make sure it's right */
     if (len + 2 > datalen) {
-	VL(("Not enough data for this SRP MPI: we have %d; it say it's %d\n",datalen, len+2));
+	/*VL(("Not enough data for this SRP MPI: we have %d; it say it's %d\n",
+	  datalen, len+2));*/
 	return SASL_FAIL;
     }
 
@@ -1475,8 +1590,8 @@ static int
 FindBit(char *name, layer_option_t *opts)
 {
     while (opts->name) {
-	VL(("Looking for [%s] this is [%s]\n",name,opts->name));
-	if (strcmp(name, opts->name)==0) {
+	/*VL(("Looking for [%s] this is [%s]\n",name,opts->name));*/
+	if (strcasecmp(name, opts->name)==0) {
 	    return opts->bit;
 	}
 
@@ -1501,11 +1616,11 @@ FindOptionFromBit(int bit, layer_option_t *opts)
 }
 
 static int
-ParseOptionString(char *str, srp_options_t *opts)
+ParseOptionString(char *str, srp_options_t *opts, int isserver)
 {
     if (strcmp(str,OPTION_REPLAY_DETECTION)==0) {
 	if (opts->replay_detection) {
-	    VL(("Replay Detection option appears twice\n"));
+	    /*VL(("Replay Detection option appears twice\n"));*/
 	    return SASL_FAIL;
 	}
 	opts->replay_detection = 1;
@@ -1515,8 +1630,8 @@ ParseOptionString(char *str, srp_options_t *opts)
 
 	if (bit == 0) return SASL_OK;
 
-	if (bit & opts->integrity) {
-	    VL(("Option %s exists multiple times\n",str));
+	if (isserver && (bit & opts->integrity)) {
+	    /*VL(("Option %s exists multiple times\n",str));*/
 	    return SASL_FAIL;
 	}
 
@@ -1529,15 +1644,15 @@ ParseOptionString(char *str, srp_options_t *opts)
 			  confidentiality_options);
 	if (bit == 0) return SASL_OK;
 
-	if (bit & opts->confidentiality) {
-	    VL(("Option %s exists multiple times\n",str));
+	if (isserver && (bit & opts->confidentiality)) {
+	    /*VL(("Option %s exists multiple times\n",str));*/
 	    return SASL_FAIL;
 	}
 
 	opts->confidentiality = opts->confidentiality | bit;
 
     } else {
-	VL(("Option not undersood: %s\n",str));
+	/*VL(("Option not undersood: %s\n",str));*/
 	return SASL_FAIL;
     }
 
@@ -1545,7 +1660,8 @@ ParseOptionString(char *str, srp_options_t *opts)
 }
 
 static int
-ParseOptions(const sasl_utils_t *utils, char *in, srp_options_t *out)
+ParseOptions(const sasl_utils_t *utils, char *in, srp_options_t *out,
+	     int isserver)
 {
     int r;
 
@@ -1559,9 +1675,9 @@ ParseOptions(const sasl_utils_t *utils, char *in, srp_options_t *out)
 
 	if (opt == NULL) return SASL_OK;
 
-	VL(("Got option: [%s]\n",opt));
+	utils->log(NULL, SASL_LOG_DEBUG, "Got option: [%s]\n",opt);
 
-	r = ParseOptionString(opt, out);
+	r = ParseOptionString(opt, out, isserver);
 	if (r) return r;
     }
 
@@ -1572,7 +1688,7 @@ static layer_option_t *
 FindBest(int available, layer_option_t *opts)
 {
     while (opts->name) {
-	VL(("FindBest %d %d\n",available, opts->bit));
+	/*VL(("FindBest %d %d\n",available, opts->bit));*/
 
 	if (available & opts->bit) {
 	    return opts;
@@ -1712,11 +1828,12 @@ CreateClientOpts(sasl_client_params_t *params,
     /* we now go searching for an option that gives us at least "musthave"
        and at most "limit" bits of ssf. */
     if ((limit > 1) && (available->confidentiality)) {
-	VL(("xxx No good privacy layers\n"));
+	params->utils->log(NULL, SASL_LOG_ERR, "xxx No good privacy layers\n");
 	return SASL_FAIL;
     }
 
-    VL(("Available integrity = %d\n",available->integrity));
+    params->utils->log(NULL, SASL_LOG_DEBUG,
+		       "Available integrity = %d\n",available->integrity);
 
     if ((limit >= 1) && (musthave <= 1) && (available->integrity)) {
 	/* integrity */
@@ -1737,7 +1854,7 @@ CreateClientOpts(sasl_client_params_t *params,
     }
 
     
-    VL(("Can't find an acceptable layer\n"));
+    params->utils->log(NULL, SASL_LOG_ERR, "Can't find an acceptable layer\n");
     return SASL_TOOWEAK;
 }
 
@@ -1759,7 +1876,7 @@ SetOptions(srp_options_t *opts,
 	oparams->encode = NULL;
 	oparams->decode = NULL;
 	oparams->mech_ssf = 0;
-	VL(("Using no layer\n"));	
+	utils->log(NULL, SASL_LOG_DEBUG, "Using no layer\n");
 	return SASL_OK;
     }
     
@@ -1776,7 +1893,8 @@ SetOptions(srp_options_t *opts,
 
 	iopt = FindOptionFromBit(opts->integrity, integrity_options);
 	if (!iopt) {
-	    VL(("Unable to find integrity layer option now\n"));
+	    utils->log(NULL, SASL_LOG_ERR,
+		       "Unable to find integrity layer option now\n");
 	    return SASL_FAIL;
 	}
 
@@ -2320,6 +2438,7 @@ server_step2(context_t *text,
 	"Error parsing out client options 'o'");
       return r;
     }
+    params->utils->log(NULL, SASL_LOG_DEBUG, "o: '%s'", text->client_options);
 
     if (datalen != 0) {
       params->utils->seterror(params->utils->conn, 0, 
@@ -2341,7 +2460,7 @@ server_step2(context_t *text,
     }
 
     /* parse client options */
-    r = ParseOptions(params->utils, text->client_options, &client_opts);
+    r = ParseOptions(params->utils, text->client_options, &client_opts, 1);
     if (r) {
       params->utils->seterror(params->utils->conn, 0, 
 	"Error parsing user's options");
@@ -2452,7 +2571,8 @@ server_step3(context_t *text,
     if (myM1len != M1len) {
       params->utils->seterror(params->utils->conn, 0, 
 	"M1 lengths do not match");
-      VL(("M1 lengths do not match: %d vs %d",M1len, myM1len));
+      params->utils->log(NULL, SASL_LOG_ERR,
+			 "M1 lengths do not match: %d vs %d",M1len, myM1len);
       goto end;
     }
 
@@ -2555,7 +2675,8 @@ srp_server_mech_step(void *conn_context,
       || !oparams)
     return SASL_BADPARAM;
 
-  sparams->utils->log(NULL, SASL_LOG_ERR, "SRP server step %d\n",text->state);
+  sparams->utils->log(NULL, SASL_LOG_DEBUG,
+		      "SRP server step %d\n", text->state);
 
   switch(text->state)
       {
@@ -2684,7 +2805,8 @@ srp_setpass(context_t *text,
     /* do the store */
     sprintf(propName, "cmusaslsecret%s", text->mech_name);
     r = (*_sasldb_putdata)(sparams->utils, sparams->utils->conn,
-			   user, realm, propName, sec->data, sec->len);
+			   user, realm, propName,
+			   (sec ? sec->data : NULL), (sec ? sec->len : 0));
 
     if (r) {
       sparams->utils->seterror(sparams->utils->conn, 0, 
@@ -2692,7 +2814,7 @@ srp_setpass(context_t *text,
       goto cleanup;
     }
 
-    VL(("Setpass for SRP successful\n"));
+    sparams->utils->log(NULL, SASL_LOG_DEBUG, "Setpass for SRP successful\n");
 
  cleanup:
 
@@ -2810,11 +2932,13 @@ int srp_server_plug_init(const sasl_utils_t *utils __attribute__((unused)),
 	return SASL_BADVERS;
     }
 
+#ifdef DO_SRP_SETPASS
     /* Do we have database support? */
     /* Note that we can use a NULL sasl_conn_t because our
      * sasl_utils_t is "blessed" with the global callbacks */
     if(_sasl_check_db(utils, NULL) != SASL_OK)
 	return SASL_NOMECH;
+#endif
 
     *pluglist=srp_server_plugins;
 
@@ -3136,7 +3260,8 @@ client_step1(context_t *text,
      * 
      */
     if (serverinlen > 0) {
-	VL(("Invalid input to first step of SRP\n"));
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Invalid input to first step of SRP\n");
 	return SASL_FAIL;
     }
 
@@ -3241,40 +3366,45 @@ client_step2(context_t *text,
 
     r = GetMPI((unsigned char *)data, datalen, &text->N, &data, &datalen);
     if (r) {
-	VL(("Error getting MPI string for 'N'\n"));
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Error getting MPI string for 'N'\n");
 	goto done;
     }
 
     r = GetMPI((unsigned char *) data, datalen, &text->g, &data, &datalen);
     if (r) {
-	VL(("Error getting MPI string for 'g'\n"));
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Error getting MPI string for 'g'\n");
 	goto done;
     }
 
     r = GetOS(params->utils, (unsigned char *)data, datalen,
 	      &text->salt, &text->saltlen, &data, &datalen);
     if (r) {
-	VL(("Error getting OS string for 's'\n"));
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Error getting OS string for 's'\n");
 	goto done;
     }
 
     r = GetUTF8(params->utils, data, datalen, &text->server_options,
 		&data, &datalen);
     if (r) {
-	VL(("Error getting UTF8 string for 'L'"));
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Error getting UTF8 string for 'L'");
 	goto done;
     }
+    params->utils->log(NULL, SASL_LOG_DEBUG, "L: '%s'", text->server_options);
 
     if (datalen != 0) {
-	VL(("Extra data parsing buffer\n"));
+	params->utils->log(NULL, SASL_LOG_ERR, "Extra data parsing buffer\n");
 	goto done;
     }
 
     /* parse server options */
     memset(&server_opts, 0, sizeof(srp_options_t));
-    r = ParseOptions(params->utils, text->server_options, &server_opts);
+    r = ParseOptions(params->utils, text->server_options, &server_opts, 0);
     if (r) {
-	VL(("Error parsing options\n"));
+	params->utils->log(NULL, SASL_LOG_ERR, "Error parsing options\n");
 	goto done;
     }
 
@@ -3291,14 +3421,16 @@ client_step2(context_t *text,
     /* make o */
     r = CreateClientOpts(params, &server_opts, &text->client_opts);
     if (r) {
-	VL(("Error creating client options\n"));
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Error creating client options\n");
 	goto done;
     }
 
     r = OptionsToString(params->utils, &text->client_opts,
 			&text->client_options);
     if (r) {
-	VL(("Error converting client options to an option string\n"));
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Error converting client options to an option string\n");
 	goto done;
     }
       
@@ -3313,26 +3445,29 @@ client_step2(context_t *text,
     
     r = MakeMPI(params->utils, text->A, &mpiA, &mpiAlen);
     if (r) {
-	VL(("Error making MPI string from A\n"));
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Error making MPI string from A\n");
 	goto done;
     }
 
     r = MakeUTF8(params->utils, text->userid, &utf8I, &utf8Ilen);
     if (r) {
-	VL(("Error making UTF8 string from userid ('I')\n"));
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Error making UTF8 string from userid ('I')\n");
 	goto done;
     }
 
     r = MakeUTF8(params->utils, text->client_options, &utf8o, &utf8olen);
     if (r) {
-	VL(("Error making UTF8 string from client options ('o')\n"));
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Error making UTF8 string from client options ('o')\n");
 	goto done;
     }
 
     r = MakeBuffer(params->utils, mpiA, mpiAlen, utf8I, utf8Ilen,
 		   utf8o, utf8olen, NULL, 0, clientout, clientoutlen);
     if (r) {
-	VL(("Error making output buffer\n"));
+	params->utils->log(NULL, SASL_LOG_ERR, "Error making output buffer\n");
 	goto done;
     }
 
@@ -3375,7 +3510,7 @@ client_step3(context_t *text,
     if (r) return r;
 
     if (datalen != 0) {
-	VL(("Extra data parsing buffer\n"));
+	params->utils->log(NULL, SASL_LOG_ERR, "Extra data parsing buffer\n");
 	return SASL_FAIL;
     }
     
@@ -3407,14 +3542,16 @@ client_step3(context_t *text,
     
     r = MakeOS(params->utils, text->M1, text->M1len, &osM1, &osM1len);
     if (r) {
-	VL(("Error creating OS string for M1\n"));
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Error creating OS string for M1\n");
 	goto done;
     }
 
     r = MakeBuffer(params->utils, osM1, osM1len, NULL, 0, NULL, 0, NULL, 0,
 		   clientout, clientoutlen);
     if (r) {
-	VL(("Error creating buffer in step 3\n"));
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Error creating buffer in step 3\n");
 	goto done;
     }
 
@@ -3460,7 +3597,7 @@ client_step4(context_t *text,
     if (r) return r;
 
     if (datalen != 0) {
-	VL(("Extra data parsing buffer\n"));
+	params->utils->log(NULL, SASL_LOG_ERR, "Extra data parsing buffer\n");
 	r = SASL_FAIL;
 	goto done;
     }
@@ -3470,13 +3607,14 @@ client_step4(context_t *text,
 		    text->client_options, text->M1, text->M1len,
 		    text->K, text->Klen, &myM2, &myM2len);
     if (r) {
-	VL(("Error calculating our own M2 (server evidence)\n"));
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Error calculating our own M2 (server evidence)\n");
 	goto done;
     }
 
     /* compare to see if is server spoof */
     if (myM2len != serverM2len) {
-	VL(("Server M2 length wrong\n"));
+	params->utils->log(NULL, SASL_LOG_ERR, "Server M2 length wrong\n");
 	r = SASL_FAIL;
 	goto done;
     }
@@ -3484,7 +3622,8 @@ client_step4(context_t *text,
     
     for (i = 0; i < myM2len; i++) {
 	if (serverM2[i] != myM2[i]) {
-	    VL(("Server spoof detected. M2 incorrect\n"));
+	    params->utils->log(NULL, SASL_LOG_ERR,
+			       "Server spoof detected. M2 incorrect\n");
 	    r = SASL_FAIL;
 	    goto done;
 	}
@@ -3519,8 +3658,7 @@ srp_client_mech_step(void *conn_context,
 {
   context_t *text = conn_context;
 
-  VL(("SRP client step %d\n",text->state));
-  params->utils->log(NULL, SASL_LOG_ERR, "SRP client step %d\n",text->state);
+  params->utils->log(NULL, SASL_LOG_DEBUG, "SRP client step %d\n",text->state);
 
   switch (text->state)
       {
@@ -3537,7 +3675,7 @@ srp_client_mech_step(void *conn_context,
 	  return client_step4(text, params, serverin, serverinlen, 
 			      prompt_need, clientout, clientoutlen, oparams);
       default:
-	  VL(("Invalid SRP step\n"));
+	  params->utils->log(NULL, SASL_LOG_ERR, "Invalid SRP step\n");
 	  return SASL_FAIL;
       }
 

@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>SASL Plugin Programmer's Guide</title>
-<!-- $Id: plugprog.html,v 1.3 2001/12/04 21:05:09 leg Exp $ -->
+<!-- $Id: plugprog.html,v 1.4 2001/12/10 18:35:54 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <h1>SASL Plugin Programmer's Guide</h1>
@@ -167,7 +167,9 @@
         security layer information (in the way of callbacks).  Note
         that as soon as the client has both the authentication and
         authorization IDs, it MUST call the canon_user function provided
-        in its params structure.</li>
+        in its params structure (for both the authentication and
+	authorization IDs, with SASL_CU_AUTHID and SASL_CU_AUTHZID
+        respectively).</li>
       <li><b>mech_dispose</b> - Called to dispose of a connection context.
 	This is only called when the connection will no longer be used
         (e.g. when <tt>sasl_dispose</tt> is called)</li>
@@ -205,9 +207,14 @@
 	information).  Also, as soon
         as the mechanism has computed both the authentication and the
         authorization IDs, it MUST call the canon_user function provided
-        in the server params structure.  This will also fill in its
-        propctx, so any auxiliary property requests (for example, to lookup
-        the password) should be done before this point.<p>
+        in the server params structure (for both the authentication and
+	authorization IDs, with SASL_CU_AUTHID and SASL_CU_AUTHZID
+        respectively).  This action will also fill in its
+        propctx, so any auxiliary property <i>requests</i>
+        (for example, to lookup
+        the password) should be done before the request to canonicalize
+        the authentication id.  Authorization ID lookups do not occur until
+        after the plugin returns success to the SASL library.<p>
 
         Before returning SASL_OK, <tt>mech_step</tt> must fill in the
         oparams fields for which it is responsible, that is, <tt>doneflag</tt>
@@ -242,6 +249,10 @@
     <ul>
       <li>They must copy their output into the provided output buffers.</li>
       <li>The output buffers may be the same as the input buffers.</li>
+      <li>They must function for the case which is only an authentication
+	  ID (flags == SASL_CU_AUTHID) or only an authorization ID
+	  (flags == SASL_CU_AUTHZID) or both
+	  (flags == SASL_CU_AUTHID | SASL_CU_AUTHZID)
     </ul>
     <p>User canonicalization plugins must export a <tt>sasl_canonuser_init</tt>
        function which returns a <tt>sasl_canonuser_plug_t</tt> in order

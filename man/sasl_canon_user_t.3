@@ -50,13 +50,10 @@ sasl_server_userdb_checkpass_t \- Plaintext Password Verification Callback
 .BI "int sasl_canon_user_t(sasl_conn_t " *conn ","
 .BI "                      void " *context ","
 .BI "			   const char " *user ", unsigned " ulen ","
-.BI "                      const char " *authid ", unsigned " alen ","
 .BI "                      unsigned " flags ","
 .BI "                      const char " *user_realm ","
 .BI "                      char " *out_user ", unsigned " out_umax ","
-.BI "                      unsigned " *out_ulen ","
-.BI "                      char " *out_authid ", unsigned " out_amax ","
-.BI "                      unsigned " *out_alen ")"
+.BI "                      unsigned " *out_ulen ")"
 
 .fi
 .SH DESCRIPTION
@@ -73,15 +70,12 @@ context from the callback record
 .I user
 and
 .I ulen
-Un-canonicalized username/authorization id (and length)
-
-.I authid
-and
-.I alen
-Un-canonicalized authentication id (and length)
+Un-canonicalized username (and length)
 
 .I flags
-Currently unused, supplied by auth mechanism.
+Either SASL_CU_AUTHID (indicating the authentication ID is being canonicalized)
+or SASL_CU_AUTHZID (indicating the authorization ID is to be canonicalized)
+or a bitwise OR of the the two.
 
 .I user_realm
 Realm of authentication.
@@ -91,14 +85,7 @@ and
 .I out_umax
 and
 .I out_ulen
-The output buffer, max length, and actual length for the username/authorization id.
-
-.I out_authid
-and
-.I out_amax
-and
-.I out_alen
-The same for the authenitcation ID.
+The output buffer, max length, and actual length for the username.
 
 .SH "RETURN VALUE"
 SASL callback functions should return SASL return codes. See sasl.h for a complete list. SASL_OK indicates success.

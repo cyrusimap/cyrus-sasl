@@ -1,17 +1,22 @@
+2003-07-26  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/server.c: Missed pointer initialization fix
+	  ("Dave Cridland [Home]" <dave@cridland.net>)
+
 2003-07-26  Ken Murchison <ken@oceana.com>
 	* plugins/digestmd5.c: merged privacy and integrity security layer
 	  code and removed use of tmp buffers for security layer
 
 2003-07-25  Ken Murchison <ken@oceana.com>
-	* plugins/srp.c: removed use of tmp buffer for security layer
-	* plugins/srp.c: don't make a big buffer out of iovecs when encoding
-
-2003-07-25  Ken Murchison <ken@oceana.com>
+	* plugins/srp.c: removed use of tmp buffer for security layer;
+	  don't make a big buffer out of iovecs when encoding
 	* lib/server.c, plugins/login.c, plugins/plain.c: better handling
 	  of auto_transition -- doesn't try to transition from auxprop to
 	  auxprop
 
 2003-07-25  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* configure.in: Fix up some mysql/pgsql detection
+	* plugins/gssapi.c: improved error reporting
+	  (William Fiveash <William.Fiveash@sun.com>)
 	* cmulocal/sasl2.m4, saslauthd/mechanisms.h: Improved
 	  GSSAPI detection (don't default to MIT, require HAVE_KRB5_H
 	  for the kerberos5 saslauthd module)

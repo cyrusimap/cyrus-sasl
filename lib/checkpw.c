@@ -598,7 +598,7 @@ int _sasl_sasldb_set_pass(sasl_conn_t *conn,
     char *userid, *realm;
     int ret = SASL_OK;
 
-    if (*errstr) {
+    if (errstr) {
 	*errstr = NULL;
     }
 

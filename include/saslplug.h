@@ -149,11 +149,12 @@ typedef struct sasl_utils {
     int (*prop_setvals)(struct propctx *ctx, const char *name,
 			const char **values);
     void (*prop_erase)(struct propctx *ctx, const char *name);
+    int (*auxprop_store)(sasl_conn_t *conn,
+			 struct propctx *ctx, const char *user);
 
     /* for additions which don't require a version upgrade; set to 0 */
     int (*spare_fptr1)();
     int (*spare_fptr2)();
-    int (*spare_fptr3)();
 } sasl_utils_t;
 
 /*
@@ -830,8 +831,18 @@ typedef struct sasl_auxprop_plug {
     /* name of the auxprop plugin */
     char *name;
 
-    /* for additions which don't require a version upgrade; set to 0 */
-    void (*spare_fptr1)();
+    /* store the fields/values of an auxiliary property context (OPTIONAL)
+     *
+     * if ctx is NULL, just check if storing properties is enabled
+     *
+     * returns
+     *  SASL_OK         on success
+     *  SASL_FAIL       on failure
+     */
+    int (*auxprop_store)(void *glob_context,
+			 sasl_server_params_t *sparams,
+			 struct propctx *ctx,
+			 const char *user, unsigned ulen);
 } sasl_auxprop_plug_t;
 
 /* auxprop lookup flags */

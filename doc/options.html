@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Options for Cyrus SASL</title>
-<!-- $Id: options.html,v 1.15 2003/07/15 20:16:07 ken3 Exp $ -->
+<!-- $Id: options.html,v 1.16 2003/07/17 19:04:18 ken3 Exp $ -->
 </HEAD>
 <BODY>
 <h1>Options for Cyrus SASL</h1>
@@ -12,10 +12,13 @@ Cyrus SASL library and bundled mechanisms:</p>
 <TR><TH>Option</TH><TH>Used By</TH><TH>Description</TH><TH>Default</TH></TR>
 <TR>
 <TD>auto_transition</TD><TD>SASL Library</TD> 
-<TD>When set to 'yes'
-and when using the sasldb auxprop plugin, automatically transition
+<TD>When set to 'yes' or 'noplain',
+and when using an auxprop plugin, automatically transition
 users to other mechs when they do a successful plaintext
-authentication</TD><TD>no</TD>
+authentication.  When set to 'noplain', only non-plaintext secrets 
+will be written.  <I>Note that the only mechs (as currently
+implemented) which don't use plaintext secrets are
+OTP and SRP.</I></TD><TD>no</TD>
 </TR>
 <TR>
 <TD>auxprop_plugin</TD><TD>Auxiliary Property Plugin</TD>

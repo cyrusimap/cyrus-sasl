@@ -1,6 +1,6 @@
 /* auxprop.c - auxilliary property support
  * Rob Siemborski
- * $Id: auxprop.c,v 1.10 2003/03/19 18:25:27 rjs3 Exp $
+ * $Id: auxprop.c,v 1.11 2003/07/17 19:04:20 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -906,4 +906,86 @@ void _sasl_auxprop_lookup(sasl_server_params_t *sparams,
 	_sasl_log(sparams->utils->conn, SASL_LOG_DEBUG,
 		  "could not find auxprop plugin, was searching for '%s'",
 		  plist ? plist : "[all]");
+}
+
+/* Do the callbacks for auxprop stores */
+int sasl_auxprop_store(sasl_conn_t *conn,
+		       struct propctx *ctx, const char *user)
+{
+    sasl_getopt_t *getopt;
+    int ret, found = 0;
+    void *context;
+    const char *plist = NULL;
+    auxprop_plug_list_t *ptr;
+    sasl_server_params_t *sparams = NULL;
+    unsigned userlen = 0;
+
+    if (ctx) {
+	if (!conn || !user)
+	    return SASL_BADPARAM;
+
+	sparams = ((sasl_server_conn_t *) conn)->sparams;
+	userlen = strlen(user);
+    }
+    
+    if(_sasl_getcallback(NULL, SASL_CB_GETOPT, &getopt, &context) == SASL_OK) {
+	ret = getopt(context, NULL, "auxprop_plugin", &plist, NULL);
+	if(ret != SASL_OK) plist = NULL;
+    }
+
+    ret = SASL_OK;
+    if(!plist) {
+	/* Do store in all plugins */
+	for(ptr = auxprop_head; ptr && ret == SASL_OK; ptr = ptr->next) {
+	    found=1;
+	    if (ptr->plug->auxprop_store)
+		ret = ptr->plug->auxprop_store(ptr->plug->glob_context,
+					       sparams, ctx, user, userlen);
+	}
+    } else {
+	char *pluginlist = NULL, *freeptr = NULL, *thisplugin = NULL;
+
+	if(_sasl_strdup(plist, &pluginlist, NULL) != SASL_OK) return SASL_FAIL;
+	thisplugin = freeptr = pluginlist;
+	
+	/* Do store in all *specified* plugins, in order */
+	while(*thisplugin) {
+	    char *p;
+	    int last=0;
+	    
+	    while(*thisplugin && isspace((int)*thisplugin)) thisplugin++;
+	    if(!(*thisplugin)) break;
+	    
+	    for(p = thisplugin;*p != '\0' && !isspace((int)*p); p++);
+	    if(*p == '\0') last = 1;
+	    else *p='\0';
+	    
+	    for(ptr = auxprop_head; ptr && ret == SASL_OK; ptr = ptr->next) {
+		/* Skip non-matching plugins */
+		if((!ptr->plug->name
+		    || strcasecmp(ptr->plug->name, thisplugin)))
+		    continue;
+
+		found=1;
+		if (ptr->plug->auxprop_store)
+		    ret = ptr->plug->auxprop_store(ptr->plug->glob_context,
+						   sparams, ctx, user, userlen);
+	    }
+
+	    if(last) break;
+
+	    thisplugin = p+1;
+	}
+
+	sasl_FREE(freeptr);
+    }
+
+    if(!found) {
+	_sasl_log(NULL, SASL_LOG_ERR,
+		  "could not find auxprop plugin, was searching for %s",
+		  plist ? plist : "[all]");
+	return SASL_FAIL;
+    }
+
+    return ret;
 }

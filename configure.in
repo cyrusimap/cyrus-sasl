@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.169 2003/07/15 17:38:56 ken3 Exp $
+dnl $Id: configure.in,v 1.170 2003/07/17 19:04:17 ken3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -445,8 +445,6 @@ if test "$otp" != no; then
   if test "$with_opie" != no; then
     AC_DEFINE(HAVE_OPIE)
     OTP_LIBS="$OTP_LIBS -lopie"
-  else
-    OTP_LIBS="$OTP_LIBS ../sasldb/libsasldb.la \$(SASL_DB_LIB)"
   fi
 
   AC_SUBST(OTP_LIBS)

@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.92 2003/04/16 19:36:00 rjs3 Exp $
+ * $Id: common.c,v 1.93 2003/07/17 19:04:20 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1418,12 +1418,12 @@ _sasl_alloc_utils(sasl_conn_t *conn,
   utils->prop_set=&prop_set;
   utils->prop_setvals=&prop_setvals;
   utils->prop_erase=&prop_erase;
+  utils->auxprop_store=&sasl_auxprop_store;
 #endif
 
   /* Spares */
   utils->spare_fptr = NULL;
-  utils->spare_fptr1 = utils->spare_fptr2 = 
-      utils->spare_fptr3 = NULL;
+  utils->spare_fptr1 = utils->spare_fptr2 = NULL;
   
   return utils;
 }

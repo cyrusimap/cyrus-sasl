@@ -458,56 +458,41 @@ main(int argc, char *argv[])
       }
   }
 
-  if(!flag_nouserpass) {
-      if((result = _sasl_check_db(sasl_global_utils,conn)) == SASL_OK) {
-	  result = _sasl_sasldb_set_pass(conn, myhostname, userid, password,
-					 passlen, user_domain,
-					 (flag_create ? SASL_SET_CREATE : 0)
-					 | (flag_disable ? SASL_SET_DISABLE : 0));
-      }
-  }
-  
-
-  if(result != SASL_OK && !flag_disable)
-      exit_sasl(result, NULL);
-  else {
-      int ret = 1;
-      /* Either we were setting and succeeded or we were disableing and
-	 failed.  In either case, we want to wipe old entries */
-
-      /* Delete the possibly old entries */
-      /* We don't care if these fail */
-      ret = _sasldb_putdata(sasl_global_utils, conn,
-			    userid, (user_domain ? user_domain : myhostname),
-			    "cmusaslsecretCRAM-MD5", NULL, 0);
-      if(ret == SASL_OK) result = ret;
-
-      ret = _sasldb_putdata(sasl_global_utils, conn,
-			    userid, (user_domain ? user_domain : myhostname),
-			    "cmusaslsecretDIGEST-MD5", NULL, 0);
-      if(ret == SASL_OK) result = ret;
-
-      ret = _sasldb_putdata(sasl_global_utils, conn,
-			    userid, (user_domain ? user_domain : myhostname),
-			    "cmusaslsecretPLAIN", NULL, 0);
-      if(ret == SASL_OK) result = ret;
-
-#if 0
-      /* Were we disableing and failed above? */
-      if(result != SASL_OK)
-	  exit_sasl(result, NULL);
-#endif
-  }
-      
-      
   result = sasl_setpass(conn,
 			userid,
 			password,
 			passlen,
 			NULL, 0,
 			(flag_create ? SASL_SET_CREATE : 0)
-			| (flag_disable ? SASL_SET_DISABLE : 0));
+			| (flag_disable ? SASL_SET_DISABLE : 0)
+			| (flag_nouserpass ? SASL_SET_NOPLAIN : 0));
 
+  if (result != SASL_OK && !flag_disable)
+      exit_sasl(result, NULL);
+  else {
+      struct propctx *propctx = NULL;
+      const char *delete_request[] = { "cmusaslsecretCRAM-MD5",
+				       "cmusaslsecretDIGEST-MD5",
+				       "cmusaslsecretPLAIN",
+				       NULL };
+      int ret = SASL_OK;
+      /* Either we were setting and succeeded or we were disabling and
+	 failed.  In either case, we want to wipe old entries */
+
+      /* Delete the possibly old entries */
+      /* We don't care if these fail */
+      propctx = prop_new(0);
+      if (!propctx) ret = SASL_FAIL;
+      if (!ret) ret = prop_request(propctx, delete_request);
+      if (!ret) {
+	  ret = prop_set(propctx, "cmusaslsecretCRAM-MD5", NULL, 0);
+	  ret = prop_set(propctx, "cmusaslsecretDIGEST-MD5", NULL, 0);
+	  ret = prop_set(propctx, "cmusaslsecretPLAIN-MD5", NULL, 0);
+	  ret = sasl_auxprop_store(conn, propctx, userid);
+      }
+      if (propctx) prop_dispose(&propctx);
+  }
+      
   if (result != SASL_OK)
     exit_sasl(result, errstr);
 
@@ -516,4 +501,3 @@ main(int argc, char *argv[])
 
   return 0;
 }
-

@@ -1,3 +1,12 @@
+2003-07-17  Ken Murchison <ken@oceana.com>
+	* include/sasl.h, include/saslplug.h,
+	* lib/auxprop.c, lib/common.c, lib/server.c, plugins/sasldb.c:
+	  implemented writable auxprops
+	* configure.in, plugins/otp.c, utils/saslpasswd: use
+	  auxprop_store() instead of direct sasldb access
+	* doc/options.html, lib/server.c: implemented 'noplain' option for
+	  auto_transition
+
 2003-07-17  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/config.c: Remove sasl_config_getint and sasl_config_getswitch
 	  because they are unused and confusing

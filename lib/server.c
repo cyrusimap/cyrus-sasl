@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.123 2003/04/16 19:36:01 rjs3 Exp $
+ * $Id: server.c,v 1.124 2003/07/17 19:04:20 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -128,6 +128,7 @@ int sasl_setpass(sasl_conn_t *conn,
 {
     int result=SASL_OK, tmpresult;
     sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;
+    const char *password_request[] = { SASL_AUX_PASSWORD_PROP, NULL };
     sasl_server_userdb_setpass_t *setpass_cb = NULL;
     void *context = NULL;
     mechanism_t *m;
@@ -141,6 +142,35 @@ int sasl_setpass(sasl_conn_t *conn,
     if ((!(flags & SASL_SET_DISABLE) && passlen == 0)
         || ((flags & SASL_SET_CREATE) && (flags & SASL_SET_DISABLE)))
 	PARAMERROR(conn);
+
+    /* Do we want to store SASL_AUX_PASSWORD_PROP (plain text)?  and
+     * Do we have an auxprop backend that can store properties?
+     */
+    if (flags & SASL_SET_DISABLE && !(flags & SASL_SET_NOPLAIN) &&
+	sasl_auxprop_store(NULL, NULL, NULL) == SASL_OK) {
+
+	if (flags & SASL_SET_DISABLE) {
+	    pass = NULL;
+	    passlen = 0;
+	}
+
+	result = prop_request(s_conn->sparams->propctx, password_request);
+	if (result == SASL_OK) {
+	    result = prop_set(s_conn->sparams->propctx, SASL_AUX_PASSWORD_PROP,
+			      pass, passlen);
+	}
+	if (result == SASL_OK) {
+	    result = sasl_auxprop_store(conn, s_conn->sparams->propctx, user);
+	}
+	if (result != SASL_OK) {
+	    _sasl_log(conn, SASL_LOG_ERR,
+		      "setpass failed for %s: %z",
+		      user, result);
+	} else {
+	    _sasl_log(conn, SASL_LOG_NOTE,
+		      "setpass succeeded for %s", user);
+	}
+    }
 
     /* call userdb callback function */
     result = _sasl_getcallback(conn, SASL_CB_SERVER_USERDB_SETPASS,
@@ -711,6 +741,7 @@ _sasl_transition(sasl_conn_t * conn,
     sasl_getopt_t *getopt;
     int result = SASL_OK;
     void *context;
+    unsigned flags = 0;
 
     if (! conn)
 	return SASL_BADPARAM;
@@ -725,14 +756,17 @@ _sasl_transition(sasl_conn_t * conn,
 	if (dotrans == NULL) dotrans = "n";
     }
 
-    if (*dotrans == '1' || *dotrans == 'y' ||
+
+    if (!strcmp(dotrans, "noplain")) flags |= SASL_SET_NOPLAIN;
+
+    if (flags || *dotrans == '1' || *dotrans == 'y' ||
 	(*dotrans == 'o' && dotrans[1] == 'n') || *dotrans == 't') {
 	/* ok, it's on! */
 	result = sasl_setpass(conn,
 			      conn->oparams.authid,
 			      pass,
 			      passlen,
-			      NULL, 0, 0);
+			      NULL, 0, SASL_SET_CREATE | flags);
     }
 
     RETURN(conn,result);

@@ -554,13 +554,9 @@ static int parseuser(char **user, char **realm, const char *user_realm,
 	/* otherwise, we gotta get it from the user */
 	r = strchr(input, '@');
 	if (!r) {
-	    *realm = sasl_ALLOC(1);
-	    if (*realm) {
-		(*realm)[0] = '\0';
-		ret = SASL_OK;
-	    } else {
-		ret = SASL_NOMEM;
-	    }
+	    /* hmmm, the user didn't specify a realm */
+	    /* we'll default to the serverFQDN */
+	    ret = _sasl_strdup(serverFQDN, realm, NULL);
 	    if (ret == SASL_OK) {
 		ret = _sasl_strdup(input, user, NULL);
 	    }

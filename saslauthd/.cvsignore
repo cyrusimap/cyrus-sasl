@@ -16,3 +16,4 @@ config.cache
 saslauthd
 saslauthd.8
 testsaslauthd
+saslcache

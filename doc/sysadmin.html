@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.22 2001/12/04 15:36:57 ken3 Exp $ -->
+<!-- $Id: sysadmin.html,v 1.23 2001/12/04 21:05:10 leg Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -34,7 +34,7 @@ it.
 <h3><a name="authid">Authentication and authorization identifiers</a></h3>
 
 An important concept to become familiar with is the difference between
-an "authorization identifier" and an "authentication identifer".
+an "authorization identifier" and an "authentication identifier".
 
 <DL compact>
 <DT>userid (user id, authorization id)<dd> The userid is the
@@ -121,7 +121,7 @@ flexible in this regard:
   server.  However, system built-in routines will not use sasldb.
   <p>(<tt>sasldb</tt> is the default method.)<p>
 
-<dt><i>pwcheck</i><dd> checks passwords with the use of a seperate,
+<dt><i>pwcheck</i><dd> checks passwords with the use of a separate,
   helper daemon. <b>needs to be documented.</b><p>
 
 <dt><i>saslauthd</i><dd> contacts the saslauthd daemon to to check
@@ -139,7 +139,7 @@ flexible in this regard:
   method to <tt>lib/checkpw.c</tt>.  Be sure to add a prototype in
   <tt>lib/saslint.h</tt>!<p>
   It is important to note however that
-  currently the more flexable/prefered method is to create a new saslauthd
+  currently the more flexible/preferred method is to create a new saslauthd
   mechanism.<p>
 </dl>
 
@@ -238,7 +238,7 @@ option if the SASL server application will not be running as "root"
 and the <tt>--enable-insecure-override</tt> option if you plan to run 
 "<tt>saslpasswd</tt>" from a remote shell (see note below).
 
-<p>OPIE uses its own "opiekeys" database for storing the data ncessary
+<p>OPIE uses its own "opiekeys" database for storing the data necessary
 for generating the server challenges.  The location of the opiekeys
 file is configurable in SASL; by default it is <tt>/etc/opiekeys</tt>,
 but this is modifiable by the "opiekeys" option.

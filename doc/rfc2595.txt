@@ -103,7 +103,7 @@ RFC 2595           Using TLS with IMAP, POP3 and ACAP          June 1999
    layer (such as that provided by TLS) occurs prior to or at the time
    of authentication and which will terminate the connection if that
    encryption layer is deactivated.  Implementations are encouraged to
-   have flexability with respect to the minimal encryption strength or
+   have flexibility with respect to the minimal encryption strength or
    cipher suites permitted.  A minimalist approach to this
    recommendation would be an operational mode where the
    TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA cipher suite is mandatory prior to

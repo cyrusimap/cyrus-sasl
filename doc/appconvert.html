@@ -42,12 +42,12 @@ are in one of the following formats:
 <UL>
 <LI>a.b.c.d;p (IPv4, with port)</LI>
 <LI>e:f:g:h:i:j:k:l;p (IPv6, with port)</LI>
-<LI>e:j:k:l;p (IPv6, appreviated zero fields, with port)</LI>
+<LI>e:j:k:l;p (IPv6, abbreviated zero fields, with port)</LI>
 </UL></LI>
 <li>Error handling and reporting is different. All of the functions that used
 to return a "reply" string no longer do.  Now you should (always) check
 <tt>sasl_errdetail</tt>.  Callbacks MUST likewise use <tt>sasl_seterror</tt>
-instead of setting their (now nonexistant) reply parameter.</li>
+instead of setting their (now nonexistent) reply parameter.</li>
 </UL></LI>
 
 <LI>Tips for clients:</LI>
@@ -84,7 +84,7 @@ namely, the <tt>maxbufsize</tt> member of the
 are also considerably fewer possible values for the pwcheck_method
 option (now only auxprop, saslauthd, and pwcheck).</li>
 <li><tt>sasl_server_start</tt> / <tt>sasl_server_step</tt> have same
-output parameter deal as their equivilants on the client side</li>
+output parameter deal as their equivalents on the client side</li>
 <li><tt>sasl_listmech</tt> has a constant output parameter</li>
 <li>If you used to canonicalize the username in a SASL_CB_PROXY_POLICY
 callback you should now separate the functionality of authorization and

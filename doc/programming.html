@@ -92,7 +92,7 @@
 	  <li><a href="#imtest"><tt>imtest</tt>, from cyrus imapd 1.6.0 or later</a>
 	</ul>
 
-      <li><a href="#random_things">Miscelaneous Information</a>
+      <li><a href="#random_things">Miscellaneous Information</a>
 	<ul>
 	  <li><a href="#empty_exchanges">Empty exchanges</a>
 	</ul>
@@ -174,8 +174,8 @@
     <p>Cyrus SASL version 2 supports a much improved API over version 1,
     that allows for much smarter and faster memory allocation for the
     mechanisms as well as the applications.  It is also provides for
-    several new types of plugins to allow for greater overall flexability.
-    Unfortuinately, though similar, this new API is completely incompatible
+    several new types of plugins to allow for greater overall flexibility.
+    Unfortunately, though similar, this new API is completely incompatible
     with the old API, and applications will need to be rewritten.
 
     <a name="briefly"><h2>Briefly</h2></a>
@@ -269,8 +269,8 @@
       </pre></tt>
 
        Next get the list of SASL mechanisms the server supports. This
-       is usually done throught a capability command. Format the list
-       as a single string seperated by spaces.
+       is usually done through a capability command. Format the list
+       as a single string separated by spaces.
        
        Feed this string into SASL to begin the authentication process.
 
@@ -311,7 +311,7 @@
         after the next call to <tt>sasl_client_start</tt> or
         <tt>sasl_client_step</tt>.<p>
 
-        If this is sucessful send the protocol specific command to
+        If this is successful send the protocol specific command to
         start the authentication process. This may or may not allow
         for initial data to be sent (see the documentation of the
         protocol to see).
@@ -337,7 +337,7 @@
 	  failure</tt> in IMAP or <tt>501 Failed</tt> in SMTP. Either
 	  retry the authentication or abort.
 
-	  <li>Authentication success. We're now sucessfully
+	  <li>Authentication success. We're now successfully
 	  authenticated. This might look like <tt>A01 OK Authenticated
 	  successful</tt> in IMAP or <tt>235 Authentication
 	  successful</tt> in SMTP. Go <a
@@ -411,7 +411,8 @@
                 if (result!=SASL_OK) [failure]
 	    </pre></tt>
 		     
-          <p>Congradulations. You have successfully authenticated to the server.</p>
+          <p>Congratulations. You have successfully authenticated to
+          the server.</p>
 
           <p>Don't throw away the SASL connection object (sasl_conn_t *)
           yet though. If a security layer was negotiated you will need
@@ -440,7 +441,7 @@
     int sasl_client_init(const sasl_callback_t *callbacks);
     </pre>
     
-    <ul>Paramaters:
+    <ul>Parameters:
       <li>callbacks - List of callbacks. See Callbacks section
     </ul>
 
@@ -460,7 +461,7 @@
 		        sasl_conn_t **pconn);
     </pre>
     
-    <ul>Paramaters:
+    <ul>Parameters:
       <li>service - the service name being used. This usually is the protocol name (e.g. "ldap")
       <li>serverFQDN - Fully qualified domain name of server
       <li>iplocalport and ipremoteport - a string of the format
@@ -486,11 +487,11 @@
 			  const char **mech);
     </pre>
     
-    <ul>Paramaters:
+    <ul>Parameters:
       <li>conn - the SASL connection object gotten from sasl_client_new()
-      <li>mechlist - the list of mechanisms to try (seperated by spaces)
+      <li>mechlist - the list of mechanisms to try (separated by spaces)
       <li>prompt_need - filled in when a SASL_INTERACT is returned
-      <li>clientout - filled in upon sucess with data to send to server
+      <li>clientout - filled in upon success with data to send to server
       <li>clientoutlen - length of that data
       <li>mech - filled in with mechanism being used
     </ul>
@@ -511,19 +512,19 @@
 		 unsigned *clientoutlen);
     </pre>
     
-    <ul>Paramaters:
+    <ul>Parameters:
       <li>conn - the SASL connection object gotten from sasl_client_new()
       <li>serverin - data from the server
       <li>serverinlen - length of data from the server
       <li>prompt_need - filled in with a SASL_INTERACT is returned
-      <li>clientout - filled in upon sucess with data to send to server
+      <li>clientout - filled in upon success with data to send to server
       <li>clientoutlen - length of that data
     </ul>
 
     This step preforms a step in the authentication process. It takes
     the data from the server (serverin) and outputs data to send to
     the server (clientout) upon success. SASL_CONTINUE is returned if
-    another step in the authentication process is necesssary. SASL_OK
+    another step in the authentication process is necessary. SASL_OK
     is returned if we're all done.
 
 <a name="server_section"><h2>Server-only Section</h2></a>
@@ -532,8 +533,8 @@
 
     The server makes a few Cyrus SASL calls for initialization. When
     it gets a new connection it should make a new context for that
-    connection immediatly. The client may then request a list of
-    mechanisms the server suppports. The client also may request to
+    connection immediately. The client may then request a list of
+    mechanisms the server supports. The client also may request to
     authenticate at some point. The client will specify the mechanism
     it wishes to use. The server should negotiate this authentication
     and keep around the context afterwards for encoding and decoding
@@ -582,7 +583,7 @@
     result=sasl_listmech(conn,  /* The context for this connection */
 			 NULL,  /* not supported */
 			 "{",   /* What to prepend the string with */
-			 ", ",  /* What to seperate mechanisms with */
+			 ", ",  /* What to separate mechanisms with */
 			 "}",   /* What to append to the string */
 			 &result_string, /* The produced string. */
                          &string_length, /* length of the string */
@@ -609,7 +610,7 @@
     if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
       [failure. Send protocol specific message that says authentication failed]
     else if (result==SASL_OK)
-      [authentication suceeded. Send client the protocol specific message 
+      [authentication succeeded. Send client the protocol specific message 
        to say that authentication is complete]
     else 
       [send data 'out' with length 'outlen' over the network in protocol
@@ -620,7 +621,7 @@
     data from the client decoded from protocol specific format to a
     string of bytes of length <i>clientinlen</i>. This step may occur
     zero or more times. An application must be able to deal with it
-    occuring an arbitrary number of times.
+    occurring an arbitrary number of times.
 
     <tt><pre>
     int result;
@@ -635,7 +636,7 @@
     if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
       [failure. Send protocol specific message that says authentication failed]
     else if (result==SASL_OK)
-      [authentication suceeded. Send client the protocol specific message 
+      [authentication succeeded. Send client the protocol specific message 
        to say that authentication is complete]
     else 
       [send data 'out' with length 'outlen' over the network in protocol
@@ -716,7 +717,7 @@
 			   unsigned *serveroutlen);
     </pre>
     
-    <ul>Paramaters:
+    <ul>Parameters:
       <li>conn - The context for the connection
 
       <li>mech - The authentication mechanism the client wishes to try
@@ -739,7 +740,7 @@
     the program returns SASL_CONTINUE that means <tt>serverout</tt>
     should be sent to the client. If SASL_OK is returned that means
     authentication is complete and the application should tell the
-    client the authentication was sucessful. Any other return code
+    client the authentication was successful. Any other return code
     means the authentication failed and the client should be notified
     of this.
 
@@ -753,7 +754,7 @@
 		         unsigned *serveroutlen);
     </pre>
 
-    <ul>Paramaters:
+    <ul>Parameters:
       <li>conn - The context for the connection
 
       <li>clientin - Data sent by the client.
@@ -772,7 +773,7 @@
     SASL_CONTINUE that means <tt>serverout</tt> should be sent to the
     client. If SASL_OK is returned that means authentication is
     complete and the application should tell the client the
-    authentication was sucessful. Any other return code means the
+    authentication was successful. Any other return code means the
     authentication failed and the client should be notified of this.
     
     <a name="sasl_listmech"><h3>sasl_listmech</h3></a>
@@ -787,11 +788,11 @@
 		      unsigned *pcount);
     </pre>
     
-    <ul>Paramaters:
+    <ul>Parameters:
       <li>conn - The context for this connection
       <li>user - Currently not implemented
       <li>prefix - The string to prepend
-      <li>sep - The string to seperate mechanisms with
+      <li>sep - The string to separate mechanisms with
       <li>suffix - The string to end with
       <li>result - Resultant string
       <li>plen - Number of characters in the result string
@@ -960,7 +961,7 @@ very simple IMAP client, but should be of interest to those writing
 applications.  It also uses the prot layer, but it is easy to
 incorporate similar support without using the prot layer.
 
-<a name="random_things"><h2>Miscelaneous Information</h2></a>
+<a name="random_things"><h2>Miscellaneous Information</h2></a>
 
 <a name="empty_exchanges"><h3>Empty exchanges</h3></a>
 
@@ -971,7 +972,7 @@ make sure to send an empty string when requested, and when receiving
 an empty string make sure that the "<tt>inlength</tt>" passed in is 0.</p>
 
 <p>Note especially that the distinction between the empty string "" and
-the lack of a string (NULL) is extreemly important in many cases (most
+the lack of a string (NULL) is extremely important in many cases (most
 notably, the client-send first scenario), and the application must ensure
 that it is passing the correct values to the SASL library at all times.</p>
 

@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>SASL Plugin Programmer's Guide</title>
-<!-- $Id: plugprog.html,v 1.2 2001/12/04 02:05:16 rjs3 Exp $ -->
+<!-- $Id: plugprog.html,v 1.3 2001/12/04 21:05:09 leg Exp $ -->
 </HEAD>
 <BODY>
 <h1>SASL Plugin Programmer's Guide</h1>
@@ -25,7 +25,7 @@
   <li><a href="#client">Client Plugins</a></li>
   <li><a href="#server">Server Plugins</a></li>
   <li><a href="#canon_user">User Canonicalization (canon_user) Plugins</a></li>
-  <li><a href="#auxprop">Auxilliary Property (auxprop) Plugins</a></li>
+  <li><a href="#auxprop">Auxiliary Property (auxprop) Plugins</a></li>
 </ul>
 
 <a name="intro"><h2>Introduction</h2></a>
@@ -35,7 +35,7 @@
     <p>This guide gives a <i>very</i> brief overview on the things that one
        needs to know to write a mechanism for the SASLv2 API (and thus
        Cyrus SASLv2).  Note that this page is a brief overview <i>only</i>
-       and that the authoritative docuementation are the header files
+       and that the authoritative documentation are the header files
        included in the SASL distribution.  If you have any questions, please
        feel free to contact the Cyrus development team at
        <a href="mailto:cyrus-bugs@andrew.cmu.edu"><i>cyrus-bugs@andrew.cmu.edu
@@ -51,7 +51,7 @@
     <a name="about_sasl"><h3>What is SASL?</h3></a>
     <p>A description of SASL is covered in detail in the
       <a href="programming.html">programmer's guide</a>, which mechanism
-      developers should probabally read first anyway to become familliar
+      developers should probably read first anyway to become familiar
       with development using the SASL library.
     </p>
     
@@ -82,7 +82,7 @@
 	side they take care of the authentication process.</li>
       <li><b>User Canonicalization Plugins</b> - These plugins enable differing
 	ways of canonicalizing authentication and authorization IDs.</li>
-      <li><b>Auxilliary Property Plugins</b> - These plugins allow auxilliary
+      <li><b>Auxiliary Property Plugins</b> - These plugins allow auxilliary
 	properties about user accounts to be looked up, such as passwords.
 	Cyrus SASL includes a plugin to read sasldb files, for example.</li>
     </ul>
@@ -103,12 +103,12 @@
 
     <a name="error_reporting"><h3>Error Reporting</h3></a>
     <p>Error reporting is very important for failed authentication tracking
-       and helping to debug instalations or authentication problems.  For
+       and helping to debug installations or authentication problems.  For
        that reason, in addition to the standard SASL return codes, the
        glue code provides an interface to its seterror function (via
        <tt>sasl_utils_t</tt>).  This function sets detailed error information for
        a given connection.</p>
-    <p><i>In order to ensure consistancy of this information, it is the
+    <p><i>In order to ensure consistency of this information, it is the
 	responsibility of the deepest function with access to the sasl_conn_t
 	make the call to set the errdetail string.</i></p>
 
@@ -124,7 +124,7 @@
       where they needed clients to send first (or server to send last), yet
       the protocol did not support it.  Luckily, this is now handled by
       the glue code, provided that the plugin declares the appropriate flags
-      in the structure retunred by its init function.  Thus, the step functions
+      in the structure returned by its init function.  Thus, the step functions
       will not have to worry about these issues and can be implemented
       knowing they will be called only when the application actually has
       data for them and/or will allow them to send data.  These flags are as
@@ -206,7 +206,7 @@
         as the mechanism has computed both the authentication and the
         authorization IDs, it MUST call the canon_user function provided
         in the server params structure.  This will also fill in its
-        propctx, so any auxilliary property requests (for example, to lookup
+        propctx, so any auxiliary property requests (for example, to lookup
         the password) should be done before this point.<p>
 
         Before returning SASL_OK, <tt>mech_step</tt> must fill in the
@@ -245,22 +245,22 @@
     </ul>
     <p>User canonicalization plugins must export a <tt>sasl_canonuser_init</tt>
        function which returns a <tt>sasl_canonuser_plug_t</tt> in order
-       to load successfully.  They must implement atleast one of
+       to load successfully.  They must implement at least one of
        the <tt>canon_user_client</tt> or <tt>canon_user_server</tt> members
        of the <tt>sasl_canonuser_plug_t</tt>.  The INTERNAL canon_user plugin
        that is inside of the glue code implements both in the same way.</p>
-<a name="auxprop"><h2>Auxilliary Property (auxprop) Plugins</h2></a>
+<a name="auxprop"><h2>Auxiliary Property (auxprop) Plugins</h2></a>
     <p>Perhaps the most exciting addition in SASLv2, Auxprop plugins
        allow for an easy way to perform password and secret lookups (as well
        as other information needed for authentication and authorization)
        from directory services, and in the same request allow the application
-       to recieve properties that it needs to provide the service.
+       to receive properties that it needs to provide the service.
     </p>
     <p>Auxprop plugins need to export the <tt>sasl_auxprop_init</tt> function
        and pass back a <tt>sasl_auxprop_plug_t</tt> in order to load
        successfully.  The sasldb plugin included with the Cyrus SASL
        distribution would be a good place to start.</p>
-    <p>Interfacing with property contexts is extreemly well documented in
+    <p>Interfacing with property contexts is extremely well documented in
        <tt>prop.h</tt> and so that is omitted here.  The only important
        note is to be sure that you are using the interfaces provided
        through the <tt>sasl_utils_t</tt> structure and not calling
@@ -270,7 +270,7 @@
        member of the <tt>sasl_auxprop_plug_t</tt>.  This is called
        just after canonicalization of the username, with the canonicalized
        username.  It can then do whatever lookups are necessary for any
-       of the requested auxilliary properties.</p>
+       of the requested auxiliary properties.</p>
 </p>
 <hr>
 Back to the <A href=index.html>index</a>

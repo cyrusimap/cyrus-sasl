@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Configuring GSSAPI and Cyrus SASL</title>
-<!-- $Id: gssapi.html,v 1.2 2001/12/04 02:05:15 rjs3 Exp $ -->
+<!-- $Id: gssapi.html,v 1.3 2001/12/04 21:05:09 leg Exp $ -->
 </HEAD>
 <BODY>
 <h1>Configuring GSSAPI and Cyrus SASL</h1>
@@ -145,7 +145,7 @@ you might get an error that looks like this:
   matches the identity that you were authenticated to via the GSSAPI.
   This is of course mechanism specific, but if for example you're using
   Kerberos, the Cyrus SASL library strips out the @REALM from your
-  itentity <i>if</i> you are in the same realm as the server.  So if your
+  identity <i>if</i> you are in the same realm as the server.  So if your
   Kerberos identity is user@SOME.REALM and the server is in SOME.REALM,
   you need to specify "user" to the -u flag of the client.  If you're
   accessing a server in a foreign realm, you need to pass the full

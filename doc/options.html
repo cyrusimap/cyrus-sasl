@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Options for Cyrus SASL</title>
-<!-- $Id: options.html,v 1.21 2003/09/10 18:35:33 mnigrosh Exp $ -->
+<!-- $Id: options.html,v 1.22 2003/09/25 18:12:17 ken3 Exp $ -->
 </HEAD>
 <BODY>
 <h1>Options for Cyrus SASL</h1>
@@ -116,7 +116,7 @@ dependant)</TD>
 <DT>sql_passwd <DD> password to use
 <DT>sql_hostnames <DD> comma separated host[:port] list
 <DT>sql_database <DD>database to connect to
-<DT>sql_statement <DD> select statement to use
+<DT>sql_select <DD> select statement to use
 <DT>sql_insert <DD> insert statement to use
 <DT>sql_verbose <DD>if set, the plugin will print select statement
 to syslog)
@@ -124,13 +124,13 @@ to syslog)
 the server
 </DL>
 
-<p>The select statement used in the option <tt>sql_statement</tt> is
+<p>The select statement used in the option <tt>sql_select</tt> is
 parsed for 3 place holders <tt>%u</tt>, <tt>%r</tt>, and <tt>%p</tt>
 they are replaced with username, realm, and property requested
 respectively. For example:
 
 <pre>
-    sql_statement: select %p from user_table where username = '%u' and realm = '%r'
+    sql_select: select %p from user_table where username = '%u' and realm = '%r'
 </pre>
 
    would send the following statement to SQL for user "bovik" and
@@ -179,7 +179,7 @@ the arguments %r, %u, etc.</font>
 
 <p>All substitutions do not have to be used. For instance, 
 "<tt>select password from auth where username = '%u'</tt>" is a
-valid value for "<tt>sql_statement</tt>".
+valid value for "<tt>sql_select</tt>".
 
 <hr>
 Back to the <A href=index.html>index</a>

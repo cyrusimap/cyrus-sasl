@@ -1,3 +1,7 @@
+2003-09-25  Ken Murchison <ken@oceana.com>
+	* plugins/sql.c: renamed sql_statement to sql_select,
+	  cleanup and bugfixes
+
 2003-09-23  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* doc/gssapi.html: Misc updates
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)

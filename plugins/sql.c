@@ -3,7 +3,7 @@
 ** SQL Auxprop plugin
 **   based on the original work of Simon Loader and Patrick Welche
 **
-** $Id: sql.c,v 1.10 2003/09/23 20:22:56 mnigrosh Exp $
+** $Id: sql.c,v 1.11 2003/09/25 18:12:18 ken3 Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -15,17 +15,17 @@
 **  sql_passwd: <password to use>
 **  sql_hostnames: < comma separated host[:port] list >
 **  sql_database: <database to connect to>
-**  sql_statement: <select statement to use>
+**  sql_select: <select statement to use>
 **  sql_insert: <insert statement to use>
 **  sql_verbose:  ( if it exists will print select statement to syslog )
 **  sql_usessl:  ( if it exists will make a secured connection to server )
 **
-**   The select statement used in the option sql_statement is parsed
+**   The select statement used in the option sql_select is parsed
 ** for 3 place holders %u %r and %p they are replaced with username
 ** realm and property required respectively.
 **
 **  e.g
-**    sql_statement: select %p from user_table where username = %u and
+**    sql_select: select %p from user_table where username = %u and
 **    realm = %r
 **  would produce a statement like this :-
 **
@@ -78,19 +78,20 @@
 
 #include "plugin_common.h"
 
-static int sql_max(int a, int b);
-static int sql_len(const char *input);
+#define sql_max(a, b) ((a) > (b) ? (a) : (b))
+#define sql_len(input) ((input) ? strlen(input) : 0)
+#define sql_exists(input) ((input) && (*input))
 
 typedef struct sql_engine {
   const char *name;
-  const char *begin;
-  const char *commit;
+  const char *begin_txn;
+  const char *commit_txn;
   void *(*sql_open)(char *host, char *port, int usessl,
 		    const char *user, const char *password,
 		    const char *database, const sasl_utils_t *utils);
   int (*sql_escape_str)(char *to, const char *from);
-  int (*sql_query)(void *conn, char *query, char *value, size_t size,
-		   size_t *value_len, const sasl_utils_t *utils);
+  int (*sql_exec)(void *conn, const char *cmd, char *value, size_t size,
+		  size_t *value_len, const sasl_utils_t *utils);
   void (*sql_close)(void *conn);
 } sql_engine_t;
 
@@ -101,7 +102,7 @@ typedef struct sql_settings
   const char *sql_passwd;
   const char *sql_hostnames;
   const char *sql_database;
-  const char *sql_statement;
+  const char *sql_select;
   const char *sql_insert;
   int sql_verbose;
   int sql_usessl;
@@ -134,17 +135,16 @@ static int _mysql_escape_str(char *to, const char *from)
     return mysql_escape_string(to, from, strlen(from));
 }
 
-static int _mysql_query(void *conn, char *query, char *value, size_t size,
-			size_t *value_len, const sasl_utils_t *utils)
+static int _mysql_exec(void *conn, const char *cmd, char *value, size_t size,
+		       size_t *value_len, const sasl_utils_t *utils)
 {
     MYSQL_RES *result;
     MYSQL_ROW row;
     int row_count;
 
     /* run the query */
-    if (mysql_real_query(conn, query, strlen(query)) < 0
-	|| !(result = mysql_store_result(conn))) {
-	utils->free(query);
+    if ((mysql_real_query(conn, cmd, strlen(cmd)) < 0) ||
+	!(result = mysql_store_result(conn))) {
 	return -1;
     }
 	
@@ -152,13 +152,12 @@ static int _mysql_query(void *conn, char *query, char *value, size_t size,
     row_count = mysql_num_rows(conn);
     if (!row_count) {
 	/* umm nothing found */
-	utils->free(query);
 	mysql_free_result(result);
 	return -1;
     }
     if (row_count > 1) {
 	utils->log(NULL, SASL_LOG_WARN,
-		   "sql plugin: found duplicate row for query %s", query);
+		   "sql plugin: found duplicate row for query %s", cmd);
     }
 	
     /* now get the result set value and value_len */
@@ -169,7 +168,6 @@ static int _mysql_query(void *conn, char *query, char *value, size_t size,
     if (value_len) *value_len = strlen(value);
 	
     /* free result */
-    utils->free(query);
     mysql_free_result(result);
 
     return 0;
@@ -183,17 +181,6 @@ static void _mysql_close(void *conn)
 
 #if HAVE_PGSQL
 #include <libpq-fe.h>
-
-int pgsql_exists(const char *input)
-{
-  char * theinput = (char*) input;
-
-  if(theinput != SQL_BLANK_STRING)
-    {
-      return 1;
-    }
-  return 0;
-}
 
 static void *_pgsql_open(char *host, char *port,
 			 int usessl __attribute__((unused)),
@@ -214,7 +201,7 @@ static void *_pgsql_open(char *host, char *port,
     memset(conninfo, 0, sizeof(conninfo));
    
     /* we have to have a host */
-    if(pgsql_exists(host))
+    if(sql_exists(host))
       {
 	strcat(conninfo, "host='");
 	strcat(conninfo, host);
@@ -222,25 +209,25 @@ static void *_pgsql_open(char *host, char *port,
       }
 
     /* check if other terms exist */
-    if(port!=NULL && port != "")
+    if(sql_exists(port))
       {
 	strcat(conninfo, " port='");
 	strcat(conninfo, port);
 	strcat(conninfo, "'");
       }
-    if(pgsql_exists(user))
+    if(sql_exists(user))
       {
 	strcat(conninfo, " user='");
 	strcat(conninfo, user);
 	strcat(conninfo, "'");
       }
-    if(pgsql_exists(password))
+    if(sql_exists(password))
       {
 	strcat(conninfo, " password='");
 	strcat(conninfo, password);
 	strcat(conninfo, "'");
       }
-    if(pgsql_exists(database))
+    if(sql_exists(database))
       {
 	strcat(conninfo, " dbname='");
 	strcat(conninfo, database);
@@ -268,20 +255,19 @@ static int _pgsql_escape_str(char *to, const char *from)
     return PQescapeString(to, from, strlen(from));
 }
 
-static int _pgsql_query(void *conn, char *query, char *value, size_t size,
-			size_t *value_len, const sasl_utils_t *utils)
+static int _pgsql_exec(void *conn, const char *cmd, char *value, size_t size,
+		       size_t *value_len, const sasl_utils_t *utils)
 {
   PGresult *result;
   int row_count;
   ExecStatusType status;
 
   /* run the query */
-  result = PQexec(conn, query);
+  result = PQexec(conn, cmd);
   
   if (((status = PQresultStatus(result)) != PGRES_TUPLES_OK)) 
     {
       utils->log(NULL, SASL_LOG_NOTE, "sql plugin: %s ", PQresStatus(status));
-      utils->free(query);
       PQclear(result);
       return -1;
     }
@@ -291,14 +277,13 @@ static int _pgsql_query(void *conn, char *query, char *value, size_t size,
   if (!row_count) 
     {
       /* umm nothing found */
-      utils->free(query);
       PQclear(result);
       return -1;
     }
   if (row_count > 1) 
     {
       utils->log(NULL, SASL_LOG_WARN,
-		 "sql plugin: found duplicate row for query %s", query);
+		 "sql plugin: found duplicate row for query %s", cmd);
     }
 	
   /* now get the result set value and value_len */
@@ -309,7 +294,6 @@ static int _pgsql_query(void *conn, char *query, char *value, size_t size,
   if (value_len) *value_len = strlen(value);
   
   /* free result */
-  utils->free(query);
   PQclear(result);
   return 0;
 }
@@ -322,10 +306,12 @@ static void _pgsql_close(void *conn)
 
 static const sql_engine_t sql_engines[] = {
 #if HAVE_MYSQL
-  { "mysql", "START TRANSACTION;", "COMMIT;", &_mysql_open, &_mysql_escape_str, &_mysql_query, &_mysql_close },
+  { "mysql", "START TRANSACTION;", "COMMIT;",
+    &_mysql_open, &_mysql_escape_str, &_mysql_exec, &_mysql_close },
 #endif
 #if HAVE_PGSQL
-  { "pgsql", "BEGIN;", "COMMIT;", &_pgsql_open, &_pgsql_escape_str, &_pgsql_query, &_pgsql_close },
+  { "pgsql", "BEGIN;", "COMMIT;",
+    &_pgsql_open, &_pgsql_escape_str, &_pgsql_exec, &_pgsql_close },
 #endif
   { NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 };
@@ -346,7 +332,7 @@ static const sql_engine_t sql_engines[] = {
 */
 
 static char *sql_create_statement(sasl_server_params_t *sparams,
-				  const char *select_line, const char *prop,
+				  const char *statement, const char *prop,
 				  const char *user, const char *realm, 
 				  const char *insertvalue,  
 				  const sasl_utils_t *utils)
@@ -357,7 +343,7 @@ static char *sql_create_statement(sasl_server_params_t *sparams,
   int ulen, plen, rlen, ilen;
   int numpercents=0;
   int biggest;
-  int i;
+  size_t i;
 
   /* calculate memory needed for creating the complete query string. */
   ulen = strlen(user);
@@ -366,9 +352,9 @@ static char *sql_create_statement(sasl_server_params_t *sparams,
   ilen = sql_len(insertvalue);
 
   /* what if we have multiple %foo occurrences in the input query?*/
-  for(i=0; i<strlen(select_line); i++)
+  for(i=0; i<strlen(statement); i++)
     {
-      if(select_line[i]=='%')
+      if(statement[i]=='%')
 	{
 	  numpercents++;
 	}
@@ -378,7 +364,7 @@ static char *sql_create_statement(sasl_server_params_t *sparams,
   biggest = sql_max(sql_max(ulen, rlen),sql_max(plen, ilen));
 
   /* plus one for the semicolon...and don't forget the trailing 0x0 */
-  filtersize = strlen(select_line) + 1 + (numpercents*biggest)+1;
+  filtersize = strlen(statement) + 1 + (numpercents*biggest)+1;
   
   /* ok, now try to allocate a chunk of that size */
   buf = (char *) sparams->utils->malloc(filtersize);
@@ -390,7 +376,7 @@ static char *sql_create_statement(sasl_server_params_t *sparams,
     }
   
   buf_ptr = buf;
-  line_ptr = select_line;
+  line_ptr = statement;
     
   /* replace the strings */
   while ( (ptr = strchr(line_ptr, '%')) ) 
@@ -499,10 +485,15 @@ void sql_get_settings(const sasl_utils_t *utils, void *glob_context) {
     if ( r || !settings->sql_database ) {
 	settings->sql_database = SQL_BLANK_STRING;
     }
-    r = utils->getopt(utils->getopt_context,"SQL", "sql_statement",
-		      &settings->sql_statement, NULL);
-    if ( r || !settings->sql_statement ) {
-	settings->sql_statement = SQL_BLANK_STRING;
+    r = utils->getopt(utils->getopt_context,"SQL", "sql_select",
+		      &settings->sql_select, NULL);
+    if ( r || !settings->sql_select ) {
+	/* backwards compatibility */
+	r = utils->getopt(utils->getopt_context,"SQL", "sql_statement",
+			  &settings->sql_select, NULL);
+	if ( r || !settings->sql_select ) {
+	    settings->sql_select = SQL_BLANK_STRING;
+	}
     }
     r = utils->getopt(utils->getopt_context, "SQL", "sql_insert",
 		      &settings->sql_insert, NULL);
@@ -661,10 +652,10 @@ static void sql_auxprop_lookup(void *glob_context,
     settings->sql_engine->sql_escape_str(escap_userid, userid);
     settings->sql_engine->sql_escape_str(escap_realm, realm);
     
-    if(!settings->sql_engine->sql_query(conn, 
-					(char *)settings->sql_engine->begin, 
-					value, sizeof(value), &value_len, 
-					sparams->utils))
+    if(!settings->sql_engine->sql_exec(conn, 
+				       settings->sql_engine->begin_txn, 
+				       value, sizeof(value), &value_len, 
+				       sparams->utils))
       {
 	sparams->utils->log(NULL, SASL_LOG_ERR, 
 			    "Unable to begin transaction\n");
@@ -697,7 +688,7 @@ static void sql_auxprop_lookup(void *glob_context,
 	
 	/* create a statment that we will use */
 	query = sql_create_statement(sparams,
-				     settings->sql_statement,
+				     settings->sql_select,
 				     realname,escap_userid,
 				     escap_realm, NULL,
 				     sparams->utils);
@@ -708,15 +699,17 @@ static void sql_auxprop_lookup(void *glob_context,
 				query);
 
 	/* run the query */
-	if (!settings->sql_engine->sql_query(conn, query, value, sizeof(value),
-					     &value_len, sparams->utils))
+	if (!settings->sql_engine->sql_exec(conn, query, value, sizeof(value),
+					    &value_len, sparams->utils))
 	    sparams->utils->prop_set(sparams->propctx, cur->name,
 				     value, value_len);
+
+	sparams->utils->free(query);
     }
-    if(!settings->sql_engine->sql_query(conn, 
-					(char*)settings->sql_engine->commit, 
-					value, sizeof(value), &value_len, 
-					sparams->utils))
+    if(!settings->sql_engine->sql_exec(conn, 
+				       settings->sql_engine->commit_txn, 
+				       value, sizeof(value), &value_len, 
+				       sparams->utils))
       {
 	sparams->utils->log(NULL, SASL_LOG_ERR, 
 			    "Unable to commit transaction\n");
@@ -889,10 +882,10 @@ static int sql_auxprop_store (void *glob_context,
     settings->sql_engine->sql_escape_str(escap_userid, userid);
     settings->sql_engine->sql_escape_str(escap_realm, realm);
     
-    if(!settings->sql_engine->sql_query(conn, 
-					(char*)settings->sql_engine->begin, 
-					value, sizeof(value), &value_len, 
-					sparams->utils))
+    if(!settings->sql_engine->sql_exec(conn, 
+				       settings->sql_engine->begin_txn, 
+				       value, sizeof(value), &value_len, 
+				       sparams->utils))
       {
 	sparams->utils->log(NULL, SASL_LOG_ERR, 
 			    "Unable to begin transaction\n");
@@ -914,17 +907,19 @@ static int sql_auxprop_store (void *glob_context,
 	  }
 	
 	/* run the query */
-	if (!settings->sql_engine->sql_query(conn, query, value, sizeof(value),
-					     &value_len, sparams->utils))
+	if (!settings->sql_engine->sql_exec(conn, query, value, sizeof(value),
+					    &value_len, sparams->utils))
 	  {
 	    sparams->utils->prop_set(sparams->propctx, cur->name,
 				     value, value_len);
 	  }
+
+	sparams->utils->free(query);
       }
-    if(!settings->sql_engine->sql_query(conn, 
-					(char*)settings->sql_engine->commit, 
-					value, sizeof(value), &value_len, 
-					sparams->utils))
+    if(!settings->sql_engine->sql_exec(conn, 
+				       settings->sql_engine->commit_txn, 
+				       value, sizeof(value), &value_len, 
+				       sparams->utils))
       {
 	sparams->utils->log(NULL, SASL_LOG_ERR, 
 			    "Unable to commit transaction\n");
@@ -1000,22 +995,4 @@ int sql_auxprop_plug_init(const sasl_utils_t *utils,
     sql_auxprop_plugin.glob_context = settings;
 
     return SASL_OK;
-}
-
-static int sql_len(const char *input)
-{
-  if(input==NULL)
-    {
-      return 0;
-    }
-  return strlen(input);
-}
-
-static int sql_max(int a, int b)
-{
-  if(a>=b)
-    {
-      return a;
-    }
-  return b;
 }

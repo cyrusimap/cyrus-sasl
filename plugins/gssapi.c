@@ -828,14 +828,11 @@ free_prompts(sasl_client_params_t *params,
   sasl_interact_t *ptr=prompts;
   if (ptr==NULL) return;
   
-  do
-    {
-      /* xxx might be freeing static memory. is this ok? */
-      if (ptr->result!=NULL)
-	params->utils->free(ptr->result);
+  do {
+      if (ptr->result!=NULL) params->utils->free(ptr->result);
       
       ptr++;
-    } while(ptr->id!=SASL_CB_LIST_END);
+  } while(ptr->id!=SASL_CB_LIST_END);
   
   params->utils->free(prompts);
   prompts=NULL;
@@ -1164,14 +1161,9 @@ sasl_gss_client_step (void *conn_context,
 	sasl_ssf_t need, allowed;
 	char serverhas, mychoice;
 
-	if (serverinlen)
-	  {
-	    real_input_token.value = (void *)serverin;
-	    real_input_token.length = serverinlen;
-	  }
-	else
-	  VL(("no data from server\n"));
-	    
+	real_input_token.value = (void *) serverin;
+	real_input_token.length = serverinlen;
+
 	maj_stat = gss_unwrap (&min_stat,
 			       text->gss_ctx,
 			       input_token,
@@ -1179,15 +1171,10 @@ sasl_gss_client_step (void *conn_context,
 			       NULL,
 			       NULL);
 	
-	if (GSS_ERROR(maj_stat))
-	  {
-	      /* xxx purify seems to think you don't need to free here
-		 (i.e. unwrap frees on error) who am i to argue 
-		 if (output_token->value)
-		 params->utils->free(output_token->value);*/
+	if (GSS_ERROR(maj_stat)) {
 	    sasl_gss_free_context_contents(text);
 	    return SASL_FAIL;
-	  }
+	}
 	
 	/* taken from kerberos.c */
 	if (secprops.min_ssf > (56 + external)) {

@@ -1,3 +1,9 @@
+New in 1.3b1
+----------------------------------------
+* Added saslpasswd for setting sasl passwords
+* Added sfsasl for people using sfio
+* Lots of bug fixes
+
 New in 1.2b3
 ----------------------------------------
 * Slightly better documentation, easier compilation

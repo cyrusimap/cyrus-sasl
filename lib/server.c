@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.12 1999/01/12 19:03:17 rob Exp $
+ * $Id: server.c,v 1.13 1999/01/12 22:12:01 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -179,8 +179,8 @@ int sasl_setpass(sasl_conn_t *conn,
 			   user,
 			   pass,
 			   passlen,
-			   0,
-			   NULL);
+			   flags,
+			   errstr);
       if (tmpresult!=SASL_OK)
       {
 	VL(("%s returned %i\n",m->plug->mech_name, tmpresult));

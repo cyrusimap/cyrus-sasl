@@ -23,7 +23,7 @@
 #
 
 # Library version info - here at the top, for sanity
-sasl_version = 3:1:0
+sasl_version = 4:0:0
 
 INCLUDES=-I$(top_srcdir)/include
 

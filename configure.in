@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.14 1999/01/12 19:03:14 rob Exp $
+dnl $Id: configure.in,v 1.15 1999/01/12 22:11:56 rob Exp $
 dnl
 dnl
 dnl         Copyright 1998 by Carnegie Mellon University
@@ -23,7 +23,7 @@ dnl WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
 dnl ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 dnl SOFTWARE.
 dnl
-AC_REVISION($Id: configure.in,v 1.14 1999/01/12 19:03:14 rob Exp $)
+AC_REVISION($Id: configure.in,v 1.15 1999/01/12 22:11:56 rob Exp $)
 AC_INIT(lib/saslint.h)
 AC_CONFIG_AUX_DIR(config)
 AM_CONFIG_HEADER(config.h)
@@ -322,6 +322,14 @@ AC_CHECK_HEADERS(getopt.h unistd.h)
 AC_C_CONST
 AC_C_INLINE
 
+AC_CHECK_HEADER(sfio.h,
+	        SASL_UTIL_LIBS_EXTRA=libsfsasl.la
+	          SASL_UTIL_HEADERS_EXTRA=sfsasl.h,
+                SASL_UTIL_LIBS_EXTRA=""
+                  SASL_UTIL_HEADERS_EXTRA="")
+AC_SUBST(SASL_UTIL_LIBS_EXTRA)
+AC_SUBST(SASL_UTIL_HEADERS_EXTRA)
+
 AC_CHECK_FUNCS(getdomainname)
 
-AC_OUTPUT(Makefile include/Makefile lib/Makefile plugins/Makefile sasl/Makefile util/Makefile)
+AC_OUTPUT(Makefile include/Makefile lib/Makefile plugins/Makefile sasl/Makefile utils/Makefile)

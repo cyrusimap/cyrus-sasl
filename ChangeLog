@@ -1,3 +1,18 @@
+1999-01-12  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* lib/server.c (sasl_setpass): pass flags & errstr
+
+	* configure.in: uses CMU_SOCKETS, for sanity; sets SASL_UTIL_LIBS; 
+	writes utils/Makefile; updated version to 1.3b1
+
+	* Makefile.am: added utils
+
+	* utils/Makefile.am: wrote
+
+	* utils/saslpasswd.8: wrote
+
+	* utils/saslpasswd.c: upgraded
+
 1998-12-14  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
         * lib/common.c: added logging capability

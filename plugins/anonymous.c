@@ -122,6 +122,9 @@ server_continue_step (void *conn_context __attribute__((unused)),
     return SASL_CONTINUE;
   }
 
+  /* We force a truncation 255 characters (specified by RFC 2245) */
+  if (clientinlen > 255) clientinlen = 255;
+
   /* NULL-terminate the clientin... */
   clientdata = sparams->utils->malloc(clientinlen + 1);
   if (! clientdata)

@@ -90,7 +90,7 @@ static int
 afs_cmu_StringToKey (str, cell, key)
 char *str;
 char *cell;                  /* cell for password */
-des_cblock key;
+des_cblock *key;
 {   char  password[8+1];              /* crypt is limited to 8 chars anyway */
     int   i;
     int   passlen;
@@ -132,10 +132,10 @@ static int
 afs_transarc_StringToKey (str, cell, key)
 char *str;
 char *cell;                  /* cell for password */
-des_cblock key;
+des_cblock *key;
 {   des_key_schedule schedule;
-    char temp_key[8];
-    char ivec[8];
+    des_cblock temp_key;
+    des_cblock ivec;
     char password[BUFSIZ];
     int  passlen;
 
@@ -144,16 +144,16 @@ des_cblock key;
         strncat (password, cell, sizeof(password)-passlen);
     if ((passlen = strlen(password)) > (int) sizeof(password)) passlen = sizeof(password);
 
-    memcpy (ivec, "kerberos", 8);
-    memcpy (temp_key, "kerberos", 8);
-    des_fixup_key_parity ((void *)temp_key);
-    des_key_sched (temp_key, schedule);
-    des_cbc_cksum (password, ivec, passlen, schedule, ivec);
+    memcpy (&ivec, "kerberos", 8);
+    memcpy (&temp_key, "kerberos", 8);
+    des_fixup_key_parity (&temp_key);
+    des_key_sched (&temp_key, schedule);
+    des_cbc_cksum ((des_cblock *)password, &ivec, passlen, schedule, &ivec);
 
-    memcpy (temp_key, ivec, 8);
-    des_fixup_key_parity ((void *)temp_key);
-    des_key_sched (temp_key, schedule);
-    des_cbc_cksum (password, (void *)key, passlen, schedule, ivec);
+    memcpy (&temp_key, &ivec, sizeof temp_key);
+    des_fixup_key_parity (&temp_key);
+    des_key_sched (&temp_key, schedule);
+    des_cbc_cksum ((des_cblock *)password, key, passlen, schedule, &ivec);
 
     des_fixup_key_parity (key);
 
@@ -162,7 +162,7 @@ des_cblock key;
 
 static int krb_afs_string_to_key(str, key, cell)
 char *str;
-des_cblock key;
+des_cblock *key;
 char *cell;                  /* cell for password */
 {
     if (strlen(str) > 8) {
@@ -191,7 +191,7 @@ char *lcase(char* str)
 static int use_key(char *user __attribute__((unused)), 
 		   char *instance __attribute__((unused)), 
 		   char *realm __attribute__((unused)), 
-		   des_cblock key, des_cblock returned_key)
+		   void *key, des_cblock *returned_key)
 {
     memcpy (returned_key, key, sizeof(des_cblock));
     return 0;
@@ -230,7 +230,7 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
     /* check to see if the user configured a srvtab */
     if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context) 
 	== SASL_OK) {
-	getopt(context, NULL, "srvtab", &srvtab, NULL);
+	getopt(context, NULL, "srvtab", (const char **)&srvtab, NULL);
 	if (!srvtab) srvtab = "";
     }
 
@@ -241,10 +241,10 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
     krb_set_tkt_string(tfname);
 
     /* First try Kerberos string-to-key */
-    des_string_to_key(passwd, key);
+    des_string_to_key((char *)passwd, &key);
     
-    result = krb_get_in_tkt(user, "", realm,
-			    "krbtgt", realm, 1, use_key, NULL, key);
+    result = krb_get_in_tkt((char *)user, "", realm,
+			    "krbtgt", realm, 1, use_key, NULL, &key);
 
     if (result == INTK_BADPW) {
 	/* Now try andrew string-to-key */
@@ -252,8 +252,8 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
 	lcase(cell);
 	krb_afs_string_to_key(passwd, key, cell);
     
-	result = krb_get_in_tkt(user, "", realm,
-				"krbtgt", realm, 1, use_key, NULL, key);
+	result = krb_get_in_tkt((char *)user, "", realm,
+				"krbtgt", realm, 1, use_key, NULL, &key);
     }
 
     memset(key, 0, sizeof(key));
@@ -267,7 +267,7 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
     /* Check validity of returned ticket */
     gethostname(hostname, sizeof(hostname));
     strcpy(phost, krb_get_phost(hostname));
-    result = krb_mk_req(&authent, service, phost, realm, 0);
+    result = krb_mk_req(&authent, (char *)service, phost, realm, 0);
     if (result != 0) {
 	memset(&authent, 0, sizeof(authent));
 	dest_tkt();
@@ -275,7 +275,7 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
 	return SASL_FAIL;
     }
     strcpy(instance, "*");
-    result = krb_rd_req(&authent, service, instance, 0L, &kdata, srvtab); 
+    result = krb_rd_req(&authent, (char *)service, instance, 0L, &kdata, srvtab); 
     memset(&authent, 0, sizeof(authent));
     memset(kdata.session, 0, sizeof(kdata.session));
     if (result != 0 || strcmp(kdata.pname, user) != 0 || kdata.pinst[0] ||
@@ -296,8 +296,11 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
 
 #endif /* HAVE_KRB */
 
+#ifndef SASL_MINIMAL_SERVER
+
 int _sasl_shadow_verify_password(sasl_conn_t *conn __attribute__((unused)),
-				 const char *userid, const char *password,
+				 const char *userid,
+				 const char *password,
 				 const char **reply __attribute__((unused)) )
 {
 #ifdef HAVE_GETSPNAM
@@ -326,7 +329,7 @@ int _sasl_shadow_verify_password(sasl_conn_t *conn __attribute__((unused)),
 #endif
 
 }
-#ifndef SASL_MINIMAL_SERVER
+
 int _sasl_passwd_verify_password(sasl_conn_t *conn __attribute__((unused)),
 				 const char *userid,
 				 const char *password,
@@ -361,7 +364,7 @@ struct sasl_pam_data {
     int pam_error;
 };
 
-static int sasl_pam_conv(int num_msg, struct pam_message **msg,
+static int sasl_pam_conv(int num_msg, const struct pam_message **msg,
 			 struct pam_response **resp, void *appdata_ptr)
 {
     struct pam_response *reply = NULL;

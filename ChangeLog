@@ -1,3 +1,10 @@
+Thu Nov 11 00:10:33 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/checkpw.c: patches from Ronald Guilmette to minimize
+	warnings in kerboers code
+
+	* plugins/kerberos4.c: ditto
+
 1999-11-10  Timothy L Martin  <tmartin@andrew.cmu.edu>
 
 	* lib/checkpw.c (parseuser): Added patches from Claus

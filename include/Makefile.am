@@ -30,4 +30,5 @@ noinst_PROGRAMS = makemd5
 makemd5_SOURCES = makemd5.c
 
 md5global.h: makemd5
+	-rm -f md5global.h
 	./makemd5 md5global.h

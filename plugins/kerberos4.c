@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.41 1999/11/03 04:04:16 tmartin Exp $
+ * $Id: kerberos4.c,v 1.42 1999/11/11 05:12:05 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -145,7 +145,7 @@ static int privacy_encode(void *context, const char *input, unsigned inputlen,
   
   len=krb_mk_priv((char *) input, *output+4,
 		  inputlen,  text->init_keysched, 
-		  text->session, text->ip_local,
+		  &text->session, text->ip_local,
 		  text->ip_remote);
 
   *outputlen=len+4;
@@ -232,7 +232,7 @@ static int privacy_decode(void *context,
     memset(data,0,sizeof(MSG_DAT));
     
     len= krb_rd_priv((char *) text->buffer,text->size,  text->init_keysched, 
-		     text->session, text->ip_remote, text->ip_local, data);
+		     &text->session, text->ip_remote, text->ip_local, data);
 
     /* see if the krb library gave us a failure */
     if (len != 0) {
@@ -297,10 +297,8 @@ integrity_encode(void *context,
   *output=text->malloc(inputlen+40);
   if ((*output) ==NULL) return SASL_NOMEM;
 
-  len=krb_mk_safe((char *) input, (*output)+4,
-		  inputlen, /* text->keysched, */
-		  (text->session), (text->ip_local),
-		  (text->ip_remote));
+  len=krb_mk_safe((char *) input, (*output)+4, inputlen, /* text->keysched, */
+		  &text->session, text->ip_local, text->ip_remote);
 
   /* returns -1 on error */
   if (len==-1) return SASL_FAIL;
@@ -384,8 +382,8 @@ static int integrity_decode(void *context, const char *input, unsigned inputlen,
     if (data==NULL) return SASL_NOMEM;
 
     len= krb_rd_safe((char *) text->buffer,text->size, /* text->keysched, */
-		     (text->session),
-		     (text->ip_remote), (text->ip_local), data);
+		     &text->session,
+		     text->ip_remote, text->ip_local, data);
 
 
     /* see if the krb library found a problem with what we were given */
@@ -631,11 +629,11 @@ static int server_continue_step (void *conn_context,
     memcpy(text->pname, ad.pname, sizeof(text->pname));
     memcpy(text->pinst, ad.pinst, sizeof(text->pinst));
     memcpy(text->prealm, ad.prealm, sizeof(text->prealm));
-    des_key_sched(ad.session, text->init_keysched);
+    des_key_sched(&ad.session, text->init_keysched);
 
     /* make keyschedule for encryption and decryption */
-    des_key_sched(ad.session, text->enc_keysched);
-    des_key_sched(ad.session, text->dec_keysched);
+    des_key_sched(&ad.session, text->enc_keysched);
+    des_key_sched(&ad.session, text->dec_keysched);
     
     des_ecb_encrypt((des_cblock *)sout,
 		    (des_cblock *)sout,
@@ -809,7 +807,7 @@ int sasl_server_plug_init(sasl_utils_t *utils,
 			  const sasl_server_plug_t **pluglist,
 			  int *plugcount)
 {
-    char *ret;
+    const char *ret;
     unsigned int rl;
     
     utils->getopt(utils->getopt_context, "KERBEROS_V4", "srvtab", &ret, &rl);
@@ -1047,9 +1045,9 @@ static int client_continue_step (void *conn_context,
     memcpy(text->session, text->credentials.session, 8);
 
     /* make key schedule for encryption and decryption */
-    des_key_sched(text->session, text->init_keysched);
-    des_key_sched(text->session, text->enc_keysched);
-    des_key_sched(text->session, text->dec_keysched);
+    des_key_sched(&text->session, text->init_keysched);
+    des_key_sched(&text->session, text->enc_keysched);
+    des_key_sched(&text->session, text->dec_keysched);
 
     /* decrypt from server */
     des_ecb_encrypt((des_cblock *)in, (des_cblock *)in,
@@ -1203,8 +1201,8 @@ static const sasl_client_plug_t client_plugins[] =
     "KERBEROS_V4",
     KRB_DES_SECURITY_BITS,
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOACTIVE | SASL_SEC_NOANONYMOUS,
+    &client_required_prompts,
     NULL,
-    (void *) &client_required_prompts,
     &client_start,
     &client_continue_step,
     &dispose,

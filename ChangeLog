@@ -5,6 +5,8 @@
 	  (Howard Chu <hyc@highlandsun.com>)
 	* saslauthd/auth_krb5.c: Fix memory/file descriptor leak
 	  in krb5 authentication (Jonathen Chen <jon@spock.org>)
+	* saslauthd/lak.c, lak.h, LDAP_SASLAUTHD: Remove ldap_cache
+	  code, and rename MAX() to LAK_MAX()
 
 2002-02-20  Ken Murchison <ken@oceana.com>
 	* doc/draft-ietf-sasl-rfc2831bis-00.txt: added

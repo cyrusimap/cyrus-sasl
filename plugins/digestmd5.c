@@ -273,8 +273,9 @@ UTF8_In_8859_1(const unsigned char *base,
 	break;
     }
   }
-  /* if we found a character outside 8859-1, don't alter string */
-  return (scan < end);
+
+  /* if scan >= end, then this is a 8859-1 string. */
+  return (scan >= end);
 }
 
 /*

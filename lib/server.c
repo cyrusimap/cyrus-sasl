@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.57 1999/11/17 08:52:05 tmartin Exp $
+ * $Id: server.c,v 1.58 1999/11/18 02:21:35 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -425,10 +425,9 @@ static int add_plugin(void *p, void *library) {
   result = entry_point(mechlist->utils, SASL_SERVER_PLUG_VERSION, &version,
 		       &pluglist, &plugcount);
 
-  if ((result != SASL_OK) && (result != SASL_NOUSER))
-  {
-    VL(("entry_point error %i\n",result));
-    return result;
+  if ((result != SASL_OK) && (result != SASL_NOUSER)) {
+      VL(("entry_point error %i\n",result));
+      return result;
   }
 
   /* Make sure plugin is using the same SASL version as us */
@@ -745,44 +744,46 @@ int sasl_server_new(const char *service,
 static int mech_permitted(sasl_conn_t *conn,
 			  mechanism_t *mech)
 {
-  const sasl_server_plug_t *plug = mech->plug;
+    const sasl_server_plug_t *plug = mech->plug;
+    int myflags;
 
-  /* Can this plugin meet the application's security requirements? */
-  if (! plug || ! conn)
-    return 0;
+    /* Can this plugin meet the application's security requirements? */
+    if (! plug || ! conn)
+	return 0;
 
-  if (plug == &external_server_mech) {
-    /* Special case for the external mechanism */
-    if (conn->props.min_ssf > conn->external.ssf
-	|| ! conn->external.auth_id)
-      return 0;
-  } else {
-    /* Generic mechanism */
-    if (plug->max_ssf < conn->props.min_ssf)
-      return 0;
-  }
+    if (plug == &external_server_mech) {
+	/* Special case for the external mechanism */
+	if (conn->props.min_ssf > conn->external.ssf
+	    || ! conn->external.auth_id)
+	    return 0;
+    } else {
+	/* Generic mechanism */
+	if (plug->max_ssf < conn->props.min_ssf)
+	    return 0;
+    }
 
-  /* if there are no users in the secrets database we can't use this mechanism */
-  if (mech->condition == SASL_NOUSER) return 0;
-
-  /* security properties---if there are any flags that differ and are
-     in what the connection are requesting, then fail */
-
-  /* special case PLAIN and no plaintext allowed */
-  if (( strcmp(plug->mech_name,"PLAIN")==0) && (conn->props.security_flags & SASL_SEC_NOPLAINTEXT)) {
+    /* if there are no users in the secrets database we can't use this 
+       mechanism */
+    if (mech->condition == SASL_NOUSER) return 0;
+    
+    /* security properties---if there are any flags that differ and are
+       in what the connection are requesting, then fail */
+    
+    /* special case plaintext */
+    myflags = conn->props.security_flags;
 
     /* if there's an external layer this is no longer plaintext */
-    if ((conn->props.min_ssf <= conn->external.ssf) && (conn->external.ssf > 0))
-      return 1;
-  }
+    if ((conn->props.min_ssf <= conn->external.ssf) && 
+	(conn->external.ssf > 0)) {
+	myflags &= ~SASL_SEC_NOPLAINTEXT;
+    }
 
-  /* do we want to special case SASL_SEC_PASS_CREDENTIALS? nah.. */
-  if (((conn->props.security_flags ^ plug->security_flags) 
-       & conn->props.security_flags) != 0) {
-      return 0;
-  }
+    /* do we want to special case SASL_SEC_PASS_CREDENTIALS? nah.. */
+    if (((myflags ^ plug->security_flags) & myflags) != 0) {
+	return 0;
+    }
 
-  return 1;
+    return 1;
 }
 
 /* start a mechanism exchange within a connection context

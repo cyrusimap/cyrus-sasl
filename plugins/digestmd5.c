@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.102 2002/01/09 19:16:00 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.103 2002/01/17 05:43:08 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -186,8 +186,8 @@ typedef struct context {
     buffer_info_t  *enc_in_buf;
     char           *encode_buf, *decode_buf, *decode_once_buf;
     unsigned       encode_buf_len, decode_buf_len, decode_once_buf_len;
-    char           *encode_tmp_buf, *decode_tmp_buf;
-    unsigned       encode_tmp_buf_len, decode_tmp_buf_len;
+    char           *decode_tmp_buf;
+    unsigned       decode_tmp_buf_len;
     char           *MAC_buf;
     unsigned       MAC_buf_len;
 
@@ -1392,17 +1392,13 @@ digestmd5_privacy_encode(void *context,
   out = (text->encode_buf)+4;
 
   /* construct (seqnum, msg) */
-  ret = _plug_buf_alloc(text->utils, &(text->encode_tmp_buf),
-			&(text->encode_tmp_buf_len),
-			inblob->curlen + 4);
-  if (ret != SASL_OK) return ret;
-
+  /* We can just use the output buffer because it's big enough */
   tmpnum = htonl(text->seqnum);
-  memcpy(text->encode_tmp_buf, &tmpnum, 4);
-  memcpy(text->encode_tmp_buf + 4, inblob->data, inblob->curlen);
+  memcpy(text->encode_buf, &tmpnum, 4);
+  memcpy(text->encode_buf + 4, inblob->data, inblob->curlen);
   
   /* HMAC(ki, (seqnum, msg) ) */
-  text->utils->hmac_md5((const unsigned char *) text->encode_tmp_buf,
+  text->utils->hmac_md5((const unsigned char *) text->encode_buf,
 			inblob->curlen + 4, 
 			text->Ki_send, HASHLEN, digest);
 
@@ -1662,18 +1658,21 @@ digestmd5_integrity_encode(void *context,
       inblob = &bufinfo;
   }
 
-  ret = _plug_buf_alloc(text->utils, &(text->encode_tmp_buf),
-			&(text->encode_tmp_buf_len),
-		        inblob->curlen + 4);
-  if (ret != SASL_OK) return ret;
- 
+  /* construct output */
+  *outputlen = 4 + inblob->curlen + 16;
+
+  ret = _plug_buf_alloc(text->utils, &(text->encode_buf),
+			&(text->encode_buf_len), *outputlen);
+  if(ret != SASL_OK) return ret;
+
   /* construct (seqnum, msg) */
+  /* we can just use the output buffer */
   tmpnum = htonl(text->seqnum);
-  memcpy(text->encode_tmp_buf, &tmpnum, 4);
-  memcpy(text->encode_tmp_buf + 4, inblob->data, inblob->curlen);
+  memcpy(text->encode_buf, &tmpnum, 4);
+  memcpy(text->encode_buf + 4, inblob->data, inblob->curlen);
 
   /* HMAC(ki, (seqnum, msg) ) */
-  text->utils->hmac_md5(text->encode_tmp_buf, inblob->curlen + 4, 
+  text->utils->hmac_md5(text->encode_buf, inblob->curlen + 4, 
 			text->Ki_send, HASHLEN, MAC);
 
   /* create MAC */
@@ -1682,13 +1681,6 @@ digestmd5_integrity_encode(void *context,
 
   tmpnum = htonl(text->seqnum);
   memcpy(MAC + 12, &tmpnum, 4);	/* 4 bytes = sequence number */
-
-  /* construct output */
-  *outputlen = 4 + inblob->curlen + 16;
-
-  ret = _plug_buf_alloc(text->utils, &(text->encode_buf),
-			&(text->encode_buf_len), *outputlen);
-  if(ret != SASL_OK) return ret;
 
   /* copy into output */
   tmpnum = htonl((*outputlen) - 4);
@@ -1941,7 +1933,6 @@ digestmd5_both_mech_dispose(void *conn_context, const sasl_utils_t * utils)
 
   if (text->buffer) utils->free(text->buffer);
   if (text->encode_buf) utils->free(text->encode_buf);
-  if (text->encode_tmp_buf) utils->free(text->encode_tmp_buf);
   if (text->decode_buf) utils->free(text->decode_buf);
   if (text->decode_once_buf) utils->free(text->decode_once_buf);
   if (text->decode_tmp_buf) utils->free(text->decode_tmp_buf);

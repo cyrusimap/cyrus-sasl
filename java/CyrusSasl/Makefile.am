@@ -46,7 +46,7 @@ libjavasasl_la_SOURCES = javasasl.h javasasl.c
 libjavasasl_la_LDFLAGS = -export_dynamic -lsasl -version-info $(javasasl_version) $(wildcard ../lib/*.lo)
 BUILT_SOURCES = javasasl.h $(CLASSES)
 
-javasasl.c: javasasl.h
+$(srcdir)/javasasl.c: javasasl.h
 
 javasasl.h: $(CLASSES)
 	$(CLASSPATH_ENV) $(JAVAH) -o $@ -jni $(patsubst %.class,CyrusSasl.%,$^)

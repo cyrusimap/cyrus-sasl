@@ -1,3 +1,7 @@
+2002-01-19  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* plugins/plain.c, plugins/login.c: set serverout to NULL
+	  where we have nothing to send instead of the empty string
+
 2002-01-19  Ken Murchison <ken@oceana.com>
 	* plugins/srp.c: added SASL_SUCCESS_DATA checks
 

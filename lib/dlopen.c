@@ -1,7 +1,7 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Siemborski
  * Rob Earhart
- * $Id: dlopen.c,v 1.47 2004/02/18 16:45:12 rjs3 Exp $
+ * $Id: dlopen.c,v 1.48 2004/03/10 15:38:13 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -92,6 +92,7 @@
 #endif
 
 #ifdef __hpux
+#ifndef HAVE_DLFCN_H
 #include <dl.h>
 
 typedef shl_t dll_handle;
@@ -142,6 +143,7 @@ char *dlerror()
     return "Generic shared library error";
 }
 
+#endif /* HAVE_DLFCN_H */
 #define SO_SUFFIX	".sl"
 #else /* __hpux */
 #define SO_SUFFIX	".so"

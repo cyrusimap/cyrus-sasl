@@ -17,7 +17,7 @@
 #include "prop.h"
 #endif
 
-/* callback to lookup a sasl_callback_t for a connnection
+/* callback to lookup a sasl_callback_t for a connection
  * input:
  *  conn        -- the connection to lookup a callback for
  *  callbacknum -- the number of the callback
@@ -155,7 +155,7 @@ typedef struct sasl_utils {
 /*
  * output parameters from SASL API
  *
- * created / destroyed by the glue code, though probabally filled in
+ * created / destroyed by the glue code, though probably filled in
  * by a combination of the plugin, the glue code, and the canon_user callback.
  *
  */
@@ -288,17 +288,17 @@ typedef struct sasl_client_params {
  * if the protocol allows it. */
 #define SASL_FEAT_WANT_CLIENT_FIRST 0x0002
 
-/* This feature is depricated, instead, plugins should set *serverout to
+/* This feature is deprecated, instead, plugins should set *serverout to
  * non-NULL and return SASL_OK intelligently to allow flexible use of
  * server-last semantics */
 /* #define SASL_FEAT_WANT_SERVER_LAST 0x0004 */
 
-/* This feature is depricated, instead plugins should correctly set
+/* This feature is deprecated, instead plugins should correctly set
  * SASL_FEAT_SERVER_FIRST as needed */
 /* #define SASL_FEAT_INTERNAL_CLIENT_FIRST 0x0008 */
 
 /* This indicates that the plugin is server-first only. 
- * Not defining eit her of SASL_FEAT_SERVER_FIRST or 
+ * Not defining either of SASL_FEAT_SERVER_FIRST or 
  * SASL_FEAT_WANT_CLIENT_FIRST indicates that the mechanism will take care 
  * of the client-first situation internally.
  */

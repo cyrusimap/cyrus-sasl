@@ -1,3 +1,23 @@
+2001-02-19  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c (c_continue_step): 
+	* plugins/plain.c (client_continue_step): 
+	* plugins/gssapi.c (sasl_gss_client_start): 
+	* plugins/kerberos4.c (client_continue_step): 
+	* plugins/anonymous.c (client_continue_step): 
+	accept NULL as a valid clientin during sasl_client_start, to
+	indicate a protocol not capable of an initial client response
+
+2001-02-12  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c (init_3des): DES functions was using ECB
+	instead of CBC.  fixed.
+
+2000-11-06  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c: UTF8_In_8859_1() was returning the reverse,
+	which was creating an improper HMAC for layers.
+
 2000-12-18  Larry Greenfield  <leg@yossarian.cc.cmu.edu>
 
 	* configure.in: look for gsskrb5_register_acceptor_identity();

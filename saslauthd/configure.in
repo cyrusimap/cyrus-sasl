@@ -41,7 +41,6 @@ SASL_KERBEROS_V4_CHK
 SASL_GSSAPI_CHK
 
 if test "$gssapi" != no; then
-	AC_DEFINE(AUTH_KRB5)
 	if test "$gss_impl" = "heimdal"; then
 	    AC_DEFINE(KRB5_HEIMDAL)
 	fi
@@ -142,7 +141,7 @@ dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_HEADER_TIME
-AC_CHECK_HEADERS(crypt.h fcntl.h strings.h syslog.h unistd.h sys/time.h sys/uio.h)
+AC_CHECK_HEADERS(crypt.h fcntl.h krb5.h strings.h syslog.h unistd.h sys/time.h sys/uio.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST  

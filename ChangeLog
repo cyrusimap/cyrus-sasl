@@ -1,6 +1,17 @@
 2003-05-14  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* config/kerberos_v4.m4: Minor nit
 	  (Carlos Velasco <carlosev@newipnet.com>)
+	* plugins/gssapi.c: Use GSS_C_NT_USER_NAME
+	  to work around Solaris 8/9 libgss bug.
+	  (gssapi_client_mech_step): Pass GSS_C_NO_BUFFER to first
+	  invocation of gss_init_sec_context to work around Solaris 8/9
+	  mech_krb5 bug. (Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>)
+	* cmulocal/sasl2.m4: Check for Sun SEAM GSS-API implementation
+	  (Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>)
+	* saslauthd/configure.in: Check for krb5.h.  Don't define if GSSAPI
+	  is present. (Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>)
+	* saslauthd/mechanisms.h: Test for HAVE_KRB5_H instead of HAVE_GSSAPI_H
+	  to activate AUTH_KRB5. (Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>)
 
 2003-05-13  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* config/sasldb.m4, utils/Makefile.am: fix installation of man

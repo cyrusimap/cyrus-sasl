@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb5.c,v 1.9 2003/03/06 17:23:17 rjs3 Exp $"
+#ident "$Id: auth_krb5.c,v 1.10 2003/05/14 18:32:23 rjs3 Exp $"
 #endif
 
 /* ok, this is  wrong but the most convenient way of doing 
@@ -221,7 +221,7 @@ static int k5support_verify_tgt(krb5_context context,
     }
     
     if (keyblock) {
-	free(keyblock);
+	krb5_free_keyblock(context, keyblock);
     }
     
     /* this duplicates work done in krb5_sname_to_principal

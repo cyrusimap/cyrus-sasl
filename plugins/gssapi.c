@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.72 2003/03/31 22:07:32 rjs3 Exp $
+ * $Id: gssapi.c,v 1.73 2003/05/14 18:32:21 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -87,7 +87,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.72 2003/03/31 22:07:32 rjs3 Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.73 2003/05/14 18:32:21 rjs3 Exp $";
 
 #ifndef HAVE_GSS_C_NT_HOSTBASED_SERVICE
 extern gss_OID gss_nt_service_name;
@@ -767,7 +767,7 @@ gssapi_server_mech_step(void *conn_context,
 	    
 	    maj_stat = gss_import_name (&min_stat,
 					&name_without_realm,
-					GSS_C_NULL_OID,
+					GSS_C_NT_USER_NAME,
 					&without);
 	    
 	    if (GSS_ERROR(maj_stat)) {
@@ -1224,6 +1224,9 @@ static int gssapi_client_mech_step(void *conn_context,
 	    }
 	}
 	    
+	if (serverinlen == 0)
+	    input_token = GSS_C_NO_BUFFER;
+
 	if (serverinlen) {
 	    real_input_token.value = (void *)serverin;
 	    real_input_token.length = serverinlen;

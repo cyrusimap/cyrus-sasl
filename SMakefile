@@ -10,4 +10,4 @@ if test ! -x configure; then
 fi
 
 MAKE=gmake
-LNCOMMAND="${SRCDIR}/configure --prefix=/usr/local --disable-gssapi"
+LNCOMMAND="${SRCDIR}/configure --prefix=/usr/local"

@@ -613,6 +613,12 @@ typedef int sasl_canon_user_t(sasl_conn_t *conn,
  * Common Client/server functions *
  **********************************/
 
+/* get sasl library version information
+ * implementation is a vendor-defined string
+ * version is a vender-defined representation of the version # */
+LIBSASL_API void sasl_version(const char **implementation,
+			      int *version);
+
 /* dispose of all SASL plugins.  Connection
  * states have to be disposed of before calling this.
  */

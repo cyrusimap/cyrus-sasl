@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.78 2002/02/13 20:31:52 rjs3 Exp $
+ * $Id: common.c,v 1.79 2002/05/17 19:41:46 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -153,6 +153,18 @@ int _sasl_add_string(char **out, size_t *alloclen,
   *outlen += addlen;
 
   return SASL_OK;
+}
+
+/* return the version of the cyrus sasl library as compiled,
+ * using 32 bits: high byte is major version, second byte is minor version,
+ * low 16 bits are step # */
+void sasl_version(const char **implementation, int *version) 
+{
+    const char *implementation_string = "Cyrus SASL";
+    if(implementation) *implementation = implementation_string;
+    if(version) *version = (SASL_VERSION_MAJOR << 24) | 
+		           (SASL_VERSION_MINOR << 16) |
+		           (SASL_VERSION_STEP);
 }
 
 /* security-encode a regular string.  Mostly a wrapper for sasl_encodev */

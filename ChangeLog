@@ -3,6 +3,7 @@
 	  instead of -H
 	* saslauthd/auth_ldap.c, lak.c, et. al: auth_ldap overhaul
 	  (Igor Brezac <igor@ipass.net>)
+	* lib/common.c, include/sasl.h: add sasl_version
 
 2002-05-13  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/checkpw.c: use "*cmusaslsecretPLAIN" in auxprop_verify_password

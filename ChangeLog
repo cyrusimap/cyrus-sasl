@@ -1,4 +1,7 @@
 2003-07-25  Ken Murchison <ken@oceana.com>
+	* plugins/srp.c: removed use of tmp buffer for security layer
+
+2003-07-25  Ken Murchison <ken@oceana.com>
 	* lib/server.c, plugins/login.c, plugins/plain.c: better handling
 	  of auto_transition -- doesn't try to transition from auxprop to
 	  auxprop

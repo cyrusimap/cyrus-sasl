@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.48 2003/07/24 20:41:47 ken3 Exp $
+ * $Id: srp.c,v 1.49 2003/07/25 19:17:10 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -55,8 +55,6 @@
  *    o  We don't yet use the PRNG() and KDF() primatives described in
  *       section 5.1.
  *
- * - Does OpenSSL EVP do the same PKCS padding as the draft?
- *
  * - Are we using cIV and sIV correctly for encrypt/decrypt?
  *
  * - We don't implement fast reauth.
@@ -105,16 +103,12 @@ typedef unsigned short uint32;
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: srp.c,v 1.48 2003/07/24 20:41:47 ken3 Exp $";
+static const char plugin_id[] = "$Id: srp.c,v 1.49 2003/07/25 19:17:10 ken3 Exp $";
 
-/* Size of diffie-hellman secrets a and b */
-#define BITSFORab 64
-/* How many bytes big should the salt be? */
-#define SRP_SALT_SIZE 16
-/* How many bytes big should the IV be? */
-#define SRP_IV_SIZE 16
+/* Size limit of cipher block size */
+#define SRP_MAXBLOCKSIZE 16
 /* Size limit of SRP buffer */
-#define MAXBUFFERSIZE 2147483643
+#define SRP_MAXBUFFERSIZE 2147483643
 
 #define DEFAULT_MDA		"SHA-1"
 
@@ -250,7 +244,7 @@ typedef struct context {
     char *server_options;
     
     srp_options_t client_opts;	/* cache between client steps */
-    char cIV[SRP_IV_SIZE];	/* cache between client steps */
+    char cIV[SRP_MAXBLOCKSIZE];	/* cache between client steps */
     
     char *salt;			/* password salt */
     int saltlen;
@@ -280,10 +274,8 @@ typedef struct context {
     
     /* for encoding/decoding mem management */
     buffer_info_t  *enc_in_buf;
-    char           *encode_buf, *decode_buf, *decode_once_buf;
-    unsigned       encode_buf_len, decode_buf_len, decode_once_buf_len;
-    char           *encode_tmp_buf, *decode_tmp_buf;
-    unsigned       encode_tmp_buf_len, decode_tmp_buf_len;
+    char           *encode_buf, *decode_buf, *decode_pkt_buf;
+    unsigned       encode_buf_len, decode_buf_len, decode_pkt_buf_len;
     
     /* layers buffering */
     decode_context_t decode_context;
@@ -297,12 +289,9 @@ static int srp_encode(void *context,
 		      unsigned *outputlen)
 {
     context_t *text = (context_t *) context;
-    int hashlen = 0;
-    char hash[EVP_MAX_MD_SIZE];
-    int tmpnum;
     struct buffer_info *inblob, bufinfo;
     char *input;
-    unsigned long inputlen;
+    unsigned long inputlen, tmpnum;
     int ret;
     
     if (!context || !invec || !numiov || !output || !outputlen) {
@@ -325,51 +314,63 @@ static int srp_encode(void *context,
     input = inblob->data;
     inputlen = inblob->curlen;
     
+    ret = _plug_buf_alloc(text->utils, &text->encode_buf,
+			  &text->encode_buf_len,
+			  4 +			/* for length */
+			  inputlen +		/* for content */
+			  SRP_MAXBLOCKSIZE +	/* for PKCS padding */
+			  EVP_MAX_MD_SIZE);	/* for HMAC */
+    if (ret != SASL_OK) return ret;
+
+    *outputlen = 4; /* length */
+    
     if (text->layer & BIT_CONFIDENTIALITY) {
 	unsigned enclen;
-	
-	ret = _plug_buf_alloc(text->utils, &(text->encode_tmp_buf),
-			      &(text->encode_tmp_buf_len), inputlen);
-	if (ret != SASL_OK) return ret;
 
+	/* encrypt the data into the output buffer */
 	EVP_EncryptUpdate(&text->cipher_enc_ctx,
-			  text->encode_tmp_buf, &enclen,
+			  text->encode_buf + *outputlen, &enclen,
 			  input, inputlen);
-	inputlen = enclen;
+	*outputlen += enclen;
 	
 	EVP_EncryptFinal(&text->cipher_enc_ctx,
-			 text->encode_tmp_buf + enclen, &enclen);
-	inputlen += enclen;
+			 text->encode_buf + *outputlen, &enclen);
+	*outputlen += enclen;
 
-	input = text->encode_tmp_buf;
+	/* switch the input to the encrypted data */
+	input = text->encode_buf + 4;
+	inputlen = *outputlen - 4;
+    }
+    else {
+	/* copy the raw input to the output */
+	memcpy(text->encode_buf + *outputlen, input, inputlen);
+	*outputlen += inputlen;
     }
     
     if (text->layer & BIT_INTEGRITY) {
+	unsigned hashlen;
+
+	/* hash the content */
 	HMAC_Update(&text->hmac_send_ctx, input, inputlen);
 	
 	if (text->layer & BIT_REPLAY_DETECTION) {
+	    /* hash the sequence number */
 	    tmpnum = htonl(text->seqnum_out);
 	    HMAC_Update(&text->hmac_send_ctx, (char *) &tmpnum, 4);
 	    
 	    text->seqnum_out++;
 	}
-	
-	HMAC_Final(&text->hmac_send_ctx, hash, &hashlen);
+
+	/* append the HMAC into the output buffer */
+	HMAC_Final(&text->hmac_send_ctx, text->encode_buf + *outputlen,
+		   &hashlen);
+	*outputlen += hashlen;
     }
 
-    /* 4 (for length) + input size + hashlen for integrity (could be zero) */
-    *outputlen = 4 + inputlen + hashlen;
-    
-    ret = _plug_buf_alloc(text->utils, &(text->encode_buf),
-			  &(text->encode_buf_len),
-			  *outputlen);
-    if (ret != SASL_OK) return ret;
-    
-    tmpnum = inputlen+hashlen;
+    /* prepend the length of the output */
+    tmpnum = *outputlen - 4;
     tmpnum = htonl(tmpnum);
     memcpy(text->encode_buf, &tmpnum, 4);
-    memcpy(text->encode_buf+4, input, inputlen);
-    memcpy(text->encode_buf+4+inputlen, hash, hashlen);
 
     *output = text->encode_buf;
     
@@ -385,12 +386,12 @@ static int srp_decode_packet(void *context,
 {
     context_t *text = (context_t *) context;
     int ret;
-    unsigned hashlen = 0;
 
     if (text->layer & BIT_INTEGRITY) {
-	char hash[EVP_MAX_MD_SIZE];
-	int tmpnum;
-	unsigned i;
+	const char *hash;
+	char myhash[EVP_MAX_MD_SIZE];
+	unsigned hashlen, myhashlen, i;
+	unsigned long tmpnum;
 
 	hashlen = EVP_MD_size(text->hmac_md);
 
@@ -402,57 +403,55 @@ static int srp_decode_packet(void *context,
 	    return SASL_BADPROT;
 	}
 
-	/* create our own hash */
-	HMAC_Update(&text->hmac_recv_ctx, input, inputlen-hashlen);
+	inputlen -= hashlen;
+	hash = input + inputlen;
+
+	/* create our own hash from the input */
+	HMAC_Update(&text->hmac_recv_ctx, input, inputlen);
 	    
 	if (text->layer & BIT_REPLAY_DETECTION) {
+	    /* hash the sequence number */
 	    tmpnum = htonl(text->seqnum_in);
 	    HMAC_Update(&text->hmac_recv_ctx, (char *) &tmpnum, 4);
 		
 	    text->seqnum_in++;
 	}
 	    
-	HMAC_Final(&text->hmac_recv_ctx, hash, NULL);
+	HMAC_Final(&text->hmac_recv_ctx, myhash, &myhashlen);
 
 	/* compare hashes */
 	for (i = 0; i < hashlen; i++) {
-	    if (hash[i] != input[inputlen-hashlen+i]) {
+	    if ((myhashlen != hashlen) || (myhash[i] != hash[i])) {
 		SETERROR(text->utils, "Hash is incorrect\n");
 		return SASL_BADMAC;
 	    }
 	}
     }
 	
+    ret = _plug_buf_alloc(text->utils, &(text->decode_pkt_buf),
+			  &(text->decode_pkt_buf_len),
+			  inputlen);
+    if (ret != SASL_OK) return ret;
+	
     if (text->layer & BIT_CONFIDENTIALITY) {
 	unsigned declen;
-	    
-	ret = _plug_buf_alloc(text->utils, &text->decode_tmp_buf,
-			      &text->decode_tmp_buf_len,
-			      inputlen - hashlen);
-	if (ret != SASL_OK) return ret;
 
+	/* decrypt the data into the output buffer */
 	EVP_DecryptUpdate(&text->cipher_dec_ctx,
-			  text->decode_tmp_buf, &declen,
-			  (char *) input, inputlen - hashlen);
+			  text->decode_pkt_buf, &declen,
+			  (char *) input, inputlen);
 	*outputlen = declen;
 	    
 	EVP_DecryptFinal(&text->cipher_dec_ctx,
-			 text->decode_tmp_buf + declen, &declen);
+			 text->decode_pkt_buf + declen, &declen);
 	*outputlen += declen;
-
-	input = text->decode_tmp_buf;
     } else {
-	*outputlen = inputlen - hashlen;
+	/* copy the raw input to the output */
+	memcpy(text->decode_pkt_buf, input, inputlen);
+	*outputlen = inputlen;
     }
-	
-    ret = _plug_buf_alloc(text->utils, &(text->decode_once_buf),
-			  &(text->decode_once_buf_len),
-			  *outputlen);
-    if (ret != SASL_OK) return ret;
-	
-    memcpy(text->decode_once_buf, input, *outputlen);
-	
-    *output = text->decode_once_buf;
+
+    *output = text->decode_pkt_buf;
     
     return SASL_OK;
 }
@@ -512,7 +511,7 @@ static void GetRandBigInt(BIGNUM *out)
     BN_init(out);
     
     /* xxx likely should use sasl random funcs */
-    BN_rand(out, BITSFORab, 0, 0);
+    BN_rand(out, SRP_MAXBLOCKSIZE*8, 0, 0);
 }
 
 #define MAX_BUFFER_LEN 2147483643
@@ -1179,10 +1178,10 @@ static int ParseOptionString(const sasl_utils_t *utils,
 	
 	opts->maxbufsize = strtoul(str+strlen(OPTION_MAXBUFFERSIZE), NULL, 10);
 	
-	if (opts->maxbufsize > MAXBUFFERSIZE) {
+	if (opts->maxbufsize > SRP_MAXBUFFERSIZE) {
 	    utils->seterror(utils->conn, 0,
 			    "SRP Maxbuffersize %lu too big (> %lu)\n",
-			    opts->maxbufsize, MAXBUFFERSIZE);
+			    opts->maxbufsize, SRP_MAXBUFFERSIZE);
 	    return SASL_BADPROT;
 	}
 	
@@ -1199,7 +1198,7 @@ static int ParseOptions(const sasl_utils_t *utils,
     int r;
     
     memset(out, 0, sizeof(srp_options_t));
-    out->maxbufsize = MAXBUFFERSIZE;
+    out->maxbufsize = SRP_MAXBUFFERSIZE;
     
     while (in) {
 	char *opt;
@@ -1313,7 +1312,7 @@ static int OptionsToString(const sasl_utils_t *utils,
     }
     
     if ((opts->integrity || opts->confidentiality) &&
-	opts->maxbufsize < MAXBUFFERSIZE) {
+	opts->maxbufsize < SRP_MAXBUFFERSIZE) {
 	alloced += strlen(OPTION_MAXBUFFERSIZE)+10+1;
 	ret = utils->realloc(ret, alloced);
 	if (!ret) return SASL_NOMEM;
@@ -1513,10 +1512,8 @@ static void srp_common_mech_dispose(void *conn_context,
     _plug_decode_free(&text->decode_context);
 
     if (text->encode_buf)	utils->free(text->encode_buf);
-    if (text->encode_tmp_buf)	utils->free(text->encode_tmp_buf);
     if (text->decode_buf)	utils->free(text->decode_buf);
-    if (text->decode_once_buf)	utils->free(text->decode_once_buf);
-    if (text->decode_tmp_buf)	utils->free(text->decode_tmp_buf);
+    if (text->decode_pkt_buf)	utils->free(text->decode_pkt_buf);
     if (text->out_buf)		utils->free(text->out_buf);
     
     if (text->enc_in_buf) {
@@ -1568,7 +1565,7 @@ static int CalculateV(context_t *text,
     int r;
     
     /* generate <salt> */    
-    *saltlen = SRP_SALT_SIZE;
+    *saltlen = SRP_MAXBLOCKSIZE;
     *salt = (char *)text->utils->malloc(*saltlen);
     if (!*salt) return SASL_NOMEM;
     text->utils->rand(text->utils->rpool, *salt, *saltlen);
@@ -1770,7 +1767,7 @@ static int CreateServerOptions(sasl_server_params_t *sparams, char **out)
 	opts.mandatory |= BIT_CONFIDENTIALITY;
     
     /* Add maxbuffersize */
-    opts.maxbufsize = MAXBUFFERSIZE;
+    opts.maxbufsize = SRP_MAXBUFFERSIZE;
     if (sparams->props.maxbufsize &&
 	sparams->props.maxbufsize < opts.maxbufsize)
 	opts.maxbufsize = sparams->props.maxbufsize;
@@ -2013,7 +2010,7 @@ static int srp_server_mech_step2(context_t *text,
     int i;
     char M2[EVP_MAX_MD_SIZE];
     int M2len;
-    char sIV[SRP_IV_SIZE];
+    char sIV[SRP_MAXBLOCKSIZE];
     
     /* Expect:
      *
@@ -2113,7 +2110,7 @@ static int srp_server_mech_step2(context_t *text,
     }
     
     /* Create sIV (server initial vector) */
-    text->utils->rand(text->utils->rpool, sIV, SRP_IV_SIZE);
+    text->utils->rand(text->utils->rpool, sIV, sizeof(sIV));
     
     /*
      * Send out:
@@ -2126,7 +2123,7 @@ static int srp_server_mech_step2(context_t *text,
      */
     result = MakeBuffer(text->utils, &text->out_buf, &text->out_buf_len,
 			serveroutlen, "%o%o%s%u", M2len, M2,
-			SRP_IV_SIZE, sIV, "", 0);
+			sizeof(sIV), sIV, "", 0);
     if (result) {
 	params->utils->seterror(params->utils->conn, 0, 
 				"Error making output buffer in SRP step 3");
@@ -2681,7 +2678,7 @@ static int CreateClientOpts(sasl_client_params_t *params,
     }
     
     /* Add maxbuffersize */
-    out->maxbufsize = MAXBUFFERSIZE;
+    out->maxbufsize = SRP_MAXBUFFERSIZE;
     if (params->props.maxbufsize && params->props.maxbufsize < out->maxbufsize)
 	out->maxbufsize = params->props.maxbufsize;
     
@@ -2937,7 +2934,7 @@ srp_client_mech_step2(context_t *text,
     }
 
     /* Create cIV (client initial vector) */
-    text->utils->rand(text->utils->rpool, text->cIV, SRP_IV_SIZE);
+    text->utils->rand(text->utils->rpool, text->cIV, sizeof(text->cIV));
     
     /* Send out:
      *
@@ -2951,7 +2948,7 @@ srp_client_mech_step2(context_t *text,
     result = MakeBuffer(text->utils, &text->out_buf, &text->out_buf_len,
 			clientoutlen, "%m%o%s%o",
 			&text->A, text->M1len, text->M1, text->client_options,
-			SRP_IV_SIZE, text->cIV);
+			sizeof(text->cIV), text->cIV);
     if (result) {
 	params->utils->log(NULL, SASL_LOG_ERR, "Error making output buffer\n");
 	goto cleanup;

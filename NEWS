@@ -1,3 +1,7 @@
+New in 2.1.9
+------------
+* Include missing lib/staticopen.h file.
+
 New in 2.1.8
 ------------
 * Support for the NTLM mechanism (Ken Murchison <ken@oceana.com>)

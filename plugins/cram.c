@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.46 2000/02/23 01:16:13 tmartin Exp $
+ * $Id: cram.c,v 1.47 2000/02/23 02:50:01 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -570,10 +570,10 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
     return SASL_FAIL;
   }
 
-  /* Request secret */
+  /* Request "magic" secret */
   result = getsecret(getsecret_context, mech_name, "", "", &sec);
-  if (result == SASL_NOUSER) {
-      return SASL_NOUSER;
+  if (result == SASL_NOUSER || result == SASL_FAIL) {
+      return result;
   }
 
   /* check version */

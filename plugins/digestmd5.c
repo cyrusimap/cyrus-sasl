@@ -2626,8 +2626,8 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
       }
       free(sec);
   }
-  if (result == SASL_NOUSER) {
-      return SASL_NOUSER;
+  if (result == SASL_NOUSER || result == SASL_FAIL) {
+      return result;
   }
 
   if (tmpversion != DIGEST_MD5_VERSION)

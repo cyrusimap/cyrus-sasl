@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.182 2004/01/12 19:13:48 rjs3 Exp $
+dnl $Id: configure.in,v 1.183 2004/01/12 20:50:59 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -101,13 +101,6 @@ AC_PROG_LIBTOOL
 #CMU_PROG_LIBTOOL
 
 target=$save_target
-
-dnl ltconfig might not have found support for shared libs
-dnl just do static libs if so.
-if test "$ac_cv_can_build_shared" = no; then
-	enable_shared=no
-	enable_static=yes
-fi
 
 if test "$enable_static" = yes; then
 	SASL_STATIC_LIBS=libsasl2.a
@@ -709,7 +702,7 @@ if test "$sql" = yes -a "$with_pgsql" = no -a "$with_mysql" = no; then
     AC_ERROR([--enable-sql chosen but neither Postgres nor MySQL found])
 fi
 
-if test "$ac_cv_can_build_shared" = yes; then
+if test "$enable_shared" = yes; then
 	AC_DEFINE(DO_DLOPEN,[],[Should we build a shared plugin (via dlopen) library?])
 fi
 

@@ -2,7 +2,8 @@
 	* win32/include/config.h: fix VC++ 6.0 compiles
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
 	* configure.in: Correct use of AC_LIBOBJ, quote macro names
-	  defined by AC_DEFUN
+	  defined by AC_DEFUN, Use enable_shared to determine whether
+	  to enable the shared plugin.
 	  (Maciej W. Rozycki <macro@ds2.pg.gda.pl>)
 	* plugins/srp.c: Fix typos
 	  (Maciej W. Rozycki <macro@ds2.pg.gda.pl>)

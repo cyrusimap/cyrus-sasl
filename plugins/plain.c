@@ -782,8 +782,7 @@ static int client_continue_step (void *conn_context,
       return SASL_INTERACT;
     }
     
-    /* Ok I think we got everything now... -- Tim
-     * WELL YOU WERE WRONG, TIM, WRONG WRONG WRONG.  FUCK. -- Rob */
+    /* Ok I think we got everything now... */
     if (!authid || !password)
       return SASL_BADPARAM;
 

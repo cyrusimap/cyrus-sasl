@@ -88,7 +88,6 @@ typedef struct {
 struct sasl_conn {
   void (*destroy_conn)(sasl_conn_t *); /* destroy function */
 
-  int open; /* connection open or not */
   char *service;
 
   int secflags;  /* security layer flags passed to sasl_*_new */
@@ -102,10 +101,6 @@ struct sasl_conn {
   sasl_security_properties_t props;
 
   sasl_secret_t *secret;
-
-  int uses_sec_layer;   /* if need to encrypt/decrpt all transmissions */
-
-  void *mutex;
 
   int (*idle_hook)(sasl_conn_t *conn);
   const sasl_callback_t *callbacks;

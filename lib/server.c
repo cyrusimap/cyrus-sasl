@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.81 2000/08/14 02:02:41 leg Exp $
+ * $Id: server.c,v 1.82 2000/08/17 22:14:25 leg Exp $
  */
 
 /* 
@@ -702,8 +702,8 @@ static int parse_mechlist_file(const char *mechlistfile)
 		}
 		map++;
 	    }
-	    if (map->name) {
-		_sasl_log(NULL, SASL_LOG_ERR, n->plug->mech_name, 
+	    if (!map->name) {
+		_sasl_log(NULL, SASL_LOG_ERR, nplug->mech_name, 
 			  SASL_FAIL, 0, "couldn't identify flag '%s'", t);
 
 	    }
@@ -782,7 +782,8 @@ int sasl_server_init(const sasl_callback_t *callbacks,
     /* delayed loading of plugins? */
     if (_sasl_getcallback(NULL, SASL_CB_GETOPT, &getopt, &context) 
 	   == SASL_OK) {
-	getopt(context, NULL, "plugin_list", &pluginfile, NULL);
+	getopt((void *) &global_callbacks, NULL, 
+	       "plugin_list", &pluginfile, NULL);
     }
     if (pluginfile != NULL) {
 	/* this file should contain a list of plugins available.

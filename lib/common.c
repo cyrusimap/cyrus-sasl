@@ -222,15 +222,12 @@ int _sasl_conn_init(sasl_conn_t *conn,
   I(conn);
   I(service);
 
-  conn->mutex = sasl_MUTEX_NEW();
-  if (! conn->mutex) return SASL_FAIL;
   result = _sasl_strdup(service, &conn->service, NULL);
-  if (result != SASL_OK) goto cleanup_mutex;
+  if (result != SASL_OK) goto done;
   conn->external.ssf = 0;
   conn->external.auth_id = NULL;
   memset(&conn->oparams, 0, sizeof(conn->oparams));
   conn->secflags = secflags;
-  conn->open = 1;
   conn->got_ip_local = 0;
   conn->got_ip_remote = 0;
   conn->props.min_ssf = 0;
@@ -251,17 +248,14 @@ int _sasl_conn_init(sasl_conn_t *conn,
 
     result = _sasl_strdup(name, &conn->serverFQDN, NULL);
     if (result != SASL_OK)
-      goto cleanup_mutex;
+      goto done;
   } else {
     result = _sasl_strdup(serverFQDN, &conn->serverFQDN, NULL);
     if (result != SASL_OK)
-      goto cleanup_mutex;
+      goto done;
   }
 
-  return result;
-
-cleanup_mutex:
-  sasl_MUTEX_DISPOSE(conn->mutex);
+ done:
   return result;
 }
 
@@ -317,8 +311,6 @@ void _sasl_conn_dispose(sasl_conn_t *conn) {
   if (conn->oparams.realm)
     sasl_FREE(conn->oparams.realm);
 
-  sasl_MUTEX_DISPOSE(conn->mutex);
-
   if (conn->serverFQDN)
     sasl_FREE(conn->serverFQDN);
 }
@@ -334,13 +326,10 @@ void _sasl_conn_dispose(sasl_conn_t *conn) {
  */
 int sasl_getprop(sasl_conn_t *conn, int propnum, void **pvalue)
 {
-  int result;
+  int result = SASL_OK;
 
   if (! conn) return SASL_FAIL;
   if (! pvalue) return SASL_FAIL;
-
-  result = sasl_MUTEX_LOCK(conn->mutex);
-  if (result != SASL_OK) return result;
 
   switch(propnum)
   {
@@ -381,7 +370,6 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, void **pvalue)
     default: 
       result = SASL_BADPARAM;
   }
-  sasl_MUTEX_UNLOCK(conn->mutex);
   return result; 
 }
 
@@ -392,16 +380,12 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, void **pvalue)
  */
 int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
 {
-  int result;
+  int result = SASL_OK;
   char *str;
 
   /* make sure the sasl context is valid */
   if (!conn)
     return SASL_BADPARAM;
-
-  /* grab mutex so can only one thread can modify a property at a time */
-  result = sasl_MUTEX_LOCK(conn->mutex);
-  if (result != SASL_OK) return result;
 
   switch(propnum)
   {
@@ -413,8 +397,9 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
 	result = _sasl_strdup(external->auth_id,
 			      &str,
 			      NULL);
-	if (result != SASL_OK)
-	    goto done_unlock;
+	if (result != SASL_OK) {
+	    return result;
+	}
       } else
 	str = NULL;
       if (conn->external.auth_id)
@@ -439,8 +424,6 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
       result = SASL_BADPARAM;
   }
 
- done_unlock:
-  sasl_MUTEX_UNLOCK(conn->mutex);
   return result;
 }
 

@@ -1,7 +1,7 @@
 /* Plain SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: plain.c,v 1.49 2002/04/24 22:00:49 rjs3 Exp $
+ * $Id: plain.c,v 1.50 2002/04/25 00:17:15 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -360,32 +360,32 @@ static int get_userid(sasl_client_params_t *params,
   /* see if we were given the userid in the prompt */
   prompt=find_prompt(prompt_need,SASL_CB_USER);
   if (prompt!=NULL)
-    {
-	*userid = prompt->result;
-	return SASL_OK;
-    }
-
+  {
+      *userid = prompt->result;
+      return SASL_OK;
+  }
+  
   /* Try to get the callback... */
   result = params->utils->getcallback(params->utils->conn,
 				      SASL_CB_USER,
 				      &getuser_cb,
 				      &getuser_context);
   if (result == SASL_OK && getuser_cb) {
-    id = NULL;
-    result = getuser_cb(getuser_context,
-			SASL_CB_USER,
-			&id,
-			NULL);
-    if (result != SASL_OK)
-      return result;
-    if (! id) {
-	PARAMERROR(params->utils);
-	return SASL_BADPARAM;
-    }
-    
-    *userid = id;
+      id = NULL;
+      result = getuser_cb(getuser_context,
+			  SASL_CB_USER,
+			  &id,
+			  NULL);
+      if (result != SASL_OK)
+	  return result;
+      if (! id) {
+	  PARAMERROR(params->utils);
+	  return SASL_BADPARAM;
+      }
+      
+      *userid = id;
   }
-
+  
   return result;
 }
 
@@ -405,31 +405,30 @@ static int get_authid(sasl_client_params_t *params,
   if (prompt!=NULL)
   {
       *authid = prompt->result;
-      
       return SASL_OK;
   }
-
+  
   /* Try to get the callback... */
   result = params->utils->getcallback(params->utils->conn,
 				      SASL_CB_AUTHNAME,
 				      &getauth_cb,
 				      &getauth_context);
   if (result == SASL_OK && getauth_cb) {
-    id = NULL;
-    result = getauth_cb(getauth_context,
-			SASL_CB_AUTHNAME,
-			&id,
-			NULL);
-    if (result != SASL_OK)
-      return result;
-    if (! id) {
-	PARAMERROR( params->utils );
-	return SASL_BADPARAM;
-    }
-    
-    *authid = id;
+      id = NULL;
+      result = getauth_cb(getauth_context,
+			  SASL_CB_AUTHNAME,
+			  &id,
+			  NULL);
+      if (result != SASL_OK)
+	  return result;
+      if (! id) {
+	  PARAMERROR( params->utils );
+	  return SASL_BADPARAM;
+      }
+      
+      *authid = id;
   }
-
+  
   return result;
 }
 
@@ -437,7 +436,6 @@ static int get_password(context_t *text,
 			sasl_client_params_t *params,
 			sasl_interact_t **prompt_need)
 {
-
   int result;
   sasl_getsecret_t *getpass_cb;
   void *getpass_context;

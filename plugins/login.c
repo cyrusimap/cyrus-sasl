@@ -2,7 +2,7 @@
  * Rob Siemborski (SASLv2 Conversion)
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.15 2002/04/24 22:00:49 rjs3 Exp $
+ * $Id: login.c,v 1.16 2002/04/25 00:17:15 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -67,7 +67,9 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 
 typedef struct context {
     int state;
-    sasl_secret_t *username;
+    char *username; /* server use only */
+    size_t username_len;
+
     sasl_secret_t *password;
     sasl_secret_t *password_free; /* use this if we need to free it */
 } context_t;
@@ -105,8 +107,9 @@ static void login_both_mech_dispose(void *conn_context,
   if (!text)
     return;
 
+  if(text->username) utils->free(text->username);
+
   /* free sensitive info */
-  _plug_free_secret(utils, &(text->username));
   if(text->password_free)
       _plug_free_secret(utils, &(text->password_free));
 
@@ -114,8 +117,7 @@ static void login_both_mech_dispose(void *conn_context,
 }
 
 static void login_both_mech_free(void *global_context,
-				 const sasl_utils_t *utils)
-{
+				 const sasl_utils_t *utils) {
     if(global_context) utils->free(global_context);  
 }
 
@@ -162,7 +164,7 @@ login_server_mech_step(void *conn_context,
       /* Check inlen, (possibly we have already the user name) */
       /* In this case fall through to state 2 */
       if (clientinlen == 0) {
-	  /* get username */
+	  /* demand username */
 	  
 	  *serveroutlen = strlen(USERNAME);
 	  *serverout = USERNAME;
@@ -180,18 +182,17 @@ login_server_mech_step(void *conn_context,
 
     /* get username */
     text->username =
-	(sasl_secret_t *)params->utils->malloc(sizeof(sasl_secret_t)+clientinlen+1);
-    if (! text->username) {
+	params->utils->malloc(sizeof(sasl_secret_t)+clientinlen+1);
+    if (!text->username) {
 	MEMERROR( params->utils );
 	return SASL_NOMEM;
     }
 
-    strncpy(text->username->data,clientin,clientinlen);
-    text->username->data[clientinlen] = '\0';
-    text->username->len = clientinlen;
+    strncpy(text->username,clientin,clientinlen);
+    text->username_len = clientinlen;
+    text->username[clientinlen] = '\0';
 
-    /* Request password */
-
+    /* demand password */
     *serveroutlen = strlen(PASSWORD);
     *serverout = PASSWORD;
 
@@ -222,8 +223,7 @@ login_server_mech_step(void *conn_context,
     password->len = clientinlen;
 
     /* verify_password - return sasl_ok on success */
-
-    result = verify_password(params, text->username->data,
+    result = verify_password(params, text->username,
 			     password->data);
 
     if (result != SASL_OK) {
@@ -231,7 +231,8 @@ login_server_mech_step(void *conn_context,
 	return result;
     }
     
-    result = params->canon_user(params->utils->conn, text->username->data, 0,
+    result = params->canon_user(params->utils->conn, text->username,
+				text->username_len,
 				SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
     if(result != SASL_OK) return result;
 
@@ -359,11 +360,10 @@ static int get_userid(sasl_client_params_t *params,
 
   /* see if we were given the userid in the prompt */
   prompt=find_prompt(prompt_need,SASL_CB_AUTHNAME);
-  if (prompt!=NULL)
-    {
-	*userid = prompt->result;
-	return SASL_OK;
-    }
+  if (prompt!=NULL) {
+      *userid = prompt->result;
+      return SASL_OK;
+  }
 
   /* Try to get the callback... */
   result = params->utils->getcallback(params->utils->conn,
@@ -377,8 +377,8 @@ static int get_userid(sasl_client_params_t *params,
 			&id,
 			NULL);
     if (result != SASL_OK)
-      return result;
-    if (! id) {
+	return result;
+    if (!id) {
 	PARAMERROR(params->utils);
 	return SASL_BADPARAM;
     }

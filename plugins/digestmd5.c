@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.110 2002/04/24 22:00:48 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.111 2002/04/25 00:17:14 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1924,11 +1924,16 @@ digestmd5_both_mech_dispose(void *conn_context, const sasl_utils_t * utils)
   if (text->cipher_free) text->cipher_free(text);
 
   /* free the stuff in the context */
-  if (text->nonce!=NULL) utils->free(text->nonce);
-  if (text->response_value!=NULL) utils->free(text->response_value);
+  if (text->nonce) utils->free(text->nonce);
+  if (text->response_value) utils->free(text->response_value);
 
-  if (text->realm!=NULL) utils->free(text->realm);
-  if (text->userid!=NULL) utils->free(text->userid);
+  if (text->realm) utils->free(text->realm);
+  if (text->userid) utils->free(text->userid);
+
+  if (text->password_free) {
+      _plug_free_secret(utils, &text->password_free);
+      text->password = NULL;
+  }
 
   if (text->buffer) utils->free(text->buffer);
   if (text->encode_buf) utils->free(text->encode_buf);
@@ -3754,10 +3759,6 @@ digestmd5_client_mech_step(void *conn_context,
 
 FreeAllocatedMem:
     if (response) { params->utils->free(response); }
-    if (text->password_free) {
-	_plug_free_secret(params->utils, &text->password_free);
-	text->password = NULL;
-    }
     if (in_start) { params->utils->free(in_start); }
 
     if (realm)

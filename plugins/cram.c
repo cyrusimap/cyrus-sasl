@@ -1,7 +1,7 @@
 /* CRAM-MD5 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: cram.c,v 1.66 2002/04/24 22:00:48 rjs3 Exp $
+ * $Id: cram.c,v 1.67 2002/04/25 00:17:14 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@ typedef struct context {
 
     int secretlen;
 
-    char *authid;
+    const char *authid; /* Temporary storage of interaction result */
     sasl_secret_t *password;
     sasl_secret_t *password_free;  /* use this if we need to free it */
 
@@ -124,7 +124,7 @@ static void crammd5_both_mech_dispose(void *conn_context,
 
   /* get rid of all sensetive info */
   _plug_free_string(utils,&(text->msgid));
-  _plug_free_string(utils,&(text->authid));
+  /* no need to free authid, it's just the interaction result */
   if(text->password_free)
       _plug_free_secret(utils,&(text->password_free));
 
@@ -593,7 +593,7 @@ static sasl_interact_t *find_prompt(sasl_interact_t *promptlist,
 }
 
 static int get_authid(sasl_client_params_t *params,
-		      char **authid,
+		      const char **authid,
 		      sasl_interact_t **prompt_need)
 {
 
@@ -601,19 +601,11 @@ static int get_authid(sasl_client_params_t *params,
   sasl_getsimple_t *getauth_cb;
   void *getauth_context;
   sasl_interact_t *prompt = NULL;
-  const char *ptr;
 
   /* see if we were given the authname in the prompt */
   if (prompt_need) prompt = find_prompt(*prompt_need,SASL_CB_AUTHNAME);
-  if (prompt!=NULL)
-  {
-    /* copy it */
-    *authid=params->utils->malloc(prompt->len+1);
-    if ((*authid)==NULL) {
-	MEMERROR( params->utils );
-	return SASL_NOMEM;
-    }
-    strncpy(*authid, prompt->result, prompt->len+1);
+  if (prompt!=NULL) {
+    *authid=prompt->result;
     return SASL_OK;
   }
 
@@ -635,18 +627,8 @@ static int get_authid(sasl_client_params_t *params,
 	
 	result = getauth_cb(getauth_context,
 			    SASL_CB_AUTHNAME,
-			    (const char **)&ptr,
+			    authid,
 			    NULL);
-	if (result != SASL_OK)
-	    return result;
-
-	*authid=params->utils->malloc(strlen(ptr)+1);
-	if ((*authid)==NULL) {
-	    MEMERROR( params->utils );
-	    return SASL_NOMEM;
-	}
-	
-	strcpy(*authid, ptr);
 	break;
 
     default:

@@ -498,8 +498,9 @@ calculate_response(context_t * text,
       /* a NULL realm is equivalent to the empty string */
       realm = (unsigned char *) "";
   }
+
+  if (nonce == NULL) return NULL;
   
-  assert(nonce != NULL);
   assert(cnonce != NULL);
 
   assert(ncvalue != NULL);
@@ -3322,6 +3323,10 @@ c_continue_step(void *conn_context,
 	char *name, *value;
 
 	get_pair(&in, &name, &value);
+
+	/* if parse error */
+	if (name == NULL) return SASL_FAIL;
+
 	VL(("received pair: %s - %s\n", name, value));
 
 	if (strcmp(name, "realm") == 0) {
@@ -3843,6 +3848,12 @@ FreeAllocatedMem:
     while (in[0] != '\0') {
       char           *name, *value;
       get_pair(&in, &name, &value);
+
+      if (name == NULL)
+      {
+	  VL (("Received garbage\n"));
+	  return SASL_FAIL;
+      }
 
       VL(("received pair: %s - %s\n", name, value));
 

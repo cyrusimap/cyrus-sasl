@@ -599,7 +599,6 @@ sasl_gss_server_step (void *conn_context,
 		return SASL_BADAUTH;
 	    }
 
-	    printf("equal = %d\n",equal);
 	} else {
 	    equal = 0;
 	}
@@ -611,8 +610,6 @@ sasl_gss_server_step (void *conn_context,
 	    oparams->authid = (char *)name_token.value;	    
 	}
 	
-	printf("authid = %s\n",oparams->authid);
-
 	/* we have to decide what sort of encryption/integrity/etc.,
 	   we support */
 	if (params->props.max_ssf < params->external_ssf) {
@@ -1184,8 +1181,10 @@ sasl_gss_client_step (void *conn_context,
 	
 	if (GSS_ERROR(maj_stat))
 	  {
-	    if (output_token->value)
-	      params->utils->free(output_token->value);
+	      /* xxx purify seems to think you don't need to free here
+		 (i.e. unwrap frees on error) who am i to argue 
+		 if (output_token->value)
+		 params->utils->free(output_token->value);*/
 	    sasl_gss_free_context_contents(text);
 	    return SASL_FAIL;
 	  }

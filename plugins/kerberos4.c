@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.51 2000/02/23 06:50:33 leg Exp $
+ * $Id: kerberos4.c,v 1.52 2000/02/23 16:58:14 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -589,7 +589,8 @@ static int server_continue_step (void *conn_context,
     result = sparams->utils->getprop(sparams->utils->conn,
 				     SASL_IP_REMOTE, (void **)&addr);
     if (result != SASL_OK) {
-	*errstr = "couldn't get remote IP address";
+	if (errstr)
+	    *errstr = "couldn't get remote IP address";
 	return SASL_BADAUTH;
     }
 
@@ -601,7 +602,8 @@ static int server_continue_step (void *conn_context,
     if (result) { /* if fails mechanism fails */
 	VL(("krb_rd_req failed service=%s instance=%s error code=%i\n",
 	    sparams->service, text->instance,result));
-	*errstr = krb_err_txt[result];
+	if (errstr)
+	    *errstr = krb_err_txt[result];
 	return SASL_BADAUTH;
     }
 
@@ -675,12 +677,14 @@ static int server_continue_step (void *conn_context,
     testnum=(in[0]*256*256*256)+(in[1]*256*256)+(in[2]*256)+in[3];
 
     if (testnum != text->challenge) {
-	*errstr = "incorrect response to challenge";
+	if (errstr)
+	    *errstr = "incorrect response to challenge";
 	return SASL_BADAUTH;
     }
 
     if (! cando_sec(&sparams->props, in[4] & KRB_SECFLAGS)) {
-	*errstr = "invalid security property specified";
+	if (errstr)
+	    *errstr = "invalid security property specified";
 	return SASL_BADPROT;
     }
     
@@ -702,7 +706,8 @@ static int server_continue_step (void *conn_context,
 	break;
     default:
       /* not a supported encryption layer */
-	*errstr = "unsupported layer";
+	if (errstr)
+	    *errstr = "unsupported layer";
 	return SASL_BADPROT;
     }
 
@@ -711,7 +716,8 @@ static int server_continue_step (void *conn_context,
 				     SASL_IP_LOCAL,
 				     (void **)&(text->ip_local));
     if (result != SASL_OK) {
-	*errstr =  "couldn't get local IP address";
+	if (errstr)
+	    *errstr =  "couldn't get local IP address";
 	return result;
     }
 
@@ -719,7 +725,8 @@ static int server_continue_step (void *conn_context,
 				     SASL_IP_REMOTE,
 				     (void **)&(text->ip_remote));
     if (result != SASL_OK) {
-	*errstr = "couldn't get remote IP address";
+	if (errstr)
+	    *errstr = "couldn't get remote IP address";
 	return result;
     }
 

@@ -282,7 +282,7 @@ static unsigned short *getranddata()
 
 	return ret;
     }
-#endif
+#endif /* HAVE_GETTIMEOFDAY */
     
     /* if all else fails just use time() */
     curtime = (long) time(NULL); /* better be at least 32 bits */

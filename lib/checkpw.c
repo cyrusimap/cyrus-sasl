@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.51 2002/04/26 15:59:39 leg Exp $
+ * $Id: checkpw.c,v 1.52 2002/04/26 18:30:48 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -59,6 +59,7 @@
 #endif
 #include <fcntl.h>
 #ifdef USE_DOORS
+#include <sys/mman.h>
 #include <door.h>
 #endif
 
@@ -456,8 +457,6 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
     char *query_end = query;
     int s;
     struct sockaddr_un srvaddr;
-    int r;
-    unsigned short count;
     sasl_getopt_t *getopt;
     void *context;
     char pwpath[sizeof(srvaddr.sun_path)];
@@ -487,14 +486,13 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
      */
     {
  	unsigned short u_len, p_len, s_len, r_len;
- 	struct iovec iov[8];
  
  	u_len = (strlen(userid));
  	p_len = (strlen(passwd));
 	s_len = (strlen(service));
 	r_len = ((user_realm ? strlen(user_realm) : 0));
 
-	if (u_len + p_len + s_len + r_len + 30 > sizeof(query)) {
+	if (u_len + p_len + s_len + r_len + 30 > (unsigned short) sizeof(query)) {
 	    /* request just too damn big */
             sasl_seterror(conn, 0, "saslauthd request too large");
 	    return SASL_FAIL;
@@ -525,8 +523,8 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 #ifdef USE_DOORS
     s = open(pwpath, O_RDWR);
     if (s < 0) {
-	perror("open");
-	return -1;
+	sasl_seterror(conn, 0, "cannot open door to saslauthd server: %m");
+	return SASL_FAIL;
     }
 
     arg.data_ptr = query;
@@ -550,17 +548,21 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
     /* unix sockets */
 
     s = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (s == -1)
-	return errno;
+    if (s == -1) {
+	sasl_seterror(conn, 0, "cannot create socket for saslauthd: %m");
+	return SASL_FAIL;
+    }
 
     memset((char *)&srvaddr, 0, sizeof(srvaddr));
     srvaddr.sun_family = AF_UNIX;
     strncpy(srvaddr.sun_path, pwpath, sizeof(srvaddr.sun_path));
 
-    r = connect(s, (struct sockaddr *) &srvaddr, sizeof(srvaddr));
-    if (r == -1) {
-	sasl_seterror(conn, 0, "cannot connect to saslauthd server");
-	return SASL_FAIL;
+    {
+	int r = connect(s, (struct sockaddr *) &srvaddr, sizeof(srvaddr));
+	if (r == -1) {
+	    sasl_seterror(conn, 0, "cannot connect to saslauthd server: %m");
+	    return SASL_FAIL;
+	}
     }
 
     {
@@ -574,31 +576,36 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
   	    return SASL_FAIL;
   	}
     }
-  
-    /*
-     * read response of the form:
-     *
-     * count result
-     */
-    if (retry_read(s, &count, sizeof(count)) < (int) sizeof(count)) {
-        sasl_seterror(conn, 0, "size read failed");
-	return SASL_FAIL;
+
+    {
+	unsigned short count = 0;
+
+	/*
+	 * read response of the form:
+	 *
+	 * count result
+	 */
+	if (retry_read(s, &count, sizeof(count)) < (int) sizeof(count)) {
+	    sasl_seterror(conn, 0, "size read failed");
+	    return SASL_FAIL;
+	}
+	
+	count = ntohs(count);
+	if (count < 2) { /* MUST have at least "OK" or "NO" */
+	    close(s);
+	    sasl_seterror(conn, 0, "bad response from saslauthd");
+	    return SASL_FAIL;
+	}
+	
+	count = (int)sizeof(response) < count ? sizeof(response) : count;
+	if (retry_read(s, response, count) < count) {
+	    close(s);
+	    sasl_seterror(conn, 0, "read failed");
+	    return SASL_FAIL;
+	}
+	response[count] = '\0';
     }
-  
-    count = ntohs(count);
-    if (count < 2) { /* MUST have at least "OK" or "NO" */
-	close(s);
-        sasl_seterror(conn, 0, "bad response from saslauthd");
-	return SASL_FAIL;
-    }
-  
-    count = (int)sizeof(response) < count ? sizeof(response) : count;
-    if (retry_read(s, response, count) < count) {
-	close(s);
-        sasl_seterror(conn, 0, "read failed");
-	return SASL_FAIL;
-    }
-  
+
     close(s);
 #endif /* USE_DOORS */
   
@@ -606,7 +613,6 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 	return SASL_OK;
     }
   
-    response[count] = '\0';
     sasl_seterror(conn, SASL_NOLOG, "authentication failed");
     return SASL_BADAUTH;
 }

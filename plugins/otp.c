@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.11 2002/02/19 20:35:34 ken3 Exp $
+ * $Id: otp.c,v 1.12 2002/04/18 18:19:31 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -396,6 +396,7 @@ static int make_prompts(void *conn_context,
 			int pass_res)
 {
   int num=1;
+  int alloc_size;
   sasl_interact_t *prompts;
   context_t *text;
 
@@ -412,11 +413,13 @@ static int make_prompts(void *conn_context,
       return SASL_FAIL;
   }
 
-  prompts=params->utils->malloc(sizeof(sasl_interact_t)*(num+1));
-  if ((prompts) ==NULL) {
+  alloc_size = sizeof(sasl_interact_t)*num;
+  prompts=params->utils->malloc(alloc_size);
+  if (!prompts) {
       MEMERROR( params->utils );
       return SASL_NOMEM;
   }
+  memset(prompts, 0, alloc_size);
   
   *prompts_res=prompts;
 
@@ -1663,7 +1666,7 @@ static int otp_server_mech_step(void *conn_context,
     size_t authid_len;
     unsigned lup=0;
     int r, n;
-    const char *secret_request[] = { "cmusaslsecretOTP",
+    const char *secret_request[] = { "*cmusaslsecretOTP",
 				     NULL };
     struct propval auxprop_values[2];
     char mda[10];

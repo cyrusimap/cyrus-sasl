@@ -5,6 +5,9 @@
 	  authzid (Howard Chu, <hyc@highlandsun.com>)
 	* lib/external.c: Better handling of user canonicalization
 	  (Howard Chu, <hyc@highlandsun.com>)
+	* plugins/cram.c, digestmd5.c, gssapi.c, kerberos4.c,
+	  login.c, otp.c, plain.c, srp.c:  zero out prompt_need structures
+	  before use
 
 2002-04-17  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/cram.c, digestmd5.c, srp.c: Adjust cmusaslsecretFOO to

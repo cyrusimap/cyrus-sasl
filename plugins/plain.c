@@ -1,7 +1,7 @@
 /* Plain SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: plain.c,v 1.47 2002/01/19 22:15:07 rjs3 Exp $
+ * $Id: plain.c,v 1.48 2002/04/18 18:19:31 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -493,6 +493,7 @@ static int make_prompts(sasl_client_params_t *params,
 			int pass_res)
 {
   int num=1;
+  int alloc_size;
   sasl_interact_t *prompts;
 
   if (user_res==SASL_INTERACT) num++;
@@ -504,11 +505,13 @@ static int make_prompts(sasl_client_params_t *params,
       return SASL_FAIL;
   }
 
-  prompts=params->utils->malloc(sizeof(sasl_interact_t)*(num+1));
-  if ((prompts) ==NULL) {
+  alloc_size = sizeof(sasl_interact_t)*num;
+  prompts=params->utils->malloc(alloc_size);
+  if (!prompts) {
       MEMERROR( params->utils );
       return SASL_NOMEM;
   }
+  memset(prompts, 0, alloc_size);
   
   *prompts_res=prompts;
 

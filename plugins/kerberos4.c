@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.76 2002/03/11 15:29:40 rjs3 Exp $
+ * $Id: kerberos4.c,v 1.77 2002/04/18 18:19:31 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1179,6 +1179,8 @@ static int kerberosv4_client_mech_step(void *conn_context,
 		MEMERROR(cparams->utils);
 		return SASL_NOMEM;
 	    }
+	    memset(*prompt_need, 0, sizeof(sasl_interact_t) * 2);
+
 	    prompt = *prompt_need;
 	    prompt->id = SASL_CB_USER;
 	    prompt->prompt = "Remote Userid";

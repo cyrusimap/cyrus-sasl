@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.51 2002/04/18 17:23:33 rjs3 Exp $
+ * $Id: gssapi.c,v 1.52 2002/04/18 18:19:31 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1167,6 +1167,7 @@ make_prompts(sasl_client_params_t *params,
 	     int pass_res)
 {
    int num=1;
+   int alloc_size;
    sasl_interact_t *prompts;
  
    if (user_res==SASL_INTERACT) num++;
@@ -1177,9 +1178,15 @@ make_prompts(sasl_client_params_t *params,
        SETERROR(params->utils, "GSSAPI Failure - Bad number of prompts");
        return SASL_FAIL;
    }
-   
-   prompts=params->utils->malloc(sizeof(sasl_interact_t)*(num+1));
-   if ((prompts) ==NULL) return SASL_NOMEM;
+
+   alloc_size = sizeof(sasl_interact_t)*num;
+   prompts=params->utils->malloc(alloc_size);
+   if (!prompts) {
+       MEMERROR( params->utils );
+       return SASL_NOMEM;
+   }
+   memset(prompts, 0, alloc_size);
+
    *prompts_res=prompts;
 
    if (user_res==SASL_INTERACT)

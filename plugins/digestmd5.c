@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.108 2002/04/17 20:46:16 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.109 2002/04/18 18:19:30 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -3033,7 +3033,8 @@ make_prompts(context_t *text,
 	     int pass_res,
 	     int realm_res)
 {
-  int             num = 1;
+  int num = 1;
+  int alloc_size;
   sasl_interact_t *prompts;
 
   if (auth_res == SASL_INTERACT) num++;
@@ -3041,11 +3042,19 @@ make_prompts(context_t *text,
   if (pass_res == SASL_INTERACT) num++;
   if (realm_res == SASL_INTERACT) num++;
 
-  if (num == 1)
-    return SASL_FAIL;
+  if (num == 1) {
+      SETERROR(params->utils, "DIGEST-MD5 - Bad number of prompts");
+      return SASL_FAIL;
+  }
 
-  prompts = params->utils->malloc(sizeof(sasl_interact_t) * num);
-  if ((prompts) == NULL) return SASL_NOMEM;
+  alloc_size = sizeof(sasl_interact_t)*num;
+  prompts=params->utils->malloc(alloc_size);
+  if (!prompts) {
+      MEMERROR( params->utils );
+      return SASL_NOMEM;
+  }
+  memset(prompts, 0, alloc_size);
+
   *prompts_res = prompts;
 
   if (auth_res == SASL_INTERACT) {

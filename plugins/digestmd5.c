@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.115 2002/04/26 19:23:04 ken3 Exp $
+ * $Id: digestmd5.c,v 1.116 2002/04/27 05:41:13 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -164,6 +164,7 @@ typedef struct context {
     char           *response_value;
 
     char           *realm;
+    char           *realm_chal; /* challenge for realm interaction (client) */
 
     unsigned int    seqnum;
     unsigned int    rec_seqnum;	/* for checking integrity */
@@ -1883,6 +1884,7 @@ digestmd5_both_mech_dispose(void *conn_context, const sasl_utils_t * utils)
   if (text->response_value) utils->free(text->response_value);
 
   if (text->realm) utils->free(text->realm);
+  if (text->realm_chal) utils->free(text->realm_chal);
   /* no need to free authid, it's just the interaction result */
   /* no need to free userid, it's just the interaction result */
 
@@ -2783,108 +2785,6 @@ c_get_realm(sasl_client_params_t * params,
 }
 
 
-/*
- * Make the necessary prompts
- */
-static int
-make_prompts(context_t *text,
-	     sasl_client_params_t * params,
-	     sasl_interact_t ** prompts_res,
-	     int user_res, /* authorization id */
-	     int auth_res, /* authentication id */
-	     int pass_res,
-	     int realm_res)
-{
-  int num = 1;
-  int alloc_size;
-  sasl_interact_t *prompts;
-
-  if (auth_res == SASL_INTERACT) num++;
-  if (user_res == SASL_INTERACT) num++;
-  if (pass_res == SASL_INTERACT) num++;
-  if (realm_res == SASL_INTERACT) num++;
-
-  if (num == 1) {
-      SETERROR(params->utils, "DIGEST-MD5 - Bad number of prompts");
-      return SASL_FAIL;
-  }
-
-  alloc_size = sizeof(sasl_interact_t)*num;
-  prompts=params->utils->malloc(alloc_size);
-  if (!prompts) {
-      MEMERROR( params->utils );
-      return SASL_NOMEM;
-  }
-  memset(prompts, 0, alloc_size);
-
-  *prompts_res = prompts;
-
-  if (auth_res == SASL_INTERACT) {
-    /*
-     * We weren't able to get the callback; let's try a SASL_INTERACT
-     */
-    (prompts)->id = SASL_CB_AUTHNAME;
-    (prompts)->challenge = "Authentication Name";
-    (prompts)->prompt = "Please enter your authentication name";
-    (prompts)->defresult = NULL;
-
-    prompts++;
-  }
-  if (user_res == SASL_INTERACT) {
-    /*
-     * We weren't able to get the callback; let's try a SASL_INTERACT
-     */
-    (prompts)->id=SASL_CB_USER;
-    (prompts)->challenge="Authorization Name";
-    (prompts)->prompt="Please enter your authorization name";
-    (prompts)->defresult=NULL;
-
-    prompts++;
-  }
-  if (pass_res == SASL_INTERACT) {
-    /*
-     * We weren't able to get the callback; let's try a SASL_INTERACT
-     */
-    (prompts)->id = SASL_CB_PASS;
-    (prompts)->challenge = "Password";
-    (prompts)->prompt = "Please enter your password";
-    (prompts)->defresult = NULL;
-
-    prompts++;
-  }
-  if (realm_res == SASL_INTERACT) {
-      (prompts)->id = SASL_CB_GETREALM;
-      /* FIXME:this leaks memory */
-      if (params->serverFQDN==NULL)
-      {
-	(prompts)->challenge = "{}";
-	(prompts)->defresult = NULL;
-      } else {
-	  int result;
-	  /* Use this as a temporary buffer to avoid a leak
-	   * it won't be used for output if we are making buffers. */
-	  result =_plug_buf_alloc(params->utils, &(text->out_buf),
-				  &(text->out_buf_len),
-				  3+strlen(params->serverFQDN));
-	  if(result != SASL_OK) return result;
-	  
-	  (prompts)->challenge = text->out_buf;
-	  sprintf(text->out_buf,"{%s}",params->serverFQDN);
-	  (prompts)->defresult = params->serverFQDN;
-      }
-	
-      (prompts)->prompt = "Please enter your realm";
-  }
-  /* add the ending one */
-  (prompts)->id = SASL_CB_LIST_END;
-  (prompts)->challenge = NULL;
-  (prompts)->prompt = NULL;
-  (prompts)->defresult = NULL;
-
-  return SASL_OK;
-}
-
-
 static int
 digestmd5_client_mech_step(void *conn_context,
 			   sasl_client_params_t * params,
@@ -3197,11 +3097,32 @@ digestmd5_client_mech_step(void *conn_context,
 	(auth_result == SASL_INTERACT) ||
 	(pass_result == SASL_INTERACT) ||
 	(realm_result == SASL_INTERACT)) {
-      int result;
+      int result = SASL_OK;
+      /* make our default realm */
+      if ((realm_result == SASL_INTERACT) && params->serverFQDN) {
+	  text->realm_chal = params->utils->malloc(3+strlen(params->serverFQDN));
+	  if (text->realm_chal) {
+	      sprintf(text->realm_chal, "{%s}", params->serverFQDN);
+	  } else {
+	      result = SASL_NOMEM;
+	  }
+      }
       /* make the prompt list */
-      result = make_prompts(text, params, prompt_need,
-			    user_result, auth_result, pass_result,
-			    realm_result);
+      if (result == SASL_OK) {
+	  result =
+	      _plug_make_prompts(params->utils, prompt_need,
+				 user_result == SASL_INTERACT ?
+				 "Please enter your authorization name" : NULL, NULL,
+				 auth_result == SASL_INTERACT ?
+				 "Please enter your authentication name" : NULL, NULL,
+				 pass_result == SASL_INTERACT ?
+				 "Please enter your password" : NULL, NULL,
+				 NULL, NULL, NULL,
+				 text->realm_chal ? text->realm_chal : "{}",
+				 realm_result == SASL_INTERACT ?
+				 "Please enter your realm" : NULL,
+				 params->serverFQDN ? params->serverFQDN : NULL);
+      }
 
       if (in_start) params->utils->free(in_start);
       if (nonce) params->utils->free(nonce);

@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.60 2002/04/27 04:41:56 rjs3 Exp $
+ * $Id: gssapi.c,v 1.61 2002/04/27 05:41:14 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1138,68 +1138,6 @@ gssapi_client_mech_new(void *glob_context __attribute__((unused)),
   return SASL_OK;
 }
 
-static int
-make_prompts(sasl_client_params_t *params,
-	     sasl_interact_t **prompts_res,
-	     int user_res,
-	     int auth_res,
-	     int pass_res)
-{
-   int num=1;
-   int alloc_size;
-   sasl_interact_t *prompts;
- 
-   if (user_res==SASL_INTERACT) num++;
-   if (auth_res==SASL_INTERACT) num++;
-   if (pass_res==SASL_INTERACT) num++;
- 
-   if (num==1) {
-       SETERROR(params->utils, "GSSAPI Failure - Bad number of prompts");
-       return SASL_FAIL;
-   }
-
-   alloc_size = sizeof(sasl_interact_t)*num;
-   prompts=params->utils->malloc(alloc_size);
-   if (!prompts) {
-       MEMERROR( params->utils );
-       return SASL_NOMEM;
-   }
-   memset(prompts, 0, alloc_size);
-
-   *prompts_res=prompts;
-
-   if (user_res==SASL_INTERACT)
-   {
-     /* We weren't able to get the callback; let's try a SASL_INTERACT */
-     (prompts)->id=SASL_CB_USER;
-     (prompts)->challenge="Authorization Name";
-     (prompts)->prompt="Please enter your authorization name";
-     (prompts)->defresult=NULL;
- 
-     prompts++;
-   }
- 
-   if (pass_res==SASL_INTERACT)
-   {
-     /* We weren't able to get the callback; let's try a SASL_INTERACT */
-     (prompts)->id=SASL_CB_PASS;
-     (prompts)->challenge="Password";
-     (prompts)->prompt="Please enter your password";
-     (prompts)->defresult=NULL;
- 
-     prompts++;
-   }
- 
-   /* add the ending one */
-   (prompts)->id=SASL_CB_LIST_END;
-   (prompts)->challenge=NULL;
-   (prompts)->prompt   =NULL;
-   (prompts)->defresult=NULL;
- 
-   return SASL_OK;
- }
-
-
 static int 
 gssapi_client_mech_step(void *conn_context,
 			sasl_client_params_t *params,
@@ -1233,14 +1171,14 @@ gssapi_client_mech_step(void *conn_context,
 	  /* try to get the userid */
 	  if (text->u.user ==NULL)
 	  {
-	    int auth_result = SASL_OK;
+	    int user_result = SASL_OK;
 
-	    auth_result=_plug_get_userid(params, &text->u.user, prompt_need);
+	    user_result=_plug_get_userid(params, &text->u.user, prompt_need);
 
-	    if ((auth_result!=SASL_OK) && (auth_result!=SASL_INTERACT))
+	    if ((user_result!=SASL_OK) && (user_result!=SASL_INTERACT))
 	      {
 		sasl_gss_free_context_contents(text);
-		return auth_result;
+		return user_result;
 	      }
 
 	    /* free prompts we got */
@@ -1250,11 +1188,17 @@ gssapi_client_mech_step(void *conn_context,
 	    }
 
 	    /* if there are prompts not filled in */
-	    if (auth_result==SASL_INTERACT)
+	    if (user_result==SASL_INTERACT)
 	    {
 		/* make the prompt list */
-		int result=make_prompts(params,prompt_need,
-					auth_result, SASL_OK, SASL_OK);
+		int result =
+		    _plug_make_prompts(params->utils, prompt_need,
+				       user_result == SASL_INTERACT ?
+				       "Please enter your authorization name" : NULL, NULL,
+				       NULL, NULL,
+				       NULL, NULL
+				       NULL, NULL, NULL,
+				       NULL, NULL, NULL);
 		if (result!=SASL_OK) return result;
 		
 		return SASL_INTERACT;

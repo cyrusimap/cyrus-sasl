@@ -2,7 +2,7 @@
  * Rob Siemborski (SASLv2 Conversion)
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.17 2002/04/26 18:02:22 ken3 Exp $
+ * $Id: login.c,v 1.18 2002/04/27 05:41:14 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -319,67 +319,6 @@ static int login_client_mech_new(void *glob_context __attribute__((unused)),
   return SASL_OK;
 }
 
-/*
- * Make the necessary prompts
- */
-static int make_prompts(sasl_client_params_t *params,
-			sasl_interact_t **prompts_res,
-			int user_res,
-			int pass_res)
-{
-  int num=1;
-  int alloc_size;
-  sasl_interact_t *prompts;
-
-  if (user_res==SASL_INTERACT) num++;
-  if (pass_res==SASL_INTERACT) num++;
-
-  if (num==1) {
-      SETERROR(params->utils, "LOGIN make_prompts called without any results");
-      return SASL_FAIL;
-  }
-
-  alloc_size = sizeof(sasl_interact_t)*num;
-  prompts=params->utils->malloc(alloc_size);
-  if (!prompts) {
-      MEMERROR( params->utils );
-      return SASL_NOMEM;
-  }
-  memset(prompts, 0, alloc_size);
-  
-  *prompts_res=prompts;
-
-  if (user_res==SASL_INTERACT)
-  {
-    /* We weren't able to get the callback; let's try a SASL_INTERACT */
-    (prompts)->id=SASL_CB_AUTHNAME;
-    (prompts)->challenge="Authorization Name";
-    (prompts)->prompt="Please enter your authorization name";
-    (prompts)->defresult=NULL;
-
-    prompts++;
-  }
-
-  if (pass_res==SASL_INTERACT)
-  {
-    /* We weren't able to get the callback; let's try a SASL_INTERACT */
-    (prompts)->id=SASL_CB_PASS;
-    (prompts)->challenge="Password";
-    (prompts)->prompt="Please enter your password";
-    (prompts)->defresult=NULL;
-
-    prompts++;
-  }
-
-  /* add the ending one */
-  (prompts)->id=SASL_CB_LIST_END;
-  (prompts)->challenge=NULL;
-  (prompts)->prompt   =NULL;
-  (prompts)->defresult=NULL;
-
-  return SASL_OK;
-}
-
 
 
 static int login_client_mech_step(void *conn_context,
@@ -398,7 +337,7 @@ static int login_client_mech_step(void *conn_context,
   text=conn_context;
 
   if (text->state==1) {
-      int user_result=SASL_OK;
+      int auth_result=SASL_OK;
       int pass_result=SASL_OK;
 
       /* check if sec layer strong enough */
@@ -413,10 +352,10 @@ static int login_client_mech_step(void *conn_context,
        *       for the LOGIN mech.
        */
       if (oparams->user==NULL) {
-	  user_result=_plug_get_authid(params, &user, prompt_need);
+	  auth_result=_plug_get_authid(params, &user, prompt_need);
 
-	  if ((user_result!=SASL_OK) && (user_result!=SASL_INTERACT))
-	      return user_result;
+	  if ((auth_result!=SASL_OK) && (auth_result!=SASL_INTERACT))
+	      return auth_result;
       }
 
       /* try to get the password */
@@ -435,10 +374,17 @@ static int login_client_mech_step(void *conn_context,
       }
 
       /* if there are prompts not filled in */
-      if ((user_result==SASL_INTERACT) || (pass_result==SASL_INTERACT)) {
+      if ((auth_result==SASL_INTERACT) || (pass_result==SASL_INTERACT)) {
 	  /* make the prompt list */
-	  result=make_prompts(params,prompt_need,
-			      user_result, pass_result);
+	  result =
+	      _plug_make_prompts(params->utils, prompt_need,
+				 NULL, NULL,
+				 auth_result == SASL_INTERACT ?
+				 "Please enter your authentication name" : NULL, NULL,
+				 pass_result == SASL_INTERACT ?
+				 "Please enter your password" : NULL, NULL,
+				 NULL, NULL, NULL,
+				 NULL, NULL, NULL);
 	  if (result!=SASL_OK) return result;
       
 	  return SASL_INTERACT;

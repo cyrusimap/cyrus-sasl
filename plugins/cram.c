@@ -1,7 +1,7 @@
 /* CRAM-MD5 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: cram.c,v 1.68 2002/04/26 18:02:22 ken3 Exp $
+ * $Id: cram.c,v 1.69 2002/04/27 05:41:13 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -571,69 +571,6 @@ static int crammd5_client_mech_new(void *glob_context __attribute__((unused)),
     return SASL_OK;
 }
 
-/*
- * Make the necessary prompts
- */
-static int make_prompts(sasl_client_params_t *params,
-			sasl_interact_t **prompts_res,
-			int auth_res,
-			int pass_res)
-{
-  int num=1;
-  int alloc_size;
-  sasl_interact_t *prompts;
-
-  if (auth_res==SASL_INTERACT) num++;
-  if (pass_res==SASL_INTERACT) num++;
-
-  if (num==1) {
-      SETERROR(params->utils, "no prompts to make in CRAM make_prompts");
-      return SASL_FAIL;
-  }
-
-  alloc_size = sizeof(sasl_interact_t)*num;
-  prompts=params->utils->malloc(alloc_size);
-  if (!prompts) {
-      MEMERROR( params->utils );
-      return SASL_NOMEM;
-  }
-  memset(prompts, 0, alloc_size);
-   
-  
-  *prompts_res=prompts;
-
-  if (auth_res==SASL_INTERACT)
-  {
-    /* We weren't able to get the callback; let's try a SASL_INTERACT */
-    (prompts)->id=SASL_CB_AUTHNAME;
-    (prompts)->challenge="Authentication Name";
-    (prompts)->prompt="Please enter your authentication name";
-    (prompts)->defresult=NULL;
-
-    prompts++;
-  }
-
-  if (pass_res==SASL_INTERACT)
-  {
-    /* We weren't able to get the callback; let's try a SASL_INTERACT */
-    (prompts)->id=SASL_CB_PASS;
-    (prompts)->challenge="Password";
-    (prompts)->prompt="Please enter your password";
-    (prompts)->defresult=NULL;
-
-    prompts++;
-  }
-
-
-  /* add the ending one */
-  (prompts)->id=SASL_CB_LIST_END;
-  (prompts)->challenge=NULL;
-  (prompts)->prompt   =NULL;
-  (prompts)->defresult=NULL;
-
-  return SASL_OK;
-}
-
 static int crammd5_client_mech_step(void *conn_context,
 				    sasl_client_params_t *params,
 				    const char *serverin,
@@ -693,12 +630,17 @@ static int crammd5_client_mech_step(void *conn_context,
     if (prompt_need && *prompt_need) params->utils->free(*prompt_need);
 
     /* if there are prompts not filled in */
-    if ((auth_result==SASL_INTERACT) ||
-	(pass_result==SASL_INTERACT))
-    {
+    if ((auth_result==SASL_INTERACT) || (pass_result==SASL_INTERACT)) {
       /* make the prompt list */
-      int result=make_prompts(params,prompt_need,
-			      auth_result, pass_result);
+	int result =
+	    _plug_make_prompts(params->utils, prompt_need,
+			       NULL, NULL,
+			       auth_result == SASL_INTERACT ?
+			       "Please enter your authentication name" : NULL, NULL,
+			       pass_result == SASL_INTERACT ?
+			       "Please enter your password" : NULL, NULL,
+			       NULL, NULL, NULL,
+			       NULL, NULL, NULL);
       if (result!=SASL_OK) return result;
       
       return SASL_INTERACT;

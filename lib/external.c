@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: external.c,v 1.8 2002/04/26 20:20:53 ken3 Exp $
+ * $Id: external.c,v 1.9 2002/04/27 05:41:13 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -251,16 +251,15 @@ external_client_step(void *conn_context,
   /* if there are prompts not filled in */
   if (user_result == SASL_INTERACT) {
       /* make the prompt list */
-      *prompt_need = params->utils->malloc(sizeof(sasl_interact_t) * 2);
-      if (! *prompt_need) {
-	  MEMERROR( params->utils );
-	  return SASL_NOMEM;
-      }
-      memset(*prompt_need, 0, sizeof(sasl_interact_t) * 2);
-      (*prompt_need)[0].id = SASL_CB_USER;
-      (*prompt_need)[0].prompt = "Authorization Identity";
-      (*prompt_need)[0].defresult = "";
-      (*prompt_need)[1].id = SASL_CB_LIST_END;
+      int result =
+	  _plug_make_prompts(params->utils, prompt_need,
+			     user_result == SASL_INTERACT ?
+			     "Please enter your authorization name" : NULL, "",
+			     NULL, NULL,
+			     NULL, NULL,
+			     NULL, NULL, NULL,
+			     NULL, NULL, NULL);
+      if (result!=SASL_OK) return result;
 
       return SASL_INTERACT;
   }

@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.80 2002/04/27 04:41:57 rjs3 Exp $
+ * $Id: kerberos4.c,v 1.81 2002/04/27 05:41:14 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1087,16 +1087,15 @@ static int kerberosv4_client_mech_step(void *conn_context,
 	/* if there are prompts not filled in */
 	if (user_result == SASL_INTERACT) {
 	    /* make the prompt list */
-	    *prompt_need = cparams->utils->malloc(sizeof(sasl_interact_t) * 2);
-	    if (! *prompt_need) {
-		MEMERROR(cparams->utils);
-		return SASL_NOMEM;
-	    }
-	    memset(*prompt_need, 0, sizeof(sasl_interact_t) * 2);
-	    (*prompt_need)[0].id = SASL_CB_USER;
-	    (*prompt_need)[0].prompt = "Remote Userid";
-	    (*prompt_need)[0].defresult = NULL;
-	    (*prompt_need)[1].id = SASL_CB_LIST_END;
+	    int result =
+		_plug_make_prompts(cparams->utils, prompt_need,
+				   user_result == SASL_INTERACT ?
+				   "Please enter your authorization name" : NULL, NULL,
+				   NULL, NULL,
+				   NULL, NULL
+				   NULL, NULL, NULL,
+				   NULL, NULL, NULL);
+	    if (result!=SASL_OK) return result;
 
 	    return SASL_INTERACT;
 	}

@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.c,v 1.4 2002/04/26 19:23:05 ken3 Exp $
+ * $Id: plugin_common.c,v 1.5 2002/04/27 05:41:15 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -409,6 +409,98 @@ int _plug_get_secret(sasl_client_params_t *params, sasl_secret_t **secret,
     }
 
     return ret;
+}
+
+/*
+ * Make the requested prompts. (prompt==NULL means we don't want it)
+ */
+int _plug_make_prompts(const sasl_utils_t *utils,
+		       sasl_interact_t **prompts_res,
+		       const char *user_prompt, const char *user_def,
+		       const char *auth_prompt, const char *auth_def,
+		       const char *pass_prompt, const char *pass_def,
+		       const char *echo_chal,
+		       const char *echo_prompt, const char *echo_def,
+		       const char *realm_chal,
+		       const char *realm_prompt, const char *realm_def)
+{
+    int num = 1;
+    int alloc_size;
+    sasl_interact_t *prompts;
+
+    if (user_prompt) num++;
+    if (auth_prompt) num++;
+    if (pass_prompt) num++;
+    if (echo_prompt) num++;
+    if (realm_prompt) num++;
+
+    if (num == 1) {
+	SETERROR( utils, "make_prompts() called with no actual prompts" );
+	return SASL_FAIL;
+    }
+
+    alloc_size = sizeof(sasl_interact_t)*num;
+    prompts = utils->malloc(alloc_size);
+    if (!prompts) {
+	MEMERROR( utils );
+	return SASL_NOMEM;
+    }
+    memset(prompts, 0, alloc_size);
+  
+    *prompts_res = prompts;
+
+    if (user_prompt) {
+	(prompts)->id = SASL_CB_USER;
+	(prompts)->challenge = "Authorization Name";
+	(prompts)->prompt = user_prompt;
+	(prompts)->defresult = user_def;
+
+	prompts++;
+    }
+
+    if (auth_prompt) {
+	(prompts)->id = SASL_CB_AUTHNAME;
+	(prompts)->challenge = "Authentication Name";
+	(prompts)->prompt = auth_prompt;
+	(prompts)->defresult = auth_def;
+
+	prompts++;
+    }
+
+    if (pass_prompt) {
+	(prompts)->id = SASL_CB_PASS;
+	(prompts)->challenge = "Password";
+	(prompts)->prompt = pass_prompt;
+	(prompts)->defresult = pass_def;
+
+	prompts++;
+    }
+
+    if (echo_prompt) {
+	(prompts)->id = SASL_CB_ECHOPROMPT;
+	(prompts)->challenge = echo_chal;
+	(prompts)->prompt = echo_prompt;
+	(prompts)->defresult = echo_def;
+
+	prompts++;
+    }
+
+    if (realm_prompt) {
+	(prompts)->id = SASL_CB_GETREALM;
+	(prompts)->challenge = realm_chal;
+	(prompts)->prompt = realm_prompt;
+	(prompts)->defresult = realm_def;
+
+	prompts++;
+    }
+
+    /* add the ending one */
+    (prompts)->id = SASL_CB_LIST_END;
+    (prompts)->challenge = NULL;
+    (prompts)->prompt = NULL;
+    (prompts)->defresult = NULL;
+
+    return SASL_OK;
 }
 
 /*

@@ -1,7 +1,7 @@
 /* Anonymous SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: anonymous.c,v 1.43 2002/04/26 18:02:21 ken3 Exp $
+ * $Id: anonymous.c,v 1.44 2002/04/27 05:41:13 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -308,16 +308,15 @@ anonymous_client_mech_step(void *conn_context,
   /* if there are prompts not filled in */
   if (auth_result == SASL_INTERACT) {
       /* make the prompt list */
-      *prompt_need = cparams->utils->malloc(sizeof(sasl_interact_t) * 2);
-      if (! *prompt_need) {
-	  MEMERROR( cparams->utils );
-	  return SASL_NOMEM;
-      }
-      memset(*prompt_need, 0, sizeof(sasl_interact_t) * 2);
-      (*prompt_need)[0].id = SASL_CB_AUTHNAME;
-      (*prompt_need)[0].prompt = "Anonymous identification";
-      (*prompt_need)[0].defresult = "";
-      (*prompt_need)[1].id = SASL_CB_LIST_END;
+      int result =
+	  _plug_make_prompts(cparams->utils, prompt_need,
+			     NULL, NULL,
+			     auth_result == SASL_INTERACT ?
+			     "Please enter anonymous identification" : NULL, "",
+			     NULL, NULL,
+			     NULL, NULL, NULL,
+			     NULL, NULL, NULL);
+      if (result!=SASL_OK) return result;
 
       return SASL_INTERACT;
   }

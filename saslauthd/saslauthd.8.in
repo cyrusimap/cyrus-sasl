@@ -1,4 +1,4 @@
-.\" $Id: saslauthd.8.in,v 1.1 2000/10/01 21:26:21 esys Exp $
+.\" $Id: saslauthd.8.in,v 1.2 2001/02/11 09:17:23 esys Exp $
 .\" Copyright 1997-2000 Messaging Direct Ltd. All rights reserved.
 .Dt SASLAUTHD 8
 .Os "CMU-SASL"
@@ -180,7 +180,7 @@ however there is no way not to create them. The overhead of creating
 and removing
 these ticket files can cause serious performance degradation on busy
 servers. (Kerberos
-was never intended to be used this manner, anyway.)
+was never intended to be used in this manner, anyway.)
 .Sh FILES
 .Bl -tag -compact
 .It Pa @MAN_PATH_SASLAUTHD_RUNDIR@/mux

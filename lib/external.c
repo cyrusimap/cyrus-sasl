@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: external.c,v 1.2 2001/12/04 02:05:26 rjs3 Exp $
+ * $Id: external.c,v 1.3 2001/12/06 22:27:27 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -118,12 +118,13 @@ external_server_step(void *conn_context __attribute__((unused)),
   }
 
   result = sparams->canon_user(sparams->utils->conn,
-			       user, 0,
-			       sparams->utils->conn->external.auth_id, 0,
-			       0, oparams);
+			       user, 0, SASL_CU_AUTHZID, oparams);
+  if(result != SASL_OK) return result;
 
-  if (result != SASL_OK)
-    return result;
+  result = sparams->canon_user(sparams->utils->conn,
+			       sparams->utils->conn->external.auth_id, 0,
+			       SASL_CU_AUTHID, oparams);
+  if (result != SASL_OK) return result;
 
   oparams->doneflag = 1;
   oparams->mech_ssf = 0;
@@ -295,9 +296,12 @@ external_client_step(void *conn_context,
     *prompt_need = NULL;
 
   result = params->canon_user(params->utils->conn,
-			      user, 0,
+			      user, 0, SASL_CU_AUTHZID, oparams);
+  if(result != SASL_OK) return result;
+
+  result = params->canon_user(params->utils->conn,
 			      params->utils->conn->external.auth_id, 0,
-			      0, oparams);
+			      SASL_CU_AUTHID, oparams);
 
   if (result == SASL_OK)
   {

@@ -2,7 +2,7 @@
  * Rob Siemborski (SASLv2 Conversion)
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.8 2001/12/04 02:06:48 rjs3 Exp $
+ * $Id: login.c,v 1.9 2001/12/06 22:27:30 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -229,8 +229,12 @@ login_server_mech_step(void *conn_context,
     if (result != SASL_OK)
       return result;
 
-    result = params->canon_user(params->utils->conn, text->username->data,
-				0, text->username->data, 0, 0, oparams);
+    result = params->canon_user(params->utils->conn, text->username->data, 0,
+				SASL_CU_AUTHID, oparams);
+    if(result != SASL_OK) return result;
+
+    result = params->canon_user(params->utils->conn, text->username->data, 0,
+				SASL_CU_AUTHZID, oparams);
     if(result != SASL_OK) return result;
 
     if (params->transition)
@@ -508,7 +512,7 @@ static int login_client_mech_step(void *conn_context,
 				  unsigned *clientoutlen,
 				  sasl_out_params_t *oparams)
 {
-  int result;
+  int result, ret;
   const char *user;
 
   context_t *text;
@@ -564,13 +568,14 @@ static int login_client_mech_step(void *conn_context,
       return SASL_INTERACT;
     }
 
-    params->canon_user(params->utils->conn, user, 0, user, 0, 0, oparams);
-    
-    if (!oparams->authid || !text->password) {
-	PARAMERROR(params->utils);
-	return SASL_BADPARAM;
-    }
+    ret = params->canon_user(params->utils->conn, user, 0,
+			     SASL_CU_AUTHID, oparams);
+    if(ret != SASL_OK) return ret;
 
+    ret = params->canon_user(params->utils->conn, user, 0,
+			     SASL_CU_AUTHZID, oparams);
+    if(ret != SASL_OK) return ret;
+    
     /* set oparams */
     oparams->mech_ssf=0;
     oparams->maxoutbuf=0;
@@ -600,8 +605,8 @@ static int login_client_mech_step(void *conn_context,
 	  return SASL_BADPARAM;
       }
       
-      if(clientoutlen) *clientoutlen = strlen(oparams->user);
-      *clientout = oparams->user;
+      if(clientoutlen) *clientoutlen = oparams->alen;
+      *clientout = oparams->authid;
 
       text->state = 3;
 

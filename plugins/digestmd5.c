@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.99 2001/12/04 02:06:46 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.100 2001/12/06 22:27:29 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2419,21 +2419,27 @@ digestmd5_server_mech_step(void *conn_context,
     
     /* this will trigger the getting of the aux properties */
     /* Note that if we don't have an authorization id, we don't use it... */
-    if(!authorization_id || !*authorization_id) {
-	result = sparams->canon_user(sparams->utils->conn,
-				     username, 0, username, 0,
-				     0, oparams);
-    } else {
-	result = sparams->canon_user(sparams->utils->conn,
-				     authorization_id, 0,
-				     username, 0, 0, oparams);
-    }
-     
+    result = sparams->canon_user(sparams->utils->conn,
+				 username, 0, SASL_CU_AUTHID, oparams);
     if (result != SASL_OK) {
 	SETERROR(sparams->utils, "unable cannonify user and get auxprops");
 	goto FreeAllMem;
     }
+    
+    if(!authorization_id || !*authorization_id) {
+	result = sparams->canon_user(sparams->utils->conn,
+				     username, 0, SASL_CU_AUTHZID, oparams);
+    } else {
+	result = sparams->canon_user(sparams->utils->conn,
+				     authorization_id, 0, SASL_CU_AUTHZID,
+				     oparams);
+    }
 
+    if (result != SASL_OK) {
+	SETERROR(sparams->utils, "unable authorization ID");
+	goto FreeAllMem;
+    }
+     
     result = sparams->utils->prop_getnames(sparams->propctx, password_request,
 					   auxprop_values);
     if(result < 0 ||
@@ -3690,7 +3696,13 @@ digestmd5_client_mech_step(void *conn_context,
       text->userid = text->authid;
 
     result = params->canon_user(params->utils->conn,
-				text->userid, 0, text->authid, 0, 0, oparams);
+				text->authid, 0, SASL_CU_AUTHID, oparams);
+    if(result != SASL_OK) {
+	goto FreeAllocatedMem;
+    }
+
+    result = params->canon_user(params->utils->conn,
+				text->userid, 0, SASL_CU_AUTHZID, oparams);
     if(result != SASL_OK) {
 	goto FreeAllocatedMem;
     }

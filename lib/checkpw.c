@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.43 2001/12/04 02:05:25 rjs3 Exp $
+ * $Id: checkpw.c,v 1.44 2001/12/06 22:27:27 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -155,9 +155,14 @@ static int auxprop_verify_password(sasl_conn_t *conn,
 
     if(result != SASL_OK) return result;
 
-    result = _sasl_canon_user(conn,
-			      userstr, 0, userstr, 0,
-			      0, &(conn->oparams));
+    result = _sasl_canon_user(conn, userstr, 0,
+			      SASL_CU_AUTHID, &(conn->oparams));
+    if(result != SASL_OK) return result;
+    
+    result = _sasl_canon_user(conn, userstr, 0,
+			      SASL_CU_AUTHZID, &(conn->oparams));
+    if(result != SASL_OK) return result;
+
     result = prop_getnames(sconn->sparams->propctx, password_request,
 			   auxprop_values);
     if(result < 0)
@@ -243,13 +248,17 @@ int _sasl_auxprop_verify_apop(sasl_conn_t *conn,
     /* We've done the auxprop lookup already (in our caller) */
     ret = prop_getnames(sconn->sparams->propctx, password_request,
 			auxprop_values);
-    if(ret < 0)
+    if(ret < 0) {
+	sasl_seterror(conn, 0, "could not perform password lookup");
 	goto done;
-
+    }
+    
     if(!auxprop_values[0].name ||
        !auxprop_values[0].values ||
-       !auxprop_values[0].values[0])
+       !auxprop_values[0].values[0]) {
+	sasl_seterror(conn, 0, "could not find password");
 	goto done;
+    }
     
     _sasl_MD5Init(&ctx);
     _sasl_MD5Update(&ctx, challenge, strlen(challenge));

@@ -1,7 +1,7 @@
 /* Plain SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: plain.c,v 1.45 2001/12/04 02:06:49 rjs3 Exp $
+ * $Id: plain.c,v 1.46 2001/12/06 22:27:31 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -235,7 +235,11 @@ plain_server_mech_step(void *conn_context,
       author = authen;
 
     result = params->canon_user(params->utils->conn,
-				author, 0, authen, 0, 0, oparams);
+				authen, 0, SASL_CU_AUTHID, oparams);
+    if(result != SASL_OK) return result;
+
+    result = params->canon_user(params->utils->conn,
+				author, 0, SASL_CU_AUTHZID, oparams);
     if(result != SASL_OK) return result;
 
     if (params->transition)
@@ -564,7 +568,7 @@ static int plain_client_mech_step(void *conn_context,
 				  unsigned *clientoutlen,
 				  sasl_out_params_t *oparams)
 {
-  int result;
+  int result, ret;
   const char *user, *authid;
   
   context_t *text;
@@ -639,8 +643,13 @@ static int plain_client_mech_step(void *conn_context,
       return SASL_INTERACT;
     }
     
-    params->canon_user(params->utils->conn, user, 0, authid, 0, 0, oparams);
-
+    ret = params->canon_user(params->utils->conn, user, 0,
+			     SASL_CU_AUTHZID, oparams);
+    if(ret != SASL_OK) return ret;
+    ret = params->canon_user(params->utils->conn, authid, 0,
+			     SASL_CU_AUTHID, oparams);
+    if(ret != SASL_OK) return ret;
+    
     if (!text->password) {
 	PARAMERROR(params->utils);
 	return SASL_BADPARAM;

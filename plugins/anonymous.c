@@ -1,7 +1,7 @@
 /* Anonymous SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: anonymous.c,v 1.38 2001/12/04 02:06:46 rjs3 Exp $
+ * $Id: anonymous.c,v 1.39 2001/12/06 22:27:29 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -150,8 +150,11 @@ anonymous_server_mech_step(void *conn_context __attribute__((unused)),
   oparams->decode=NULL;
 
   sparams->canon_user(sparams->utils->conn,
-		      anonymous_id, 0, anonymous_id, 0,
-		      0, oparams);
+		      anonymous_id, 0,
+		      SASL_CU_AUTHID, oparams);
+  sparams->canon_user(sparams->utils->conn,
+		      anonymous_id, 0,
+		      SASL_CU_AUTHZID, oparams);
   
   oparams->param_version=0;
 
@@ -367,8 +370,11 @@ anonymous_client_mech_step(void *conn_context,
   oparams->decode=NULL;
 
   cparams->canon_user(cparams->utils->conn,
-		      anonymous_id, 0, anonymous_id, 0,
-		      0, oparams);
+		      anonymous_id, 0,
+		      SASL_CU_AUTHID, oparams);
+  cparams->canon_user(cparams->utils->conn,
+		      anonymous_id, 0,
+		      SASL_CU_AUTHZID, oparams);
 
   oparams->param_version=0;
 

@@ -1,6 +1,10 @@
 2001-12-06  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* lib/canonusr.c: Better logging when desired plugin is not found.
 	* lib/checkpw.c: spelling error fixed.
+	* lib/canonusr.c, lib/checkpw.c, lib/client.c, lib/external.c,
+	  lib/saslint.h, lib/server.c, include/sasl.h, include/saslplug.h,
+	  plugins/*.c: Updated canon_user API to allow separate
+	  canonicalization of authid and authzid.
 
 2001-12-05  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* saslauthd/Makefile.am, saslauthd/acconfig.h, saslauthd/configure.in:

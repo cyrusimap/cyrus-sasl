@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.43 2001/12/04 02:06:47 rjs3 Exp $
+ * $Id: gssapi.c,v 1.44 2001/12/06 22:27:30 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -992,10 +992,17 @@ gssapi_server_mech_step(void *conn_context,
 	    ret = params->canon_user(params->utils->conn,
 				     ((char *) output_token->value) + 4,
 				     (output_token->length - 4) * sizeof(char),
+				     SASL_CU_AUTHZID, oparams);
+
+	    if (ret != SASL_OK) {
+		sasl_gss_free_context_contents(text);
+		return ret;
+	    }
+
+	    ret = params->canon_user(params->utils->conn,
 				     text->u.authid,
 				     0, /* strlen(text->u.authid) */
-				     0, oparams);
-
+				     SASL_CU_AUTHID, oparams);
 	    if (ret != SASL_OK) {
 		sasl_gss_free_context_contents(text);
 		return ret;
@@ -1306,13 +1313,15 @@ gssapi_client_mech_step(void *conn_context,
 		return SASL_INTERACT;
 	      }
 
-	    
-	    /* FIXME: This *can't* be right, (note: authid!) */
 	    ret = params->canon_user(params->utils->conn,
 				     text->u.user, 0,
+				     SASL_CU_AUTHID, oparams);
+	    if(ret != SASL_OK) return ret;
+	    
+	    /* FIXME: This *can't* be right, (note: authzid!) */
+	    ret = params->canon_user(params->utils->conn,
 				     text->u.user, 0,
-				     0, oparams);
-
+				     SASL_CU_AUTHZID, oparams);
 	    if(ret != SASL_OK) return ret;
 	  }
 

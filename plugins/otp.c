@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.3 2001/12/04 15:36:57 ken3 Exp $
+ * $Id: otp.c,v 1.4 2001/12/06 22:27:30 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -288,8 +288,14 @@ otp_server_mech_step(void *conn_context,
     switch (result) {
     case 0:
 	result = params->canon_user(params->utils->conn,
-				    text->user ? text->user : text->authid,
-				    0, text->authid, 0, 0, oparams);
+				    text->user ? text->user : text->authid, 0
+				    SASL_CU_AUTHZID, oparams);
+	if (result != SASL_OK)
+	    break;
+
+	result = params->canon_user(params->utils->conn,
+				    text->authid, 0
+				    SASL_CU_AUTHID, oparams);
 	if (result == SASL_OK)
 	    oparams->doneflag = 1;
 	break;
@@ -822,7 +828,10 @@ static int otp_client_mech_step(void *conn_context,
       return SASL_INTERACT;
     }
     
-    params->canon_user(params->utils->conn, user, 0, authid, 0, 0, oparams);
+    params->canon_user(params->utils->conn, user, 0,
+		       SASL_CU_AUTHZID, oparams);
+    params->canon_user(params->utils->conn, authid, 0,
+		       SASL_CU_AUTHID, oparams);
 
     /* send authorized id NUL authentication id */
     {

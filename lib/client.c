@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.36 2001/12/04 02:05:25 rjs3 Exp $
+ * $Id: client.c,v 1.37 2001/12/06 22:27:27 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -571,6 +571,12 @@ int sasl_client_step(sasl_conn_t *conn,
       
       if(!conn->oparams.maxoutbuf) {
 	  conn->oparams.maxoutbuf = conn->props.maxbufsize;
+      }
+
+      if(conn->oparams.user == NULL || conn->oparams.authid == NULL) {
+	  sasl_seterror(conn, 0,
+			"mech did not call canon_user for both authzid and authid");
+	  result = SASL_BADPROT;
       }
   }
   

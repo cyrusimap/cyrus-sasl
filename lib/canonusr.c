@@ -1,6 +1,6 @@
 /* canonusr.c - user canonicalization support
  * Rob Siemborski
- * $Id: canonusr.c,v 1.3 2001/12/06 18:12:16 rjs3 Exp $
+ * $Id: canonusr.c,v 1.4 2001/12/06 22:27:27 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -69,7 +69,6 @@ static canonuser_plug_list_t *canonuser_head = NULL;
 /* a zero ulen or alen indicates that it is strlen(value) */
 int _sasl_canon_user(sasl_conn_t *conn,
                      const char *user, unsigned ulen,
-                     const char *authid, unsigned alen,
                      unsigned flags,
                      sasl_out_params_t *oparams)
 {
@@ -81,34 +80,44 @@ int _sasl_canon_user(sasl_conn_t *conn,
     void *context;
     int result;
     const char *plugin_name = NULL;
+    char *user_buf;
+    unsigned *lenp;
 
     if(!conn) return SASL_BADPARAM;    
-    if(!user || !authid || !oparams) return SASL_BADPARAM;
+    if(!user || !oparams) return SASL_BADPARAM;
 
+    if(flags & SASL_CU_AUTHID) {
+	user_buf = conn->authid_buf;
+	lenp = &(oparams->alen);
+    } else if (flags & SASL_CU_AUTHZID) {
+	user_buf = conn->user_buf;
+	lenp = &(oparams->ulen);
+    } else {
+	return SASL_BADPARAM;
+    }
+    
     if(conn->type == SASL_CONN_SERVER) sconn = (sasl_server_conn_t *)conn;
     else if(conn->type == SASL_CONN_CLIENT) cconn = (sasl_client_conn_t *)conn;
     else return SASL_FAIL;
     
     if(!ulen) ulen = strlen(user);
-    if(!alen) alen = strlen(authid);
     
     /* check to see if we have a callback to make*/
     result = _sasl_getcallback(conn, SASL_CB_CANON_USER,
 			       &cuser_cb, &context);
     if(result == SASL_OK && cuser_cb) {
 	result = cuser_cb(conn, context,
-			user, ulen, authid, alen,
+			user, ulen,
 			flags, (conn->type == SASL_CONN_SERVER ?
 				((sasl_server_conn_t *)conn)->user_realm :
 				NULL),
-			conn->user_buf, CANON_BUF_SIZE, &ulen,
-			conn->authid_buf, CANON_BUF_SIZE, &alen);
+			user_buf, CANON_BUF_SIZE, lenp);
+	
 
 	if (result != SASL_OK) return result;
 
-	/* Point the inputs at the new copies */
-	user = conn->user_buf;
-	authid = conn->authid_buf;
+	/* Point the input copy at the stored buffer */
+	user = user_buf;
     }
 
     /* which plugin are we supposed to use? */
@@ -134,45 +143,42 @@ int _sasl_canon_user(sasl_conn_t *conn,
 	return SASL_NOMECH;
     }
     
-    
     if(sconn) {
 	/* we're a server */
 	result = ptr->plug->canon_user_server(ptr->plug->glob_context,
 					      sconn->sparams,
 					      user, ulen,
-					      authid, alen,
 					      flags,
-					      conn->user_buf,
-					      CANON_BUF_SIZE, &ulen,
-					      conn->authid_buf,
-					      CANON_BUF_SIZE, &alen);
+					      user_buf,
+					      CANON_BUF_SIZE, lenp);
     } else {
 	/* we're a client */
 	result = ptr->plug->canon_user_client(ptr->plug->glob_context,
 					      cconn->cparams,
 					      user, ulen,
-					      authid, alen,
 					      flags,
-					      conn->user_buf,
-					      CANON_BUF_SIZE, &ulen,
-					      conn->authid_buf,
-					      CANON_BUF_SIZE, &alen);
+					      user_buf,
+					      CANON_BUF_SIZE, lenp);
     }
 
     if(result != SASL_OK) return result;
 	
-    oparams->user = conn->user_buf;
-    oparams->ulen = ulen;
-    oparams->authid = conn->authid_buf;
-    oparams->alen = alen;
-
+    /* Set the appropriate oparams (lengths have already been set by lenp) */
+    if(flags & SASL_CU_AUTHID) {
+	oparams->authid = user_buf;
 #ifndef macintosh
-    /* finally, do auxprop lookups (server only) */
-    if(sconn) {
-	_sasl_auxprop_lookup(sconn->sparams, 0,
+	/* do auxprop lookups (server only) */
+	/* AUTHZID lookups do not occur until after authentication
+	   is complete */
+	if(sconn) {
+	    _sasl_auxprop_lookup(sconn->sparams, 0,
 			     oparams->authid, oparams->alen);
-    }
+	}
 #endif
+    } else if (flags & SASL_CU_AUTHZID) {
+	oparams->user = user_buf;
+    }
+
 
     RETURN(conn, SASL_OK);
 }
@@ -205,7 +211,7 @@ int sasl_canonuser_add_plugin(const char *plugname,
 	return SASL_BADPARAM;
     }
     
-    result = canonuserfunc(sasl_global_utils, SASL_AUXPROP_PLUG_VERSION,
+    result = canonuserfunc(sasl_global_utils, SASL_CANONUSER_PLUG_VERSION,
 			   &out_version, &plug, plugname);
 
     if(result != SASL_OK) {
@@ -239,31 +245,25 @@ int sasl_canonuser_add_plugin(const char *plugname,
 
 static int _canonuser_internal(const sasl_utils_t *utils,
 			       const char *user, unsigned ulen,
-			       const char *authid, unsigned alen,
 			       unsigned flags __attribute__((unused)),
 			       char *out_user,
-			       unsigned out_umax, unsigned *out_ulen,
-			       char *out_authid,
-			       unsigned out_amax, unsigned *out_alen) 
+			       unsigned out_umax, unsigned *out_ulen) 
 {
     unsigned i;
-    char *in_buf, *userin, *authidin;
-    const char *begin_u, *begin_a;
-    unsigned u_apprealm = 0, a_apprealm = 0;
+    char *in_buf, *userin;
+    const char *begin_u;
+    unsigned u_apprealm = 0;
     sasl_server_conn_t *sconn = NULL;
 
-    if(!utils || !user || !authid) return SASL_BADPARAM;
+    if(!utils || !user) return SASL_BADPARAM;
 
-    in_buf = sasl_ALLOC((ulen + alen + 2) * sizeof(char));
+    in_buf = sasl_ALLOC((ulen + 2) * sizeof(char));
     if(!in_buf) return SASL_NOMEM;
 
     userin = in_buf;
-    authidin = userin + ulen + 1;
 
     memcpy(userin, user, ulen);
     userin[ulen] = '\0';
-    memcpy(authidin, authid, alen);
-    authidin[alen] = '\0';
     
     /* Strip User ID */
     for(i=0;isspace((int)userin[i]) && i<ulen;i++);
@@ -277,27 +277,12 @@ static int _canonuser_internal(const sasl_utils_t *utils,
 	return SASL_FAIL;
     }
 
-    /* Strip Auth ID */
-    for(i=0;isspace((int)authidin[i]) && i<alen;i++);
-    begin_a = &(authidin[i]);
-    if(i>0) alen -= i;
-
-    for(;isspace((int)begin_a[alen-1]) && alen > 0; alen--);
-    if(begin_a == &(authidin[alen])) {
-	sasl_FREE(in_buf);
-	utils->seterror(utils->conn, 0, "All-whitespace authid.");
-	return SASL_FAIL;
-    }
-
     if(utils->conn && utils->conn->type == SASL_CONN_SERVER)
 	sconn = (sasl_server_conn_t *)utils->conn;
 
     /* Need to append realm if necessary (see sasl.h) */
     if(sconn && sconn->user_realm && !strchr(user, '@')) {
 	u_apprealm = strlen(sconn->user_realm) + 1;
-    }
-    if(sconn && sconn->user_realm && !strchr(authid, '@')) {
-	a_apprealm = strlen(sconn->user_realm) + 1;
     }
     
     /* Now copy! (FIXME: check for SASL_BUFOVER?) */
@@ -311,16 +296,6 @@ static int _canonuser_internal(const sasl_utils_t *utils,
 
     if(out_ulen) *out_ulen = MIN(ulen + u_apprealm,out_umax);
     
-    memcpy(out_authid, begin_a, MIN(alen, out_amax));
-    if(a_apprealm) {
-	out_authid[alen] = '@';
-	memcpy(&(out_authid[alen+1]), sconn->user_realm,
-	       MIN(a_apprealm-1, out_amax-ulen-1));
-    }
-    out_authid[MIN(alen + a_apprealm, out_amax)] = '\0';
-
-    if(out_alen) *out_alen = MIN(alen + a_apprealm, out_amax);
-
     sasl_FREE(in_buf);
     return SASL_OK;
 }
@@ -328,33 +303,25 @@ static int _canonuser_internal(const sasl_utils_t *utils,
 static int _cu_internal_server(void *glob_context __attribute__((unused)),
 			       sasl_server_params_t *sparams,
 			       const char *user, unsigned ulen,
-			       const char *authid, unsigned alen,
 			       unsigned flags,
 			       char *out_user,
-			       unsigned out_umax, unsigned *out_ulen,
-			       char *out_authid,
-			       unsigned out_amax, unsigned *out_alen) 
+			       unsigned out_umax, unsigned *out_ulen) 
 {
     return _canonuser_internal(sparams->utils,
-			       user, ulen, authid, alen,
-			       flags, out_user, out_umax, out_ulen,
-			       out_authid, out_amax, out_alen);
+			       user, ulen,
+			       flags, out_user, out_umax, out_ulen);
 }
 
 static int _cu_internal_client(void *glob_context __attribute__((unused)),
 			       sasl_client_params_t *cparams,
 			       const char *user, unsigned ulen,
-			       const char *authid, unsigned alen,
 			       unsigned flags,
 			       char *out_user,
-			       unsigned out_umax, unsigned *out_ulen,
-			       char *out_authid,
-			       unsigned out_amax, unsigned *out_alen) 
+			       unsigned out_umax, unsigned *out_ulen) 
 {
     return _canonuser_internal(cparams->utils,
-			       user, ulen, authid, alen,
-			       flags, out_user, out_umax, out_ulen,
-			       out_authid, out_amax, out_alen);
+			       user, ulen,
+			       flags, out_user, out_umax, out_ulen);
 }
 
 static sasl_canonuser_plug_t canonuser_internal_plugin = {

@@ -578,33 +578,34 @@ typedef int sasl_server_userdb_setpass_t(sasl_conn_t *conn,
  * User Canonicalization plugin is called.  It has the responsibility
  * of copying its output into the provided output buffers.
  * 
- *  user, ulen    -- user name (authorization name), may not be NUL terminated
- *                   may be same as out_user
- *  authid, alen  -- authentication name, may not be NUL terminated
- *                   may be same as out_authid
+ *  in, inlen     -- user name to canonicalize, may not be NUL terminated
+ *                   may be same buffer as out
  *  flags         -- not currently used, supplied by auth mechanism
  *  user_realm    -- the user realm (may be NULL in case of client)
- *  out_user      -- buffer to copy user name
- *  out_umax      -- max length of user name
- *  out_ulen      -- set to length of user name
- *  out_authid    -- buffer to copy authid to
- *  out_amax      -- max length of authid
- *  out_alen      -- set to length of authid (0 = same as user name)
+ *  out           -- buffer to copy user name
+ *  out_max       -- max length of user name
+ *  out_len       -- set to length of user name
  *
  * returns
  *  SASL_OK         on success
  *  SASL_BADPROT    username contains invalid character
  */
+
+/* User Canonicalization Function Flags */
+
+#define SASL_CU_NONE    0x00 /* Not a valid flag to pass */
+/* One of the following two is required */
+#define SASL_CU_AUTHID  0x01
+#define SASL_CU_AUTHZID 0x02
+
 typedef int sasl_canon_user_t(sasl_conn_t *conn,
 			      void *context,
-			      const char *user, unsigned ulen,
-			      const char *authid, unsigned alen,
+			      const char *in, unsigned inlen,
 			      unsigned flags,
 			      const char *user_realm,
-			      char *out_user,
-			      unsigned out_umax, unsigned *out_ulen,
-			      char *out_authid,
-			      unsigned out_amax, unsigned *out_alen);
+			      char *out,
+			      unsigned out_max, unsigned *out_len);
+
 #define SASL_CB_CANON_USER (0x8007)
 
 /**********************************

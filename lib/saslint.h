@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.34 2001/12/04 02:05:26 rjs3 Exp $
+ * $Id: saslint.h,v 1.35 2001/12/06 22:27:27 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -455,7 +455,6 @@ extern int internal_canonuser_init(const sasl_utils_t *utils,
 				   const char *plugname);
 extern int _sasl_canon_user(sasl_conn_t *conn,
 			    const char *user, unsigned ulen,
-			    const char *authid, unsigned alen,
 			    unsigned flags,
 			    sasl_out_params_t *oparams);
 

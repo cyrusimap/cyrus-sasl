@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.90 2001/12/06 17:52:53 rjs3 Exp $
+ * $Id: server.c,v 1.91 2001/12/06 22:27:27 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1269,9 +1269,13 @@ int sasl_server_step(sasl_conn_t *conn,
 	    conn->oparams.maxoutbuf = conn->props.maxbufsize;
 	}
 
+	if(conn->oparams.user == NULL || conn->oparams.authid == NULL) {
+	    sasl_seterror(conn, 0,
+			  "mech did not call canon_user for both authzid and authid");
+	    ret = SASL_BADPROT;
+	} else if(strcmp(conn->oparams.user, conn->oparams.authid)) {
 	/* If authorization id is not the same as authenticationid, get
-	 * the real auxprops */
-	if(strcmp(conn->oparams.user, conn->oparams.authid)) {
+	 * the real auxprops */	
 	    prop_clear(s_conn->sparams->propctx,0);
 	    _sasl_auxprop_lookup(s_conn->sparams, 0,
 				 conn->oparams.user, conn->oparams.ulen);
@@ -1655,17 +1659,23 @@ int sasl_checkapop(sasl_conn_t *conn,
         RETURN(conn, result);
 
     /* Cannonify it */
-    result = _sasl_canon_user(conn,
-			   user, user_len,
-			   user, user_len,
-			   0, &(conn->oparams));
+    result = _sasl_canon_user(conn, user, user_len,
+	                      SASL_CU_AUTHZID, &(conn->oparams));
+    if(result != SASL_OK) 
+    {
+        sasl_FREE(user);
+        RETURN(conn, result);
+    }
 
+    result = _sasl_canon_user(conn, user, user_len, SASL_CU_AUTHID,
+	                      &(conn->oparams));
     sasl_FREE(user);
 
     if(result != SASL_OK) RETURN(conn, result);
+printf("past canonicalization\n");
 
     /* Do APOP verification */
-    result = _sasl_auxprop_verify_apop(conn, conn->oparams.user,
+    result = _sasl_auxprop_verify_apop(conn, conn->oparams.authid,
 	challenge, user_end + 1, s_conn->user_realm);
 
     /* If verification failed, we don't want to encourage getprop to work */

@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.70 2001/12/04 02:06:48 rjs3 Exp $
+ * $Id: kerberos4.c,v 1.71 2001/12/06 22:27:30 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -826,8 +826,18 @@ static int kerberosv4_server_mech_step (void *conn_context,
       }
 
       ret = sparams->canon_user(sparams->utils->conn, user, ulen,
-				authid, alen, 0, oparams);
+				SASL_CU_AUTHZID, oparams);
       
+      if(ret != SASL_OK) {
+	  sparams->utils->free(authid);
+	  if(user != authid)
+	      sparams->utils->free(user);
+	  return ret;
+      }
+
+      ret = sparams->canon_user(sparams->utils->conn, authid, alen,
+				SASL_CU_AUTHID, oparams);
+     
       sparams->utils->free(authid);
       if(user != authid)
 	  sparams->utils->free(user);
@@ -1357,13 +1367,22 @@ static int kerberosv4_client_mech_step(void *conn_context,
 	    cparams->utils->free(text->user);
 	    text->user = NULL;
 	}
+
+	ret = cparams->canon_user(cparams->utils->conn, buf, 0,
+				  SASL_CU_AUTHID, oparams);
+	if(ret != SASL_OK) {
+	    cparams->utils->free(buf);
+	    cparams->utils->free(sout);
+	    return ret;
+	}
+	
 	if (! text->user) {
 	    /* 0 in length fields means use strlen() */
 	    ret = cparams->canon_user(cparams->utils->conn, buf, 0,
-				      buf, 0, 0, oparams);
+				      SASL_CU_AUTHZID, oparams);
 	} else {
 	    ret = cparams->canon_user(cparams->utils->conn, text->user, 0,
-				      buf, 0, 0, oparams);
+				      SASL_CU_AUTHZID, oparams);
 	}
 
 	cparams->utils->free(buf);

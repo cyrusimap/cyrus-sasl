@@ -239,10 +239,8 @@ typedef struct sasl_client_params {
      *  added rjs3 2001-05-23
      *  Must be called once user name aquired if canon_user is non-NULL.
      *  conn        connection context
-     *  user        user name from wire protocol (need not be NUL terminated)
-     *  ulen        length of user name from wire protocol (0 = strlen(user))
-     *  authid      authid from wire protocol (need not be NUL terminated)
-     *  alen        length of authid from wire protocol (0 = strlen(authid))
+     *  in          user name from wire protocol (need not be NUL terminated)
+     *  len         length of user name from wire protocol (0 = strlen(user))
      *  flags       for SASL_CU_* flags
      *  oparams     the user, authid, ulen, alen, fields are
      *              set appropriately after canonicalization/copying and
@@ -261,8 +259,7 @@ typedef struct sasl_client_params {
      *  SASL_BADPROT  -- invalid user/authid
      */
     int (*canon_user)(sasl_conn_t *conn,
-                    const char *user, unsigned ulen,
-                    const char *authid, unsigned alen,
+                    const char *in, unsigned len,
                     unsigned flags,
                     sasl_out_params_t *oparams);
 
@@ -454,8 +451,6 @@ typedef struct sasl_server_params {
      *  conn        connection context
      *  user        user name from wire protocol (need not be NUL terminated)
      *  ulen        length of user name from wire protocol (0 = strlen(user))
-     *  authid      authid from wire protocol (need not be NUL terminated)
-     *  alen        length of authid from wire protocol (0 = strlen(authid))
      *  flags       for SASL_CU_* flags
      *  oparams     the user, authid, ulen, alen, fields are
      *              set appropriately after canonicalization/copying and
@@ -475,7 +470,6 @@ typedef struct sasl_server_params {
      */
     int (*canon_user)(sasl_conn_t *conn,
 		      const char *user, unsigned ulen,
-		      const char *authid, unsigned alen,
 		      unsigned flags,
 		      sasl_out_params_t *oparams);
     
@@ -732,16 +726,11 @@ typedef struct sasl_canonuser {
      *  glob_context     -- global context from this structure
      *  sparams          -- server params, note user_realm&propctx elements
      *  user             -- user to login as (may not be NUL terminated)
-     *  ulen             -- length of user name (0 = strlen(user))
-     *  authid           -- authentication name (may not be NUL terminated)
-     *  alen             -- length of authentication name (0 = strlen(authid))
+     *  len              -- length of user name (0 = strlen(user))
      *  flags            -- for SASL_CU_* flags
-     *  out_user         -- buffer to copy user name
-     *  out_umax         -- max length of user name
-     *  out_ulen         -- set to length of user name
-     *  out_authid       -- buffer to copy authid to
-     *  out_amax         -- max length of authid
-     *  out_alen         -- set to length of authid (0 = same as user name)
+     *  out              -- buffer to copy user name
+     *  out_max          -- max length of user name
+     *  out_len          -- set to length of user name
      *
      *  note that the output buffers MAY be the same as the input buffers.
      *
@@ -751,23 +740,17 @@ typedef struct sasl_canonuser {
      */
     int (*canon_user_server)(void *glob_context,
 			     sasl_server_params_t *sparams,
-			     const char *user, unsigned ulen,
-			     const char *authid, unsigned alen,
+			     const char *user, unsigned len,
 			     unsigned flags,
-			     char *out_user,
-			     unsigned out_umax, unsigned *out_ulen,
-			     char *out_authid,
-			     unsigned out_amax, unsigned *out_alen);
+			     char *out,
+			     unsigned out_umax, unsigned *out_ulen);
 
     int (*canon_user_client)(void *glob_context,
 			     sasl_client_params_t *cparams,
-			     const char *user, unsigned ulen,
-			     const char *authid, unsigned alen,
+			     const char *user, unsigned len,
 			     unsigned flags,
-			     char *out_user,
-			     unsigned out_umax, unsigned *out_ulen,
-			     char *out_authid,
-			     unsigned out_amax, unsigned *out_alen);
+			     char *out,
+			     unsigned out_max, unsigned *out_len);
 
     /* for additions which don't require a version upgrade; set to 0 */
     int (*spare_fptr1)();
@@ -775,7 +758,7 @@ typedef struct sasl_canonuser {
     int (*spare_fptr3)();
 } sasl_canonuser_plug_t;
 
-#define SASL_CANONUSER_PLUG_VERSION 4
+#define SASL_CANONUSER_PLUG_VERSION 5
 
 /* default name for canonuser plug-in entry point is "sasl_canonuser_init"
  *  similar to sasl_server_plug_init model, except only returns one

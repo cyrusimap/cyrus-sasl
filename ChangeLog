@@ -1,3 +1,9 @@
+2002-05-05  Ken Murchison <ken@oceana.com>
+	* lib/client.c: pass global_context to mech_new()
+	* lib/server.c: don't free global_context (the plugin should free it)
+	* utils/testsuite: swapped serverlast tests so that the
+	  descriptions are correct
+
 2002-05-03  Ken Murchison <ken@oceana.com>
 	* plugins/digestmd5.c: added server-side reauth
 	* doc/index.html: added Marshall Rose's SASL papers

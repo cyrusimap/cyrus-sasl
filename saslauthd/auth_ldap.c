@@ -31,7 +31,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_ldap.c,v 1.6 2002/05/08 20:03:00 rjs3 Exp $"
+#ident "$Id: auth_ldap.c,v 1.7 2002/05/08 21:08:33 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -176,20 +176,20 @@ static int auth_ldap_config_getswitch(const char *key, int def)
 
 static int auth_ldap_configure()
 {
-    	char  *myname = "auth_ldap_configure";
+    	const char *myname = "auth_ldap_configure";
 
 	int rc = 0;
 	char *s;
 
 	rc = auth_ldap_config_init(SASLAUTHD_CONF_FILE);
 	if (rc != AUTH_LDAP_OK) {
-		syslog(LOG_INFO, "Cannot open configuration file");
+		syslog(LOG_INFO, "%s: Cannot open configuration file", myname);
 		return AUTH_LDAP_FAIL;
 	}
 
 	lak = malloc( sizeof(LAK) );
 	if (lak == NULL) {
-		syslog(LOG_INFO, "Cannot allocate memory");
+		syslog(LOG_INFO, "%s: Cannot allocate memory", myname);
 		return AUTH_LDAP_FAIL;
 	}
 
@@ -213,10 +213,10 @@ static int auth_ldap_configure()
 		} else if (strcasecmp(s, "never")) {
 			lak->deref = LDAP_DEREF_NEVER;
 		} else {
-			lak->deref = NULL;
+			lak->deref = 0;
 		}
 	} else {
-		lak->deref = NULL;
+		lak->deref = 0;
 	}
 	lak->referrals = auth_ldap_config_getswitch("ldap_referrals", 0);
 	lak->cache_expiry = auth_ldap_config_getint("ldap_cache_expiry", 0);

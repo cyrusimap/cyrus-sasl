@@ -215,7 +215,6 @@ UTF8_In_8859_1(const unsigned char *base,
 	       int len)
 {
   const unsigned char *scan, *end;
-  unsigned char   cbuf;
 
   end = base + len;
   for (scan = base; scan < end; ++scan) {
@@ -286,7 +285,6 @@ DigestCalcSecret(IN sasl_utils_t * utils,
 		 IN unsigned char *pszRealm,
 		 IN unsigned char *Password,
 		 IN int PasswordLen,
-		 IN bool IsUTF8,
 		 OUT HASH HA1)
 {
   bool            In_8859_1;
@@ -326,7 +324,6 @@ DigestCalcHA1(IN context_t * text,
 	      IN sasl_secret_t * pszPassword,
 	      IN unsigned char *pszNonce,
 	      IN unsigned char *pszCNonce,
-	      IN bool IsUTF8,
 	      IN unsigned char *pszMagic_i,	/* Magic constant used to
 						 * create Kic or Kis */
 	      IN unsigned char *pszMagic_c,	/* Magic constant used to
@@ -341,7 +338,6 @@ DigestCalcHA1(IN context_t * text,
 		   pszRealm,
 		   pszPassword->data,
 		   pszPassword->len,
-		   IsUTF8,
 		   HA1);
 
   VL(("HA1 is \"%s\"\r\n", HA1));
@@ -443,7 +439,6 @@ calculate_response(context_t * text,
 		   char *qop,
 		   unsigned char *digesturi,
 		   sasl_secret_t * passwd,
-		   IN bool isUTF8,
 		   IN unsigned char *magic_i,	/* Magic constant used to
 						 * create Kic or Kis */
 		   IN unsigned char *magic_c,	/* Magic constant used to
@@ -478,7 +473,6 @@ calculate_response(context_t * text,
 		passwd,
 		nonce,
 		cnonce,
-		isUTF8,
 		magic_i,
 		magic_c,
 		SessionKey);
@@ -846,180 +840,6 @@ digest_strdup(sasl_utils_t * utils, const char *in, char **out, int *outlen)
   return SASL_OK;
 }
 
-/******************************
- *
- * DES functions
- *
- *****************************/
-
-static int enc_des(context_t *text,
-		   const char *input,
-		   unsigned inputlen,
-		   char **output,
-		   unsigned *outputlen)
-{
-  
-
-  return SASL_OK;
-}
-
-static int dec_des(context_t *text,
-		   const char *input,
-		   unsigned inputlen,
-		   char **output,
-		   unsigned *outputlen)
-{
-  return SASL_OK;
-}
-static int init_des(context_t *text, char *key, int keylen)
-{
-  des_key_sched(text->Kc, text->keysched); /* encryption and decryption */
-}
-
-/******************************
- *
- * RC4 functions
- *
- *****************************/
-
-static int init_rc4(context_t *text, char *key, int keylen)
-{
-  int lup;
-  int i, j;
-  unsigned char *K;
-
-  VL(("Initializing rc-4\n"));
-
-  /* initialize sbox */
-  text->sbox=(char *) text->malloc(256);  
-  K=(char *) text->malloc(256);  
-
-  /* allocate for it */
-
-
-  /* fill in linearly s0=0 s1=1... */
-  for (lup=0;lup<256;lup++)
-    text->sbox[lup]=lup;
-
-  for (lup=0;lup<256;lup++)
-    K[lup]=key[ lup%keylen];
-
-  j=0;
-  for (i=0;i<256;i++)
-  {
-    char tmp;
-    /* j = (j + Si + Ki) mod 256 */
-    j=(j+text->sbox[i]+K[i])%256;
-
-    /* swap Si and Sj */
-    tmp=text->sbox[i];
-    text->sbox[i]=text->sbox[j];
-    text->sbox[j]=tmp;
-  }
-
-  /* zero and free K */
-  memset(K,0,256);
-  text->free(K);
-
-  /* counters initialized to 0 */
-  text->i=0;
-  text->j=0;
-
-  VL(("Initialized rc4\n"));
-
-  return SASL_OK;
-}
-
-static int enc_rc4(context_t *text,
-		   const char *input,
-		   unsigned inputlen,
-		   char **output,
-		   unsigned *outputlen)
-{
-  int tmp;
-  int i=text->i;
-  int j=text->j;
-  int t;
-  int K;
-  int lup;
-
-  *output = (char *) text->malloc(inputlen);
-  if (*output==NULL) return SASL_NOMEM;
-  *outputlen=inputlen;
-
-  for (lup=0;lup<inputlen;lup++)
-  {
-    i=(i+1) %256;
-
-    j=(j + text->sbox[i] ) %256;
-
-    /* swap Si and Sj */
-    tmp=text->sbox[i];
-    text->sbox[i]=text->sbox[j];
-    text->sbox[j]=tmp;
-  
-    t=( text->sbox[i] + text->sbox[j]) %256;
-    
-    K=text->sbox[t];
-
-    /* byte K is Xor'ed with plaintext */
-    (*output)[lup]=input[lup] ^ K;
-
-    printf("encode: in char = %i out char = %i\n",(*output)[lup], input[lup]);
-  }
-
-  
-
-  text->i=i;
-  text->j=j;
-  return SASL_OK;
-}
-
-static int dec_rc4(context_t *text,
-		   const char *input,
-		   unsigned inputlen,
-		   char **output,
-		   unsigned *outputlen)
-{
-  int tmp;
-  int i=text->i;
-  int j=text->j;
-  int t;
-  int K;
-  int lup;
-
-  *output = (char *) text->malloc(inputlen);
-  if (*output==NULL) return SASL_NOMEM;
-  *outputlen=inputlen;
-
-  for (lup=0;lup<inputlen;lup++)
-  {
-    i=(i+1) %256;
-
-    j=(j + text->sbox[i] ) %256;
-
-    /* swap Si and Sj */
-    tmp=text->sbox[i];
-    text->sbox[i]=text->sbox[j];
-    text->sbox[j]=tmp;
-  
-    t=( text->sbox[i] + text->sbox[j]) %256;
-    
-    K=text->sbox[t];
-
-    /* byte K is Xor'ed with plaintext */
-    (*output)[lup]=input[lup] ^ K;
-
-    printf("decode: in char = %i out char = %i\n",(*output)[lup], input[lup]);
-  }
-
-  
-
-  text->i=i;
-  text->j=j;
-  return SASL_OK;
-}
-
 
 
 static int
@@ -1366,8 +1186,8 @@ server_continue_step(void *conn_context,
     char           *challenge = NULL;
     char           *realm;
     unsigned char  *nonce;
-    char           *qop = "auth,auth-int,auth-conf";
-    char           *cipheropts="rc4";
+    char           *qop = "auth,auth-int";
+    /*    char           *cipheropts="rc4";*/
     char           *charset = "utf-8";
     /* char *algorithm="md5-sess"; */
 
@@ -1413,11 +1233,11 @@ server_continue_step(void *conn_context,
      *  Cipheropts - list of ciphers server supports
      */
     /* add cipher-opts to challenge */
-    if (add_to_challenge(sparams->utils, &challenge, "cipher", (unsigned char *) cipheropts, 
+    /*    if (add_to_challenge(sparams->utils, &challenge, "cipher", (unsigned char *) cipheropts, 
 			 TRUE) != SASL_OK) {
       VL(("add_to_challenge 3 failed\n"));
       return SASL_FAIL;
-    }
+      }*/
 
 
     /* "stale" not used in initial authentication */
@@ -1502,13 +1322,8 @@ server_continue_step(void *conn_context,
 
     HASH            A1;
 
-    char           *response_auth = NULL;
-
     int             usernamelen;
     int             realm_len;
-
-    char           *xxx;
-    char           *divaddr, *prevaddr;
 
     /* can we mess with clientin? copy it to be safe */
     char           *in_start;
@@ -1629,20 +1444,25 @@ server_continue_step(void *conn_context,
     /* check which layer/cipher to use */
 
     if (strcmp(qop, "auth-conf") == 0) {
+      VL(("Privacy layer not supported\n"));
+      result = SASL_FAIL;
+      goto FreeAllMem;
+
+	/* for when privacy supported */
       VL(("Client requested privacy layer\n"));
       VL(("Client cipher=%s\n",cipher));
       if (strcmp(cipher,"des")==0)
       {
-	text->cipher_enc=enc_des;
+	/*	text->cipher_enc=enc_des;
 	text->cipher_dec=dec_des;
-	text->cipher_init=init_des;
+	text->cipher_init=init_des;*/
 	
       } else if (strcmp(cipher,"3des")==0) {
 	/*	text->cipher=CIPHER_3DES;*/
       } else if (strcmp(cipher,"rc4")==0) {
-	text->cipher_enc=enc_rc4;
+	/*	text->cipher_enc=enc_rc4;
 	text->cipher_dec=dec_rc4;
-	text->cipher_init=init_rc4;
+	text->cipher_init=init_rc4;*/
       } else {
 	VL(("Invalid or no cipher chosen\n"));
 	result = SASL_FAIL;
@@ -1970,16 +1790,15 @@ static int
     VL(("Digest-MD5 requires a domain\n"));
     return SASL_NOTDONE;
   }
-  realm = sparams->local_domain;
+  realm = (char *) sparams->local_domain;
   realmlen = strlen(realm);
   userlen = strlen(user);
 
   DigestCalcSecret(sparams->utils,
 		   (unsigned char *) user,
 		   (unsigned char *) sparams->local_domain,
-		   pass,
+		   (char *) pass,
 		   passlen,
-		   TRUE,	/* use UTF-8 */
 		   HA1);
 
   /* construct sec to store on disk */
@@ -2648,8 +2467,12 @@ c_continue_step(void *conn_context,
     params->utils->free(qop);
 
     /* if client didn't set use strongest layer */
-    if ((secprops.max_ssf > 1) &&
+    if ((secprops.min_ssf > 1) &&
 	((protection & DIGEST_PRIVACY) == DIGEST_PRIVACY)) {
+	VL(("Server doesn't support privacy layer\n"));
+	result = SASL_FAIL;
+	goto FreeAllocatedMem;
+
       /* Client request encryption, server support it */
       /* xxx encryption */
       
@@ -2663,15 +2486,9 @@ c_continue_step(void *conn_context,
       text->cipher_dec=dec_des;
       text->cipher_init=init_des;*/
       
-      text->cipher_enc=enc_rc4;
+      /*      text->cipher_enc=enc_rc4;
       text->cipher_dec=dec_rc4;
-      text->cipher_init=init_rc4;
-
-    
-      /*    des_ecb_encrypt((des_cblock *)sout,
-		    (des_cblock *)sout,
-		    text->init_keysched,
-		    DES_ENCRYPT);*/
+      text->cipher_init=init_rc4;*/
 
       VL(("Using encryption layer\n"));
     } else if ((secprops.min_ssf <= 1) && (secprops.max_ssf >= 1) &&
@@ -2744,7 +2561,6 @@ c_continue_step(void *conn_context,
 				  qop,
 				  digesturi,
 				  text->password,
-				  IsUTF8,
 				  MAGIC_IC,
 				  MAGIC_CC,
 				  &text->response_value);

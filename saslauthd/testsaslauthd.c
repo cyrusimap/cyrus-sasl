@@ -63,8 +63,6 @@
 /* make utils.c happy */
 int flags = LOG_USE_STDERR;
 
-extern int errno;
-
 /*
  * Keep calling the read() system call with 'fd', 'buf', and 'nbyte'
  * until all the data is read in or an error occurs.

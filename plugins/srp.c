@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.7 2001/12/07 18:52:04 ken3 Exp $
+ * $Id: srp.c,v 1.8 2001/12/09 04:03:18 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -102,7 +102,6 @@ typedef struct layer_option_s {
 } layer_option_t;
 
 static layer_option_t integrity_options[] = {
-    /* can't advertise integrity w/o HMAC-SHA-1 */
     {"HMAC-SHA-1",	0x1, 0,	"sha1"},
     {"HMAC-RIPEMD-160",	0x2, 0,	"rmd160"},
     {"HMAC-MD5",	0x4, 0,	"md5"},
@@ -1419,7 +1418,8 @@ FindBest(int available, layer_option_t *opts)
     while (opts->name) {
 	/*VL(("FindBest %d %d\n",available, opts->bit));*/
 
-	if (available & opts->bit) {
+	if ((available & opts->bit) &&
+	    EVP_get_digestbyname(opts->openssl_name)) {
 	    return opts;
 	}
 
@@ -1502,8 +1502,14 @@ CreateServerOptions(const sasl_utils_t *utils,
     /* Add integrity options */
     optlist = integrity_options;
     while(optlist->name) {
-	if ((props->min_ssf <= 1) && (props->max_ssf >= 1)) {
+	if ((props->min_ssf <= 1) && (props->max_ssf >= 1) &&
+	    EVP_get_digestbyname(optlist->openssl_name)) {
 	    opts.integrity |= optlist->bit;
+	}
+	/* Can't advertise integrity w/o HMAC-SHA-1 (mandatory) */
+	else if (!strcasecmp(optlist->name, "HMAC-SHA-1")) {
+	    opts.integrity = 0;
+	    break;
 	}
 	optlist++;
     }
@@ -1670,14 +1676,14 @@ static void srp_both_mech_dispose(void *conn_context,
   if (text->buffer)           utils->free(text->buffer);
 
   utils->free(text);
-
-  EVP_cleanup();
 }
 
 static void srp_both_mech_free(void *global_context,
 			       const sasl_utils_t *utils)
 {
     if(global_context) utils->free(global_context);  
+
+    EVP_cleanup();
 }
 
 
@@ -2694,7 +2700,7 @@ static const sasl_server_plug_t srp_server_plugins[] =
     NULL			/* spare */
   },
   {
-    "SRP-MD5",	        /* mech_name */
+    "SRP-MD5",			/* mech_name */
     0,				/* max_ssf */
     SASL_SEC_NOPLAINTEXT,	/* security_flags */
     SASL_FEAT_WANT_CLIENT_FIRST,/* features */

@@ -1,3 +1,8 @@
+2001-12-08  Ken Murchison <ken@oceana.com>
+	* plugins/srp.c: make sure we have the HMAC before trying to use it
+	* plugins/srp.c: don't advertise server integrity w/o HMAC-SHA-1
+	* plugins/srp.c: move EVP_cleanup() to mech_free so mech can be reused
+
 2001-12-07  Ken Murchison <ken@oceana.com>
 	* configure.in: SRP now requires OpenSSL
 	* plugins/srp.c: migrated to OpenSSL's MDA/cipher abstraction API 

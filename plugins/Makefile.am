@@ -45,15 +45,15 @@
 
 # Library version info - here at the top, for sanity
 # CURRENT:REVISION:AGE
-plain_version = 1:12:0
-anonymous_version = 1:13:0
-kerberos4_version = 1:13:0
-crammd5_version = 1:13:0
-scrammd5_version = 1:6:0
-gssapiv2_version = 1:12:0
-digestmd5_version = 0:14:0
-login_version = 0:3:0
-srp_version = 0:0:0
+plain_version = 1:13:0
+anonymous_version = 1:14:0
+kerberos4_version = 1:14:0
+crammd5_version = 1:14:0
+scrammd5_version = 1:7:0
+gssapiv2_version = 1:13:0
+digestmd5_version = 0:15:0
+login_version = 0:4:0
+srp_version = 0:1:0
 
 INCLUDES=-I$(top_srcdir)/include
 

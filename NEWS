@@ -1,3 +1,8 @@
+New in 1.5.20
+-------------
+* bug fixes
+* LOGIN mechanism can finish in less roundtrips
+
 New in 1.5.19
 -------------
 * Initial srp work

@@ -1,5 +1,7 @@
 2000-04-26  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
+	* sasl: releasing 1.5.20
+
 	* plugins/login.c: patch from Rainer Schoepf
  	<schoepf@uni-mainz.de> for initial client send of data
 

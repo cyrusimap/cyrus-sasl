@@ -31,7 +31,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: mechanisms.c,v 1.4 2001/12/04 02:06:55 rjs3 Exp $"
+#ident "$Id: mechanisms.c,v 1.5 2002/04/25 18:31:52 leg Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -69,7 +69,7 @@ authmech_t mechanisms[] =
     {	"kerberos4",	auth_krb4_init,		auth_krb4 },
 #endif /* AUTH_KRB4 */
 #ifdef AUTH_KRB5
-    {	"kerberos5",	0,			auth_krb5 },
+    {	"kerberos5",	auth_krb5_init,		auth_krb5 },
 #endif /* AUTH_KRB5 */
 #ifdef AUTH_PAM
     {	"pam",		0,			auth_pam },

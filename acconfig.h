@@ -299,7 +299,7 @@ struct sockaddr_storage {
 #define	AF_INET6	AF_MAX
 #endif
 
-#ifndef HAVE_GETADDRINFO
+#if !defined(HAVE_GETADDRINFO) || !defined(HAVE_GETNAMEINFO)
 #define	getaddrinfo	sasl_getaddrinfo
 #define	freeaddrinfo	sasl_freeaddrinfo
 #define	getnameinfo	sasl_getnameinfo

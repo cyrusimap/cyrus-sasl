@@ -113,7 +113,6 @@ typedef unsigned char HASH[HASHLEN + 1];
 #define HASHHEXLEN 32
 typedef unsigned char HASHHEX[HASHHEXLEN + 1];
 
-
 #define CIPHER_DES   2
 #define CIPHER_3DES  4
 #define CIPHER_RC4   8
@@ -159,6 +158,8 @@ typedef struct context {
   int state;			/* state in the authentication we are in */
   int i_am;			/* are we the client or server? */
 
+  sasl_ssf_t limitssf, requiressf; /* application defined bounds, for the
+				      server */
   unsigned char  *nonce;
   int             noncelen;
 
@@ -221,6 +222,16 @@ typedef struct context {
 #endif /* WITH_SSL_RC4 */
 
 } context_t;
+
+struct digest_cipher {
+    char *name;
+    sasl_ssf_t ssf;
+    int n; /* bits to make privacy key */
+    
+    cipher_function_t *cipher_enc;
+    cipher_function_t *cipher_dec;
+    cipher_init_t *cipher_init;
+};
 
 /* this is from the rpc world */
 #define IN
@@ -960,13 +971,14 @@ digest_strdup(sasl_utils_t * utils, const char *in, char **out, int *outlen)
  *****************************/
 
 
-static int dec_3des(context_t *text,
+static int dec_3des(void *v,
 		   const char *input,
 		   unsigned inputlen,
 		   unsigned char digest[16],
 		   char *output,
 		   unsigned *outputlen)
 {
+    context_t *text = (context_t *) v;
     unsigned int lup;
 
     for (lup=0;lup<inputlen;lup+=8)
@@ -1000,13 +1012,14 @@ static int dec_3des(context_t *text,
     return SASL_OK;
 }
 
-int enc_3des(struct context *text,
+int enc_3des(void *v,
 	     const char *input,
 	     unsigned inputlen,
 	     unsigned char digest[16],
 	     char *output,
 	     unsigned *outputlen)
 {
+  context_t *text = (context_t *) v;
   int len;
   int lup;
   int paddinglen;
@@ -1046,7 +1059,7 @@ int enc_3des(struct context *text,
   return SASL_OK;
 }
 
-static int init_3des(context_t *text, 
+static int init_3des(void *v, 
 		     sasl_utils_t *utils __attribute__((unused)), 
 		     char enckey[16],
 		     char deckey[16])
@@ -1054,6 +1067,8 @@ static int init_3des(context_t *text,
 
 
 {
+    context_t *text = (context_t *) v;
+
     des_key_sched((des_cblock *) enckey, text->keysched_enc);
     des_key_sched((des_cblock *) deckey, text->keysched_dec);
     
@@ -1070,13 +1085,14 @@ static int init_3des(context_t *text,
  *
  *****************************/
 
-static int dec_des(context_t *text,
+static int dec_des(void *v, 
 		   const char *input,
 		   unsigned inputlen,
 		   unsigned char digest[16],
 		   char *output,
 		   unsigned *outputlen)
 {
+  context_t *text = (context_t *) v;
   unsigned int lup;
 
   for (lup=0;lup<inputlen;lup+=8)
@@ -1097,13 +1113,14 @@ static int dec_des(context_t *text,
   return SASL_OK;
 }
 
-static int enc_des(context_t *text,
+static int enc_des(void *v, 
 		   const char *input,
 		   unsigned inputlen,
 		   unsigned char digest[16],
 		   char *output,
 		   unsigned *outputlen)
 {
+  context_t *text = (context_t *) v;
   int len;
   int lup;
   int paddinglen;
@@ -1132,11 +1149,13 @@ static int enc_des(context_t *text,
   return SASL_OK;
 }
 
-static int init_des(context_t *text, 
+static int init_des(void *v,
 		    sasl_utils_t *utils __attribute__((unused)), 
 		    char enckey[16],
 		    char deckey[16])
 {
+    context_t *text = (context_t *) v;
+
     des_key_sched((des_cblock *) enckey, text->keysched_enc);
     des_key_sched((des_cblock *) deckey, text->keysched_dec);
     
@@ -1235,48 +1254,66 @@ init_rc4(void *v,
 }
 
 static int
-dec_rc4(context_t *text,
+dec_rc4(void *v, 
 	const char *input,
 	unsigned inputlen,
 	unsigned char digest[16],
 	char *output,
 	unsigned *outputlen)
 {
-  /* decrypt the text part */
-  RC4(text->rc4_dec_context, inputlen-10, (unsigned char *) input, output);
+    context_t *text = (context_t *) v;
 
-  /* decrypt the HMAC part */
-  RC4(text->rc4_dec_context, 10, (unsigned char *) input+(inputlen-10), (char *) digest);
+    /* decrypt the text part */
+    RC4(text->rc4_dec_context, inputlen-10, (unsigned char *) input, output);
 
-  /* no padding so we just subtract the HMAC to get the text length */
-  *outputlen=inputlen-10;
+    /* decrypt the HMAC part */
+    RC4(text->rc4_dec_context, 10, (unsigned char *) input+(inputlen-10), 
+	(char *) digest);
 
-  return SASL_OK;
+    /* no padding so we just subtract the HMAC to get the text length */
+    *outputlen=inputlen-10;
+
+    return SASL_OK;
 }
 
 static int
-enc_rc4(context_t *text,
+enc_rc4(void *v,
 	const char *input,
 	unsigned inputlen,
 	unsigned char digest[16],
 	char *output,
 	unsigned *outputlen)
 {
-  /* pad is zero */
-  *outputlen = inputlen+10;
+    context_t *text = (context_t *) v;
 
-  /* encrypt the text part */
-  RC4(text->rc4_enc_context, inputlen, (unsigned char *) input, output);
+    /* pad is zero */
+    *outputlen = inputlen+10;
 
-  /* encrypt the HMAC part */
-  RC4(text->rc4_enc_context, 10, (unsigned char *) digest, (output)+inputlen);
+    /* encrypt the text part */
+    RC4(text->rc4_enc_context, inputlen, (unsigned char *) input, output);
 
-  return SASL_OK;
+    /* encrypt the HMAC part */
+    RC4(text->rc4_enc_context, 10, (unsigned char *) digest, 
+	(output)+inputlen);
+
+    return SASL_OK;
 }
 
 #endif /* WITH_SSL_RC4 */
 
-
+struct digest_cipher available_ciphers[] =
+{
+#ifdef WITH_RC4
+    { "rc4-40", 40, 5, &enc_rc4, &dec_rc4, &init_rc4 },
+    { "rc4", 128, 16, &enc_rc4, &dec_rc4, &init_rc4 },
+    { "rc4-56", 56, 7, &enc_rc4, &dec_rc4, &init_rc4 },
+#endif
+#ifdef WITH_DES
+    { "des", 55, 16, &enc_des, &dec_des, &init_des },
+    { "3des", 112, 16, &enc_3des, &dec_3des, &init_3des },
+#endif
+    { NULL, 0, 0, NULL, NULL, NULL }
+};
 
 static int create_layer_keys(context_t *text,sasl_utils_t *utils,HASH key, int keylen,
 			     char enckey[16], char deckey[16])
@@ -1917,87 +1954,46 @@ server_continue_step(void *conn_context,
     char           *charset = "utf-8";
 
     char qop[1024], cipheropts[1024];
-    sasl_ssf_t requiressf, limitssf;
+    struct digest_cipher *cipher;
     int added_conf = 0;
 
     if (sparams->props.max_ssf < sparams->external_ssf) {
-	limitssf = 0;
+	text->limitssf = 0;
     } else {
-	limitssf = sparams->props.max_ssf - sparams->external_ssf;
+	text->limitssf = sparams->props.max_ssf - sparams->external_ssf;
     }
     if (sparams->props.min_ssf < sparams->external_ssf) {
-	requiressf = 0;
+	text->requiressf = 0;
     } else {
-	requiressf = sparams->props.min_ssf - sparams->external_ssf;
+	text->requiressf = sparams->props.min_ssf - sparams->external_ssf;
     }
 
     /* what options should we offer the client? */
     qop[0] = '\0';
     cipheropts[0] = '\0';
-    if (requiressf == 0) {
+    if (text->requiressf == 0) {
 	if (*qop) strcat(qop, ",");
 	strcat(qop, "auth");
     }
-    if (requiressf <= 1 && limitssf >= 1) {
+    if (text->requiressf <= 1 && text->limitssf >= 1) {
 	if (*qop) strcat(qop, ",");
 	strcat(qop, "auth-int");
     }
-
-#ifdef WITH_RC4
-    if (requiressf <= 40 && limitssf >= 40) { /* allow rc4-40? */
-	if (!added_conf) {
-	    if (*qop) strcat(qop, ",");
-	    strcat(qop, "auth-conf");
-	    added_conf = 1;
+    
+    cipher = available_ciphers;
+    while (cipher->name) {
+	/* do we allow this particular cipher? */
+	if (text->requiressf <= cipher->ssf && text->limitssf >= cipher->ssf) {
+	    if (!added_conf) {
+		if (*qop) strcat(qop, ",");
+		strcat(qop, "auth-conf");
+		added_conf = 1;
+	    }
+	    if (*cipheropts) strcat(cipheropts, ",");
+	    strcat(cipheropts, cipher->name);
 	}
-	if (*cipheropts) strcat(cipheropts, ",");
-	strcat(cipheropts, "rc4-40");
+	cipher++;
     }
-#endif
-#ifdef WITH_DES
-    if (requiressf <= 55 && limitssf >= 55) { /* allow des? */
-	if (!added_conf) {
-	    if (*qop) strcat(qop, ",");
-	    strcat(qop, "auth-conf");
-	    added_conf = 1;
-	}
-	if (*cipheropts) strcat(cipheropts, ",");
-	strcat(cipheropts, "des");
-    }
-#endif
-#ifdef WITH_RC4
-    if (requiressf <= 56 && limitssf >= 56) { /* allow rc4-56? */
-	if (!added_conf) {
-	    if (*qop) strcat(qop, ",");
-	    strcat(qop, "auth-conf");
-	    added_conf = 1;
-	}
-	if (*cipheropts) strcat(cipheropts, ",");
-	strcat(cipheropts, "rc4-56");
-    }
-#endif
-#ifdef WITH_DES
-    if (requiressf <= 112 && limitssf >= 112) { /* allow 3des? */
-	if (!added_conf) {
-	    if (*qop) strcat(qop, ",");
-	    strcat(qop, "auth-conf");
-	    added_conf = 1;
-	}
-	if (*cipheropts) strcat(cipheropts, ",");
-	strcat(cipheropts, "3des");
-    }
-#endif
-#ifdef WITH_RC4
-    if (requiressf <= 128 && limitssf >= 128) { /* allow rc4 128 */
-	if (!added_conf) {
-	    if (*qop) strcat(qop, ",");
-	    strcat(qop, "auth-conf");
-	    added_conf = 1;
-	}
-	if (*cipheropts) strcat(cipheropts, ",");
-	strcat(cipheropts, "rc4");
-    }
-#endif
 
     if (*qop == '\0') {
 	/* we didn't allow anything?!? we'll return SASL_TOOWEAK, since
@@ -2266,77 +2262,64 @@ server_continue_step(void *conn_context,
     }
 
     /* defaulting qop to "auth" if not specified */
-    if (qop == NULL)
-      digest_strdup(sparams->utils, "auth", &qop, NULL);      
+    if (qop == NULL) {
+	digest_strdup(sparams->utils, "auth", &qop, NULL);      
+    }
 
     /* check which layer/cipher to use */
-    if (strcmp(qop, "auth-conf") == 0) {
+    if ((!strcmp(qop, "auth-conf")) && (cipher != NULL)) {
+	/* see what cipher was requested */
+	struct digest_cipher *cptr;
 
-#ifdef WITH_DES
-      /* for when privacy supported */
-      VL(("Client requested privacy layer\n"));
-      VL(("Client cipher=%s\n",cipher));
-      if (strcmp(cipher,"des")==0)
-      {
-	text->cipher_enc=(cipher_function_t *) &enc_des;
-	text->cipher_dec=(cipher_function_t *) &dec_des;
-	text->cipher_init=(cipher_init_t *) &init_des;	
-	oparams->mech_ssf = 55;
-	n=16; /* number of bits to make privacy key */
+	VL(("Client requested privacy layer\n"));
+	VL(("Client cipher=%s\n",cipher));
 
-      } else if (strcmp(cipher,"3des")==0) {
-	text->cipher_enc=(cipher_function_t *) &enc_3des;
-	text->cipher_dec=(cipher_function_t *) &dec_3des;
-	text->cipher_init=(cipher_init_t *) &init_3des;
-	oparams->mech_ssf = 112;
-	n=16;
-#else
-      if (0) {
-#endif /* WITH_DES */
+	cptr = available_ciphers;
+	while (cptr->name) {
+	    /* find the cipher requested & make sure it's one we're happy
+	       with by policy */
+	    if (!strcmp(cipher, cptr->name) && 
+		text->requiressf <= cptr->ssf && text->limitssf >= cptr->ssf) {
+		/* found it! */
+		break;
+	    }
+	    cptr++;
+	}
 
-#ifdef WITH_RC4
-      } else if (strcmp(cipher,"rc4")==0) {
-	text->cipher_enc=(cipher_function_t *) &enc_rc4;
-	text->cipher_dec=(cipher_function_t *) &dec_rc4;
-	text->cipher_init=&init_rc4;
-	oparams->mech_ssf = 128;
- 	n = 16;
-      } else if (strcmp(cipher,"rc4-40")==0) {
- 	text->cipher_enc=(cipher_function_t *) &enc_rc4;
- 	text->cipher_dec=(cipher_function_t *) &dec_rc4;
- 	text->cipher_init=&init_rc4;
- 	oparams->mech_ssf = 40;
- 	n = 5;
-      } else if (strcmp(cipher,"rc4-56")==0) {
- 	text->cipher_enc=(cipher_function_t *) &enc_rc4;
- 	text->cipher_dec=(cipher_function_t *) &dec_rc4;
- 	text->cipher_init=&init_rc4;
- 	oparams->mech_ssf = 56;
- 	n = 7;
-#endif /* WITH_RC4 */
+	if (cptr->name) {
+	    text->cipher_enc = cptr->cipher_enc;
+	    text->cipher_dec = cptr->cipher_dec;
+	    text->cipher_init = cptr->cipher_init;
+	    oparams->mech_ssf = cptr->ssf;
+	    n = cptr->n;
+	} else {
+	    /* erg? client requested something we didn't advertise! */
+	    sparams->utils->log(sparams->utils->conn, SASL_LOG_WARNING,
+			    "DIGEST_MD5", SASL_FAIL, 0,
+		    "protocol violation: client requested invalid cipher");
+	    result = SASL_FAIL;
+	    goto FreeAllMem;
+	}
 
-      } else {
-	VL(("Invalid or no cipher chosen\n"));
+	oparams->encode=&privacy_encode;
+	oparams->decode=&privacy_decode;
+    } else if (!strcmp(qop, "auth-int") &&
+	       text->requiressf <= 1 && text->limitssf >= 1) {
+	VL(("Client requested integrity layer\n"));
+	oparams->encode = &integrity_encode;
+	oparams->decode = &integrity_decode;
+	oparams->mech_ssf = 1;
+    } else if (!strcmp(qop, "auth") && text->requiressf == 0) {
+	VL(("Client requested no layer\n"));
+	oparams->encode = NULL;
+	oparams->decode = NULL;
+	oparams->mech_ssf = 0;
+    } else {
+	sparams->utils->log(sparams->utils->conn, SASL_LOG_WARNING,
+			    "DIGEST_MD5", SASL_FAIL, 0,
+                          "protocol violation: client requested invalid qop");
 	result = SASL_FAIL;
 	goto FreeAllMem;
-      }     
-      oparams->encode=&privacy_encode;
-      oparams->decode=&privacy_decode;
-      
-    } else if (strcmp(qop, "auth-int") == 0) {
-      VL(("Client requested integrity layer\n"));
-      oparams->encode = &integrity_encode;
-      oparams->decode = &integrity_decode;
-      oparams->mech_ssf = 1;
-    } else if (strcmp(qop, "auth") == 0) {
-      VL(("Client requested no layer\n"));
-      oparams->encode = NULL;
-      oparams->decode = NULL;
-      oparams->mech_ssf = 0;
-    } else {
-      VL(("Client requested unknown layer\n"));
-      result = SASL_FAIL;
-      goto FreeAllMem;
     }
 
     /*

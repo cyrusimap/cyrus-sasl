@@ -59,7 +59,7 @@ sasl_client_new \- Create a new client authentication object
 .SH DESCRIPTION
 
 .B sasl_client_new()
-creates a new SASL context. This context will be used for all SASL calls for one connection. It handles both authentication and integrity/encyption layers after authentication.
+creates a new SASL context. This context will be used for all SASL calls for one connection. It handles both authentication and integrity/encryption layers after authentication.
 .PP
 .I service
 is the registered name of the service (usually the protocol name) using SASL (e.g. "imap").
@@ -85,7 +85,7 @@ is a list of client interactions supported that is unique to this connection. If
 are connection flags (see below)
 .PP
 .I pconn
-is the conection context allocated by the library. This structure will be used for all future SASL calls for this connection.
+is the connection context allocated by the library. This structure will be used for all future SASL calls for this connection.
 .PP
 .B Connection Flags
 .PP

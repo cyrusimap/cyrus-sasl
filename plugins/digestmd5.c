@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.119 2002/05/01 17:27:03 ken3 Exp $
+ * $Id: digestmd5.c,v 1.120 2002/05/02 21:54:58 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -103,7 +103,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.119 2002/05/01 17:27:03 ken3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.120 2002/05/02 21:54:58 ken3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -2532,9 +2532,9 @@ digestmd5_server_mech_step(void *conn_context,
 static sasl_server_plug_t digestmd5_server_plugins[] =
 {
     {
-	"DIGEST-MD5",
+	"DIGEST-MD5",			/* mech_name */
 #ifdef WITH_RC4
-	128,				/* max ssf */
+	128,				/* max_ssf */
 #elif WITH_DES
 	112,
 #else 
@@ -2542,18 +2542,18 @@ static sasl_server_plug_t digestmd5_server_plugins[] =
 #endif
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOANONYMOUS
-	| SASL_SEC_MUTUAL_AUTH,
-	0,
-	NULL,
-	&digestmd5_server_mech_new,
-	&digestmd5_server_mech_step,
-	&digestmd5_both_mech_dispose,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL
+	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
+	0,				/* features */
+	NULL,				/* glob_context */
+	&digestmd5_server_mech_new,	/* mech_new */
+	&digestmd5_server_mech_step,	/* mech_step */
+	&digestmd5_both_mech_dispose,	/* mech_dispose */
+	NULL,				/* mech_free */
+	NULL,				/* setpass */
+	NULL,				/* user_query */
+	NULL,				/* idle */
+	NULL,				/* mech avail */
+	NULL				/* spare */
     }
 };
 

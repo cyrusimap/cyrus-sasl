@@ -1,4 +1,4 @@
-/* $Id: server.c,v 1.8 2004/03/09 17:35:32 rjs3 Exp $ */
+/* $Id: server.c,v 1.9 2004/03/29 14:56:40 rjs3 Exp $ */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
  *
@@ -175,6 +175,7 @@ int mysasl_negotiate(FILE *in, FILE *out, sasl_conn_t *conn)
     if (mech) {
 	dprintf(2, "forcing use of mechanism %s\n", mech);
 	data = strdup(mech);
+	len = strlen(data);
     } else {
 	int count;
 

@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.15 2002/01/04 20:42:01 ken3 Exp $
+ * $Id: srp.c,v 1.16 2002/01/07 20:18:41 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -56,7 +56,9 @@
 #include <openssl/hmac.h>
 
 #include <sasl.h>
+#if OPENSSL_VERSION_NUMBER < 0x00907000L
 #define MD5_H  /* suppress internal MD5 */
+#endif
 #include <saslplug.h>
 
 #include "plugin_common.h"
@@ -1168,12 +1170,15 @@ CalculateK_client(context_t *text,
 
     /* base = (B - g^x) % N */
     BN_init(&base);
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L
+    BN_mod_sub(&base, &text->B, &gx, &text->N, ctx);
+#else
     BN_sub(&base, &text->B, &gx);
-    /* do mod N - can be replaced with BN_mod_sub() */
     BN_mod(&base, &base, &text->N, ctx);
     if (BigIntCmpWord(&base, 0) < 0) {
 	BN_add(&base, &base, &text->N);
     }
+#endif
 
     /* S = base^aux % N */
     BN_init(&S);
@@ -2060,8 +2065,12 @@ ServerCalculateK(context_t *text, BIGNUM *v,
 	/* B = (v + g^b) % N */
 	BN_init(B);
 	BN_mod_exp(B, g, &b, N, ctx);
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L
+	BN_mod_add(B, B, v, N, ctx);
+#else
 	BN_add(B, B, v);
 	BN_mod(B, B, N, ctx);
+#endif
 
 	/* u is first 32 bits of B hashed; MSB first */
 	r = HashBigInt(text, B, hash, NULL);
@@ -2841,7 +2850,7 @@ srp_sha1_setpass(void *glob_context __attribute__((unused)),
 }
 
 static int
-srp_cmd160_setpass(void *glob_context __attribute__((unused)),
+srp_rmd160_setpass(void *glob_context __attribute__((unused)),
 		   sasl_server_params_t *sparams,
 		   const char *userstr,
 		   const char *pass,

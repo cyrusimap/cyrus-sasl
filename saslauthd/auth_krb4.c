@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb4.c,v 1.7 2002/01/14 17:03:55 rjs3 Exp $"
+#ident "$Id: auth_krb4.c,v 1.8 2002/01/14 17:17:57 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -168,7 +168,7 @@ auth_krb4 (
     /* VARIABLES */
     char aname[ANAME_SZ];		/* Kerberos principal */
     const char *realm;		        /* Kerberos realm to authenticate in */
-    char pidstr[128];
+    static char pidstr[128];
     static unsigned int baselen = 0, loginlen = 0;
     int rc;				/* return code */
     char tf_name[TF_NAME_LEN];		/* Ticket file name */

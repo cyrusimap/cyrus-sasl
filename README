@@ -1,4 +1,4 @@
-$Id: README,v 1.13 1999/08/17 21:25:56 leg Exp $
+$Id: README,v 1.14 1999/08/21 03:05:14 leg Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication. See RFC 2222 for more
@@ -9,30 +9,6 @@ ftp://ftp.andrew.cmu.edu/pub/cyrus-mail
 
 There's a mailing list for Cyrus SASL.  Subscribe by sending a message
 to majordomo@lists.andrew.cmu.edu with the body "subscribe cyrus-sasl".
-
-FEATURES
---------
-The following mechanisms are included in this distribution:
-ANONYMOUS
-CRAM-MD5
-DIGEST-MD5
-GSSAPI (MIT Kerberos 5 or Heimdal Kerberos 5)
-KERBEROS_V4
-PLAIN
-
-The library uses a gdbm or ndbm file on the server side to store
-per-user authentication secrets.  The utility saslpasswd has been
-included for adding authentication secrets to the file.
-
-PLAIN can either check /etc/passwd, Kerberos V4, use PAM, or the sasl
-secrets database.  By default PAM is used if PAM is found, then
-Kerberos, finally /etc/passwd (non-shadow).  This is tweakable in
-the configuration file.  Please see "docs/sysadmin.html".
-
-The sample directory contains two programs which provide a reference
-for using the library, as well as making it easy to test a mechanism
-on the command line.  See "docs/programming.html" for more
-information.
 
 UPGRADING FROM PREVIOUS VERSIONS
 --------------------------------
@@ -58,6 +34,30 @@ Upgrading from versions 1.5.4 or earlier:
 
   Replace "platypus.cc.cmu.edu" with your realm (usually just your
   hostname).
+
+FEATURES
+--------
+The following mechanisms are included in this distribution:
+ANONYMOUS
+CRAM-MD5
+DIGEST-MD5
+GSSAPI (MIT Kerberos 5 or Heimdal Kerberos 5)
+KERBEROS_V4
+PLAIN
+
+The library uses a gdbm or ndbm file on the server side to store
+per-user authentication secrets.  The utility saslpasswd has been
+included for adding authentication secrets to the file.
+
+PLAIN can either check /etc/passwd, Kerberos V4, use PAM, or the sasl
+secrets database.  By default PAM is used if PAM is found, then
+Kerberos, finally /etc/passwd (non-shadow).  This is tweakable in
+the configuration file.  Please see "docs/sysadmin.html".
+
+The sample directory contains two programs which provide a reference
+for using the library, as well as making it easy to test a mechanism
+on the command line.  See "docs/programming.html" for more
+information.
 
 INSTALLATION
 ------------
@@ -109,8 +109,6 @@ integrity protection are disabled.  It is the view of the authors that
 the current DIGEST-MD5 spec is ambiguous in regards to encryption.
 The encryption implemented in the code generates RC4 in depth and thus
 should not be used.
-
-* DIGEST-MD5 leaks memory.
 
 * The RC4 library is not always correctly found and dynamically
 loaded.  This isn't regarded as a huge problem, since we aren't

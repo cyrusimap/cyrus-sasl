@@ -1,3 +1,10 @@
+New in 1.5.5
+------------
+* Bug fixes
+* sasldb plaintext support (database format changed!!!)
+* Handles multiple realms in DIGEST
+* New Windows compatibility (tested!)
+
 New in 1.5.3
 ------------
 * Bug fixes

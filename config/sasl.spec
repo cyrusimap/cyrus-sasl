@@ -1,6 +1,6 @@
 Summary: SASL API implementation
 Name: sasl
-Version: 1.5.4
+Version: 1.5.5
 Release: 1
 Copyright: CMU
 Group: Libraries

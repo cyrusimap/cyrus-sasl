@@ -47,7 +47,10 @@ settings to configure the system on various platforms:
 
 ----------------------------------------------------------------------
 IF YOU ARE USING SASL UNDER Win32 OR HAVE COMPILED IT, 
-PLEASE LET US KNOW!
+PLEASE LET US KNOW! 
+
+We've tested the lastest version under Windows and are eager to see
+other people use it!
 
 Installation under Win32:
 

@@ -23,7 +23,7 @@ case `uname` in
 esac
 
 MAKE=gmake
-LNCOMMAND="${SRCDIR}/configure --prefix=/usr/local --enable-cmulocal --disable-java"
+LNCOMMAND="${SRCDIR}/configure --prefix=/usr/local --enable-cmulocal"
 CPPFLAGS=-I/usr/local/include/gssapi
 
 export CC CFLAGS CPPFLAGS

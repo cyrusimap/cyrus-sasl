@@ -1,3 +1,7 @@
+2000-03-21  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* java/: Added with client side of javasasl
+
 2000-03-14  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
 	* lib/client.c,server.c,common.c: thread safe; see README file

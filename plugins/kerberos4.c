@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.42 1999/11/11 05:12:05 leg Exp $
+ * $Id: kerberos4.c,v 1.43 1999/11/11 16:00:47 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -431,21 +431,21 @@ static int integrity_decode(void *context, const char *input, unsigned inputlen,
 }
 
 static int
-new_text(sasl_client_params_t *p, context_t **text)
+new_text(sasl_utils_t *utils, context_t **text)
 {
-    context_t *ret = (context_t *) p->utils->malloc(sizeof(context_t));
+    context_t *ret = (context_t *) utils->malloc(sizeof(context_t));
 
     if (ret==NULL) return SASL_NOMEM;
 
-    ret->malloc = p->utils->malloc;
-    ret->realloc = p->utils->realloc;
-    ret->free = p->utils->free;
+    ret->malloc = utils->malloc;
+    ret->realloc = utils->realloc;
+    ret->free = utils->free;
 
     ret->buffer = NULL;
     ret->bufsize = 0;
 
-    ret->time_sec=0;
-    ret->time_5ms=0;
+    ret->time_sec = 0;
+    ret->time_5ms = 0;
 
     ret->state = 0;  
     *text = ret;
@@ -464,7 +464,7 @@ server_start(void *glob_context __attribute__((unused)),
   if (errstr)
       *errstr = NULL;
 
-  return new_text(sparams, (context_t **) conn);
+  return new_text(sparams->utils, (context_t **) conn);
 }
 
 
@@ -840,7 +840,7 @@ static int client_start(void *glob_context __attribute__((unused)),
 {
   VL(("KERBEROS_V4 Client start\n"));
 
-  return new_text(params, (context_t **) conn);
+  return new_text(params->utils, (context_t **) conn);
 }
 
 static int client_continue_step (void *conn_context,
@@ -1201,7 +1201,7 @@ static const sasl_client_plug_t client_plugins[] =
     "KERBEROS_V4",
     KRB_DES_SECURITY_BITS,
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOACTIVE | SASL_SEC_NOANONYMOUS,
-    &client_required_prompts,
+    client_required_prompts,
     NULL,
     &client_start,
     &client_continue_step,

@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Options for Cyrus SASL</title>
-<!-- $Id: options.html,v 1.27 2003/10/20 14:16:51 rjs3 Exp $ -->
+<!-- $Id: options.html,v 1.28 2004/01/07 16:35:07 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <h1>Options for Cyrus SASL</h1>
@@ -15,6 +15,11 @@ way to limit what mechanisms a given application will use.</p>
 
 <TABLE BORDER WIDTH=95%>
 <TR><TH>Option</TH><TH>Used By</TH><TH>Description</TH><TH>Default</TH></TR>
+<TR>
+<TD>authdaemond_path</TD><TD>SASL Library</TD> 
+<TD>Path to Courier-IMAP authdaemond's unix socket.
+Only applicable when pwcheck_method is set to authdaemond.</TD><TD>/dev/null</TD>
+</TR>
 <TR>
 <TD>auto_transition</TD><TD>SASL Library</TD> 
 <TD>When set to 'yes' or 'noplain',
@@ -79,7 +84,8 @@ will be proxied.</TD>
 <TD>pwcheck_method</TD><TD>SASL Library</TD>
 <TD>Whitespace separated list of mechanisms used to verify passwords,
 used by sasl_checkpass (possible values: 'auxprop', 'saslauthd',
-'pwcheck', and 'alwaystrue' [if compiled with <tt>--enable-alwaystrue</tt>])
+'pwcheck', 'authdaemond' [if compiled with <tt>--with-authdaemond</tt>])
+and 'alwaystrue' [if compiled with <tt>--enable-alwaystrue</tt>])
 </TD><TD>auxprop</TD>
 </TR>
 <TR>

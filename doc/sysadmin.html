@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.47 2003/10/01 19:07:56 rjs3 Exp $ -->
+<!-- $Id: sysadmin.html,v 1.48 2004/01/07 16:35:07 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -169,7 +169,27 @@ mind that your PAM configuration will need to be configured for each service
 name that is using saslauthd for authentication. Common service names
 are &quot;imap&quot;, &quot;sieve&quot;, and &quot;smtp&quot;.
 
-<dt><i>pwcheck</i><dd> checks passwords with the use of a separate,
+<dt><i>Courier-IMAP authdaemond</i>
+
+<dd> contacts Courier-IMAP's <tt>authdaemond</tt> daemon to check passwords.
+This daemon is simliar in functionality to <tt>saslauthd</tt>, and is shipped
+separately with the <a href="http://www.courier-mta.org">Courier</a> mail server.
+
+<p>Note: this feature is <b>not</b> compiled in the library by default, and its 
+provided for sites with custom/special requirements only (because the
+internal authentication protocol its not documented anywhere so it could
+change at any time).  We have tested against the authdaemond included with
+Courier-IMAP 2.2.1.
+
+<p>To enable <tt>authdaemond</tt> support, pass <tt>--with-authdaemon</tt> to the 
+configuration script, set pwcheck_method to ``authdaemond'' and point 
+authdaemon_path to <tt>authdaemond</tt>'s unix socket. Optionally, you can
+specify --with-authdaemond=PATH to the configure script so that
+authdaemond_path points to a default, static, location.
+
+<dt><i>pwcheck</i>
+
+<dd> checks passwords with the use of a separate,
   helper daemon.  This feature is for backwards-compatibility
   only. New installations should use saslauthd.<p>
 
@@ -182,7 +202,9 @@ authentication routines is to modify the routine
 "<tt>_sasl_checkpass()</tt>" in the file <tt>lib/server.c</tt> to
 support a new method, and to add that method to
 <tt>lib/checkpw.c</tt>.  Be sure to add a prototype in
-<tt>lib/saslint.h</tt>!<p> The more flexible and preferred method of
+<tt>lib/saslint.h</tt>!
+
+<p>However, the more flexible and preferred method of
 adding a routine is to create a new saslauthd mechanism.<p> </dl>
 
 <p>The LOGIN mechanism (not to be confused with IMAP4's LOGIN command)

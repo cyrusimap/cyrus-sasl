@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.70 2003/12/29 21:25:57 rjs3 Exp $
+ * $Id: checkpw.c,v 1.71 2004/01/07 16:35:08 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -298,12 +298,55 @@ int _sasl_auxprop_verify_apop(sasl_conn_t *conn,
 }
 #endif /* DO_SASL_CHECKAPOP */
 
-#if defined(HAVE_PWCHECK) || defined(HAVE_SASLAUTHD)
+#if defined(HAVE_PWCHECK) || defined(HAVE_SASLAUTHD) || defined(HAVE_AUTHDAEMON)
+/*
+ * Wait for file descriptor to be writable. Return with error if timeout.
+ */
+static int write_wait(int fd, unsigned delta)
+{
+    fd_set wfds;
+    fd_set efds;
+    struct timeval tv;
+
+    /* 
+     * Wait for file descriptor fd to be writable. Retry on
+     * interruptions. Return with error upon timeout.
+     */
+    while (1) {
+	FD_ZERO(&wfds);
+	FD_ZERO(&efds);
+	FD_SET(fd, &wfds);
+	FD_SET(fd, &efds);
+	tv.tv_sec = (long) delta;
+	tv.tv_usec = 0;
+	switch(select(fd + 1, 0, &wfds, &efds, &tv)) {
+	case 0:
+	    /* Timeout. */
+	    errno = ETIMEDOUT;
+	    return -1;
+	case +1:
+	    if (FD_ISSET(fd, &wfds)) {
+		/* Success, file descriptor is writable. */
+		return 0;
+	    }
+	    return -1;
+	case -1:
+	    if (errno == EINTR || errno == EAGAIN)
+		continue;
+	default:
+	    /* Error catch-all. */
+	    return -1;
+	}
+    }
+    /* Not reached. */
+    return -1;
+}
+
 /*
  * Keep calling the writev() system call with 'fd', 'iov', and 'iovcnt'
- * until all the data is written out or an error occurs.
+ * until all the data is written out or an error/timeout occurs.
  */
-static int retry_writev(int fd, struct iovec *iov, int iovcnt)
+static int retry_writev(int fd, struct iovec *iov, int iovcnt, unsigned delta)
 {
     int n;
     int i;
@@ -328,6 +371,10 @@ static int retry_writev(int fd, struct iovec *iov, int iovcnt)
 
 	if (!iovcnt) return written;
 
+	if (delta > 0) {
+	    if (write_wait(fd, delta))
+		return -1;
+	}
 	n = writev(fd, iov, iovcnt > iov_max ? iov_max : iovcnt);
 	if (n == -1) {
 	    if (errno == EINVAL && iov_max > 10) {
@@ -395,7 +442,7 @@ static int pwcheck_verify_password(sasl_conn_t *conn,
     iov[1].iov_base = (char *)passwd;
     iov[1].iov_len = strlen(passwd)+1;
 
-    retry_writev(s, iov, 2);
+    retry_writev(s, iov, 2, 0);
 
     start = 0;
     while (start < sizeof(response) - 1) {
@@ -417,36 +464,78 @@ static int pwcheck_verify_password(sasl_conn_t *conn,
 
 #endif
 
-#ifdef HAVE_SASLAUTHD
-
-/*
- * Keep calling the read() system call with 'fd', 'buf', and 'nbyte'
- * until all the data is read in or an error occurs.
- */
-static int retry_read(int fd, void *buf0, unsigned nbyte)
+#if defined(HAVE_SASLAUTHD) || defined(HAVE_AUTHDAEMON)
+static int read_wait(int fd, unsigned delta)
 {
-    int n;
-    int nread = 0;
-    char *buf = buf0;
-
-    if (nbyte == 0) return 0;
-
-    for (;;) {
-	n = read(fd, buf, nbyte);
-	if (n == -1 || n == 0) {
-	    if (errno == EINTR || errno == EAGAIN) continue;
+    fd_set rfds;
+    fd_set efds;
+    struct timeval tv;
+    /* 
+     * Wait for file descriptor fd to be readable. Retry on 
+     * interruptions. Return with error upon timeout.
+     */
+    while (1) {
+	FD_ZERO(&rfds);
+	FD_ZERO(&efds);
+	FD_SET(fd, &rfds);
+	FD_SET(fd, &efds);
+	tv.tv_sec = (long) delta;
+	tv.tv_usec = 0;
+	switch(select(fd + 1, &rfds, 0, &efds, &tv)) {
+	case 0:
+	    /* Timeout. */
+	    errno = ETIMEDOUT;
+	    return -1;
+	case +1:
+	    if (FD_ISSET(fd, &rfds)) {
+		/* Success, file descriptor is readable. */
+		return 0;
+	    }
+	    return -1;
+	case -1:
+	    if (errno == EINTR || errno == EAGAIN)
+		continue;
+	default:
+	    /* Error catch-all. */
 	    return -1;
 	}
-
-	nread += n;
-
-	if (n >= (int) nbyte) return nread;
-
-	buf += n;
-	nbyte -= n;
     }
+    /* Not reached. */
+    return -1;
 }
 
+/*
+ * Keep calling the read() system call until all the data is read in, 
+ * timeout, EOF, or an error occurs. This function returns the number 
+ * of useful bytes, or -1 if timeout/error.
+ */
+static int retry_read(int fd, void *buf0, unsigned nbyte, unsigned delta)
+{
+    int nr;
+    unsigned nleft = nbyte;
+    char *buf = (char*) buf0;
+    
+    while (nleft >= 1) {
+	if (delta > 0) {
+	    if (read_wait(fd, delta))
+		return -1;
+	}
+	nr = read(fd, buf, nleft);
+	if (nr < 0) {
+	    if (errno == EINTR || errno == EAGAIN)
+		continue;
+	    return -1;
+	} else if (nr == 0) {
+	    break;
+	}
+      buf += nr;
+      nleft -= nr;
+    }
+    return nbyte - nleft;
+}
+#endif
+
+#ifdef HAVE_SASLAUTHD
 /* saslauthd-authenticated login */
 static int saslauthd_verify_password(sasl_conn_t *conn,
 				     const char *userid, 
@@ -595,7 +684,7 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 	iov[0].iov_len = query_end - query;
 	iov[0].iov_base = query;
 
-	if (retry_writev(s, iov, 1) == -1) {
+	if (retry_writev(s, iov, 1, 0) == -1) {
 	    close(s);
             sasl_seterror(conn, 0, "write failed");
 	    goto fail;
@@ -610,7 +699,7 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 	 *
 	 * count result
 	 */
-	if (retry_read(s, &count, sizeof(count)) < (int) sizeof(count)) {
+	if (retry_read(s, &count, sizeof(count), 0) < (int) sizeof(count)) {
 	    sasl_seterror(conn, 0, "size read failed");
 	    goto fail;
 	}
@@ -623,7 +712,7 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 	}
 	
 	count = (int)sizeof(response) <= count ? sizeof(response) - 1 : count;
-	if (retry_read(s, response, count) < count) {
+	if (retry_read(s, response, count, 0) < count) {
 	    close(s);
 	    sasl_seterror(conn, 0, "read failed");
 	    goto fail;
@@ -650,6 +739,213 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 
 #endif
 
+#ifdef HAVE_AUTHDAEMON
+/* 
+ * Preliminary support for Courier's authdaemond.
+ */
+#define AUTHDAEMON_IO_TIMEOUT 30
+
+static int authdaemon_blocking(int fd, int block)
+{
+    int f, r;
+
+    /* Get the fd's blocking bit. */
+    f = fcntl(fd, F_GETFL, 0);
+    if (f == -1)
+	return -1;
+
+    /* Adjust the bitmap accordingly. */
+#ifndef O_NONBLOCK
+#define NB_BITMASK FNDELAY
+#else
+#define NB_BITMASK O_NONBLOCK
+#endif
+    if (block)
+	f &= ~NB_BITMASK;
+    else
+	f |=  NB_BITMASK;
+#undef NB_BITMASK
+
+    /* Adjust the fd's blocking bit. */
+    r = fcntl(fd, F_SETFL, f);
+    if (r)
+	return -1;
+
+    /* Success. */
+    return 0;
+}
+
+static int authdaemon_connect(sasl_conn_t *conn, const char *path)
+{
+    int r, s = -1;
+    struct sockaddr_un srvaddr;
+
+    if (strlen(path) >= sizeof(srvaddr.sun_path)) {
+	sasl_seterror(conn, 0, "unix socket path too large", errno);
+	goto fail;
+    }
+
+    s = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (s == -1) {
+	sasl_seterror(conn, 0, "cannot create socket for connection to Courier authdaemond: %m", errno);
+	goto fail;
+    }
+
+    memset((char *)&srvaddr, 0, sizeof(srvaddr));
+    srvaddr.sun_family = AF_UNIX;
+    strncpy(srvaddr.sun_path, path, sizeof(srvaddr.sun_path) - 1);
+
+    /* Use nonblocking unix socket connect(2). */
+    if (authdaemon_blocking(s, 0)) {
+	sasl_seterror(conn, 0, "cannot set nonblocking bit: %m", errno);
+	goto fail;
+    }
+
+    r = connect(s, (struct sockaddr *) &srvaddr, sizeof(srvaddr));
+    if (r == -1) {
+	sasl_seterror(conn, 0, "cannot connect to Courier authdaemond: %m", errno);
+	goto fail;
+    }
+
+    if (authdaemon_blocking(s, 1)) {
+	sasl_seterror(conn, 0, "cannot clear nonblocking bit: %m", errno);
+	goto fail;
+    }
+
+    return s;
+fail:
+    if (s >= 0)
+	close(s);
+    return -1;
+}
+
+static char *authdaemon_build_query(const char *service,
+				    const char *authtype,
+				    const char *user,
+				    const char *passwd)
+{
+    int sz;
+    int l = strlen(service) 
+            + 1
+            + strlen(authtype) 
+            + 1
+            + strlen(user)
+            + 1
+            + strlen(passwd) 
+            + 1;
+    char *buf, n[5];
+    if (snprintf(n, sizeof(n), "%d", l) >= (int)sizeof(n))
+	return NULL;
+    sz = strlen(n) + l + 20;
+    if (!(buf = sasl_ALLOC(sz)))
+	return NULL;
+    snprintf(buf, 
+             sz, 
+             "AUTH %s\n%s\n%s\n%s\n%s\n\n",
+             n,
+             service,
+             authtype,
+             user,
+             passwd);
+    return buf;
+}
+
+static int authdaemon_read(int fd, void *buf0, unsigned sz)
+{
+    int nr;
+    char *buf = (char*) buf0;
+    if (sz <= 1)
+	return -1;
+    if ((nr = retry_read(fd, buf0, sz - 1, AUTHDAEMON_IO_TIMEOUT)) < 0)
+	return -1;
+    /* We need a null-terminated buffer. */
+    buf[nr] = 0;
+    /* Check for overflow condition. */
+    return nr + 1 < (int)sz ? 0 : -1;
+}
+
+static int authdaemon_write(int fd, void *buf0, unsigned sz)
+{
+    int nw;
+    struct iovec io;
+    io.iov_len = sz;
+    io.iov_base = buf0;
+    nw = retry_writev(fd, &io, 1, AUTHDAEMON_IO_TIMEOUT);
+    return nw == (int)sz ? 0 : -1;
+}
+
+static int authdaemon_talk(sasl_conn_t *conn, int sock, char *authreq)
+{
+    char *str;
+    char buf[8192];
+
+    if (authdaemon_write(sock, authreq, strlen(authreq)))
+	goto _err_out;
+    if (authdaemon_read(sock, buf, sizeof(buf)))
+	goto _err_out;
+    for (str = buf; *str; ) {
+	char *sub;
+
+	for (sub = str; *str; ++str) {
+	    if (*str == '\n') {
+		*str++ = 0;
+		break;
+	    }
+	}
+	if (strcmp(sub, ".") == 0) {
+	    /* success */
+	    return SASL_OK;
+	}
+	if (strcmp(sub, "FAIL") == 0) {
+	    /* passwords do not match */
+	    sasl_seterror(conn, SASL_NOLOG, "authentication failed");
+	    return SASL_BADAUTH;
+	}
+    }
+_err_out:
+    /* catchall: authentication error */
+    sasl_seterror(conn, 0, "could not verify password");
+    return SASL_FAIL;
+}
+
+static int authdaemon_verify_password(sasl_conn_t *conn,
+				      const char *userid, 
+				      const char *passwd,
+				      const char *service,
+				      const char *user_realm __attribute__((unused)))
+{
+    const char *p = NULL;
+    sasl_getopt_t *getopt;
+    void *context;
+    int result = SASL_FAIL;
+    char *query = NULL;
+    int sock = -1;
+
+    /* check to see if the user configured a rundir */
+    if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context) == SASL_OK) {
+	getopt(context, NULL, "authdaemond_path", &p, NULL);
+    }
+    if (!p) {
+	/*
+	 * XXX should we peek at Courier's build-time config ?
+	 */
+	p = PATH_AUTHDAEMON_SOCKET;
+    }
+
+    if ((sock = authdaemon_connect(conn, p)) < 0)
+	goto out;
+    if (!(query = authdaemon_build_query(service, "login", userid, passwd)))
+	goto out;
+    result = authdaemon_talk(conn, sock, query);
+out:
+    if (sock >= 0)
+	close(sock), sock = -1;
+    if (query)
+	sasl_FREE(query), query = 0;
+    return result;
+}
+#endif
+
 #ifdef HAVE_ALWAYSTRUE
 static int always_true(sasl_conn_t *conn,
 		       const char *userstr,
@@ -671,6 +967,9 @@ struct sasl_verify_password_s _sasl_verify_password[] = {
 #ifdef HAVE_SASLAUTHD
     { "saslauthd", &saslauthd_verify_password },
 #endif
+#ifdef HAVE_AUTHDAEMON
+    { "authdaemond", &authdaemon_verify_password },
+#endif     
 #ifdef HAVE_ALWAYSTRUE
     { "alwaystrue", &always_true },
 #endif     

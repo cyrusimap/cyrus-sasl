@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.179 2003/11/28 18:37:10 rjs3 Exp $
+dnl $Id: configure.in,v 1.180 2004/01/07 16:35:05 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -278,6 +278,20 @@ fi
 AM_CONDITIONAL(SASLAUTHD, test "$with_saslauthd" != no)
 AC_MSG_CHECKING(if I should include saslauthd)
 AC_MSG_RESULT($with_saslauthd)
+
+AC_ARG_WITH(authdaemond, [  --with-authdaemond=PATH enable use of authdaemon with default socket=PATH [[no]] ],
+		with_authdaemon=$withval,
+		with_authdaemon=yes)
+if test "$with_authdaemon" != no; then
+  if test "$with_authdaemon" = yes; then
+    with_authdaemon="/dev/null"
+  fi
+  AC_DEFINE(HAVE_AUTHDAEMON,[],[Include support for Courier's authdaemond?])
+  AC_DEFINE_UNQUOTED(PATH_AUTHDAEMON_SOCKET, "$with_authdaemon",
+		     [Where do we look for Courier authdaemond's socket?])
+fi
+AC_MSG_CHECKING(to include Courier authdaemond support)
+AC_MSG_RESULT($with_authdaemon)
 
 AC_ARG_WITH(pwcheck,
 [  --with-pwcheck=DIR     enable deprecated pwcheck daemon using statedir DIR ],

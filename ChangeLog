@@ -1,3 +1,8 @@
+2004-01-07  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/checkpw.c & others: Support for Courier-IMAP authdaemond
+	  use during password verification (Leandro Santi
+	  <lesanti@uolsinectis.com.ar>)
+
 2003-12-30  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/lak.c: Fix NULL pointer dereference
 	  (Simon Brady <simon.brady@otago.ac.nz>)

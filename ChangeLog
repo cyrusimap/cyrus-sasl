@@ -1,6 +1,7 @@
 2004-02-16  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* configure.in: Remove deprecated AC_PROG_RANLIB, CMU_PROG_LIBTOOL
 	  (Patrick Welche <prlw1@newn.cam.ac.uk>)
+	* lib/dlopen.c: OpenBSD ELF patch (J.C. Roberts)
 
 2004-02-06  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/NTMakefile, utils/NTMakefile: fix "clean" target

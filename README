@@ -1,4 +1,4 @@
-$Id: README,v 1.11 1999/08/13 21:11:09 leg Exp $
+$Id: README,v 1.12 1999/08/17 05:40:24 tmartin Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication. See RFC 2222 for more
@@ -51,6 +51,21 @@ it doesn't matter anyway.
 The library uses the environment variable SASL_PATH to locate the
 directory where the mechanisms are; this should be a colon-seperated
 list of directories containing plugins.
+
+UPGRADING FROM PREVIOUS VERSIONS
+--------------------------------
+
+If you are upgrading from a version previous to 1.5.5 you will need to
+convert your secrets database to continue using CRAM-MD5. This is
+because in previous versions the plaintext password was stored for
+CRAM-MD5 secrets. In versions 1.5.5 and on an intermediate MD5 value
+is stored. To convert your old sasldb file you should first move your
+sasldb file to a safe location. Next compile util/dbconverter.c. gcc
+dbconverter.c -lsasl -o dbconverter should be sufficent. Note that you
+must edit the top of the file before compiling to specify which dbm
+package you are using. Run the program with two parameters: the path
+and filename where you moved the old sasldb to (example:
+/etc/backupsasldb) and the realm (usually just the hostname).
 
 CONFIGURATION
 -------------

@@ -1,3 +1,13 @@
+1999-08-17  Timothy L Martin  <tmartin@andrew.cmu.edu>
+
+	* utils/dbconverter.c: wrote this. converts sasl 1.5.3 secret db's to 1.5.5
+
+1999-08-16  Timothy L Martin  <tmartin@andrew.cmu.edu>
+
+	* plugins/cram.c (setpass): stores hash of password
+	* plugins/cram.c (server_step): uses the hash instead of plaintext
+	to authenticate
+
 Mon Aug 16 14:52:27 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/plain.c (server_continue_step): fixed a bug with

@@ -53,13 +53,6 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 # define L_DEFAULT_GUARD (1)
 #endif
 
-struct scram_entry
-{
-  unsigned char salt[8];
-  unsigned char verifier[16];
-  unsigned char serverkey[16];
-};
-
 typedef struct context {
 
   int state;    /* holds state are in */
@@ -319,13 +312,16 @@ static int server_continue_step (void *conn_context,
   if (text->state==2)
   {
     /* verify digest */
-    char *in16=NULL;
     char *userid=NULL;
     sasl_secret_t *sec=NULL;
     int lup,pos;
     int result;
     sasl_server_getsecret_t *getsecret;
     void *getsecret_context;
+
+    HMAC_MD5_CTX *tmphmac;
+    char digest_str[33];
+    UINT4 digest[4];
 
     VL(("CRAM-MD5 Step 2\n"));
     VL(("Clientin: %s\n",clientin));
@@ -348,7 +344,9 @@ static int server_continue_step (void *conn_context,
 
     /* copy userid out */
     for (lup=0;lup<pos;lup++)
+    {
       userid[lup]=clientin[lup];
+    }
     userid[lup]=0;
 
     /* get callback so we can request the secret */
@@ -368,7 +366,8 @@ static int server_continue_step (void *conn_context,
     }
 
 
-    /* We use the user's CRAM secret */
+    /* We use the user's CRAM secret which is kinda 1/2 way thru the
+       hmac */
     /* Request secret */
     result = getsecret(getsecret_context, "CRAM-MD5", userid, &sec);
     if (result != SASL_OK)
@@ -387,34 +386,60 @@ static int server_continue_step (void *conn_context,
     
     VL(("password=[%s]\n",sec->data));
 
-    /* create thing with password to check against */
-    in16=make_hashed(sec,text->msgid ,text->msgidlen , sparams);
-    if (in16==NULL)
+    tmphmac=(HMAC_MD5_CTX *) sparams->utils->malloc(sizeof(HMAC_MD5_CTX));
+    if (tmphmac==NULL)
     {
-      VL(("make_hashed failed\n"));
+      return SASL_NOMEM;
+    }
+
+    if (sec->len!=sizeof(HMAC_MD5_STATE))
+    {
+      VL(("The secret in the db is not of the right size"));
       return SASL_FAIL;
     }
-    /* XXX this needs to be safer */
+
+    /* ok this is annoying:
+       so we stored this half-way hmac transform instead of the plaintext
+       that means we half to:
+       -import it back into the md5 context
+       -do an md5update with the nonce 
+       -finalize it
+    */
+
+    sparams->utils->hmac_md5_import(tmphmac, (HMAC_MD5_STATE *) sec->data);
+
+    sparams->utils->MD5Update(&(tmphmac->ictx),
+			      (const unsigned char *)text->msgid,
+			      text->msgidlen);
+
+    sparams->utils->hmac_md5_final((unsigned char *)&digest, tmphmac);
+
+
+    /* this converts to base 16 with lower case letters 
+       we don't need to use snprintf here */
+    sprintf(digest_str, "%08lx%08lx%08lx%08lx",
+	    ntohl(digest[0]),
+	    ntohl(digest[1]),
+	    ntohl(digest[2]),
+	    ntohl(digest[3]));
+
+    VL(("digest_str=%s\n",digest_str));
 
     /* free sec */
     free_secret(sparams->utils,&sec);
 
-    VL(("[%s] vs [%s]\n",in16,clientin+pos+1));
+    VL(("[%s] vs [%s]\n",digest_str,clientin+pos+1));
 
     /* if same then verified 
-     *  - we know in16 is null terminated but clientin might not be
-     */    
-    if (strncmp(in16,clientin+pos+1,strlen(in16))!=0)
+     *  - we know digest_str is null terminated but clientin might not be
+     */
+    if (strncmp(digest_str,clientin+pos+1,strlen(digest_str))!=0)
     {
-      /* free string and wipe out sensetive data */
-      free_string(sparams->utils,&in16);
-
       VL(("bad auth here\n"));
       return SASL_BADAUTH;
     }
 
-    /* free string and wipe out sensetive data */
-    free_string(sparams->utils,&in16);
+    VL(("Succeeded!\n"));
 
     /* nothing more to do; authenticated 
      * set oparams information
@@ -458,70 +483,50 @@ setpass(void *glob_context __attribute__((unused)),
   int result;
   sasl_server_putsecret_t *putsecret;
   void *putsecret_context;
-  char buf[sizeof(sasl_secret_t) + sizeof(struct scram_entry)];
-  sasl_secret_t *secret = (sasl_secret_t *)&buf;
-  struct scram_entry *ent = (struct scram_entry *)&secret->data;
-  MD5_CTX ver;
-  unsigned char pad[64];
-  size_t lupe;
-  /* this saves cleartext password */
-  sasl_secret_t *sec=(sasl_secret_t *) malloc(sizeof(sasl_secret_t)+passlen);
+
+  /* These need to be zero'ed out at the end */
+  HMAC_MD5_STATE *md5state;
+  sasl_secret_t *sec;
+
+  /* allocate the struct for the precalculation */
+  md5state=(HMAC_MD5_STATE *) sparams->utils->malloc(sizeof(HMAC_MD5_STATE));
+  if (md5state==NULL) return SASL_NOMEM;
+
+  /* do the precalculation. this is what we're going to save to disk */
+  sparams->utils->hmac_md5_precalc(md5state, /* OUT */
+				   pass,     /* IN */
+				   passlen); /* IN */
+
+  /* allocate a secret structure that we're going to save to disk */  
+  sec=(sasl_secret_t *) sparams->utils->malloc(sizeof(sasl_secret_t)+
+					       sizeof(HMAC_MD5_STATE));
   
-  sec->len=passlen;
-  strcpy(sec->data,pass);
+  /* set the size */
+  sec->len=sizeof(HMAC_MD5_STATE);
+  /* and insert the data */
+  memcpy(sec->data,md5state, sizeof(HMAC_MD5_STATE));
 
 
   if (errstr)
+  {
     *errstr = NULL;
+  }
 
+  /* get the callback for saving to the password db */
   result = sparams->utils->getcallback(sparams->utils->conn,
 				       SASL_CB_SERVER_PUTSECRET,
 				       &putsecret,
 				       &putsecret_context);
   if (result != SASL_OK)
+  {
     return result;
-
-  /* Get some salt... */
-  sparams->utils->rand(sparams->utils->rpool,
-		       (char *)&ent->salt,
-		       sizeof(ent->salt));
-
-  /* Create the pads... */
-  memset(pad, 0, sizeof(pad));
-  memcpy(pad, pass, passlen < sizeof(pad) ? passlen : sizeof(pad));
-  
-  for (lupe = 0; lupe < sizeof(pad); lupe++) {
-    pad[lupe] ^= 0x36;
   }
 
-  sparams->utils->MD5Init(&ver);
-  sparams->utils->MD5Update(&ver, pad, sizeof(pad));
-  
-  memcpy(&ent->verifier, ver.state, sizeof(ent->verifier));
-
-  memset(pad, 0, sizeof(pad));
-  memcpy(pad, pass, passlen < sizeof(pad) ? passlen : sizeof(pad));
-  
-  for (lupe = 0; lupe < sizeof(pad); lupe++) {
-    pad[lupe] ^= 0x5c;
-  }
-
-  sparams->utils->MD5Init(&ver);
-  sparams->utils->MD5Update(&ver, pad, sizeof(pad));
-  
-  memcpy(&ent->serverkey, ver.state, sizeof(ent->serverkey));
-
-  secret->len = sizeof(struct scram_entry);
-
-
-  /* We're actually constructing a SCRAM secret... */
+  /* do the store */
   result=putsecret(putsecret_context,
-		   "CRAM-MD5",
+		   "CRAM-MD5", 
 		   user,
 		   sec);
-
-  /* clean up sensitive info */
-  /* wish we could call free secret here */
 
   return result;
 }

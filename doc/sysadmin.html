@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.40 2003/06/28 17:19:36 rjs3 Exp $ -->
+<!-- $Id: sysadmin.html,v 1.41 2003/07/03 00:56:10 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -194,6 +194,12 @@ client knows it.
 server must keep passwords or password equivalents in a database;
 if this database is compromised, it is the same as if all the
 passwords for the realm are compromised.
+
+<p>Put another way, <i>you cannot use saslauthd with these methods</i>.  
+If you do not wish to advertise these methods for that reason (i.e. you
+are only using saslauthd for password verification), then either remove
+the non-plaintext plugins (those other than login and plain) from the
+plugin directory, or use the <tt>mech_list</tt> option to disable them.
 
 <p>For simplicity sake, the Cyrus SASL library stores plaintext
 passwords only in the <tt>/etc/sasldb2</tt> database.  These passwords

@@ -44,6 +44,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <stddef.h>
 #include <windows.h>
 
 /* Our package */
@@ -56,6 +57,16 @@
 #define PROTOTYPES     1
 
 typedef unsigned char   *caddr_t;
+
+#ifndef _INTPTR_T_DEFINED
+
+#ifdef  _WIN64
+typedef __int64             intptr_t;
+#else
+typedef int		    intptr_t;
+#endif
+
+#endif
 
 /* Registry key that contains the locations of the plugins */
 #define SASL_ROOT_KEY "SOFTWARE\\Carnegie Mellon\\Project Cyrus\\SASL Library"

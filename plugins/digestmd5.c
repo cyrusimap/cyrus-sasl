@@ -439,9 +439,10 @@ DigestCalcResponse(IN sasl_utils_t * utils,
 
   /* utils->MD5Update(&Md5Ctx, (unsigned char *) "AUTHENTICATE:", 13); */
   utils->MD5Update(&Md5Ctx, pszDigestUri, strlen((char *) pszDigestUri));
-  if (strcasecmp((char *) pszQop, "auth-int") == 0) {
-    utils->MD5Update(&Md5Ctx, COLON, 1);
-    utils->MD5Update(&Md5Ctx, HEntity, HASHHEXLEN);
+  if (strcasecmp((char *) pszQop, "auth") != 0) {
+      /* append ":00000000000000000000000000000000" */
+      utils->MD5Update(&Md5Ctx, COLON, 1);
+      utils->MD5Update(&Md5Ctx, HEntity, HASHHEXLEN);
   }
   utils->MD5Final(HA2, &Md5Ctx);
   CvtHex(HA2, HA2Hex);
@@ -1463,8 +1464,8 @@ privacy_encode(void *context,
   memcpy(param2 + 4, input, inputlen);
   
   /* HMAC(ki, (seqnum, msg) ) */
-  text->hmac_md5(text->Ki_send, HASHLEN,
-		 (const unsigned char *) param2, inputlen + 4, digest);
+  text->hmac_md5((const unsigned char *) param2, inputlen + 4, 
+		 text->Ki_send, HASHLEN, digest);
 
   text->free(param2);
 
@@ -1613,8 +1614,8 @@ privacy_decode(void *context,
       memcpy(param2 + 4, *output, *outputlen);
 
       /* HMAC(ki, (seqnum, msg) ) */
-      text->hmac_md5(text->Ki_receive, HASHLEN,
-		     (const unsigned char *) param2, (*outputlen) + 4, checkdigest);
+      text->hmac_md5((const unsigned char *) param2, (*outputlen) + 4, 
+		     text->Ki_receive, HASHLEN, checkdigest);
       
       text->free(param2);
 
@@ -1694,9 +1695,9 @@ integrity_encode(void *context,
   memcpy(param2 + 4, input, inputlen);
 
   /* HMAC(ki, (seqnum, msg) ) */
-  text->hmac_md5(text->Ki_send, HASHLEN,
-		 param2, inputlen + 4, MAC);
-
+  text->hmac_md5(param2, inputlen + 4, 
+		 text->Ki_send, HASHLEN,
+		 MAC);
 
   /* create MAC */
   tmpshort = htons(version);
@@ -1754,9 +1755,9 @@ create_MAC(context_t * text,
   memcpy(param2 + 4, input, inputlen);
 
   /* HMAC(ki, (seqnum, msg) ) */
-  text->hmac_md5(text->Ki_receive, HASHLEN,
-		 param2, inputlen + 4, MAC);
-
+  text->hmac_md5(param2, inputlen + 4, 
+		 text->Ki_receive, HASHLEN,
+		 MAC);
 
   /* create MAC */
   tmpshort = htons(version);

@@ -1,3 +1,9 @@
+2003-06-10  Ken Murchison <ken@oceana.com>
+	* doc/draft-ietf-sasl-crammd5-00.txt: added
+	* doc/draft-nerenberg-sasl-crammd5-03.txt: deleted
+	* doc/index.html, doc/Makefile.am: updated to WG version of
+	  CRAM-MD5 draft
+
 2003-05-30  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/gssapi.c: If we get an empty output token back
 	  from gss_accept_sec_context, return
@@ -114,7 +120,7 @@
 	* saslauthd/lak.c, lak.h, LDAP_SASLAUTHD: Remove ldap_cache
 	  code, and rename MAX() to LAK_MAX()
 
-2002-02-20  Ken Murchison <ken@oceana.com>
+2003-02-20  Ken Murchison <ken@oceana.com>
 	* doc/draft-ietf-sasl-rfc2831bis-00.txt: added
 	* doc/draft-melnikov-rfc2831bis-02.txt: deleted
 	* doc/draft-newman-sasl-c-api-01.txt: added

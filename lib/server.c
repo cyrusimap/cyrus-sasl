@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.80 2000/08/14 01:43:38 leg Exp $
+ * $Id: server.c,v 1.81 2000/08/14 02:02:41 leg Exp $
  */
 
 /* 
@@ -1024,7 +1024,7 @@ static int do_authorization(sasl_server_conn_t *s_conn, const char **errstr)
 	s_conn->base.oparams.user = (char *) canonuser;
     }
 
-    return SASL_OK;
+    return ret;
 }
 
 

@@ -2,6 +2,10 @@
 	* configure.in: add runpath information for MySQL and Postgres;
 	  better behavior for the interaction of --enable-sql and
 	  --with-mysql / --with-pgsql
+	* saslauthd/lak.[ch]: %d to be derived from %u if it can be,
+	  otherwise use %r (to account for the recent change in the
+	  core library).  Add ldap_default_realm parameter
+	  (Igor Brezac <igor@ipass.net>)
 
 2003-07-18  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/digestmd5.c: Client side of digest md5 doesn't

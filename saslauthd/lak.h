@@ -72,6 +72,7 @@ typedef struct lak_conf {
     int    referrals;
     int    restart;
     int    scope;
+    char   default_realm[LAK_STRING_LEN];
     char   search_base[LAK_DN_LEN];
     char   filter[LAK_DN_LEN];
     char   group_dn[LAK_DN_LEN];

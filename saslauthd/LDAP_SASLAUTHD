@@ -103,11 +103,14 @@ ldap_bind_dn: <none>
 	specify this parameter for the anonymous bind.
 
 ldap_bind_pw: <none>
-or
-ldap_password: <none>
-	Specify the password for ldap_bind_dn or ldap_sasl_authc_id if
-	ldap_use_sasl is turned on.  Do not specify this parameter for the
-	anonymous bind.
+	Alias for ldap_password.
+
+ldap_default_domain: <none>
+	Alias for ldap_default_realm.
+
+ldap_default_domain: <none>
+	The default realm is assigned to the %r token when realm is not
+	available.  See ldap_filter for more.
 
 ldap_deref: <none> <search|find|always|never>
 	Specify how aliases dereferencing is handled during search.
@@ -118,7 +121,8 @@ ldap_filter: <uid=%u>
 	%%   = %
 	%u   = user
 	%U   = user portion of %u (%U = test when %u = test@domain.tld)
-	%d   = domain portion of %u (%d = domain.tld when %u = test@domain.tld)
+	%d   = domain portion of %u if available (%d = domain.tld when %u =
+	       %test@domain.tld), otherwise same as %r
 	%1-9 = domain tokens (%1 = tld, %2 = domain when %d = domain.tld)
 	%s   = service
 	%r   = realm
@@ -138,6 +142,11 @@ ldap_group_dn: <none>
 	'ldap_filter' (see above) can be used for substitution.  The user DN is
 	compared against the 'ldap_group_attr' (see below) attribute of the
 	group.
+
+ldap_password: <none>
+	Specify the password for ldap_bind_dn or ldap_sasl_authc_id if
+	ldap_use_sasl is turned on.  Do not specify this parameter for the
+	anonymous bind.
 
 ldap_password_attr: <userPassword>
         Specify what password attribute to use for password verification.

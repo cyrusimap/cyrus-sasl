@@ -468,7 +468,7 @@ void sasl_churn (sasl_rand_t *rpool, const char *data, unsigned len)
 /* static (global) variables that are specified as exported by getopt() */ 
 __declspec(dllexport) char *optarg = NULL;    /* pointer to the start of the option argument  */ 
 __declspec(dllexport) int   optind = 1;       /* number of the next argv[] to be evaluated    */ 
-__declspec(dllexport) int   opterr = 1;       /* non-zero if a question mark should be returned 
+__declspec(dllexport) int   opterr = 1;       /* non-zero if a question mark should be returned */
 
  
 /* handle possible future character set concerns by putting this in a macro */ 

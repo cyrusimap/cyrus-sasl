@@ -1,3 +1,7 @@
+2002-06-26  Ken Murchison <ken@oceana.com>
+	* doc/draft-zeilenga-sasl-anon-00.txt: added
+	* doc/index.html: added ANONYMOUS draft
+
 2002-06-20  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/auxprop.c: Make "cound not find auxprop plugin" warning
 	  log at LOG_DEBUG

@@ -1,0 +1,395 @@
+
+
+
+
+
+
+INTERNET-DRAFT                           Editor: Kurt D. Zeilenga
+Intended Category: Standards Track            OpenLDAP Foundation
+Expires in six months                                23 June 2002
+Obsoletes: RFC 2245
+
+
+
+                         Anonymous SASL Mechanism
+                    <draft-zeilenga-sasl-anon-00.txt>
+
+
+Status of Memo
+
+  This document is an Internet-Draft and is in full conformance with all
+  provisions of Section 10 of RFC2026.
+
+  This document is intended to be, after appropriate review and
+  revision, submitted to the RFC Editor as a Standards Track document.
+  Distribution of this memo is unlimited.  Technical discussion of this
+  document will take place on the IETF SASL mailing list
+  <ietf-sasl@imc.org>.  Please send editorial comments directly to the
+  document editor <Kurt@OpenLDAP.org>.
+
+  Internet-Drafts are working documents of the Internet Engineering Task
+  Force (IETF), its areas, and its working groups.  Note that other
+  groups may also distribute working documents as Internet-Drafts.
+  Internet-Drafts are draft documents valid for a maximum of six months
+  and may be updated, replaced, or obsoleted by other documents at any
+  time.  It is inappropriate to use Internet-Drafts as reference
+  material or to cite them other than as ``work in progress.''
+
+  The list of current Internet-Drafts can be accessed at
+  <http://www.ietf.org/ietf/1id-abstracts.txt>. The list of
+  Internet-Draft Shadow Directories can be accessed at
+  <http://www.ietf.org/shadow.html>.
+
+  Copyright 2002, The Internet Society.  All Rights Reserved.
+
+  Please see the Copyright section near the end of this document for
+  more information.
+
+
+Abstract
+
+  It is common practice on the Internet to permit anonymous access to
+  various services.  Traditionally, this has been done with a plain text
+  password mechanism using "anonymous" as the user name and optional
+  trace information, such as an email address, as the password.  As
+
+
+
+Zeilenga                Anonymous SASL Mechanism                [Page 1]
+
+INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
+
+
+  plaintext login commands are not permitted in new IETF protocols, a
+  new way to provide anonymous login is needed within the context of the
+  Simple Authentication and Security Layer (SASL) framework.
+
+
+1. Anonymous SASL mechanism
+
+  This document defines an anonymous mechanism for the Simple
+  Authentication and Security Layer ([SASL]) framework.  This document
+  replaces RFC 2245.  Changes since RFC 2245 are detailed in Appendix A.
+
+  The mechanism name associated with anonymous access is "ANONYMOUS".
+
+  The mechanism consists of a single message from the client to the
+  server.  The client sends optional trace information in the form of a
+  human readable string of UTF-8 [UTF8] encoded characters from the
+  Universal Character Set ([UCS]) characters.  The trace information
+  should take one of three forms:  an Internet email address, an opaque
+  string which does not contain the '@' (U+0040) character and can be
+  interpreted by the system administrator of the client's domain, or
+  nothing.  For privacy reasons, an Internet email address should only
+  be used with permission from the user.
+
+  A server which permits anonymous access will announce support for the
+  ANONYMOUS mechanism, and allow anyone to log in using that mechanism,
+  usually with restricted access.
+
+  The formal grammar for the client message using Augmented BNF [ABNF]
+  follows.
+
+      message     = [email / token]
+
+      UTF1        = %x00-3F / %x41-7F ;; less '@' (U+0040)
+      UTF2        = %xC0-DF 1(UTF0)
+      UTF3        = %xE0-EF 2(UTF0)
+      UTF4        = %xF0-F7 3(UTF0)
+      UTF5        = %xF8-FB 4(UTF0)
+      UTF6        = %xFC-FD 5(UTF0)
+      UTF0        = %x80-BF
+
+      TCHAR       = UTF1 / UTF2 / UTF3 / UTF3 / UTF4 / UTF5 / UTF6
+                    ;; any printable UTF-8 encoded UCS character
+                    ;; except '@' (U+0040)
+
+      email       = addr-spec
+                    ;; as defined in [IMAIL], except with no free
+                    ;; insertion of linear-white-space, and the
+                    ;; local-part MUST either be entirely enclosed in
+
+
+
+Zeilenga                Anonymous SASL Mechanism                [Page 2]
+
+INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
+
+
+                    ;; quotes or entirely unquoted
+
+      token       = 1*255TCHAR
+
+  The following characters are considered non-printable:
+      - control characters: U+0000..U+001F, U+007F..U+009F;
+      - replacement character: U+FFFD; and
+      - special characters and noncharacter: U+FEFF, U+FFFE, U+FFFF.
+
+
+2. Example
+
+  Here is a sample ANONYMOUS login between an IMAP client and server.
+  In this example, "C:" and "S:" indicate lines sent by the client and
+  server respectively.  If such lines are wrapped without a new "C:" or
+  "S:" label, then the wrapping is for editorial clarity and is not part
+  of the command.
+
+  Note that this example uses the IMAP profile [IMAP4] of SASL.  The
+  base64 encoding of challenges and responses, as well as the "+ "
+  preceding the responses are part of the IMAP4 profile, not part of
+  SASL itself.  Newer profiles of SASL will include the client message
+  with the AUTHENTICATE command itself so the extra round trip below
+  (the server response with an empty "+ ") can be eliminated.
+
+  In this example, the user's opaque identification token is "sirhc".
+
+      S: * OK IMAP4 server ready
+      C: A001 CAPABILITY
+      S: * CAPABILITY IMAP4 IMAP4rev1 AUTH=CRAM-MD5 AUTH=ANONYMOUS
+      S: A001 OK done
+      C: A002 AUTHENTICATE ANONYMOUS
+      S: +
+      C: c2lyaGM=
+      S: A003 OK Welcome, trace information has been logged.
+
+
+3. Security Considerations
+
+  The ANONYMOUS mechanism grants access to information by anyone.  For
+  this reason it should be disabled by default so the administrator can
+  make an explicit decision to enable it.
+
+  If the anonymous user has any write privileges, a denial of service
+  attack is possible by filling up all available space.  This can be
+  prevented by disabling all write access by anonymous users.
+
+  If anonymous users have read and write access to the same area, the
+
+
+
+Zeilenga                Anonymous SASL Mechanism                [Page 3]
+
+INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
+
+
+  server can be used as a communication mechanism to anonymously
+  exchange information.  Servers which accept anonymous submissions
+  should implement the common "drop box" model which forbids anonymous
+  read access to the area where anonymous submissions are accepted.
+
+  If the anonymous user can run many expensive operations (e.g., an IMAP
+  SEARCH BODY command), this could enable a denial of service attack.
+  Servers are encouraged to limit the number of anonymous users and
+  reduce their priority or limit their resource usage.
+
+  If there is no idle timeout for the anonymous user and there is a
+  limit on the number of anonymous users, a denial of service attack is
+  enabled.  Servers should implement an idle timeout for anonymous
+  users.
+
+  The trace information is not authenticated so it can be falsified.
+  This can be used as an attempt to get someone else in trouble for
+  access to questionable information.  Administrators trying to trace
+  abuse need to realize this information may be falsified.
+
+  A client which uses the user's correct email address as trace
+  information without explicit permission may violate that user's
+  privacy.  Information about who accesses an anonymous archive on a
+  sensitive subject (e.g., sexual abuse) has strong privacy needs.
+  Clients should not send the email address without explicit permission
+  of the user and should offer the option of supplying no trace token --
+  thus only exposing the source IP address and time.  Anonymous proxy
+  servers could enhance this privacy, but would have to consider the
+  resulting potential denial of service attacks.
+
+  Anonymous connections are susceptible to man in the middle attacks
+  which view or alter the data transferred.  Clients and servers are
+  encouraged to support external integrity and encryption mechanisms.
+
+  Protocols which fail to require an explicit anonymous login are more
+  susceptible to break-ins given certain common implementation
+  techniques.  Specifically, Unix servers which offer user login may
+  initially start up as root and switch to the appropriate user id after
+  an explicit login command.  Normally such servers refuse all data
+  access commands prior to explicit login and may enter a restricted
+  security environment (e.g., the Unix chroot(2) function) for anonymous
+  users.  If anonymous access is not explicitly requested, the entire
+  data access machinery is exposed to external security attacks without
+  the chance for explicit protective measures.  Protocols which offer
+  restricted data access should not allow anonymous data access without
+  an explicit login step.
+
+
+
+
+
+Zeilenga                Anonymous SASL Mechanism                [Page 4]
+
+INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
+
+
+4. IANA Considerations
+
+  It is requested that the SASL Mechanism registry [IANA-SASL] entry for
+  the ANONYMOUS mechanism be updated to reflect that this document now
+  provides its technical specification.
+
+      To: iana@iana.org
+      Subject: Updated Registration of SASL mechanism ANONYMOUS
+
+      SASL mechanism name: ANONYMOUS
+      Security considerations: See RFC XXXX.
+      Published specification (optional, recommended): RFC XXXX
+      Person & email address to contact for further information:
+           Kurt Zeilenga <kurt@openldap.org>
+           Chris Neuman <chris.newman@innosoft.com>
+      Intended usage: COMMON
+      Author/Change controller: IESG <iesg@ietf.org>
+      Note: Updates existing entry for ANONYMOUS
+
+
+5. Acknowledgement
+
+  This document is a revision of RFC 2245 by Chris Newman.
+
+
+6. Normative References
+
+  [ABNF]      Crocker, D. and P. Overell, "Augmented BNF for Syntax
+              Specifications: ABNF", RFC 2234, November 1997.
+
+  [IMAIL]     Crocker, D., "Standard for the Format of Arpa Internet
+              Text Messages", STD 11, RFC 822, August 1982.
+
+  [SASL]      Myers, J., "Simple Authentication and Security Layer
+              (SASL)", RFC 2222bis (a work in progress).
+
+  [UCS]       Universal Multiple-Octet Coded Character Set (UCS) -
+              Architecture and Basic Multilingual Plane, ISO/IEC 10646-1
+              : 1993.
+
+  [UTF-8]     Yergeau, F., "UTF-8, a transformation format of ISO
+              10646", RFC 2279, January 1998.
+
+
+7. Informative References
+
+  [IMAP4]     Crispin, M., "Internet Message Access Protocol - Version
+              4rev1", RFC 2060, December 1996.
+
+
+
+Zeilenga                Anonymous SASL Mechanism                [Page 5]
+
+INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
+
+
+  [IANA-SASL] IANA, "SIMPLE AUTHENTICATION AND SECURITY LAYER (SASL)
+              MECHANISMS", http://www.iana.org/assignments/sasl-
+              mechanisms.
+
+
+8. Editor's Address
+
+  Kurt Zeilenga
+  OpenLDAP Foundation
+
+  Email: kurt@OpenLDAP.org
+
+
+Appendix A.  Changes since RFC 2245
+
+  RFC 2245 allows the client to send optional trace information in the
+  form of a human readable string, but did not define the character
+  encoding nor character set to be used.  This document mandates use of
+  UTF-8 encoded UCS characters.  The grammar was updated to reflect
+  this.
+
+  Additionally, a number of editorial changes were made.
+
+
+Full Copyright Statement
+
+  Copyright 2002, The Internet Society.  All Rights Reserved.
+
+  This document and translations of it may be copied and furnished to
+  others, and derivative works that comment on or otherwise explain it
+  or assist in its implementation may be prepared, copied, published and
+  distributed, in whole or in part, without restriction of any kind,
+  provided that the above copyright notice and this paragraph are
+  included on all such copies and derivative works.  However, this
+  document itself may not be modified in any way, such as by removing
+  the copyright notice or references to the Internet Society or other
+  Internet organizations, except as needed for the  purpose of
+  developing Internet standards in which case the procedures for
+  copyrights defined in the Internet Standards process must be followed,
+  or as required to translate it into languages other than English.
+
+  The limited permissions granted above are perpetual and will not be
+  revoked by the Internet Society or its successors or assigns.
+
+  This document and the information contained herein is provided on an
+  "AS IS" basis and THE AUTHORS, THE INTERNET SOCIETY, AND THE INTERNET
+  ENGINEERING TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED,
+  INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+
+
+
+Zeilenga                Anonymous SASL Mechanism                [Page 6]
+
+INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
+
+
+  INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+  WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga                Anonymous SASL Mechanism                [Page 7]
+

@@ -1,3 +1,8 @@
+Thu Dec  9 17:34:30 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/checkpw.c (sasl_pam_conv): if solaris PAM is buggy, don't
+	crash
+
 Sun Dec  5 00:10:11 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* pwcheck/pwcheck.c (main): now records process ID in /var/run

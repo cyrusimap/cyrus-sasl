@@ -1,8 +1,8 @@
-$Id: README,v 1.31 2001/12/06 18:01:56 rjs3 Exp $
+$Id: README,v 1.27.2.1 2002/08/27 17:12:37 rjs3 Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
-or server side to provide authentication and authorization services.
-See RFC 2222 for more information.
+or server side to provide authentication. See RFC 2222 for more
+information.
 
 The latest version is available at:
 ftp://ftp.andrew.cmu.edu/pub/cyrus-mail
@@ -13,16 +13,162 @@ cyrus-sasl". The mailing list is available via anonymous IMAP at
 imap://cyrus.andrew.cmu.edu/archive.cyrus-sasl or via the web at
 http://asg.web.cmu.edu/archive/mailbox.php3?mailbox=archive.cyrus-sasl.
 
-BETA WARNING
+UPGRADING FROM PREVIOUS VERSIONS
+--------------------------------
+* Upgrading from versions 1.5.15 or earlier:
+  Cyrus SASL now defaults to "sasldb" by default.  If you were
+  depending on a different behavior, make sure to set "pwcheck_method"
+  in your configuration file.
+
+* Upgrading from versions 1.5.12 or earlier:
+  If you use the sasldb (for PLAIN, CRAM-MD5, or DIGEST-MD5):
+    run "saslpasswd" and set one password in your existing database; we now
+    store some versioning information in the database for sanity checking.
+
+* Upgrading from versions 1.5.11 or earlier:
+  Berkeley DB is now supported, and the configure script will use it
+  automatically if not told otherwise.  Use
+  --with-dblib=ndbm
+  or
+  --with-dblib=gdbm
+  to use existing secrets databases.
+
+* Upgrading from versions 1.5.5 or earlier:
+  The secrets database has changed formats again in 1.5.9.
+
+  Run utils/dbconverter-1.5.9 to update your secrets database.  It,
+  once again, needs you to specify your default realm for PLAIN and
+  CRAM-MD5 secrets.
+
+* Upgrading from versions 1.5.4 or earlier:
+  The secrets database has changed formats in 1.5.5.
+
+  Edit util/dbconverter.c to select whether you use gdbm or ndbm, and
+  compile util/dbconverter.c:
+  % gcc dbconverter-1.5.5.c -lsasl -o dbconverter
+
+  Run dbconverter as a user with sufficient permissions to write to
+  /etc/sasldb as follows:
+  
+  % dbconverter /etc/saslbackup platypus.cc.cmu.edu
+
+  Replace "platypus.cc.cmu.edu" with your realm (usually just your
+  hostname).
+
+FEATURES
+--------
+The following mechanisms are included in this distribution:
+ANONYMOUS
+CRAM-MD5
+DIGEST-MD5
+GSSAPI (MIT Kerberos 5 or Heimdal Kerberos 5)
+KERBEROS_V4
+PLAIN
+
+The library uses a Berkeley DB, gdbm or ndbm file on the server side
+to store per-user authentication secrets.  The utility saslpasswd has
+been included for adding authentication secrets to the file.
+
+PLAIN can either check /etc/passwd, Kerberos V4, use PAM, or the sasl
+secrets database.  By default PAM is used if PAM is found, then
+Kerberos, finally /etc/passwd (non-shadow).  This is tweakable in
+the configuration file.  Please see "doc/sysadmin.html".
+
+The sample directory contains two programs which provide a reference
+for using the library, as well as making it easy to test a mechanism
+on the command line.  See "doc/programming.html" for more
+information.
+
+This library is believed to be thread safe IF:
+-you supply mutex functions (see sasl_set_mutex())
+-you make no SASL calls until sasl_client/server_init() completes
+-no SASL calls are made after sasl_done() is begun
+
+INSTALLATION
+------------
+Please see the file "INSTALL" to install this package.  We hope it to
+be relatively straightforward; if you try it on systems that we
+haven't, please contact us with your experiences.
+
+In order to get RC4 encryption under DIGEST-MD5, you'll need an
+implementation of RC4.  This might be export controlled (which is why
+it's a seperate package); if you think you have an export license,
+know that don't need one, or aren't planning to export it, it's
+available under <http://andrew2.andrew.cmu.edu/dist/>.  SASL can also
+use the OpenSSL version of RC4, available from <http://www.openssl.org/>.
+
+The library uses the environment variable SASL_PATH to locate the
+directory where the mechanisms are; this should be a colon-seperated
+list of directories containing plugins.
+
+INSTALLATION ON MAC OS X
+------------------------
+Please read the file doc/macosx.html
+
+CONFIGURATION
 -------------
-THIS CODE IS BETA-QUALITY AND IS NOT INTENDED FOR PRODUCTION USE.
-IT IS NOT BACKWARDS COMPATIBLE WITH SASLv1.
+By default, libsasl looks for configuration files in
+/usr/lib/sasl/Appname.conf where Appname is settable by the
+application (for example, Sendmail 8.10 and later set this to
+"Sendmail").  Applications can also override this default
+configuration mechanism.
 
-If you are looking to port SASLv1 applications to SASLv2, please see
-doc/appconvert.html
+Currently configurable parameters:
+- srvtab (for KERBEROS_V4): [/etc/srvtab] path
+	where to find the srvtab
 
-Bugs can be searched/reported at: http://bugzilla.andrew.cmu.edu
+- pwcheck_method: [sasldb] one of {PAM, kerberos_v4, passwd, shadow, sasldb}
+	how to check plaintext passwords.
 
-DOCUMENTATION
---------------
-Please see doc/index.html for the remainder of the documentation.
+- auto_transition: [false]
+	if true, automatically add secrets to the secret database when
+	PLAIN or check_password is used, so in the future the user can
+	use the more secure mechanisms.
+
+*** For a more detailed guide on configuring SASL, please look at
+doc/sysadmin.html.
+
+KNOWN BUGS
+----------
+* SCRAM-MD5 is no longer being maintained, and probably needs some
+work in order to be usable.
+
+* libtool doesn't always link libraries together.  In our environment,
+we only have static Krb5 libraries; the GSSAPI plugin should link
+these libraries in on platforms that support it (Solaris and Linux
+among them) but it does not.  It also doesn't always get the runpath
+of libraries correct.
+
+* Also see the "TODO" file.
+
+AUTHORS
+-------
+For any comments/suggestions/bug reports, please contact
+cyrus-bugs@andrew.cmu.edu.  Be sure to include the version of libsasl
+and your operating system; messages without this information will not
+be answered.
+
+Authors can be found in the file AUTHORS.
+
+REFERENCES
+----------
+[ANONYMOUS] Newman, C., "Anonymous SASL Mechanism", RFC 2245, November
+1997.
+
+[CRAM-MD5] Klensin, Catoe, Krumviede, "IMAP/POP AUTHorize Extension
+for Simple Challenge/Response", RFC 2195, September 1997.
+
+[DIGEST-MD5] Leach, Newman, "Using Digest Authentication as a SASL
+Mechanism",  RFC 2831, May 2000
+
+[KEYED-MD5] Krawczyk, Bellare, Canetti, "HMAC: Keyed-Hashing for Message
+Authentication", RFC 2104, February 1997. 
+
+[PLAIN] Newman, C., "Using TLS with IMAP4, POP3 and ACAP",
+RFC 2595, June 1999
+
+[SASL] Myers, J., "Simple Authentication and Security Layer (SASL)",
+RFC 2222, October 1997.
+
+[SCRAM-MD5] Newman, C., "Salted Challenge Response Authentication
+Mechanism", draft-newman-auth-scram-xx.txt, Work in progress.

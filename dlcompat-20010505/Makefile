@@ -45,7 +45,7 @@ install: all
 	chmod 644 $(prefix)/lib/libdl.a
 	$(INSTALL) -m 755 libdl.dylib $(prefix)/lib
 	if test ! -d $(prefix)/include ; then mkdir $(prefix)/include ; fi
-	$(INSTALL) -m 644 dlfcn.h $(prefix)/include
+	$(INSTALL) -c -m 644 dlfcn.h $(prefix)/include
 
 .c.o:
 	$(CC) $(CFLAGS) -fno-common -o $@ -c $<

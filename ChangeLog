@@ -1,5 +1,8 @@
 1999-03-31  Rob Earhart  <rob+@andrew.cmu.edu>
 
+	* plugins/digestmd5.c: why was this using // for comments in C code?
+	well, it doesn't now.
+
 	* lib/dlopen.c (_sasl_get_mech_list): Changed dynamic loading to
  	bind symbols immediately (this is preferable to dumping core when
  	symbols bound lazily fail to actually bind when needed), and to

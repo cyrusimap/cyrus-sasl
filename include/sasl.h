@@ -627,7 +627,7 @@ LIBSASL_API void sasl_version(const char **implementation,
 
 /* Extended version of sasl_version().
  *
- * This function is to be used for
+ * This function is to be used
  *  for library version display and logging
  *  for bug workarounds in old library versions
  *

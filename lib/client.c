@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.51 2002/06/14 14:36:14 rjs3 Exp $
+ * $Id: client.c,v 1.52 2002/06/19 18:07:23 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -498,8 +498,15 @@ int sasl_client_start(sasl_conn_t *conn,
     }
 
     /* make cparams */
-    c_conn->cparams->serverFQDN = c_conn->serverFQDN; 
     c_conn->cparams->service = conn->service;
+    c_conn->cparams->servicelen = strlen(conn->service);
+    
+    c_conn->cparams->serverFQDN = c_conn->serverFQDN; 
+    c_conn->cparams->servicelen = strlen(c_conn->serverFQDN);
+
+    c_conn->cparams->clientFQDN = NULL; /* XXX */
+    c_conn->cparams->clen = 0;
+
     c_conn->cparams->external_ssf = conn->external.ssf;
     c_conn->cparams->props = conn->props;
     c_conn->mech = bestm;

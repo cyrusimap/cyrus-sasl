@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.80 2002/06/14 14:36:14 rjs3 Exp $
+ * $Id: common.c,v 1.81 2002/06/19 18:07:23 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -700,17 +700,23 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
 	  if(conn->type == SASL_CONN_CLIENT) {
 	      ((sasl_client_conn_t *)conn)->cparams->ipremoteport
 		  = conn->ipremoteport;
+	      ((sasl_client_conn_t *)conn)->cparams->ipremlen =
+		  strlen(conn->ipremoteport);
 	  } else if (conn->type == SASL_CONN_SERVER) {
 	      ((sasl_server_conn_t *)conn)->sparams->ipremoteport
 		  = conn->ipremoteport;
+	      ((sasl_server_conn_t *)conn)->sparams->ipremlen =
+		  strlen(conn->ipremoteport);
 	  }
       } else {
 	  if(conn->type == SASL_CONN_CLIENT) {
 	      ((sasl_client_conn_t *)conn)->cparams->ipremoteport
 		  = NULL;
+	      ((sasl_client_conn_t *)conn)->cparams->ipremlen = 0;
 	  } else if (conn->type == SASL_CONN_SERVER) {
 	      ((sasl_server_conn_t *)conn)->sparams->ipremoteport
-		  = NULL;
+		  = NULL;	      
+	      ((sasl_server_conn_t *)conn)->sparams->ipremlen = 0;
 	  }
       }
 
@@ -735,17 +741,23 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
 	  if(conn->type == SASL_CONN_CLIENT) {
 	      ((sasl_client_conn_t *)conn)->cparams->iplocalport
 		  = conn->iplocalport;
+	      ((sasl_client_conn_t *)conn)->cparams->iploclen
+		  = strlen(conn->iplocalport);
 	  } else if (conn->type == SASL_CONN_SERVER) {
 	      ((sasl_server_conn_t *)conn)->sparams->iplocalport
 		  = conn->iplocalport;
+	      ((sasl_server_conn_t *)conn)->sparams->iploclen
+		  = strlen(conn->iplocalport);
 	  }
       } else {
 	  if(conn->type == SASL_CONN_CLIENT) {
 	      ((sasl_client_conn_t *)conn)->cparams->iplocalport
 		  = NULL;
+	      ((sasl_client_conn_t *)conn)->cparams->iploclen = 0;
 	  } else if (conn->type == SASL_CONN_SERVER) {
 	      ((sasl_server_conn_t *)conn)->sparams->iplocalport
 		  = NULL;
+	      ((sasl_server_conn_t *)conn)->sparams->iploclen = 0;
 	  }
       }
       break;

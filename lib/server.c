@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.112 2002/06/14 14:36:14 rjs3 Exp $
+ * $Id: server.c,v 1.113 2002/06/19 18:07:23 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -143,6 +143,7 @@ int sasl_setpass(sasl_conn_t *conn,
 
     /* check params */
     if (!conn) return SASL_BADPARAM;
+    if (conn->type != SASL_CONN_SERVER) PARAMERROR(conn);
      
     if ((!(flags & SASL_SET_DISABLE) && passlen == 0)
         || ((flags & SASL_SET_CREATE) && (flags & SASL_SET_DISABLE)))
@@ -165,11 +166,6 @@ int sasl_setpass(sasl_conn_t *conn,
     } else {
 	result = SASL_OK;
     }
-
-    /* copy info into sparams */
-    s_conn->sparams->serverFQDN = conn->serverFQDN;
-    s_conn->sparams->service = conn->service;
-    s_conn->sparams->user_realm = s_conn->user_realm;
 
     /* now we let the mechanisms set their secrets */
     for (m = mechlist->mech_list; m; m = m->next) {
@@ -791,20 +787,30 @@ int sasl_server_new(const char *service,
       result = SASL_NOMEM;
       goto done_error;
   }
-  
+
+  serverconn->sparams->service = (*pconn)->service;
+  serverconn->sparams->servicelen = strlen((*pconn)->service);
+
+  serverconn->sparams->appname = global_callbacks.appname;
+  serverconn->sparams->applen = strlen(global_callbacks.appname);
+
+  serverconn->sparams->serverFQDN = (*pconn)->serverFQDN;
+  serverconn->sparams->slen = strlen((*pconn)->serverFQDN);
+
+  if (user_realm) {
+      result = _sasl_strdup(user_realm, &serverconn->user_realm, NULL);
+      serverconn->sparams->urlen = strlen(user_realm);
+      serverconn->sparams->user_realm = serverconn->user_realm;
+  } else {
+      serverconn->user_realm = NULL;
+      /* the sparams is already zeroed */
+  }
+
   serverconn->sparams->utils = utils;
   serverconn->sparams->transition = &_sasl_transition;
   serverconn->sparams->canon_user = &_sasl_canon_user;
-  serverconn->sparams->serverFQDN = (*pconn)->serverFQDN;
   serverconn->sparams->props = serverconn->base.props;
   serverconn->sparams->flags = flags;
-
-  /* set some variables */
-  if (user_realm) {
-    result = _sasl_strdup(user_realm, &serverconn->user_realm, NULL);
-  } else {
-    serverconn->user_realm = NULL;
-  }
 
   if(result == SASL_OK) return SASL_OK;
 

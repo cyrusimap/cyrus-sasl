@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.187 2004/02/16 16:23:40 rjs3 Exp $
+dnl $Id: configure.in,v 1.188 2004/03/08 16:57:19 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -1066,10 +1066,6 @@ struct sockaddr_storage {
 #include "exits.h"
 #else
 #include "sysexits.h"
-#endif
-
-#ifndef	NI_WITHSCOPEID
-#define	NI_WITHSCOPEID	0
 #endif
 
 /* Get the correct time.h */

@@ -1,4 +1,4 @@
-/* $Id: config.h,v 1.3 2003/02/13 19:55:58 rjs3 Exp $
+/* $Id: config.h,v 1.4 2004/03/08 16:57:27 rjs3 Exp $
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -268,10 +268,6 @@ struct iovec {
 #define        getnameinfo     sasl_getnameinfo
 #define        gai_strerror    sasl_gai_strerror
 #include "gai.h"
-#endif
-
-#ifndef        NI_WITHSCOPEID
-#define        NI_WITHSCOPEID  0
 #endif
 
 #endif /* CONFIG_H */

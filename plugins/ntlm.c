@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.21 2004/02/19 15:22:41 ken3 Exp $
+ * $Id: ntlm.c,v 1.22 2004/03/08 16:57:29 rjs3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -94,7 +94,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.21 2004/02/19 15:22:41 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.22 2004/03/08 16:57:29 rjs3 Exp $";
 
 #ifdef WIN32
 static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);
@@ -790,6 +790,7 @@ static int smb_connect_server(const sasl_utils_t *utils, const char *client,
 #else
     int saved_errno;
 #endif
+    int niflags;
     char *port = "139";
     char hbuf[NI_MAXHOST], pbuf[NI_MAXSERV];
 
@@ -832,14 +833,19 @@ static int smb_connect_server(const sasl_utils_t *utils, const char *client,
 #endif
 	closesocket (s);
 	s = -1;
-	if (getnameinfo(r->ai_addr, r->ai_addrlen,
-		    hbuf, sizeof(hbuf), pbuf, sizeof(pbuf),
-		    NI_NUMERICHOST | NI_NUMERICSERV |
-		    (r->ai_family == AF_INET6 ? NI_WITHSCOPEID : 0)) != 0) {
-		snprintf(hbuf, sizeof(hbuf), "<unknown>");
-		snprintf(pbuf, sizeof(pbuf), "<unknown>");
+	niflags = (NI_NUMERICHOST | NI_NUMERICSERV);
+#ifdef NI_WITHSCOPEID
+	if (r->ai_family == AF_INET6)
+	    niflags |= NI_WITHSCOPEID;
+#endif
+	if (getnameinfo(r->ai_addr, r->ai_addrlen, hbuf, sizeof(hbuf),
+			pbuf, sizeof(pbuf), niflags) != 0) {
+	    strlcpy(hbuf, "unknown", sizeof(hbuf));
+	    strlcpy(pbuf, "unknown", sizeof(pbuf));
 	}
-/* Can't use errno (and %m), as it doesn't contain the socket error on Windows */
+
+        /* Can't use errno (and %m), as it doesn't contain
+         * the socket error on Windows */
 	error_str = _plug_get_error_message (utils, saved_errno);
 	utils->log(NULL, SASL_LOG_WARN, "NTLM: connect %s[%s]/%s: %s",
 		   ai->ai_canonname ? ai->ai_canonname : server,

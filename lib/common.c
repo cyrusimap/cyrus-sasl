@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.97 2003/10/20 15:19:58 rjs3 Exp $
+ * $Id: common.c,v 1.98 2004/03/08 16:57:26 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1601,11 +1601,18 @@ int _iovec_to_buf(const struct iovec *vec,
 int _sasl_iptostring(const struct sockaddr *addr, socklen_t addrlen,
 		     char *out, unsigned outlen) {
     char hbuf[NI_MAXHOST], pbuf[NI_MAXSERV];
-    
+    int niflags;
+
     if(!addr || !out) return SASL_BADPARAM;
 
-    getnameinfo(addr, addrlen, hbuf, sizeof(hbuf), pbuf, sizeof(pbuf),
-		NI_NUMERICHOST | NI_WITHSCOPEID | NI_NUMERICSERV);
+    niflags = (NI_NUMERICHOST | NI_NUMERICSERV);
+#ifdef NI_WITHSCOPEID
+    if (addr->sa_family == AF_INET6)
+	niflags |= NI_WITHSCOPEID;
+#endif
+    if (getnameinfo(addr, addrlen, hbuf, sizeof(hbuf), pbuf, sizeof(pbuf),
+		    niflags) != 0)
+	return SASL_BADPARAM;
 
     if(outlen < strlen(hbuf) + strlen(pbuf) + 2)
 	return SASL_BUFOVER;

@@ -1,3 +1,7 @@
+2004-03-08  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* NI_WITHSCOPEID fixes (Hajimu UMEMOTO <ume@mahoroba.org>) - correct
+	  Solaris 9 IPLOCALPORT/IPREMOTEPORT issue
+
 2004-02-24  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* acinclude.m4: move to config/libtool.m4
 	* saslauthd/lak.[ch]: Added filter based group membership check

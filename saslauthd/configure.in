@@ -279,10 +279,6 @@ struct iovec {
 #include "gai.h"
 #endif
 
-#ifndef NI_WITHSCOPEID
-#define NI_WITHSCOPEID  0
-#endif
-
 /* handy string manipulation functions */
 #ifndef HAVE_STRLCPY
 extern size_t saslauthd_strlcpy(char *dst, const char *src, size_t len);

@@ -1,4 +1,4 @@
-/* $Id: server.c,v 1.6 2004/02/19 15:22:42 ken3 Exp $ */
+/* $Id: server.c,v 1.7 2004/03/08 16:57:30 rjs3 Exp $ */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
  *
@@ -324,6 +324,7 @@ int main(int argc, char *argv[])
 	char myhostname[1024+1];
 	char hbuf[NI_MAXHOST], pbuf[NI_MAXSERV];
 	struct sockaddr_storage local_ip, remote_ip;
+	int niflags, error;
 	int salen;
 	int nfds, fd = -1;
 	FILE *in, *out;
@@ -359,26 +360,38 @@ int main(int argc, char *argv[])
 	if (getsockname(fd, (struct sockaddr *)&local_ip, &salen) < 0) {
 	    perror("getsockname");
 	}
-	if (getnameinfo((struct sockaddr *)&local_ip, salen,
-		    hbuf, sizeof(hbuf), pbuf, sizeof(pbuf),
-		    NI_NUMERICHOST | NI_NUMERICSERV |
-		    (local_ip.ss_family == AF_INET6 ? NI_WITHSCOPEID : 0)) == 0)
-	    snprintf(localaddr, sizeof(localaddr), "%s;%s", hbuf, pbuf);
-	else
-	    snprintf(localaddr, sizeof(localaddr), "<unknown>");
+	niflags = (NI_NUMERICHOST | NI_NUMERICSERV);
+#ifdef NI_WITHSCOPEID
+	if (((struct sockaddr *)&local_ip)->sa_family == AF_INET6)
+	    niflags |= NI_WITHSCOPEID;
+#endif
+	error = getnameinfo((struct sockaddr *)&local_ip, salen, hbuf,
+			    sizeof(hbuf), pbuf, sizeof(pbuf), niflags);
+	if (error != 0) {
+	    fprintf(stderr, "getnameinfo: %s\n", gai_strerror(error));
+	    strlcpy(hbuf, "unknown", sizeof(hbuf));
+	    strlcpy(pbuf, "unknown", sizeof(pbuf));
+	}
+        snprintf(localaddr, sizeof(localaddr), "%s;%s", hbuf, pbuf);
 
 	salen = sizeof(remote_ip);
 	if (getpeername(fd, (struct sockaddr *)&remote_ip, &salen) < 0) {
 	    perror("getpeername");
 	}
 
-	if (getnameinfo((struct sockaddr *)&remote_ip, salen,
-		    hbuf, sizeof(hbuf), pbuf, sizeof(pbuf),
-		    NI_NUMERICHOST | NI_NUMERICSERV |
-		    (remote_ip.ss_family == AF_INET6 ? NI_WITHSCOPEID : 0)) == 0)
-	    snprintf(remoteaddr, sizeof(remoteaddr), "%s;%s", hbuf, pbuf);
-	else
-	    snprintf(remoteaddr, sizeof(remoteaddr), "<unknown>");
+	niflags = (NI_NUMERICHOST | NI_NUMERICSERV);
+#ifdef NI_WITHSCOPEID
+	if (((struct sockaddr *)&remote_ip)->sa_family == AF_INET6)
+	    niflags |= NI_WITHSCOPEID;
+#endif
+	error = getnameinfo((struct sockaddr *)&remote_ip, salen, hbuf,
+			    sizeof(hbuf), pbuf, sizeof(pbuf), niflags);
+	if (error != 0) {
+	    fprintf(stderr, "getnameinfo: %s\n", gai_strerror(error));
+	    strlcpy(hbuf, "unknown", sizeof(hbuf));
+	    strlcpy(pbuf, "unknown", sizeof(pbuf));
+	}
+	snprintf(remoteaddr, sizeof(remoteaddr), "%s;%s", hbuf, pbuf);
 
 	r = gethostname(myhostname, sizeof(myhostname)-1);
 	if(r == -1) saslfail(r, "getting hostname");

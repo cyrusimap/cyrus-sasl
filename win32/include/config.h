@@ -162,10 +162,6 @@ struct sockaddr_storage {
 #include "gai.h"
 #endif
 
-#ifndef	NI_WITHSCOPEID
-#define	NI_WITHSCOPEID	0
-#endif
-
 #include <time.h>
 
 typedef int ssize_t;

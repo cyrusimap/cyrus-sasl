@@ -53,7 +53,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_rimap.c,v 1.9 2003/12/16 21:54:14 rbraun Exp $"
+#ident "$Id: auth_rimap.c,v 1.10 2004/03/08 16:57:31 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -312,6 +312,7 @@ auth_rimap (
     char rbuf[RESP_LEN];		/* response read buffer         */
     char hbuf[NI_MAXHOST], pbuf[NI_MAXSERV];
     int saved_errno;
+    int niflags;
     /* END VARIABLES */
 
     /* sanity checks */
@@ -328,16 +329,24 @@ auth_rimap (
 	close(s);
 	s = -1;
 	saved_errno = errno;
-	getnameinfo(r->ai_addr, r->ai_addrlen,
-		    hbuf, sizeof(hbuf), pbuf, sizeof(pbuf),
-		    NI_NUMERICHOST | NI_WITHSCOPEID | NI_NUMERICSERV);
+	niflags = (NI_NUMERICHOST | NI_NUMERICSERV);
+#ifdef NI_WITHSCOPEID
+	if (r->ai_family == AF_INET6)
+	    niflags |= NI_WITHSCOPEID;
+#endif
+	if (getnameinfo(r->ai_addr, r->ai_addrlen, hbuf, sizeof(hbuf),
+			pbuf, sizeof(pbuf), niflags) != 0) {
+	    strlcpy(hbuf, "unknown", sizeof(hbuf));
+	    strlcpy(pbuf, "unknown", sizeof(pbuf));
+	}
 	errno = saved_errno;
 	syslog(LOG_WARNING, "auth_rimap: connect %s[%s]/%s: %m",
 	       ai->ai_canonname ? ai->ai_canonname : r_host, hbuf, pbuf);
     }
     if (s < 0) {
-	getnameinfo(ai->ai_addr, ai->ai_addrlen, NULL, 0, pbuf, sizeof(pbuf),
-		    NI_NUMERICSERV);
+	if (getnameinfo(ai->ai_addr, ai->ai_addrlen, NULL, 0,
+			pbuf, sizeof(pbuf), NI_NUMERICSERV) != 0)
+	    strlcpy(pbuf, "unknown", sizeof(pbuf));
 	syslog(LOG_WARNING, "auth_rimap: couldn't connect to %s/%s",
 	       ai->ai_canonname ? ai->ai_canonname : r_host, pbuf);
 	return strdup("NO [ALERT] Couldn't contact remote authentication server");

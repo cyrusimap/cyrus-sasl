@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Options for Cyrus SASL</title>
-<!-- $Id: options.html,v 1.16 2003/07/17 19:04:18 ken3 Exp $ -->
+<!-- $Id: options.html,v 1.17 2003/07/27 21:34:54 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <h1>Options for Cyrus SASL</h1>
@@ -33,6 +33,12 @@ list of plugin names, and the plugins will be queried in order</TD>
 <TR>
 <TD>keytab</TD><TD>GSSAPI</TD> <TD>Location of keytab
 file</TD><TD><tt>/etc/krb5.keytab</tt> (system dependant)</TD>
+</TR>
+<TR>
+<TD>log_level</TD><TD>SASL Library</TD>
+<TD><b>Numeric</b> Logging Level (see <TT>SASL_LOG_*</TT> in <tt>sasl.h</tt>
+for values and descriptions</TD>
+<TD>1 (SASL_LOG_ERR)</TD>
 </TR>
 <TR>
 <TD>mech_list</TD><TD>SASL Library</TD>

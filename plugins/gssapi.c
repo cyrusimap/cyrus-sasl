@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.49 2002/04/16 16:40:30 rjs3 Exp $
+ * $Id: gssapi.c,v 1.50 2002/04/17 02:42:52 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -756,8 +756,6 @@ gssapi_server_mech_step(void *conn_context,
 
 	name_token.value = NULL;
 	name_without_realm.value = NULL;
-
-	name_token.value = NULL;
 	
 	/* We ignore whatever the client sent us at this stage */
 

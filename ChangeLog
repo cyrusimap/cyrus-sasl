@@ -1,3 +1,8 @@
+2002-01-05  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* saslauthd/saslauthd.c: F_SETLK doesn't block; F_SETLKW does
+	* saslauthd/saslauthd.c: detect errors somewhat better
+
 2002-01-04  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* lib/common.c: Allow sasl_setprop for SASL_DEFUSERREALM
 

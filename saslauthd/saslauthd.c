@@ -78,7 +78,7 @@
  * END HISTORY */
 
 #ifdef __GNUC__
-#ident "$Id: saslauthd.c,v 1.6 2001/12/17 23:09:17 rjs3 Exp $"
+#ident "$Id: saslauthd.c,v 1.7 2002/01/05 20:54:17 leg Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -554,12 +554,22 @@ main(
 	/* The idea here is we only want one process to be waiting on
 	 * an accept() at a time, so that only one wakes up at a time */
 	alockinfo.l_type = F_WRLCK;
-	rc = fcntl(alfd, F_SETLK, &alockinfo);
-    
+	while ((rc = fcntl(alfd, F_SETLKW, &alockinfo)) < 0 && errno == EINTR)
+	    /* noop */;
+	if (rc < 0) {
+	    syslog(LOG_ERR, "fcntl: F_SETLKW: error getting accept lock: %m");
+	    exit(1);
+	}
+
 	conn = accept(s, (struct sockaddr *)&client, &len);
 
 	alockinfo.l_type = F_UNLCK;
-	rc = fcntl(alfd, F_SETLK, &alockinfo);
+	while ((rc = fcntl(alfd, F_SETLKW, &alockinfo)) < 0 && errno == EINTR)
+	    /* noop */;
+	if (rc < 0) {
+	    syslog(LOG_ERR, "fcntl: F_SETLKW: error releasing accept lock: %m");
+	    exit(1);
+	}
 	
 	if (conn == -1) {
 	    if (errno != EINTR) {

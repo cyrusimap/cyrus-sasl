@@ -12,6 +12,9 @@
 	  Assorted security layer fixes (maxoutbuf setting, mech_ssf setting)
 	* lib/common.c, lib/client.c, lib/server.c, lib/saslint.h:
 	  Allowed client-side sasl_listmech calls.
+	* include/sasl.h: Minor cosmetic fix to comments
+	* lib/common.c: Fix several crash problems in getprop
+	  (Courtesy Marshall T. Rose <mrose@dbc.mtview.ca.us>)
 
 2002-01-05  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 

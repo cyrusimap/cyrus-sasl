@@ -1,5 +1,13 @@
 1999-03-26  Rob Earhart  <rob+@andrew.cmu.edu>
 
+	* config/{config.guess,config.sub,ltconfig,ltmain.sh}: reverted to 
+	old hacked versions
+
+	* SMakefile: removed libtoolize
+
+	* plugins/digestmd5.c: changed various instances of user_domain to 
+	local_domain
+
 	* lib/server.c (_sasl_transition): changed to call setpass directly
 	(sasl_setpass): added logging
 

@@ -1,6 +1,4 @@
 if test ! -x configure; then
-  echo libtoolize --automake
-  libtoolize --automake
   echo aclocal -I cmulocal
   aclocal -I cmulocal
   echo autoheader

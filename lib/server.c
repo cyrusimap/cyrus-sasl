@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.52 1999/10/01 20:05:10 leg Exp $
+ * $Id: server.c,v 1.53 1999/10/10 02:07:14 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -119,12 +119,21 @@ external_server_step(void *conn_context __attribute__((unused)),
       || !sparams->utils->getcallback
       || !serverout
       || !serveroutlen
-      || !oparams
-      || !errstr)
+      || !oparams)
     return SASL_BADPARAM;
+
+  if (errstr) {
+      *errstr = NULL;
+  }
 
   if (!sparams->utils->conn->external.auth_id)
     return SASL_BADPROT;
+
+  if ((sparams->props.security_flags & SASL_SEC_NOANONYMOUS) &&
+      (!strcmp(sparams->utils->conn->external.auth_id, "anonymous"))) {
+      *errstr = "anonymous login not allowed";
+      return SASL_NOAUTHZ;
+  }
   
   if (! clientin) {
     /* No initial data; we're in a protocol which doesn't support it.
@@ -168,7 +177,6 @@ external_server_step(void *conn_context __attribute__((unused)),
   oparams->verifymic = NULL;
   oparams->realm = NULL;
   oparams->param_version = 0;
-  *errstr = NULL;
 
   return SASL_OK;
 }
@@ -177,6 +185,7 @@ static const sasl_server_plug_t external_server_mech = {
   "EXTERNAL",			/* mech_name */
   0,				/* max_ssf */
   SASL_SEC_NOPLAINTEXT
+  | SASL_SEC_NOANONYMOUS
   | SASL_SEC_NODICTIONARY,	/* security_flags */
   NULL,				/* glob_context */
   &external_server_new,		/* mech_new */

@@ -59,7 +59,7 @@
 #include "sfsasl.h"
 
 #define TEST_USERID "tmartin"
-#define MECH "CRAM-MD5"
+#define MECH "KERBEROS_V4"
 #define TESTSTRING "a001 lfdist . blah\r\n"
 
   Sfio_t *yofile;
@@ -464,9 +464,11 @@ main(argc, argv)
     malloc(1000);
 
     printf("sock=%i\n",sock);
+
     addr.sin_family = AF_INET;
     memcpy(&addr.sin_addr, hp->h_addr, hp->h_length);
-    addr.sin_port = htons(25);
+    printf("port=%i\n",port);
+    addr.sin_port = htons(port);
     malloc(1000);
     printf("%i\n",addr.sin_addr);
 

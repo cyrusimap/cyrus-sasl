@@ -459,6 +459,8 @@ static int server_continue_step (void *conn_context,
     /* random 32-bit number */
     unsigned long randocts,nchal;
 
+    VL(("KERBEROS_V4 Step 1\n"));
+
     sparams->utils->rand(sparams->utils->rpool,(char *) &randocts ,
 			 sizeof(randocts));    
     text->challenge=randocts; 
@@ -484,6 +486,7 @@ static int server_continue_step (void *conn_context,
     int lup;
     struct sockaddr_in addr;
 
+    VL(("KERBEROS_V4 Step 2\n"));
 
     /* received authenticator */
 
@@ -503,14 +506,21 @@ static int server_continue_step (void *conn_context,
     result = sparams->utils->getprop(sparams->utils->conn,
 				     SASL_IP_REMOTE, (void **)&addr);
     if (result != SASL_OK)
+    {
+      VL(("getprop SASL_IP_REMOTE failed\n"));
       return SASL_BADAUTH;
+    }
 
     /* check ticket */
     result=krb_rd_req(&ticket, (char *) sparams->service,
 		      text->instance,addr.sin_addr.s_addr,&ad, "");
 
     if (result!=SASL_OK) /* if fails mechanism fails */
+    {
+      VL(("krb_rd_req failed service=%s instance=%s error code=%i\n",
+	     sparams->service, text->instance,result));
       return SASL_BADAUTH;
+    }
 
     /* 8 octets of data
      * 1-4 checksum+1
@@ -720,11 +730,13 @@ int sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
 }
 
 /* put in sasl_wrongmech */
-static int c_start(void *glob_context __attribute__((unused)), 
+static int client_start(void *glob_context __attribute__((unused)), 
 		 sasl_client_params_t *params,
 		 void **conn)
 {
   context_t *text;
+
+  VL(("KERBEROS_V4 Client start\n"));
 
   /* holds state are in */
   text= params->utils->malloc(sizeof(context_t));
@@ -737,16 +749,15 @@ static int c_start(void *glob_context __attribute__((unused)),
   return SASL_OK;
 }
 
-static int c_continue_step (void *conn_context,
-	      sasl_client_params_t *params,
-	      const char *serverin,
-	      int serverinlen,
-	      sasl_interact_t **prompt_need,
-	      char **clientout,
-	      int *clientoutlen,
-	      sasl_out_params_t *oparams)
+static int client_continue_step (void *conn_context,
+				 sasl_client_params_t *params,
+				 const char *serverin,
+				 int serverinlen,
+				 sasl_interact_t **prompt_need __attribute__((unused)),
+				 char **clientout,
+				 int *clientoutlen,
+				 sasl_out_params_t *oparams)
 {
-
   KTEXT_ST authent;
   context_t *text;
   text=conn_context;
@@ -755,6 +766,8 @@ static int c_continue_step (void *conn_context,
   
   if (text->state==0)
   {
+    VL(("KEBREROS_V4 Step 1\n"));
+
     *clientout = text->malloc(1);
     if (! *clientout) return SASL_NOMEM;
     **clientout = '\0';
@@ -773,19 +786,31 @@ static int c_continue_step (void *conn_context,
     KTEXT_ST ticket;
     char *service=(char *)params->service;
 
+    VL(("KEBREROS_V4 Step 2\n"));
+
     memset(&ticket, 0L, sizeof(ticket));
     ticket.length=MAX_KTXT_LEN;   
 
-    if (serverinlen != 4) { return SASL_FAIL; }
+    if (serverinlen != 4)
+    {
+      VL(("serverin not 4 bytes long\n"));
+      return SASL_FAIL; 
+    }
 
     memcpy(&text->challenge, serverin, 4);
 
     text->challenge=ntohl(text->challenge); 
 
     if (params->serverFQDN==NULL)
-	return SASL_BADAUTH;
+    {
+      VL(("No serverFQDN set\n"));
+      return SASL_BADAUTH;
+    }
     if (params->service==NULL)
-	return SASL_BADAUTH;
+    {
+      VL(("No service set\n"));
+      return SASL_BADAUTH;
+    }
 
     text->realm=krb_realmofhost(params->serverFQDN);
 
@@ -800,6 +825,8 @@ static int c_continue_step (void *conn_context,
     if ((result=krb_mk_req(&ticket, service, text->instance,
 			   text->realm,text->challenge)))
     {
+      VL(("krb_mk_req failed service=%s instance=%s realm=%s krb error=%i\n",
+	     service,text->instance,text->realm,result));
       return SASL_FAIL;
     }
     
@@ -817,10 +844,12 @@ static int c_continue_step (void *conn_context,
     unsigned long testnum;
     unsigned long nchal;    
     unsigned char sout[1024];
-    int lup,len;
+    unsigned int lup;
+    int len;
     unsigned char in[8];
     char *userid;
     int result;
+    int external;
     krb_principal principal;
     sasl_security_properties_t secprops;
 
@@ -855,24 +884,23 @@ static int c_continue_step (void *conn_context,
       return SASL_BADAUTH;
     }
     memcpy(text->session, text->credentials.session, 8);
-    des_key_sched(&text->session, text->init_keysched);
+    des_key_sched(text->session, text->init_keysched);
 
-    des_key_sched(&text->session, text->enc_keysched); /* make keyschedule for */
-    des_key_sched(&text->session, text->dec_keysched); /* encryption and decryption */
+    des_key_sched(text->session, text->enc_keysched); /* make keyschedule for */
+    des_key_sched(text->session, text->dec_keysched); /* encryption and decryption */
+
+
+    /* decrypt from server */
+    des_ecb_encrypt(in,in,text->init_keysched,DES_DECRYPT);
+
+    /* convert to 32bit int */
+    testnum=(in[0]*256*256*256)+(in[1]*256*256)+(in[2]*256)+in[3];
 
 
     /* verify data 1st 4 octets must be equal to chal+1 */
-    des_ecb_encrypt((des_cblock *)in,
-		    (des_cblock *)in,
-		    text->init_keysched,
-		    DES_DECRYPT);
-
-    testnum=(unsigned long) in;
-
-    testnum=(in[0]*256*256*256)+(in[1]*256*256)+(in[2]*256)+in[3];
-
     if (testnum!=text->challenge+1)
     {
+      VL(("challenge not right\n"));
       return SASL_BADAUTH;
     }
 
@@ -884,12 +912,20 @@ static int c_continue_step (void *conn_context,
 
     /* get requested ssf */
     secprops=params->props;
+    external=params->external_ssf;
+    VL (("external ssf=%i\n",external));
 
     if (secprops.min_ssf>56)
+    {
+      VL (("Minimum ssf too strong min_ssf=%i\n",secprops.min_ssf));
       return SASL_TOOWEAK;
+    }
 
-    if (secprops.max_ssf<56)
+    if (secprops.max_ssf<text->ssf)
+    {
+      VL (("ssf too strong"));
       return SASL_FAIL;
+    }
 
     VL (("minssf=%i maxssf=%i\n",secprops.min_ssf,secprops.max_ssf));
     /* if client didn't set use strongest layer */
@@ -934,9 +970,12 @@ static int c_continue_step (void *conn_context,
     sout[6]=0xFF;
     sout[7]=0xFF;
 
-    strcat((char *)sout + 8, userid);
+
+    /* append userid */
+    for (lup=0;lup<strlen(userid);lup++)
+      sout[8+lup]=userid[lup];
     
-    len=8+strlen(userid);
+    len=9+strlen(userid)-1;
 
     /* append 0 based octets so is multiple of 8 */
     while(len%8)
@@ -946,13 +985,10 @@ static int c_continue_step (void *conn_context,
     }
     sout[len]=0;
     
-    des_key_sched(&text->session, text->init_keysched);
-    des_pcbc_encrypt((des_cblock *)sout,
-		     (des_cblock *)sout,
-		     len,
-		     text->init_keysched,
-		     &text->session,
-		     DES_ENCRYPT);
+    des_key_sched(text->session, text->init_keysched);
+    des_pcbc_encrypt((unsigned char *)sout,
+		     (unsigned char *)sout,
+		     len, text->init_keysched, text->session, DES_ENCRYPT);
 
     *clientout = params->utils->malloc(len);
     memcpy((char *) *clientout, sout, len);
@@ -996,8 +1032,8 @@ static const sasl_client_plug_t client_plugins[] =
     0,
     NULL,
     NULL,
-    &c_start,
-    &c_continue_step,
+    &client_start,
+    &client_continue_step,
     &dispose,
     &mech_free,
     NULL,

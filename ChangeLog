@@ -1,5 +1,12 @@
 1999-02-17  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
+	* plugins/all: added VL's for error conditions
+
+	* all: eliminated some warnings
+
+	* plugins/kerberos4.c: went back to an old version. works
+ 	now. Please test when you make changes in the future
+	
 	* plugins/kerberos4.c: doesn't work now. no clue why
 
 	* lib/saslutil.c: fixed some stuff. added comments

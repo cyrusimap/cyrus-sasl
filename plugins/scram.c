@@ -525,7 +525,7 @@ setpass(void *glob_context __attribute__((unused)),
 	const char *user,
 	const char *pass,
 	unsigned passlen,
-	int flags,
+	int flags __attribute__((unused)),
 	const char **errstr)
 {
   int result;

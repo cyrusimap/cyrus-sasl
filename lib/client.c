@@ -273,8 +273,15 @@ static int add_plugin(void *p, void *library) {
   result = entry_point(cmechlist->utils, SASL_CLIENT_PLUG_VERSION, &version,
 		       &pluglist, &plugcount);
   if (version != SASL_CLIENT_PLUG_VERSION)
+  {
+    VL(("Version conflict\n"));
     result = SASL_FAIL;
-  if (result != SASL_OK) return result;
+  }
+  if (result != SASL_OK)
+  {
+    VL(("entry_point failed\n"));
+    return result;
+  }
 
   for (lupe=0;lupe< plugcount ;lupe++)
     {
@@ -576,11 +583,14 @@ int sasl_client_step(sasl_conn_t *conn,
 }
 
 
-int sasl_client_auth(sasl_conn_t *conn,
-		     const char *user,
-		     const char *pass, unsigned passlen,
-		     sasl_interact_t *prompts, sasl_secret_t **keepcopy)
+int sasl_client_auth(sasl_conn_t *conn __attribute__((unused)),
+		     const char *user __attribute__((unused)),
+		     const char *pass __attribute__((unused)), 
+		     unsigned passlen __attribute__((unused)),
+		     sasl_interact_t *prompts __attribute__((unused)),
+		     sasl_secret_t **keepcopy __attribute__((unused)))
 {
+  /* XXX needs to be filled in */
   return SASL_OK;
 }
 

@@ -163,14 +163,14 @@ static char *convert16(unsigned char *in,int inlen,sasl_utils_t *utils)
 }
 
 static char *make_hashed(sasl_secret_t *sec, char *nonce, int noncelen, 
-			 sasl_server_params_t *params)
+			 void *inparams)
 {
   char secret[65];
   unsigned char digest[1024];  
   int lup;
   char *in16;
 
-
+  sasl_server_params_t *params=(sasl_server_params_t *) inparams;
 
   if (sec->len<64)
   {
@@ -184,7 +184,7 @@ static char *make_hashed(sasl_secret_t *sec, char *nonce, int noncelen,
     memcpy(secret, sec->data, 64);
   }
 
-  VL(("secret=[%s] %i\n",secret,sec->len));
+  VL(("secret=[%s] %lu\n",secret,sec->len));
   VL(("nonce=[%s] %i\n",nonce, noncelen));
 
   /* do the hmac md5 hash */
@@ -261,7 +261,7 @@ static int server_continue_step (void *conn_context,
     char *userid=NULL;
     sasl_secret_t *sec=NULL;
     int lup,pos;
-    int len=sizeof(MD5_CTX);
+    /*    int len=sizeof(MD5_CTX);*/
     int result;
     sasl_server_getsecret_t *getsecret;
     void *getsecret_context;
@@ -382,7 +382,7 @@ setpass(void *glob_context __attribute__((unused)),
 	const char *user,
 	const char *pass,
 	unsigned passlen,
-	int flags,
+	int flags __attribute__((unused)),
 	const char **errstr)
 {
   int result;
@@ -554,7 +554,7 @@ static int c_continue_step (void *conn_context,
 
   if (text->state==2)
   {
-    unsigned char digest[1024];
+    /*    unsigned char digest[1024];*/
     char secret[65]; 
     int lup;
     char *in16;
@@ -603,7 +603,7 @@ static int c_continue_step (void *conn_context,
 			   (void **)&userid);
 
     /* make nonce */
-    in16=make_hashed(sec,serverin, serverinlen, params);
+    in16=make_hashed(sec,(char *) serverin, serverinlen, params);
 
     VL(("userid=[%s]\n",userid));
     VL(("in16=[%s]\n",in16));

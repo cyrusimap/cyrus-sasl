@@ -934,10 +934,14 @@ _sasl_find_getpath_callback(const sasl_callback_t *callbacks)
 
   if (callbacks)
     while (callbacks->id != SASL_CB_LIST_END)
+    {
       if (callbacks->id == SASL_CB_GETPATH)
+      {
 	return callbacks;
-      else
+      } else {
 	++callbacks;
+      }
+    }
   
   return &default_getpath_cb;
 }

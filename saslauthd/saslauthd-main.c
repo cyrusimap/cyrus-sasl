@@ -390,8 +390,9 @@ char *do_auth(const char *login, const char *password, const char *service, cons
 	}
 
 	if (strncmp(response, "NO", 2) == 0) {
-		logger(L_INFO, L_FUNC, "auth failure: [user=%s] [service=%s] [realm=%s] [mech=%s]", \
-			login, service, realm, auth_mech->name);
+		logger(L_INFO, L_FUNC, "auth failure: [user=%s] [service=%s] [realm=%s] [mech=%s] [reason=%s]", \
+			login, service, realm, auth_mech->name,
+		        strlen(response) >= 4 ? response+3 : "Unknown");
 
 		return response;
 	}

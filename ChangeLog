@@ -1,3 +1,7 @@
+2002-12-10  Rob Siemborksi <rjs3@andrew.cmu.edu>
+	* saslauthd/saslauthd-doors.c: Fix a potential memory leak when
+	  we call door_return()
+
 2002-12-09  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/auxprop.c: Correct leak in prop_clear, also update list_end
 	  in prop_request.

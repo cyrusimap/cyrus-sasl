@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.64 2003/07/22 21:44:32 rjs3 Exp $
+ * $Id: checkpw.c,v 1.65 2003/09/03 21:46:04 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -542,7 +542,11 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
     arg.rbuf = response;
     arg.rsize = sizeof(response);
 
-    door_call(s, &arg);
+    if (door_call(s, &arg) < 0) {
+      /* Parameters are undefined */
+      sasl_seterror(conn, 0, "door call to saslauthd server failed: %m", errno);
+      goto fail;
+    }
 
     if (arg.data_ptr != response || arg.data_size >= sizeof(response)) {
 	/* oh damn, we got back a really long response */

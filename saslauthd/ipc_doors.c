@@ -55,6 +55,7 @@
  * includes
 *****************************************/
 #include <door.h>
+#include <pthread.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
@@ -63,6 +64,8 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#include <unistd.h>
+#include <stropts.h>
 
 #include "globals.h"
 #include "utils.h"
@@ -73,21 +76,25 @@
  *****************************************/
 static void	do_request(void *, char *, size_t, door_desc_t *, uint_t);
 static void	send_no(char *);
+static void	need_thread(door_info_t*);
+static void	*server_thread(void *);
 
 /****************************************
  * module globals
  *****************************************/
 static char			*door_file;  /* Path to the door file        */
 static int			door_fd;     /* Door file descriptor         */
-
+static pthread_attr_t thread_attr;	     /* Thread attributes            */
+static int			num_thr;     /* Number of threads            */
+static pthread_mutex_t		num_lock;    /* Lock for update              */
 
 /****************************************
  * flags       	global from saslauthd-main.c
  * run_path    	global from saslauthd-main.c
+ * num_procs   	global from saslauthd-main.c
  * detach_tty()	function from saslauthd-main.c
  * logger()		function from utils.c
  *****************************************/
-
 
 /*************************************************************
  * IPC init. Initialize the environment specific to the 
@@ -133,6 +140,8 @@ void ipc_init() {
 		exit(1);
 	}
 
+	door_server_create(&need_thread);
+
 	if (fattach(door_fd, door_file) < 0) {
 		logger(L_ERR, L_FUNC, "failed to attach door to file: %s",
 		       door_file);
@@ -154,6 +163,14 @@ void ipc_init() {
 	 * model global flag.
 	 **************************************************************/
 	flags &= ~USE_PROCESS_MODEL;
+
+ 	/* Initialize mutex */
+	pthread_mutex_init(&num_lock, NULL);
+
+	/* Initialize thread attributes */
+	pthread_attr_init(&thread_attr);
+	pthread_attr_setscope(&thread_attr, PTHREAD_SCOPE_SYSTEM);
+	pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED);
 
 	return;
 }
@@ -300,8 +317,8 @@ void do_request(void *cookie, char *data, size_t datasize, door_desc_t *dp, size
 	memset(password, 0, strlen(password));
 
 	if (response == NULL) {
-		send_no("NULL response from mechanism");
-		return;
+	    send_no("NULL response from mechanism");
+	    return;
 	}	
 
 	strncpy(response_buff, response, 1023);
@@ -309,13 +326,42 @@ void do_request(void *cookie, char *data, size_t datasize, door_desc_t *dp, size
 	free(response);
 
 	if (flags & VERBOSE)
-		logger(L_DEBUG, L_FUNC, "response: %s", response_buff);
+	    logger(L_DEBUG, L_FUNC, "response: %s", response_buff);
 
-	door_return(response_buff, strlen(response_buff), NULL, 0);
+	if(door_return(response_buff, strlen(response_buff), NULL, 0) < 0)
+	    logger(L_ERR, L_FUNC, "door_return: %s", strerror(errno));
 
 	return;
 }
 
+/*************************************************************
+ * The available server  thread  pool  is  depleted.
+ * Create a new thread with suitable attributes.
+ * Client door_call() will block until server thread is available.
+ **************************************************************/
+void need_thread(door_info_t *di) {
+    pthread_t newt;
+    int more;
+    
+    if (num_procs > 0) {
+	pthread_mutex_lock(&num_lock);
+	more = (num_thr < num_procs);
+	if (more) num_thr++;
+	pthread_mutex_unlock(&num_lock);
+	if (!more) return;
+    }
+
+    pthread_create(&newt, &thread_attr, &server_thread, NULL);
+}
+ 
+/*************************************************************
+ * Start a new server thread.
+ * Make it available for door invocations.
+ **************************************************************/
+void *server_thread(void *arg) {
+    pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+    door_return(NULL, 0, NULL, 0);
+}
 
 /*************************************************************
  * In case something went out to lunch while parsing the
@@ -334,9 +380,10 @@ void send_no(char *mesg) {
 	buff[1023] = '\0';
 
 	if (flags & VERBOSE)
-		logger(L_DEBUG, L_FUNC, "response: %s", buff);
+	    logger(L_DEBUG, L_FUNC, "response: %s", buff);
 
-	door_return(buff, strlen(buff), NULL, 0);	
+	if(door_return(buff, strlen(buff), NULL, 0) < 0)
+	    logger(L_ERR, L_FUNC, "door_return: %s", strerror(errno));
 
 	return;	
 }

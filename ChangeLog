@@ -1,3 +1,10 @@
+2003-09-03  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/checkpw.c: Check return value of door_call
+	  (Gary Mills <mills@cc.umanitoba.ca>)
+	* saslauthd/ipc_doors.c: Implement thread limiting,
+	  minor cleanup and error checking
+	  (Gary Mills <mills@cc.umanitoba.ca>)
+
 2003-09-02  Ken Murchison <ken@oceana.com>
 	* plugins/ntlm.c, doc/options.html: added support for NTLMv2 responses;
 	  fixed potential buffer overflow

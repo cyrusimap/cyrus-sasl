@@ -1,3 +1,9 @@
+2002-12-05  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/lak.c: Allocate a large enough buffer to account for
+	  a completely escaped username. (lak_escape and lak_filter)
+	* lib/common.c: Ensure there is enough space for the trailing \0
+	  in _sasl_log
+
 2002-12-04  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/canonusr.c: Check for potential buffer overflow
 

@@ -1,3 +1,8 @@
+2000-03-29  Larry Greenfield  <leg+@andrew.cmu.edu>
+
+	* utils/sasldblistusers.c: added ability to list an arbitrary
+	database (Claus Assmann <ca+sasl@sendmail.org>)
+
 2000-03-28  Larry Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/anonymous.c: shouldn't free static memory

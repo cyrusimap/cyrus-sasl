@@ -5,9 +5,14 @@ saslauthd_SOURCES = saslauthd.c mechanisms.c globals.h mechanisms.h auth_dce.c a
 saslauthd_DEPENDENCIES = @COMPAT_OBJ@
 saslauthd_LDADD	= @COMPAT_OBJ@ @SASL_KRB_LIB@ @GSSAPIBASE_LIBS@ @GSSAPI_LIBS@ @PLAIN_LIBS@ @LIB_SIA@ @LIB_SOCKET@ @SASL_DB_LIB@ @LIB_PAM@
 
-EXTRA_DIST	= saslauthd.8 config include
+EXTRA_DIST	= saslauthd.8 saslauthd.8.mdoc config include
 INCLUDES	= -I$(top_srcdir)/include
 
-install-data-local:
+dist-hook: saslauthd.8
+
+saslauthd.8: saslauthd.mdoc
+	nroff -mdoc saslauthd.mdoc > saslauthd.8
+
+install-data-local: saslauthd.8
 	$(mkinstalldirs) $(DESTDIR)$(mandir)/cat8
 	$(INSTALL_DATA) $(srcdir)/saslauthd.8 $(DESTDIR)$(mandir)/cat8/saslauthd.8

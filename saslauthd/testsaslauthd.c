@@ -46,11 +46,16 @@
 
 #include <errno.h>
 #include <sys/types.h>
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
+#ifdef USE_DOORS
+#include <door.h>
+#endif
+#include <assert.h>
 
 extern int errno;
 
@@ -144,7 +149,9 @@ static int saslauthd_verify_password(const char *saslauthd_path,
 				   const char *service,
 				   const char *user_realm)
 {
-    static char response[1024];
+    char response[1024];
+    char query[8192];
+    char *query_end = query;
     int s;
     struct sockaddr_un srvaddr;
     int r;
@@ -152,6 +159,9 @@ static int saslauthd_verify_password(const char *saslauthd_path,
     void *context;
     char pwpath[sizeof(srvaddr.sun_path)];
     const char *p = NULL;
+#ifdef USE_DOORS
+    door_arg_t arg;
+#endif
 
     if(!service) service = "imap";
     if(!user_realm) user_realm = "";
@@ -165,22 +175,6 @@ static int saslauthd_verify_password(const char *saslauthd_path,
 
 	strcpy(pwpath, PATH_SASLAUTHD_RUNDIR);
 	strcat(pwpath, "/mux");
-    }
-
-    s = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (s == -1) {
-	perror("socket() ");
-	return -1;
-    }
-
-    memset((char *)&srvaddr, 0, sizeof(srvaddr));
-    srvaddr.sun_family = AF_UNIX;
-    strncpy(srvaddr.sun_path, pwpath, sizeof(srvaddr.sun_path));
-
-    r = connect(s, (struct sockaddr *) &srvaddr, sizeof(srvaddr));
-    if (r == -1) {
-        perror("connect() ");
-	return -1;
     }
 
     /*
@@ -197,24 +191,66 @@ static int saslauthd_verify_password(const char *saslauthd_path,
 	s_len = htons(strlen(service));
 	r_len = htons((user_realm ? strlen(user_realm) : 0));
 
-	iov[0].iov_base = &u_len;
- 	iov[0].iov_len = sizeof(u_len);
-        iov[1].iov_base = (void*) userid;
-	iov[1].iov_len = strlen(userid);
-	iov[2].iov_base = &p_len;
-	iov[2].iov_len = sizeof(p_len);
-	iov[3].iov_base = (void*) passwd;
-	iov[3].iov_len = strlen(passwd);
-	iov[4].iov_base = &s_len;
-	iov[4].iov_len = sizeof(s_len);
-	iov[5].iov_base = (void*) service;
-	iov[5].iov_len = strlen(service);
-	iov[6].iov_base = &r_len;
-        iov[6].iov_len = sizeof(r_len);
-	iov[7].iov_base = user_realm ? (void*) user_realm : "";
-	iov[7].iov_len = user_realm ? strlen(user_realm) : 0;
+	memcpy(query_end, &u_len, sizeof(unsigned short));
+	query_end += sizeof(unsigned short);
+	while (*userid) *query_end++ = *userid++;
 
-	if (retry_writev(s, iov, 8) == -1) {
+	memcpy(query_end, &p_len, sizeof(unsigned short));
+	query_end += sizeof(unsigned short);
+	while (*passwd) *query_end++ = *passwd++;
+
+	memcpy(query_end, &s_len, sizeof(unsigned short));
+	query_end += sizeof(unsigned short);
+	while (*service) *query_end++ = *service++;
+
+	memcpy(query_end, &r_len, sizeof(unsigned short));
+	query_end += sizeof(unsigned short);
+	if (user_realm) while (*user_realm) *query_end++ = *user_realm++;
+    }
+
+#ifdef USE_DOORS
+    s = open(pwpath, O_RDWR);
+    if (s < 0) {
+	perror("open");
+	return -1;
+    }
+
+    arg.data_ptr = query;
+    arg.data_size = query_end - query;
+    arg.desc_ptr = NULL;
+    arg.desc_num = 0;
+    arg.rbuf = response;
+    arg.rsize = sizeof(response);
+
+    door_call(s, &arg);
+
+    assert(arg.data_size < sizeof(response));
+    response[arg.data_size] = '\0';
+
+#else
+    s = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (s == -1) {
+	perror("socket() ");
+	return -1;
+    }
+
+    memset((char *)&srvaddr, 0, sizeof(srvaddr));
+    srvaddr.sun_family = AF_UNIX;
+    strncpy(srvaddr.sun_path, pwpath, sizeof(srvaddr.sun_path));
+
+    r = connect(s, (struct sockaddr *) &srvaddr, sizeof(srvaddr));
+    if (r == -1) {
+        perror("connect() ");
+	return -1;
+    }
+
+    {
+ 	struct iovec iov[8];
+ 
+	iov[0].iov_len = query_end - query;
+	iov[0].iov_base = query;
+
+	if (retry_writev(s, iov, 1) == -1) {
             fprintf(stderr,"write failed\n");
   	    return -1;
   	}
@@ -243,15 +279,16 @@ static int saslauthd_verify_password(const char *saslauthd_path,
         fprintf(stderr,"read failed\n");
 	return -1;
     }
+    response[count] = '\0';
   
     close(s);
+#endif /* USE_DOORS */
   
     if (!strncmp(response, "OK", 2)) {
 	printf("OK \"Success.\"\n");
 	return 0;
     }
   
-    response[count] = '\0';
     printf("NO \"authentication failed\"\n");
     return -1;
 }

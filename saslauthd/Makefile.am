@@ -7,4 +7,5 @@ EXTRA_DIST	= saslauthd.8
 INCLUDES	= -I$(top_srcdir)/include
 
 install-data-local:
+	$(mkinstalldirs) $(DESTDIR)$(mandir)/cat8
 	$(INSTALL_DATA) saslauthd.8 $(mandir)/cat8/saslauthd.8

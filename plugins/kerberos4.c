@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.11 1998/11/20 16:22:01 ryan Exp $
+ * $Id: kerberos4.c,v 1.12 1998/11/24 22:56:43 ryan Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -75,6 +75,11 @@ typedef struct krb_principal {
     char instance[INST_SZ];
     char realm[REALM_SZ];
 } krb_principal;
+
+/* This isn't defined under WIN32.  For access() */
+#ifndef R_OK
+#define R_OK 04
+#endif
 
 #endif /* WIN32 */
 
@@ -700,9 +705,6 @@ int sasl_server_plug_init(sasl_utils_t *utils, int maxversion,
 			  const sasl_server_plug_t **pluglist,
 			  int *plugcount)
 {
-#ifdef SASL_CLIENT_ONLY
-  return SASL_FAIL;
-#else /* SASL_CLIENT_ONLY */
   /* fail if we can't open the srvtab file */
   if (access(KEYFILE, R_OK)!=0)
     return SASL_FAIL;
@@ -716,7 +718,6 @@ int sasl_server_plug_init(sasl_utils_t *utils, int maxversion,
   *out_version=KERBEROS_VERSION;
 
   return SASL_OK;
-#endif /* SASL_CLIENT_ONLY */
 }
 
 /* put in sasl_wrongmech */

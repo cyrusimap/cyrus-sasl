@@ -12,10 +12,15 @@
 /* Registry key that contains the locations of the plugins */
 #define SASL_KEY "SOFTWARE\\Carnegie Mellon\\Project Cyrus\\SASL Library\\Available Plugins"
 
-/* We only want client functionality.  Cripple the server functionality when necessary to get
+/* We only want minimal server functionality.  Cripple the server functionality when necessary to get
  * things to compile.
+ *
+ * Currently only cripples PLAIN.
  */
-#define SASL_CLIENT_ONLY 1
+#define SASL_MINIMAL_SERVER 1
+
+/* DB Type */
+#undef SASL_DB_TYPE
 
 /* ------------------------------------------------------------ */
 

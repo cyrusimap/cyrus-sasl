@@ -1,6 +1,6 @@
 /* saslutil.c
  * Tim Martin 5/20/98
- * $Id: saslutil.c,v 1.6 1998/11/23 15:31:24 rob Exp $
+ * $Id: saslutil.c,v 1.7 1998/11/24 22:56:38 ryan Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -262,7 +262,7 @@ void sasl_randfree(sasl_rand_t **rpool)
 void sasl_randseed (sasl_rand_t *rpool, const char *seed, unsigned len)
 {
   /* is it acceptable to just use the 1st 3 char's given??? */
-  int lup;
+  unsigned int lup;
   
   for (lup=0;lup<3;lup++)
     if (len>lup)
@@ -271,7 +271,7 @@ void sasl_randseed (sasl_rand_t *rpool, const char *seed, unsigned len)
 
 void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
 {
-  int lup;
+  unsigned int lup;
   if (buf==NULL) return;
 
 #ifdef WIN32
@@ -285,7 +285,7 @@ void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
 
 void sasl_churn (sasl_rand_t *rpool, const char *data, unsigned len)
 {
-  int lup,spot;
+  unsigned int lup,spot;
   spot=0;
 
   for (lup=0;lup<len;lup++)

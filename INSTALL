@@ -64,7 +64,12 @@ At this time, there are no installers available.  To install by hand:
 * Add this directory to your path, so that apps will be able to find the library
   PATH=c:\sasl-plugins;%PATH%
 
-
-
-
 This has been tested under Windows 2000, using Visual Studio 6 SP1.
+
+WIN32 NOTES
+###########
+
+* ANONYMOUS and KERBEROS_V4 have been tested.
+* Kerberos mechanism has been compiled using MIT's kclient package
+* PLAIN is currently crippled, and does not support server use.
+* CRAM-MD5 and SCRAM-MD5 should work, but have not been tested.

@@ -1,6 +1,6 @@
 /* Plain SASL plugin
  * Tim Martin 
- * $Id: plain.c,v 1.5 1998/11/20 16:22:01 ryan Exp $
+ * $Id: plain.c,v 1.6 1998/11/24 22:56:43 ryan Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -35,9 +35,9 @@ SOFTWARE.
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
-#ifndef SASL_CLIENT_ONLY
+#ifndef SASL_MINIMAL_SERVER
 #include <pwd.h>
-#endif /* SASL_CLIENT_ONLY */
+#endif /* SASL_MINIMAL_SERVER */
 #if HAVE_UNISTD_H
 # include <sys/types.h>
 # include <unistd.h>
@@ -105,7 +105,7 @@ static void mech_free(void *global_context, sasl_utils_t *utils)
   utils->free(global_context);  
 }
 
-#ifdef SASL_CLIENT_ONLY
+#ifdef SASL_MINIMAL_SERVER
 
 static int server_continue_step (void *conn_context,
 	      sasl_server_params_t *params,
@@ -119,7 +119,7 @@ static int server_continue_step (void *conn_context,
   return SASL_FAIL;
 }
 
-#else /* SASL_CLIENT_ONLY */
+#else /* SASL_MINIMAL_SERVER */
 
 /* fills in password  remember to free password and wipe it out correctly */
 static int verify_password(char *userid,
@@ -258,7 +258,7 @@ static int server_continue_step (void *conn_context,
 
   return SASL_FAIL; /* should never get here */
 }
-#endif /* SASL_CLIENT_ONLY */
+#endif /* SASL_MINIMAL_SERVER */
 
 
 const sasl_server_plug_t plugins[] = 

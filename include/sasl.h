@@ -569,11 +569,6 @@ LIBSASL_API void sasl_free_secret(sasl_secret_t **);
  * Server API *
  **************/
 
-/* WIN32 NOTE:  Did not implement Server API yet, so I'm not adding
- * LIBSASL_API to these functions.  If I did, the linker may complain
- * about not finding them for export.
- */
-
 /* initialize server drivers, done once per process
  *  callbacks      -- base callbacks for all server connections
  *  appname        -- name of calling application (for lower level logging)
@@ -585,7 +580,7 @@ LIBSASL_API void sasl_free_secret(sasl_secret_t **);
  *  SASL_NOMEM     -- memory failure
  *  SASL_BADVERS   -- Mechanism version mismatch
  */
-int sasl_server_init(const sasl_callback_t *callbacks,
+LIBSASL_API int sasl_server_init(const sasl_callback_t *callbacks,
 		     const char *appname);
 
 
@@ -603,7 +598,7 @@ int sasl_server_init(const sasl_callback_t *callbacks,
  *  SASL_OK        -- success
  *  SASL_NOMEM     -- not enough memory
  */
-int sasl_server_new(const char *service,
+LIBSASL_API int sasl_server_new(const char *service,
 		    const char *local_domain,
 		    const char *user_domain,
 		    const sasl_callback_t *callbacks,
@@ -626,7 +621,7 @@ int sasl_server_new(const char *service,
  *  SASL_NOMEM     -- not enough memory
  *  SASL_NOMECH    -- no enabled mechanisms
  */
-int sasl_listmech(sasl_conn_t *conn,
+LIBSASL_API int sasl_listmech(sasl_conn_t *conn,
 		  const char *user,
 		  const char *prefix,
 		  const char *sep,
@@ -647,7 +642,7 @@ int sasl_listmech(sasl_conn_t *conn,
  *
  * Same returns as sasl_server_step()
  */
-int sasl_server_start(sasl_conn_t *conn,
+LIBSASL_API int sasl_server_start(sasl_conn_t *conn,
 		      const char *mech,
 		      const char *clientin,
 		      unsigned clientinlen,
@@ -672,7 +667,7 @@ int sasl_server_start(sasl_conn_t *conn,
  *  SASL_BADPROT   -- invalid input from client
  *  ...
  */
-int sasl_server_step(sasl_conn_t *conn,
+LIBSASL_API int sasl_server_step(sasl_conn_t *conn,
 		     const char *clientin,
 		     unsigned clientinlen,
 		     char **serverout,
@@ -692,7 +687,7 @@ int sasl_server_step(sasl_conn_t *conn,
  *  SASL_NOMECH  -- user found, but no verifier
  *  SASL_NOUSER  -- user not found
  */
-int sasl_checkpass(sasl_conn_t *conn,
+LIBSASL_API int sasl_checkpass(sasl_conn_t *conn,
                    const char *user,
 		   unsigned userlen,
 		   const char *pass,
@@ -710,7 +705,7 @@ int sasl_checkpass(sasl_conn_t *conn,
  *  SASL_NOUSER   -- user not found
  *  SASL_NOMECH   -- user found, but no usable mechanism
  */
-int sasl_user_exists(const char *service,
+LIBSASL_API int sasl_user_exists(const char *service,
 		     const char *user_domain,
 		     const char *user);
 
@@ -731,7 +726,7 @@ int sasl_user_exists(const char *service,
  *  SASL_BADPARAM  -- password too long
  *  SASL_OK        -- successful
  */
-int sasl_setpass(sasl_conn_t *conn,
+LIBSASL_API int sasl_setpass(sasl_conn_t *conn,
 		 const char *user,
 		 const char *pass,
 		 unsigned passlen,

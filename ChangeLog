@@ -1,6 +1,26 @@
+Fri Aug 20 00:57:45 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* include/makemd5.c: added; creates the md5global.h at compile
+	time to autodetech what size numbers we have
+
+	* lib/common.c (_sasl_log): fixed an ival/cval problem
+
+	* plugins/kerberos4.c: more work on 64-bit friendliness
+
+	* plugins/cram.c: work on 64-bit friendliness
+
+Thu Aug 19 16:15:49 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/dlopen.c (_sasl_get_mech_list): conditionalized the use of
+	RTLD_NOW for dlopen
+
+	* plugins/kerberos4.c: when we need a 32 bit number, let's use an
+	int
+
 1999-08-19  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
-	* plugins/cram.c (c_continue_step): set oparams->user to correct thing. not anonymous
+	* plugins/cram.c (c_continue_step): set oparams->user to correct
+	thing. not anonymous
 
 	* plugins/digestmd5.c: leaks much less memory.
 
@@ -17,7 +37,7 @@
 
 	* utils/saslpasswd.c (main) (read_password): rebuild for Win32
 
-	win32/include/config.h (VL):  enabled for debug printing
+	* win32/include/config.h (VL):  enabled for debug printing
 
 	* win32/libsasl/libsasl.dsp:  Add db_testw32.c to build
 
@@ -32,7 +52,8 @@
 
 1999-08-19  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
-	* sample/sample-server.c (samp_recv): give better error messages. less obfuscated code
+	* sample/sample-server.c (samp_recv): give better error
+	messages. less obfuscated code
 
 	* plugins/digestmd5.c: only free in once
 
@@ -57,7 +78,7 @@
  	of possible realms
 
 	* plugins/kerberos4.c: should require CB_USER not CB_AUTHNAME
-	the authname is in the 
+	the authname is in the ticket
 
 	* sample/sample-client.c (main): should always interact.
 

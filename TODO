@@ -7,6 +7,8 @@ Library
 ) better support for including missing routines
 ) atomic updates of passwords (we can crash and leave the user with 
   different passwords for different mechanisms)
+) should be able use TLS's RC4 implementation
+) should be able to call _sasl_log without a conn
 
 Documentation
 ~~~~~~~~~~~~~
@@ -32,6 +34,7 @@ Digest-MD5
 
 Kerberos_V4
 ~~~~~~~~~~~
+) client-side should set realm
 
 GSSAPI
 ~~~~~~
@@ -50,6 +53,7 @@ Cram-MD5
 ) any way to handle realms?
 ) correct deletion of user account
 ) zero out stuff in setpass()
+) client should set user correctly
 
 Database stuff
 ~~~~~~~~~~~~~~

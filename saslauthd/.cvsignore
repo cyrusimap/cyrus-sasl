@@ -1,6 +1,7 @@
 configure
 aclocal.m4
 stamp-h
+stamp-h.in
 Makefile.in
 Makefile
 saslauthd.h

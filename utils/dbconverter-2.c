@@ -1,5 +1,5 @@
 /* dbconverter-2.c -- convert libsasl v1 sasldb's to SASLv2 format
- * $Id: dbconverter-2.c,v 1.3 2002/01/21 19:35:03 rjs3 Exp $
+ * $Id: dbconverter-2.c,v 1.4 2002/01/24 01:41:35 rjs3 Exp $
  * Rob Siemborski
  * based on SASLv1 sasldblistusers
  */
@@ -360,7 +360,7 @@ int listusers(const char *path __attribute__((unused)),
 
 #endif
 
-char *db_new="./sasldb-v2";
+char *db_new=SASL_DB_PATH;
 
 int good_getopt(void *context __attribute__((unused)), 
 		const char *plugin_name __attribute__((unused)), 
@@ -385,9 +385,8 @@ static struct sasl_callback goodsasl_cb[] = {
 
 int main(int argc, char **argv)
 {
-    char *db= SASL_DB_PATH;
+    const char *db="/etc/sasldb";
     int result;
-    
 
     if (argc > 1) {
 	db = argv[1];

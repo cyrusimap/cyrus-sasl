@@ -3010,7 +3010,11 @@ get_authid(sasl_client_params_t * params,
   /* see if we were given the authname in the prompt */
   prompt = find_prompt(prompt_need, SASL_CB_AUTHNAME);
   if (prompt != NULL) {
-    /* copy it */
+      if (!prompt->result) {
+	  return SASL_BADPARAM;
+      }
+
+      /* copy it */
       *authid=params->utils->malloc(prompt->len+1);
       if ((*authid)==NULL) return SASL_NOMEM;
 
@@ -3034,7 +3038,9 @@ get_authid(sasl_client_params_t * params,
 			NULL);
     if (result != SASL_OK)
       return result;
-    *authid=params->utils->malloc(strlen(ptr)+1);
+    if (!ptr) return SASL_BADPARAM;
+
+    *authid = params->utils->malloc(strlen(ptr)+1);
     if ((*authid)==NULL) return SASL_NOMEM;
     strcpy(*authid, ptr);
 
@@ -3067,6 +3073,10 @@ get_userid(sasl_client_params_t *params,
   /* see if we were given the userid in the prompt */
   prompt=find_prompt(prompt_need,SASL_CB_USER);
   if (prompt!=NULL) {
+      if (!prompt->result) {
+	  return SASL_BADPARAM;
+      }
+
       /* copy it */
       *userid=params->utils->malloc(prompt->len+1);
       if ((*userid)==NULL) return SASL_NOMEM;
@@ -3092,6 +3102,8 @@ get_userid(sasl_client_params_t *params,
 			NULL);
     if (result != SASL_OK)
       return result;
+    if (!ptr) return SASL_BADPARAM;
+
     *userid=params->utils->malloc(strlen(ptr)+1);
     if ((*userid)==NULL) return SASL_NOMEM;
     strcpy(*userid, ptr);
@@ -3177,6 +3189,10 @@ c_get_realm(sasl_client_params_t * params,
 
     prompt = find_prompt(prompt_need, SASL_CB_GETREALM);
     if (prompt != NULL) {
+	if (!prompt->result) {
+	    return SASL_BADPARAM;
+	}
+
 	/* copy it */
 	*myrealm=params->utils->malloc(prompt->len+1);
 	if ((*myrealm)==NULL) return SASL_NOMEM;
@@ -3203,6 +3219,8 @@ c_get_realm(sasl_client_params_t * params,
 	if (result != SASL_OK) {
 	    return result;
 	}
+	if (!tmp) return SASL_BADPARAM;
+
 	*myrealm = params->utils->malloc(strlen(tmp)+1);
 	if ((*myrealm) == NULL) return SASL_NOMEM;
 	strcpy(*myrealm, tmp);

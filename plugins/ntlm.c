@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.28 2004/10/14 13:35:04 ken3 Exp $
+ * $Id: ntlm.c,v 1.29 2004/12/08 12:13:55 mel Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -99,7 +99,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.28 2004/10/14 13:35:04 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.29 2004/12/08 12:13:55 mel Exp $";
 
 #ifdef WIN32
 static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);
@@ -950,7 +950,7 @@ static int smb_negotiate_protocol(const sasl_utils_t *utils,
     uint16 bytecount;
     uint32 len, nl;
     int n_dialects = N(SMB_DIALECTS);
-    struct iovec iov[4+n_dialects];
+    struct iovec iov[4+N(SMB_DIALECTS)];
     int i, n;
     int rc;
     pid_t current_pid;

@@ -2,7 +2,7 @@
  * Rob Siemborski (SASLv2 Conversion)
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.10 2001/12/07 03:22:56 rjs3 Exp $
+ * $Id: login.c,v 1.11 2002/01/19 22:15:07 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -70,8 +70,6 @@ typedef struct context {
     sasl_secret_t *username;
     sasl_secret_t *password;
 } context_t;
-
-static const char blank_out[] = "";
 
 static int login_server_mech_new(void *glob_context __attribute__((unused)), 
 				 sasl_server_params_t *sparams,
@@ -156,7 +154,6 @@ login_server_mech_step(void *conn_context,
 
   oparams->param_version = 0;
 
-  /* nothing more to do; authenticated */
   if (text->state == 1) {
       text->state = 2;
 
@@ -239,7 +236,7 @@ login_server_mech_step(void *conn_context,
 			   text->password->data, text->password->len);
     }
     
-    *serverout = blank_out;
+    *serverout = NULL;
     *serveroutlen = 0;
 
     text->state++; /* so fails if called again */
@@ -579,7 +576,7 @@ static int login_client_mech_step(void *conn_context,
 
     /* Watch for initial client send, which we do not support */
     if(serverinlen == 0) {
-	*clientout = blank_out;
+	*clientout = NULL;
 	*clientoutlen = 0;
         return SASL_CONTINUE;
     }

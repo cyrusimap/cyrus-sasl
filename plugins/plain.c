@@ -1,7 +1,7 @@
 /* Plain SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: plain.c,v 1.46 2001/12/06 22:27:31 rjs3 Exp $
+ * $Id: plain.c,v 1.47 2002/01/19 22:15:07 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -134,8 +134,6 @@ int verify_password(sasl_server_params_t *params,
     return result;
 }
 
-static const char blank_server_out[] = "";
-
 static int
 plain_server_mech_step(void *conn_context,
 		       sasl_server_params_t *params,
@@ -248,7 +246,7 @@ plain_server_mech_step(void *conn_context,
 			   password, password_len);
     }
     
-    *serverout = blank_server_out;
+    *serverout = NULL;
     *serveroutlen = 0;
 
     text->state++; /* so fails if called again */

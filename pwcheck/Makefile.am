@@ -24,6 +24,8 @@
 
 sbin_PROGRAMS = pwcheck
 
+INCLUDES = -I../lib
+
 pwcheck_SOURCES = pwcheck.c
 EXTRA_pwcheck_SOURCES = pwcheck_getpwnam.c pwcheck_getspnam.c
 pwcheck_DEPENDECIES = pwcheck_@PWCHECKMETH@.lo

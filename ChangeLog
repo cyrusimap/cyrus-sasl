@@ -3,6 +3,8 @@
 	  (Igor Brezac <igor@ypass.net>)
 	* plugins/otp.c: Use plugin supplied authid for mech calculations
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+	* lib/auxprop.c: Use getopt callback from connection context when
+	  storing auxprops (Alexey Melnikov <Alexey.Melnikov@isode.com>)
 
 2004-06-18  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/NTMakefile: Remove only recognized (generated) .rc files,

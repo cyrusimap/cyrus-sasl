@@ -11,10 +11,10 @@ saslauthd_SOURCES = mechanisms.c globals.h \
                     ipc_unix.c ipc_doors.c saslauthd-main.c saslauthd-main.h \
 		    md5.c saslauthd_md5.h md5global.h
 EXTRA_saslauthd_sources = getaddrinfo.c getnameinfo.c
-saslauthd_DEPENDENCIES = saslauthd-main.o
+saslauthd_DEPENDENCIES = saslauthd-main.o @LTLIBOBJS@
 saslauthd_LDADD	= @SASL_KRB_LIB@ \
 		  @GSSAPIBASE_LIBS@ @GSSAPI_LIBS@ @LIB_CRYPT@ @LIB_SIA@ \
-		  @LIB_SOCKET@ @SASL_DB_LIB@ @LIB_PAM@ @LDAP_LIBS@
+		  @LIB_SOCKET@ @SASL_DB_LIB@ @LIB_PAM@ @LDAP_LIBS@ @LTLIBOBJS@
 
 testsaslauthd_SOURCES = testsaslauthd.c utils.c
 testsaslauthd_LDADD = @LIB_SOCKET@

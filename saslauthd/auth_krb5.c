@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb5.c,v 1.5 2002/04/25 14:45:56 leg Exp $"
+#ident "$Id: auth_krb5.c,v 1.6 2002/04/25 18:31:33 leg Exp $"
 #endif
 
 /* ok, this is  wrong but the most convenient way of doing 
@@ -59,6 +59,69 @@
 
 /* END PUBLIC DEPENDENCIES */
 
+#define TF_DIR "/.tf"			/* Private tickets directory,   */
+					/* relative to mux directory    */
+
+char *tf_dir = NULL;
+
+int					/* R: -1 on failure, else 0 */
+auth_krb5_init (
+  /* PARAMETERS */
+  void					/* no parameters */
+  /* END PARAMETERS */
+  )
+{
+#ifdef AUTH_KRB5
+    int rc;
+    struct stat sb;
+
+    /* Allocate memory arena for the directory pathname. */
+    tf_dir = malloc(strlen(PATH_SASLAUTHD_RUNDIR) + strlen(TF_DIR)
+		    + 1024 + 2);
+    if (tf_dir == NULL) {
+	syslog(LOG_ERR, "auth_krb5_init malloc(tf_dir) failed");
+	return -1;
+    }
+    strcpy(tf_dir, PATH_SASLAUTHD_RUNDIR);
+    strcat(tf_dir, TF_DIR);
+
+    /* Check for an existing directory. */
+    rc = lstat(tf_dir, &sb);
+    if (rc == -1) {
+	if (errno == ENOENT) {
+	    /* Create the ticket file directory */
+	    rc = mkdir(tf_dir, 0700);
+	    if (rc == -1) {
+		syslog(LOG_ERR, "auth_krb5_init mkdir(%s): %m",
+		       tf_dir);
+		free(tf_dir);
+		tf_dir = NULL;
+		return -1;
+	    }
+	} else {
+	    rc = errno;
+	    syslog(LOG_ERR, "auth_krb5_init: %s: %m", tf_dir);
+	    free(tf_dir);
+	    tf_dir = NULL;
+	    return -1;
+	}
+    }
+
+    /* Make sure it's not a symlink. */
+    if (S_ISLNK(sb.st_mode)) {
+        syslog(LOG_ERR, "auth_krb5_init: %s: is a symbolic link", tf_dir);
+	free(tf_dir);
+	tf_dir = NULL;
+	return -1;
+    }
+    
+    return 0;
+
+#else
+    return -1;
+#endif
+}
+
 #ifdef AUTH_KRB5
 
 #ifdef KRB5_HEIMDAL
@@ -78,7 +141,7 @@ auth_krb5 (
     krb5_ccache ccache = NULL;
     krb5_principal auth_user;
     char * result;
-    char tfname[40];
+    char tfname[2048];
     /* END VARIABLES */
 
     if (!user|| !password) {
@@ -98,7 +161,7 @@ auth_krb5 (
     }
     
     /* create a new CCACHE so we don't stomp on anything */
-    snprintf(tfname,sizeof(tfname), "/tmp/k5cc_%d_%d", 
+    snprintf(tfname,sizeof(tfname), "%s/k5cc_%d_%d", tf_dir,
 	     getpid(), pthread_self());
     if (krb5_cc_resolve(context, tfname, &ccache)) {
 	krb5_free_principal(context, auth_user);
@@ -194,9 +257,6 @@ static int k5support_verify_tgt(krb5_context context,
     
     return result;
 }
-
-#define TF_DIR "/.tf"			/* Private tickets directory,   */
-					/* relative to mux directory    */
 
 /* FUNCTION: auth_krb5 */
 

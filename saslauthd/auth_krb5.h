@@ -26,3 +26,4 @@
  * END COPYRIGHT */
 
 char *auth_krb5(const char *, const char *, const char *, const char *);
+int auth_krb5_init(void);

@@ -441,8 +441,6 @@ unsigned int cache_get_next_prime(unsigned int number) {
 	unsigned int	max;
 	unsigned int	mom;
 	unsigned int	alloc;
-	unsigned int	count;
-
 
 	max = number + 20000;
 

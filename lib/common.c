@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.73 2002/01/09 23:40:33 rjs3 Exp $
+ * $Id: common.c,v 1.74 2002/01/10 05:36:43 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -535,9 +535,17 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, const void **pvalue)
       break;
   case SASL_AUTHSOURCE: /* name of plugin (not name of mech) */
       if(conn->type == SASL_CONN_CLIENT) {
+	  if(!((sasl_client_conn_t *)conn)->mech) {
+	      result = SASL_NOTDONE;
+	      break;
+	  }
 	  *((const char **)pvalue) =
 	      ((sasl_client_conn_t *)conn)->mech->plugname;
       } else if (conn->type == SASL_CONN_SERVER) {
+	  if(!((sasl_server_conn_t *)conn)->mech) {
+	      result = SASL_NOTDONE;
+	      break;
+	  }
 	  *((const char **)pvalue) =
 	      ((sasl_server_conn_t *)conn)->mech->plugname;
       } else {
@@ -546,9 +554,17 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, const void **pvalue)
       break;
   case SASL_MECHNAME: /* name of mech */
       if(conn->type == SASL_CONN_CLIENT) {
+	  if(!((sasl_client_conn_t *)conn)->mech) {
+	      result = SASL_NOTDONE;
+	      break;
+	  }
 	  *((const char **)pvalue) =
 	      ((sasl_client_conn_t *)conn)->mech->plug->mech_name;
       } else if (conn->type == SASL_CONN_SERVER) {
+	  if(!((sasl_server_conn_t *)conn)->mech) {
+	      result = SASL_NOTDONE;
+	      break;
+	  }
 	  *((const char **)pvalue) =
 	      ((sasl_server_conn_t *)conn)->mech->plug->mech_name;
       } else {
@@ -575,6 +591,10 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, const void **pvalue)
 
   if(result == SASL_BADPARAM) {
       PARAMERROR(conn);
+  } else if(result == SASL_NOTDONE) {
+      sasl_seterror(conn, SASL_NOLOG,
+		    "Information that was requested is not yet available.");
+      RETURN(conn, result);
   } else if(result != SASL_OK) {
       INTERROR(conn, result);
   } else

@@ -40,7 +40,7 @@ SOFTWARE.
 
 static int
 external_client_new(void *glob_context __attribute__((unused)),
-		    sasl_client_params_t *params __attribute((unused)),
+		    sasl_client_params_t *params __attribute__((unused)),
 		    void **conn_context)
 {
   if (!params
@@ -520,10 +520,10 @@ int sasl_client_start(sasl_conn_t *conn,
       VL(("%s %s\n",name, m->plug->mech_name));
       if (strcasecmp(m->plug->mech_name, name)==0)
       {	
-	/*xxx	if (mech
-	    && have_prompts(conn, m->plug)
-	    && (! bestm || m->plug->max_ssf > bestssf)
-	    && m->plug->max_ssf >= minssf)*/
+	if (mech
+	    /*	    && have_prompts(conn, m->plug) please fix rob */
+		    && (! bestm || m->plug->max_ssf > bestssf)
+	    && m->plug->max_ssf >= minssf)
 	{
 	  *mech=m->plug->mech_name;
 	  bestssf=m->plug->max_ssf;

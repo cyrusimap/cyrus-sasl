@@ -75,7 +75,7 @@ getsecret(void *context __attribute__((unused)),
   char *key;
   size_t key_len;
   GDBM_FILE db;
-  datum gkey, gvalue;
+  datum gkey, gvalue;  
 
   if (! mechanism || ! auth_identity || ! secret)
     return SASL_FAIL;

@@ -56,7 +56,7 @@ VERSION " $";
 
 #ifdef L_DEFAULT_GUARD
 # undef L_DEFAULT_GUARD
-# define L_DEFAULT_GUARD (0)
+# define L_DEFAULT_GUARD (1)
 #endif
 
 /* external definitions */
@@ -645,6 +645,9 @@ static int integrity_encode(void *context,
 
   text->seqnum++; /* add one to sequence number */
 
+  /* clean up */
+  text->free(param2);
+
   return SASL_OK;
 }
 
@@ -684,6 +687,9 @@ static int create_MAC(context_t *text,
 
   /*  for (lup=0;lup<16;lup++)
       printf("%i. MAC=%i\n",lup,MAC[lup]);*/
+
+  /* clean up */
+  text->free(param2);
 
   return SASL_OK;
 }
@@ -872,7 +878,7 @@ static int server_continue_step (void *conn_context,
     char *challenge=NULL;
     char *realm;
     unsigned char *nonce;
-    char *qop="auth auth-int";
+    char *qop="auth,auth-int";
     char *charset="utf-8";
     /*char *algorithm="md5-sess";*/
     
@@ -1028,6 +1034,10 @@ static int server_continue_step (void *conn_context,
 
     in_start = in;
 
+    oparams->encode=NULL; /* default values */
+    oparams->decode=NULL;
+
+
     /*printf ("Server data is \"%s\"\r\n", in);*/
 
     /* parse what we got */
@@ -1085,26 +1095,47 @@ static int server_continue_step (void *conn_context,
 	}
 
       } else if (strcmp(name,"qop")==0) {
+	
+	sasl_strdup(sparams->utils, value, &qop, NULL);
 
-          
+	if (strcmp(qop,"auth-conf")==0)
+	{
+	  VL (("Client requested privacy layer\n"));
+	  oparams->encode=&privacy_encode;
+	  oparams->decode=&privacy_decode;
+	} else if (strcmp(qop,"auth-int")==0) {
+	  VL (("Client requested integrity layer\n"));
+	  oparams->encode=&integrity_encode;
+	  oparams->decode=&integrity_decode;
+	} else if (strcmp(qop,"auth")==0) {
+	  VL (("Client requested no layer\n"));
+	  oparams->encode=NULL;
+	  oparams->decode=NULL;
+	} else {
+	  VL (("Client requested undefined layer\n"));
+	  result=SASL_FAIL;
+	  goto FreeAllMem;
+	}
+
 		  /* slen = strlen(value);
 		  qop = sparams->utils->malloc(slen+1+1);
 		  strcpy (qop, value);
 
 		  qop[slen] = ',';
 		  qop[slen+1] = '\0'; */
+/* xxx rewrite all this */
 
-		  xxx = strend(value);
+	/*		  xxx = strend(value);
 		  divaddr = value - 1;
 
-		  do /* xxx rewrite all this */
+		  do 
 		  {
    		    prevaddr = divaddr + 1;
 		    divaddr = strchr (prevaddr, ',');
 		    if (divaddr == NULL) 
 		     divaddr = strend(value);
 
-		    printf("value=[%s]\n",value);
+		    printf("qop value=[%s]\n",value);
 		    if (strncmp( value,"auth", min(4, divaddr-prevaddr) )!=0)
 		    {
 		      result = SASL_BADAUTH;
@@ -1114,7 +1145,9 @@ static int server_continue_step (void *conn_context,
 		  }
 		  while (divaddr < xxx);
 
-		  sasl_strdup(sparams->utils, value, &qop, NULL);
+	*/
+
+		  
 
 
       } else if (strcmp(name,"digest-uri")==0) {
@@ -1307,9 +1340,6 @@ static int server_continue_step (void *conn_context,
 
     oparams->maxoutbuf=1024; /* no clue what this should be*/
   
-    oparams->encode=NULL;
-    oparams->decode=NULL;
-
 
     if (sasl_strdup(sparams->utils, realm, &oparams->realm, NULL)==SASL_NOMEM)
     {
@@ -1345,8 +1375,7 @@ static int server_continue_step (void *conn_context,
     text->malloc=sparams->utils->malloc;
     text->free=sparams->utils->free;
 
-    oparams->encode=&integrity_encode;
-    oparams->decode=&integrity_decode;
+
 
     /* used by layers */
     text->size=-1; 
@@ -1561,12 +1590,12 @@ static int c_continue_step (void *conn_context,
   if (text->state==1)
   {
 
-     VL (("Digest-MD5 Step 1\n")); 
+    VL (("Digest-MD5 Step 1\n")); 
 
     /* XXX reauth if possible */
     /* XXX if reauth is successfull - goto text->state=3!!! */
 
-     *clientout = params->utils->malloc(1); /*text->malloc(1);*/
+    *clientout = params->utils->malloc(1); /*text->malloc(1);*/
 
     if (! *clientout) return SASL_NOMEM;
     **clientout = '\0';
@@ -1611,6 +1640,10 @@ static int c_continue_step (void *conn_context,
 
     char *client_response=NULL;
 
+    sasl_security_properties_t secprops;
+    int external;
+
+
     /* can we mess with serverin? copy it to be safe */
     /* char *in=serverin; //char *in=*serverin;???*/
 
@@ -1636,9 +1669,7 @@ static int c_continue_step (void *conn_context,
 
     /*printf ("c_start step 2 : password is \"%s\"\n", passwd);*/
 
-    /*params->utils->free((void *) (*prompt_need)->result); //This doesn't work!!!*/
-
-
+    /* free prompt */
     params->utils->free(*prompt_need);
     (*prompt_need)=NULL;
 
@@ -1708,6 +1739,52 @@ static int c_continue_step (void *conn_context,
      VL (("c_start step 2 : username got : \"%s\"",username));
 
 
+    /* get requested ssf */
+    secprops=params->props;
+    external=params->external_ssf;
+    VL (("external ssf=%i\n",external));
+
+    if (secprops.min_ssf>56)
+    {
+      VL (("Minimum ssf too strong min_ssf=%i\n",secprops.min_ssf));
+      return SASL_TOOWEAK;
+    }
+
+    if (secprops.max_ssf<0)
+    {
+      VL (("ssf too strong"));
+      return SASL_FAIL;
+    }
+
+    VL (("minssf=%i maxssf=%i\n",secprops.min_ssf,secprops.max_ssf));
+
+    params->utils->free(qop);
+
+    /* if client didn't set use strongest layer */
+    if (secprops.max_ssf>1000) /* xxx */
+    {
+      /* xxx encryption */
+      oparams->encode=&privacy_encode;
+      oparams->decode=&privacy_decode;
+      oparams->mech_ssf=56;
+      qop="auth-priv";
+      VL (("Using encryption layer\n"));
+    } else if ((secprops.min_ssf<=1) && (secprops.max_ssf>=1)) {
+      /* integrity */
+      oparams->encode=&integrity_encode;
+      oparams->decode=&integrity_decode;
+      oparams->mech_ssf=1;
+      qop="auth-int";
+      VL (("Using integrity layer\n"));
+    } else {
+      /* no layer */
+      oparams->encode=NULL;
+      oparams->decode=NULL;
+      oparams->mech_ssf=0;
+      qop="auth";
+      VL (("Using no layer\n"));
+    }
+
     /* realm is got from server */
 
     /* get nonce XXX have to clean up after self if fail */
@@ -1759,6 +1836,8 @@ static int c_continue_step (void *conn_context,
 				digesturi,
 				passwd);
 
+    VL (("Constructing challenge\n"));
+
     if (add_to_challenge(params->utils, &client_response,"username", username, true)!=SASL_OK)
 	{
       result = SASL_FAIL;
@@ -1790,7 +1869,7 @@ static int c_continue_step (void *conn_context,
     }
 
     if (add_to_challenge(params->utils, &client_response,"qop", (unsigned char *) qop, true)!=SASL_OK)
-	{
+      {
       result = SASL_FAIL;
 	  goto FreeAllocatedMem;
     }
@@ -1811,13 +1890,15 @@ static int c_continue_step (void *conn_context,
 
     if (add_to_challenge(params->utils, &client_response,"response",(unsigned char *) response, true)!=SASL_OK)
 	{
-	  params->utils->free(response); /*!!!*/
-      result = SASL_FAIL;
+
+	  result = SASL_FAIL;
 	  goto FreeAllocatedMem;
     }
 
 
-	*clientout = client_response;
+    VL (("adding things\n"));
+
+    *clientout = client_response;
     *clientoutlen = strlen(client_response);
 
 
@@ -1829,8 +1910,7 @@ static int c_continue_step (void *conn_context,
     oparams->doneflag=1;
 
     /* set oparams */
-	oparams->encode=NULL;
-    oparams->decode=NULL;
+
 
 
     oparams->mech_ssf=0; /*1 - only integrity support*/
@@ -1871,15 +1951,14 @@ static int c_continue_step (void *conn_context,
     text->malloc=params->utils->malloc;
     text->free=params->utils->free;
 
-    oparams->encode=&integrity_encode;
-    oparams->decode=&integrity_decode;
-
     /* used by layers */
     text->size=-1; 
     text->needsize=4;
     text->buffer=NULL;
 
 FreeAllocatedMem:
+    params->utils->free(response); /*!!!*/
+
 	params->utils->free(passwd);
 	params->utils->free (in_start);
 
@@ -1889,7 +1968,7 @@ FreeAllocatedMem:
       /*Realm is got from server!!!*/
 	params->utils->free(realm);
 	params->utils->free(nonce);
-	params->utils->free(qop);
+
 
 	/*params->utils->free(stale_str);
 	  //params->utils->free(maxbuf_str);*/
@@ -1900,6 +1979,8 @@ FreeAllocatedMem:
     /*params->utils->free(ncvalue); //Only for multiple authentications*/
 
 	params->utils->free(cnonce);
+
+	VL (("Add done. exiting DIGEST-MD5\n"));
 
     return result;
   }

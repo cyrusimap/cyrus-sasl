@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Upgrading from Cyrus SASLv1 to Cyrus SASLv2</title>
-<!-- $Id: upgrading.html,v 1.11 2002/07/24 19:23:37 leg Exp $ -->
+<!-- $Id: upgrading.html,v 1.12 2003/08/14 21:04:13 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Upgrading from Cyrus SASLv1 to Cyrus SASLv2</H1>
@@ -12,11 +12,12 @@ To upgrade:
 <li> Install Cyrus SASL v2 as normal according to <a
 href="install.html">the installation guide</a>.  This will overwrite
 some manpages, but will not affect your current applications.  Do NOT
-attempt to make it use the same directories.</li>
+attempt to make it use the same directories, otherwise old Cyrus SASLv1
+applications will no longer function.</li>
 
 <li> Install your new Cyrus SASL v2 applications. Applications that
 use Cyrus SASLv1 will <em>not</em> use the Cyrus SASL v2
-infrastructure.
+infrastructure (and vice-versa).
 
 <li> If you used <tt>/etc/sasldb</tt> for authentication, you'll need
 to take the following steps to convert to using <tt>/etc/sasldb2</tt>
@@ -39,7 +40,7 @@ configuration files to <tt>saslauthd</tt>.</li>
 <li> If you used <tt>pwcheck</tt> with libsasl v1, you can either
 continue to use <tt>pwcheck</tt> with libsasl v1 or you can switch to
 <tt>saslauthd</tt>, which offers more flexibility and a potentially
-more efficient implementation.</li>
+much more efficient implementation.</li>
 
 <li> If you are continuing to use some libsasl v1 applications, read
 onwards to understand the ramifications.</li>
@@ -83,9 +84,9 @@ While there does not seem to be any conflict with the keys stored in
 the database, it is not recommended for both versions of the library
 to use the same database file.  Included in the utils directory is a
 program called <tt>dbconverter-2</tt> which will allow you to convert
-from the old-format database to the new format.  If you continue to
-run applications that rely on Cyrus SASLv2 the databases will not be
-kept in sync by any automatic means.<p>
+from the old-format database to the new format.  Note that if you continue to
+run older applications that rely on Cyrus SASLv1, the databases for SASLv1
+and SASLv2 will not automatically be kept in sync.<p>
 
 <hr>
 Back to the <A href=index.html>index</a>

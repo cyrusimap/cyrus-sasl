@@ -1,10 +1,13 @@
-<!-- $Id: mechanisms.html,v 1.3 2002/11/24 21:11:13 ken3 Exp $ -->
+<!-- $Id: mechanisms.html,v 1.4 2003/08/14 21:04:12 rjs3 Exp $ -->
 <HTML>
 <HEAD>
 <TITLE>SASL Mechanism Properties/Features</TITLE>
 </HEAD>
 <BODY>
 <h2>SASL Mechanism Properties/Features</h2>
+
+This table shows what security flags and features are supported by each
+of the mechanisms provided by the Cyrus SASL Library.<p>
 
 <TABLE BORDER=1 CELLSPACING=1 CELLPADDING=2>
 
@@ -238,5 +241,28 @@
 </TR>
 
 </TABLE>
+
+<h3>Understanding this table:</h3>
+<ul>
+<li><b>Maximum SSF</b> - The maximum Security Strength Factor supported
+by the mechanism (roughly the number of bits of encryption provided, but may
+have other meanings, for example an SSF of 1 indicates integrity protection
+only, no encryption).</li>
+<li><b>NOPLAIN</b> - Mechanism is not susceptable to simple passive
+(eavesdropping) attack.</li>
+<li><b>NOACTIVE</b> - Protection from active (non-dictionary) attacks
+during authentication exchange.  (Implies <b>MUTUAL</b>).</li>
+<li><b>NODICT</b> - Not susceptable to passive dictionary attack.</li>
+<li><b>NOFORWARD</b> - Breaking one session won't help break the next.</li>
+<li><b>NOANON</b> - Don't permit anonymous logins.</li>
+<li><b>CRED</b> - Mechanism can pass client credentials.</li>
+<li><b>MUTUAL</b> - Supports mutual authentication (authenticates the server
+to the client)</li>
+<li><b>CLTFIRST</b> - The client should send first in this mechanism.</li>
+<li><b>SRVFIRST</b> - The server must send first in this mechanism.</li>
+<li><b>SRVLAST</b> - This mechanism supports server-send-last configurations.</li>
+<li><b>PROXY</b> - This mechanism supports proxy authentication.</li>
+</ul>
+
 </BODY>
 </HTML>

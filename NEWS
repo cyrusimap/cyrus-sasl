@@ -1,3 +1,9 @@
+New in 1.5.18
+-------------
+* javasasl library in conformance with internet draft
+* man pages for all functions written
+* bug fixes (of course)
+
 New in 1.5.17
 -------------
 * give application authentication name and realm more uniformly

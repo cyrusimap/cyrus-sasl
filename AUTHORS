@@ -19,10 +19,13 @@ DIGEST-MD5 plugin and continues to work on it.
 Rainer Schoepf <schoepf@uni-mainz.de> contributed the LOGIN plugin,
 based on Tim Martin's PLAIN plugin.
 
+Igor Brezac <igor@ipass.net> has done a good deal of work on LDAP-related
+things.
+
 Larry Greenfield <leg+sasl@andrew.cmu.edu> complained. a lot.
 
 Chris Newman <chris.newman@innosoft.com> wrote the initial version of the
 SASL API, as well as the version 2 SASL API (documented in sasl.h,
 saslutil.h, saslplug.h, and prop.h).
 
-$Id: AUTHORS,v 1.8 2001/12/04 01:59:43 rjs3 Exp $
+$Id: AUTHORS,v 1.9 2002/05/17 16:24:31 rjs3 Exp $

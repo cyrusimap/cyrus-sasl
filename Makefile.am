@@ -45,7 +45,7 @@
 SUBDIRS=include lib plugins utils doc man @DIRS@
 
 dist-hook:
-	@for dir in config cmulocal sample win32 pwcheck; do	\
+	@for dir in config cmulocal sample win32 java pwcheck; do \
 	  if test ! -d $(distdir)/$$dir; then			\
 	    (set -x; cp -r -p $(top_srcdir)/$$dir $(distdir));	\
 	  fi;							\

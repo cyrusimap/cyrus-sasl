@@ -1,3 +1,8 @@
+2001-05-30  Rob Siemborski <rjs3+@andrew.cmu.edu>
+
+	* removed unnecessary memory allocations in the security layer
+	calls of the KERBEROS_V4 plugin.
+
 2001-05-17  Rob Siemborski <rjs3+@andrew.cmu.edu>
 
 	* cleaned up a number of manpages

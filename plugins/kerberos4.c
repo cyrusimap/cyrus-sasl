@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.65 2001/02/19 19:01:54 leg Exp $
+ * $Id: kerberos4.c,v 1.66 2001/05/31 18:19:32 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -188,7 +188,7 @@ static int privacy_decode(void *context,
 {
     int len, tocopy;
     unsigned diff;
-    MSG_DAT *data;
+    MSG_DAT data;
     context_t *text=context;
     char *extra;
     unsigned int extralen=0;
@@ -250,12 +250,10 @@ static int privacy_decode(void *context,
 	inputlen-=diff;
     }
     
-    data=text->malloc(sizeof(MSG_DAT));
-    if (data==NULL) return SASL_NOMEM;
-    memset(data,0,sizeof(MSG_DAT));
+    memset(&data,0,sizeof(MSG_DAT));
     
     len= krb_rd_priv((char *) text->buffer,text->size,  text->init_keysched, 
-		     &text->session, text->ip_remote, text->ip_local, data);
+		     &text->session, text->ip_remote, text->ip_local, &data);
 
     /* see if the krb library gave us a failure */
     if (len != 0) {
@@ -263,27 +261,26 @@ static int privacy_decode(void *context,
     }
 
     /* check to make sure the timestamps are ok */
-    if ((data->time_sec < text->time_sec) || /* if an earlier time */
-	(((data->time_sec == text->time_sec) && /* or the exact same time */
-	 (data->time_5ms < text->time_5ms)))) 
+    if ((data.time_sec < text->time_sec) || /* if an earlier time */
+	(((data.time_sec == text->time_sec) && /* or the exact same time */
+	 (data.time_5ms < text->time_5ms)))) 
     {
       return SASL_FAIL;
     }
-    text->time_sec = data->time_sec;
-    text->time_5ms = data->time_5ms;
+    text->time_sec = data.time_sec;
+    text->time_5ms = data.time_5ms;
 
 
 
-    *output = text->malloc(data->app_length + 1);
+    *output = text->malloc(data.app_length + 1);
     if ((*output) == NULL) {
 	return SASL_NOMEM;
     }
     
-    *outputlen = data->app_length;
-    memcpy(*output, data->app_data, data->app_length);
+    *outputlen = data.app_length;
+    memcpy(*output, data.app_data, data.app_length);
     (*output)[*outputlen] = '\0';
 
-    text->free(data);
     text->size = -1;
     text->needsize = 4;
 
@@ -339,7 +336,7 @@ static int integrity_decode(void *context, const char *input, unsigned inputlen,
 		  char **output, unsigned *outputlen)
 {
     int len, tocopy;
-    MSG_DAT *data;
+    MSG_DAT data;
     context_t *text=context;
     char *extra;
     unsigned int extralen=0;
@@ -401,12 +398,9 @@ static int integrity_decode(void *context, const char *input, unsigned inputlen,
       inputlen-=diff;
     }
   
-    data=text->malloc(sizeof(MSG_DAT));
-    if (data==NULL) return SASL_NOMEM;
-
     len= krb_rd_safe((char *) text->buffer,text->size, /* text->keysched, */
 		     &text->session,
-		     text->ip_remote, text->ip_local, data);
+		     text->ip_remote, text->ip_local, &data);
 
 
     /* see if the krb library found a problem with what we were given */
@@ -416,23 +410,22 @@ static int integrity_decode(void *context, const char *input, unsigned inputlen,
     }
 
     /* check to make sure the timestamps are ok */
-    if ((data->time_sec < text->time_sec) || /* if an earlier time */
-	(((data->time_sec == text->time_sec) && /* or the exact same time */
-	 (data->time_5ms < text->time_5ms)))) 
+    if ((data.time_sec < text->time_sec) || /* if an earlier time */
+	(((data.time_sec == text->time_sec) && /* or the exact same time */
+	 (data.time_5ms < text->time_5ms)))) 
     {
       return SASL_FAIL;
     }
-    text->time_sec = data->time_sec;
-    text->time_5ms = data->time_5ms;
+    text->time_sec = data.time_sec;
+    text->time_5ms = data.time_5ms;
 
 
-    *output=text->malloc(data->app_length+1);
+    *output=text->malloc(data.app_length+1);
     if ((*output) == NULL) return SASL_NOMEM;
  
-    *outputlen=data->app_length;
-    memcpy((char *)*output, data->app_data,data->app_length);
+    *outputlen=data.app_length;
+    memcpy((char *)*output, data.app_data,data.app_length);
 
-    text->free(data);
     text->size=-1;
     text->needsize=4;
 

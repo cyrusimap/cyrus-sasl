@@ -1,3 +1,7 @@
+2001-06-19  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* Forced a truncation in the anonymous plugin (RFC 2245)
+	* Clean up some memory leaks in the non-standard LOGIN mechanism.	
+
 2001-06-06  Rob Siemborski <rjs3+@andrew.cmu.edu>
 
 	* Corrected a getopt call in server.c to have the correct parameters

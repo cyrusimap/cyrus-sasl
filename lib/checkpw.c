@@ -602,7 +602,7 @@ int _sasl_sasldb_set_pass(sasl_conn_t *conn,
 	/* set the password */
 	sasl_secret_t *sec = NULL;
 	char salt[16];
-	sasl_rand_t *rpool;
+	sasl_rand_t *rpool = NULL;
 	sasl_server_getsecret_t *getsec;
 	sasl_server_putsecret_t *putsec;
 	void *context;

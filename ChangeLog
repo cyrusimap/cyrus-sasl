@@ -1,3 +1,7 @@
+2002-08-19  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* use correct paths when a .la file is not present
+	  (Justin Gibbs <gibbs@scsiguy.com>)
+
 2002-08-13  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* doc/sysadmin.html: fix some /usr/lib/sasl references to
 	  /usr/lib/sasl2 (Andrew Jones <arjones@simultan.dyndns.org>)

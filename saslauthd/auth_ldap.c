@@ -31,7 +31,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_ldap.c,v 1.15 2002/10/18 19:16:29 rjs3 Exp $"
+#ident "$Id: auth_ldap.c,v 1.16 2003/02/13 16:13:44 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -59,7 +59,7 @@ auth_ldap(
   /* PARAMETERS */
   const char *login,			/* I: plaintext authenticator */
   const char *password,			/* I: plaintext password */
-  const char *service __attribute__((unused)),
+  const char *service,
   const char *realm
   /* END PARAMETERS */
   )
@@ -75,7 +75,7 @@ auth_ldap(
 		}
 	}
 
-	rc = lak_authenticate(lak, login, realm, password);
+	rc = lak_authenticate(lak, login, service, realm, password);
     	if (rc == LAK_OK) {
 		RETURN("OK");
 	} else {

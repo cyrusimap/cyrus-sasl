@@ -72,6 +72,9 @@ typedef struct lak_conf {
     int     scope;
     char   *search_base;
     char   *filter;
+    char   *group_dn;
+    char   *group_attr;
+    char   *password_attr;
     char    auth_method;
     int     tls_check_peer;
     char   *tls_cacert_file;
@@ -97,8 +100,8 @@ typedef struct lak_result {
 
 int lak_init(const char *, LAK **);
 void lak_close(LAK *);
-int lak_authenticate(LAK *, const char *, const char *, const char *);
-int lak_retrieve(LAK *, const char *, const char *, const char **, LAK_RESULT **);
+int lak_authenticate(LAK *, const char *, const char *, const char *, const char *);
+int lak_retrieve(LAK *, const char *, const char *, const char *, const char **, LAK_RESULT **);
 void lak_result_free(LAK_RESULT *);
 
 #endif  /* _LAK_H */

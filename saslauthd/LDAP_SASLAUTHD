@@ -19,15 +19,15 @@ Sections:
 ------------------------------------
 
 Ensure that you have the OpenLDAP (http://www.openldap.org) libraries 2.0 or
-higher.  Fetch the latest cyrus-sasl package, 2.1.6 or higher,
+higher.  Fetch the latest cyrus-sasl package, 2.1.12 or higher,
 ftp://ftp.andrew.cmu.edu/pub/cyrus-mail/.
 
 Unpack cyrus-sasl:
-gzip -dc cyrus-sasl-2.1.6.tar.gz | tar xf -
+gzip -dc cyrus-sasl-2.1.12.tar.gz | tar xf -
 or
-tar zxf cyrus-sasl-2.1.6.tar.gz (if your tar supportz gzip)
+tar zxf cyrus-sasl-2.1.12.tar.gz (if your tar supportz gzip)
 
-cd cyrus-sasl-2.1.6
+cd cyrus-sasl-2.1.12
 ./configure --with-ldap  (you may need to add other options, check doc/index.html for more)
 make
 make install
@@ -125,7 +125,8 @@ ldap_scope: <sub> <sub|one|base>
 	Search scope.
 
 ldap_search_base: <none>
-	Specify a starting point for the search.  e.g. dc=foo,dc=com
+	Specify a starting point for the search: e.g. dc=foo,dc=com.  Tokens
+	described in 'ldap_filter' (see below) can be used for substitution.
 
 ldap_auth_method: <bind> <bind|custom|fastbind>
 	Specify an authentication method.
@@ -134,7 +135,8 @@ ldap_auth_method: <bind> <bind|custom|fastbind>
 	password.  This is the default.
 
 	The custom method uses userPassword attribute to verify the password.  
-	Currently, {CRYPT} hash is supported.
+	Suppored hashes: crypt, md5, smd5, sha and ssha.  Cleartext is supported 
+	as well.
 
 	The fastbind method does away with the search and extra anonymous bind
 	in auth_bind, but makes two assumptions:
@@ -142,12 +144,35 @@ ldap_auth_method: <bind> <bind|custom|fastbind>
 	  2. There is no cost to staying bound as a named user
 
 ldap_filter: <uid=%u>
-	Specify a filter.  Use the %u and %r tokens for the username and realm
-	substitution.  The %u token has to be used at minimum for the filter to
-	be useful.  If ldap_auth_method is 'bind', the filter will search for
-	the DN (distinguished name) attribute.  Otherwise, the search will look
-	for the userPassword attribute.
+	Specify a filter.  The following tokens can be used in the filter string:
 
+	%%   = %
+	%u   = user
+	%U   = user portion of %u (%U = test when %u = test@domain.tld)
+	%d   = domain portion of %u (%d = domain.tld when %u = test@domain.tld)
+	%1-9 = domain tokens (%1 = tld, %2 = domain when %d = domain.tld)
+	%s   = service
+	%r   = realm
+	
+	The %u token has to be used at minimum for the filter to be useful.  If
+	ldap_auth_method is 'bind', the filter will search for the DN
+	(distinguished name) attribute.  Otherwise, the search will look for
+	the 'ldap_password_attr' (see below) attribute.
+
+ldap_group_dn: <none>
+	Specify a group DN. If specified, the user DN has to be part of the
+	group in order to authenticate successfully.  Tokens described in
+	'ldap_filter' (see above) can be used for substitution.  The user DN is
+	compared against the 'ldap_group_attr' (see below) attribute of the
+	group.
+
+ldap_group_attr: <uniqueMember>
+        Specify what attribute to compare the user DN against in the group. If
+        ldap_group_dn is not specified, this parameter is ignored.
+ 
+ldap_password_attr: <userPassword>
+        Specify what password attribute to use for password verification.
+ 
 ldap_debug: <0>
 	Specify a debugging level in the OpenLDAP libraries.  See
 	ldap_set_option(3) for more (LDAP_OPT_DEBUG_LEVEL).
@@ -199,9 +224,9 @@ method is more secure because ldap_bind_pw is not exposed.
 - There may be bind problems when following referrals.  Normally this is not an
   issue.  Fix.
 - Allow to specify an attribute other than userPassword for use in the custom
-  authentication method.
-- Add more password hashes such as md5, sha etc
-- Make a suggestion (possibly another authentication method?)
+  authentication method. (Done)
+- Add more password hashes such as md5, sha etc (Done)
+- Make a suggestion (possibly another authentication method?) (added fastbind)
 
 
 7. FEEDBACK

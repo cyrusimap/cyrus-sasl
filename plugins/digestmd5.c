@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.158 2003/09/03 21:47:32 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.159 2003/09/30 15:48:35 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -120,7 +120,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.158 2003/09/03 21:47:32 rjs3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.159 2003/09/30 15:48:35 rjs3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -186,7 +186,7 @@ typedef struct reauth_entry {
 	    char *serverFQDN;
 	    int protection;
 	    struct digest_cipher *cipher;
-	    unsigned int server_maxbuf;
+	    unsigned long server_maxbuf;
 	} c; /* client stuff */
     } u;
 } reauth_entry_t;
@@ -1945,8 +1945,8 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     char           *response = NULL;
     
     /* setting the default value (65536) */
-    unsigned int    client_maxbuf = 65536;
-    int             maxbuf_count = 0;  /* How many maxbuf instaces was found */
+    unsigned long  client_maxbuf = 65536;
+    int            maxbuf_count = 0;  /* How many maxbuf instaces was found */
     
     char           *charset = NULL;
     char           *cipher = NULL;
@@ -2674,7 +2674,7 @@ typedef struct client_context {
 
     int protection;
     struct digest_cipher *cipher;
-    unsigned int server_maxbuf;
+    unsigned long server_maxbuf;
 } client_context_t;
 
 /* calculate H(A1) as per spec */

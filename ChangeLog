@@ -1,3 +1,6 @@
+2005-02-14  Derrick Brashear <shadow@andrew.cmu.edu>
+	* saslauthd/krbtf.c: updated from CMUCS
+
 2005-02-01  Alexey Melnikov <alexey.melnikov@isode.com>
 	* win32/include/config.h: Updated to match gai.h changes.
 	* win32/include/config.h: added define for the OTP plugin.

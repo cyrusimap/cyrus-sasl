@@ -1,7 +1,7 @@
 /* creates the md5global.h file. 
  *  Derived from KTH kerberos library bits.c program
  * Tim Martin 
- * $Id: makemd5.c,v 1.2 2000/03/07 05:19:52 tmartin Exp $
+ * $Id: makemd5.c,v 1.3 2000/07/13 02:59:51 leg Exp $
  */
 /* 
  * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -94,8 +94,8 @@ my_strupr(char *s)
 {
     char *p = s;
     while(*p){
-	if(islower(*p))
-	    *p = toupper(*p);
+	if(islower((int) *p))
+	    *p = toupper((int) *p);
 	p++;
     }	
 }
@@ -204,7 +204,7 @@ int main(int argc, char **argv)
     hb = malloc(strlen(fn) + 5);
     sprintf(hb, "__%s__", fn);
     for(p = hb; *p; p++){
-      if(!isalnum(*p))
+      if(!isalnum((int) *p))
 	*p = '_';
     }
     f = fopen(argv[1], "w");

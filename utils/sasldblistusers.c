@@ -251,10 +251,10 @@ int listusers(const char *path, listcb_t *cb)
 	char *authid;
 	char *realm;
 	char *tmp;
-	int len;
+	unsigned int len;
 	char mech[1024];
 	int numnulls = 0;
-	int lup;
+	unsigned int lup;
 
 	/* make sure there are exactly 2 null's */
 	for (lup=0;lup<key.size;lup++)

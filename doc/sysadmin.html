@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.16 2000/07/05 17:02:49 leg Exp $ -->
+<!-- $Id: sysadmin.html,v 1.17 2000/07/13 02:59:51 leg Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -192,7 +192,7 @@ the same way the PLAIN mechanism does.
 <h3>Shared secrets mechanisms</h3>
 
 The Cyrus SASL library also supports some "shared secret"
-authentication methods: CRAM-MD5 and it's successor DIGEST-MD5.  These
+authentication methods: CRAM-MD5 and its successor DIGEST-MD5.  These
 methods rely on the client and the server sharing a "secret", usually
 a password.  The server generates a challenge and the client a
 response proving that it knows the shared secret.  This is much more
@@ -201,8 +201,8 @@ client knows it.
 
 <p>There's a downside: in order to verify such responses, the
 server must keep password equivalents in a database; if this database
-is compromised, it is the same as if every users' password for that
-realm is compromised.
+is compromised, it is the same as if all the passwords for the
+realm are compromised.
 
 <p>The Cyrus SASL library stores these secrets in the
 <tt>/etc/sasldb</tt> database.  Depending on the exact database method

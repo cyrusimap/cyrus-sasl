@@ -1,3 +1,7 @@
+2003-09-09  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/NTMakefile: Minor nit
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+
 2003-09-09  Ken Murchison <ken@oceana.com>
 	* plugins/ntlm.c: use retry_read() instead of just read()
 	* lib/checkpw.c, plugins/ntlm.c, saslauthd/utils.c:

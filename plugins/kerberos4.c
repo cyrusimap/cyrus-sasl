@@ -273,24 +273,22 @@ integrity_encode(void *context,
   context_t *text;
   text=context;
 
-  out=text->malloc(200);
-  if (out==NULL) return SASL_NOMEM;
-
   *output=text->malloc(inputlen+30);
   if ((*output) ==NULL) return SASL_NOMEM;
-  len=krb_mk_safe((char *) input, out,
+
+  len=krb_mk_safe((char *) input, (*output)+4,
 		  inputlen, /* text->keysched, */
 		  &(text->session), &(text->ip_local),
 		  &(text->ip_remote));
 
+  /* returns -1 on error */
+  if (len==-1) return SASL_FAIL;
   
 
+  /* now copy in the len of the buffer in network byte order */
   *outputlen=len+4;
   len=htonl(len);
-  *output=malloc(500);
-
   memcpy(*output, &len, 4);
-  memcpy(*output+4, out, (*outputlen)-4);
 
   return SASL_OK;
 }

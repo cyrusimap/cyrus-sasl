@@ -1,3 +1,11 @@
+1999-02-21  Timothy L Martin  <tmartin+@andrew.cmu.edu>
+
+	* all: eliminated some warnings
+
+	* plugins/digestmd5: added integrity protection
+
+	* plugins/digestmd5: replaced all DEBUG prints with VL's
+
 1999-02-17  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
 	* plugins/all: added VL's for error conditions

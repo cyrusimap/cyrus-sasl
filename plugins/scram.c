@@ -250,7 +250,7 @@ static int load_things(sasl_utils_t *utils, context_t *text, const char *user)
     memcpy(ver_i.state,sec->data+8 , len);
     memcpy(ver_o.state,sec->data+len+8, len); 
 
-    utils->MD5Update(&ver_i, sec->data, 8);
+    utils->MD5Update(&ver_i, (unsigned char *) sec->data, 8);
     utils->MD5Final(digest1, &ver_i);
     utils->MD5Update(&ver_o, digest1, 16);
     utils->MD5Final(digest1, &ver_o);

@@ -81,8 +81,6 @@ int sasl_encode64(const char *_in, unsigned inlen,
     char *blah;
     unsigned olen;
 
-    *outlen=0;
-
     /* Will it fit? */
     olen = (inlen + 2) / 3 * 4;
     if (outlen)
@@ -94,25 +92,21 @@ int sasl_encode64(const char *_in, unsigned inlen,
     blah=(char *) out;
     while (inlen >= 3) {
       /* user provided max buffer size; make sure we don't go over it */
-      if ((*outlen)+4>outmax) return SASL_FAIL; 
         *out++ = basis_64[in[0] >> 2];
         *out++ = basis_64[((in[0] << 4) & 0x30) | (in[1] >> 4)];
         *out++ = basis_64[((in[1] << 2) & 0x3c) | (in[2] >> 6)];
         *out++ = basis_64[in[2] & 0x3f];
-	(*outlen)+=4;
         in += 3;
         inlen -= 3;
     }
     if (inlen > 0) {
       /* user provided max buffer size; make sure we don't go over it */
-      if ((*outlen)+4>outmax) return SASL_FAIL;
         *out++ = basis_64[in[0] >> 2];
         oval = (in[0] << 4) & 0x30;
         if (inlen > 1) oval |= in[1] >> 4;
         *out++ = basis_64[oval];
         *out++ = (inlen < 2) ? '=' : basis_64[(in[1] << 2) & 0x3c];
         *out++ = '=';
-	(*outlen)+=4;
     }
     *out = '\0';
     
@@ -155,6 +149,8 @@ int sasl_decode64(const char *in, unsigned inlen,
             }
         }
     }
+
+    *out=0; /* terminate string */
 
     *outlen=len;
 

@@ -45,6 +45,8 @@ SOFTWARE.
 # include "saslPLAIN.h"
 #endif /* WIN32 */
 
+extern char *crypt(const char *, const char *);
+
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
 
 #define PLAIN_VERSION (3)

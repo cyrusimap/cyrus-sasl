@@ -37,6 +37,7 @@ SOFTWARE.
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <string.h>
 #include "sasl.h"
 #include "saslint.h"
 #include "saslutil.h"

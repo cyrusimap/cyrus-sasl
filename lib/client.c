@@ -33,6 +33,7 @@ SOFTWARE.
 #include <stdlib.h>
 #include <limits.h>
 #include <ctype.h>
+#include <string.h>
 #include <sasl.h>
 #include <saslutil.h>
 #include "saslint.h"

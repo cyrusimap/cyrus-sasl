@@ -1,15 +1,58 @@
 <HTML><HEAD>
 <title>Programming with SASL</title>
-<!-- $Id: programming.html,v 1.1 1999/08/09 16:08:06 leg Exp $ -->
+<!-- $Id: programming.html,v 1.2 1999/08/09 16:38:01 leg Exp $ -->
 </HEAD>
 <BODY>
 <H1>Programming with SASL</H1>
 
 Eventually, I hope to expand this into workable documentation for
-using the SASL library with various programs.  For now, all I have is
-what isn't implemented.  For guidance in using the library, take a
-look at the <tt>sample/</tt> directory, and the Cyrus IMAP server
-distribution (versions 1.6.0 or later).
+using the SASL library with various programs. For guidance in using
+the library, take a look at the <tt>sample/</tt> directory, and the
+Cyrus IMAP server distribution (versions 1.6.0 or later).
+
+<h2>Example applications</h2>
+
+<h3><tt>sample-client</tt> and <tt>sample-server</tt></h3>
+
+The sample client and server included with this distribution were
+really written to help debug mechanisms.  They base64 encode all the
+data and print it out on standard output.
+
+<p>Make sure that you set the IP addresses on the command line (some
+mechanisms depend on this).
+
+<p>Also, sometimes you'll get "<tt>realm: Information not available</tt>"
+sort of messages; this is due to the fact that some mechanisms don't
+support realms and therefore never set it.
+
+<h3>Cyrus imapd v1.6.0 or later</h3>
+
+The Cyrus IMAP server now incorporates SASL for all it's
+authentication needs.  It is a good example of a fairly large server
+application.  Also of interest is the prot layer, included in
+libcyrus.  This is a stdio-like interface that automatically takes
+care of layers using a simple "<tt>prot_setsasl()</tt>" call.
+
+<p>It also sets a <tt>SASL_CB_PROXY_POLICY</tt> callback, which should
+be of interest to many applications.
+
+<h3><tt>imtest</tt>, from cyrus imapd 1.6.0 or later</h3>
+
+<tt>imtest</tt> is an application included with Cyrus imapd.  It is a very
+simple IMAP client, but should be of interest to people who are
+writing applications.  It also uses the prot layer, but it is easy to
+incorporate similiar support without using the prot layer.
+
+<h2>Random things</h2>
+
+<h3>Empty exchanges</h3>
+
+Some SASL mechanisms intentionally send no data; your application
+should be prepared to either send or receive an empty exchange.  The
+SASL profile for the protocol should define how to send an empty
+string; make sure you send an empty string when requested to, and when
+you receive an empty string make sure that the "<tt>inlength</tt>" you
+pass in is 0.
 
 <h2>What's not implemented</h2>
 
@@ -26,8 +69,8 @@ likely the Kerberos modules).  Thus, an application that specifies
 The functions <tt>sasl_cred_install()</tt> and
 <tt>sasl_cred_uninstall()</tt> do nothing.
 
-It's likely that the credential API will change, and it's also likely
-that you'll need the Cyrus SASL library on both sides of the
+<p>It's likely that the credential API will change, and it's also
+likely that you'll need the Cyrus SASL library on both sides of the
 connection to make it work.
 
 <h3>Secrets</h3>
@@ -36,7 +79,7 @@ connection to make it work.
 is intended for.  If we implement it, it will probably be for
 generating secrets for fast reauthentication.
 
-The "<tt>secret</tt>" parameter to <tt>sasl_client_start()</tt> is
+<p>The "<tt>secret</tt>" parameter to <tt>sasl_client_start()</tt> is
 unused.  It is likely that we will use this for fast reauthentication.
 
 <h3>Idle</h3>

@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.66 2000/01/02 04:45:11 leg Exp $
+dnl $Id: configure.in,v 1.67 2000/01/06 19:10:56 leg Exp $
 dnl
 dnl         Copyright 1998 by Carnegie Mellon University
 dnl
@@ -123,8 +123,10 @@ case "$dblib" in
   berkeley)
 	AC_CHECK_HEADER(db.h,
 			AC_CHECK_LIB(db, db_open, SASL_DB_LIB="-ldb"; 
-					 dblib="berkeley",dblib="no"),
-			dblib="no")	
+				dblib="berkeley",
+                        	AC_CHECK_LIB(db, db_create, SASL_DB_LIB="-ldb";
+					dblib="berkeley", dblib="no")),
+			dblib="no")
 	;;
   gdbm)
 	AC_CHECK_HEADER(gdbm.h,
@@ -143,9 +145,11 @@ case "$dblib" in
   auto_detect)
         dnl How about berkeley db?
 	AC_CHECK_HEADER(db.h,
-			AC_CHECK_LIB(db, db_open,SASL_DB_LIB="-ldb"; 
-                                        dblib="berkeley", dblib="no"),
-			    dblib="no")
+			AC_CHECK_LIB(db, db_open, SASL_DB_LIB="-ldb"; 
+				dblib="berkeley",
+                        	AC_CHECK_LIB(db, db_create, SASL_DB_LIB="-ldb";
+					dblib="berkeley", dblib="no")),
+			dblib="no")
 	if test "$dblib" = no; then
 	  dnl How about ndbm?
 	  AC_CHECK_HEADER(ndbm.h, 
@@ -292,9 +296,20 @@ AC_ARG_ENABLE(digest, [  --enable-digest         enable DIGEST-MD5 authenticatio
   digest=$enableval,
   digest=yes)
 
-AC_CHECK_LIB(des, des_pcbc_encrypt, des=yes, des=no)
+AC_ARG_WITH(des, [  --with-des=DIR          with DES (look in DIR) [yes] ],
+	with_des=$withval,
+	with_rc4=yes)
 
-if test "$des" != no; then
+LIB_DES=""
+if test "$with_des" != no; then
+  if test -d $with_rc4; then
+    CPPFLAGS="$CPPFLAGS -I${with_des}/include"
+    LDFLAGS="$LDFLAGS -I${with_rc4}/lib"
+  fi
+  AC_CHECK_LIB(des, des_pcbc_encrypt, with_des=yes, with_des=no)
+fi
+
+if test "$with_des" != no; then
   AC_DEFINE(WITH_DES)
 fi
 
@@ -304,7 +319,7 @@ if test "$digest" != no; then
     CPPFLAGS="$CPPFLAGS -I$digest/include"
     LDFLAGS="$LDFLAGS -L$digest/lib"
   fi
-  if test "$des" = no; then
+  if test "$with_des" = no; then
     AC_WARN(No DES support for DIGEST-MD5)
   fi
 fi
@@ -348,7 +363,7 @@ if test "$krb4" != no; then
      LDFLAGS="$LDFLAGS -L$krb4/lib"
   fi
 
-  if test "$des" != no; then
+  if test "$with_des" != no; then
     AC_CHECK_HEADER(krb.h,
       AC_CHECK_LIB(krb, krb_mk_priv,:,
                    AC_WARN(No Kerberos V4 found); krb4=no,

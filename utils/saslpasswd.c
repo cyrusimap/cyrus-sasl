@@ -48,22 +48,31 @@
 #ifndef WIN32
 #include <termios.h>
 #include <unistd.h>
-#else
+
+#else /* WIN32 */
+
 #include <stdio.h>
 #include <io.h>
 typedef int ssize_t;
+
 #define STDIN_FILENO stdin
 #include <saslutil.h>
 __declspec(dllimport) char *optarg;
 __declspec(dllimport) int optind;
 __declspec(dllimport) int getsubopt(char **optionp, char * const *tokens, char **valuep);
+
 #endif /*WIN32*/
+
 #include <sasl.h>
 #include <saslplug.h>
 #include "../sasldb/sasldb.h"
 
 /* Cheating to make the utils work out right */
+#ifndef WIN32
 extern const sasl_utils_t *sasl_global_utils;
+#else
+__declspec(dllimport) const sasl_utils_t *sasl_global_utils;
+#endif
 
 char myhostname[1025];
 
@@ -331,6 +340,16 @@ main(int argc, char *argv[])
   sasl_conn_t *conn;
   char *user_domain = NULL;
   char *appname = "saslpasswd";
+
+#ifdef WIN32
+  /* initialize winsock */
+  WSADATA wsaData;
+
+  result = WSAStartup( MAKEWORD(2, 0), &wsaData );
+  if ( result != 0) {
+    exit_sasl(SASL_FAIL, "WSAStartup");
+  }
+#endif
 
   memset(myhostname, 0, sizeof(myhostname));
   result = gethostname(myhostname, sizeof(myhostname)-1);

@@ -50,11 +50,14 @@ Cram-MD5
 ) needs snprintf support
 ) any way to handle realms?
 ) correct deletion of user account
+) zero out stuff in setpass()
 
 Database stuff
 ~~~~~~~~~~~~~~
 ) Berkeley DB?
 ) Flat text file?
+) realms?
+) transactions?
 
 ABI
 ~~~

@@ -93,7 +93,6 @@ getsecret(void *context __attribute__((unused)),
   dkey.dptr = key;
   dkey.dsize = key_len;
   dvalue = dbm_fetch(db, dkey);
-  dbm_close(db);
   if (! dvalue.dptr) {
     result = SASL_NOUSER;
     goto cleanup;
@@ -119,6 +118,7 @@ getsecret(void *context __attribute__((unused)),
 
  cleanup:
   sasl_FREE(key);
+  dbm_close(db);
 
   return result;
 }

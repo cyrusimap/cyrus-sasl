@@ -1,6 +1,15 @@
+Mon Aug 16 14:52:27 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/db_ndbm.c (getsecret): fixed a free'd memory read (closed
+	the database too early)
+
+	* plugins/anonymous.c (server_continue_step): make sure that a
+	string is null terminated
+
 1999-08-17  Timothy L Martin  <tmartin@andrew.cmu.edu>
 
-	* utils/dbconverter.c: wrote this. converts sasl 1.5.3 secret db's to 1.5.5
+	* utils/dbconverter.c: wrote this. converts sasl 1.5.3 secret db's
+	to 1.5.5
 
 1999-08-16  Timothy L Martin  <tmartin@andrew.cmu.edu>
 

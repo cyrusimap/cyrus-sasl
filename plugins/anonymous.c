@@ -94,15 +94,11 @@ server_continue_step (void *conn_context __attribute__((unused)),
   }
 
   /* NULL-terminate the clientin... */
-  if (! clientin[clientinlen])
-    clientdata = (char *) clientin;
-  else {
-    clientdata = sparams->utils->malloc(clientinlen + 1);
-    if (! clientdata)
-      return SASL_NOMEM;
-    strncpy(clientdata, clientin, clientinlen);
-    clientdata[clientinlen] = '\0';
-  }
+  clientdata = sparams->utils->malloc(clientinlen + 1);
+  if (! clientdata)
+    return SASL_NOMEM;
+  strncpy(clientdata, clientin, clientinlen);
+  clientdata[clientinlen] = '\0';
 
   result = sparams->utils->getprop(sparams->utils->conn,
 				   SASL_IP_REMOTE, (void **)&remote_addr);

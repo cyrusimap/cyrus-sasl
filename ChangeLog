@@ -1,8 +1,11 @@
+2000-02-23  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* configure.in (LIB_DES): try using DES from OpenSSL.
+
 2000-02-23  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
 	* utils/Makefile.am: added testsuite
 	
-
 	* lib/db_ndbm.c (putsecret): return SASL_NOUSER on delete failures
 	* lib/db_gdbm.c (putsecret): return SASL_NOUSER on delete failures
 

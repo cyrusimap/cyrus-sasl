@@ -56,6 +56,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 /* do we have des available? */
 #undef WITH_DES
+#undef WITH_SSL_DES
 
 /* Do we have kerberos for plaintext password checking? */
 #undef HAVE_KRB

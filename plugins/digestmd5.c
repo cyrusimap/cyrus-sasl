@@ -40,24 +40,22 @@ SOFTWARE.
    library routines
 */
 
-#ifdef WITH_CMU_RC4
-#define WITH_RC4
-#endif /* WITH_CMU_RC4 */
-
-#ifdef WITH_SSL_RC4
-#define WITH_RC4
-#endif /* WITH_SSL_RC4 */
-
-
-
+/* DES support */
 #ifdef WITH_DES
-#include <des.h>
+# ifdef WITH_SSL_DES
+#  include <openssl/des.h>
+# else /* system DES library */
+#  include <des.h>
+# endif
 #endif /* WITH_DES */
+
+/* RC4 support */
 #ifdef WITH_CMU_RC4
-#include <rc4.h>
-#endif /* WITH_CMU_RC4 */
-#ifdef WITH_SSL_RC4
-#include <openssl/rc4.h>
+# define WITH_RC4
+# include <rc4.h>
+#elif WITH_SSL_RC4
+# define WITH_RC4
+# include <openssl/rc4.h>
 #endif /* WITH_SSL_RC4 */
 
 #ifdef WIN32

@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.99 2000/10/11 20:09:48 leg Exp $
+dnl $Id: configure.in,v 1.100 2000/10/31 20:27:03 leg Exp $
 dnl
 dnl Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -49,7 +49,7 @@ dnl
 dnl REMINDER: When changing the version number here, please also update
 dnl the values in win32/include/config.h and include/sasl.h as well.
 dnl
-AM_INIT_AUTOMAKE(cyrus-sasl, 1.5.24)
+AM_INIT_AUTOMAKE(cyrus-sasl, 1.5.25)
 CMU_INIT_AUTOMAKE
 
 DIRS=""

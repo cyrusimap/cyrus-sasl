@@ -5,3 +5,5 @@ Makefile
 *.l[ao]
 client
 server
+sample-client
+sample-server

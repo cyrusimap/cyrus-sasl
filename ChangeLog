@@ -1,3 +1,7 @@
+2002-06-14  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/client.c, lib/server.c, lib/saslint.h, lib/common.c.
+	  lib/seterror.c: continued size_t vs unsigned cleanups
+
 2002-06-13  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/ : remove LDAP support
 	* Ready for 2.1.5

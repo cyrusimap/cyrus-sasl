@@ -1,6 +1,6 @@
 2002-06-16  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* plugins/cram.c: Fix a security problem in the verification of
-	  the digest string.
+	  the digest string. (Andrew Jones <arjones@simultan.dyndns.org>)
 
 2002-06-12  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* plugins/digestmd5.c: Add missing prompts++

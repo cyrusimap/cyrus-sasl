@@ -5,6 +5,9 @@
 	* saslauthd/saslauthd.8: regenerated
 	  (the above are from Ken Murchison <ken@oceana.com>)
 
+	* plugins/anonymous.c (client_continue_step): now we can actually
+	  reach the last state
+
 2001-08-03  Rob Siemborski <rjs3+@andrew.cmu.edu>
 
 	* utils/sasldblistusers.c: Corrected conditional compilation

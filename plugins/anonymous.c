@@ -393,7 +393,7 @@ client_continue_step(void *conn_context,
   oparams->realm=NULL;
   oparams->param_version=0;
 
-  text->state = 2;
+  text->state = 3;
 
   return SASL_CONTINUE;
 }

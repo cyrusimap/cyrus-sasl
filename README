@@ -1,4 +1,4 @@
-$Id: README,v 1.25 2000/04/18 18:15:12 wcw Exp $
+$Id: README,v 1.26 2001/07/20 21:28:25 rjs3 Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication. See RFC 2222 for more
@@ -155,13 +155,13 @@ REFERENCES
 for Simple Challenge/Response", RFC 2195, September 1997.
 
 [DIGEST-MD5] Leach, Newman, "Using Digest Authentication as a SASL
-Mechanism", draft-leach-digest-sasl-03.txt, work in progress.
+Mechanism",  RFC 2831, May 2000
 
 [KEYED-MD5] Krawczyk, Bellare, Canetti, "HMAC: Keyed-Hashing for Message
 Authentication", RFC 2104, February 1997. 
 
 [PLAIN] Newman, C., "Using TLS with IMAP4, POP3 and ACAP",
-draft-newman-tls-imappop-xx.txt, work in progress.
+RFC 2595, June 1999
 
 [SASL] Myers, J., "Simple Authentication and Security Layer (SASL)",
 RFC 2222, October 1997.

@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.85 2004/04/12 16:36:21 rjs3 Exp $
+ * $Id: gssapi.c,v 1.86 2004/06/16 16:47:02 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.85 2004/04/12 16:36:21 rjs3 Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.86 2004/06/16 16:47:02 rjs3 Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -129,6 +129,8 @@ typedef struct context {
     gss_name_t   client_name;
     gss_name_t   server_name;
     gss_cred_id_t server_creds;
+    gss_cred_id_t client_creds;
+
     sasl_ssf_t limitssf, requiressf; /* application defined bounds, for the
 					server */
     const sasl_utils_t *utils;
@@ -483,6 +485,11 @@ static void sasl_gss_free_context_contents(context_t *text)
 	maj_stat = gss_release_cred(&min_stat, &text->server_creds);
 	text->server_creds = GSS_C_NO_CREDENTIAL;
     }
+
+    if ( text->client_creds != GSS_C_NO_CREDENTIAL) {
+	maj_stat = gss_release_cred(&min_stat, &text->client_creds);
+	text->client_creds = GSS_C_NO_CREDENTIAL;
+    }
     
     if (text->out_buf) {
 	text->utils->free(text->out_buf);
@@ -546,6 +553,7 @@ gssapi_server_mech_new(void *glob_context __attribute__((unused)),
     text->client_name = GSS_C_NO_NAME;
     text->server_name = GSS_C_NO_NAME;
     text->server_creds = GSS_C_NO_CREDENTIAL;
+    text->client_creds = GSS_C_NO_CREDENTIAL;
     text->state = SASL_GSSAPI_STATE_AUTHNEG;
     
     *conn_context = text;
@@ -568,8 +576,8 @@ gssapi_server_mech_step(void *conn_context,
     OM_uint32 maj_stat = 0, min_stat = 0;
     OM_uint32 max_input;
     gss_buffer_desc name_token;
-    int ret;
-
+    int ret, out_flags = 0 ;
+    
     input_token = &real_input_token;
     output_token = &real_output_token;
     output_token->value = NULL; output_token->length = 0;
@@ -636,6 +644,7 @@ gssapi_server_mech_step(void *conn_context,
 	    real_input_token.length = clientinlen;
 	}
 	
+	
 	maj_stat =
 	    gss_accept_sec_context(&min_stat,
 				   &(text->gss_ctx),
@@ -645,9 +654,9 @@ gssapi_server_mech_step(void *conn_context,
 				   &text->client_name,
 				   NULL,
 				   output_token,
+				   &out_flags,
 				   NULL,
-				   NULL,
-				   NULL);
+				   &(text->client_creds));
 	
 	if (GSS_ERROR(maj_stat)) {
 	    sasl_gss_log(text->utils, maj_stat, min_stat);
@@ -657,6 +666,15 @@ gssapi_server_mech_step(void *conn_context,
 	    }
 	    sasl_gss_free_context_contents(text);
 	    return SASL_BADAUTH;
+	}
+	    
+
+	if ((params->props.security_flags & SASL_SEC_PASS_CREDENTIALS) &&
+	    (!(out_flags & GSS_C_DELEG_FLAG) ||
+	     text->client_creds == GSS_C_NO_CREDENTIAL) ) 
+	{
+	    text->utils->seterror(text->utils->conn, SASL_LOG_WARN, "GSSAPI warning: no credentials were passed");
+	    /* continue with authentication */
 	}
 	    
 	if (serveroutlen)
@@ -978,6 +996,14 @@ gssapi_server_mech_step(void *conn_context,
 	}	
 	
 	/* No matter what, set the rest of the oparams */
+	
+	if (text->client_creds != GSS_C_NO_CREDENTIAL)	{
+	    oparams->client_creds =  &text->client_creds;
+	}
+	else {
+	    oparams->client_creds = NULL;
+	}
+
         oparams->maxoutbuf =
 	    (((unsigned char *) output_token->value)[1] << 16) |
             (((unsigned char *) output_token->value)[2] << 8) |
@@ -1025,7 +1051,8 @@ static sasl_server_plug_t gssapi_server_plugins[] =
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOACTIVE
 	| SASL_SEC_NOANONYMOUS
-	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
+	| SASL_SEC_MUTUAL_AUTH		/* security_flags */
+	| SASL_SEC_PASS_CREDENTIALS,
 	SASL_FEAT_WANT_CLIENT_FIRST
 	| SASL_FEAT_ALLOWS_PROXY,	/* features */
 	NULL,				/* glob_context */
@@ -1115,7 +1142,8 @@ static int gssapi_client_mech_new(void *glob_context __attribute__((unused)),
     text->gss_ctx = GSS_C_NO_CONTEXT;
     text->client_name = GSS_C_NO_NAME;
     text->server_creds = GSS_C_NO_CREDENTIAL;
-    
+    text->client_creds  = GSS_C_NO_CREDENTIAL;
+
     *conn_context = text;
     
     return SASL_OK;
@@ -1136,7 +1164,7 @@ static int gssapi_client_mech_step(void *conn_context,
     OM_uint32 maj_stat = 0, min_stat = 0;
     gss_buffer_desc name_token;
     int ret;
-    OM_uint32 req_flags, out_req_flags;
+    OM_uint32 req_flags = 0, out_req_flags = 0;
     input_token = &real_input_token;
     output_token = &real_output_token;
     output_token->value = NULL;
@@ -1243,6 +1271,9 @@ static int gssapi_client_mech_step(void *conn_context,
 		req_flags |= GSS_C_CONF_FLAG;
 	    }
 	}
+	
+	if (params->props.security_flags & SASL_SEC_PASS_CREDENTIALS)
+	    req_flags = req_flags |  GSS_C_DELEG_FLAG;
 
 	maj_stat = gss_init_sec_context(&min_stat,
 					GSS_C_NO_CREDENTIAL,
@@ -1265,7 +1296,12 @@ static int gssapi_client_mech_step(void *conn_context,
 	    sasl_gss_free_context_contents(text);
 	    return SASL_FAIL;
 	}
-	    
+
+	if ((out_req_flags & GSS_C_DELEG_FLAG) != (req_flags & GSS_C_DELEG_FLAG)) {
+	    text->utils->seterror(text->utils->conn, SASL_LOG_WARN, "GSSAPI warning: no credentials were passed");
+	    /* not a fatal error */
+	}
+  	    
 	*clientoutlen = output_token->length;
 	    
 	if (output_token->value) {
@@ -1530,7 +1566,8 @@ static sasl_client_plug_t gssapi_client_plugins[] =
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOACTIVE
 	| SASL_SEC_NOANONYMOUS
-	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
+	| SASL_SEC_MUTUAL_AUTH 
+	| SASL_SEC_PASS_CREDENTIALS,    /* security_flags */
 	SASL_FEAT_NEEDSERVERFQDN
 	| SASL_FEAT_WANT_CLIENT_FIRST
 	| SASL_FEAT_ALLOWS_PROXY,	/* features */
@@ -1563,3 +1600,4 @@ int gssapiv2_client_plug_init(const sasl_utils_t *utils __attribute__((unused)),
     
     return SASL_OK;
 }
+

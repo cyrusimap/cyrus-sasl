@@ -186,8 +186,11 @@ typedef struct sasl_out_params {
     int (*decode)(void *context, const char *input, unsigned inputlen,
 		  const char **output, unsigned *outputlen);
     
+    /* Pointer to delegated (client's) credentials, if supported by
+       the SASL mechanism */
+    void *client_creds;
+
     /* for additions which don't require a version upgrade; set to 0 */
-    void *spare_ptr1;
     void *spare_ptr2;
     void *spare_ptr3;
     void *spare_ptr4;

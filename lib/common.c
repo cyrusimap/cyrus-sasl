@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.100 2004/05/20 16:55:21 rjs3 Exp $
+ * $Id: common.c,v 1.101 2004/06/16 16:46:57 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -626,6 +626,14 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, const void **pvalue)
       break;
   case SASL_PLUGERR:
       *((const char **)pvalue) = conn->error_buf;
+      break;
+  case SASL_DELEGATEDCREDS:
+      /* We can't really distinguish between "no delegated credentials"
+         and "authentication not finished" */
+      if(! conn->oparams.client_creds)
+	  result = SASL_NOTDONE;
+      else
+	  *((const char **)pvalue) = conn->oparams.client_creds;
       break;
   case SASL_SSF_EXTERNAL:
       *((const sasl_ssf_t **)pvalue) = &conn->external.ssf;

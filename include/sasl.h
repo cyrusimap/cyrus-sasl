@@ -717,6 +717,20 @@ LIBSASL_API int sasl_getprop(sasl_conn_t *conn, int propnum,
 #define SASL_CALLBACK     7	/* current callback function list */
 #define SASL_IPLOCALPORT  8	/* iplocalport string passed to server_new */
 #define SASL_IPREMOTEPORT 9	/* ipremoteport string passed to server_new */
+
+/* This returns a string which is either empty or has an error message
+ * from sasl_seterror (e.g., from a plug-in or callback).  It differs
+ * from the result of sasl_errdetail() which also takes into account the
+ * last return status code.
+ */
+#define SASL_PLUGERR     10
+
+/* a handle to any delegated credentials or NULL if none is present 
+ * is returned by the mechanism. The user will probably need to know
+ * which mechanism was used to actually known how to make use of them
+ * currently only implemented for the gssapi mechanism */
+#define SASL_DELEGATEDCREDS 11  
+
 #define SASL_SERVICE      12	/* service passed to sasl_*_new */
 #define SASL_SERVERFQDN   13	/* serverFQDN passed to sasl_*_new */
 #define SASL_AUTHSOURCE   14	/* name of auth source last used, useful
@@ -726,14 +740,7 @@ LIBSASL_API int sasl_getprop(sasl_conn_t *conn, int propnum,
 #define SASL_APPNAME	  17	/* application name (used for logging/
 				   configuration), same as appname parameter
 				   to sasl_server_init */
-
-/* This returns a string which is either empty or has an error message
- * from sasl_seterror (e.g., from a plug-in or callback).  It differs
- * from the result of sasl_errdetail() which also takes into account the
- * last return status code.
- */
-#define SASL_PLUGERR     10
-
+   
 /* set property in SASL connection state
  * returns:
  *  SASL_OK       -- value set

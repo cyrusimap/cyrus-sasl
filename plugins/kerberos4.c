@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.78 2002/04/26 19:23:05 ken3 Exp $
+ * $Id: kerberos4.c,v 1.79 2002/04/26 19:49:19 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -448,7 +448,7 @@ static void kerberosv4_both_mech_dispose(void *conn_context,
 	if(text->enc_in_buf->data) utils->free(text->enc_in_buf->data);
 	utils->free(text->enc_in_buf);
     }
-    if (text->user) utils->free(text->user);
+    /* no need to free userid, it's just the interaction result */
     
     utils->free(text);
 }
@@ -1065,107 +1065,39 @@ static int kerberosv4_client_mech_step(void *conn_context,
 	unsigned char *sout = NULL;
 	unsigned len;
 	unsigned char in[8];
-	const char *userid;
 	int result;
-	sasl_getsimple_t *getuser_cb;
-	void *getuser_context;
-	sasl_interact_t *prompt;
-	int prompt_for_userid = 0;
 	int servermaxbuf;
 	char *buf;
+	int user_result = SASL_OK;
 
+	/* try to get the authid */
+	if (text->user == NULL) {
+	    user_result = _plug_get_userid(cparams, &text->user, prompt_need);
+
+	    if ((user_result != SASL_OK) && (auth_result != SASL_INTERACT))
+		return user_result;
+  }
+
+	/* free prompts we got */
 	if (prompt_need && *prompt_need) {
-	    /* If we requested prompts, make sure they're
-	     * properly filled in. */
-	    for (prompt = *prompt_need;
-		 prompt->id != SASL_CB_LIST_END;
-		 ++prompt)
-		if (! prompt->result) {
-		    PARAMERROR(cparams->utils);
-		    return SASL_BADPARAM;
-		}
-
-	    /* Get the username */
-	    if (! text->user) {
-		for (prompt = *prompt_need;
-		     prompt->id != SASL_CB_LIST_END;
-		     ++prompt)
-		    if (prompt->id == SASL_CB_USER) {
-			text->user = cparams->utils->malloc(strlen(prompt->result) + 1);
-			if(!text->user) {
-			    MEMERROR(cparams->utils);
-			    return SASL_NOMEM;
-			}
-			
-			strcpy(text->user, prompt->result);
-			
-			break;
-		    }
-	    }
-
-	    if(prompt_need) {
-		cparams->utils->free(*prompt_need);
-		*prompt_need = NULL;
-	    }
+	    cparams->utils->free(*prompt_need);
+	    *prompt_need = NULL;
 	}
 
-	/* Now, try to get the userid by normal means... */
-	if (! text->user) {
-	    /* Try to get the callback... */
-	    result = cparams->utils->getcallback(cparams->utils->conn,
-						 SASL_CB_USER,
-						 &getuser_cb,
-						 &getuser_context);
-	    switch (result) {
-	    case SASL_INTERACT:
-		/* We'll set up an interaction later. */
-		prompt_for_userid = 1;
-		break;
-	    case SASL_OK:
-		if (! getuser_cb)
-		    break;
-		result = getuser_cb(getuser_context,
-				    SASL_CB_USER,
-				    &userid,
-				    NULL);
-		if (result != SASL_OK) {
-		    SETERROR(cparams->utils, "getuser callback failed");
-		    return result;
-		}
-		
-		if (userid) {		    
-		    text->user = cparams->utils->malloc(strlen(userid) + 1);
-		    if (!text->user) {
-			MEMERROR(cparams->utils);
-			return SASL_NOMEM;
-		    }
-		    strcpy(text->user, userid);
-		}
-		break;
-	    default:
-		SETERROR(cparams->utils, "couldn't get callback");
-		return result;
-	    }
-	}
-      
-	/* And now, if we *still* don't have userid,
-	 * but we think we can prompt, we need to set up a prompt. */
-	if (! text->user && prompt_for_userid) {
-	    if (! prompt_need)
-		return SASL_INTERACT;
+	/* if there are prompts not filled in */
+	if (user_result == SASL_INTERACT) {
+	    /* make the prompt list */
 	    *prompt_need = cparams->utils->malloc(sizeof(sasl_interact_t) * 2);
 	    if (! *prompt_need) {
 		MEMERROR(cparams->utils);
 		return SASL_NOMEM;
 	    }
 	    memset(*prompt_need, 0, sizeof(sasl_interact_t) * 2);
+	    (*prompt_need)[0].id = SASL_CB_USER;
+	    (*prompt_need)[0].prompt = "Remote Userid";
+	    (*prompt_need)[0].defresult = NULL;
+	    (*prompt_need)[1].id = SASL_CB_LIST_END;
 
-	    prompt = *prompt_need;
-	    prompt->id = SASL_CB_USER;
-	    prompt->prompt = "Remote Userid";
-	    prompt->defresult = NULL;
-	    prompt++;
-	    prompt->id = SASL_CB_LIST_END;
 	    return SASL_INTERACT;
 	}
       
@@ -1358,7 +1290,6 @@ static int kerberosv4_client_mech_step(void *conn_context,
 	}
 
 	if (text->user && !text->user[0]) {
-	    cparams->utils->free(text->user);
 	    text->user = NULL;
 	}
 

@@ -1,3 +1,8 @@
+2000-05-08  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/db_berkeley.c: enable applications to open the database
+	read-only
+
 2000-05-03  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/common.c: vararg chars are always read as ints (Dowson Tong

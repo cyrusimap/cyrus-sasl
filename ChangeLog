@@ -1,3 +1,6 @@
+2003-10-06  Ken Murchison <ken@oceana.com>
+	* plugins/sql.c: use the correct propctx in sql_auxprop_store()
+
 2003-10-06  Maya Nigrosh <mnigrosh@andrew.cmu.edu>
 	* plugins/sql.c: tiny bugfix to begin pgsql transactions
 	

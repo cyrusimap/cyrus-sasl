@@ -5,7 +5,7 @@
 ** Ken Murchison
 **   based on the original work of Simon Loader and Patrick Welche
 **
-** $Id: sql.c,v 1.18 2003/10/06 16:32:21 mnigrosh Exp $
+** $Id: sql.c,v 1.19 2003/10/06 16:55:00 ken3 Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -866,7 +866,7 @@ static int sql_auxprop_store(void *glob_context,
 	goto done;
     }
     
-    to_store = sparams->utils->prop_get(sparams->propctx);
+    to_store = sparams->utils->prop_get(ctx);
     
     if (!to_store) {
 	ret = SASL_BADPARAM;
@@ -890,7 +890,7 @@ static int sql_auxprop_store(void *glob_context,
     for (cur = to_store; ret == SASL_OK && cur->name; cur++) {
 	/* determine which command we need */
 	cmd = settings->sql_insert;
-	if (!cur->values[0]) {
+	if (!cur->values || !cur->values[0]) {
 	    /* no secret => DELETE */
 	    cmd = settings->sql_delete;
 	}
@@ -911,7 +911,9 @@ static int sql_auxprop_store(void *glob_context,
 
 	/* create a statement that we will use */
 	statement = sql_create_statement(cmd, cur->name, escap_userid,
-					 escap_realm, cur->values[0],
+					 escap_realm,
+					 cur->values && cur->values[0] ?
+					 cur->values[0] : NULL,
 					 sparams->utils);
 	
 	{

@@ -1,4 +1,4 @@
-#ifdef _SASLDIGESTMD5_H_
+#ifndef _SASLDIGESTMD5_H_
 #define _SASLDIGESTMD5_H_
 
 // The following ifdef block is the standard way of creating macros which make exporting 

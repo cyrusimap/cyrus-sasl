@@ -71,8 +71,8 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define L_DEFAULT_GUARD (0)
 #define I_DEFAULT_GUARD (0)
 #define I(foo)
-#define VL(foo)
-// #define VL(foo)  printf foo;
+//#define VL(foo)
+#define VL(foo)  printf foo;
 #define VLP(foo,bar)
 
 #define __attribute__(foo)

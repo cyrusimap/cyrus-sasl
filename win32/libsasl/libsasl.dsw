@@ -75,6 +75,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "saslGSSAPI"=..\saslGSSAPI\saslGSSAPI.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "saslKERBEROSV4"=..\saslKERBEROSV4\saslKERBEROSV4.dsp - Package Owner=<4>
 
 Package=<5>
@@ -100,6 +112,18 @@ Package=<4>
 ###############################################################################
 
 Project: "saslSCRAM"=..\saslSCRAM\saslSCRAM.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "saslpwd"=..\utils\saslpwd\saslpwd.dsp - Package Owner=<4>
 
 Package=<5>
 {{{

@@ -26,11 +26,15 @@ SOFTWARE.
 
 #include <config.h>
 #include <gssapi.h>
+#ifdef WIN32
+#include <winsock.h>
+#else
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#endif /*WIN32*/
 #include <fcntl.h>
 #include <stdio.h>
 #include <sasl.h>

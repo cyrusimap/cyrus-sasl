@@ -110,7 +110,7 @@ SOURCE=..\..\lib\config.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\lib\db_none.c
+SOURCE=..\..\lib\db_testw32.c
 # End Source File
 # Begin Source File
 

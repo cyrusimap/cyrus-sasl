@@ -538,7 +538,10 @@ main(int argc, char *argv[])
     if (data) {
       puts("Sending response...");
       samp_send(data, len);
+#ifndef WIN32
+	  /*win32 crashes on this free*/
       free(data);
+#endif /*win32*/
     } else
       fail("No data to send--something's wrong");
     puts("Waiting for client reply...");

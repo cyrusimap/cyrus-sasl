@@ -368,7 +368,7 @@ static int server_continue_step (void *conn_context,
     }
 
 
-    /* We use the user's SCRAM secret */
+    /* We use the user's CRAM secret */
     /* Request secret */
     result = getsecret(getsecret_context, "CRAM-MD5", userid, &sec);
     if (result != SASL_OK)

@@ -542,7 +542,7 @@ static int server_continue_step (void *conn_context,
     for (lup=0;lup<clientinlen;lup++)      
       ticket.dat[lup]=clientin[lup];
 
-    text->realm=krb_realmofhost(sparams->serverFQDN);
+    text->realm = krb_realmofhost(sparams->serverFQDN);
 
     /* get instance */
     strncpy (text->instance, krb_get_phost (sparams->serverFQDN),
@@ -589,7 +589,7 @@ static int server_continue_step (void *conn_context,
       sout[4] |= KRB_SECFLAG_CREDENTIALS;
     sout[5]=0x00;  /* max ciphertext buffer size */
     sout[6]=0xFF;  /* let's say we can support up to 64K */
-    sout[7]=0xFF;  /* no inherint inability with our layers to support more */
+    sout[7]=0xFF;  /* no inherent inability with our layers to support more */
 
     memcpy(text->session, ad.session, 8);
     memcpy(text->pname, ad.pname, sizeof(text->pname));
@@ -619,7 +619,7 @@ static int server_continue_step (void *conn_context,
   {
     int result;
     unsigned long testnum;
-    int lup;
+    int lup, flag;
     unsigned char in[1024];
 
     for (lup=0;lup<clientinlen;lup++)
@@ -689,8 +689,14 @@ static int server_continue_step (void *conn_context,
     
     {
       size_t len = strlen(text->pname);
-      if (text->pinst[0])
+      if (text->pinst[0]) {
 	len += strlen(text->pinst) + 1 /* for the . */;
+      }
+      flag = 0;
+      if (strcmp(text->realm, text->prealm)) {
+	len += strlen(text->prealm) + 1 /* for the @ */;
+	flag = 1;
+      }
 
       oparams->authid = sparams->utils->malloc(len + 1);
       if (! oparams->authid)
@@ -700,6 +706,10 @@ static int server_continue_step (void *conn_context,
 	strcat(oparams->authid, ".");
 	strcat(oparams->authid, text->pinst);
       }
+      if (flag) {
+	strcat(oparams->authid, "@");
+	strcat(oparams->authid, text->prealm);
+      }  
 
       if (in[8]) {
 	  oparams->user = sparams->utils->malloc(strlen(in + 8) + 1);

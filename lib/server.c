@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.44 1999/08/09 16:00:40 leg Exp $
+ * $Id: server.c,v 1.45 1999/08/10 20:04:32 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -960,7 +960,7 @@ int sasl_listmech(sasl_conn_t *conn,
   mechanism_t *listptr;  
   int resultlen;
   int flag;
-  char *mysep;
+  const char *mysep;
 
   if (! conn || ! result)
     return SASL_FAIL;

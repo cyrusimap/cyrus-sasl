@@ -2463,7 +2463,6 @@ setpass(void *glob_context __attribute__((unused)),
 
   VL(("userid constructed %s\n", userid));
 
-  /* We're actually constructing a SCRAM secret... */
   result = putsecret(putsecret_context,
 		     "DIGEST-MD5",
 		     userid,

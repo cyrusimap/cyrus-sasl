@@ -1,4 +1,11 @@
+Mon Aug  9 19:17:30 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/kerberos4.c (server_continue_step): made kerberos append
+	the "@realm" when cross-realm authenticating
+
 1999-08-08  Larry Greenfield  <leg+@andrew.cmu.edu>
+
+	* Added sysadmin.html to doc directory
 
 	* lib/saslint.h (_sasl_sasldb_verify_password): added prototype
 

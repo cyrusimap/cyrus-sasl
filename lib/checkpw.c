@@ -203,7 +203,7 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
     sasl_getopt_t *getopt;
     void *context;
 
-    if (!userid || !password) {
+    if (!user|| !passwd) {
 	return SASL_BADPARAM;
     }
     if (reply) { *reply = NULL; }
@@ -285,15 +285,14 @@ int _sasl_shadow_verify_password(sasl_conn_t *conn __attribute__((unused)),
 
   char *salt;
   char *crypted;
+  struct spwd *spwd;
 
   if (!userid || !password) {
       return SASL_BADPARAM;
   }
   if (reply) { *reply = NULL; }
 
-  /* Let's attempt the shadow password file, and see if that gets
-   * us anywhere. */
-  struct spwd *spwd = getspnam(userid);
+  spwd = getspnam(userid);
   if (! spwd)
     return SASL_BADAUTH; /* can't use it */
   salt = spwd->sp_pwdp;
@@ -440,7 +439,7 @@ int _sasl_sasldb_verify_password(sasl_conn_t *conn,
     int ret;
     sasl_secret_t *secret;
 
-    if (!userid || !password) {
+    if (!userid || !passwd) {
 	return SASL_BADPARAM;
     }
     if (reply) { *reply = NULL; }
@@ -455,7 +454,7 @@ int _sasl_sasldb_verify_password(sasl_conn_t *conn,
     }
 
     if (strlen(passwd) != secret->len) {
-	sasl_free_secret(secret);
+	sasl_free_secret(&secret);
 	return SASL_BADAUTH;
     }
 
@@ -465,7 +464,7 @@ int _sasl_sasldb_verify_password(sasl_conn_t *conn,
 	ret = SASL_BADAUTH;
     }
 
-    sasl_free_secret(secret);
+    sasl_free_secret(&secret);
     return ret;
 }
 

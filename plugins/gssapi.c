@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.58 2002/04/26 19:23:04 ken3 Exp $
+ * $Id: gssapi.c,v 1.59 2002/04/26 19:33:28 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -130,8 +130,8 @@ typedef struct context {
     char *out_buf;                   /* per-step mem management */
     unsigned out_buf_len;    
 
-    union 
-    {	
+    struct 
+    {
 	char *authid; /* hold the authid between steps - server */
 	char *user;   /* hold the userid between steps - client */
     } u;

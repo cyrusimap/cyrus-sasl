@@ -588,11 +588,13 @@ sasl_gss_server_step (void *conn_context,
     case SASL_GSSAPI_STATE_SSFCAP:
       {
 	unsigned char sasldata[4];
-	gss_buffer_desc name_token = NULL;
-	gss_buffer_desc name_without_realm = NULL;
+	gss_buffer_desc name_token;
+	gss_buffer_desc name_without_realm;
 	gss_name_t without = NULL;
 	int equal;
-	
+
+	name_token.value = NULL;
+	name_without_realm.value = NULL;
 	VL(("sasl_gss_server_step: SSFCAP\n"));
 
 	name_token.value = NULL;
@@ -607,7 +609,7 @@ sasl_gss_server_step (void *conn_context,
 	if (GSS_ERROR(maj_stat)) {
 	    sasl_gss_set_error(text, errstr, "gss_display_name",
 			       maj_stat, min_stat);
-	    if (name_without_realm)
+	    if (name_without_realm.value)
 	      params->utils->free(name_without_realm.value);
 	    if (name_token.value)
 		gss_release_buffer(&min_stat, &name_token);

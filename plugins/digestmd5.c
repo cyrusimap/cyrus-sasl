@@ -832,7 +832,7 @@ char *skip_lws (char *s)
   return s;
 }
 
-char *skip_token (char *s)
+char *skip_token (char *s, int caseinsensitive)
 {
   assert (s != NULL);
   
@@ -840,7 +840,14 @@ char *skip_token (char *s)
     if (s[0]==DEL || s[0]=='(' || s[0]== ')' || s[0]== '<' || s[0]== '>' ||
         s[0]=='@' || s[0]== ',' || s[0]== ';' || s[0]== ':' || s[0]== '\\' ||
         s[0]=='\'' || s[0]== '/' || s[0]== '[' || s[0]== ']' || s[0]== '?' ||
-        s[0]=='=' || s[0]== '{' || s[0]== '}') break;
+        s[0]=='=' || s[0]== '{' || s[0]== '}') {
+      if (caseinsensitive == 1) {
+	if (!isupper(s[0]))
+	  break;
+      } else {
+	break;
+      }
+    }
     s++;
   }  
   return s;
@@ -874,7 +881,7 @@ char * unquote (char *qstr)
       else {
         outptr[0] = endvalue[0];      
       }
-    };
+    }
     
     if (endvalue[0] != '"') {
       return NULL;
@@ -887,7 +894,7 @@ char * unquote (char *qstr)
     endvalue++;
   }
   else { /* not qouted value (token) */
-    endvalue = skip_token(qstr);
+    endvalue = skip_token(qstr,0);
   };
   
   return endvalue;  
@@ -909,14 +916,19 @@ void get_pair(char **in, char **name, char **value)
   
   *name = curp;
   
-  curp = skip_token(curp);
-  
+  curp = skip_token(curp,1);
+
+  /* strip wierd chars */
+  if (curp[0] != '=') {
+    *curp++='\0';
+  }
+
   curp = skip_lws(curp);
   
   if (curp[0] != '=') { /* No '=' sign */ 
     *name = NULL;
     return;
-  };
+  }
   
   curp[0] = '\0';
   curp++;
@@ -930,6 +942,9 @@ void get_pair(char **in, char **name, char **value)
     *name = NULL;
     return;
   }
+  if (endpair[0] != ',') {
+    *endpair++ = '\0'; 
+  }
     
   endpair = skip_lws(endpair);
   
@@ -937,10 +952,11 @@ void get_pair(char **in, char **name, char **value)
       endpair[0] = '\0';
       endpair++; /* skipping <,> */
   }
-  else if (endpair[0] != '\0') { /* syntax check: MUST be '\0' or ',' */
+/* xxx syntax check: MUST be '\0' or ',' */
+  /*  else if (endpair[0] != '\0') { 
     *name = NULL;
     return;
-  }  
+    }  */
 
   *in = endpair;
 }
@@ -2191,19 +2207,19 @@ server_continue_step(void *conn_context,
       VL(("server_start step 2 : received pair: \t"));
       VL(("%s:%s\n", name, value));
 
-      if (strcmp(name, "username") == 0) {
+      if (strcasecmp(name, "username") == 0) {
 
 	digest_strdup(sparams->utils, value, &username, NULL);
 
-      } else if (strcmp(name, "authzid") == 0) {
+      } else if (strcasecmp(name, "authzid") == 0) {
 
 	digest_strdup(sparams->utils, value, &authorization_id, NULL);
 
-      } else if (strcmp(name, "cnonce") == 0) {
+      } else if (strcasecmp(name, "cnonce") == 0) {
 
 	digest_strdup(sparams->utils, value, (char **) &cnonce, NULL);
 
-      } else if (strcmp(name, "nc") == 0) {
+      } else if (strcasecmp(name, "nc") == 0) {
 
 	if (htoi((unsigned char *) value, &noncecount) != SASL_OK) {
 	    if (errstr) *errstr = "Error converting hex to int";
@@ -2212,7 +2228,7 @@ server_continue_step(void *conn_context,
 	}
 	digest_strdup(sparams->utils, value, (char **) &ncvalue, NULL);
 
-      } else if (strcmp(name, "realm") == 0) {
+      } else if (strcasecmp(name, "realm") == 0) {
 	  if (realm) {
 	      if (errstr) *errstr = "duplicate realm: authentication aborted";
 	      result = SASL_FAIL;
@@ -2224,7 +2240,7 @@ server_continue_step(void *conn_context,
 	  } else {
 	      digest_strdup(sparams->utils, value, &realm, NULL);
 	  }
-      } else if (strcmp(name, "nonce") == 0) {
+      } else if (strcasecmp(name, "nonce") == 0) {
 	  if (strcmp(value, (char *) text->nonce) != 0) {
 	      /*
 	       * Nonce changed: Abort authentication!!!
@@ -2233,19 +2249,19 @@ server_continue_step(void *conn_context,
 	      result = SASL_BADAUTH;
 	      goto FreeAllMem;
 	  }
-      } else if (strcmp(name, "qop") == 0) {
+      } else if (strcasecmp(name, "qop") == 0) {
 	digest_strdup(sparams->utils, value, &qop, NULL);
-      } else if (strcmp(name, "digest-uri") == 0) {
+      } else if (strcasecmp(name, "digest-uri") == 0) {
 	/* XXX: verify digest-uri format */
 	/*
 	 * digest-uri-value  = serv-type "/" host [ "/" serv-name ]
 	 */
 	digest_strdup(sparams->utils, value, &digesturi, NULL);
-      } else if (strcmp(name, "response") == 0) {
+      } else if (strcasecmp(name, "response") == 0) {
 	digest_strdup(sparams->utils, value, &response, NULL);
-      } else if (strcmp(name, "cipher") == 0) {
+      } else if (strcasecmp(name, "cipher") == 0) {
 	digest_strdup(sparams->utils, value, &cipher, NULL);
-      } else if (strcmp(name, "maxbuf") == 0) {
+      } else if (strcasecmp(name, "maxbuf") == 0) {
 	maxbuf_count++;
 	if (maxbuf_count != 1) {
 	  result = SASL_BADAUTH;
@@ -2262,8 +2278,8 @@ server_continue_step(void *conn_context,
 	      goto FreeAllMem;
             }
 	}
-      } else if (strcmp(name, "charset") == 0) {
-	if (strcmp(value, "utf-8") != 0) {
+      } else if (strcasecmp(name, "charset") == 0) {
+	if (strcasecmp(value, "utf-8") != 0) {
 	    if (errstr) *errstr = "client doesn't support UTF-8";
 	    result = SASL_FAIL;
 	    goto FreeAllMem;
@@ -2280,7 +2296,7 @@ server_continue_step(void *conn_context,
     }
 
     /* check which layer/cipher to use */
-    if ((!strcmp(qop, "auth-conf")) && (cipher != NULL)) {
+    if ((!strcasecmp(qop, "auth-conf")) && (cipher != NULL)) {
 	/* see what cipher was requested */
 	struct digest_cipher *cptr;
 
@@ -2291,7 +2307,7 @@ server_continue_step(void *conn_context,
 	while (cptr->name) {
 	    /* find the cipher requested & make sure it's one we're happy
 	       with by policy */
-	    if (!strcmp(cipher, cptr->name) && 
+	    if (!strcasecmp(cipher, cptr->name) && 
 		text->requiressf <= cptr->ssf && text->limitssf >= cptr->ssf) {
 		/* found it! */
 		break;
@@ -2317,13 +2333,13 @@ server_continue_step(void *conn_context,
 
 	oparams->encode=&privacy_encode;
 	oparams->decode=&privacy_decode;
-    } else if (!strcmp(qop, "auth-int") &&
+    } else if (!strcasecmp(qop, "auth-int") &&
 	       text->requiressf <= 1 && text->limitssf >= 1) {
 	VL(("Client requested integrity layer\n"));
 	oparams->encode = &integrity_encode;
 	oparams->decode = &integrity_decode;
 	oparams->mech_ssf = 1;
-    } else if (!strcmp(qop, "auth") && text->requiressf == 0) {
+    } else if (!strcasecmp(qop, "auth") && text->requiressf == 0) {
 	VL(("Client requested no layer\n"));
 	oparams->encode = NULL;
 	oparams->decode = NULL;
@@ -3360,7 +3376,7 @@ c_continue_step(void *conn_context,
 
 	VL(("received pair: %s - %s\n", name, value));
 
-	if (strcmp(name, "realm") == 0) {
+	if (strcasecmp(name, "realm") == 0) {
 	    nrealm++;
 
 	    realm = params->utils->realloc(realm, 
@@ -3372,9 +3388,9 @@ c_continue_step(void *conn_context,
 
 	    digest_strdup(params->utils, value, &realm[nrealm-1], NULL);
 	    realm[nrealm] = NULL;
-	} else if (strcmp(name, "nonce") == 0) {
+	} else if (strcasecmp(name, "nonce") == 0) {
 	    digest_strdup(params->utils, value, (char **) &nonce, NULL);
-	} else if (strcmp(name, "qop") == 0) {
+	} else if (strcasecmp(name, "qop") == 0) {
 	    digest_strdup(params->utils, value, &qop_list, NULL);
 	    while (value && *value) {
 		char *comma = strchr(value, ',');
@@ -3382,13 +3398,13 @@ c_continue_step(void *conn_context,
 		    *comma++ = '\0';
 		}
 
-		if (strcmp(value, "auth-conf") == 0) {
+		if (strcasecmp(value, "auth-conf") == 0) {
 		    VL(("Server supports privacy layer\n"));
 		    protection |= DIGEST_PRIVACY;
-		} else if (strcmp(value, "auth-int") == 0) {
+		} else if (strcasecmp(value, "auth-int") == 0) {
 		    VL(("Server supports integrity layer\n"));
 		    protection |= DIGEST_INTEGRITY;
-		} else if (strcmp(value, "auth") == 0) {
+		} else if (strcasecmp(value, "auth") == 0) {
 		    VL(("Server supports no layer\n"));
 		    protection |= DIGEST_NOLAYER;
 		} else {
@@ -3403,7 +3419,7 @@ c_continue_step(void *conn_context,
 		VL(("Server doesn't support known qop level\n"));
 		goto FreeAllocatedMem;
 	    }
-	} else if (strcmp(name, "cipher") == 0) {
+	} else if (strcasecmp(name, "cipher") == 0) {
 	    while (value && *value) {
 		char *comma = strchr(value, ',');
 		struct digest_cipher *cipher = available_ciphers;
@@ -3414,7 +3430,7 @@ c_continue_step(void *conn_context,
 
 		/* do we support this cipher? */
 		while (cipher->name) {
-		    if (!strcmp(value, cipher->name)) break;
+		    if (!strcasecmp(value, cipher->name)) break;
 		    cipher++;
 		}
 		if (cipher->name) {
@@ -3425,11 +3441,11 @@ c_continue_step(void *conn_context,
 		
 		value = comma;
 	    }
-	} else if (strcmp(name, "stale") == 0) {
+	} else if (strcasecmp(name, "stale") == 0) {
 	    /* since we never fast reauth, this should fail */
 	    result = SASL_BADAUTH;
 	    goto FreeAllocatedMem;
-	} else if (strcmp(name, "maxbuf") == 0) {
+	} else if (strcasecmp(name, "maxbuf") == 0) {
 	    /* maxbuf A number indicating the size of the largest
 	     * buffer the server is able to receive when using
 	     * "auth-int". If this directive is missing, the default
@@ -3454,19 +3470,19 @@ c_continue_step(void *conn_context,
 		    goto FreeAllocatedMem;
 		}
 	    }
-	} else if (strcmp(name, "charset") == 0) {
-	    if (strcmp(value, "utf-8") != 0) {
+	} else if (strcasecmp(name, "charset") == 0) {
+	    if (strcasecmp(value, "utf-8") != 0) {
 		result = SASL_BADAUTH;
 		VL(("Charset must be UTF-8\n"));
 		goto FreeAllocatedMem;
 	    } else {
 		IsUTF8 = TRUE;
 	    }
-	} else if (strcmp(name,"algorithm")==0) {
+	} else if (strcasecmp(name,"algorithm")==0) {
 
 	    VL (("Seeing algorithm now!\n"));
 
-	  if (strcmp(value, "md5-sess") != 0)
+	  if (strcasecmp(value, "md5-sess") != 0)
 	  {
 	    VL(("'algorithm' isn't 'md5-sess'\n"));
 	    result = SASL_FAIL;
@@ -3927,7 +3943,7 @@ FreeAllocatedMem:
 
       VL(("received pair: %s - %s\n", name, value));
 
-      if (strcmp(name, "rspauth") == 0) {
+      if (strcasecmp(name, "rspauth") == 0) {
 
 	if (strcmp(text->response_value, value) != 0) {
 	  VL(("This server wants us to believe that he knows shared secret\n"));

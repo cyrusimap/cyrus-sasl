@@ -52,7 +52,7 @@
  *   nul delimited strings.
  * - Augmented the protocol to accept the service name and user realm.
  * 
- * Feb 2004: Partial rewrite and cleanup  by Jeremy Rumpf jrumpf@heavyload.net
+ * Feb 2003: Partial rewrite and cleanup  by Jeremy Rumpf jrumpf@heavyload.net
  * - Merge the doors and unix IPC methods under a common framework.
  *
  *   OVERVIEW
@@ -149,6 +149,7 @@ int main(int argc, char **argv) {
 	int 		rc;
 	int 		x;
 	struct flock	lockinfo;
+	char            *auth_mech_name;
 
 	SET_AUTH_PARAMETERS(argc, argv);
 
@@ -166,9 +167,17 @@ int main(int argc, char **argv) {
 		switch(option) {
 			case 'a':
 			        /* Only one at a time, please! */
-			        if(auth_mech) show_usage();
-				
-				set_auth_mech(optarg);
+			        if(auth_mech_name) {
+				    show_usage();
+				    break;
+				}
+
+				auth_mech_name = strdup(optarg);
+				if (!auth_mech_name) {
+				    logger(L_ERR, L_FUNC,
+					   "could not allocate memory");
+				    exit(1);
+				}
 				break;
 
 			case 'c':
@@ -182,7 +191,8 @@ int main(int argc, char **argv) {
 
 			case 'h':
 				show_usage();
-
+				break;
+				
 			case 'O':
 				set_mech_option(optarg);
 				break;
@@ -213,19 +223,23 @@ int main(int argc, char **argv) {
 
 			case 'v':
 				show_version();
-
+				break;
+				
 			default:
 				show_usage();
+				break;
 		}
 	}
 
 	if (run_path == NULL)
     		run_path = PATH_SASLAUTHD_RUNDIR;
 
-    	if (auth_mech == NULL) {
+    	if (auth_mech_name == NULL) {
 		logger(L_ERR, L_FUNC, "no authentication mechanism specified");
 		exit(1);
 	}
+
+	set_auth_mech(auth_mech_name);
 
 	if (flags & VERBOSE)  {
 		logger(L_DEBUG, L_FUNC, "num_procs  : %d", num_procs);

@@ -14,15 +14,16 @@ case `uname` in
 	 ;;
 
   SunOS) CC="cc"
-         CFLAGS="-xO3 -xdepend"
 	 if test "${WASH_CYRUS_DEBUG}" = "t"; then
 	   CFLAGS="${CFLAGS} -xs -g"
+         else
+	   CFLAGS="${CFLAGS} -xO3 -xdepend"
          fi
 	 ;;
 esac
 
 MAKE=gmake
-LNCOMMAND="${SRCDIR}/configure --prefix=/usr/local --disable-java"
+LNCOMMAND="${SRCDIR}/configure --prefix=/usr/local --enable-cmulocal --disable-java"
 CPPFLAGS=-I/usr/local/include/gssapi
 
 export CC CFLAGS CPPFLAGS

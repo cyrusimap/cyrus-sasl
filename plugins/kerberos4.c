@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.38 1999/08/21 02:37:26 leg Exp $
+ * $Id: kerberos4.c,v 1.39 1999/09/08 18:32:37 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -578,24 +578,31 @@ static int server_continue_step (void *conn_context,
 	     sizeof (text->instance));
     text->instance[sizeof(text->instance)-1] = 0;
 
+#ifdef KRB4_IGNORE_IP_ADDRESS
+    /* we ignore IP addresses in krb4 tickets at CMU to facilitate moving
+       from machine to machine */
+
+    /* check ticket */
+    result=krb_rd_req(&ticket, (char *) sparams->service,
+		      text->instance, 0L, &ad, srvtab);
+#else
     /* get ip number in addr*/
     result = sparams->utils->getprop(sparams->utils->conn,
 				     SASL_IP_REMOTE, (void **)&addr);
-    if (result != SASL_OK)
-    {
-      VL(("getprop SASL_IP_REMOTE failed\n"));
-      return SASL_BADAUTH;
+    if (result != SASL_OK) {
+	VL(("getprop SASL_IP_REMOTE failed\n"));
+	return SASL_BADAUTH;
     }
 
     /* check ticket */
     result=krb_rd_req(&ticket, (char *) sparams->service,
-		      text->instance,addr->sin_addr.s_addr,&ad, srvtab);
+		      text->instance, addr->sin_addr.s_addr, &ad, srvtab);
+#endif
 
-    if (result!=SASL_OK) /* if fails mechanism fails */
-    {
-      VL(("krb_rd_req failed service=%s instance=%s error code=%i\n",
-	     sparams->service, text->instance,result));
-      return SASL_BADAUTH;
+    if (result) { /* if fails mechanism fails */
+	VL(("krb_rd_req failed service=%s instance=%s error code=%i\n",
+	    sparams->service, text->instance,result));
+	return SASL_BADAUTH;
     }
 
     /* 8 octets of data

@@ -69,6 +69,9 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 /* where do we look for the pwcheck daemon? */
 #undef PWCHECKDIR
 
+/* do we pay attention to IP addresses in the kerberos 4 tickets? */
+#undef KRB4_IGNORE_IP_ADDRESS
+
 @BOTTOM@
 
 /* Make Solaris happy... */

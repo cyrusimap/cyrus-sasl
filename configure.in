@@ -36,8 +36,7 @@ CMU_INIT_AUTOMAKE
 
 DIRS=""
 
-dnl With and Enable
-AC_ARG_WITH(nana, [  --with-nana             use NANA [no]],,with_nana=no)
+AC_ARG_ENABLE(cmulocal, [  --enable-cmulocal       enable local mods for CMU [no]],,enable_cmulocal=no)
 
 AC_ARG_ENABLE(sample, [  --enable-sample         compile sample code [yes]],,enable_sample=yes)
 
@@ -78,10 +77,6 @@ fi
 AC_ARG_WITH(purify,[  --with-purify           link with purify])
 if test "$with_purify" = yes; then
   AC_CHECK_PROGS(PURIFY, purify)
-fi
-
-if test "$with_nana" = yes -a "$ac_cv_prog_gcc" = yes; then
-  AC_CHECK_LIB(nana, nana_error)
 fi
 
 if test "$enable_java" = yes; then
@@ -481,6 +476,11 @@ AC_SUBST(SASL_UTIL_LIBS_EXTRA)
 AC_SUBST(SASL_UTIL_HEADERS_EXTRA)
 
 AC_CHECK_FUNCS(getdomainname getpassphrase)
+
+if test $enable_cmulocal = yes; then
+    AC_DEFINE(KRB4_IGNORE_IP_ADDRESS)
+    AC_WARN([enabling CMU local kluges])
+fi
 
 AC_SUBST(DIRS)
 

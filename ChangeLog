@@ -1,3 +1,11 @@
+Wed Sep  8 14:21:23 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* configure.in: added --enable-cmulocal
+
+	* plugins/kerberos4.c (server_continue_step): added a cmu kluge:
+	KRB4_IGNORE_IP_ADDRESS, for ignoring ip addresses when doing a
+	kerberos authentication
+
 1999-09-08  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
 	* lib/db_ndbm.c (getsecret): don't dbm_close() if opening the dbm failed

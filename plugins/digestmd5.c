@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.155 2003/07/23 00:57:46 ken3 Exp $
+ * $Id: digestmd5.c,v 1.156 2003/07/26 20:24:32 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -102,7 +102,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.155 2003/07/23 00:57:46 ken3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.156 2003/07/26 20:24:32 ken3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -215,12 +215,8 @@ typedef struct context {
     
     /* for encoding/decoding */
     buffer_info_t *enc_in_buf;
-    char *encode_buf, *decode_buf, *decode_once_buf;
-    unsigned encode_buf_len, decode_buf_len, decode_once_buf_len;
-    char *decode_tmp_buf;
-    unsigned decode_tmp_buf_len;
-    char *MAC_buf;
-    unsigned MAC_buf_len;
+    char *encode_buf, *decode_buf, *decode_packet_buf;
+    unsigned encode_buf_len, decode_buf_len, decode_packet_buf_len;
 
     decode_context_t decode_context;
 
@@ -675,7 +671,7 @@ static void slidebits(unsigned char *keybuf, unsigned char *inbuf)
 static int dec_3des(context_t *text,
 		    const char *input,
 		    unsigned inputlen,
-		    unsigned char digest[16],
+		    unsigned char digest[16] __attribute__((unused)),
 		    char *output,
 		    unsigned *outputlen)
 {
@@ -705,10 +701,7 @@ static int dec_3des(context_t *text,
     
     /* chop off the padding */
     *outputlen = inputlen - padding - 10;
-    
-    /* copy in the HMAC to digest */
-    memcpy(digest, output + inputlen - 10, 10);
-    
+
     return SASL_OK;
 }
 
@@ -796,7 +789,7 @@ static int init_3des(context_t *text,
 static int dec_des(context_t *text, 
 		   const char *input,
 		   unsigned inputlen,
-		   unsigned char digest[16],
+		   unsigned char digest[16] __attribute__((unused)),
 		   char *output,
 		   unsigned *outputlen)
 {
@@ -829,10 +822,7 @@ static int dec_des(context_t *text,
     
     /* chop off the padding */
     *outputlen = inputlen - padding - 10;
-    
-    /* copy in the HMAC to digest */
-    memcpy(digest, output + inputlen - 10, 10);
-    
+
     return SASL_OK;
 }
 
@@ -1050,18 +1040,14 @@ static int init_rc4(context_t *text,
 static int dec_rc4(context_t *text,
 		   const char *input,
 		   unsigned inputlen,
-		   unsigned char digest[16],
+		   unsigned char digest[16] __attribute__((unused)),
 		   char *output,
 		   unsigned *outputlen)
 {
-    /* decrypt the text part */
+    /* decrypt the text part & HMAC */
     rc4_decrypt((rc4_context_t *) text->cipher_dec_context, 
-                input, output, inputlen-10);
-    
-    /* decrypt the HMAC part */
-    rc4_decrypt((rc4_context_t *) text->cipher_dec_context, 
-		input+(inputlen-10), (char *) digest, 10);
-    
+                input, output, inputlen);
+
     /* no padding so we just subtract the HMAC to get the text length */
     *outputlen = inputlen - 10;
     
@@ -1167,13 +1153,18 @@ static int create_layer_keys(context_t *text,
 
 static const unsigned short version = 1;
 
-/* len, CIPHER(Kc, {msg, pag, HMAC(ki, {SeqNum, msg})[0..9]}), x0001, SeqNum */
-
-static int digestmd5_privacy_encode(void *context,
-				    const struct iovec *invec,
-				    unsigned numiov,
-				    const char **output,
-				    unsigned *outputlen)
+/*
+ * privacy:
+ * len, CIPHER(Kc, {msg, pag, HMAC(ki, {SeqNum, msg})[0..9]}), x0001, SeqNum
+ *
+ * integrity:
+ * len, HMAC(ki, {SeqNum, msg})[0..9], x0001, SeqNum
+ */
+static int digestmd5_encode(void *context,
+			    const struct iovec *invec,
+			    unsigned numiov,
+			    const char **output,
+			    unsigned *outputlen)
 {
     context_t *text = (context_t *) context;
     int tmp;
@@ -1181,7 +1172,6 @@ static int digestmd5_privacy_encode(void *context,
     unsigned short int tmpshort;
     int ret;
     char *out;
-    unsigned char digest[16];
     struct buffer_info *inblob, bufinfo;
     
     if(!context || !invec || !numiov || !output || !outputlen) {
@@ -1203,32 +1193,48 @@ static int digestmd5_privacy_encode(void *context,
     /* make sure the output buffer is big enough for this blob */
     ret = _plug_buf_alloc(text->utils, &(text->encode_buf),
 			  &(text->encode_buf_len),
-			  (4 +                        /* for length */
-			   inblob->curlen + /* for content */
-			   10 +                       /* for MAC */
-			   8 +                        /* maximum pad */
-			   6 +                        /* for padding */
-			   1));                       /* trailing null */
+			  (4 +			/* for length */
+			   inblob->curlen +	/* for content */
+			   10 +			/* for MAC */
+			   8 +			/* maximum pad */
+			   6));			/* for ver and seqnum */
     if(ret != SASL_OK) return ret;
     
     /* skip by the length for now */
     out = (text->encode_buf)+4;
     
-    /* construct (seqnum, msg) */
-    /* We can just use the output buffer because it's big enough */
+    /* construct (seqnum, msg)
+     *
+     * Use the output buffer so that the message text is already in place
+     * for an integrity-only layer.
+     */
     tmpnum = htonl(text->seqnum);
     memcpy(text->encode_buf, &tmpnum, 4);
     memcpy(text->encode_buf + 4, inblob->data, inblob->curlen);
     
-    /* HMAC(ki, (seqnum, msg) ) */
-    text->utils->hmac_md5((const unsigned char *) text->encode_buf,
-			  inblob->curlen + 4, 
-			  text->Ki_send, HASHLEN, digest);
-    
-    /* calculate the encrypted part */
-    text->cipher_enc(text, inblob->data, inblob->curlen,
-		     digest, out, outputlen);
-    out+=(*outputlen);
+    if (text->cipher_enc) {
+	unsigned char digest[16];
+
+	/* HMAC(ki, (seqnum, msg) ) */
+	text->utils->hmac_md5((const unsigned char *) text->encode_buf,
+			      inblob->curlen + 4, 
+			      text->Ki_send, HASHLEN, digest);
+
+	/* calculate the encrypted part */
+	text->cipher_enc(text, inblob->data, inblob->curlen,
+			 digest, out, outputlen);
+	out+=(*outputlen);
+    }
+    else {
+	/* HMAC(ki, (seqnum, msg) ) -- put directly into output buffer */
+	text->utils->hmac_md5((const unsigned char *) text->encode_buf,
+			      inblob->curlen + 4, 
+			      text->Ki_send, HASHLEN,
+			      text->encode_buf + inblob->curlen + 4);
+
+	*outputlen = inblob->curlen + 10; /* for message + CMAC */
+	out+=inblob->curlen + 10;
+    }
     
     /* copy in version */
     tmpshort = htons(version);
@@ -1255,7 +1261,7 @@ static int digestmd5_privacy_encode(void *context,
     return SASL_OK;
 }
 
-static int digestmd5_privacy_decode_packet(void *context,
+static int digestmd5_decode_packet(void *context,
 					   const char *input,
 					   unsigned inputlen,
 					   char **output,
@@ -1263,24 +1269,13 @@ static int digestmd5_privacy_decode_packet(void *context,
 {
     context_t *text = (context_t *) context;
     int result;
-    unsigned char digest[16];
+    unsigned char *digest;
     int tmpnum;
     int lup;
     unsigned short ver;
     unsigned int seqnum;
     unsigned char checkdigest[16];
 	
-    result = _plug_buf_alloc(text->utils, &text->decode_once_buf,
-			     &text->decode_once_buf_len,
-			     inputlen-6); /* -6 to skip ver and seqnum */
-    if (result != SASL_OK) return result;
-	
-    *output = text->decode_once_buf;
-	
-    result = text->cipher_dec(text, input, inputlen-6,digest,
-			      *output, outputlen);
-    if (result != SASL_OK) return result;
-
     /* check the version number */
     memcpy(&ver, input+inputlen-6, 2);
     ver = ntohs(ver);
@@ -1289,19 +1284,49 @@ static int digestmd5_privacy_decode_packet(void *context,
 	return SASL_FAIL;
     }
 	
-    /* check the CMAC */
+    /* check the sequence number */
+    memcpy(&seqnum, input+inputlen-4, 4);
+    seqnum = ntohl(seqnum);
 	
-    /* construct (seqnum, msg) */
-    result = _plug_buf_alloc(text->utils, &text->decode_tmp_buf,
-			     &text->decode_tmp_buf_len, *outputlen + 4);
+    if (seqnum != text->rec_seqnum) {
+	text->utils->seterror(text->utils->conn, 0,
+			      "Incorrect Sequence Number");
+	return SASL_FAIL;
+    }
+
+    /* allocate a buffer large enough for the output */
+    result = _plug_buf_alloc(text->utils, &text->decode_packet_buf,
+			     &text->decode_packet_buf_len,
+			     inputlen	/* length of message */
+			     - 6	/* skip ver and seqnum */
+			     + 4);	/* prepend seqnum */
     if (result != SASL_OK) return result;
 	
+    /* construct (seqnum, msg) */
     tmpnum = htonl(text->rec_seqnum);
-    memcpy(text->decode_tmp_buf, &tmpnum, 4);
-    memcpy(text->decode_tmp_buf + 4, *output, *outputlen);
-	
+    memcpy(text->decode_packet_buf, &tmpnum, 4);
+
+    text->rec_seqnum++; /* now increment it */
+
+    *output = text->decode_packet_buf + 4; /* skip seqnum */
+
+    if (text->cipher_dec) {
+	/* decrypt message & HMAC into output buffer */
+	result = text->cipher_dec(text, input, inputlen-6, NULL,
+				  *output, outputlen);
+	if (result != SASL_OK) return result;
+    }
+    else {
+	/* copy message & HMAC into output buffer */
+	memcpy(*output, input, inputlen - 6);
+	*outputlen = inputlen - 16; /* -16 to skip HMAC, ver and seqnum */
+    }
+    digest = *output + inputlen - 16;
+
+    /* check the CMAC */
+
     /* HMAC(ki, (seqnum, msg) ) */
-    text->utils->hmac_md5((const unsigned char *) text->decode_tmp_buf,
+    text->utils->hmac_md5((const unsigned char *) text->decode_packet_buf,
 			  (*outputlen) + 4, 
 			  text->Ki_receive, HASHLEN, checkdigest);
 	
@@ -1313,22 +1338,10 @@ static int digestmd5_privacy_decode_packet(void *context,
 	    return SASL_FAIL;
 	}
 	
-    /* check the sequence number */
-    memcpy(&seqnum, input+inputlen-4, 4);
-    seqnum = ntohl(seqnum);
-	
-    if (seqnum != text->rec_seqnum) {
-	text->utils->seterror(text->utils->conn, 0,
-			      "Incorrect Sequence Number");
-	return SASL_FAIL;
-    }
-	
-    text->rec_seqnum++; /* now increment it */
-    
     return SASL_OK;
 }
 
-static int digestmd5_privacy_decode(void *context,
+static int digestmd5_decode(void *context,
 				    const char *input, unsigned inputlen,
 				    const char **output, unsigned *outputlen)
 {
@@ -1337,181 +1350,7 @@ static int digestmd5_privacy_decode(void *context,
     
     ret = _plug_decode(&text->decode_context, input, inputlen,
 		       &text->decode_buf, &text->decode_buf_len, outputlen,
-		       digestmd5_privacy_decode_packet, text);
-    
-    *output = text->decode_buf;
-    
-    return ret;
-}
-
-static int digestmd5_integrity_encode(void *context,
-				      const struct iovec *invec,
-				      unsigned numiov,
-				      const char **output,
-				      unsigned *outputlen)
-{
-    context_t      *text = (context_t *) context;
-    unsigned char   MAC[16];
-    unsigned int    tmpnum;
-    unsigned short int tmpshort;
-    struct buffer_info *inblob, bufinfo;
-    int ret;
-    
-    if (!context || !invec || !numiov || !output || !outputlen) {
-	PARAMERROR( text->utils );
-	return SASL_BADPARAM;
-    }
-    
-    if (numiov > 1) {
-	ret = _plug_iovec_to_buf(text->utils, invec, numiov,
-				 &text->enc_in_buf);
-	if (ret != SASL_OK) return ret;
-	inblob = text->enc_in_buf;
-    } else {
-	/* avoid the data copy */
-	bufinfo.data = invec[0].iov_base;
-	bufinfo.curlen = invec[0].iov_len;
-	inblob = &bufinfo;
-    }
-    
-    /* construct output */
-    *outputlen = 4 + inblob->curlen + 16;
-    
-    ret = _plug_buf_alloc(text->utils, &(text->encode_buf),
-			  &(text->encode_buf_len), *outputlen);
-    if (ret != SASL_OK) return ret;
-    
-    /* construct (seqnum, msg) */
-    /* we can just use the output buffer */
-    tmpnum = htonl(text->seqnum);
-    memcpy(text->encode_buf, &tmpnum, 4);
-    memcpy(text->encode_buf + 4, inblob->data, inblob->curlen);
-    
-    /* HMAC(ki, (seqnum, msg) ) */
-    text->utils->hmac_md5(text->encode_buf, inblob->curlen + 4, 
-			  text->Ki_send, HASHLEN, MAC);
-    
-    /* create MAC */
-    tmpshort = htons(version);
-    memcpy(MAC + 10, &tmpshort, MAC_OFFS);	/* 2 bytes = version */
-    
-    tmpnum = htonl(text->seqnum);
-    memcpy(MAC + 12, &tmpnum, 4);	/* 4 bytes = sequence number */
-    
-    /* copy into output */
-    tmpnum = htonl((*outputlen) - 4);
-    
-    /* length of message in network byte order */
-    memcpy(text->encode_buf, &tmpnum, 4);
-    /* the message text */
-    memcpy(text->encode_buf + 4, inblob->data, inblob->curlen);
-    /* the MAC */
-    memcpy(text->encode_buf + 4 + inblob->curlen, MAC, 16);
-    
-    text->seqnum++;		/* add one to sequence number */
-    
-    *output = text->encode_buf;
-    
-    return SASL_OK;
-}
-
-static int create_MAC(context_t * text,
-		      const  char *input,
-		      int inputlen,
-		      int seqnum,
-		      unsigned char MAC[16])
-{
-    unsigned int    tmpnum;
-    unsigned short int tmpshort;  
-    int ret;
-    
-    if (inputlen < 0)
-	return SASL_FAIL;
-    
-    ret = _plug_buf_alloc(text->utils, &(text->MAC_buf),
-			  &(text->MAC_buf_len), inputlen + 4);
-    if(ret != SASL_OK) return ret;
-    
-    /* construct (seqnum, msg) */
-    tmpnum = htonl(seqnum);
-    memcpy(text->MAC_buf, &tmpnum, 4);
-    memcpy(text->MAC_buf + 4, input, inputlen);
-    
-    /* HMAC(ki, (seqnum, msg) ) */
-    text->utils->hmac_md5(text->MAC_buf, inputlen + 4, 
-			  text->Ki_receive, HASHLEN,
-			  MAC);
-    
-    /* create MAC */
-    tmpshort = htons(version);
-    memcpy(MAC + 10, &tmpshort, 2);	/* 2 bytes = version */
-    
-    tmpnum = htonl(seqnum);
-    memcpy(MAC + 12, &tmpnum, 4);	/* 4 bytes = sequence number */
-    
-    return SASL_OK;
-}
-
-static int check_integrity(context_t * text,
-			   const char *buf, int bufsize,
-			   char **output, unsigned *outputlen)
-{
-    unsigned char MAC[16];
-    int result;
-    
-    result = create_MAC(text, buf, bufsize - 16, text->rec_seqnum, MAC);
-    if (result != SASL_OK)
-	return result;
-    
-    /* make sure the MAC is right */
-    if (strncmp((char *) MAC, buf + bufsize - 16, 16) != 0)
-    {
-	text->utils->seterror(text->utils->conn, 0, "MAC doesn't match");
-	return SASL_FAIL;
-    }
-    
-    text->rec_seqnum++;
-    
-    /* ok make output message */
-    result = _plug_buf_alloc(text->utils, &text->decode_once_buf,
-			     &text->decode_once_buf_len,
-			     bufsize - 15);
-    if (result != SASL_OK)
-	return result;
-    
-    *output = text->decode_once_buf;
-    memcpy(*output, buf, bufsize - 16);
-    *outputlen = bufsize - 16;
-    (*output)[*outputlen] = 0;
-    
-    return SASL_OK;
-}
-
-static int digestmd5_integrity_decode_packet(void *context,
-					     const char *input,
-					     unsigned inputlen,
-					     char **output,
-					     unsigned *outputlen)
-{
-    context_t *text = (context_t *) context;
-    int result;
-
-    result = check_integrity(text, input, inputlen,
-			     output, outputlen);
-
-    return result;
-}
-
-static int digestmd5_integrity_decode(void *context,
-				      const char *input, unsigned inputlen,
-				      const char **output, unsigned *outputlen)
-{
-    context_t *text = (context_t *) context;
-    int ret;
-    
-    ret = _plug_decode(&text->decode_context, input, inputlen,
-		       &text->decode_buf, &text->decode_buf_len, outputlen,
-		       digestmd5_integrity_decode_packet, text);
+		       digestmd5_decode_packet, text);
     
     *output = text->decode_buf;
     
@@ -1538,10 +1377,8 @@ static void digestmd5_common_mech_dispose(void *conn_context,
     _plug_decode_free(&text->decode_context);
     if (text->encode_buf) utils->free(text->encode_buf);
     if (text->decode_buf) utils->free(text->decode_buf);
-    if (text->decode_once_buf) utils->free(text->decode_once_buf);
-    if (text->decode_tmp_buf) utils->free(text->decode_tmp_buf);
+    if (text->decode_packet_buf) utils->free(text->decode_packet_buf);
     if (text->out_buf) utils->free(text->out_buf);
-    if (text->MAC_buf) utils->free(text->MAC_buf);
     
     if (text->enc_in_buf) {
 	if (text->enc_in_buf->data) utils->free(text->enc_in_buf->data);
@@ -2360,12 +2197,12 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	    goto FreeAllMem;
 	}
 	
-	oparams->encode=&digestmd5_privacy_encode;
-	oparams->decode=&digestmd5_privacy_decode;
+	oparams->encode=&digestmd5_encode;
+	oparams->decode=&digestmd5_decode;
     } else if (!strcasecmp(qop, "auth-int") &&
 	       stext->requiressf <= 1 && stext->limitssf >= 1) {
-	oparams->encode = &digestmd5_integrity_encode;
-	oparams->decode = &digestmd5_integrity_decode;
+	oparams->encode = &digestmd5_encode;
+	oparams->decode = &digestmd5_decode;
 	oparams->mech_ssf = 1;
     } else if (!strcasecmp(qop, "auth") && stext->requiressf == 0) {
 	oparams->encode = NULL;
@@ -2884,8 +2721,8 @@ static int make_client_response(context_t *text,
     switch (ctext->protection) {
     case DIGEST_PRIVACY:
 	qop = "auth-conf";
-	oparams->encode = &digestmd5_privacy_encode; 
-	oparams->decode = &digestmd5_privacy_decode;
+	oparams->encode = &digestmd5_encode; 
+	oparams->decode = &digestmd5_decode;
 	oparams->mech_ssf = ctext->cipher->ssf;
 
 	nbits = ctext->cipher->n;
@@ -2896,8 +2733,8 @@ static int make_client_response(context_t *text,
 	break;
     case DIGEST_INTEGRITY:
 	qop = "auth-int";
-	oparams->encode = &digestmd5_integrity_encode;
-	oparams->decode = &digestmd5_integrity_decode;
+	oparams->encode = &digestmd5_encode;
+	oparams->decode = &digestmd5_decode;
 	oparams->mech_ssf = 1;
 	break;
     case DIGEST_NOLAYER:

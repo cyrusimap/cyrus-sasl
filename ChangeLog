@@ -1,3 +1,7 @@
+2003-07-26  Ken Murchison <ken@oceana.com>
+	* plugins/digestmd5.c: merged privacy and integrity security layer
+	  code and removed use of tmp buffers for security layer
+
 2003-07-25  Ken Murchison <ken@oceana.com>
 	* plugins/srp.c: removed use of tmp buffer for security layer
 	* plugins/srp.c: don't make a big buffer out of iovecs when encoding

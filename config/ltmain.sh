@@ -497,6 +497,11 @@ if test -z "$show_help"; then
         case "$dir" in
         /* | [A-Za-z]:\\*)
 	  # Add the corresponding hardcode_libdir_flag, if it is not identical.
+	  libdir=$dir
+	  eval rdir=\"$hardcode_libdir_flag_spec\"
+	  if test "$rdir" != "$dir"; then
+	    deplibs="$deplibs $rdir"
+	  fi
           ;;
         *)
           $echo "$modename: \`-L$dir' cannot specify a relative directory" 1>&2

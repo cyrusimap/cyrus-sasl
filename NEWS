@@ -10,4 +10,4 @@ New in 1.2b1
 * Default AuthDB routines moved from mechanisms to library
 * Logging hook
 * Default syslog-based logging hook in library
-* Plaintext transition to CRAM/SCRAM
+* Preliminary plaintext transition for CRAM/SCRAM

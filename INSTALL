@@ -33,8 +33,8 @@ You may want to play with your CPPFLAGS and LDFLAGS a little if you're
 using vendor compilers (which we recommend).  We use the following
 settings to configure the system on various platforms:
 
-	Solaris: env CC=cc CPPFLAGS=-I/usr/local/include LDFLAGS="-L/usr/local/lib -R/usr/local/lib" ./configure
+	Solaris: env CC=cc CPPFLAGS=-I/usr/local/include LDFLAGS=-L/usr/local/lib ./configure
 
-	IRIX: env CC=cc CPPFLAGS=-I/usr/local/include LDFLAGS="-L/usr/local/lib -Wl,-rpath,/usr/local/lib" ./configure
+	IRIX: env CC=cc CPPFLAGS=-I/usr/local/include LDFLAGS=-L/usr/local/lib ./configure
 
 	Linux: ./configure

@@ -102,6 +102,73 @@ typedef struct tosend_s {
 
 } tosend_t;
 
+
+void fatal(char *str)
+{
+    printf("Failed with: %s\n",str);
+    exit(3);
+}
+
+
+
+/* my mutex functions */
+int g_mutex_cnt = 0;
+
+typedef struct my_mutex_s {
+
+    int num;
+    int val;
+    
+} my_mutex_t;
+
+void *my_mutex_new(void)
+{
+    my_mutex_t *ret = (my_mutex_t *)malloc(sizeof(my_mutex_t));
+    ret->num = g_mutex_cnt;
+    g_mutex_cnt++;
+
+    ret->val = 0;
+
+    printf("mutex %d created\n",ret->num);
+    
+    return ret;
+}
+
+int my_mutex_lock(my_mutex_t *m)
+{
+    if (m->val != 0)
+    {
+	fatal("Trying to lock a mutex already locked. This is not good in a single threaded app");
+    }
+
+    m->val = 1;
+    printf("mutex %d locked\n",m->num);
+
+    return SASL_OK;
+}
+
+int my_mutex_unlock(my_mutex_t *m)
+{
+    if (m->val != 1)
+    {
+	fatal("Unlocking mutex that isn't locked");
+    }
+
+    m->val = 0;
+    printf("mutex %d unlocked\n",m->num);
+
+    return SASL_OK;
+}
+
+int my_mutex_dispose(my_mutex_t *m)
+{
+    printf("mutex %d disposed\n",m->num);
+
+    free(m);
+
+    return SASL_OK;
+}
+
 int good_getopt(void *context __attribute__((unused)), 
 		const char *plugin_name __attribute__((unused)), 
 		const char *option,
@@ -160,12 +227,6 @@ static struct sasl_callback emptysasl_cb[] = {
     { SASL_CB_LIST_END, NULL, NULL }
 };
 
-void fatal(char *str)
-{
-    printf("Failed with: %s\n",str);
-    exit(3);
-}
-
 char really_long_string[32000];
 
 /*
@@ -185,6 +246,11 @@ void init(unsigned int seed)
 
     result = gethostname(myhostname, sizeof(myhostname)-1);
     if (result == -1) fatal("gethostname");
+
+    sasl_set_mutex((sasl_mutex_new_t *) &my_mutex_new,
+		   (sasl_mutex_lock_t *) &my_mutex_lock,
+		   (sasl_mutex_unlock_t *) &my_mutex_unlock,
+		   (sasl_mutex_dispose_t *) &my_mutex_dispose);
 }
 
 /*
@@ -825,7 +891,7 @@ void sendbadsecond(char *mech, void *rock)
     }
     tofree = out;
     dec = NULL;
-    result = sasl_decode(saslconn, out, -13, &dec, &declen);
+    result = sasl_decode(saslconn, out, outlen, &dec, &declen);
     if (mayfail == 1)
     {
 	if (result >= 0)

@@ -1,3 +1,11 @@
+2000-03-13  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* lib/client.c: MUTEX_DISPOSE instead of mem free of mutex
+
+	* utils/testsuite.c (my_mutex_unlock): routines to test mutexes
+
+	* lib/common.c (sasl_setprop): don't exit w/o unlocking the mutex
+
 2000-03-11  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/cram.c: same username hack as for PLAIN (default to

@@ -270,7 +270,7 @@ static void client_done(void) {
       _sasl_done_with_plugin(cprevm->library);
     sasl_FREE(cprevm);    
   }
-  sasl_FREE(cmechlist->mutex);
+  sasl_MUTEX_DISPOSE(cmechlist->mutex);
   _sasl_free_utils(&cmechlist->utils);
   sasl_FREE(cmechlist);
 }

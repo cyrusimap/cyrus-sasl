@@ -378,7 +378,7 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
 			      &str,
 			      NULL);
 	if (result != SASL_OK)
-	  return result;
+	    goto done_unlock;
       } else
 	str = NULL;
       if (conn->external.auth_id)
@@ -402,6 +402,8 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
     default:
       result = SASL_BADPARAM;
   }
+
+ done_unlock:
   sasl_MUTEX_UNLOCK(conn->mutex);
   return result;
 }

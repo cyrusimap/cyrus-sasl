@@ -214,7 +214,11 @@ int listusers(const char *path, listcb_t *cb)
 
     /* make cursor */
 #if DB_VERSION_MAJOR < 3
+#if DB_VERSION_MINOR < 7
     result = mbdb->cursor(mbdb, NULL,&cursor); 
+#else
+    result = mbdb->cursor(mbdb, NULL,&cursor, 0); 
+#endif /* DB_VERSION_MINOR < 7 */
 #else /* DB_VERSION_MAJOR < 3 */
     result = mbdb->cursor(mbdb, NULL,&cursor, 0); 
 #endif /* DB_VERSION_MAJOR < 3 */
@@ -239,8 +243,8 @@ int listusers(const char *path, listcb_t *cb)
 	char *tmp    = realm + strlen(realm)+1;
 	char mech[1024];
 
-	memcpy(mech, tmp, dkey.dsize - (tmp - ((char *)dkey.dptr)));
-	mech[dkey.dsize - (tmp - ((char *)dkey.dptr))] = '\0';
+	memcpy(mech, tmp, key.size - (tmp - ((char *)key.data)));
+	mech[key.size - (tmp - ((char *)key.data))] = '\0';
 
 	if (*authid) {
 	    /* don't check return values */

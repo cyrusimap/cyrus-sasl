@@ -1,3 +1,24 @@
+2004-11-10  Alexey Melnikov <alexey.melnikov@isode.com>
+	* doc/draft-burdis-cat-srp-sasl-08.txt: deleted
+	* doc/draft-ietf-sasl-anon-02.txt: deleted
+	* doc/draft-ietf-sasl-crammd5-01.txt: deleted
+	* doc/draft-ietf-sasl-gssapi-00.txt: deleted
+	* doc/draft-ietf-sasl-plain-03.txt: deleted
+	* doc/draft-ietf-sasl-rfc2222bis-03.txt: deleted
+	* doc/draft-ietf-sasl-rfc2831bis-02.txt: deleted
+	* doc/draft-ietf-sasl-saslprep-04.txt: deleted
+	* doc/draft-newman-sasl-c-api-01.txt: deleted
+	* doc/draft-burdis-cat-srp-sasl-xx.txt: added
+	* doc/draft-ietf-sasl-anon-xx.txt: added
+	* doc/draft-ietf-sasl-crammd5-xx.txt: added
+	* doc/draft-ietf-sasl-gssapi-xx.txt: added
+	* doc/draft-ietf-sasl-plain-xx.txt: added
+	* doc/draft-ietf-sasl-rfc2222bis-xx.txt: added
+	* doc/draft-ietf-sasl-rfc2831bis-xx.txt: added
+	* doc/draft-ietf-sasl-saslprep-xx.txt: added
+	* doc/draft-newman-sasl-c-api-xx.txt: added
+	* doc/index.html, doc/Makefile.am: Renamed the files
+
 2004-11-02  Alexey Melnikov <alexey.melnikov@isode.com>
 	* include/saslplug.h, lib/common.c, lib/saslint.h,
 	  lib/client.c: Added sasl_client_plugin_info().

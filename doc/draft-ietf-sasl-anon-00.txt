@@ -6,13 +6,13 @@
 
 INTERNET-DRAFT                           Editor: Kurt D. Zeilenga
 Intended Category: Standards Track            OpenLDAP Foundation
-Expires in six months                             4 November 2002
+Expires in six months                              8 January 2003
 Obsoletes: RFC 2245
 
 
 
-                         Anonymous SASL Mechanism
-                    <draft-zeilenga-sasl-anon-01.txt>
+                       The Anonymous SASL Mechanism
+                      <draft-ietf-sasl-anon-00.txt>
 
 
 Status of Memo
@@ -57,12 +57,19 @@ Abstract
 
 Zeilenga                Anonymous SASL Mechanism                [Page 1]
 
-INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
+INTERNET-DRAFT         draft-ietf-sasl-anon-00.txt        8 January 2003
 
 
   plaintext login commands are not permitted in new IETF protocols, a
   new way to provide anonymous login is needed within the context of the
   Simple Authentication and Security Layer (SASL) framework.
+
+
+Conventions
+
+  The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+  "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+  document are to be interpreted as described in [KEYWORDS].
 
 
 1. Anonymous SASL mechanism
@@ -76,13 +83,14 @@ INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
 
   The mechanism consists of a single message from the client to the
   server.  The client sends optional trace information in the form of a
-  string of UTF-8 [UTF8] encoded printable characters from the Universal
-  Character Set ([UCS]).  The trace information should take one of three
-  forms: an Internet email address, an opaque string which does not
-  contain the '@' (U+0040) character and can be interpreted by the
+  string of [UTF-8] encoded [Unicode] characters prepared in accordance
+  with [Stringprep] and the "plain" stringprep profile defined in
+  Section 2 of this document.  The trace information should take one of
+  three forms: an Internet email address, an opaque string which does
+  not contain the '@' (U+0040) character and can be interpreted by the
   system administrator of the client's domain, or nothing.  For privacy
-  reasons, an Internet email address should only be used with permission
-  from the user.
+  reasons, an Internet email address or other information identifying
+  the user should only be used with permission from the user.
 
   A server which permits anonymous access will announce support for the
   ANONYMOUS mechanism, and allow anyone to log in using that mechanism,
@@ -94,28 +102,29 @@ INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
   follows.
 
       message     = [ email / token ]
+                       ;; MUST be prepared in accordance with Section 2
 
       UTF1        = %x00-3F / %x41-7F ;; less '@' (U+0040)
       UTF2        = %xC0-DF 1(UTF0)
       UTF3        = %xE0-EF 2(UTF0)
       UTF4        = %xF0-F7 3(UTF0)
-      UTF5        = %xF8-FB 4(UTF0)
-      UTF6        = %xFC-FD 5(UTF0)
-      UTF0        = %x80-BF
-
-      TCHAR       = UTF1 / UTF2 / UTF3 / UTF3 / UTF4 / UTF5 / UTF6
-                    ;; any UTF-8 encoded UCS printable character
-                    ;; except '@' (U+0040)
-
-      email       = addr-spec
 
 
 
 Zeilenga                Anonymous SASL Mechanism                [Page 2]
 
-INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
+INTERNET-DRAFT         draft-ietf-sasl-anon-00.txt        8 January 2003
 
 
+      UTF5        = %xF8-FB 4(UTF0)
+      UTF6        = %xFC-FD 5(UTF0)
+      UTF0        = %x80-BF
+
+      TCHAR       = UTF1 / UTF2 / UTF3 / UTF3 / UTF4 / UTF5 / UTF6
+                    ;; any UTF-8 encoded Unicode character
+                    ;; except '@' (U+0040)
+
+      email       = addr-spec
                     ;; as defined in [IMAIL], except with no free
                     ;; insertion of linear-white-space, and the
                     ;; local-part MUST either be entirely enclosed in
@@ -123,13 +132,47 @@ INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
 
       token       = 1*255TCHAR
 
-  The following characters are considered non-printable:
-      - control characters: U+0000..U+001F, U+007F..U+009F;
-      - replacement character: U+FFFD; and
-      - special characters and non-character: U+FEFF, U+FFFE, U+FFFF.
+      Note to implementors:
+      The <token> production is restricted to 255 UTF-8 encoded
+      characters.  As the encoding of a characters use a sequence of 1
+      to 6 octets, a token may be long as 1530 octets.
+
+2. The plain "stringprep" profile
+
+  This section defines the "plain" profile of [Stringprep].  This
+  profile is designed for use with the SASL ANONYMOUS Mechanism.
+  Specifically, the client MUST prepare the <message> production in
+  accordance with this profile.
+
+  The character repertiore of this profile is Unicode 3.2 [Unicode].
+
+  No mapping is required by this profile.
+
+  No Unicode normalization is required by this profile.
+
+  Characters from the following tables of [Stringprep] are prohibited:
+      - C.2.1 (ASCII control characters)
+      - C.2.2 (Non-ASCII control characters)
+      - C.3 (Private use characters)
+      - C.4 (Non-character code points)
+      - C.5 (Surrogate codes)
+      - C.6 (Inappropriate for plain text)
+      - C.8 (Change display properties or are deprecated)
+      - C.9 (Tagging characters)
+
+  No additional characters are prohibited.
+
+  This profile requires bidirectional character checking per Section 6
+  of [Stringprep].
 
 
-2. Example
+
+Zeilenga                Anonymous SASL Mechanism                [Page 3]
+
+INTERNET-DRAFT         draft-ietf-sasl-anon-00.txt        8 January 2003
+
+
+3. Example
 
   Here is a sample ANONYMOUS login between an IMAP client and server.
   In this example, "C:" and "S:" indicate lines sent by the client and
@@ -156,7 +199,7 @@ INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
       S: A003 OK Welcome, trace information has been logged.
 
 
-3. Security Considerations
+4. Security Considerations
 
   The ANONYMOUS mechanism grants access to information by anyone.  For
   this reason it should be disabled by default so the administrator can
@@ -164,14 +207,6 @@ INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
 
   If the anonymous user has any write privileges, a denial of service
   attack is possible by filling up all available space.  This can be
-
-
-
-Zeilenga                Anonymous SASL Mechanism                [Page 3]
-
-INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
-
-
   prevented by disabling all write access by anonymous users.
 
   If anonymous users have read and write access to the same area, the
@@ -184,6 +219,14 @@ INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
   SEARCH BODY command), this could enable a denial of service attack.
   Servers are encouraged to limit the number of anonymous users and
   reduce their priority or limit their resource usage.
+
+
+
+
+Zeilenga                Anonymous SASL Mechanism                [Page 4]
+
+INTERNET-DRAFT         draft-ietf-sasl-anon-00.txt        8 January 2003
+
 
   If there is no idle timeout for the anonymous user and there is a
   limit on the number of anonymous users, a denial of service attack is
@@ -220,24 +263,26 @@ INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
   data access machinery is exposed to external security attacks without
   the chance for explicit protective measures.  Protocols which offer
   restricted data access should not allow anonymous data access without
-
-
-
-Zeilenga                Anonymous SASL Mechanism                [Page 4]
-
-INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
-
-
   an explicit login step.
 
-  General SASL security considerations apply to this mechanism.
+  General [SASL] security considerations apply to this mechanism.
+
+  [Stringprep] security considerations as well as [Unicode], security
+  considerations discussed in [Stringprep], apply to this mechanism.
 
 
-4. IANA Considerations
+5. IANA Considerations
 
   It is requested that the SASL Mechanism registry [IANA-SASL] entry for
   the ANONYMOUS mechanism be updated to reflect that this document now
   provides its technical specification.
+
+
+
+Zeilenga                Anonymous SASL Mechanism                [Page 5]
+
+INTERNET-DRAFT         draft-ietf-sasl-anon-00.txt        8 January 2003
+
 
       To: iana@iana.org
       Subject: Updated Registration of SASL mechanism ANONYMOUS
@@ -252,49 +297,72 @@ INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
       Author/Change controller: IESG <iesg@ietf.org>
       Note: Updates existing entry for ANONYMOUS
 
+  It is requested that the "stringprep" [RFC3454] profile "plain", first
+  defined in this RFC, be registered:
 
-5. Acknowledgement
+      To: iana@iana.org
+      Subject: Initial Registration of Stringprep "plain" profile
+
+      Stringprep profile: plain
+      Published specification: RFC XXXX
+      Person & email address to contact for further information:
+          Kurt Zeilenga <kurt@openldap.org>
+
+
+6. Acknowledgement
 
   This document is a revision of RFC 2245 by Chris Newman.
 
 
-6. Normative References
+7. Normative References
 
-  [ABNF]      Crocker, D. and P. Overell, "Augmented BNF for Syntax
-              Specifications: ABNF", RFC 2234, November 1997.
+  [ABNF]       Crocker, D. and P. Overell, "Augmented BNF for Syntax
+               Specifications: ABNF", RFC 2234, November 1997.
 
-  [IMAIL]     Crocker, D., "Standard for the Format of Arpa Internet
-              Text Messages", STD 11, RFC 822, August 1982.
+  [IMAIL]      Crocker, D., "Standard for the Format of Arpa Internet
+               Text Messages", STD 11, RFC 822, August 1982.
 
-  [SASL]      Myers, J., "Simple Authentication and Security Layer
-              (SASL)", RFC 2222bis (a work in progress).
+  [KEYWORDS]   Bradner, S., "Key words for use in RFCs to Indicate
+               Requirement Levels", BCP 14, RFC 2119, March 1997
 
-  [UCS]       Universal Multiple-Octet Coded Character Set (UCS) -
-              Architecture and Basic Multilingual Plane, ISO/IEC 10646-1
-              : 1993.
+  [SASL]       Myers, J., "Simple Authentication and Security Layer
+               (SASL)", RFC 2222bis (a work in progress).
 
-  [UTF-8]     Yergeau, F., "UTF-8, a transformation format of ISO
-              10646", RFC 2279, January 1998.
-
-
+  [Stringprep] P. Hoffman, M. Blanchet, "Preparation of
+               Internationalized Strings ('stringprep')", RFC 3454,
+               December 2002.
 
 
-Zeilenga                Anonymous SASL Mechanism                [Page 5]
+
+
+Zeilenga                Anonymous SASL Mechanism                [Page 6]
 
-INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
+INTERNET-DRAFT         draft-ietf-sasl-anon-00.txt        8 January 2003
 
 
-7. Informative References
+  [Unicode]    The Unicode Consortium. The Unicode Standard, Version
+               3.2.0 is defined by The Unicode Standard, Version 3.0
+               (Reading, MA, Addison-Wesley, 2000. ISBN 0-201-61633-5),
+               as amended by the Unicode Standard Annex #27: Unicode 3.1
+               (http://www.unicode.org/reports/tr27/) and by the Unicode
+               Standard Annex #28: Unicode 3.2
+               (http://www.unicode.org/reports/tr28/).
 
-  [IMAP4]     Crispin, M., "Internet Message Access Protocol - Version
-              4rev1", RFC 2060, December 1996.
-
-  [IANA-SASL] IANA, "SIMPLE AUTHENTICATION AND SECURITY LAYER (SASL)
-              MECHANISMS", http://www.iana.org/assignments/sasl-
-              mechanisms.
+  [UTF-8]      Yergeau, F., "UTF-8, a transformation format of ISO
+               10646", RFC 2279, January 1998.
 
 
-8. Editor's Address
+8. Informative References
+
+  [IMAP4]      Crispin, M., "Internet Message Access Protocol - Version
+               4rev1", RFC 2060, December 1996.
+
+  [IANA-SASL]  IANA, "SIMPLE AUTHENTICATION AND SECURITY LAYER (SASL)
+               MECHANISMS", http://www.iana.org/assignments/sasl-
+               mechanisms.
+
+
+9. Editor's Address
 
   Kurt Zeilenga
   OpenLDAP Foundation
@@ -307,15 +375,26 @@ Appendix A.  Changes since RFC 2245
   This appendix is non-normative.
 
   RFC 2245 allows the client to send optional trace information in the
-  form of a human readable string, but did not define the character
-  encoding nor character set to be used.  This document mandates use of
-  UTF-8 encoded UCS printable characters.  The grammar was updated to
-  reflect this.
+  form of a human readable string.  RFC 2245 restricted this string to
+  US-ASCII.  As the Internet is international, this document uses a
+  string restricted to UTF-8 encoded Unicode "plain" characters.  A
+  "stringprep" profile is defined to precisely define which Unicode
+  characters are allowed in this string.  While the string remains
+  restricted to 255 characters, the encoded length of each character may
+  now range from 1 to 6 octets.
 
   Additionally, a number of editorial changes were made.
 
 
 Full Copyright Statement
+
+
+
+
+Zeilenga                Anonymous SASL Mechanism                [Page 7]
+
+INTERNET-DRAFT         draft-ietf-sasl-anon-00.txt        8 January 2003
+
 
   Copyright 2002, The Internet Society.  All Rights Reserved.
 
@@ -331,14 +410,6 @@ Full Copyright Statement
   developing Internet standards in which case the procedures for
   copyrights defined in the Internet Standards process must be followed,
   or as required to translate it into languages other than English.
-
-
-
-
-Zeilenga                Anonymous SASL Mechanism                [Page 6]
-
-INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
-
 
   The limited permissions granted above are perpetual and will not be
   revoked by the Internet Society or its successors or assigns.
@@ -376,20 +447,5 @@ INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Zeilenga                Anonymous SASL Mechanism                [Page 7]
+Zeilenga                Anonymous SASL Mechanism                [Page 8]
 

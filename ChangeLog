@@ -1,3 +1,10 @@
+2002-02-11  Ken Murchison <ken@oceana.com>
+	* doc/draft-ietf-sasl-anon-00.txt: added
+	* doc/draft-ietf-sasl-plain-00.txt: added
+	* doc/draft-zeilenga-sasl-anon-01.txt: deleted
+	* doc/draft-zeilenga-sasl-plain-01.txt: deleted
+	* doc/index.html: updated to WG versions of ANONYMOUS, PLAIN drafts
+
 2003-02-03  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* cmulocal/sasl2.m4: Don't use -ldes to check for Heimdal
 	* saslauthd/auth_krb4.c, saslauthd/auth_shadow.c,

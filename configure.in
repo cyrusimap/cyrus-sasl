@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.158 2003/04/14 17:59:44 rjs3 Exp $
+dnl $Id: configure.in,v 1.159 2003/04/15 16:24:04 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -205,6 +205,15 @@ SASL_DB_CHECK()
 
 AC_CHECK_LIB(dl, dlopen, SASL_DL_LIB="-ldl", SASL_DL_LIB="")
 AC_SUBST(SASL_DL_LIB)
+
+dnl /dev/random ?
+
+AC_ARG_WITH(devrandom, [  --with-devrandom=PATH   set the path to /dev/random [/dev/random] ],
+  devrandom=$withval,
+  devrandom=/dev/random)
+AC_MSG_CHECKING(/dev/random to use)
+AC_MSG_RESULT($devrandom)
+AC_DEFINE_UNQUOTED(SASL_DEV_RANDOM, "$devrandom")
 
 dnl Do we need leading underscores on our symbols?
 

@@ -205,6 +205,9 @@
 /* do we use doors for IPC? */
 #undef USE_DOORS
 
+/* SASL's concept of DEV_RANDOM */
+#undef SASL_DEV_RANDOM
+
 @BOTTOM@
 
 /* Create a struct iovec if we need one */
@@ -220,9 +223,10 @@ struct iovec {
 #endif
 
 /* location of the random number generator */
-#ifndef DEV_RANDOM
-#define DEV_RANDOM "/dev/random"
+#ifdef DEV_RANDOM
+#undef DEV_RANDOM
 #endif
+#define DEV_RANDOM SASL_DEV_RANDOM
 
 /* if we've got krb_get_err_txt, we might as well use it;
    especially since krb_err_txt isn't in some newer distributions

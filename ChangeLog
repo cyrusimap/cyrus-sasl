@@ -1,3 +1,12 @@
+2000-02-27  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* plugins/kerberos4.c (server_continue_step): step 2: deal with large inputs
+	(server_continue_step): step 1: deal with large inputs
+
+	* utils/testsuite.c: added tests of sasl_checkpass
+
+	* lib/server.c (sasl_checkpass): check parameters
+
 2000-02-27  Larry Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/plain.c: removed superfluous includes, brought in line

@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.53 2000/02/24 01:36:22 leg Exp $
+ * $Id: kerberos4.c,v 1.54 2000/02/28 04:22:02 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -567,6 +567,8 @@ static int server_continue_step (void *conn_context,
     /* received authenticator */
 
     /* create ticket */
+    if (clientinlen > MAX_KTXT_LEN) return SASL_FAIL;
+
     ticket.length=clientinlen;
     for (lup=0;lup<clientinlen;lup++)      
       ticket.dat[lup]=clientin[lup];
@@ -656,12 +658,13 @@ static int server_continue_step (void *conn_context,
     int result;
     int testnum;
     int lup, flag;
-    unsigned char in[1024];
+    unsigned char *in;
 
-    for (lup=0;lup<clientinlen;lup++)
-      in[lup]=clientin[lup];
-
-    in[lup]=0;
+    /* we need to make a copy because des does in place decrpytion */
+    in = sparams->utils->malloc(clientinlen + 1);
+    if (in == NULL) return SASL_NOMEM;
+    memcpy(in, clientin, clientinlen);
+    in[clientinlen]='\0';
 
     /* decrypt; verify checksum */
 
@@ -788,6 +791,7 @@ static int server_continue_step (void *conn_context,
     text->size=-1;
     text->needsize=4;
 
+    sparams->utils->free(in);
     return SASL_OK;
   }
 

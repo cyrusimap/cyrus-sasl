@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.69 2000/02/27 20:45:13 leg Exp $
+ * $Id: server.c,v 1.70 2000/02/28 04:22:01 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -1158,6 +1158,10 @@ int sasl_checkpass(sasl_conn_t *conn,
     int result = SASL_NOMECH;
     sasl_getopt_t *getopt;
     void *context;
+
+    /* check params */
+    if (_sasl_server_cleanup_hook==NULL) return SASL_FAIL;
+    if ((conn == NULL) || (user == NULL) || (pass == NULL)) return SASL_BADPARAM;
 
     if (user == NULL) return SASL_NOUSER;
 

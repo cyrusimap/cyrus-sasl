@@ -1,7 +1,42 @@
+/* testsuite.c -- Stress the library a little
+ * Tim Martin
+ */
+/***********************************************************
+        Copyright 1999 by Carnegie Mellon University
+
+                      All Rights Reserved
+
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
+provided that the above copyright notice appear in all copies and that
+both that copyright notice and this permission notice appear in
+supporting documentation, and that the name of CMU not be
+used in advertising or publicity pertaining to distribution of the
+software without specific, written prior permission.
+
+CMU DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
+ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
+CMU BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
+ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+SOFTWARE.
+******************************************************************/
+
+#include <config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <sasl.h>
 
+#include <sasl.h>
+#include <saslutil.h>
+
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+#include <time.h>
+#include <string.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <sys/socket.h>
@@ -42,19 +77,12 @@ typedef struct tosend_s {
 
 } tosend_t;
 
-static struct sasl_callback nullsasl_cb[] = {
-    { SASL_CB_GETOPT, NULL, NULL },
-    { SASL_CB_LIST_END, NULL, NULL }
-};
-
 int good_getopt(void *context __attribute__((unused)), 
-		const char *plugin_name,
+		const char *plugin_name __attribute__((unused)), 
 		const char *option,
 		const char **result,
 		unsigned *len)
 {
-    char opt[1024];
-
     if (strcmp(option,"pwcheck_method")==0)
     {
 	*result = "sasldb";
@@ -71,7 +99,7 @@ static struct sasl_callback goodsasl_cb[] = {
     { SASL_CB_LIST_END, NULL, NULL }
 };
 
-int givebadpath(void * context,
+int givebadpath(void * context __attribute__((unused)), 
 		char ** path)
 {
     int lup;
@@ -89,7 +117,7 @@ static struct sasl_callback withbadpathsasl_cb[] = {
     { SASL_CB_LIST_END, NULL, NULL }
 };
 
-int giveokpath(void * context,
+int giveokpath(void * context __attribute__((unused)), 
 		char ** path)
 {
     *path = malloc(1000);
@@ -176,7 +204,7 @@ void test_init(void)
  * Tests sasl_listmech command
  */
 
-int test_listmech(void)
+void test_listmech(void)
 {
     sasl_conn_t *saslconn;
     int result;
@@ -278,7 +306,7 @@ int test_listmech(void)
 
     if (result != SASL_OK) fatal("Failed sasl_listmech()");
 
-    if (strlen(str)!=plen) fatal("Length of string doesn't match what we were told");
+    if ((int) strlen(str)!=plen) fatal("Length of string doesn't match what we were told");
     
     for (lup=0;lup<plen;lup++)
 	if (str[lup]=='%')
@@ -348,7 +376,7 @@ void test_random(void)
     /* try seeding with a lot of crap */
     sasl_randcreate(&rpool);
     
-    for (lup=0;lup<sizeof(buf);lup++)
+    for (lup=0;lup<(int) sizeof(buf);lup++)
     {
 	buf[lup] = (rand() % 256);	
     }
@@ -368,7 +396,7 @@ void test_64(void)
     int lup;
 
     /* make random crap and see if enc->dec produces same as original */
-    for (lup=0;lup<sizeof(orig);lup++)
+    for (lup=0;lup<(int) sizeof(orig);lup++)
 	orig[lup] = (char) (rand() % 256);
     
     if (sasl_encode64(orig, sizeof(orig), enc, sizeof(enc), &encsize)!=SASL_OK) 
@@ -378,7 +406,8 @@ void test_64(void)
 	fatal("decode failed when didn't expect");
     
     if (encsize != sizeof(orig)) fatal("Now has different size");
-    for (lup=0;lup<sizeof(orig);lup++)
+    
+    for (lup=0;lup<(int) sizeof(orig);lup++)
 	if (enc[lup] != orig[lup])
 	    fatal("enc64->dec64 doesn't match");
 
@@ -563,7 +592,8 @@ void corrupt(corrupt_type_t type, char *in, int inlen, char **out, int *outlen)
 	case NEGATIVE_LENGTH:
 
 	    *out = in;
-	    *outlen = -1* (rand() % inlen);
+	    if (inlen == 0) inlen = 10;
+	    *outlen = -1 * (rand() % inlen);
 	    
 	    break;
 	default:
@@ -590,7 +620,7 @@ void sendbadsecond(char *mech, void *rock)
 
     printf("%s --> start\n",mech);
     
-    if (strcmp(mech,"GSSAPI")==0) service = "imap";
+    if (strcmp(mech,"GSSAPI")==0) service = "host";
 
     if (sasl_client_init(client_callbacks)!=SASL_OK) fatal("Unable to init client");
     if (sasl_server_init(goodsasl_cb,"TestSuite")!=SASL_OK) fatal("");
@@ -598,7 +628,7 @@ void sendbadsecond(char *mech, void *rock)
     /* client new connection */
     if (sasl_client_new(service,
 			myhostname,
-			"ANDREW.CMU.EDU",
+			NULL,
 			0,
 			&clientconn)!= SASL_OK) fatal("sasl_client_new() failure");
 
@@ -813,8 +843,7 @@ void test_serverstart(void)
     char *out;
     unsigned outlen;
     tosend_t tosend;
-    int lup, lup2;
-    char randdata[4096];
+    int lup;
 
     if (sasl_server_init(emptysasl_cb,"TestSuite")!=SASL_OK) fatal("");
 
@@ -931,6 +960,50 @@ void create_ids(void)
     if (result != SASL_OK)
 	fatal("Error setting password. Do we have write access to sasldb?");
 
+    /* cleanup */
+    sasl_done();
+}
+
+/*
+ * Test the checkpass routine
+ */
+
+void test_checkpass(void)
+{
+    sasl_conn_t *saslconn;
+
+    /* try without initializing anything */
+    sasl_checkpass(NULL, username, strlen(username),
+		   password, strlen(password), NULL);
+
+    if (sasl_server_init(goodsasl_cb,"TestSuite")!=SASL_OK) fatal("");
+
+    if (sasl_server_new("rcmd", myhostname,
+			NULL, NULL, SASL_SECURITY_LAYER, 
+			&saslconn) != SASL_OK)
+	fatal("");
+
+    /* make sure works for general case */
+
+    if (sasl_checkpass(saslconn, username, strlen(username),
+		       password, strlen(password), NULL)!=SASL_OK)
+	fatal("sasl_checkpass() failed on simple case");
+
+    /* NULL saslconn */
+    if (sasl_checkpass(NULL, username, strlen(username),
+		   password, strlen(password), NULL) == SASL_OK)
+	fatal("Suceeded with NULL saslconn");
+
+    /* NULL username */
+    if (sasl_checkpass(saslconn, NULL, strlen(username),
+		   password, strlen(password), NULL) == SASL_OK)
+	fatal("Suceeded with NULL username");
+
+    /* NULL password */
+    if (sasl_checkpass(saslconn, username, strlen(username),
+		   NULL, strlen(password), NULL) == SASL_OK)
+	fatal("Suceeded with NULL password");
+    
 }
 
 void notes(void)
@@ -952,6 +1025,9 @@ int main()
     create_ids();
     printf("Created id's in sasldb... ok\n");
 
+    test_checkpass();
+    printf("Checking plaintext passwords... ok\n");
+
     test_random();
     printf("Random number functions... ok\n");
 
@@ -969,4 +1045,6 @@ int main()
     printf("Tests of sasl_server_start()... ok\n");
 
     printf("All tests seemed to go ok\n");
+
+    exit(0);
 }

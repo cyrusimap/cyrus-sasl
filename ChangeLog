@@ -1,7 +1,8 @@
 2004-10-26  Alexey Melnikov <alexey.melnikov@isode.com>
 	* sample/sample-client.c, sample/sample-server.c: Fixed several
 	  64 bit portability warnings.
-	* utils/saslpasswd.c: Fixed typo in an auxprop name
+	* utils/testsuite.c: Fixed several 64 bit portability warnings.
+	* utils/saslpasswd.c: Fixed typo in an auxprop name.
 
 2004-10-24  Derrick Brashear <shadow@andrew.cmu.edu> 
 	* lib/common.c: initialize path in case caller didn't.

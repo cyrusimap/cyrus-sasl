@@ -1,6 +1,6 @@
 /* Plain SASL plugin
  * Tim Martin 
- * $Id: plain.c,v 1.8 1998/11/30 20:05:51 rob Exp $
+ * $Id: plain.c,v 1.9 1998/12/09 06:56:11 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -211,7 +211,7 @@ server_continue_step (void *conn_context,
     while ((lup<clientinlen) && (clientin[lup]!=0))
       ++lup;
 
-    if (lup==clientinlen) return SASL_FAIL;      
+    if (lup==clientinlen) return -99; /*SASL_FAIL;      */
 
     /* get authen */
     ++lup;
@@ -219,7 +219,7 @@ server_continue_step (void *conn_context,
     while ((lup<clientinlen) && (clientin[lup]!=0))
       ++lup;
 
-    if (lup==clientinlen) return SASL_FAIL;      
+    if (lup==clientinlen) return -98; /* SASL_FAIL;      */
 
     /* get password */
     lup++;
@@ -230,12 +230,12 @@ server_continue_step (void *conn_context,
     password_len=clientin + lup - password;
 
     if (lup != clientinlen)
-      return SASL_BADAUTH;
+      return -89; /*SASL_BADAUTH;*/
 
     /* verify password - return sasl_ok on success*/    
     result=verify_password(authen,
 			   password);
-    if (result!=SASL_OK) return result;
+    if (result!=SASL_OK) return -97; /*result;*/
 
     /* verify authorization */
     if (author && strcmp(author, authen)) {
@@ -250,7 +250,7 @@ server_continue_step (void *conn_context,
 	return SASL_NOAUTHZ;
       result = authorize(context, authen, author, &user, &errstr);
       if (result != SASL_OK)
-	return result;
+	return -96; /*result;*/
       if (user)
 	author = user;
     }
@@ -277,8 +277,12 @@ server_continue_step (void *conn_context,
     **serverout = '\0';
     *serveroutlen = 0;
 
-    return SASL_OK;
+    text->state++; /* so fails if called again */
+
+    return -199; /*SASL_OK;*/
   }
+
+  return -93;
 
   return SASL_FAIL; /* should never get here */
 }
@@ -350,6 +354,8 @@ static int client_continue_step (void *conn_context,
   context_t *text;
   unsigned len;
 
+  printf("in plain!\n");
+
   text=conn_context;
 
   /* doesn't really matter how the server responds */
@@ -416,6 +422,7 @@ static int client_continue_step (void *conn_context,
 	  return SASL_FAIL;
 	len = strlen((*prompt_need)->result);
 	text->authid = params->utils->malloc(len + 1);
+	printf("trying to allocate %i\n",len+1);
 	if (! text->authid)
 	  return SASL_NOMEM;
 	strcpy(text->authid, (*prompt_need)->result);
@@ -445,28 +452,38 @@ static int client_continue_step (void *conn_context,
 	strcpy(text->authid, authid);
       }
     }
-
+    printf("password!\n");
     if (! text->password) {
       /* need to get the password */
       sasl_getsecret_t *getit;
       void *context;
+      
 
       if (*prompt_need
 	  && (*prompt_need)->id == SASL_CB_PASS) {
 	/* We prompted, and got.*/
-	sasl_secret_t *pass;
+	char *passstr;
+	int passlen;
+	
 	if (! (*prompt_need)->result)
 	  return SASL_FAIL;
-	pass = (sasl_secret_t *) (*prompt_need)->result;
-	text->password = (sasl_secret_t *) params->utils->malloc(pass->len);
+	printf("fsdf\n");
+	passstr = (char *) (*prompt_need)->result; 
+	printf("fsdf\n");
+	passlen = (*prompt_need)->len;
+
+	text->password = (sasl_secret_t *) params->utils->malloc(sizeof(sasl_secret_t)+
+								 passlen+1);
+
 	if (! text->password)
 	  return SASL_NOMEM;
-	text->password->len = pass->len;
-	memcpy(text->password->data, pass->data, pass->len);
-	memset(pass->data, 0, pass->len);
+	text->password->len = passlen;
+	memcpy(text->password->data, passstr, passlen);
+	memset(passstr, 0, passlen);
 	free(*prompt_need);
 	*prompt_need = NULL;
       } else {
+	printf("making callback\n");
 	if (params->utils->getcallback(params->utils->conn,
 				       SASL_CB_PASS,
 				       &getit,
@@ -504,6 +521,10 @@ static int client_continue_step (void *conn_context,
       if (! *clientout) return SASL_NOMEM;
       memset(*clientout, 0, *clientoutlen);
 
+      printf("userid=[%s]\n",text->userid);
+      printf("userid=[%s]\n",text->authid);
+      printf("userid=[%s]\n",text->password->data);
+
       memcpy(*clientout, text->userid, userid_len);
       memcpy(*clientout+userid_len+1, text->authid, authid_len);
       memcpy(*clientout+userid_len+authid_len+2,
@@ -522,6 +543,8 @@ static int client_continue_step (void *conn_context,
     text->authid = NULL;
     oparams->realm=NULL;
     oparams->param_version=0;
+
+    text->state++; /* so fail next time */
 
     return SASL_OK;
   }

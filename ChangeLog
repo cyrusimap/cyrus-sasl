@@ -1,3 +1,11 @@
+1998-12-09  Timothy L Martin  <tmartin+@andrew.cmu.edu>
+
+	* utils/*: created utils directory with saslpasswd, imtest, and smtptest
+
+	* server.c: implemented sasl_setpass (adding passwords only)
+
+	* plugins/cram.c: stores password in clear. Made cram work correctly
+
 1998-12-01  Rob Earhart  <rob+@andrew.cmu.edu>
 
 	* TODO: added setpass stuff

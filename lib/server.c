@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.10 1998/11/29 22:07:13 rob Exp $
+ * $Id: server.c,v 1.11 1998/12/09 06:55:40 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -141,6 +141,54 @@ static sasl_global_callbacks_t global_callbacks;
  * sasl_userexists NTI
  * sasl_setpass NTI
  */
+
+int sasl_setpass(sasl_conn_t *conn,
+		 const char *user,
+		 const char *pass,
+		 unsigned passlen,
+		 int flags,
+		 const char **errstr)
+{
+  int result=SASL_OK, tmpresult;
+  mechanism_t *m;
+
+  /* XXX flag could be disable! */
+
+  /* Zowie -- we have the user's plaintext password.
+   * Let's tell all our mechanisms about it...
+   */
+
+  if (! conn || ! pass)
+    return SASL_FAIL;
+
+  if (! mechlist)		/* if haven't init'ed yet */
+    return SASL_FAIL;
+
+  for (m = mechlist->mech_list;
+       m;
+       m = m->next)
+    if (m->plug->setpass)
+    {
+      /* TODO: Log something if this fails */
+      tmpresult=m->plug->setpass(m->plug->glob_context,
+			   ((sasl_server_conn_t *)conn)->sparams,
+			   user,
+			   pass,
+			   passlen,
+			   0,
+			   NULL);
+      if (tmpresult!=SASL_OK)
+      {
+	VL(("%s returned %i\n",m->plug->mech_name, tmpresult));
+	result = SASL_FAIL;
+      } else {
+	VL(("%s suceeded!\n",m->plug->mech_name));
+      }
+    }
+
+  return result;
+}
+
 
 
 /* local mechanism which disposes of server */

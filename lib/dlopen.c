@@ -1,6 +1,6 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Earhart
- * $Id: dlopen.c,v 1.6 1998/11/17 19:29:52 rob Exp $
+ * $Id: dlopen.c,v 1.7 1998/12/09 06:55:39 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -116,8 +116,6 @@ int _sasl_get_mech_list(const char *entryname,
 	size_t length;
 	void *library;
 	void *entry_point;
-
-
 
 	length = NAMLEN(dir);
 	if (length < 4) continue;

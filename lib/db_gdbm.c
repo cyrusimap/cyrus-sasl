@@ -1,6 +1,6 @@
 /* db_gdbm.c--SASL gdbm interface
  * Rob Earhart
- * $Id: db_gdbm.c,v 1.1 1998/11/29 22:07:12 rob Exp $
+ * $Id: db_gdbm.c,v 1.2 1998/12/09 06:55:38 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -144,8 +144,11 @@ putsecret(void *context __attribute__((unused)),
   if (result != SASL_OK)
     return result;
 
+
+
   db = gdbm_open(SASL_DB_PATH, 0, GDBM_WRCREAT, S_IRUSR | S_IWUSR, NULL);
   if (! db) {
+    VL(("error opening password file. Do you have write permissions?\n"));
     result = SASL_FAIL;
     goto cleanup;
   }

@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.6 1998/11/30 20:05:48 rob Exp $
+ * $Id: cram.c,v 1.7 1998/12/09 06:56:10 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -179,6 +179,37 @@ static char *convert16(unsigned char *in,int inlen,sasl_utils_t *utils)
   return out;
 }
 
+static char *make_hashed(sasl_secret_t *sec, char *nonce, int noncelen, 
+			 sasl_server_params_t *params)
+{
+  char secret[65];
+  unsigned char digest[1024];  
+  int lup;
+  char *in16;
+
+  if (sec->len<64)
+  {
+    memcpy(secret, sec->data, sec->len);
+
+    /* fill in rest with 0's */
+    for (lup= sec->len ;lup<64;lup++)
+      secret[lup]='\0';
+
+  } else {
+    memcpy(secret, sec->data, 64);
+  }
+
+  /* do the hmac md5 hash */
+  params->utils->hmac_md5((unsigned char *) nonce,noncelen,
+			  (unsigned char *) secret,64,digest);
+
+  /* convert that to hex form */
+  in16=convert16(digest,16,params->utils);
+  if (in16==NULL) return NULL;
+
+  return in16;
+}
+
 
 static int continue_step (void *conn_context,
 	      sasl_server_params_t *sparams,
@@ -230,7 +261,7 @@ static int continue_step (void *conn_context,
     char *in16;
     char userid[256];
     unsigned char digest[1024];
-    sasl_secret_t *sec;
+    sasl_secret_t *sec=NULL;
     int lup,pos;
     MD5_CTX ver_i, ver_o;
     int len=sizeof(MD5_CTX);
@@ -244,8 +275,8 @@ static int continue_step (void *conn_context,
     {
       pos--;
     }
-    if (pos==0) return -99; /*SASL_FAIL;*/
-      
+    if (pos==0) return SASL_FAIL;
+
     for (lup=0;lup<pos;lup++)
       userid[lup]=clientin[lup];
     userid[lup]=0;
@@ -260,38 +291,27 @@ static int continue_step (void *conn_context,
     if (! getsecret)
       return SASL_FAIL;
 
+
     /* We use the user's SCRAM secret */
-    result = getsecret(getsecret_context, "SCRAM-MD5", userid, &sec);
+    result = getsecret(getsecret_context, "CRAM-MD5", userid, &sec);
     if (result != SASL_OK)
       return result;
 
     if (! sec)
       return SASL_FAIL;
 
-    memcpy(ver_i.state,sec->data+8 , len);
-    memcpy(ver_o.state,sec->data+len+8, len); 
-    sparams->utils->free(sec);
+    in16=make_hashed(sec,text->msgid ,text->msgidlen , sparams);
+    if (in16==NULL) return SASL_FAIL;
 
-    /* load veri and vero */
-
-    sparams->utils->MD5Update(&ver_i,
-			      (unsigned char *)text->msgid,
-			      text->msgidlen);
-    sparams->utils->MD5Final(digest, &ver_i);
-    sparams->utils->MD5Update(&ver_o, digest, 16);
-    sparams->utils->MD5Final(digest, &ver_o);
-    
-    in16=convert16(digest,16,sparams->utils);
-    if (in16==NULL) return SASL_NOMEM;
-
-    sparams->utils->free(sec);
+    /* XXX this needs to be safer */
 
     /* if ok verified */
-    if (strcmp(in16,clientin)!=0)
+    if (strcmp(in16,clientin+pos+1)!=0)
     {
       sparams->utils->free(in16);    
       return SASL_BADAUTH;
     }
+
     sparams->utils->free(in16);    
 
     /* nothing more to do; authenticated 
@@ -312,8 +332,6 @@ static int continue_step (void *conn_context,
     oparams->realm=NULL;
     oparams->param_version=0;
 
-    /*    lup=strdup("CRAM-MD5 authenticated",sparams->utils->malloc,serverout,serveroutlen);
-    if (lup!=SASL_OK) return lup;*/
     *serverout = NULL;
     *serveroutlen = 0;
 
@@ -342,16 +360,22 @@ setpass(void *glob_context __attribute__((unused)),
   MD5_CTX ver;
   unsigned char pad[64];
   size_t lupe;
+  /* this saves cleartext password */
+  sasl_secret_t *sec=(sasl_secret_t *) malloc(sizeof(sasl_secret_t)+passlen);
+  
+  sec->len=passlen;
+  strcpy(sec->data,pass);
+
 
   if (errstr)
     *errstr = NULL;
-  
+
   result = sparams->utils->getcallback(sparams->utils->conn,
 				       SASL_CB_SERVER_PUTSECRET,
 				       &putsecret,
 				       &putsecret_context);
   if (result != SASL_OK)
-    return 0;
+    return result;
 
   /* Get some salt... */
   sparams->utils->rand(sparams->utils->rpool,
@@ -385,11 +409,12 @@ setpass(void *glob_context __attribute__((unused)),
 
   secret->len = sizeof(struct scram_entry);
 
+
   /* We're actually constructing a SCRAM secret... */
   return putsecret(putsecret_context,
-		   "SCRAM-MD5",
+		   "CRAM-MD5",
 		   user,
-		   secret);
+		   sec);
 }
 
 static const sasl_server_plug_t plugins[] = 
@@ -513,13 +538,8 @@ static int c_continue_step (void *conn_context,
         
     memcpy(secret, (*prompt_need)->result, (*prompt_need)->len);
 
-    /*    memcpy(secret,8,"password");
-	  (*prompt_need)->len=8;*/
-
     for (lup= (*prompt_need)->len ;lup<64;lup++)
       secret[lup]='\0';
-
-
 
     params->utils->free((void *)((*prompt_need)->result));
     params->utils->free(*prompt_need);
@@ -529,9 +549,7 @@ static int c_continue_step (void *conn_context,
      * space
      * digest (keyed md5 where key is passwd)
      */
-    serverin="<1970676461.902464610@alive.andrew.cmu.edu>";
-    serverinlen=43;
-
+    
     VL(("serverin=[%s]\n",serverin));
     VL(("serverinlen=[%i]\n",serverinlen));
     VL(("sec=%s\n",secret));
@@ -539,25 +557,14 @@ static int c_continue_step (void *conn_context,
     params->utils->hmac_md5((unsigned char *) serverin,serverinlen,
 			    (unsigned char *) secret,64,digest);
 
-    memset(digest,11,100);
-    
-    params->utils->hmac_md5((unsigned char *) "1234567890",10,
-			    (unsigned char *) "abcdef",6,digest);
-
-
-
     params->utils->getprop(params->utils->conn, SASL_USERNAME,
 			   (void **)&userid);
-
-
 
     *clientout=params->utils->malloc(32+1+strlen(userid)+1);
     if ((*clientout) == NULL) return SASL_NOMEM;
     
     in16=convert16(digest,16,params->utils);
     if (in16==NULL) return SASL_NOMEM;
-
-
 
     sprintf((char *)*clientout,"%s %s",userid,in16);
     params->utils->free(in16);    
@@ -566,6 +573,8 @@ static int c_continue_step (void *conn_context,
 
     /*nothing more to do; authenticated */
     oparams->doneflag=1;
+
+    text->state++;
 
     return SASL_OK;
   }

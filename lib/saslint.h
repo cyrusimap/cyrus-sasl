@@ -48,6 +48,8 @@
 #include "sasl.h"
 #include "saslplug.h"
 
+extern int _sasl_common_init(void);
+
 extern int _sasl_get_mech_list(const char *entryname,
 			       const sasl_callback_t *getpath_callback,
 			       const sasl_callback_t *verifyfile_callback,

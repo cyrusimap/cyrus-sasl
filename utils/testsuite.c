@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.29 2002/12/02 20:48:10 ken3 Exp $
+ * $Id: testsuite.c,v 1.30 2002/12/03 19:15:17 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2816,6 +2816,8 @@ void notes(void)
     printf("-For KERBEROS_V4 must be able to read srvtab file (usually /etc/srvtab)\n");
     printf("-For GSSAPI must be able to read srvtab (/etc/krb5.keytab)\n");
     printf("-For both KERBEROS_V4 and GSSAPI you must have non-expired tickets\n");
+    printf("-For OTP (w/OPIE) must be able to read/write opiekeys (/etc/opiekeys)\n");
+    printf("-For OTP you must have a non-expired secret\n");
     printf("-Must be able to read sasldb, which needs to be setup with a.\n");
     printf(" username and a password (see top of testsuite.c)\n");
     printf("\n\n");

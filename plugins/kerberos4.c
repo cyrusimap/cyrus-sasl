@@ -1065,11 +1065,11 @@ static int client_continue_step (void *conn_context,
     /* get requested ssf */
     secprops=params->props;
     external=params->external_ssf;
-    VL (("external ssf=%i\n",external));
+    VL (("external ssf=%u\n",external));
 
     if (secprops.min_ssf>56)
     {
-      VL (("Minimum ssf too strong min_ssf=%i\n",secprops.min_ssf));
+      VL (("Minimum ssf too strong min_ssf=%u\n",secprops.min_ssf));
       return SASL_TOOWEAK;
     }
 
@@ -1079,7 +1079,7 @@ static int client_continue_step (void *conn_context,
       return SASL_FAIL;
     }
 
-    VL (("minssf=%i maxssf=%i\n",secprops.min_ssf,secprops.max_ssf));
+    VL (("minssf=%u maxssf=%u\n",secprops.min_ssf,secprops.max_ssf));
     /* if client didn't set use strongest layer */
     if (secprops.max_ssf>1)
     {

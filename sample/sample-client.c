@@ -390,6 +390,7 @@ main(int argc, char *argv[])
   /* Init defaults... */
   memset(&secprops, 0L, sizeof(secprops));
   secprops.maxbufsize = SAMPLE_SEC_BUF_SIZE;
+  secprops.max_ssf = UINT_MAX;
   memset(&extprops, 0L, sizeof(extprops));
 
   while ((c = getopt(argc, argv, "hb:e:m:f:i:p:s:n:u:a:?")) != EOF)

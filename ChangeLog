@@ -1,5 +1,12 @@
 1999-03-04  Rob Earhart  <rob+@andrew.cmu.edu>
 
+	* plugins/kerberos4.c (client_continue_step): changed ssf
+	printf()s to unsigned
+
+	* sample/sample-client.c (main): fixed max ssf
+
+	* sample/sample-server.c (main): fixed max ssf
+
 	* plugins/kerberos4.c (client_continue_step): fixed to deal nicely 
 	with NULL userid and authid
 

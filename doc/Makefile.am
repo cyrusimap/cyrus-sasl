@@ -1,6 +1,6 @@
 # Makefile.am for SASL documentation
 # Rob Earhart
-# $Id: Makefile.am,v 1.8 2000/03/07 05:19:52 tmartin Exp $
+# $Id: Makefile.am,v 1.9 2000/05/03 19:34:08 leg Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -52,4 +52,5 @@ EXTRA_DIST =	rfc1321.txt \
 		draft-newman-auth-scram-03.txt \
 		programming.html \
 		sysadmin.html \
+		gssapi.html \
 		index.html

@@ -1,3 +1,8 @@
+2000-05-02  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* doc/gssapi.html: gssapi doc contributed by Ken Hornstein
+	<kenh@cmf.nrl.navy.mil> added.
+
 2000-04-27  Larry Greenfield  <leg+@andrew.cmu.edu>
 
 	* utils/sasldblistusers.c: patch from Leena Heino <liinu@uta.fi>

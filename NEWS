@@ -1,5 +1,5 @@
-New in 2.1.3
-------------
+New in 2.1.3-BETA
+-----------------
 * Significant amount of plugin cleanup / standardization.  A good deal of code
   is now shared between them. (mostly due to Ken Murchison <ken@oceana.com>)
 * DIGEST-MD5 now supports reauthentication.  Also has a fix for DES

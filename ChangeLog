@@ -2,6 +2,11 @@ Tue Nov 16 14:33:49 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* version 1.5.12 cut for testing 
 
+	* plugins/digestmd5.c: can't have indented #'s!
+
+	* lib/db_berkeley.c (berkeleydb_open): now honors sasldb_path
+	option; also improved log messages
+
 1999-11-15  Timothy L Martin  <tmartin@andrew.cmu.edu>
 
 	* lib/server.c (mech_permitted): special case to allow PLAIN under

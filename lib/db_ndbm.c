@@ -79,6 +79,7 @@ getsecret(void *context __attribute__((unused)),
   void *cntxt;
   sasl_getopt_t *getopt;
   const char *path = SASL_DB_PATH;
+  sasl_conn_t *conn = context;
 
   if (! mechanism || ! auth_identity || ! secret || ! realm || ! db_ok)
     return SASL_FAIL;
@@ -134,7 +135,7 @@ getsecret(void *context __attribute__((unused)),
 }
 
 static int
-putsecret(void *context __attribute__((unused)),
+putsecret(void *context,
 	  const char *mechanism,
 	  const char *auth_identity,
 	  const char *realm,
@@ -148,6 +149,7 @@ putsecret(void *context __attribute__((unused)),
   void *cntxt;
   sasl_getopt_t *getopt;
   const char *path = SASL_DB_PATH;
+  sasl_conn_t *conn = context;
 
   if (! mechanism || ! auth_identity || ! realm)
     return SASL_FAIL;
@@ -157,7 +159,16 @@ putsecret(void *context __attribute__((unused)),
   if (result != SASL_OK)
     return result;
 
-  db = dbm_open(SASL_DB_PATH,
+  if (_sasl_getcallback(conn, SASL_CB_GETOPT,
+                        &getopt, &cntxt) == SASL_OK) {
+      const char *p;
+      if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK 
+	  && p != NULL && *p != 0) {
+          path = p;
+      }
+  }
+
+  db = dbm_open(path,
 		O_RDWR | O_CREAT /* TODO: what should this be? */,
 		S_IRUSR | S_IWUSR);
   if (! db) {

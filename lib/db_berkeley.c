@@ -1,5 +1,6 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Tim Martin
+ * $Id: db_berkeley.c,v 1.4 1999/11/16 20:32:48 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -37,29 +38,36 @@ static int db_ok = 0;
 /* This provides a version of _sasl_db_getsecret and
  * _sasl_db_putsecret which work with berkeley db. */
 
-
 /*
  * Open the database
  *
  */
-
-static int berkeleydb_open(DB **mbdb)
+static int berkeleydb_open(sasl_conn_t *conn, DB **mbdb)
 {
+    const char *path = SASL_DB_PATH;
     int ret;
     DB_INFO dbinfo;
+    void *cntxt;
+    sasl_getopt_t *getopt;
 
     memset(&dbinfo, 0, sizeof(dbinfo));
 
-    ret = db_open(SASL_DB_PATH, DB_BTREE, DB_CREATE, 0664, 
-		  NULL, &dbinfo, mbdb);
+    if (_sasl_getcallback(conn, SASL_CB_GETOPT,
+			  &getopt, &cntxt) == SASL_OK) {
+	const char *p;
+	if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK 
+	    && p != NULL && *p != 0) {
+	    path = p;
+	}
+    }
+    ret = db_open(path, DB_HASH, DB_CREATE, 0664, NULL, &dbinfo, mbdb);
     if (ret != 0) {
-      
-      _sasl_log (NULL, 0, NULL,
-		 SASL_FAIL,	/* %z */ 0,	/* %m */
-		 "Unable to open Berkeley db file from %s (%s). Do you have write permissions?",
-		 SASL_DB_PATH, strerror(ret));
-      VL(("error opening password file. Do you have write permissions?\n"));
-      return SASL_FAIL;
+	_sasl_log (NULL, 0, NULL,
+		   SASL_FAIL,	/* %z */ 0,	/* %m */
+		   "unable to open Berkeley db %s: %s",
+		   path, strerror(ret));
+	VL(("error opening password file. Do you have write permissions?\n"));
+	return SASL_FAIL;
     }
 
     return SASL_OK;
@@ -70,26 +78,24 @@ static int berkeleydb_open(DB **mbdb)
  *
  */
 
-static void berkeleydb_close(  DB *mbdb)
+static void berkeleydb_close(DB *mbdb)
 {
-  int ret;
-
-  ret = mbdb->close(mbdb, 0);
-  if (ret!=0) {
-    VL(("Error closing mailbox"));
-    _sasl_log (NULL, 0, NULL,
-	       SASL_FAIL,	/* %z */ 0,	/* %m */
-	       "Error closing the Berkeley db (%s)",		 
-	       strerror(ret));
-  }
-
+    int ret;
+    
+    ret = mbdb->close(mbdb, 0);
+    if (ret!=0) {
+	VL(("Error closing mailbox"));
+	_sasl_log (NULL, 0, NULL,
+		   SASL_FAIL, /* %z */ 0, /* %m */
+		   "error closing sasldb: %s",
+		   strerror(ret));
+    }
 }
 
 /*
  * Construct a key
  *
  */
-
 static int alloc_key(const char *mechanism,
 		     const char *auth_identity,
 		     const char *realm,
@@ -124,7 +130,7 @@ static int alloc_key(const char *mechanism,
  */
 
 static int
-getsecret(void *context __attribute__((unused)),
+getsecret(void *context,
 	  const char *mechanism,
 	  const char *auth_identity,
 	  const char *realm,
@@ -143,7 +149,7 @@ getsecret(void *context __attribute__((unused)),
   VL(("getting secret for %s\n",key));
 
   /* open the db */
-  result=berkeleydb_open(&mbdb);
+  result=berkeleydb_open((sasl_conn_t *) context, &mbdb);
   if (result!=SASL_OK) return result;
 
   /* allocate a key */
@@ -157,7 +163,6 @@ getsecret(void *context __attribute__((unused)),
   memset(&data, 0, sizeof(data));
   dbkey.data = key;
   dbkey.size = key_len;
-
 
   /* ask berkeley db for the entry */
   result = mbdb->get(mbdb, NULL, &dbkey, &data, 0);
@@ -176,7 +181,7 @@ getsecret(void *context __attribute__((unused)),
     VL(("Other failure\n"));
     _sasl_log (NULL, 0, NULL,
 	       SASL_FAIL,	/* %z */ 0,	/* %m */
-	       "Error trying to retrieve from the db (%s)",		 
+	       "error fetching from sasldb: %s",
 	       strerror(result));
     result = SASL_FAIL;
     goto cleanup;
@@ -208,7 +213,7 @@ getsecret(void *context __attribute__((unused)),
  */
 
 static int
-putsecret(void *context __attribute__((unused)),
+putsecret(void *context,
 	  const char *mechanism,
 	  const char *auth_identity,
 	  const char *realm,
@@ -226,7 +231,7 @@ putsecret(void *context __attribute__((unused)),
   VL(("Entering putsecret for %s\n",mechanism));
 
   /* open the db */
-  result=berkeleydb_open(&mbdb);
+  result=berkeleydb_open((sasl_conn_t *) context, &mbdb);
   if (result!=SASL_OK) return result;
 
   result = alloc_key(mechanism, auth_identity, realm,
@@ -253,9 +258,8 @@ putsecret(void *context __attribute__((unused)),
     if (result != 0)
     {
       _sasl_log (NULL, 0, NULL,
-	       SASL_FAIL,	/* %z */ 0,	/* %m */
-		 "DBERROR: error updating database for key %s: %s",
-		 key, strerror(result));
+		 SASL_FAIL, /* %z */ 0,	/* %m */
+		 "error updating sasldb: %s", strerror(result));
       VL(("DBERROR: error updating database for %s: %s",
 	  key, strerror(result)));
       result = SASL_FAIL;
@@ -271,9 +275,8 @@ putsecret(void *context __attribute__((unused)),
     if (result != 0)
     {
       _sasl_log (NULL, 0, NULL,
-	       SASL_FAIL,	/* %z */ 0,	/* %m */
-		 "DBERROR: error deleting entry for for key %s: %s",
-		 key, strerror(result));
+		 SASL_FAIL, /* %z */ 0,	/* %m */
+		 "error deleting entry from sasldb: %s", strerror(result));
       VL(("DBERROR: error deleting entry for database for %s: %s",
 	  key, strerror(result)));
       result = SASL_FAIL;

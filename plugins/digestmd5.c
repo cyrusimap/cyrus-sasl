@@ -1948,21 +1948,21 @@ server_continue_step(void *conn_context,
 
 
 #ifdef WITH_RC4
-  #ifdef WITH_DES
+#ifdef WITH_DES
     char           *qop = "auth,auth-int,auth-conf";
     char           *cipheropts="3des,des,rc4,rc4-40,rc4-56";
-  #else
+#else
     char           *qop = "auth,auth-int,auth-conf";
     char           *cipheropts="rc4,rc4-40,rc4-56";
-  #endif /* WITH_DES */
+#endif /* WITH_DES */
 #else
-  #ifdef WITH_DES
+#ifdef WITH_DES
     char           *qop = "auth,auth-int,auth-conf";
     char           *cipheropts="3des,des";
-  #else
+#else
     char           *qop = "auth,auth-int";
     char           *cipheropts="";
-  #endif /* WITH_DES */
+#endif /* WITH_DES */
 #endif /* WITH_RC4 */
 
     char           *charset = "utf-8";
@@ -2642,11 +2642,11 @@ const sasl_server_plug_t plugins[] =
 #ifdef WITH_RC4
     128,				/* max ssf */
 #else
-  #ifdef WITH_DES
+#ifdef WITH_DES
     112,
-  #else 
+#else 
     0,
-  #endif /* WITH_DES */
+#endif /* WITH_DES */
 #endif /* WITH_RC4 */
 
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
@@ -3775,13 +3775,12 @@ const sasl_client_plug_t client_plugins[] =
 #ifdef WITH_RC4
     128,				/* max ssf */
 #else
- #ifdef WITH_DES
+#ifdef WITH_DES
     112,
- #else
+#else
     0,
- #endif /* WITH_DES */
+#endif /* WITH_DES */
 #endif /* WITH_RC4 */
-
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
     client_required_prompts,
     NULL,

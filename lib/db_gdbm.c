@@ -64,7 +64,7 @@ static int alloc_key(const char *mechanism,
 }
 
 static int
-getsecret(void *context __attribute__((unused)),
+getsecret(void *context,
 	  const char *mechanism,
 	  const char *auth_identity,
 	  const char *realm,
@@ -91,7 +91,8 @@ getsecret(void *context __attribute__((unused)),
   if (_sasl_getcallback(conn, SASL_CB_GETOPT,
                         &getopt, &cntxt) == SASL_OK) {
       const char *p;
-      if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK && p != NULL && *p != 0) {
+      if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK 
+	  && p != NULL && *p != 0) {
           path = p;
       }
   }
@@ -130,7 +131,7 @@ getsecret(void *context __attribute__((unused)),
 }
 
 static int
-putsecret(void *context __attribute__((unused)),
+putsecret(void *context,
 	  const char *mechanism,
 	  const char *auth_identity,
 	  const char *realm,
@@ -157,7 +158,8 @@ putsecret(void *context __attribute__((unused)),
   if (_sasl_getcallback(conn, SASL_CB_GETOPT,
                         &getopt, &cntxt) == SASL_OK) {
       const char *p;
-      if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK && p != NULL && *p != 0) {
+      if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK 
+	  && p != NULL && *p != 0) {
           path = p;
       }
   }

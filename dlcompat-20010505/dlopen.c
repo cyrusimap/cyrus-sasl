@@ -78,11 +78,11 @@ static char *dlerror_pointer = NULL;
  * the functionality need to implement the dlopen() interfaces.
  */
 static
-enum bool
+int
 NSMakePrivateModulePublic(
 NSModule module)
 {
-    static enum bool (*p)(NSModule module) = NULL;
+    static int (*p)(NSModule module) = NULL;
 
 	if(p == NULL)
 	    _dyld_func_lookup("__dyld_NSMakePrivateModulePublic",

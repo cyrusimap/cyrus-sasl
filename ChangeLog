@@ -61,6 +61,11 @@
 	* plugins/digestmd5.c (init_3des): DES functions was using ECB
 	instead of CBC.  fixed.
 
+2001-01-04  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* Fabian Knittel contributed patches finishing off saslauthd
+	support and adding PAM to saslauthd.
+
 2000-11-06  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/digestmd5.c: UTF8_In_8859_1() was returning the reverse,

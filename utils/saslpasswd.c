@@ -162,6 +162,29 @@ exit_sasl(int result, const char *errstr)
   exit(-result);
 }
 
+char *sasldb_path = NULL;
+
+int good_getopt(void *context __attribute__((unused)), 
+		const char *plugin_name __attribute__((unused)), 
+		const char *option,
+		const char **result,
+		unsigned *len)
+{
+    if (sasldb_path && !strcmp(option, "sasldb_path")) {
+	*result = sasldb_path;
+	if (len)
+	    *len = strlen(sasldb_path);
+	return SASL_OK;
+    }
+
+    return SASL_FAIL;
+}
+
+static struct sasl_callback goodsasl_cb[] = {
+    { SASL_CB_GETOPT, &good_getopt, NULL },
+    { SASL_CB_LIST_END, NULL, NULL }
+};
+
 int
 main(int argc, char *argv[])
 {
@@ -185,7 +208,7 @@ main(int argc, char *argv[])
       progname = argv[0];
   }
 
-  while ((c = getopt(argc, argv, "pcdu:a:h?")) != EOF)
+  while ((c = getopt(argc, argv, "pcdf:u:a:h?")) != EOF)
     switch (c) {
     case 'p':
       flag_pipe = 1;
@@ -201,6 +224,9 @@ main(int argc, char *argv[])
 	flag_error = 1;
       else
 	flag_disable = 1;
+      break;
+    case 'f':
+      sasldb_path = optarg;
       break;
     case 'u':
       user_domain = optarg;
@@ -227,6 +253,7 @@ main(int argc, char *argv[])
 		  "\t-c\tcreate -- ask mechs to create the account\n"
 		  "\t-d\tdisable -- ask mechs to disable the account\n"
 		  "\t-a appname\tuse appname as application name\n"
+		  "\t-f file\tpath to sasldb\n"
 		  "\t-u DOM\tuse DOM for user domain\n",
 		  progname, progname);
     exit(-SASL_FAIL);
@@ -234,7 +261,7 @@ main(int argc, char *argv[])
 
   userid = argv[optind];
 
-  result = sasl_server_init(NULL, appname);
+  result = sasl_server_init(goodsasl_cb, appname);
   if (result != SASL_OK)
     exit_sasl(result, NULL);
 

@@ -1,4 +1,10 @@
-2001-07-27
+2001-08-03  Rob Siemborski <rjs3+@andrew.cmu.edu>
+
+	* utils/sasldblistusers.c: Corrected conditional compilation
+	* utils/saslpasswd.c (main, good_getopt): support for sasldb files
+	  that aren't /etc/sasldb	
+
+2001-07-27  Rob Siemborski <rjs3+@andrew.cmu.edu>
 
 	* include/sasl.h: updated comments of sasl_client_new
 

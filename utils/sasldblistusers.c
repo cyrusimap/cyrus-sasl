@@ -67,7 +67,7 @@ void listusers_cb(const char *authid, const char *realm, const char *mechanism)
  * List all users in database
  */
 
-#ifdef SASL_GDBM
+#if defined(SASL_GDBM)
 
 #include <gdbm.h>
 #include <fcntl.h>
@@ -113,8 +113,7 @@ int listusers(const char *path, listcb_t *cb)
     gdbm_close(indb);
 }
 
-#else /* SASL_GDBM */
-#ifdef SASL_NDBM
+#elif defined(SASL_NDBM)
 
 #include <ndbm.h>
 #include <fcntl.h>
@@ -160,8 +159,7 @@ int listusers(const char *path, listcb_t *cb)
     dbm_close(indb);
 }
 
-#else /* SASL_NDBM */
-#ifdef SASL_BERKELEYDB
+#elif defined(SASL_BERKELEYDB)
 
 #ifdef HAVE_DB3_DB_H
 #include <db3/db.h>
@@ -320,11 +318,7 @@ int listusers(const char *path, listcb_t *cb)
     exit(1);
 }
 
-#endif /* BERKELEY */
-
-#endif /* SASL_NDBM */
-
-#endif /* SASL_GDBM */
+#endif
 
 
 int main(int argc, char **argv)

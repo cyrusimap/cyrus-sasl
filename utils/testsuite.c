@@ -85,8 +85,8 @@ char myhostname[1024+1];
 #define REALLY_LONG_LENGTH  32000
 #define REALLY_LONG_BACKOFF  2000
 
-char *username = "tmartin";
-char *authname = "tmartin";
+char *username = "rjs3";
+char *authname = "rjs3";
 char *password = "1234";
 
 static char *gssapi_service = "host";

@@ -5,11 +5,25 @@
 2004-10-14  Alexey Melnikov <alexey.melnikov@isode.com>
 	* lib/NTMakefile: Don't install intermediate file libsasl.res
 
+2004-09-22  Derrick Brashear <shadow@andrew.cmu.edu>
+	* lib/common.c: don't honor SASL_PATH in setuid environment. 
+	  from Gentoo
+	
 2004-09-08  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/cram.c, plugins/anonymous.c, plugins/login.c,
 	  plugins/plain.c, plugins/sasldb.c: Fixed several 64 bit
 	  portability warnings
 
+2004-09-02  Derrick Brashear <shadow@andrew.cmu.edu>
+	* plugins/kerberosv4.c: simple explanation in the code of one 
+	  possible error you might see in strange circumstances; 
+	  i should probably make openssl's des unable to be used if
+	  mit krb5 is being used.
+
+2004-08-06  Derrick Brashear <shadow@andrew.cmu.edu>
+	* plugins/cram.c: initialize authid to null so stack garbage 
+	  is not pushed into _sasl_canon_user
+	
 2004-07-29  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/digestmd5.c: Fix handling of client realm callback
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)

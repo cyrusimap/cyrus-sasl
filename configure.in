@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.184 2004/01/20 19:40:33 rjs3 Exp $
+dnl $Id: configure.in,v 1.185 2004/01/23 19:54:12 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -551,7 +551,7 @@ fi
 
 # make the option show up so people don't whine that it is only in the
 # saslauthd configure script --help
-AC_ARG_WITH(ldap,   [  --with-ldap=DIR         use LDAP (in DIR) for saslauthd (experimental) [no] ],,)
+AC_ARG_WITH(ldap,   [  --with-ldap=DIR         use LDAP (in DIR) for saslauthd [no] ],,)
 
 
 dnl SQL

@@ -1,3 +1,6 @@
+2004-01-23  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* Remove "experimental" designation from saslauthd/ldap
+
 2004-01-20  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* configure.in: minor sql nit (Edward Rudd <eddie@omegaware.com>)
 	* lib/staticopen.h: MYSQL should be SQL

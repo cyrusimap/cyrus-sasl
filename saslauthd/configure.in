@@ -118,8 +118,8 @@ AC_SUBST(LIB_PAM)
 
 AC_CHECK_LIB(resolv, inet_aton)
 
-AC_MSG_CHECKING(to include experimental LDAP support)
-AC_ARG_WITH(ldap, [  --with-ldap=DIR         use LDAP (in DIR) (experimental) [no] ],
+AC_MSG_CHECKING(to include LDAP support)
+AC_ARG_WITH(ldap, [  --with-ldap=DIR         use LDAP (in DIR) [no] ],
 	with_ldap=$withval,
 	with_ldap=no)
 AC_MSG_RESULT($with_ldap)

@@ -1,6 +1,6 @@
 /* common.c - Functions that are common to server and clinet
  * Tim Martin
- * $Id: common.c,v 1.5 1998/11/17 02:10:48 tmartin Exp $
+ * $Id: common.c,v 1.6 1998/11/17 05:11:41 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -324,6 +324,8 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
   switch(propnum)
   {
     case SASL_USERNAME:
+      if (conn->username)
+	sasl_FREE(conn->username);
       _sasl_strdup(value, &conn->username, NULL);
       break;
     case SASL_SSF:
@@ -333,6 +335,8 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
       conn->oparams->maxoutbuf=* (int *) value;
       break;
     case SASL_REALM:
+      if (conn->username)
+	sasl_FREE(conn->username);
       _sasl_strdup(value, &conn->realm, NULL);
       break;
     case SASL_GETOPTCTX:

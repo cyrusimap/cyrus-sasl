@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.3 1998/11/17 03:57:43 rob Exp $
+ * $Id: server.c,v 1.4 1998/11/17 05:11:41 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -636,24 +636,28 @@ int sasl_server_step(sasl_conn_t *conn,
 		     unsigned *serveroutlen,
 		     const char **errstr)
 {
+  int result;
   sasl_server_conn_t *s_conn;
   s_conn= (sasl_server_conn_t *) conn;
 
   if (errstr)
     *errstr = NULL;
 
-  return s_conn->mech->plug->mech_step(conn->context,
-				       s_conn->sparams,
-				       clientin,
-				       clientinlen,
-				       serverout,
-				       (int *) serveroutlen,
-				       conn->oparams,
-				       errstr);
+  result = s_conn->mech->plug->mech_step(conn->context,
+					 s_conn->sparams,
+					 clientin,
+					 clientinlen,
+					 serverout,
+					 (int *) serveroutlen,
+					 conn->oparams,
+					 errstr);
 
+  if (result == SASL_OK) {
+    if (conn->oparams->userid)
+      sasl_setprop(conn, SASL_USERNAME, conn->oparams->userid);
+  }
 
-  /* call the security layer WRONG PARAMS*/
-
+  return result;
   /* if returns SASL_OK check to make sure
    * is valid username and then
    * correct password using sasl_checkpass

@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.88 2004/07/06 14:00:14 rjs3 Exp $
+ * $Id: gssapi.c,v 1.89 2004/07/06 14:06:03 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.88 2004/07/06 14:00:14 rjs3 Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.89 2004/07/06 14:06:03 rjs3 Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -1162,6 +1162,7 @@ static int gssapi_client_mech_step(void *conn_context,
     gss_buffer_t input_token, output_token;
     gss_buffer_desc real_input_token, real_output_token;
     OM_uint32 maj_stat = 0, min_stat = 0;
+    OM_uint32 max_input;
     gss_buffer_desc name_token;
     int ret;
     OM_uint32 req_flags = 0, out_req_flags = 0;
@@ -1454,8 +1455,14 @@ static int gssapi_client_mech_step(void *conn_context,
             (((unsigned char *) output_token->value)[3] << 0);
 
 	if(oparams->mech_ssf) {
-	    /* xxx probably too large */
-	    oparams->maxoutbuf -= 256;
+            maj_stat = gss_wrap_size_limit( &min_stat,
+                                            text->gss_ctx,
+                                            1,
+                                            GSS_C_QOP_DEFAULT,
+                                            (OM_uint32) oparams->maxoutbuf,
+                                            &max_input);
+                                                                                
+            oparams->maxoutbuf = max_input;
 	}
 	
 	gss_release_buffer(&min_stat, output_token);

@@ -1,3 +1,7 @@
+2001-12-06  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* lib/canonusr.c: Better logging when desired plugin is not found.
+	* lib/checkpw.c: spelling error fixed.
+
 2001-12-05  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* saslauthd/Makefile.am, saslauthd/acconfig.h, saslauthd/configure.in:
 	  Solaris 7 and FreeBSD (FreeBSD is courtesy of Claus Assmann

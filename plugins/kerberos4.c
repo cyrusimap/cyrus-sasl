@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.4 1998/11/17 02:32:29 rob Exp $
+ * $Id: kerberos4.c,v 1.5 1998/11/17 05:21:45 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -583,15 +583,48 @@ static int server_continue_step (void *conn_context,
     text->free=sparams->utils->free;
 
     /* fill in oparams */
-
     oparams->maxoutbuf=1024; /* no clue what this should be */
     oparams->param_version=0;
+    
+    {
+      size_t len = strlen(ad.pname);
+      if (ad.pinst[0])
+	len += strlen(ad.pinst) + 1 /* for the . */;
+
+      oparams->authid = sparams->utils->malloc(len + 1);
+      if (! oparams->authid)
+	return SASL_NOMEM;
+      strcpy(oparams->authid, ad.pname);
+      if (ad.pinst[0]) {
+	strcat(oparams->authid, ".");
+	strcat(oparams->authid, ad.pinst);
+      }
+
+      oparams->userid = sparams->utils->malloc(len + 1);
+      if (! oparams->userid) {
+	sparams->utils->free(oparams->authid);
+	return SASL_NOMEM;
+      }
+      strcpy(oparams->userid, ad.pname);
+      if (ad.pinst[0]) {
+	strcat(oparams->userid, ".");
+	strcat(oparams->userid, ad.pinst);
+      }
+
+      oparams->realm = sparams->utils->malloc(strlen(ad.prealm) + 1);
+      if (! oparams->realm) {
+	sparams->utils->free(oparams->authid);
+	sparams->utils->free(oparams->userid);
+	return SASL_NOMEM;
+      }
+      strcpy(oparams->realm, ad.prealm);
+    }
 
     /* output */
     *serverout = NULL;
     *serveroutlen = 0;
 
-    /*nothing more to do; authenticated */
+    /* nothing more to do; authenticated */
     oparams->doneflag=1;
 
     text->size=-1;

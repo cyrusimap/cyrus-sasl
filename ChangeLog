@@ -1,3 +1,8 @@
+2003-07-22  Ken Murchison <ken@oceana.com>
+	* plugins/digestmd5.c, plugins/gssapi.c, plugins/kerberos4.c,
+	  plugins/plugin_common.[ch]: moved encoded packet buffering into
+	  _plug_decode()
+
 2003-07-21  Ken Murchison <ken@oceana.com>
 	* plugins/srp.c: updated auth code to draft -08 (layers still need
 	  to be updated)

@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.154 2003/07/18 20:32:22 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.155 2003/07/23 00:57:46 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -102,7 +102,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.154 2003/07/18 20:32:22 rjs3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.155 2003/07/23 00:57:46 ken3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -221,19 +221,9 @@ typedef struct context {
     unsigned decode_tmp_buf_len;
     char *MAC_buf;
     unsigned MAC_buf_len;
-    
-    char *buffer;
-    char sizebuf[4];
-    int cursize;
 
-    /* Layer info */
-    unsigned int size; /* Absolute size of buffer */
-    unsigned int needsize; /* How much of the size of the buffer is left */
-    
-    /* Server MaxBuf for Client or Client MaxBuf For Server */
-    /* INCOMING */
-    unsigned int in_maxbuf;
-    
+    decode_context_t decode_context;
+
     /* if privacy mode is used use these functions for encode and decode */
     cipher_function_t *cipher_enc;
     cipher_function_t *cipher_dec;
@@ -376,11 +366,11 @@ static bool UTF8_In_8859_1(const unsigned char *base, int len)
  * if the string is entirely in the 8859-1 subset of UTF-8, then translate to
  * 8859-1 prior to MD5
  */
-void MD5_UTF8_8859_1(const sasl_utils_t * utils,
-		     MD5_CTX * ctx,
-		     bool In_ISO_8859_1,
-		     const unsigned char *base,
-		     int len)
+static void MD5_UTF8_8859_1(const sasl_utils_t * utils,
+			    MD5_CTX * ctx,
+			    bool In_ISO_8859_1,
+			    const unsigned char *base,
+			    int len)
 {
     const unsigned char *scan, *end;
     unsigned char   cbuf;
@@ -1179,12 +1169,11 @@ static const unsigned short version = 1;
 
 /* len, CIPHER(Kc, {msg, pag, HMAC(ki, {SeqNum, msg})[0..9]}), x0001, SeqNum */
 
-static int
-digestmd5_privacy_encode(void *context,
-			 const struct iovec *invec,
-			 unsigned numiov,
-			 const char **output,
-			 unsigned *outputlen)
+static int digestmd5_privacy_encode(void *context,
+				    const struct iovec *invec,
+				    unsigned numiov,
+				    const char **output,
+				    unsigned *outputlen)
 {
     context_t *text = (context_t *) context;
     int tmp;
@@ -1266,161 +1255,75 @@ digestmd5_privacy_encode(void *context,
     return SASL_OK;
 }
 
-static int
-digestmd5_privacy_decode_once(void *context,
-			      const char **input,
-			      unsigned *inputlen,
-			      char **output,
-			      unsigned *outputlen)
+static int digestmd5_privacy_decode_packet(void *context,
+					   const char *input,
+					   unsigned inputlen,
+					   char **output,
+					   unsigned *outputlen)
 {
     context_t *text = (context_t *) context;
-    unsigned int tocopy;
-    unsigned diff;
     int result;
     unsigned char digest[16];
     int tmpnum;
     int lup;
-    
-    if (text->needsize>0) /* 4 bytes for how long message is */
-	{
-	    /* if less than 4 bytes just copy those we have into text->size */
-	    if (*inputlen<4) 
-		tocopy=*inputlen;
-	    else
-		tocopy=4;
-	    
-	    if (tocopy>text->needsize)
-		tocopy=text->needsize;
-	    
-	    memcpy(text->sizebuf+4-text->needsize, *input, tocopy);
-	    text->needsize-=tocopy;
-	    
-	    *input+=tocopy;
-	    *inputlen-=tocopy;
-	    
-	    if (text->needsize==0) /* got all of size */
-	    {
-		memcpy(&(text->size), text->sizebuf, 4);
-		text->cursize=0;
-		text->size=ntohl(text->size);
-		
-		if (text->size > text->in_maxbuf) {
-		    return SASL_FAIL; /* too big probably error */
-		}
-		
-		if(!text->buffer)
-		    text->buffer=text->utils->malloc(text->size+5);
-		else
-		    text->buffer=text->utils->realloc(text->buffer,
-						      text->size+5);	    
-		if (text->buffer == NULL) return SASL_NOMEM;
-	    }
+    unsigned short ver;
+    unsigned int seqnum;
+    unsigned char checkdigest[16];
+	
+    result = _plug_buf_alloc(text->utils, &text->decode_once_buf,
+			     &text->decode_once_buf_len,
+			     inputlen-6); /* -6 to skip ver and seqnum */
+    if (result != SASL_OK) return result;
+	
+    *output = text->decode_once_buf;
+	
+    result = text->cipher_dec(text, input, inputlen-6,digest,
+			      *output, outputlen);
+    if (result != SASL_OK) return result;
 
-	    *outputlen=0;
-	    *output=NULL;
-	    if (*inputlen==0) /* have to wait until next time for data */
-		return SASL_OK;
-	    
-	    if (text->size==0)  /* should never happen */
-		return SASL_FAIL;
-	}
-    
-    diff=text->size - text->cursize; /* bytes need for full message */
-    
-    if (! text->buffer)
+    /* check the version number */
+    memcpy(&ver, input+inputlen-6, 2);
+    ver = ntohs(ver);
+    if (ver != version) {
+	text->utils->seterror(text->utils->conn, 0, "Wrong Version");
 	return SASL_FAIL;
-    
-    if (*inputlen < diff) /* not enough for a decode */
-    {
-	memcpy(text->buffer+text->cursize, *input, *inputlen);
-	text->cursize+=*inputlen;
-	*inputlen=0;
-	*outputlen=0;
-	*output=NULL;
-	return SASL_OK;
-    } else {
-	memcpy(text->buffer+text->cursize, *input, diff);
-	*input+=diff;      
-	*inputlen-=diff;
     }
-    
-    {
-	unsigned short ver;
-	unsigned int seqnum;
-	unsigned char checkdigest[16];
 	
-	result = _plug_buf_alloc(text->utils, &text->decode_once_buf,
-				 &text->decode_once_buf_len,
-				 text->size-6);
-	if (result != SASL_OK)
-	    return result;
+    /* check the CMAC */
 	
-	*output = text->decode_once_buf;
-	*outputlen = *inputlen;
+    /* construct (seqnum, msg) */
+    result = _plug_buf_alloc(text->utils, &text->decode_tmp_buf,
+			     &text->decode_tmp_buf_len, *outputlen + 4);
+    if (result != SASL_OK) return result;
 	
-	result=text->cipher_dec(text,text->buffer,text->size-6,digest,
-				*output, outputlen);
+    tmpnum = htonl(text->rec_seqnum);
+    memcpy(text->decode_tmp_buf, &tmpnum, 4);
+    memcpy(text->decode_tmp_buf + 4, *output, *outputlen);
 	
-	if (result!=SASL_OK)
-	    return result;
+    /* HMAC(ki, (seqnum, msg) ) */
+    text->utils->hmac_md5((const unsigned char *) text->decode_tmp_buf,
+			  (*outputlen) + 4, 
+			  text->Ki_receive, HASHLEN, checkdigest);
 	
-	{
-	    int i;
-	    for(i=10; i; i--) {
-		memcpy(&ver, text->buffer+text->size-i,2);
-		ver=ntohs(ver);
-	    }
-	}
-	
-	/* check the version number */
-	memcpy(&ver, text->buffer+text->size-6, 2);
-	ver=ntohs(ver);
-	if (ver != version)
-	{
-	    text->utils->seterror(text->utils->conn, 0, "Wrong Version");
+    /* now check it */
+    for (lup = 0; lup < 10; lup++)
+	if (checkdigest[lup] != digest[lup]) {
+	    text->utils->seterror(text->utils->conn, 0,
+				  "CMAC doesn't match at byte %d!", lup);
 	    return SASL_FAIL;
 	}
 	
-	/* check the CMAC */
+    /* check the sequence number */
+    memcpy(&seqnum, input+inputlen-4, 4);
+    seqnum = ntohl(seqnum);
 	
-	/* construct (seqnum, msg) */
-	result = _plug_buf_alloc(text->utils, &text->decode_tmp_buf,
-				 &text->decode_tmp_buf_len, *outputlen + 4);
-	if(result != SASL_OK) return result;
-	
-	tmpnum = htonl(text->rec_seqnum);
-	memcpy(text->decode_tmp_buf, &tmpnum, 4);
-	memcpy(text->decode_tmp_buf + 4, *output, *outputlen);
-	
-	/* HMAC(ki, (seqnum, msg) ) */
-	text->utils->hmac_md5((const unsigned char *) text->decode_tmp_buf,
-			      (*outputlen) + 4, 
-			      text->Ki_receive, HASHLEN, checkdigest);
-	
-	/* now check it */
-	for (lup=0;lup<10;lup++)
-	    if (checkdigest[lup]!=digest[lup])
-		{
-		    text->utils->seterror(text->utils->conn, 0,
-					  "CMAC doesn't match at byte %d!", lup);
-		    return SASL_FAIL;
-		} 
-	
-	/* check the sequence number */
-	memcpy(&seqnum, text->buffer+text->size-4,4);
-	seqnum=ntohl(seqnum);
-	
-	if (seqnum!=text->rec_seqnum)
-	    {
-		text->utils->seterror(text->utils->conn, 0,
-				      "Incorrect Sequence Number");
-		return SASL_FAIL;
-	    }
-	
-	text->rec_seqnum++; /* now increment it */
+    if (seqnum != text->rec_seqnum) {
+	text->utils->seterror(text->utils->conn, 0,
+			      "Incorrect Sequence Number");
+	return SASL_FAIL;
     }
-    
-    text->needsize=4;
+	
+    text->rec_seqnum++; /* now increment it */
     
     return SASL_OK;
 }
@@ -1432,21 +1335,20 @@ static int digestmd5_privacy_decode(void *context,
     context_t *text = (context_t *) context;
     int ret;
     
-    ret = _plug_decode(text->utils, context, input, inputlen,
+    ret = _plug_decode(&text->decode_context, input, inputlen,
 		       &text->decode_buf, &text->decode_buf_len, outputlen,
-		       digestmd5_privacy_decode_once);
+		       digestmd5_privacy_decode_packet, text);
     
     *output = text->decode_buf;
     
     return ret;
 }
 
-static int
-digestmd5_integrity_encode(void *context,
-			   const struct iovec *invec,
-			   unsigned numiov,
-			   const char **output,
-			   unsigned *outputlen)
+static int digestmd5_integrity_encode(void *context,
+				      const struct iovec *invec,
+				      unsigned numiov,
+				      const char **output,
+				      unsigned *outputlen)
 {
     context_t      *text = (context_t *) context;
     unsigned char   MAC[16];
@@ -1455,7 +1357,7 @@ digestmd5_integrity_encode(void *context,
     struct buffer_info *inblob, bufinfo;
     int ret;
     
-    if(!context || !invec || !numiov || !output || !outputlen) {
+    if (!context || !invec || !numiov || !output || !outputlen) {
 	PARAMERROR( text->utils );
 	return SASL_BADPARAM;
     }
@@ -1477,7 +1379,7 @@ digestmd5_integrity_encode(void *context,
     
     ret = _plug_buf_alloc(text->utils, &(text->encode_buf),
 			  &(text->encode_buf_len), *outputlen);
-    if(ret != SASL_OK) return ret;
+    if (ret != SASL_OK) return ret;
     
     /* construct (seqnum, msg) */
     /* we can just use the output buffer */
@@ -1513,12 +1415,11 @@ digestmd5_integrity_encode(void *context,
     return SASL_OK;
 }
 
-static int
-create_MAC(context_t * text,
-	   char *input,
-	   int inputlen,
-	   int seqnum,
-	   unsigned char MAC[16])
+static int create_MAC(context_t * text,
+		      const  char *input,
+		      int inputlen,
+		      int seqnum,
+		      unsigned char MAC[16])
 {
     unsigned int    tmpnum;
     unsigned short int tmpshort;  
@@ -1551,10 +1452,9 @@ create_MAC(context_t * text,
     return SASL_OK;
 }
 
-static int
-check_integrity(context_t * text,
-		char *buf, int bufsize,
-		char **output, unsigned *outputlen)
+static int check_integrity(context_t * text,
+			   const char *buf, int bufsize,
+			   char **output, unsigned *outputlen)
 {
     unsigned char MAC[16];
     int result;
@@ -1587,85 +1487,19 @@ check_integrity(context_t * text,
     return SASL_OK;
 }
 
-static int
-digestmd5_integrity_decode_once(void *context,
-				const char **input,
-				unsigned *inputlen,
-				char **output,
-				unsigned *outputlen)
+static int digestmd5_integrity_decode_packet(void *context,
+					     const char *input,
+					     unsigned inputlen,
+					     char **output,
+					     unsigned *outputlen)
 {
-    context_t      *text = (context_t *) context;
-    unsigned int    tocopy;
-    unsigned        diff;
-    int             result;
-    
-    if (text->needsize > 0) {	/* 4 bytes for how long message is */
-	/*
-	 * if less than 4 bytes just copy those we have into text->size
-	 */
-	if (*inputlen < 4)
-	    tocopy = *inputlen;
-	else
-	    tocopy = 4;
-	
-	if (tocopy > text->needsize)
-	    tocopy = text->needsize;
-	
-	memcpy(text->sizebuf + 4 - text->needsize, *input, tocopy);
-	text->needsize -= tocopy;
-	
-	*input += tocopy;
-	*inputlen -= tocopy;
-	
-	if (text->needsize == 0) {	/* got all of size */
-	    memcpy(&(text->size), text->sizebuf, 4);
-	    text->cursize = 0;
-	    text->size = ntohl(text->size);
-	    
-	    if (text->size > text->in_maxbuf)
-		return SASL_FAIL;	/* too big probably error */
-	    
-	    if(!text->buffer)
-		text->buffer=text->utils->malloc(text->size+5);
-	    else
-		text->buffer=text->utils->realloc(text->buffer,text->size+5);
-	    if (text->buffer == NULL) return SASL_NOMEM;
-	}
-	*outputlen = 0;
-	*output = NULL;
-	if (*inputlen == 0)		/* have to wait until next time for data */
-	    return SASL_OK;
-	
-	if (text->size == 0)	/* should never happen */
-	    return SASL_FAIL;
-    }
-    diff = text->size - text->cursize;	/* bytes need for full message */
-    
-    if(! text->buffer)
-	return SASL_FAIL;
-    
-    if (*inputlen < diff) {	/* not enough for a decode */
-	memcpy(text->buffer + text->cursize, *input, *inputlen);
-	text->cursize += *inputlen;
-	*inputlen = 0;
-	*outputlen = 0;
-	*output = NULL;
-	return SASL_OK;
-    } else {
-	memcpy(text->buffer + text->cursize, *input, diff);
-	*input += diff;
-	*inputlen -= diff;
-    }
-    
-    result = check_integrity(text, text->buffer, text->size,
-			     output, outputlen);
-    if (result != SASL_OK)
-	return result;
+    context_t *text = (context_t *) context;
+    int result;
 
-    /* Reset State */
-    text->needsize = 4;
-    
-    return SASL_OK;
+    result = check_integrity(text, input, inputlen,
+			     output, outputlen);
+
+    return result;
 }
 
 static int digestmd5_integrity_decode(void *context,
@@ -1675,17 +1509,17 @@ static int digestmd5_integrity_decode(void *context,
     context_t *text = (context_t *) context;
     int ret;
     
-    ret = _plug_decode(text->utils, context, input, inputlen,
+    ret = _plug_decode(&text->decode_context, input, inputlen,
 		       &text->decode_buf, &text->decode_buf_len, outputlen,
-		       digestmd5_integrity_decode_once);
+		       digestmd5_integrity_decode_packet, text);
     
     *output = text->decode_buf;
     
     return ret;
 }
 
-static void
-digestmd5_common_mech_dispose(void *conn_context, const sasl_utils_t *utils)
+static void digestmd5_common_mech_dispose(void *conn_context,
+					  const sasl_utils_t *utils)
 {
     context_t *text = (context_t *) conn_context;
     
@@ -1701,7 +1535,7 @@ digestmd5_common_mech_dispose(void *conn_context, const sasl_utils_t *utils)
     /* free the stuff in the context */
     if (text->response_value) utils->free(text->response_value);
     
-    if (text->buffer) utils->free(text->buffer);
+    _plug_decode_free(&text->decode_context);
     if (text->encode_buf) utils->free(text->encode_buf);
     if (text->decode_buf) utils->free(text->decode_buf);
     if (text->decode_once_buf) utils->free(text->decode_once_buf);
@@ -1717,9 +1551,8 @@ digestmd5_common_mech_dispose(void *conn_context, const sasl_utils_t *utils)
     utils->free(conn_context);
 }
 
-static void
-clear_reauth_entry(reauth_entry_t *reauth, enum Context_type type,
-		   const sasl_utils_t *utils)
+static void clear_reauth_entry(reauth_entry_t *reauth, enum Context_type type,
+			       const sasl_utils_t *utils)
 {
     if (!reauth) return;
 
@@ -1735,8 +1568,8 @@ clear_reauth_entry(reauth_entry_t *reauth, enum Context_type type,
     memset(reauth, 0, sizeof(reauth_entry_t));
 }
 
-static void
-digestmd5_common_mech_free(void *glob_context, const sasl_utils_t *utils)
+static void digestmd5_common_mech_free(void *glob_context,
+				       const sasl_utils_t *utils)
 {
     reauth_cache_t *reauth_cache = (reauth_cache_t *) glob_context;
     size_t n;
@@ -1762,14 +1595,13 @@ typedef struct server_context {
     sasl_ssf_t limitssf, requiressf;	/* application defined bounds */
 } server_context_t;
 
-static void
-DigestCalcHA1FromSecret(context_t * text,
-			const sasl_utils_t * utils,
-			HASH HA1,
-			unsigned char *authorization_id,
-			unsigned char *pszNonce,
-			unsigned char *pszCNonce,
-			HASHHEX SessionKey)
+static void DigestCalcHA1FromSecret(context_t * text,
+				    const sasl_utils_t * utils,
+				    HASH HA1,
+				    unsigned char *authorization_id,
+				    unsigned char *pszNonce,
+				    unsigned char *pszCNonce,
+				    HASHHEX SessionKey)
 {
     MD5_CTX Md5Ctx;
     
@@ -1861,9 +1693,7 @@ static char *create_response(context_t * text,
     return result;
 }
 
-static int
-get_server_realm(sasl_server_params_t * params,
-		 char **realm)
+static int get_server_realm(sasl_server_params_t * params, char **realm)
 {
     /* look at user realm first */
     if (params->user_realm != NULL) {
@@ -2163,14 +1993,13 @@ digestmd5_server_mech_step1(server_context_t *stext,
     return SASL_CONTINUE;
 }
 
-static int
-digestmd5_server_mech_step2(server_context_t *stext,
-			    sasl_server_params_t *sparams,
-			    const char *clientin,
-			    unsigned clientinlen,
-			    const char **serverout,
-			    unsigned *serveroutlen,
-			    sasl_out_params_t * oparams)
+static int digestmd5_server_mech_step2(server_context_t *stext,
+				       sasl_server_params_t *sparams,
+				       const char *clientin,
+				       unsigned clientinlen,
+				       const char **serverout,
+				       unsigned *serveroutlen,
+				       sasl_out_params_t * oparams)
 {
     context_t *text = (context_t *) stext;
     /* verify digest */
@@ -2602,14 +2431,13 @@ digestmd5_server_mech_step2(server_context_t *stext,
     
     text->seqnum = 0;		/* for integrity/privacy */
     text->rec_seqnum = 0;	/* for integrity/privacy */
-    text->in_maxbuf =
-       sparams->props.maxbufsize ? sparams->props.maxbufsize : DEFAULT_BUFSIZE;
     text->utils = sparams->utils;
-    
+
     /* used by layers */
-    text->needsize = 4;
-    text->buffer = NULL;
-    
+    _plug_decode_init(&text->decode_context, text->utils,
+		      sparams->props.maxbufsize ? sparams->props.maxbufsize :
+		      DEFAULT_BUFSIZE);
+
     if (oparams->mech_ssf > 0) {
 	char enckey[16];
 	char deckey[16];
@@ -2730,14 +2558,13 @@ digestmd5_server_mech_step2(server_context_t *stext,
     return result;
 }
 
-static int
-digestmd5_server_mech_step(void *conn_context,
-			   sasl_server_params_t *sparams,
-			   const char *clientin,
-			   unsigned clientinlen,
-			   const char **serverout,
-			   unsigned *serveroutlen,
-			   sasl_out_params_t *oparams)
+static int digestmd5_server_mech_step(void *conn_context,
+				      sasl_server_params_t *sparams,
+				      const char *clientin,
+				      unsigned clientinlen,
+				      const char **serverout,
+				      unsigned *serveroutlen,
+				      sasl_out_params_t *oparams)
 {
     context_t *text = (context_t *) conn_context;
     server_context_t *stext = (server_context_t *) conn_context;
@@ -2805,8 +2632,8 @@ digestmd5_server_mech_step(void *conn_context,
     return SASL_FAIL; /* should never get here */
 }
 
-static void
-digestmd5_server_mech_dispose(void *conn_context, const sasl_utils_t *utils)
+static void digestmd5_server_mech_dispose(void *conn_context,
+					  const sasl_utils_t *utils)
 {
     server_context_t *stext = (server_context_t *) conn_context;
     
@@ -2909,16 +2736,15 @@ typedef struct client_context {
 } client_context_t;
 
 /* calculate H(A1) as per spec */
-static void
-DigestCalcHA1(context_t * text,
-	      const sasl_utils_t * utils,
-	      unsigned char *pszUserName,
-	      unsigned char *pszRealm,
-	      sasl_secret_t * pszPassword,
-	      unsigned char *pszAuthorization_id,
-	      unsigned char *pszNonce,
-	      unsigned char *pszCNonce,
-	      HASHHEX SessionKey)
+static void DigestCalcHA1(context_t * text,
+			  const sasl_utils_t * utils,
+			  unsigned char *pszUserName,
+			  unsigned char *pszRealm,
+			  sasl_secret_t * pszPassword,
+			  unsigned char *pszAuthorization_id,
+			  unsigned char *pszNonce,
+			  unsigned char *pszCNonce,
+			  HASHHEX SessionKey)
 {
     MD5_CTX         Md5Ctx;
     HASH            HA1;
@@ -3040,10 +2866,9 @@ static char *calculate_response(context_t * text,
     return result;
 }
 
-static int
-make_client_response(context_t *text,
-		     sasl_client_params_t *params,
-		     sasl_out_params_t *oparams)
+static int make_client_response(context_t *text,
+				sasl_client_params_t *params,
+				sasl_out_params_t *oparams)
 {
     client_context_t *ctext = (client_context_t *) text;
     char *qop = NULL;
@@ -3230,13 +3055,11 @@ make_client_response(context_t *text,
     text->seqnum = 0;	/* for integrity/privacy */
     text->rec_seqnum = 0;	/* for integrity/privacy */
     text->utils = params->utils;
-    
-    text->in_maxbuf =
-	params->props.maxbufsize ? params->props.maxbufsize : DEFAULT_BUFSIZE;
 
     /* used by layers */
-    text->needsize = 4;
-    text->buffer = NULL;
+    _plug_decode_init(&text->decode_context, text->utils,
+		      params->props.maxbufsize ? params->props.maxbufsize :
+		      DEFAULT_BUFSIZE);
     
     if (oparams->mech_ssf > 0) {
 	char enckey[16];
@@ -3697,10 +3520,9 @@ static int ask_user_info(client_context_t *ctext,
     return result;
 }
 
-static int
-digestmd5_client_mech_new(void *glob_context,
-			  sasl_client_params_t * params,
-			  void **conn_context)
+static int digestmd5_client_mech_new(void *glob_context,
+				     sasl_client_params_t * params,
+				     void **conn_context)
 {
     context_t *text;
     
@@ -3784,15 +3606,14 @@ digestmd5_client_mech_step1(client_context_t *ctext,
     return SASL_CONTINUE;
 }
 
-static int
-digestmd5_client_mech_step2(client_context_t *ctext,
-			    sasl_client_params_t *params,
-			    const char *serverin,
-			    unsigned serverinlen,
-			    sasl_interact_t **prompt_need,
-			    const char **clientout,
-			    unsigned *clientoutlen,
-			    sasl_out_params_t *oparams)
+static int digestmd5_client_mech_step2(client_context_t *ctext,
+				       sasl_client_params_t *params,
+				       const char *serverin,
+				       unsigned serverinlen,
+				       sasl_interact_t **prompt_need,
+				       const char **clientout,
+				       unsigned *clientoutlen,
+				       sasl_out_params_t *oparams)
 {
     context_t *text = (context_t *) ctext;
     int result = SASL_FAIL;
@@ -3951,15 +3772,14 @@ digestmd5_client_mech_step3(client_context_t *ctext,
     return result;
 }
 
-static int
-digestmd5_client_mech_step(void *conn_context,
-			   sasl_client_params_t *params,
-			   const char *serverin,
-			   unsigned serverinlen,
-			   sasl_interact_t **prompt_need,
-			   const char **clientout,
-			   unsigned *clientoutlen,
-			   sasl_out_params_t *oparams)
+static int digestmd5_client_mech_step(void *conn_context,
+				      sasl_client_params_t *params,
+				      const char *serverin,
+				      unsigned serverinlen,
+				      sasl_interact_t **prompt_need,
+				      const char **clientout,
+				      unsigned *clientoutlen,
+				      sasl_out_params_t *oparams)
 {
     context_t *text = (context_t *) conn_context;
     client_context_t *ctext = (client_context_t *) conn_context;
@@ -4042,8 +3862,8 @@ digestmd5_client_mech_step(void *conn_context,
     return SASL_FAIL; /* should never get here */
 }
 
-static void
-digestmd5_client_mech_dispose(void *conn_context, const sasl_utils_t *utils)
+static void digestmd5_client_mech_dispose(void *conn_context,
+					  const sasl_utils_t *utils)
 {
     client_context_t *ctext = (client_context_t *) conn_context;
     

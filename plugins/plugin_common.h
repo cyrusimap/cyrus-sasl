@@ -1,7 +1,7 @@
 
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.h,v 1.16 2003/04/07 16:03:43 rjs3 Exp $
+ * $Id: plugin_common.h,v 1.17 2003/07/23 00:57:48 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -172,13 +172,28 @@ int _plug_make_prompts(const sasl_utils_t *utils,
 		       const char *realm_chal,
 		       const char *realm_prompt, const char *realm_def);
 
-int _plug_decode(const sasl_utils_t *utils,
-		 void *context,
+typedef struct decode_context {
+    const sasl_utils_t *utils;
+    unsigned int needsize;	/* How much of the 4-byte size do we need? */
+    char sizebuf[4];		/* Buffer to accumulate the 4-byte size */
+    unsigned int size;		/* Absolute size of the encoded packet */
+    char *buffer;		/* Buffer to accumulate an encoded packet */
+    unsigned int cursize;	/* Amount of packet data in the buffer */
+    unsigned int in_maxbuf;	/* Maximum allowed size of an encoded packet */
+} decode_context_t;
+
+void _plug_decode_init(decode_context_t *text,
+		       const sasl_utils_t *utils, unsigned int in_maxbuf);
+
+int _plug_decode(decode_context_t *text,
 		 const char *input, unsigned inputlen,
 		 char **output, unsigned *outputsize, unsigned *outputlen,
-		 int (*decode_pkt)(void *context,
-				   const char **input, unsigned *inputlen,
-				   char **output, unsigned *outputlen));
+		 int (*decode_pkt)(void *rock,
+				   const char *input, unsigned inputlen,
+				   char **output, unsigned *outputlen),
+		 void *rock);
+
+void _plug_decode_free(decode_context_t *text);
 
 int _plug_parseuser(const sasl_utils_t *utils,
 		    char **user, char **realm, const char *user_realm, 

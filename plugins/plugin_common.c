@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.c,v 1.13 2003/02/13 19:56:05 rjs3 Exp $
+ * $Id: plugin_common.c,v 1.14 2003/07/23 00:57:48 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -603,49 +603,110 @@ int _plug_make_prompts(const sasl_utils_t *utils,
     return SASL_OK;
 }
 
+void _plug_decode_init(decode_context_t *text,
+		       const sasl_utils_t *utils, unsigned int in_maxbuf)
+{
+    memset(text, 0, sizeof(decode_context_t));
+
+    text->utils = utils;
+    text->needsize = 4;
+    text->in_maxbuf = in_maxbuf;
+}
+
 /*
- * Decode and concatenate multiple packets using the given function
- * to decode each packet.
+ * Decode as much of the input as possible (possibly none),
+ * using decode_pkt() to decode individual packets.
  */
-int _plug_decode(const sasl_utils_t *utils,
-		 void *context,
+int _plug_decode(decode_context_t *text,
 		 const char *input, unsigned inputlen,
 		 char **output,		/* output buffer */
 		 unsigned *outputsize,	/* current size of output buffer */
 		 unsigned *outputlen,	/* length of data in output buffer */
-		 int (*decode_pkt)(void *context,
-				   const char **input, unsigned *inputlen,
-				   char **output, unsigned *outputlen))
+		 int (*decode_pkt)(void *rock,
+				   const char *input, unsigned inputlen,
+				   char **output, unsigned *outputlen),
+		 void *rock)
 {
-    char *tmp = NULL;
-    unsigned tmplen = 0;
+    unsigned int tocopy;
+    unsigned diff;
+    char *tmp;
+    unsigned tmplen;
     int ret;
     
     *outputlen = 0;
+    *output = NULL;
 
-    while (inputlen!=0)
-    {
-	/* no need to free tmp */
-      ret = decode_pkt(context, &input, &inputlen, &tmp, &tmplen);
+    while (inputlen) { /* more input */
+	if (text->needsize) { /* need to get the rest of the 4-byte size */
 
-      if(ret != SASL_OK) return ret;
+	    /* copy as many bytes (up to 4) as we have into size buffer */
+	    tocopy = (inputlen > text->needsize) ? text->needsize : inputlen;
+	    memcpy(text->sizebuf + 4 - text->needsize, input, tocopy);
+	    text->needsize -= tocopy;
+	
+	    input += tocopy;
+	    inputlen -= tocopy;
+	
+	    if (!text->needsize) { /* we have the entire 4-byte size */
+		memcpy(&(text->size), text->sizebuf, 4);
+		text->size = ntohl(text->size);
+	
+		if (!text->size) /* should never happen */
+		    return SASL_FAIL;
+	    
+		if (text->size > text->in_maxbuf) {
+		    text->utils->log(NULL, SASL_LOG_ERR, 
+				     "encoded packet size too big (%d > %d)",
+				     text->size, text->in_maxbuf);
+		    return SASL_FAIL;
+		}
+	    
+		if (!text->buffer)
+		    text->buffer = text->utils->malloc(text->in_maxbuf);
+		if (text->buffer == NULL) return SASL_NOMEM;
 
-      if (tmp!=NULL) /* if received 2 packets merge them together */
-      {
-	  ret = _plug_buf_alloc(utils, output, outputsize,
-				*outputlen + tmplen + 1);
-	  if(ret != SASL_OK) return ret;
+		text->cursize = 0;
+	    }
+	}
 
-	  memcpy(*output + *outputlen, tmp, tmplen);
+	diff = text->size - text->cursize; /* bytes needed for full packet */
 
-	  /* Protect stupid clients */
-	  *(*output + *outputlen + tmplen) = '\0';
+	if (inputlen < diff) {	/* not a complete packet, need more input */
+	    memcpy(text->buffer + text->cursize, input, inputlen);
+	    text->cursize += inputlen;
+	    return SASL_OK;
+	}
 
-	  *outputlen+=tmplen;
-      }
+	/* copy the rest of the packet */
+	memcpy(text->buffer + text->cursize, input, diff);
+	input += diff;
+	inputlen -= diff;
+
+	/* decode the packet (no need to free tmp) */
+	ret = decode_pkt(rock, text->buffer, text->size, &tmp, &tmplen);
+	if (ret != SASL_OK) return ret;
+
+	/* append the decoded packet to the output */
+	ret = _plug_buf_alloc(text->utils, output, outputsize,
+			      *outputlen + tmplen + 1); /* +1 for NUL */
+	if (ret != SASL_OK) return ret;
+
+	memcpy(*output + *outputlen, tmp, tmplen);
+	*outputlen += tmplen;
+
+	/* protect stupid clients */
+	*(*output + *outputlen) = '\0';
+
+	/* reset for the next packet */
+	text->needsize = 4;
     }
 
     return SASL_OK;    
+}
+
+void _plug_decode_free(decode_context_t *text)
+{
+    if (text->buffer) text->utils->free(text->buffer);
 }
 
 /* returns the realm we should pretend to be in */

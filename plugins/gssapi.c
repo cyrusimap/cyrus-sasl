@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.75 2003/07/02 13:13:42 rjs3 Exp $
+ * $Id: gssapi.c,v 1.76 2003/07/23 00:57:47 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -87,7 +87,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.75 2003/07/02 13:13:42 rjs3 Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.76 2003/07/23 00:57:47 ken3 Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -118,12 +118,7 @@ typedef struct context {
     const sasl_utils_t *utils;
     
     /* layers buffering */
-    char *buffer;
-    int bufsize;
-    char sizebuf[4];
-    int cursize;
-    int size;
-    unsigned needsize;
+    decode_context_t decode_context;
     
     char *encode_buf;                /* For encoding/decoding mem management */
     char *decode_buf;
@@ -340,79 +335,24 @@ static int gssapi_integrity_encode(void *context, const struct iovec *invec,
     return sasl_gss_encode(context,invec,numiov,output,outputlen,0);
 }
 
-#define myMIN(a,b) (((a) < (b)) ? (a) : (b))
-
-static int gssapi_decode_once(void *context,
-			      const char **input, unsigned *inputlen,
-			      char **output, unsigned *outputlen)
+static int gssapi_decode_packet(void *context,
+				const char *input, unsigned inputlen,
+				char **output, unsigned *outputlen)
 {
     context_t *text = (context_t *) context;
     OM_uint32 maj_stat, min_stat;
     gss_buffer_t input_token, output_token;
     gss_buffer_desc real_input_token, real_output_token;
     int result;
-    unsigned diff;
     
     if (text->state != SASL_GSSAPI_STATE_AUTHENTICATED) {
 	SETERROR(text->utils, "GSSAPI Failure");
 	return SASL_NOTDONE;
     }
     
-    /* first we need to extract a packet */
-    if (text->needsize > 0) {
-	/* how long is it? */
-	int tocopy = myMIN(text->needsize, *inputlen);
-	
-	memcpy(text->sizebuf + 4 - text->needsize, *input, tocopy);
-	text->needsize -= tocopy;
-	*input += tocopy;
-	*inputlen -= tocopy;
-	
-	if (text->needsize == 0) {
-	    /* got the entire size */
-	    memcpy(&text->size, text->sizebuf, 4);
-	    text->size = ntohl(text->size);
-	    text->cursize = 0;
-	    
-	    if (text->size > 0xFFFFFF || text->size <= 0) {
-		SETERROR(text->utils, "Illegal size in sasl_gss_decode_once");
-		return SASL_FAIL;
-	    }
-	    
-	    if (text->bufsize < text->size + 5) {
-		result = _plug_buf_alloc(text->utils, &text->buffer,
-					 &(text->bufsize), text->size+5);
-		if(result != SASL_OK) return result;
-	    }
-	}
-	if (*inputlen == 0) {
-	    /* need more data ! */
-	    *outputlen = 0;
-	    *output = NULL;
-	    
-	    return SASL_OK;
-	}
-    }
-    
-    diff = text->size - text->cursize;
-    
-    if (*inputlen < diff) {
-	/* ok, let's queue it up; not enough data */
-	memcpy(text->buffer + text->cursize, *input, *inputlen);
-	text->cursize += *inputlen;
-	*inputlen = 0;
-	*outputlen = 0;
-	*output = NULL;
-	return SASL_OK;
-    } else {
-	memcpy(text->buffer + text->cursize, *input, diff);
-	*input += diff;
-	*inputlen -= diff;
-    }
-    
     input_token = &real_input_token; 
-    real_input_token.value = text->buffer;
-    real_input_token.length = text->size;
+    real_input_token.value = (char *) input;
+    real_input_token.length = inputlen;
     
     output_token = &real_output_token;
     output_token->value = NULL;
@@ -451,10 +391,6 @@ static int gssapi_decode_once(void *context,
 	gss_release_buffer(&min_stat, output_token);
     }
     
-    /* reset for the next packet */
-    text->size = -1;
-    text->needsize = 4;
-    
     return SASL_OK;
 }
 
@@ -465,9 +401,9 @@ static int gssapi_decode(void *context,
     context_t *text = (context_t *) context;
     int ret;
     
-    ret = _plug_decode(text->utils, context, input, inputlen,
+    ret = _plug_decode(&text->decode_context, input, inputlen,
 		       &text->decode_buf, &text->decode_buf_len, outputlen,
-		       gssapi_decode_once);
+		       gssapi_decode_packet, text);
     
     *output = text->decode_buf;
     
@@ -483,8 +419,6 @@ static context_t *gss_new_context(const sasl_utils_t *utils)
     
     memset(ret,0,sizeof(context_t));
     ret->utils = utils;
-    
-    ret->needsize = 4;
     
     return ret;
 }
@@ -540,11 +474,8 @@ static void sasl_gss_free_context_contents(context_t *text)
 	text->utils->free(text->enc_in_buf);
 	text->enc_in_buf = NULL;
     }
-    
-    if (text->buffer) {
-	text->utils->free(text->buffer);
-	text->buffer = NULL;
-    }
+
+    _plug_decode_free(&text->decode_context);
     
     if (text->authid) { /* works for both client and server */
 	text->utils->free(text->authid);
@@ -1023,6 +954,11 @@ gssapi_server_mech_step(void *conn_context,
 	gss_release_buffer(&min_stat, output_token);
 	
 	text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
+	
+	/* used by layers */
+	_plug_decode_init(&text->decode_context, text->utils,
+			  (params->props.maxbufsize > 0xFFFFFF) ? 0xFFFFFF :
+			  params->props.maxbufsize);
 	
 	oparams->doneflag = 1;
 	
@@ -1516,6 +1452,11 @@ static int gssapi_client_mech_step(void *conn_context,
 	text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
 	
 	oparams->doneflag = 1;
+	
+	/* used by layers */
+	_plug_decode_init(&text->decode_context, text->utils,
+			  (params->props.maxbufsize > 0xFFFFFF) ? 0xFFFFFF :
+			  params->props.maxbufsize);
 	
 	return SASL_OK;
     }

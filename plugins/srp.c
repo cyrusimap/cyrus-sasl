@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.12 2001/12/18 18:06:07 ken3 Exp $
+ * $Id: srp.c,v 1.13 2002/01/03 22:02:26 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -49,9 +49,9 @@
 #include <stdio.h>
 
 /* for big number support */
-#include <gmp.h>
+#include <openssl/bn.h>
 
-/* for digest and encryption support */
+/* for digest and cipher support */
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 
@@ -78,8 +78,6 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 
 #define SRP_VERSION (5)
 
-/* Size of N in bits */
-#define BITSFORN 128
 /* Size of diffie-hellman secrets a and b */
 #define BITSFORab 64
 /* How many bytes big should the salt be? */
@@ -185,15 +183,15 @@ typedef struct srp_options_s {
 typedef struct context_s {
     int state;
 
-    mpz_t N;
-    mpz_t g;
+    BIGNUM N;
+    BIGNUM g;
 
-    mpz_t v;			/* verifier */
+    BIGNUM v;			/* verifier */
 
-    mpz_t B;
+    BIGNUM B;
 
-    mpz_t a;
-    mpz_t A;
+    BIGNUM a;
+    BIGNUM A;
 
     char *K;
     int Klen;
@@ -876,63 +874,38 @@ GetOS(const sasl_utils_t *utils, char *data, int datalen,
     return SASL_OK;
 }
 
-static int 
-tobits(char c)
-{
-    if ((int) isdigit(c))
-	return c-'0';
-
-    if ((c>='a') && (c<='f'))
-	return c-'a'+10;
-
-    if ((c>='A') && (c<='F'))
-	return c-'A'+10;
-
-    return 0;
-}
-
 /* Convert a big integer to it's byte representation
  *
  *
  */
 static int
-BigIntToBytes(mpz_t num, char *out, int maxoutlen, int *outlen)
+BigIntToBytes(BIGNUM *num, char *out, int maxoutlen, int *outlen)
 {
-    char buf[4096];
-    char *bufp = buf;
     int len;
-    int prefixlen = 0;
-    int i;
 
-    len = mpz_sizeinbase (num, 16);
+    len = BN_num_bytes(num);
 
     if (len > maxoutlen) return SASL_FAIL;
 
-    mpz_get_str (buf, 16, num);
-
-    if (len%2!=0) {
-	out[0]=tobits(*bufp);
-	bufp++;
-	len--;
-	prefixlen=1;
-    }
-
-    for (i=0; i< len/2; i++ )
-    {
-	out[prefixlen+i] = (tobits(*bufp) << 4);
-	bufp++;
-	out[prefixlen+i] |= tobits(*bufp);
-	bufp++;
-    }
-
-    *outlen = prefixlen+(len/2);
+    *outlen = BN_bn2bin(num, out);
 
     return SASL_OK;    
 }
 
+static int BigIntCmpWord(BIGNUM *a, BN_ULONG w)
+{
+  BIGNUM *b = BN_new();
+  int r;
+
+  BN_set_word(b, w);
+  r = BN_cmp(a, b);
+  BN_free(b);
+  return r;
+}
+
 static int
 MakeMPI(const sasl_utils_t *utils,
-	mpz_t num,
+	BIGNUM *num,
 	char **out,
 	int *outlen)
 {
@@ -942,7 +915,7 @@ MakeMPI(const sasl_utils_t *utils,
     int alloclen;
     int r;
 
-    alloclen = mpz_sizeinbase (num, 16);
+    alloclen = BN_num_bytes(num);
    
     *out = utils->malloc(alloclen+2);
     if (!*out) return SASL_NOMEM;
@@ -963,37 +936,8 @@ MakeMPI(const sasl_utils_t *utils,
     return SASL_OK;
 }
 
-static char 
-frombits(unsigned int i)
-{
-    assert(i <= 15);
-
-    if (i<=9) return '0'+i;
-
-    return 'a'+ (i-10);
-}
-
-static void
-DataToBigInt(unsigned char *in, int inlen, mpz_t *outnum)
-{
-    int i;
-    char buf[4096];
-
-    mpz_init(*outnum);    
-
-    memset(buf, '\0', sizeof(buf));
-
-    for (i = 0; i < inlen; i++) 
-    {
-	buf[i*2]   = frombits(in[i] >> 4);
-	buf[i*2+1] = frombits(in[i] & 15);
-    }
-    
-    mpz_set_str (*outnum, buf, 16);
-}
-
 static int
-GetMPI(unsigned char *data, int datalen, mpz_t *outnum,
+GetMPI(unsigned char *data, int datalen, BIGNUM *outnum,
        char **left, int *leftlen)
 {
 
@@ -1014,7 +958,8 @@ GetMPI(unsigned char *data, int datalen, mpz_t *outnum,
 	return SASL_FAIL;
     }
 
-    DataToBigInt(data+2, len, outnum);
+    BN_init(outnum);
+    BN_bin2bn(data+2, len, outnum);
 
     *left = data+len+2;
     *leftlen = datalen - (len+2);
@@ -1023,12 +968,12 @@ GetMPI(unsigned char *data, int datalen, mpz_t *outnum,
 }
 
 static void
-GetRandBigInt(mpz_t out)
+GetRandBigInt(BIGNUM *out)
 {
-    mpz_init(out);
+    BN_init(out);
 
     /* xxx likely should use sasl random funcs */
-    mpz_random(out, BITSFORab/(8*sizeof(int)));
+    BN_rand(out, BITSFORab, 0, 0);
 }
 
 /* Call the hash function on the data of a BigInt
@@ -1049,7 +994,7 @@ HashData(context_t *text, char *in, int inlen,
  *
  */
 static int
-HashBigInt(context_t *text, mpz_t in, unsigned char outhash[], int *outlen)
+HashBigInt(context_t *text, BIGNUM *in, unsigned char outhash[], int *outlen)
 {
     int r;
     char buf[4096];
@@ -1067,7 +1012,7 @@ HashBigInt(context_t *text, mpz_t in, unsigned char outhash[], int *outlen)
 }
 
 static int
-HashInterleaveBigInt(context_t *text, mpz_t num, char **out, int *outlen)
+HashInterleaveBigInt(context_t *text, BIGNUM *num, char **out, int *outlen)
 {
     int r;
     char buf[4096];
@@ -1136,7 +1081,7 @@ CalculateX(context_t *text,
 	   const char *user, 
 	   const char *pass, 
 	   int passlen, 
-	   mpz_t *x)
+	   BIGNUM *x)
 {
     EVP_MD_CTX mdctx;
     char hash[EVP_MAX_MD_SIZE];
@@ -1162,7 +1107,8 @@ CalculateX(context_t *text,
 
     EVP_DigestFinal(&mdctx, hash, &hashlen);
 
-    DataToBigInt(hash, hashlen, x);
+    BN_init(x);
+    BN_bin2bn(hash, hashlen, x);
 
     return SASL_OK;
 }
@@ -1187,50 +1133,68 @@ CalculateK_client(context_t *text,
 {
     int r;
     unsigned char hash[EVP_MAX_MD_SIZE];
-    mpz_t x;
-    mpz_t u;
-    mpz_t aux;
-    mpz_t gx;
-    mpz_t base;
-    mpz_t S;
+    BIGNUM x;
+    BIGNUM u;
+    BIGNUM aux;
+    BIGNUM gx;
+    BIGNUM base;
+    BIGNUM S;
+    BN_CTX *ctx = BN_CTX_new();
+
+    /* u is first 32 bits of B hashed; MSB first */
+    r = HashBigInt(text, &text->B, hash, NULL);
+    if (r) goto err;
+    BN_init(&u);
+    BN_bin2bn(hash, 4, &u);
+
+    /* per Tom Wu: make sure u != 0 */
+    if (BN_is_zero(&u)) {
+	text->utils->log(NULL, SASL_LOG_ERR, "Illegal value for 'u'\n");
+	r = SASL_FAIL;
+	goto err;
+    }
 
     r = CalculateX(text, salt, saltlen, user, pass, passlen, &x);
     if (r) return r;
 
-    /* gx = g^x */
-    mpz_init(gx);
-    mpz_powm (gx, text->g, x, text->N);
+    /* a + ux */
+    BN_init(&aux);
+    BN_mul(&aux, &u, &x, ctx);
+    BN_add(&aux, &aux, &text->a);
 
-    /* base = B - gx */
-    mpz_init(base);
-    mpz_sub(base, text->B, gx);
+    /* gx = g^x % N */
+    BN_init(&gx);
+    BN_mod_exp(&gx, &text->g, &x, &text->N, ctx);
 
-    /* u is first 32 bits of B hashed; MSB first */
-    r = HashBigInt(text, text->B, hash, NULL);
-    if (r) return r;
-    mpz_init(u);
-    DataToBigInt(hash, 4, &u);
-
-    /* per Tom Wu: make sure u != 0 */
-    if (mpz_cmp_ui(u, 0) == 0) {
-	text->utils->log(NULL, SASL_LOG_ERR, "Illegal value for 'u'\n");
-	return SASL_FAIL;
+    /* base = (B - g^x) % N */
+    BN_init(&base);
+    BN_sub(&base, &text->B, &gx);
+    /* do mod N - can be replaced with BN_mod_sub() */
+    BN_mod(&base, &base, &text->N, ctx);
+    if (BigIntCmpWord(&base, 0) < 0) {
+	BN_add(&base, &base, &text->N);
     }
 
-    /* a + ux */
-    mpz_init(aux);
-    mpz_mul(aux, u, x);
-    mpz_add(aux, aux, text->a);
-
     /* S = base^aux % N */
-    mpz_init(S);
-    mpz_powm (S, base, aux, text->N);
+    BN_init(&S);
+    BN_mod_exp(&S, &base, &aux, &text->N, ctx);
 
     /* K = Hi(S) */
-    r = HashInterleaveBigInt(text, S, key, keylen);
-    if (r) return r;
+    r = HashInterleaveBigInt(text, &S, key, keylen);
+    if (r) goto err;
 
-    return SASL_OK;
+    r = SASL_OK;
+
+  err:
+    BN_CTX_free(ctx);
+    BN_clear_free(&x);
+    BN_clear_free(&u);
+    BN_clear_free(&aux);
+    BN_clear_free(&gx);
+    BN_clear_free(&base);
+    BN_clear_free(&S);
+
+    return r;
 }
 
 
@@ -1253,13 +1217,13 @@ CalculateK_client(context_t *text,
  */
 static int
 CalculateM1(context_t *text,
-	    mpz_t N,
-	    mpz_t g,
+	    BIGNUM *N,
+	    BIGNUM *g,
 	    char *U,     /* username */
 	    char *salt, int saltlen,  /* salt */
 	    char *L,     /* server's options */
-	    mpz_t A,     /* client's public key */
-	    mpz_t B,     /* server's public key */
+	    BIGNUM *A,   /* client's public key */
+	    BIGNUM *B,   /* server's public key */
 	    char *K, int Klen,
 	    char **out, int *outlen)
 {
@@ -1364,7 +1328,7 @@ CalculateM1(context_t *text,
  */
 static int
 CalculateM2(context_t *text,
-	    mpz_t A,
+	    BIGNUM *A,
 	    char *U,
 	    char *I,
 	    char *o,
@@ -1893,12 +1857,12 @@ static void srp_both_mech_dispose(void *conn_context,
   if (!text)
     return;
 
-  mpz_clear(text->N);
-  mpz_clear(text->g);
-  mpz_clear(text->v);
-  mpz_clear(text->B);
-  mpz_clear(text->a);
-  mpz_clear(text->A);
+  BN_clear_free(&text->N);
+  BN_clear_free(&text->g);
+  BN_clear_free(&text->v);
+  BN_clear_free(&text->B);
+  BN_clear_free(&text->a);
+  BN_clear_free(&text->A);
 
   if (text->K)                utils->free(text->K);
   if (text->M1)               utils->free(text->M1);
@@ -2025,28 +1989,29 @@ srp_md5_server_mech_new(void *glob_context __attribute__((unused)),
  *
  * All arithmetic is done modulo N
  */
-static int generate_N_and_g(mpz_t N, mpz_t g)
+static int generate_N_and_g(BIGNUM *N, BIGNUM *g)
 {
     int result;
     
-    mpz_init(N);
-    result = mpz_set_str (N, Ng_tab[NUM_Ng-1].N, 16);
-    if (result) return SASL_FAIL;
+    BN_init(N);
+    result = BN_hex2bn(&N, Ng_tab[NUM_Ng-1].N);
+    if (!result) return SASL_FAIL;
 
-    mpz_init(g);
-    mpz_set_ui (g, Ng_tab[NUM_Ng-1].g);
+    BN_init(g);
+    BN_set_word(g, Ng_tab[NUM_Ng-1].g);
 
     return SASL_OK;
 }
 
 static int
 CalculateV(context_t *text,
-	   mpz_t N, mpz_t g,
+	   BIGNUM *N, BIGNUM *g,
 	   const char *user,
 	   const char *pass, unsigned passlen,
-	   mpz_t *v, char **salt, int *saltlen)
+	   BIGNUM *v, char **salt, int *saltlen)
 {
-    mpz_t x;
+    BIGNUM x;
+    BN_CTX *ctx = BN_CTX_new();
     int r;    
 
     /* generate <salt> */    
@@ -2063,69 +2028,78 @@ CalculateV(context_t *text,
     }
 
     /* v = g^x % N */
-    mpz_init(*v);
-    mpz_powm (*v, g, x, N);
+    BN_init(v);
+    BN_mod_exp(v, g, &x, N, ctx);
 
-    mpz_clear(x);
+    BN_CTX_free(ctx);
+    BN_clear_free(&x);
 
     return r;   
 }
 
 static int
-ServerCalculateK(context_t *text, mpz_t v,
-		 mpz_t N, mpz_t g, mpz_t B, mpz_t A,
+ServerCalculateK(context_t *text, BIGNUM *v,
+		 BIGNUM *N, BIGNUM *g, BIGNUM *B, BIGNUM *A,
 		 char **key, int *keylen)
 {
     unsigned char hash[EVP_MAX_MD_SIZE];
-    mpz_t b;
-    mpz_t u;
-    mpz_t S;
+    BIGNUM b;
+    BIGNUM u;
+    BIGNUM S;
+    BN_CTX *ctx = BN_CTX_new();
     int r;
 
     do {
 	/* Generate b */
-	GetRandBigInt(b);
+	GetRandBigInt(&b);
 
 	/* Per [SRP]: make sure b > log[g](N) -- g is always 2 */
-	mpz_add_ui(b, b, mpz_sizeinbase(N, 2));
+        BN_add_word(&b, BN_num_bits(N));
 
 	/* B = (v + g^b) % N */
-	mpz_init(B);
-
-	mpz_powm(B, g, b, N);
-	mpz_add(B, B, v);
-	mpz_mod(B, B, N);
+	BN_init(B);
+	BN_mod_exp(B, g, &b, N, ctx);
+	BN_add(B, B, v);
+	BN_mod(B, B, N, ctx);
 
 	/* u is first 32 bits of B hashed; MSB first */
 	r = HashBigInt(text, B, hash, NULL);
 	if (r) return r;
-	mpz_init(u);
-	DataToBigInt(hash, 4, &u);
-    } while (mpz_cmp_ui(u, 0) == 0); /* Per Tom Wu: make sure u != 0 */
+
+	BN_init(&u);
+	BN_bin2bn(hash, 4, &u);
+
+    } while (BN_is_zero(&u)); /* Per Tom Wu: make sure u != 0 */
 
     /* calculate K
      *
      * Host:  S = (Av^u) ^ b % N             (computes session key)
      * Host:  K = Hi(S)
      */
+    BN_init(&S);
+    BN_mod_exp(&S, v, &u, N, ctx);
+    BN_mod_mul(&S, &S, A, N, ctx);
 
-    mpz_init(S);
-    mpz_powm(S, v, u, N);
-    mpz_mul(S, S, A);
-    mpz_mod(S, S, N);
-
-    mpz_powm(S, S, b, N);
+    BN_mod_exp(&S, &S, &b, N, ctx);
 
     /* K = Hi(S) */
-    r = HashInterleaveBigInt(text, S, key, keylen);
-    if (r) return r;
+    r = HashInterleaveBigInt(text, &S, key, keylen);
+    if (r) goto err;
 
-    return SASL_OK;
+    r = SASL_OK;
+
+  err:
+    BN_CTX_free(ctx);
+    BN_clear_free(&b);
+    BN_clear_free(&u);
+    BN_clear_free(&S);
+
+    return r;
 }
 
 static int
 ParseUserSecret(const sasl_utils_t *utils, char *secret, size_t seclen,
-		mpz_t *v, char **salt, int *saltlen)
+		BIGNUM *v, char **salt, int *saltlen)
 {
     int r;
     char *data;
@@ -2238,7 +2212,7 @@ server_step1(context_t *text,
     }
 
     /* Generate N and g */
-    r = generate_N_and_g(text->N, text->g);
+    r = generate_N_and_g(&text->N, &text->g);
     if (r) {
 	text->utils->seterror(text->utils->conn, 0, 
 		      "Error calculating N and g");
@@ -2288,7 +2262,7 @@ server_step1(context_t *text,
 	    goto fail;
 	}
 
-	r = CalculateV(text, text->N, text->g, user,
+	r = CalculateV(text, &text->N, &text->g, user,
 		   auxprop_values[0].values[0], len,
 		   &text->v, &text->salt, &text->saltlen);
 	if (r) {
@@ -2324,15 +2298,15 @@ server_step1(context_t *text,
      * { mpi(N) mpi(g) os(s) utf8(L) }
      *
      */
-    
-    r = MakeMPI(params->utils, text->N, &mpiN, &mpiNlen);
+
+    r = MakeMPI(params->utils, &text->N, &mpiN, &mpiNlen);
     if (r) {
       params->utils->seterror(params->utils->conn, 0, 
 	"Error creating 'mpi' string for N");
       goto fail;
     }
     
-    r = MakeMPI(params->utils, text->g, &mpig, &mpiglen);
+    r = MakeMPI(params->utils, &text->g, &mpig, &mpiglen);
     if (r) {
       params->utils->seterror(params->utils->conn, 0, 
 	"Error creating 'mpi' string for g");
@@ -2416,7 +2390,7 @@ server_step2(context_t *text,
     }
 
     /* Per [SRP]: reject A <= 0 */
-    if (mpz_cmp_ui(text->A, 0) <= 0) {
+    if (BigIntCmpWord(&text->A, 0) <= 0) {
 	params->utils->log(NULL, SASL_LOG_ERR, "Illegal value for 'A'\n");
 	return SASL_FAIL;
     }
@@ -2448,8 +2422,8 @@ server_step2(context_t *text,
     }
 
     /* Calculate K (and B) */
-    r = ServerCalculateK(text, text->v,
-			 text->N, text->g, text->B, text->A,
+    r = ServerCalculateK(text, &text->v,
+			 &text->N, &text->g, &text->B, &text->A,
 			 &text->K, &text->Klen);
     if (r) {
       params->utils->seterror(params->utils->conn, 0, 
@@ -2479,8 +2453,7 @@ server_step2(context_t *text,
      * { mpi(B) }
      */
 
-    
-    r = MakeMPI(params->utils, text->B, &mpiB, &mpiBlen);
+    r = MakeMPI(params->utils, &text->B, &mpiB, &mpiBlen);
     if (r) {
       params->utils->seterror(params->utils->conn, 0, 
 	"Error turning 'B' into 'mpi' string");
@@ -2556,9 +2529,9 @@ server_step3(context_t *text,
     }
 
     /* See if M1 is correct */
-    r = CalculateM1(text, text->N, text->g, text->authid,
+    r = CalculateM1(text, &text->N, &text->g, text->authid,
 		    text->salt, text->saltlen,
-		    text->server_options, text->A, text->B,
+		    text->server_options, &text->A, &text->B,
 		    text->K, text->Klen, &myM1, &myM1len);
     if (r) {	
       params->utils->seterror(params->utils->conn, 0, 
@@ -2585,7 +2558,7 @@ server_step3(context_t *text,
     }
 
     /* calculate M2 to send */
-    r = CalculateM2(text, text->A, text->authid, text->userid,
+    r = CalculateM2(text, &text->A, text->authid, text->userid,
 		    text->client_options, myM1, myM1len, text->K, text->Klen,
 		    &M2, &M2len);
     if (r) {
@@ -2724,9 +2697,9 @@ srp_setpass(context_t *text,
     if ((flags & SASL_SET_DISABLE) || pass == NULL) {
 	sec = NULL;
     } else {
-	mpz_t N;
-	mpz_t g;
-	mpz_t v;
+	BIGNUM N;
+	BIGNUM g;
+	BIGNUM v;
 	char *salt;
 	int saltlen;
 	char *mpiv = NULL;
@@ -2736,14 +2709,14 @@ srp_setpass(context_t *text,
 	const char *buffer = NULL;
 	int bufferlen;
 
-	r = generate_N_and_g(N, g);
+	r = generate_N_and_g(&N, &g);
 	if (r) {
 	    text->utils->seterror(text->utils->conn, 0, 
 				  "Error calculating N and g");
 	    return r;
 	}
 
-	r = CalculateV(text, N, g, user, pass, passlen, &v, &salt, &saltlen);
+	r = CalculateV(text, &N, &g, user, pass, passlen, &v, &salt, &saltlen);
 	if (r) {
 	    text->utils->seterror(text->utils->conn, 0, 
 				  "Error calculating v");
@@ -2756,7 +2729,7 @@ srp_setpass(context_t *text,
 	 *  salt - os 
 	 */
 
-	r = MakeMPI(text->utils, v, &mpiv, &mpivlen);
+	r = MakeMPI(text->utils, &v, &mpiv, &mpivlen);
 	if (r) {
 	    text->utils->seterror(text->utils->conn, 0, 
 				  "Error turning 'N' into 'mpi' string");
@@ -2793,9 +2766,9 @@ srp_setpass(context_t *text,
 	if (mpiv)   text->utils->free(mpiv);
 	if (osSalt) text->utils->free(osSalt);
 	if (buffer) text->utils->free((void *) buffer);
-	mpz_clear(N);
-	mpz_clear(g);
-	mpz_clear(v);
+	BN_clear_free(&N);
+	BN_clear_free(&g);
+	BN_clear_free(&v);
 
 	if (r) return r;
     }
@@ -3464,15 +3437,15 @@ client_step1(context_t *text,
 }
 
 /* Check to see if N,g is in the recommended list */
-static int check_N_and_g(mpz_t N, mpz_t g)
+static int check_N_and_g(BIGNUM *N, BIGNUM *g)
 {
     char *N_prime;
     unsigned long g_prime;
     unsigned i;
     int r = SASL_FAIL;
 
-    N_prime = mpz_get_str(NULL, 16, N);
-    g_prime = mpz_get_ui(g);
+    N_prime = BN_bn2hex(N);
+    g_prime = BN_get_word(g);
 
     for (i = 0; i < NUM_Ng; i++) {
 	if (!strcasecmp(N_prime, Ng_tab[i].N) && (g_prime == Ng_tab[i].g)) {
@@ -3481,7 +3454,7 @@ static int check_N_and_g(mpz_t N, mpz_t g)
 	}
     }
 
-    free(N_prime);
+    OPENSSL_free(N_prime);
     return r;
 }
 
@@ -3507,6 +3480,7 @@ client_step2(context_t *text,
      *  { mpi(N) mpi(g) os(s) utf8(L) }
      *
      */
+
     r = UnBuffer((char *) serverin, serverinlen, &data, &datalen);
     if (r) return r;
 
@@ -3525,7 +3499,7 @@ client_step2(context_t *text,
     }
 
     /* Check N and g to see if they are one of the recommended pairs */
-    r = check_N_and_g(text->N, text->g);
+    r = check_N_and_g(&text->N, &text->g);
     if (r) {
 	params->utils->log(NULL, SASL_LOG_ERR,
 			   "Values of 'N' and 'g' are not recommended\n");
@@ -3563,17 +3537,21 @@ client_step2(context_t *text,
     }
 
     /* create an 'a' */
-    GetRandBigInt(text->a);
+    GetRandBigInt(&text->a);
 
     /* Per [SRP]: make sure a > log[g](N) -- g is always 2 */
-    mpz_add_ui(text->a, text->a, mpz_sizeinbase(text->N, 2));
+    BN_add_word(&text->a, BN_num_bits(&text->N));
 
     /* calculate 'A' 
      *
      * A = g^a % N 
      */
-    mpz_init(text->A);
-    mpz_powm (text->A, text->g, text->a, text->N);
+    {
+	BN_CTX *ctx = BN_CTX_new();
+	BN_init(&text->A);
+	BN_mod_exp(&text->A, &text->g, &text->a, &text->N, ctx);
+	BN_CTX_free(ctx);
+    }
 
     /* make o */
     r = CreateClientOpts(params, &server_opts, &text->client_opts);
@@ -3600,7 +3578,7 @@ client_step2(context_t *text,
      * { mpi(A) uf8(I) utf8(o) }
      */
     
-    r = MakeMPI(params->utils, text->A, &mpiA, &mpiAlen);
+    r = MakeMPI(params->utils, &text->A, &mpiA, &mpiAlen);
     if (r) {
 	params->utils->log(NULL, SASL_LOG_ERR,
 			   "Error making MPI string from A\n");
@@ -3666,8 +3644,8 @@ client_step3(context_t *text,
     r = GetMPI((unsigned char *) data, datalen, &text->B, &data, &datalen);
     if (r) return r;
 
-    /* Per [SRP]: reject B <= 0 */
-    if (mpz_cmp_ui(text->B, 0) <= 0) {
+    /* Per [SRP]: reject B <= 0, B >= N */
+    if (BigIntCmpWord(&text->B, 0) <= 0 || BN_cmp(&text->B, &text->N) >= 0) {
 	params->utils->log(NULL, SASL_LOG_ERR, "Illegal value for 'B'\n");
 	return SASL_FAIL;
     }
@@ -3691,9 +3669,9 @@ client_step3(context_t *text,
     /* Now calculate M1 (client evidence)
      *
      */
-    r = CalculateM1(text, text->N, text->g, text->authid,
+    r = CalculateM1(text, &text->N, &text->g, text->authid,
 		    text->salt, text->saltlen,
-		    text->server_options, text->A, text->B,
+		    text->server_options, &text->A, &text->B,
 		    text->K, text->Klen,
 		    &text->M1, &text->M1len);
     if (r) return r;
@@ -3766,7 +3744,7 @@ client_step4(context_t *text,
     }
 
     /* calculate our own M2 */
-    r = CalculateM2(text, text->A, text->authid, text->userid,
+    r = CalculateM2(text, &text->A, text->authid, text->userid,
 		    text->client_options, text->M1, text->M1len,
 		    text->K, text->Klen, &myM2, &myM2len);
     if (r) {

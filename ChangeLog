@@ -1,3 +1,7 @@
+2002-01-03  Ken Murchison <ken@oceana.com>
+	* configure.in: removed check fpr gmp
+	* plugins/srp.c: migrated to OpenSSL's BN (removed GNU MP dependency)
+
 2001-12-20  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* sasldb/db_ndbm.c: Fixed small memory leak
 	  (Courtesy  Howard Chu <hyc@highlandsun.com>)

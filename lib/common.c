@@ -199,7 +199,7 @@ int _sasl_conn_init(sasl_conn_t *conn,
   conn->got_ip_remote = 0;
   conn->props.min_ssf = 0;
   if (secflags & SASL_SECURITY_LAYER)
-    conn->props.max_ssf = UINT_MAX;
+    conn->props.max_ssf = INT_MAX;
   else
     conn->props.max_ssf = 0;
   conn->props.security_flags = 0;

@@ -779,6 +779,7 @@ _sasl_log (sasl_conn_t *conn,
   void *log_ctx;
   
   int ival;
+  char *cval;
   va_list ap; /* varargs thing */
 
   /* See if we have a logging callback... */
@@ -826,9 +827,9 @@ _sasl_log (sasl_conn_t *conn,
 	switch(format[pos])
 	  {
 	  case 's': /* need to handle this */
-	    ival = va_arg(ap, int); /* get the next arg */
+	    cval = va_arg(ap, char *); /* get the next arg */
 	    result = add_string(&out, &alloclen,
-				&outlen, (char *) ival);
+				&outlen, cval);
 	      
 	    if (result != SASL_OK) /* add the string */
 	      return result;

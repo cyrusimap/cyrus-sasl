@@ -692,7 +692,7 @@ void detach_tty() {
 	strcat(pid_file, PID_FILE);
 	
 	/* Write out the pidfile */
-	pid_fd = open(pid_file, O_CREAT|O_TRUNC|O_RDWR, 0644);
+	pid_fd = open(pid_file, O_CREAT|O_RDWR, 0644);
 	if(pid_fd == -1) {
 	    rc = errno;
 	    exit_result = 1;
@@ -744,8 +744,9 @@ void detach_tty() {
 		
 		/* Write PID */
 		master_pid = getpid();
-		snprintf(buf, sizeof(buf), "%d\n", master_pid);
-		if (write(pid_fd, buf, strlen(buf)) == -1) {
+		snprintf(buf, sizeof(buf), "%-16d\n", master_pid);
+		if (lseek(pid_fd, 0, SEEK_SET) == -1 ||
+		    write(pid_fd, buf, strlen(buf)) == -1) {
 		    int exit_result = 1;
 		    rc = errno;
 		    

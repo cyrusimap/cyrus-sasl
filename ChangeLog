@@ -346,6 +346,49 @@ Fri Jul 23 14:47:33 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 	<hartmans@fundsxpress.com> and then by Leif Johansson
 	<leifj@matematik.su.se>.
 
+1999-07-23  Gregory M. Diskin  <diskin+@andrew.cmu.edu>
+
+	* include/saslplug.h: handle the fact that errno has been defined 
+	as a function in a dll, not an extern int
+
+	* include/saslutil.h: prototypes for getopt and getpass
+
+	* lib/checkpw.c:  tweaks for win32, mainly correct includes
+
+	* lib/common.c:  win32 tweaks, mainly, using the GetUserName 
+	standard call rather than getenv
+
+	* lib/config.c:  win32 tweak
+
+	* lib/getsubopt.c:  for win32, add getsubopt prototype
+
+	* lib/saslint.h:  for win32, minor fixes
+
+	* lib/saslutil.c:  add getpass, getopt functions for win32, plus 
+	declarations for exported variables.
+
+	* lib/server.c:  tweaks for win32
+
+	* lib/windlopen.c:  add dlopen change to windlopen.c
+
+	* plugins/cram.c:  fix includes for win32
+
+	* plugins/digestmd5.c:  fix includes for win32
+
+	* plugins/kerberos4.c:  fix includes for win32
+
+	* plugins/plain.c:  just a warning note for win32
+
+	* plugins/scram.c:  minor tweak for win32
+
+	* sample/sample-client.c:  for win32, eliminate frees which
+	break on win32, add declarations for getopt foo, add cast for
+	arg to htons
+
+	* sample/sample-server.c:  for win32, eliminate frees which
+	break on win32, add declarations for getopt foo, add cast for
+	arg to htons
+
 1999-07-20  Larry Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/anonymous.c (server_start): removed the need for

@@ -1,0 +1,217 @@
+auth_ldap module for saslauthd
+------------------------------
+
+Saslauthd can use an LDAP directory for authentication/authorization.
+
+Sections:
+1. Build saslauthd with ldap support
+2. Start saslauthd with ldap
+3. Testing
+4. Parameters
+5. Examples
+6. Notes
+7. Todo
+8. Feedback
+8. AUTHOR
+
+1. BUILD SASLAUTHD WITH LDAP SUPPORT
+------------------------------------
+
+Ensure that you have the OpenLDAP (http://www.openldap.org) libraries 2.0 or
+higher.  Fetch the latest cyrus-sasl package, 2.1.3 or higher,
+ftp://ftp.andrew.cmu.edu/pub/cyrus-mail/.
+
+Unpack cyrus-sasl:
+gzip -dc cyrus-sasl-2.1.3.tar.gz | tar xf -
+or
+tar ztf cyrus-sasl-2.1.3.tar.gz (if your tar supportz gzip)
+
+cd cyrus-sasl-2.1.3
+./configure --with-ldap  (you may need to add other options, check doc/index.html for more)
+make
+make install
+
+2. START SASLAUTHD WITH LDAP
+----------------------------
+
+Create /usr/local/etc/saslauthd.conf and add the following (modify to fit your
+environment):
+ldap_servers: ldap://10.1.1.15/ ldap://10.1.1.25/
+ldap_bind_dn: cn=operator,ou=Profile,o=foo.com
+ldap_bind_pw: secret
+
+Run saslauthd:
+saslauthd -a ldap
+
+If you want to specify a different configuration file, you can do something
+like:
+saslauthd -a ldap -O /etc/saslauthd.conf
+
+For more, check 'man saslauthd'
+
+3. TESTING
+----------
+
+First build testsaslauthd:
+cd $sasl_src/saslauthd
+make testsaslauthd
+
+Run test utility:
+./testsaslauthd -u igor -p secret
+0: OK "Success."
+
+If you get output other then Success, add 'ldap_verbose: yes' to your
+configuration file, restart salsauthd and watch the auth syslog facility.
+This should give you enough clues to correct your problem.
+
+
+4. PARAMETERS
+-------------
+
+The following are available ldap parameters.  There are quite a few of those,
+but only ldap_servers may need to be specified. The defaults for all other
+parameters are adequate for most installations.  
+
+Don't use quotes in these variables.  The defaults are specified within the
+first set of <>.  There may be a second set of <> which provide available
+options.
+
+ldap_servers: <ldap://localhost/>
+	Specify LDAP servers using uri format. e.g ldap://10.1.1.2/.  You
+	can specify multiple servers separated by a space.
+
+ldap_bind_dn: <none>
+	The distinguished name to bind to the ldap server(s).
+
+ldap_bind_pw: <none>
+	The password for the distinguished name above.
+
+ldap_version: <3> <2|3>
+	The LDAP version to use.
+
+ldap_timeout: <5>
+	The number of seconds a search can take before timing out.
+
+ldap_timelimit: <5>
+	The number of seconds that should be spent answering a search 
+	request.
+
+ldap_deref: <none> <search|find|always|never>
+	Determines how aliases are handled during a search.
+
+ldap_referals: <no>
+	Determines whether or not  the  client  should  follow
+        referrals.
+
+ldap_restart: <yes>
+	Determines whether LDAP I/O operations  are  automatically 
+	restarted if they abort prematurely.
+
+ldap_cache_expiry: <0>
+	Non zero enables client side caching.  Cached results will expire after this
+	many seconds, e.g. 30.  Use this option with care.  OpenLDAP folks consider
+	this feature experimental.
+
+ldap_cache_size: <0>
+	If the client side caching is enabled, this is its size in bytes.  
+	e.g. 32768.
+	
+ldap_scope: <sub> <sub|one|base>
+	The search scope.
+
+ldap_search_base: <none>
+	The base at which to conduct the search. e.g. o=example.com.
+
+ldap_auth_method: <bind> <bind|custom>
+	Specify an authentication method.  The default bind method uses
+	LDAP simple bind facility to verify the password.  The custom method 
+	uses userPassword attribute to verify the password.  Currently,
+	{CRYPT} hash in supported.
+
+ldap_filter: <uid=%u>
+	Specify a filter.  Use the %u and %r tokens for the username and 
+	realm substitution.  The %u token has to be used at minimum for
+	the filter to be useful.  If ldap_auth_method is bind, the filter
+	will search for the distingushed name.  Otherwise, the search will
+	look for the userPassword attribute.
+
+ldap_debug: <0>
+	What level to set for debugging in the OpenLDAP libraries.	
+	See ldap_set_option(3) for more (LDAP_OPT_DEBUG_LEVEL).
+
+ldap_verbose: <no>
+	Log additional information to auth.info syslog facility.  This 
+	should be used for debugging purposes only.
+
+ldap_ssl: <no>
+	Connect to LDAPS typically via port 636.
+
+ldap_start_tls: <no>
+	Force start_tls mechanism through the normal LDAP port.  If both 
+	ldap_ssl and ldap_start_tls are yes, ldap_start_tls will be used.
+
+ldap_tls_checkpeer: <no>
+	Require and verify server certificate.  If this option is yes,
+	you must specify ldap_tls_cacertfile or ldap_tls_cacertdir.
+
+ldap_tls_cacertfile: <none>
+	CA certificate for server certificate verification.
+
+ldap_tls_cacertdir: <none>
+	Path to directory with certificates of CAs.
+
+ldap_tls_ciphers: <DEFAULT>
+	The list of SSL/TLS ciphers to allow.  The format of the string is
+	described in ciphers(1).
+
+ldap_tls_cert: <none>
+	File containing the client certificate.
+
+ldap_tls_key: <none>
+	File containing the client key.
+
+5. NOTES
+--------
+
+For better performance ensure that the attributes specified in ldap_filter are
+indexed.  You can also experiment with the client side caching.  This can be a
+significant performance gain.  Use the client side caching with caution
+because it still an experimental OpenLDAP call.
+
+The following configuration setting enables client side caching and it
+sets the cache size to 32k:
+
+ldap_cache_expiry: 30
+ldap_cache_size: 32768
+
+6. TODO
+-------
+
+- Port to other ldap libraries
+- There may be bind problems when following referrals.  Normally this is not an
+  issue.  Fix.
+- Allow to specify an attribute other than userPassword for use in the custom
+  authentication method.
+- Add more password hashes such as md5, sha etc
+- Make a suggestion (possibly another authentication method?)
+
+7. FEEDBACK
+-----------
+
+Feedback is much appreciated!  Please drop me a note if you are successfully
+using ldap enabled saslauthd.  Any code improvements or suggestion are welcome.
+
+If you have questions, send them to cyrus-sasl@lists.andrew.cmu.edu.  Please
+include relevant information about your saslauthd setup: at minimum provide
+your saslauth.conf, output from syslog and which directory server you're using.
+
+8. AUTHOR
+---------
+
+Igor Brezac <igor@ipass.net> with help and suggestions from numerous great
+folks around the Net.  I borrowed ideas from padl pam_ldap, postfix, sendmail
+and freeradius.  
+
+----------------------------------------------------------------------
+Visit Istra, Croatia.  One of the most beautiful parts of the world!!!
+----------------------------------------------------------------------

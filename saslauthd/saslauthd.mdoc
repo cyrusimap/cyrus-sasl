@@ -1,4 +1,4 @@
-.\" $Id: saslauthd.mdoc,v 1.9 2002/05/17 16:43:22 rjs3 Exp $
+.\" $Id: saslauthd.mdoc,v 1.10 2002/05/28 19:06:12 rjs3 Exp $
 .\" Copyright 1997-2001 Messaging Direct Ltd. All rights reserved.
 .\"
 .\" This manpage uses the BSD mdoc manpage macros. Please don't
@@ -177,6 +177,13 @@ library routines. Some systems
 honour the
 .Fl T
 flag.
+.It Li ldap
+.Em (All platforms that support OpenLDAP 2.0 or higher)
+.Pp
+Authenticate against an ldap server.  The ldap configuration parameters
+are read from /usr/local/etc/saslauthd.conf.  The location of this file
+can be changed with the -O parameter. See the LDAP NOTES section for the
+list of available parameters.
 .It Li sasldb
 .Em (All platforms)
 .Pp
@@ -212,10 +219,107 @@ and removing
 these ticket files can cause serious performance degradation on busy
 servers. (Kerberos
 was never intended to be used in this manner, anyway.)
+.Sh LDAP NOTES
+The following are available ldap parameters.  There are quite a few of those, but only ldap_servers may need to be specified. The defaults for all other parameters are adequate for most installation.  For best performance ensure that the attributes specified in ldap_filter are indexed.  You can also experiment with the client side caching.  This can be a significant performance gain.  Use the client side caching with caution because it still an experimental OpenLDAP call.
+.Bl -tag -width indent
+.It ldap_servers: <ldap://localhost/>
+.Pp
+Specify LDAP servers using uri format. e.g ldap://10.1.1.2/.  You can specify multiple servers separated by a space.
+.It ldap_bind_dn: <none>
+.Pp
+The distinguished name to bind to the ldap server(s).
+.It ldap_bind_pw: <none>
+.Pp
+The password for the distinguished name above.
+.It ldap_version: <3> <2|3>
+.Pp
+The LDAP version to use.
+.It ldap_timeout: <5>
+.Pp
+The number of seconds a search can take before timing out.
+.It ldap_timelimit: <5>
+.Pp
+The number of seconds that should be spent answering a search request.
+.It ldap_deref: <none> <search|find|always|never>
+.Pp
+Determines how aliases are handled during a search.
+.It ldap_referals: <no>
+.Pp
+Determines whether or not the client should follow referrals.
+.It ldap_restart: <yes>
+.Pp
+Determines whether LDAP I/O operations are automatically restarted if they abort prematurely.
+.It ldap_cache_expiry: <0>
+.Pp
+Non zero enables client side caching.  Cached results will expire after this
+many seconds, e.g. 30.  Use this option with care.  OpenLDAP folks consider
+this feature experimental.
+.It ldap_cache_size: <0>
+.Pp
+If the client side caching is enabled, this is its size in bytes. e.g. 32768.
+.It ldap_scope: <sub> <sub|one|base>
+.Pp
+The search scope.
+.It ldap_search_base: <none>
+.Pp
+The base at which to conduct the search. e.g. o=example.com.
+.It ldap_auth_method: <bind> <bind|custom>
+.Pp
+Specify an authentication method.  The default bind method uses
+LDAP simple bind facility to very the password.  The custom method 
+uses userPassword attribute to verify the password.  Currently,
+{CRYPT} hash in supported.
+.It ldap_filter: <uid=%u>
+.Pp
+Specify a filter.  Use the %u and %r tokens for the username and 
+realm substitution.  The %u token has to be used at minimum for
+the filter to be useful.  If ldap_auth_method is bind, the filter
+will search for the distingushed name.  Otherwise, the search will
+look for the userPassword attribute.
+.It ldap_debug: <0>
+.Pp
+What level to set for debugging in the OpenLDAP libraries.	
+See ldap_set_option(3) for more (LDAP_OPT_DEBUG_LEVEL).
+.It ldap_verbose: <no>
+.Pp
+Log additional information to auth.info syslog facility.  This 
+should be used for debugging purposes only.
+.It ldap_ssl: <no>
+.Pp
+Connect to LDAPS typically via port 636.
+.It ldap_start_tls: <no>
+.Pp
+Force start_tls mechanism through the normal LDAP port.  If both 
+ldap_ssl and ldap_start_tls are yes, ldap_start_tls will be used.
+.It ldap_tls_checkpeer: <no>
+.Pp
+Require and verify server certificate.  If this option is yes,
+you must specify ldap_tls_cacertfile or ldap_tls_cacertdir.
+.It ldap_tls_cacertfile: <none>
+.Pp
+CA certificate for server certificate verification.
+.It ldap_tls_cacertdir: <none>
+.Pp
+Path to directory with certificates of CAs.
+.It ldap_tls_ciphers: <DEFAULT>
+.Pp
+The list of SSL/TLS ciphers to allow.  The format of the string is
+described in ciphers(1).
+.It ldap_tls_cert: <none>
+.Pp
+File containing the client certificate.
+.It ldap_tls_key: <none>
+.Pp
+File containing the client key.
+.El
 .Sh FILES
 .Bl -tag -width "/var/run/saslauthd/mux"
 .It Pa /var/run/saslauthd/mux
 The default communications socket.
+.El
+.Bl -tag -width "/usr/local/etc/saslauthd.conf"
+.It Pa /usr/local/etc/saslauthd.conf
+The default configuration file (not used by all mechanisms).
 .El
 .Sh SEE ALSO
 .Xr passwd 1 ,

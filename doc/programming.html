@@ -7,11 +7,12 @@
   <body>
     <h1>SASL Programmers Guide</h1>
 
-    <h3>NOTE: This is a work in progress. Any contributions would be <i>very</i> appreciated</h3>
+    <h3>NOTE: This is a work in progress. Any contributions would be
+    <i>very</i> appreciated</h3>
 
     <ul><h2>Contents</h2>
 
-      <li><a href="#intro">Boring Intro Stuff</a>
+      <li><a href="#intro">Introduction</a>
 	<ul>
 	    
 	  <li><a href="#about_this_guide">About this guide</a>
@@ -109,7 +110,7 @@
 
 
     
-    <a name="intro"><h2>Boring Intro Stuff</h2></a>
+    <a name="intro"><h2>Introduction</h2></a>
     
     <a name="about_this_guide"><h3>About this Guide</h3></a>
 
@@ -399,10 +400,10 @@
 
     /* Make a new context for this connection */
     result=sasl_server_new("smtp", 
-		           NULL, /* My fully Qualified Domain Name; NULL tells SASL
-                                    to figure it out itself */
-                           NULL, /* The User Realm used for password lookups; NULL
-                                    means default to server fully qualified domain name
+		           NULL, /* my fully qualified domain name; 
+			            NULL says use gethostname() */
+                           NULL, /* The user realm used for password
+			            lookups; NULL means default to serverFQDN
                                     Note: This does not affect Kerberos */
 		           NULL, /* Callbacks supported only for this connection */
 	                   SASL_SECURITY_LAYER, /* I support encryption layers; 
@@ -764,8 +765,9 @@ The sample client and server included with this distribution were
 initially written to help debug mechanisms.  They base64 encode all
 the data and print it out on standard output.
 
-<p>Make sure that the IP addresses are set on the command line (some
-mechanisms depend on this).
+<p>Make sure that you set the IP addresses, the username, the
+authenticate name, and anything else on the command line (some
+mechanisms depend on these being present).
 
 <p>Also, sometimes you will receive a get "<tt>realm: Information not
 available</tt>" message, or similar; this is due to the fact that some

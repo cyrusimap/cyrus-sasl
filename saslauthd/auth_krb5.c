@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb5.c,v 1.11 2004/04/26 20:55:21 rjs3 Exp $"
+#ident "$Id: auth_krb5.c,v 1.12 2004/04/29 19:38:13 rjs3 Exp $"
 #endif
 
 /* ok, this is  wrong but the most convenient way of doing 
@@ -170,8 +170,6 @@ auth_krb5 (
 	}
     }
 
-    printf("user is %s\n", fulluser);
-    
     if (krb5_parse_name (context, fulluser, &auth_user)) {
 	krb5_free_context(context);
 	if(localuser) free(localuser);

@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASLv2 INSTALL Documetation</title>
-<!-- $Id: install.html,v 1.1 2001/12/04 17:46:41 rjs3 Exp $ -->
+<!-- $Id: install.html,v 1.2 2001/12/04 18:49:28 ken3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Installation Procedure</H1>
@@ -41,13 +41,16 @@ libsasl2 can use gdbm, Berkeley db, or ndbm to implement its
 user/password lookup. Most systems come with ndbm these days; as of
 this writing, gdbm's available as
 <a href=ftp://ftp.gnu.org/pub/gnu/gdbm/gdbm-1.7.3.tar.gz>this file</a>.
-Berkeley DB is available from: <a href=http://www.sleepycat.com/>here</a>
+Berkeley DB is available from: <a href=http://www.sleepycat.com/>here</a><p>
 
 For Kerberos support, you'll need the kerberos libraries.  At CMU, the
 version we use comes from <a href=http://www.pdc.kth.se/kth-krb/>here</a>.<p>
 
 For GSSAPI support you will need either MIT Kerberos 5 or the
 <a href=http://www.pdc.kth.se/heimdal>Heimdal implementation</a>.<p>
+
+For OTP support you will need
+<a href=http://www.inner.net/~cmetz/opie>OPIE v2.4</a>.<p>
 
 This has been tested under Linux 2.2, Linux 2.4, Solaris 2.7 and Solaris 2.8.
 It should work under any platform where dynamic objects can be linked against

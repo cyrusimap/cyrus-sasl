@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.54 2002/04/22 16:40:36 rjs3 Exp $
+ * $Id: gssapi.c,v 1.55 2002/04/22 20:12:22 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1599,16 +1599,16 @@ gssapi_client_mech_step(void *conn_context,
 	input_token->value =
 	    (char *)params->utils->malloc((input_token->length + 1)*sizeof(char));
 	if (input_token->value == NULL)
-	  {
+	{
 	    sasl_gss_free_context_contents(text);
 	    return SASL_NOMEM;
-	  }
+	}
 
-	if (oparams->user)
+	if (alen)
 	    memcpy((char *)input_token->value+4,oparams->user,alen);
 
 	*((unsigned long *)input_token->value) =
-	     params->props.maxbufsize & 0xFFFFFF;
+	    params->props.maxbufsize & 0xFFFFFF;
 	((unsigned char *)input_token->value)[0] = mychoice;
 
 	maj_stat = gss_wrap (&min_stat,

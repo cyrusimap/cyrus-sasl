@@ -27,6 +27,7 @@
 
 #ifndef AUTH_LDAP
 	#include "mechanisms.h"
+	#include "utils.h"
 #endif
 
 #ifdef AUTH_LDAP
@@ -1128,9 +1129,9 @@ retry:;
 	if (lrc == LDAP_SUCCESS && (ldap_count_entries(lak->ld, *res)) == 1)
 		rc = LAK_OK;
 	else
-		syslog(LOG_DEBUG|LOG_AUTH, "More than one entries found (%s).", filter);
+		syslog(LOG_DEBUG|LOG_AUTH, "Entry not found or search returned more than one entry (%s).", filter);
 	
-done:;
+done:
 	if (rc != LAK_OK && *res) {
 		ldap_msgfree(*res);
 		*res = NULL;

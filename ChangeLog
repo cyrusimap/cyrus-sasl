@@ -1,3 +1,7 @@
+2003-01-27  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/configure.in: use CMU_ADD_LIBPATH for LDAP support
+	  (Simon Brady <simon.brady@otago.ac.nz>)
+
 2003-01-23  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/acconfig.h: protect file from being included more than
 	  once (reported by Jeremy Rumpf <jrumpf@heavyload.net>)

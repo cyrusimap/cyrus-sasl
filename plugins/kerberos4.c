@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.44 1999/11/15 22:20:43 tmartin Exp $
+ * $Id: kerberos4.c,v 1.45 1999/11/16 01:28:06 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -746,10 +746,10 @@ static int server_continue_step (void *conn_context,
       }  
 
       if (in[8]) {
-	  oparams->user = sparams->utils->malloc(strlen(in + 8) + 1);
+	  oparams->user = sparams->utils->malloc(strlen((char *) in + 8) + 1);
 	  if (oparams->user == NULL)
 	      return SASL_NOMEM;
-	  strcpy(oparams->user, in + 8);
+	  strcpy(oparams->user, (char *) in + 8);
       } else {
 	  oparams->user = sparams->utils->malloc(len + 1);
 	  strcpy(oparams->user, oparams->authid);

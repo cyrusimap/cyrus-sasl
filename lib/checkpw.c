@@ -242,7 +242,7 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
     krb_set_tkt_string(tfname);
 
     /* First try Kerberos string-to-key */
-    des_string_to_key((char *) passwd, key);
+    des_string_to_key((char *) passwd, &key);
     
     result = krb_get_in_tkt((char *)user, "", realm,
 			    "krbtgt", realm, 1, use_key, NULL, &key);

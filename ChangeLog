@@ -2,6 +2,7 @@
 	* lib/server.c (mech_permitted): fixed incorrect return value of
 	  SASL_NOMECH that should have been 0.
 	* lib/common.c (sasl_errdetail): fixed core if passed in conn is NULL
+	* plugins/digestmd5.c (encode_tmp_buf): removed unneeded buffer
 
 2002-01-16  Ken Murchison <ken@oceana.com>
 	* plugins/srp.c: fixed layer decoding to handle multiple packets

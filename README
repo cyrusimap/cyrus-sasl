@@ -1,4 +1,4 @@
-$Id: README,v 1.19 1999/11/16 19:51:46 leg Exp $
+$Id: README,v 1.20 1999/11/16 19:52:18 leg Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication. See RFC 2222 for more
@@ -12,7 +12,6 @@ to majordomo@lists.andrew.cmu.edu with the body "subscribe cyrus-sasl".
 
 UPGRADING FROM PREVIOUS VERSIONS
 --------------------------------
-
 * Upgrading from versions 1.5.11 or earlier:
   Berkeley DB is now supported, and the configure script will use it
   automatically if not told otherwise.  Use

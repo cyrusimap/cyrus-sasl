@@ -2,6 +2,8 @@ New in 1.5.12
 -------------
 * lots of bugfixes
 * DIGEST-MD5 more in conformance with spec
+* support for Berkeley DB
+* support for OpenSSL's version of RC4
 
 New in 1.5.11
 -------------

@@ -275,16 +275,20 @@ int sasl_utf8verify(const char *str, unsigned len)
 void getranddata(unsigned short ret[3])
 {
     long curtime;
-    FILE *f;
     
     memset(ret, 0, sizeof(unsigned short)*3);
-    
-    /* this will probably only work on linux */
-    if ((f = fopen(DEV_RANDOM, "r")) != NULL) {
-	fread(ret, 1, sizeof(ret), f);
-	fclose(f);
-	return;
+
+#ifdef DEV_RANDOM    
+    {
+        FILE *f;
+
+	if ((f = fopen(DEV_RANDOM, "r")) != NULL) {
+	    fread(ret, 1, sizeof(ret), f);
+	    fclose(f);
+	    return;
+        }
     }
+#endif
 
 #ifdef HAVE_GETPID
     ret[0] = (unsigned short) getpid();
@@ -303,8 +307,6 @@ void getranddata(unsigned short ret[3])
 	    ret[2] ^= (unsigned short) (tv.tv_usec & 0xFFFF);
 	    return;
 	}
-
-
     }
 #endif /* HAVE_GETTIMEOFDAY */
     

@@ -1,6 +1,8 @@
 2003-10-30  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/lak.c: OpenLDAP 2.0 Compatability Fix
 	  (Igor Brezac <igor@ypass.net>)
+	* saslauthd/ipc_unix.c: Fix buglet of not using saved errno
+	  value (Jeremy Rumpf <jrumpf@heavyload.net>)
 
 2003-10-20  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* Win64 warning squashing (Alexey Melnikov <Alexey.Melnikov@isode.com>)

@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.5 2001/12/07 17:30:50 ken3 Exp $
+ * $Id: otp.c,v 1.6 2002/01/05 05:09:33 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -50,6 +50,7 @@
 #endif
 #include <errno.h>
 #include <string.h> 
+#include <ctype.h>
 #include <sasl.h>
 #include <saslplug.h>
 
@@ -953,7 +954,6 @@ static int otp_client_mech_step(void *conn_context,
 
 	switch (result) {
 	case 0:
-#if 0
 	    /*
 	     * make sure we're using extended syntax
 	     *
@@ -961,12 +961,33 @@ static int otp_client_mech_step(void *conn_context,
 	     *      _opieparsechallenge()
 	     */
 	    if (!strchr(text->response, ':')) {
-		char *type = (strlen(text->response) < 23) ? "hex:" : "word:";
+		char *p = text->response;
+		int num_wsp = -1;
+		int num_hex = 0;
+		char *type = "hex:";
+
+		while (*p) {
+		    /* eat leading whitespace */
+		    while (isspace((int) *p)) p++;
+		    /* count inter-word whitespace */
+		    if (*p) num_wsp++;
+		    /* count hex digits */
+		    while (isxdigit((int) *p)) {
+			num_hex++;
+			p++;
+		    }
+		    /* alpha, quit */
+		    if (!isspace((int) *p)) break;
+		}
+		/* if not EOS (alpha) OR not exactly 16 hex digits OR
+		   exactly 5 inter-word whitespace, then word response */
+		if (*p || num_hex != 16 || num_wsp == 5)
+		    type = "word:";
+
 		memmove(text->response + strlen(type), text->response,
 		       strlen(text->response)+1);
 		strncpy(text->response, type, strlen(type));
 	    }
-#endif
 
 	    *clientout = text->response;
 	    *clientoutlen = strlen(text->response);

@@ -6,12 +6,19 @@
 <body>
 <h1>Building Cyrus SASL on Windows</h1>
 
+Note, that Cyrus SASL on Windows is still laregely a "work in progress".
+So far only the main library, plugins (SASLDB using SleepyCat, no MySQL)
+and two applications (saslpasswd2.exe and sasldblistusers2.exe) can be built.
+
 <h2>Prerequisites</h2>
 
 <ul>
 <li>Visual Studio. We have tested Visual Studio 6 and Visual Studio 7 (.NET).
 
 <li>The latest Platform SDK. We've tested November 2001.
+
+<li>SleepyCat include files and libraries are required to buil SASLDB plugin,
+saslpasswd2.exe and sasldblistusers2.exe. We have tested SleepyCat 4.1.X.
 
 <li>If you are building directly from CVS, you'll need the <a
 href="http://www.cygwin.com/">Cygwin</a> Unix-compatibility
@@ -38,16 +45,43 @@ Start a cygwin shell and create the dynamic loading stubs:
 <h3>building using NMake</h3>
 
 Open a "Windows 2000 build environment" from the SDK's Start Menu and
-use "<tt>nmake /f NTMakefile</tt>" to build:
+use "<tt>nmake /f NTMakefile</tt>" to build.
 
+<p>To build a debug verison, use "<tt>nmake /f NTMakefile
+CFG=Debug</tt>". For a production version, "<tt>nmake /f NTMakefile
+CFG=Release</tt>". If you don't specify CFG parameter, production
+version will be built by default.
+
+<p>As Windows build requires SleepyCat, there are additional options
+that has to be provided to NMake on the command line.
+If SleepyCat sources are located in <tt>c:\packages\db\4.1.24</tt>
+and built library in <tt>c:\packages\db\4.1.24\build_win32\Release_static</tt>,
++you should add something like
+<tt>DB_INCLUDE=c:\packages\db\4.1.24\build_win32</tt>
+and <tt>DB_LIBPATH=c:\packages\db\4.1.24\build_win32\Release_static</tt>.
+<br>Also note, that the <tt>DB_LIB</tt> defines the name of the SleepyCat library
+to link against. It defaults to libdb41s.lib.
+<br>If you don't pass the parameters described above, NMake will pick the
+defaults, which is probably not what you want. 
+
+<p>Another option of interest is <tt>STATIC</tt>.
+It specifies which version of the standard C library
+to use. The default is "no", meaning that the standard C library
+from the MSVCRT.DLL will be used.
+
+<p>Example:
 <pre>
 Targeting Windows 2000 and IE 5.0 RETAIL
 
 C:\Program Files\Microsoft SDK> cd \sasl
 
-C:\sasl> cd lib
+C:\sasl> nmake /f NTMakefile DB_INCLUDE=c:\packages\db\4.1.24\build_win32
+DB_LIBPATH=c:\packages\db\4.1.24\build_win32\Release_static
 
-C:\sasl\lib> nmake /f NTMakefile
+No configuration specified. Defaulting to Release.
+Using MSVCRT.dll as C library by default.
+Defaulting SleepyCat library name to libdb41s.lib.
+Codegeneration defaulting to /MD.
 ...
 
 C:\sasl\lib> cd ..\plugins

@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.104 2002/01/19 22:24:04 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.105 2002/01/19 22:33:59 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -78,8 +78,6 @@
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
-
-static const char blank_string[] = "";
 
 /* Layer Flags */
 #define DIGEST_NOLAYER    (1)
@@ -3809,7 +3807,7 @@ FreeAllocatedMem:
 	    /* Ok I think we can re-auth */;
 	    params->utils->free(in_start);
 	    
-	    *clientout = blank_string;
+	    *clientout = NULL;
 	    *clientoutlen = 0;
 	    
 	    text->state = 4;

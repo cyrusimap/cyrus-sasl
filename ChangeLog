@@ -1,3 +1,14 @@
+2000-03-28  Larry Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/kerberos4.c (server_continue_step): delete unused variable
+
+	* utils/dbconverter-1.5.9.c: shut up a warning message by adding
+	<stdio.h>
+
+	* configure.in: java defaults to "no"
+
+	* lib/saslint.h: added _sasl_common_init() prototype
+
 2000-03-28  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
 	* utils/Makefile.am (EXTRA_DIST): sasldblistusers.8 to dist line

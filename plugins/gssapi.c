@@ -685,8 +685,7 @@ sasl_gss_server_step (void *conn_context,
 	if (name_token.value)
 	    params->utils->free(name_token.value);
 	if (name_without_realm.value)
-	    gss_release_buffer(&min_stat, &name_token);
-	gss_release_buffer(&min_stat, &name_without_realm);
+	    gss_release_buffer(&min_stat, &name_without_realm);
 	
 	/* we have to decide what sort of encryption/integrity/etc.,
 	   we support */
@@ -771,8 +770,6 @@ sasl_gss_server_step (void *conn_context,
 	if (GSS_ERROR(maj_stat)) {
 	    sasl_gss_set_error(text, errstr, "gss_unwrap",
 			       maj_stat, min_stat);
-	    if (output_token->value)
-		gss_release_buffer(&min_stat, output_token);
 	    sasl_gss_free_context_contents(text);
 	    return SASL_FAIL;
 	}
@@ -1043,11 +1040,10 @@ get_userid(sasl_client_params_t *params,char **userid,sasl_interact_t **prompt_n
     if (result != SASL_OK)
       return result;
     if (! id) {
-	/* It's legal that the client does not provide an authorization id */
 	*userid = NULL;
-	return SASL_OK;
+	return SASL_BADPARAM;
     }
-      return SASL_BADPARAM;
+
     *userid = params->utils->malloc(strlen(id) + 1);
     if (! *userid)
       return SASL_NOMEM;

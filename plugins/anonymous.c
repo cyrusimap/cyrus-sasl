@@ -126,7 +126,7 @@ server_continue_step (void *conn_context __attribute__((unused)),
   clientdata = sparams->utils->malloc(clientinlen + 1);
   if (! clientdata)
     return SASL_NOMEM;
-  strncpy(clientdata, clientin, clientinlen+1);
+  strncpy(clientdata, clientin, clientinlen);
   clientdata[clientinlen] = '\0';
 
   result = sparams->utils->getprop(sparams->utils->conn,

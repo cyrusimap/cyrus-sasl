@@ -46,7 +46,7 @@
  *
  * ~/> ktutil
  * ktutil:  rst /etc/srvtab
- * ktutil:  wst /etc/krb5.keytab
+ * ktutil:  wkt /etc/krb5.keytab
  * ktutil:  q
  */
 
@@ -85,6 +85,8 @@ char myhostname[1024+1];
 char *username = "tmartin";
 char *authname = "tmartin";
 char *password = "1234";
+
+static char *gssapi_service = "host";
 
 /* our types of failures */
 typedef enum {
@@ -165,9 +167,9 @@ int my_mutex_unlock(my_mutex_t *m)
 
 int my_mutex_dispose(my_mutex_t *m)
 {
-    char a[5];
+    if (m==NULL) return SASL_OK;
 
-    /*    free(m); */
+    free(m);
 
     return SASL_OK;
 }
@@ -736,7 +738,7 @@ void sendbadsecond(char *mech, void *rock)
 
     printf("%s --> start\n",mech);
     
-    if (strcmp(mech,"GSSAPI")==0) service = "host";
+    if (strcmp(mech,"GSSAPI")==0) service = gssapi_service;
 
     if (sasl_client_init(client_callbacks)!=SASL_OK) fatal("Unable to init client");
     if (sasl_server_init(goodsasl_cb,"TestSuite")!=SASL_OK) fatal("");
@@ -860,7 +862,7 @@ void sendbadsecond(char *mech, void *rock)
 				  outlen,
 				  &out,
 				  &outlen,
-				  NULL);
+				  &errstr);
 	
 	if (mayfail == 1)
 	{
@@ -979,7 +981,7 @@ void foreach_mechanism(foreach_t *func, void *rock)
     free(tofree);
 }
 
-void test_serverstart(void)
+void test_serverstart(int steps)
 {
     int result;
     sasl_conn_t *saslconn;
@@ -1037,12 +1039,12 @@ void test_serverstart(void)
     printf("trying to do correctly\n");
     foreach_mechanism((foreach_t *) &sendbadsecond,&tosend);
 
-    for (lup=0;lup<50;lup++)
+    for (lup=0;lup<steps;lup++)
     {
 	tosend.type = rand() % CORRUPT_SIZE;
 	tosend.step = lup % MAX_STEPS;
 
-	printf("trying random crap (%d of %d)\n",lup,100);
+	printf("trying random crap (%d of %d)\n",lup,steps);
 	foreach_mechanism((foreach_t *) &sendbadsecond,&tosend);
     }
 }
@@ -1171,19 +1173,36 @@ void notes(void)
     printf("\n\n");
 }
 
+void usage(void)
+{
+    printf("Usage:\n" \
+           " testsuite [-g][-s]\n" \
+           "    g -- gssapi service name to use (default: host)\n" \
+	   "    h -- show this screen\n" \
+           "    s -- random seed to use\n" \
+           );
+}
 
 int main(int argc, char **argv)
 {
     char c;
     unsigned int seed = time(NULL);
     char *a;
-    while ((c = getopt(argc, argv, "s:")) != EOF)
+    while ((c = getopt(argc, argv, "s:g:h:")) != EOF)
 	switch (c) {
 	case 's':
 	    seed = atoi(optarg);
 	    break;
+	case 'g':
+	    gssapi_service = optarg;
+	    break;
+	case 'h':
+	    usage();
+	    exit(0);
+	    break;
 	default:
-	    fatal("Invaled arguement");
+	    usage();
+	    fatal("Invalid parameter\n");
 	    break;
     }
 
@@ -1210,7 +1229,7 @@ int main(int argc, char **argv)
     printf("Tests of sasl_listmech()... ok\n");
     
 
-    test_serverstart();
+    test_serverstart(7);
     printf("Tests of sasl_server_start()... ok\n");
 
     printf("All tests seemed to go ok\n");

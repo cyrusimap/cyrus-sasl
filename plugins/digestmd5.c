@@ -3330,6 +3330,10 @@ c_continue_step(void *conn_context,
 
     VL(("Digest-MD5 Step 2\n"));
 
+    if (params->props.min_ssf > params->props.max_ssf) {
+	return SASL_BADPARAM;
+    }
+
     in = params->utils->malloc(serverinlen + 1);
     if (in == NULL) return SASL_NOMEM;
 
@@ -3338,10 +3342,6 @@ c_continue_step(void *conn_context,
 
     in_start = in;
 
-    if (params->props.min_ssf > params->props.max_ssf) {
-	return SASL_BADPARAM;
-    }
-
     /* parse what we got */
     while (in[0] != '\0') {
 	char *name, *value;
@@ -3349,7 +3349,11 @@ c_continue_step(void *conn_context,
 	get_pair(&in, &name, &value);
 
 	/* if parse error */
-	if (name == NULL) return SASL_FAIL;
+	if (name == NULL) {
+	    VL (("Parse error\n"));
+	    result = SASL_FAIL;
+	    goto FreeAllocatedMem;
+	}
 
 	VL(("received pair: %s - %s\n", name, value));
 
@@ -3408,6 +3412,7 @@ c_continue_step(void *conn_context,
 		/* do we support this cipher? */
 		while (cipher->name) {
 		    if (!strcmp(value, cipher->name)) break;
+		    cipher++;
 		}
 		if (cipher->name) {
 			ciphers |= cipher->flag;
@@ -3569,8 +3574,25 @@ c_continue_step(void *conn_context,
       result = make_prompts(params, prompt_need,
 			    user_result, auth_result, pass_result,
 			    realm_result);
+
+      if (in_start) params->utils->free(in_start);
+      if (nonce) params->utils->free(nonce);
+      if (qop_list) params->utils->free(qop_list);
+      if (realm)
+      {
+	  int lup;
+	  
+	  /* need to free all the realms */
+	  for (lup=0;lup<nrealm;lup++)
+	      params->utils->free(realm[lup]);
+	  
+	  params->utils->free(realm);
+      }
+
       if (result != SASL_OK)
 	return result;
+
+
 
       VL(("returning prompt(s)\n"));
       return SASL_INTERACT;
@@ -3694,8 +3716,10 @@ c_continue_step(void *conn_context,
      */
 
     if ((text->authid!=NULL) && !strcmp((const char *) text->authid,(const char *) text->userid)) {
-	/* PROBABLE MEMORY LEAK! */
-	text->userid = NULL;
+	if (text->userid) {
+	    params->utils->free(text->userid);
+	    text->userid = NULL;
+	}
     }
 
     /* response */
@@ -3894,6 +3918,7 @@ FreeAllocatedMem:
       if (name == NULL)
       {
 	  VL (("Received garbage\n"));
+	  params->utils->free(in_start);
 	  return SASL_FAIL;
       }
 

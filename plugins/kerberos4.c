@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.59 2000/04/09 22:54:11 tmartin Exp $
+ * $Id: kerberos4.c,v 1.60 2000/04/13 19:53:00 tmartin Exp $
  */
 /* 
  * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -681,6 +681,12 @@ static int server_continue_step (void *conn_context,
     int testnum;
     int flag;
     unsigned char *in;
+
+    if ((clientinlen==0) || (clientinlen % 8 != 0)) {
+	if (errstr)
+	    *errstr = "Response to challenge is not a multiple of 8 octets (a DES block)";
+	return SASL_FAIL;	
+    }
 
     /* we need to make a copy because des does in place decrpytion */
     in = sparams->utils->malloc(clientinlen + 1);

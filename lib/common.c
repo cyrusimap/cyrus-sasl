@@ -200,8 +200,9 @@ void sasl_done(void)
 
   if (_sasl_client_cleanup_hook)
     _sasl_client_cleanup_hook();
-
+  
   sasl_MUTEX_DISPOSE(dispose_mutex);
+  dispose_mutex = NULL;
 
   /* in case of another init/done */
   _sasl_server_cleanup_hook = NULL;
@@ -266,7 +267,8 @@ cleanup_mutex:
 
 int _sasl_common_init(void)
 {
-    dispose_mutex = sasl_MUTEX_NEW();    
+    if (!dispose_mutex)
+	dispose_mutex = sasl_MUTEX_NEW();
     if (!dispose_mutex) return SASL_FAIL;
 
     return SASL_OK;

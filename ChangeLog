@@ -1,3 +1,17 @@
+Sat Jul 10 19:58:50 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/server.c (_sasl_transition): now looks at the connection
+	getopt callback
+
+	* lib/checkpw.c (_sasl_kerberos_verify_password): now gets the
+	srvtab option
+
+	* lib/server.c (_sasl_checkpass): modified to pass along the conn
+	parameter
+
+	* include/saslplug.h: added a conn parameter to checkpass so that
+	we can use the configuration stuff
+
 Thu Jul  1 13:42:14 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* include/sasl.h: gethostname() not gethostbyname() (comment)

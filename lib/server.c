@@ -1,5 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
+ * $Id: server.c,v 1.39 1999/07/11 03:52:53 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -75,7 +76,8 @@ extern int gethostname(char *, int);
  * sasl_setpass
  */
 
-static int _sasl_checkpass(const char *mech, const char *service, 
+static int _sasl_checkpass(sasl_conn_t *conn,
+			   const char *mech, const char *service, 
 			   const char *user, const char *pass);
 
 static int
@@ -607,22 +609,35 @@ _sasl_transition(sasl_conn_t * conn,
 		 const char * pass,
 		 int passlen)
 {
-  if (! conn)
-    return SASL_BADPARAM;
+    const char *dotrans = "n";
+    sasl_getopt_t *getopt;
+    void *context;
 
-  if (! conn->oparams.authid)
-    return SASL_NOTDONE;
+    if (! conn)
+	return SASL_BADPARAM;
 
-  /* check if this is enabled: default to false */
-  /* XXX---this really has to use the standard configuration facilities */     
-  if (sasl_config_getswitch("auto_transition", 0) == 0) return SASL_OK;
+    if (! conn->oparams.authid)
+	return SASL_NOTDONE;
 
-  return sasl_setpass(conn,
-		      conn->oparams.authid,
-		      pass,
-		      passlen,
-		      0,
-		      NULL);
+    /* check if this is enabled: default to false */
+    if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context) == SASL_OK)
+    {
+	getopt(context, NULL, "auto_transition", &dotrans, NULL);
+	if (dotrans == NULL) dotrans = "n";
+    }
+
+    if (*dotrans == '1' || *dotrans == 'y' ||
+	(*dotrans == 'o' && dotrans[1] == 'n') || *dotrans == 't') {
+	/* ok, it's on! */
+	return sasl_setpass(conn,
+			    conn->oparams.authid,
+			    pass,
+			    passlen,
+			    0,
+			    NULL);
+    }
+
+    return SASL_OK;
 }
 
 
@@ -1002,29 +1017,31 @@ int sasl_listmech(sasl_conn_t *conn,
 }
 
 /* returns OK if it's valid */
-static int _sasl_checkpass(const char *mech, const char *service,
+static int _sasl_checkpass(sasl_conn_t *conn,
+			   const char *mech, const char *service,
 			   const char *user, const char *pass)
 {
     int result = SASL_NOMECH;
 
 #ifdef HAVE_PAM
     if (!strcmp(mech, "PAM")) {
-	result = _sasl_PAM_verify_password(user, pass, service, NULL);
+	result = _sasl_PAM_verify_password(conn, user, pass, service, NULL);
     }
 #endif
 
     if (!strcmp(mech, "passwd")) {
-	result = _sasl_passwd_verify_password(user, pass, NULL);
+	result = _sasl_passwd_verify_password(conn, user, pass, NULL);
     }
 
     if (!strcmp(mech, "shadow")) {
-	result = _sasl_shadow_verify_password(user, pass, NULL);
+	result = _sasl_shadow_verify_password(conn, user, pass, NULL);
     }
 
 #ifdef HAVE_KRB
     if (!strcmp(mech, "kerberos_v4")) {
 	/* check against krb */
-	result = _sasl_kerberos_verify_password(user, pass, service, NULL);
+	result = _sasl_kerberos_verify_password(conn, user, pass, 
+						service, NULL);
     }
 #endif
 
@@ -1069,7 +1086,7 @@ int sasl_checkpass(sasl_conn_t *conn,
 	mech = DEFAULT_PLAIN_MECHANISM;
     }
 
-    result = _sasl_checkpass(mech, conn->service, user, pass);
+    result = _sasl_checkpass(conn, mech, conn->service, user, pass);
     *errstr = NULL;
 
     if (result == SASL_OK) {

@@ -181,7 +181,8 @@ static int use_key(char *user __attribute__((unused)),
  * 0 for failure.  On failure, 'reply' is filled in with a pointer to
  * the reason.
  */
-int _sasl_kerberos_verify_password(const char *user, const char *passwd,
+int _sasl_kerberos_verify_password(sasl_conn_t *conn,
+				   const char *user, const char *passwd,
 				   const char *service, const char **reply)
 {
     int result;
@@ -194,6 +195,17 @@ int _sasl_kerberos_verify_password(const char *user, const char *passwd,
     KTEXT_ST authent;
     char instance[INST_SZ];
     AUTH_DAT kdata;
+    char *srvtab = "";
+    sasl_getopt_t *getopt;
+    void *context;
+
+    /* check to see if the user configured a srvtab */
+    if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context) 
+	== SASL_OK) {
+	getopt(context, NULL, "srvtab", &srvtab, NULL);
+	if (!srvtab) srvtab = "";
+    }
+
 
     if (krb_get_lrealm(realm, 1)) return SASL_FAIL;
 
@@ -235,8 +247,7 @@ int _sasl_kerberos_verify_password(const char *user, const char *passwd,
 	return SASL_FAIL;
     }
     strcpy(instance, "*");
-    result = krb_rd_req(&authent, service, instance, 0L, &kdata, ""); 
-				/* xxx allow alternate locations */
+    result = krb_rd_req(&authent, service, instance, 0L, &kdata, srvtab); 
     memset(&authent, 0, sizeof(authent));
     memset(kdata.session, 0, sizeof(kdata.session));
     if (result != 0 || strcmp(kdata.pname, user) != 0 || kdata.pinst[0] ||
@@ -257,7 +268,8 @@ int _sasl_kerberos_verify_password(const char *user, const char *passwd,
 
 #endif /* HAVE_KRB */
 
-int _sasl_shadow_verify_password(const char *userid, const char *password,
+int _sasl_shadow_verify_password(sasl_conn_t *conn __attribute__((unused)),
+				 const char *userid, const char *password,
 				 const char **reply __attribute__((unused)) )
 {
 #ifdef HAVE_GETSPNAM
@@ -283,7 +295,8 @@ int _sasl_shadow_verify_password(const char *userid, const char *password,
 
 }
 
-int _sasl_passwd_verify_password(const char *userid,
+int _sasl_passwd_verify_password(sasl_conn_t *conn __attribute__((unused)),
+				 const char *userid,
 				 const char *password,
 				 const char **reply __attribute__((unused)) )
 {
@@ -361,7 +374,8 @@ static struct pam_conv my_conv = {
     NULL			/* appdata_ptr */
 };
 
-int _sasl_PAM_verify_password(const char *userid, const char *password,
+int _sasl_PAM_verify_password(sasl_conn_t *conn __attribute__((unused)),
+			      const char *userid, const char *password,
 			      const char *service,
 			      const char **reply __attribute__((unused)) )
 {

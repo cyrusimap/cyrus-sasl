@@ -1,6 +1,6 @@
 /* Plain SASL plugin
  * Tim Martin 
- * $Id: plain.c,v 1.31 1999/06/29 19:36:24 leg Exp $
+ * $Id: plain.c,v 1.32 1999/07/11 03:52:56 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -158,7 +158,8 @@ int verify_password(sasl_server_params_t *params,
 #endif /* HAVE_PAM */
     }
 
-    result = params->utils->checkpass(mech, params->service, user, pass);
+    result = params->utils->checkpass(params->utils->conn,
+				      mech, params->service, user, pass);
     
     return result;
 }

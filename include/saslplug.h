@@ -96,7 +96,8 @@ typedef struct sasl_utils {
     void (*churn)(sasl_rand_t *rpool, const char *data, unsigned len);
 
     /* current CMU hack.  DO NOT USE EXCEPT IN PLAIN */
-    int (*checkpass)(const char *mech, const char *service,
+    int (*checkpass)(sasl_conn_t *conn,
+		     const char *mech, const char *service,
 		     const char *user, const char *pass);
 
     /* callback function */

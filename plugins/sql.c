@@ -3,7 +3,7 @@
 ** SQL Auxprop plugin
 **   based on the original work of Simon Loader and Patrick Welche
 **
-** $Id: sql.c,v 1.2 2003/07/15 20:16:08 ken3 Exp $
+** $Id: sql.c,v 1.3 2003/09/10 18:34:12 mnigrosh Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -16,6 +16,7 @@
 **  sql_hostnames: < comma separated host[:port] list >
 **  sql_database: <database to connect to>
 **  sql_statement: <select statement to use>
+**  sql_insert: <insert statement to use>
 **  sql_verbose:  ( if it exists will print select statement to syslog )
 **  sql_usessl:  ( if it exists will make a secured connection to server )
 **
@@ -35,6 +36,19 @@
 **   authenticate and you didn't have a realm to start with (and it was
 **   my computer).
 **
+**    sql_insert works in much the same way, with the addition of another
+**  placeholder
+**
+**   for example:
+**
+**     sql_insert: INSERT INTO user_table(username, realm, password)
+**                 VALUES ('%u', '%r', '%i')
+**
+**   would yield
+**
+**       INSERT INTO user_table(username, realm, password)
+**       VALUES ('simon', 'madoka.surf.org.uk', 'wert');
+**
 ** OK so thats a bit complex but essential
 **   %u is the username the user logged in as
 **   %p is the property requested this could technically be anything
@@ -42,6 +56,7 @@
 **     cmusaslsecretMECHNAME (where MECHNAME is the name of a mechanism).
 **   %r is the realm which could be the kerbros realm, the FQDN of the 
 **     computer the sasl app is on or what ever is after the @ on a username.
+**   %i is the value of the requested property
 ** 
 **   These do not have to be all used or used at all
 ** in testing I used select password from auth where username = '%u'
@@ -72,19 +87,20 @@ typedef struct sql_engine {
     void (*sql_close)(void *conn);
 } sql_engine_t;
 
-typedef struct sql_settings {
-    const sql_engine_t *sql_engine;
-    const char *sql_user;
-    const char *sql_passwd;
-    const char *sql_hostnames;
-    const char *sql_database;
-    const char *sql_statement;
-    int sql_verbose;
-    int sql_usessl;
+typedef struct sql_settings 
+{
+  const sql_engine_t *sql_engine;
+  const char *sql_user;
+  const char *sql_passwd;
+  const char *sql_hostnames;
+  const char *sql_database;
+  const char *sql_statement;
+  const char *sql_insert;
+  int sql_verbose;
+  int sql_usessl;
 } sql_settings_t;
 
 static const char * SQL_BLANK_STRING = "";
-
 
 #if HAVE_MYSQL
 #include <mysql.h>
@@ -161,19 +177,60 @@ static void _mysql_close(void *conn)
 #if HAVE_PGSQL
 #include <libpq-fe.h>
 
+int pgsql_exists(const char *input)
+{
+  char * theinput = (char*) input;
+
+  if(theinput != SQL_BLANK_STRING)
+    {
+      return 1;
+    }
+  return 0;
+}
 static void *_pgsql_open(char *host, char *port,
-			 int usessl  __attribute__((unused)),
+			 int usessl,
 			 const char *user, const char *password,
 			 const char *database,
 			 const sasl_utils_t *utils __attribute__((unused)))
 {
     PGconn *conn = NULL;
+    /* create the connection info string */
 
-    /* XXX This should be re-written to use PQconnectdb().  This will
-       also allow us to set 'requiressl'
-    */
-    conn = PQsetdbLogin(host, port, NULL, NULL, database, user, password);
-    return (PQstatus(conn) != CONNECTION_OK) ? NULL : conn;
+    char *conninfo = 
+      malloc(sizeof(user) + sizeof(password) + sizeof(database) + sizeof(host)
+	     + sizeof(port) + 64);
+
+    /* we have to have a host */
+    sprintf(conninfo, "host='%s'", host);
+
+    /* check if other terms exist */
+    if(port!=NULL && port != "")
+      {
+	sprintf(conninfo, "%s port='%s'", conninfo, port);
+      }
+    if(pgsql_exists(user))
+      {
+	sprintf(conninfo, "%s user='%s'", conninfo, user);
+      }
+    if(pgsql_exists(password))
+      {
+	sprintf(conninfo, "%s password='%s'",conninfo,  password);
+      }
+    if(pgsql_exists(database))
+      {
+	sprintf(conninfo, "%s dbname='%s'", conninfo,  database);
+      }
+    /*are we using ssl?*/
+    /*sprintf(conninfo, "%s requiressl='%d'", conninfo, usessl);*/
+
+    conn = PQconnectdb((const char *)conninfo);
+    free(conninfo);
+
+    if((PQstatus(conn)==CONNECTION_OK))
+      {
+	return conn;
+      }
+    return NULL;
 }
 
 static int _pgsql_escape_str(char *to, const char *from)
@@ -184,40 +241,42 @@ static int _pgsql_escape_str(char *to, const char *from)
 static int _pgsql_query(void *conn, char *query, char *value, size_t size,
 			size_t *value_len, const sasl_utils_t *utils)
 {
-    PGresult *result;
-    int row_count;
+  PGresult *result;
+  int row_count;
 
-    /* run the query */
-    result = PQexec(conn, query);
-    if (PQresultStatus(result) != PGRES_TUPLES_OK) {
-	utils->free(query);
-	return -1;
+  /* run the query */
+  result = PQexec(conn, query);
+  if (PQresultStatus(result) != PGRES_TUPLES_OK) 
+    {
+      utils->free(query);
+      return -1;
     }
 	
-    /* quick row check */
-    row_count = PQntuples(result);
-    if (!row_count) {
-	/* umm nothing found */
-	utils->free(query);
-	PQclear(result);
-	return -1;
+  /* quick row check */
+  row_count = PQntuples(result);
+  if (!row_count) 
+    {
+      /* umm nothing found */
+      utils->free(query);
+      PQclear(result);
+      return -1;
     }
-    if (row_count > 1) {
-	utils->log(NULL, SASL_LOG_WARN,
-		   "sql plugin: found duplicate row for query %s", query);
+  if (row_count > 1) 
+    {
+      utils->log(NULL, SASL_LOG_WARN,
+		 "sql plugin: found duplicate row for query %s", query);
     }
 	
-    /* now get the result set value and value_len */
-    /* we only fetch one because we don't care about the rest */
-    strncpy(value, PQgetvalue(result,0,0), size-2);
-    value[size-1] = '\0';
-    if (value_len) *value_len = strlen(value);
-	
-    /* free result */
-    utils->free(query);
-    PQclear(result);
-
-    return 0;
+  /* now get the result set value and value_len */
+  /* we only fetch one because we don't care about the rest */
+  strncpy(value, PQgetvalue(result,0,0), size-2);
+  value[size-1] = '\0';
+  if (value_len) *value_len = strlen(value);
+  
+  /* free result */
+  utils->free(query);
+  PQclear(result);
+  return 0;
 }
 
 static void _pgsql_close(void *conn)
@@ -245,72 +304,121 @@ static const sql_engine_t sql_engines[] = {
 **   %u = user
 **   %p = prop
 **   %r = realm
+**   %i = value of prop
 **  e.g select %p from auth where user = %p and domain = %r;
 **  Note: calling function must free memory.
 **
 */
+
 static char *sql_create_statement(sasl_server_params_t *sparams,
 				  const char *select_line, const char *prop,
-				  const char *user, const char *realm)
+				  const char *user, const char *realm, 
+				  const char *insertvalue)
 {
     const char *ptr, *line_ptr;
     char *buf, *buf_ptr;
     int filtersize;
-    int ulen, plen, rlen;
+    int ulen, plen, rlen, ilen;
+    
+    const char *begin, *commit, *rollback;
+    int beginlen, commitlen, rollbacklen;
+    int filtersize_plus_transaction;
 
+    /* devise the appropiate transaction-safe terms 
+     * if mysql: START TRANSACTION, COMMIT, ROLLBACK 
+     * if postgresql: BEGIN, COMMIT, ROLLBACK 
+     */
+
+    /*Newer versions of postgres actually accept "START TRANSACTION"*/
+    
+#if HAVE_MYSQL
+    begin = "START TRANSACTION; ";
+#endif /*HAVE_MYSQL */
+#if HAVE_PGSQL
+    begin = "BEGIN; ";
+#endif /*HAVE_PGSQL */
+    
+    commit = " COMMIT;";
+    rollback = " ROLLBACK;";
+      
+    beginlen = strlen(begin);
+    commitlen = strlen(commit);
+    rollbacklen = strlen(rollback);
+    
+    
     /* calculate memory needed for creating the complete query string. */
     ulen = strlen(user);
     rlen = strlen(realm);
     plen = strlen(prop);
+    ilen = strlen(insertvalue);
     /* don't forget the trailing 0x0 */
-    filtersize = strlen(select_line) + ulen + rlen + plen + 1;
+    filtersize = strlen(select_line) + ulen + rlen + plen + ilen;
+    /* add in the transaction terms, keep the trailer from before */ 
+    filtersize_plus_transaction = filtersize + beginlen + commitlen + rollbacklen +1;
 
     /* ok, now try to allocate a chunk of that size */
-    buf = (char *) sparams->utils->malloc(filtersize);
-    if (!buf) {
+    buf = (char *) sparams->utils->malloc(filtersize_plus_transaction);
+
+    if (!buf) 
+      {
 	MEMERROR(sparams->utils);
 	return NULL;
-    }
+      }
     
     buf_ptr = buf;
     line_ptr = select_line;
     
+    /*add the begin to the transaction block */
+    memcpy(buf_ptr, begin, beginlen);
+    buf_ptr += beginlen;
+    
     /* replace the strings */
-    while ( (ptr = strchr(line_ptr, '%')) ) {
+    while ( (ptr = strchr(line_ptr, '%')) ) 
+      {
 	/* copy up to but not including the next % */
 	memcpy(buf_ptr, line_ptr, ptr - line_ptr); 
 	buf_ptr += ptr - line_ptr;
 	ptr++;
-	switch (ptr[0]) {
-	case '%':
+	switch (ptr[0]) 
+	  {
+	  case '%':
 	    buf_ptr[0] = '%';
 	    buf_ptr++;
 	    break;
-	case 'u':
+	  case 'u':
 	    memcpy(buf_ptr, user, ulen);
 	    buf_ptr += ulen;
 	    break;
-	case 'r':
+	  case 'r':
 	    memcpy(buf_ptr, realm, rlen);
 	    buf_ptr += rlen;
 	    break;
-	case 'p':
+	  case 'p':
 	    memcpy(buf_ptr, prop, plen);
 	    buf_ptr += plen;
 	    break;
-	default:
+	  case 'i':
+	    memcpy(buf_ptr, insertvalue, ilen);
+	    buf_ptr += ilen;
+	    break;
+	  default:
 	    buf_ptr[0] = '%';
 	    buf_ptr[1] = ptr[0];
 	    buf_ptr += 2;
 	    break;
-	}
+	  }
 	ptr++;
 	line_ptr = ptr;
-    }
+      }
 
     /* now copy the last bit */
-    memcpy(buf_ptr, line_ptr, strlen(line_ptr)+1); /* we need the null */
 
+    memcpy(buf_ptr, line_ptr, strlen(line_ptr));
+    buf_ptr += strlen(line_ptr);
+   
+    /*copy in the commit */
+    memcpy(buf_ptr, commit, commitlen + 1);
+    
     return(buf);
 }
 
@@ -334,7 +442,7 @@ void sql_get_settings(const sasl_utils_t *utils, void *glob_context) {
 	utils->log(NULL, SASL_LOG_NOTE,
 		   "sql auxprop plugin being initialized\n");
     } else {
-	settings->sql_verbose = 0;
+settings->sql_verbose = 0;
     }
 	
     utils->getopt(utils->getopt_context, "SQL", "sql_usessl",
@@ -371,6 +479,12 @@ void sql_get_settings(const sasl_utils_t *utils, void *glob_context) {
     if ( r || !settings->sql_statement ) {
 	settings->sql_statement = SQL_BLANK_STRING;
     }
+    r = utils->getopt(utils->getopt_context, "SQL", "sql_insert",
+		      &settings->sql_insert, NULL);
+    if ( r || !settings->sql_insert) 
+      {
+	settings->sql_insert = SQL_BLANK_STRING;
+      }
     r = utils->getopt(utils->getopt_context,"SQL", "sql_engine",
 		      &engine_name, NULL);
     if ( r || !engine_name ) {
@@ -496,16 +610,23 @@ static void sql_auxprop_lookup(void *glob_context,
 					      settings->sql_passwd,
 					      settings->sql_database,
 					      sparams->utils);
-	if (conn) break;
+	if (conn)
+	  {
+	   
+	    break;
+	  }
 	
 	cur_host = db_host;
     }
     
-    if ( !conn ) {
+    if ( !conn ) 
+      {
 	sparams->utils->log(NULL, SASL_LOG_ERR,
 			    "sql plugin couldn't connect to any host\n");
+
 	goto done;
-    }
+      }
+    
     /* escape out */
     settings->sql_engine->sql_escape_str(escap_userid, userid);
     settings->sql_engine->sql_escape_str(escap_realm, realm);
@@ -539,7 +660,7 @@ static void sql_auxprop_lookup(void *glob_context,
 	query = sql_create_statement(sparams,
 				       settings->sql_statement,
 				       realname,escap_userid,
-				       escap_realm);
+				       escap_realm, NULL);
 	
 	if (settings->sql_verbose)
 	    sparams->utils->log(NULL, SASL_LOG_NOTE,
@@ -563,6 +684,198 @@ static void sql_auxprop_lookup(void *glob_context,
     if (user_buf) sparams->utils->free(user_buf);
 }
 
+static int sql_auxprop_store (void *glob_context,
+			      sasl_server_params_t *sparams,
+			      struct propctx *ctx,
+			      const char *user,
+			      unsigned ulen) 
+{
+
+  
+    char *userid = NULL;
+    char *realm = NULL;
+    const char *user_realm = NULL;
+    int ret = SASL_FAIL;
+    const struct propval *to_store, *cur;
+    
+    char value[8192];
+    size_t value_len;
+
+    char *user_buf;
+    char *db_host_ptr = NULL;
+    char *db_host = NULL;
+    char *cur_host, *cur_port;
+    char *query = NULL;
+    char *escap_userid = NULL;
+    char *escap_realm = NULL;
+    
+    sql_settings_t *settings;
+    void *conn = NULL;
+
+    /* just checking if we are enabled */
+    if(!ctx) 
+      {
+	return SASL_OK;
+      }
+
+    /* make sure our input is okay */
+    if(!glob_context || !sparams || !user) 
+      {
+	return SASL_BADPARAM;
+      }
+
+    settings = (sql_settings_t *) glob_context; 
+    if (settings->sql_verbose)
+      {
+	sparams->utils->log(NULL, SASL_LOG_NOTE,
+			    "sql plugin Parse the username %s\n", user);
+      }
+
+    user_buf = sparams->utils->malloc(ulen + 1);
+    if(!user_buf) 
+      {
+	ret = SASL_NOMEM;
+	goto done;
+      }
+
+    memcpy(user_buf, user, ulen);
+    user_buf[ulen] = '\0';
+    
+    if(sparams->user_realm) 
+      {
+	user_realm = sparams->user_realm;
+      } 
+    else 
+      {
+	user_realm = sparams->serverFQDN;
+      }
+    
+    ret = _plug_parseuser(sparams->utils, &userid, &realm, user_realm,
+			  sparams->serverFQDN, user_buf);
+    if(ret != SASL_OK)
+      {
+	goto done;
+      }
+     
+     /* just need to escape userid and realm now */
+     /* allocate some memory */
+
+    escap_userid = (char *)sparams->utils->malloc(strlen(userid)*2+1);
+    escap_realm = (char *)sparams->utils->malloc(strlen(realm)*2+1);
+    
+    if (!escap_userid || !escap_realm) 
+      {
+	MEMERROR(sparams->utils);
+	goto done;
+      }
+     
+     to_store = sparams->utils->prop_get(sparams->propctx);
+ 
+     if(!to_store)
+       {
+	 ret = SASL_BADPARAM;
+	 goto done;
+       }
+
+    
+    if (settings->sql_verbose)
+	{
+	  sparams->utils->log(NULL, SASL_LOG_NOTE,
+			      "sql plugin try and connect to a host\n");
+	}
+    
+    /* create a working version of the hostnames */
+    _plug_strdup(sparams->utils, settings->sql_hostnames,
+		 &db_host_ptr, NULL);
+
+    db_host = db_host_ptr;
+    cur_host = db_host;
+
+    while (cur_host != NULL) 
+      {
+	db_host = strchr(db_host,',');
+
+	if (db_host != NULL) 
+	  {  
+	    db_host[0] = '\0';
+	    /* loop till we find some text */
+	    while (!isalnum(db_host[0]))
+	      {
+		db_host++;
+	      }
+	  }
+	if (settings->sql_verbose)
+	  {
+	    sparams->utils->log(NULL, SASL_LOG_NOTE,
+				"sql plugin trying to open db '%s' on host '%s'%s\n",
+				settings->sql_database, cur_host,
+				settings->sql_usessl ? " using SSL" : "");
+	  }
+
+	/* set the optional port */
+	if ((cur_port = strchr(cur_host, ':')))
+	  {
+	    *cur_port++ = '\0';
+	  }
+
+	if ((conn = settings->sql_engine->sql_open(cur_host, cur_port,
+						  settings->sql_usessl,
+						  settings->sql_user,
+						  settings->sql_passwd,
+						  settings->sql_database,
+						   sparams->utils)))
+	  {
+	    break;
+	  }
+	cur_host = db_host;
+      }
+    
+    if(!conn)
+      {
+	sparams->utils->log(NULL, SASL_LOG_ERR,
+			    "sql plugin couldn't connect to any host\n");
+	goto done;
+      }
+
+    settings->sql_engine->sql_escape_str(escap_userid, userid);
+    settings->sql_engine->sql_escape_str(escap_realm, realm);
+
+    for (cur = to_store; cur->name; cur++) 
+      {	
+	/* create a statment that we will use */
+	query = sql_create_statement(sparams,
+				     settings->sql_insert,
+				     cur->name,escap_userid,
+				     escap_realm, cur->values[0]);
+	
+	if (settings->sql_verbose)
+	  {
+	    sparams->utils->log(NULL, SASL_LOG_NOTE,
+				"sql plugin doing query %s\n",
+				query);
+	  }
+
+	/* run the query */
+	if (!settings->sql_engine->sql_query(conn, query, value, sizeof(value),
+					     &value_len, sparams->utils))
+	  {
+	    sparams->utils->prop_set(sparams->propctx, cur->name,
+				     value, value_len);
+	  }
+      }
+ done:
+    if (escap_userid) sparams->utils->free(escap_userid);
+    if (escap_realm) sparams->utils->free(escap_realm);
+    if (conn) settings->sql_engine->sql_close(conn);
+    if (db_host_ptr) sparams->utils->free(db_host_ptr);
+    if (userid) sparams->utils->free(userid);
+    if (realm) sparams->utils->free(realm);
+    if (user_buf) sparams->utils->free(user_buf);
+    return ret;
+    /* do a little dance */
+}
+
+
 static void sql_auxprop_free(void *glob_context, const sasl_utils_t *utils) {
     struct sql_settings *settings;
 
@@ -583,7 +896,7 @@ static sasl_auxprop_plug_t sql_auxprop_plugin = {
     sql_auxprop_free,	/* auxprop_free */
     sql_auxprop_lookup,	/* auxprop_lookup */
     "sql",	/* name */
-    NULL	/* spare */
+    sql_auxprop_store /* auxprop_store */
 };
 
 int sql_auxprop_plug_init(const sasl_utils_t *utils,

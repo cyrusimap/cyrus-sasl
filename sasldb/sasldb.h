@@ -1,7 +1,7 @@
 /* sasldb.h - SASLdb library header
  * Rob Siemborski
  * Tim Martin
- * $Id: sasldb.h,v 1.4 2003/08/18 15:47:29 rjs3 Exp $
+ * $Id: sasldb.h,v 1.5 2003/10/03 20:30:12 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -79,6 +79,11 @@ LIBSASL_API int _sasl_check_db(const sasl_utils_t *utils,
 /* These allow iterating through the keys of the database */
 typedef void* sasldb_handle;
 
+typedef int (* sasldb_list_callback_t) (const char *authid,
+				        const char *realm,
+					const char *property,
+					void *rock);
+
 LIBSASL_API sasldb_handle _sasldb_getkeyhandle(const sasl_utils_t *utils,
 				   sasl_conn_t *conn);
 LIBSASL_API int _sasldb_getnextkey(const sasl_utils_t *utils,
@@ -86,6 +91,11 @@ LIBSASL_API int _sasldb_getnextkey(const sasl_utils_t *utils,
 		       const size_t max_out, size_t *out_len);
 LIBSASL_API int _sasldb_releasekeyhandle(const sasl_utils_t *utils,
 			     sasldb_handle handle);
+
+LIBSASL_API int _sasldb_listusers(const sasl_utils_t *utils,
+				  sasl_conn_t *context,
+				  sasldb_list_callback_t callback,
+				  void *callback_rock);
 
 /* The rest are implemented in allockey.c and individal drivers need not
  * do so */

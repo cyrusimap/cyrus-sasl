@@ -1,7 +1,7 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Rob Siemborski
  * Tim Martin
- * $Id: allockey.c,v 1.5 2003/02/13 19:56:14 rjs3 Exp $
+ * $Id: allockey.c,v 1.6 2003/10/03 20:30:12 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -44,6 +44,8 @@
  */
 
 #include <config.h>
+
+#include <stdio.h>
 
 #include <sys/stat.h>
 #include <stdlib.h>
@@ -189,3 +191,88 @@ int _sasldb_putsecret(const sasl_utils_t *utils,
 			   (secret ? secret->len : 0));
 }
 
+int __sasldb_internal_list (const char *authid,
+			    const char *realm,
+			    const char *property,
+			    void *rock
+)
+{
+    printf("%s@%s: %s\n", authid, realm, property);
+
+    return (SASL_OK);
+}
+
+/* List all users in database */
+int _sasldb_listusers (const sasl_utils_t *utils,
+		       sasl_conn_t *context,
+		       sasldb_list_callback_t callback,
+		       void *callback_rock
+)
+{
+    int result;
+    char key_buf[32768];
+    size_t key_len;
+    sasldb_handle dbh;
+
+    if (callback == NULL) {
+	callback = &__sasldb_internal_list;
+	callback_rock = NULL;
+    }
+
+    dbh = _sasldb_getkeyhandle(utils, context);
+
+    if(!dbh) {
+	utils->log (context, SASL_LOG_ERR, "_sasldb_getkeyhandle has failed");
+	return SASL_FAIL;
+    }
+
+    result = _sasldb_getnextkey(utils,
+			        dbh,
+				key_buf,
+				32768,
+				&key_len);
+
+    while (result == SASL_CONTINUE)
+    {
+	char authid_buf[16384];
+	char realm_buf[16384];
+	char property_buf[16384];
+	int ret;
+
+	ret = _sasldb_parse_key(key_buf, key_len,
+				authid_buf, 16384,
+				realm_buf, 16384,
+				property_buf, 16384);
+
+	if(ret == SASL_BUFOVER) {
+	    utils->log (context, SASL_LOG_ERR, "Key is too large in _sasldb_parse_key");
+	    continue;
+	} else if(ret != SASL_OK) {
+	    utils->log (context, SASL_LOG_ERR, "Bad Key in _sasldb_parse_key");
+	    continue;
+	}
+	
+	result = callback (authid_buf,
+			   realm_buf,
+			   property_buf,
+			   callback_rock);
+
+	if (result != SASL_OK && result != SASL_CONTINUE) {
+	    break;
+	}
+
+	result = _sasldb_getnextkey(utils,
+				    dbh,
+				    key_buf,
+				    32768,
+				    &key_len);
+    }
+
+    if (result == SASL_BUFOVER) {
+	utils->log (context, SASL_LOG_ERR, "Key is too large in _sasldb_getnextkey");
+    } else if (result != SASL_OK) {
+	utils->log (context, SASL_LOG_ERR, "DB failure in _sasldb_getnextkey");
+    }
+
+    return _sasldb_releasekeyhandle(utils, dbh);
+}

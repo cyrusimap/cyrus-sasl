@@ -1,5 +1,5 @@
 /* sasldblistusers.c -- list users in sasldb
- * $Id: sasldblistusers.c,v 1.21 2003/09/30 18:38:35 rjs3 Exp $
+ * $Id: sasldblistusers.c,v 1.22 2003/10/03 20:30:14 rjs3 Exp $
  * Rob Siemborski
  * Tim Martin
  */
@@ -63,61 +63,6 @@ __declspec(dllimport) int optind;
 
 /* Cheating to make the utils work out right */
 LIBSASL_VAR const sasl_utils_t *sasl_global_utils;
-
-/*
- * List all users in database
- */
-int listusers(sasl_conn_t *conn)
-{
-    int result;
-    char key_buf[32768];
-    size_t key_len;
-    sasldb_handle dbh;
-    
-    dbh = _sasldb_getkeyhandle(sasl_global_utils, conn);
-
-    if(!dbh) {
-	printf("can't getkeyhandle\n");
-	return SASL_FAIL;
-    }
-
-    result = _sasldb_getnextkey(sasl_global_utils, dbh,
-				key_buf, 32768, &key_len);
-
-    while (result == SASL_CONTINUE)
-    {
-	char authid_buf[16384];
-	char realm_buf[16384];
-	char property_buf[16384];
-	int ret;
-
-	ret = _sasldb_parse_key(key_buf, key_len,
-				authid_buf, 16384,
-				realm_buf, 16384,
-				property_buf, 16384);
-
-	if(ret == SASL_BUFOVER) {
-	    printf("Key too large\n");
-	    continue;
-	} else if(ret != SASL_OK) {
-	    printf("Bad Key!\n");
-	    continue;
-	}
-	
-	printf("%s@%s: %s\n",authid_buf,realm_buf,property_buf);
-
-	result = _sasldb_getnextkey(sasl_global_utils, dbh,
-				    key_buf, 32768, &key_len);
-    }
-
-    if (result == SASL_BUFOVER) {
-	fprintf(stderr, "Key too large!\n");
-    } else if (result != SASL_OK) {
-	fprintf(stderr,"db failure\n");
-    }
-
-    return _sasldb_releasekeyhandle(sasl_global_utils, dbh);
-}
 
 char *sasldb_path = SASL_DB_PATH;
 const char *progname = NULL;
@@ -242,7 +187,7 @@ START_WORK:
 	return 1;
     }
 
-    if(listusers(conn) != SASL_OK) {
+    if(_sasldb_listusers (sasl_global_utils, conn, NULL, NULL) != SASL_OK) {
 	fprintf(stderr, "listusers failed\n");
     }
 

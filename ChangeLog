@@ -1,3 +1,8 @@
+2003-10-03  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* sasldb/allockey.c, sasldb/sasldb.h, utils/sasldblistusers.c:
+	  Add enumeration capability to the sasldb API
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+
 2003-10-02  Ken Murchison <ken@oceana.com>
 	* plugins/sql.c: changed abstraction layer for transactions
 

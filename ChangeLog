@@ -1,3 +1,7 @@
+2002-06-12  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* plugins/digestmd5.c: Add missing prompts++
+	  (Howard Chu <hyc@highlandsun.com>)
+
 2002-04-15  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* plugins/gssapi.c: Fix how name_token and name_without_realm
 	  are freed

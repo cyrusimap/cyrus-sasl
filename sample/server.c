@@ -1,4 +1,4 @@
-/* $Id: server.c,v 1.7 2004/03/08 16:57:30 rjs3 Exp $ */
+/* $Id: server.c,v 1.8 2004/03/09 17:35:32 rjs3 Exp $ */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
  *
@@ -369,8 +369,8 @@ int main(int argc, char *argv[])
 			    sizeof(hbuf), pbuf, sizeof(pbuf), niflags);
 	if (error != 0) {
 	    fprintf(stderr, "getnameinfo: %s\n", gai_strerror(error));
-	    strlcpy(hbuf, "unknown", sizeof(hbuf));
-	    strlcpy(pbuf, "unknown", sizeof(pbuf));
+	    strcpy(hbuf, "unknown");
+	    strcpy(pbuf, "unknown");
 	}
         snprintf(localaddr, sizeof(localaddr), "%s;%s", hbuf, pbuf);
 
@@ -388,8 +388,8 @@ int main(int argc, char *argv[])
 			    sizeof(hbuf), pbuf, sizeof(pbuf), niflags);
 	if (error != 0) {
 	    fprintf(stderr, "getnameinfo: %s\n", gai_strerror(error));
-	    strlcpy(hbuf, "unknown", sizeof(hbuf));
-	    strlcpy(pbuf, "unknown", sizeof(pbuf));
+	    strcpy(hbuf, "unknown");
+	    strcpy(pbuf, "unknown");
 	}
 	snprintf(remoteaddr, sizeof(remoteaddr), "%s;%s", hbuf, pbuf);
 

@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.22 2004/03/08 16:57:29 rjs3 Exp $
+ * $Id: ntlm.c,v 1.23 2004/03/09 17:35:31 rjs3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -94,7 +94,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.22 2004/03/08 16:57:29 rjs3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.23 2004/03/09 17:35:31 rjs3 Exp $";
 
 #ifdef WIN32
 static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);
@@ -840,8 +840,8 @@ static int smb_connect_server(const sasl_utils_t *utils, const char *client,
 #endif
 	if (getnameinfo(r->ai_addr, r->ai_addrlen, hbuf, sizeof(hbuf),
 			pbuf, sizeof(pbuf), niflags) != 0) {
-	    strlcpy(hbuf, "unknown", sizeof(hbuf));
-	    strlcpy(pbuf, "unknown", sizeof(pbuf));
+	    strcpy(hbuf, "unknown");
+	    strcpy(pbuf, "unknown");
 	}
 
         /* Can't use errno (and %m), as it doesn't contain

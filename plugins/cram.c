@@ -1,7 +1,7 @@
 /* CRAM-MD5 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: cram.c,v 1.76 2002/11/22 17:28:56 leg Exp $
+ * $Id: cram.c,v 1.77 2003/02/12 19:57:42 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -52,6 +52,7 @@
 #include <sys/stat.h>
 #endif
 #include <fcntl.h>
+#include <time.h>
 
 #include <sasl.h>
 #include <saslplug.h>
@@ -65,7 +66,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: cram.c,v 1.76 2002/11/22 17:28:56 leg Exp $";
+static const char plugin_id[] = "$Id: cram.c,v 1.77 2003/02/12 19:57:42 leg Exp $";
 
 /* convert a string of 8bit chars to it's representation in hex
  * using lowercase letters

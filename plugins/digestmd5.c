@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.146 2003/01/29 18:17:56 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.147 2003/02/12 19:58:05 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -55,6 +55,7 @@
 #endif
 #include <fcntl.h>
 #include <ctype.h>
+#include <time.h>
 
 /* DES support */
 #ifdef WITH_DES
@@ -102,7 +103,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.146 2003/01/29 18:17:56 rjs3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.147 2003/02/12 19:58:05 leg Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */

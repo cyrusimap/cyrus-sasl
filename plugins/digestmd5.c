@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.131 2002/05/06 18:53:05 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.132 2002/05/07 15:28:56 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -103,7 +103,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.131 2002/05/06 18:53:05 rjs3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.132 2002/05/07 15:28:56 ken3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -2598,7 +2598,7 @@ digestmd5_server_mech_step(void *conn_context,
 	}
 
 	/* should we attempt reauth? */
-	if (clientinlen && text->global->timeout &&
+	if (clientin && text->global->timeout &&
 	    text->global->nonce && text->global->cnonce) {
 	    if (digestmd5_server_mech_step2(stext, sparams,
 					    clientin, clientinlen,

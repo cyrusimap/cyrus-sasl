@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb4.c,v 1.11 2005/01/10 07:09:05 shadow Exp $"
+#ident "$Id: auth_krb4.c,v 1.12 2005/02/01 12:26:34 mel Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -112,7 +112,7 @@ auth_krb4_init (
 
     if (mech_option)
       configname = mech_option;
-    else if (access(SASLAUTHD_CONF_FILE_DEFAULT, F_OK))
+    else if (access(SASLAUTHD_CONF_FILE_DEFAULT, F_OK) == 0)
       configname = SASLAUTHD_CONF_FILE_DEFAULT;
 
     if (configname) {

@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb5.c,v 1.15 2005/01/10 07:09:05 shadow Exp $"
+#ident "$Id: auth_krb5.c,v 1.16 2005/02/01 12:26:34 mel Exp $"
 #endif
 
 /* ok, this is  wrong but the most convenient way of doing 
@@ -89,7 +89,7 @@ auth_krb5_init (
 
     if (mech_option)
 	configname = mech_option;
-    else if (access(SASLAUTHD_CONF_FILE_DEFAULT, F_OK))
+    else if (access(SASLAUTHD_CONF_FILE_DEFAULT, F_OK) == 0)
 	configname = SASLAUTHD_CONF_FILE_DEFAULT;
  
     if (configname) {
@@ -182,7 +182,6 @@ auth_krb5 (
     krb5_keytab kt = NULL;
     krb5_principal auth_user;
     krb5_verify_opt opt;
-    const char *fulluser = user;
     char * result;
     char tfname[2048];
     char principalbuf[2048];
@@ -203,7 +202,7 @@ auth_krb5 (
 	return strdup("NO saslauthd principal name error");
     }
 
-    if (krb5_parse_name (context, fulluser, &auth_user)) {
+    if (krb5_parse_name (context, principalbuf, &auth_user)) {
 	krb5_free_context(context);
 	syslog(LOG_ERR, "auth_krb5: krb5_parse_name");
 	return strdup("NO saslauthd internal krb5_parse_name error");

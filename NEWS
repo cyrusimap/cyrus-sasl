@@ -1,3 +1,9 @@
+New in 1.5.3
+------------
+* Bug fixes
+* Tested GSSAPI & added layers
+* Some changes for Windows compatibility (next release)
+
 New in 1.5.2
 ------------
 * A few bug fixes

@@ -1,6 +1,6 @@
 # Makefile.am for the Java SASL library
 # Rob Earhart
-# $Id: Makefile.am,v 1.2 1998/11/16 20:23:37 rob Exp $
+# $Id: Makefile.am,v 1.3 1998/11/16 20:31:16 rob Exp $
 #
 ################################################################
 #        Copyright 1998 by Carnegie Mellon University
@@ -49,3 +49,4 @@ javasasl_JAVA = BadAuthException.java GenericException.java InteractException.ja
 install-data-local:
 	$(mkinstalldirs) $(javahtmldir)
 	$(CLASSPATH_ENV) $(JAVADOC) -d $(javahtmldir) sasl
+	-$(LN_S) $(JAVA_BASE)/images $(javahtmldir)/images

@@ -124,7 +124,7 @@ dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_HEADER_TIME
-AC_CHECK_HEADERS(fcntl.h strings.h syslog.h unistd.h sys/time.h sys/uio.h)
+AC_CHECK_HEADERS(crypt.h fcntl.h strings.h syslog.h unistd.h sys/time.h sys/uio.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST  

@@ -34,7 +34,14 @@
 #include <stdlib.h>
 #include <strings.h>
 #include <syslog.h>
+
+#ifdef HAVE_CRYPT_H
 #include <crypt.h>
+#endif
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 #include <ldap.h>
 #include <lber.h>

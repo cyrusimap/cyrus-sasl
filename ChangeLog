@@ -1,3 +1,6 @@
+2003-03-13  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/lak.c: Fix a memset length.  (Igor Brezac <igor@ipass.net>)
+
 2003-03-06  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/digestmd5.c: fix parity of digest-uri test
 	* lib/client.c, common.c, saslint.h, server.c: Pass global

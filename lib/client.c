@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.45 2002/02/13 20:31:52 rjs3 Exp $
+ * $Id: client.c,v 1.46 2002/02/21 21:28:16 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -553,6 +553,7 @@ int sasl_client_step(sasl_conn_t *conn,
   sasl_client_conn_t *c_conn= (sasl_client_conn_t *) conn;
   int result;
 
+  if(_sasl_client_active==0) return SASL_NOTINIT;
   if(!conn) return SASL_BADPARAM;
 
   /* check parameters */

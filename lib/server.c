@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.102 2002/02/13 20:31:52 rjs3 Exp $
+ * $Id: server.c,v 1.103 2002/02/21 21:28:16 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -753,6 +753,7 @@ int sasl_server_new(const char *service,
   sasl_server_conn_t *serverconn;
   sasl_utils_t *utils;
 
+  if (_sasl_server_active==0) return SASL_NOTINIT;
   if (! pconn) return SASL_FAIL;
   if (! service) return SASL_FAIL;
 
@@ -1037,10 +1038,12 @@ int sasl_server_start(sasl_conn_t *conn,
     sasl_server_conn_t *s_conn=(sasl_server_conn_t *) conn;
     int result;
     context_list_t *cur, **prev;
+    mechanism_t *m;
+
+    if (_sasl_server_active==0) return SASL_NOTINIT;
 
     /* make sure mech is valid mechanism
        if not return appropriate error */
-    mechanism_t *m;
     m=mechlist->mech_list;
 
     /* check parameters */
@@ -1231,6 +1234,7 @@ int sasl_server_step(sasl_conn_t *conn,
     sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;  /* cast */
 
     /* check parameters */
+    if (_sasl_server_active==0) return SASL_NOTINIT;
     if (!conn) return SASL_BADPARAM;
     if ((clientin==NULL) && (clientinlen>0))
 	PARAMERROR(conn);

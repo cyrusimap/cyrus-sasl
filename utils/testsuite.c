@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.19 2002/01/16 15:55:51 ken3 Exp $
+ * $Id: testsuite.c,v 1.20 2002/02/21 21:28:14 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -529,11 +529,86 @@ void test_init(void)
     if (result!=SASL_OK) fatal("Didn't deal with ok callback path very well");
     sasl_done();
 
+    /* and the client */
+    result = sasl_client_init(withokpathsasl_cb);
+
+    if (result!=SASL_OK)
+	fatal("Client didn't deal with ok callback path very well");
+    sasl_done();
+
     /* try giving it an invalid path for where the plugins are */
     result = sasl_server_init(withbadpathsasl_cb, NULL);
 
     if (result==SASL_OK) fatal("Allowed invalid path");
     sasl_done();
+
+    /* and the client - xxx is this necessary?*/
+#if 0
+    result = sasl_client_init(withbadpathsasl_cb);
+
+    if (result==SASL_OK)
+	fatal("Client allowed invalid path");
+    sasl_done();
+#endif
+
+    /* Now try to break all the sasl_server_* functions for not returning
+       SASL_NOTINIT */
+
+    if(sasl_global_listmech())
+	fatal("sasl_global_listmech did not return NULL with no library initialized");
+
+    if(sasl_server_new(NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL)
+       != SASL_NOTINIT)
+	fatal("sasl_server_new did not return SASL_NOTINIT");
+
+/* Can't check this validly without a server conn, so this would be
+   a hard one to tickle anyway */
+#if 0    
+    if(sasl_listmech(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)
+       != SASL_NOTINIT)
+	fatal("sasl_listmech did not return SASL_NOTINIT");
+#endif
+
+    if(sasl_server_start(NULL, NULL, NULL, 0, NULL, NULL)
+       != SASL_NOTINIT)
+	fatal("sasl_server_start did not return SASL_NOTINIT");
+
+    if(sasl_server_step(NULL, NULL, 0, NULL, NULL)
+       != SASL_NOTINIT)
+	fatal("sasl_server_step did not return SASL_NOTINIT");
+    
+#ifdef DO_SASL_CHECKAPOP
+    if(sasl_checkapop(NULL, NULL, 0, NULL, 0)
+       != SASL_NOTINIT)
+	fatal("sasl_checkapop did not return SASL_NOTINIT");
+#endif    
+
+    if(sasl_checkpass(NULL, NULL, 0, NULL, 0)
+       != SASL_NOTINIT)
+	fatal("sasl_checkpass did not return SASL_NOTINIT");
+    
+    if(sasl_user_exists(NULL, NULL, NULL, NULL)
+       != SASL_NOTINIT)
+	fatal("sasl_user_exists did not return SASL_NOTINIT");
+
+    if(sasl_setpass(NULL, NULL, NULL, 0, NULL, 0, 0)
+       != SASL_NOTINIT)
+	fatal("sasl_setpass did not return SASL_NOTINIT");
+
+    /* And sasl_client_*... */
+
+    if(sasl_client_new(NULL, NULL, NULL, NULL, NULL, 0, NULL)
+       != SASL_NOTINIT)
+	fatal("sasl_client_new did not return SASL_NOTINIT");
+
+    if(sasl_client_start(NULL, NULL, NULL, NULL, NULL, NULL)
+       != SASL_NOTINIT)
+	fatal("sasl_client_start did not return SASL_NOTINIT");
+
+    if(sasl_client_step(NULL, NULL, 0, NULL, NULL, NULL)
+       != SASL_NOTINIT)
+	fatal("sasl_client_step did not return SASL_NOTINIT");
+
 }
 
 
@@ -2712,7 +2787,7 @@ int main(int argc, char **argv)
     if(mem_stat() != SASL_OK) fatal("memory error");
     printf("ok\n");
 
-    printf("Tests of sasl_server_init()... ");
+    printf("Tests of sasl_{server|client}_init()... ");
     test_init();
     if(mem_stat() != SASL_OK) fatal("memory error");
     printf("ok\n");

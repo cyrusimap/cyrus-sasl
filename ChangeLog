@@ -1,6 +1,8 @@
 2002-02-21  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* lib/checkpw.c (auxprop_verify_password) report SASL_NOUSER instead
 	  of SASL_FAIL.
+	* lib/client.c, lib/server.c: More Complete returning of SASL_NOTINIT
+	* utils/testsuite.c: Better checking for SASL_NOTINIT
 
 2002-02-11  Ken Murchison <ken@oceana.com>
 	* plugins/srp.c: removed OpenSSL 0.9.6 dependencies, small bugfix

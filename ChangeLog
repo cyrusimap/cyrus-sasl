@@ -1,6 +1,7 @@
 2003-10-07  Ken Murchison <ken@oceana.com>
 	* plugins/sql.c: removed sql_delete - don't DELETE rows from the
-	  table, just set the properties to NULL
+	  table, just set the properties to NULL;
+	  fix a stupid logic error in my PgSQL changes
 	* doc/options.html: removed sql_delete option; clarifications
 	* doc/install.html: note that we require PostgreSQL v7.2+
 

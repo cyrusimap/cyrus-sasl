@@ -1,6 +1,6 @@
 dnl checking for kerberos 4 libraries (and DES)
 
-AC_DEFUN(SASL_DES_CHK, [
+AC_DEFUN([SASL_DES_CHK], [
 AC_ARG_WITH(des, [  --with-des=DIR          with DES (look in DIR) [yes] ],
 	with_des=$withval,
 	with_des=yes)
@@ -71,7 +71,7 @@ fi
 AC_SUBST(LIB_DES)
 ])
 
-AC_DEFUN(SASL_KERBEROS_V4_CHK, [
+AC_DEFUN([SASL_KERBEROS_V4_CHK], [
   AC_REQUIRE([SASL_DES_CHK])
 
   AC_ARG_ENABLE(krb4, [  --enable-krb4           enable KERBEROS_V4 authentication [yes] ],

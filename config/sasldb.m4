@@ -3,7 +3,7 @@ dnl Functions to check what database to use for libsasldb
 dnl Berkeley DB specific checks first..
 
 dnl Figure out what database type we're using
-AC_DEFUN(SASL_DB_CHECK, [
+AC_DEFUN([SASL_DB_CHECK], [
 cmu_save_LIBS="$LIBS"
 AC_ARG_WITH(dblib, [  --with-dblib=DBLIB      set the DB library to use [berkeley] ],
   dblib=$withval,
@@ -142,7 +142,7 @@ AC_SUBST(SASL_DB_LIB)
 ])
 
 dnl Figure out what database path we're using
-AC_DEFUN(SASL_DB_PATH_CHECK, [
+AC_DEFUN([SASL_DB_PATH_CHECK], [
 AC_ARG_WITH(dbpath, [  --with-dbpath=PATH      set the DB path to use [/etc/sasldb2] ],
   dbpath=$withval,
   dbpath=/etc/sasldb2)

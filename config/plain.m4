@@ -1,6 +1,6 @@
 dnl Check for PLAIN (and therefore crypt)
 
-AC_DEFUN(SASL_PLAIN_CHK,[
+AC_DEFUN([SASL_PLAIN_CHK],[
 AC_REQUIRE([SASL2_CRYPT_CHK])
 
 dnl PLAIN

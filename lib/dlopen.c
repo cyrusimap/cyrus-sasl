@@ -101,7 +101,7 @@ dlsym(dll_handle h, char *n)
 char *dlerror()
 {
     if (errno != 0) {
-	return sterror(errno);
+	return strerror(errno);
     }
     return "Generic shared library error";
 }

@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.16 2003/09/09 15:38:14 ken3 Exp $
+ * $Id: ntlm.c,v 1.17 2003/09/14 13:38:28 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -52,12 +52,21 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <errno.h>
-#include <unistd.h>
 #include <limits.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/utsname.h>
-#include <netdb.h>
+
+#ifdef WIN32
+# include <process.h>	    /* for getpid */
+  typedef int pid_t;
+#else
+# include <unistd.h>
+# include <sys/types.h>
+# include <sys/socket.h>
+# include <sys/utsname.h>
+# include <netdb.h>
+
+# define closesocket(sock)   close(sock)
+  typedef int SOCKET;
+#endif /* WIN32 */
 
 #include <openssl/md4.h>
 #include <openssl/hmac.h>
@@ -85,7 +94,34 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.16 2003/09/09 15:38:14 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.17 2003/09/14 13:38:28 ken3 Exp $";
+
+#ifdef WIN32
+static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);
+
+ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt)
+{
+    ssize_t nwritten;		/* amount written */
+    size_t nbytes;
+    size_t i;
+  
+    nbytes = 0;
+
+    for (i = 0; i < iovcnt; i++) {
+	if ((nwritten = send (fd, iov[i].iov_base, iov[i].iov_len, 0)) == SOCKET_ERROR) {
+/* Unless socket is nonblocking, we should always write everything */
+	    return (-1);
+	}
+
+	nbytes += nwritten;
+	  
+	if (nwritten < iov[i].iov_len) {
+	    break;
+	}
+    }
+    return (nbytes);
+}
+#endif /* WIN32 */
 
 #ifndef UINT16_MAX
 #define UINT16_MAX 65535U
@@ -433,7 +469,7 @@ typedef struct server_context {
     unsigned out_buf_len;
 
     /* socket to remote authentication host */
-    int sock;
+    SOCKET sock;
 
 } server_context_t;
 
@@ -447,7 +483,8 @@ typedef struct {
     uint32 status;
     unsigned char flags;
     uint16 flags2;
-    unsigned char extra[12];
+    uint16 PidHigh;
+    unsigned char extra[10];
     uint16 tid;
     uint16 pid;
     uint16 uid;
@@ -553,7 +590,8 @@ static void load_smb_header(unsigned char buf[], SMB_Header *hdr)
     htoil(p, hdr->status); p += 4;
     *p++ = hdr->flags;
     htois(p, hdr->flags2); p += 2;
-    memcpy(p, hdr->extra, 12); p += 12;
+    htois(p, hdr->PidHigh); p += 2;
+    memcpy(p, hdr->extra, 10); p += 10;
     htois(p, hdr->tid); p += 2;
     htois(p, hdr->pid); p += 2;
     htois(p, hdr->uid); p += 2;
@@ -569,7 +607,8 @@ static void unload_smb_header(unsigned char buf[], SMB_Header *hdr)
     hdr->status = itohl(p); p += 4;
     hdr->flags = *p++;
     hdr->flags2 = itohs(p); p += 2;
-    memcpy(hdr->extra, p, 12); p += 12;
+    hdr->PidHigh = itohs(p); p += 2;
+    memcpy(hdr->extra, p, 10); p += 10;
     hdr->tid = itohs(p); p += 2;
     hdr->pid = itohs(p); p += 2;
     hdr->uid = itohs(p); p += 2;
@@ -626,7 +665,7 @@ static void unload_session_setup_resp(unsigned char buf[],
  * Keep calling the writev() system call with 'fd', 'iov', and 'iovcnt'
  * until all the data is written out or an error occurs.
  */
-static int retry_writev(int fd, struct iovec *iov, int iovcnt)
+static int retry_writev(SOCKET fd, struct iovec *iov, int iovcnt)
 {
     int n;
     int i;
@@ -653,11 +692,13 @@ static int retry_writev(int fd, struct iovec *iov, int iovcnt)
 
 	n = writev(fd, iov, iovcnt > iov_max ? iov_max : iovcnt);
 	if (n == -1) {
+#ifndef WIN32
 	    if (errno == EINVAL && iov_max > 10) {
 		iov_max /= 2;
 		continue;
 	    }
 	    if (errno == EINTR) continue;
+#endif
 	    return -1;
 	}
 
@@ -681,7 +722,7 @@ static int retry_writev(int fd, struct iovec *iov, int iovcnt)
  * Keep calling the read() system call with 'fd', 'buf', and 'nbyte'
  * until all the data is read in or an error occurs.
  */
-static int retry_read(int fd, void *buf0, unsigned nbyte)
+static int retry_read(SOCKET fd, char *buf0, unsigned nbyte)
 {
     int n;
     int nread = 0;
@@ -690,9 +731,12 @@ static int retry_read(int fd, void *buf0, unsigned nbyte)
     if (nbyte == 0) return 0;
 
     for (;;) {
-	n = read(fd, buf, nbyte);
+/* Can't use read() on sockets on Windows, but recv works on all platforms */
+	n = recv (fd, buf, nbyte, 0);
 	if (n == -1 || n == 0) {
+#ifndef WIN32
 	    if (errno == EINTR || errno == EAGAIN) continue;
+#endif
 	    return -1;
 	}
 
@@ -738,7 +782,14 @@ static int smb_connect_server(const sasl_utils_t *utils, const char *client,
 {
     struct addrinfo hints;
     struct addrinfo *ai = NULL, *r;
-    int s = -1, err, saved_errno;
+    SOCKET s = (SOCKET) -1;
+    int err;
+    char * error_str;
+#ifdef WIN32
+    DWORD saved_errno;
+#else
+    int saved_errno;
+#endif
     char *port = "139";
     char hbuf[NI_MAXHOST], pbuf[NI_MAXSERV];
 
@@ -774,15 +825,24 @@ static int smb_connect_server(const sasl_utils_t *utils, const char *client,
 	    continue;
 	if (connect(s, r->ai_addr, r->ai_addrlen) >= 0)
 	    break;
-	close(s);
-	s = -1;
+#ifdef WIN32
+	saved_errno = WSAGetLastError();
+#else
 	saved_errno = errno;
+#endif
+	closesocket (s);
+	s = -1;
 	getnameinfo(r->ai_addr, r->ai_addrlen,
 		    hbuf, sizeof(hbuf), pbuf, sizeof(pbuf),
 		    NI_NUMERICHOST | NI_WITHSCOPEID | NI_NUMERICSERV);
-	errno = saved_errno;
-	utils->log(NULL, SASL_LOG_WARN, "NTLM: connect %s[%s]/%s: %m",
-		   ai->ai_canonname ? ai->ai_canonname : server, hbuf, pbuf);
+/* Can't use errno (and %m), as it doesn't contain the socket error on Windows */
+	error_str = _plug_get_error_message (utils, saved_errno);
+	utils->log(NULL, SASL_LOG_WARN, "NTLM: connect %s[%s]/%s: %s",
+		   ai->ai_canonname ? ai->ai_canonname : server,
+		   hbuf,
+		   pbuf,
+		   error_str);
+	utils->free (error_str);
     }
     if (s < 0) {
 	getnameinfo(ai->ai_addr, ai->ai_addrlen, NULL, 0,
@@ -802,7 +862,7 @@ static int smb_connect_server(const sasl_utils_t *utils, const char *client,
 
     /* make sure length is less than 17 bits */
     if (pkt >= (1 << 17)) {
-	close(s);
+	closesocket(s);
 	return -1;
     }
 
@@ -825,17 +885,17 @@ static int smb_connect_server(const sasl_utils_t *utils, const char *client,
     if (rc == -1) {
 	utils->log(NULL, SASL_LOG_ERR,
 		   "NTLM: error sending NetBIOS session request");
-	close(s);
+	closesocket(s);
 	return -1;
     }
 
-    rc = retry_read(s, &pkt, sizeof(pkt));
+    rc = retry_read(s, (char *) &pkt, sizeof(pkt));
     pkt = ntohl(pkt);
     if (rc == -1 || pkt != (uint32) (NBT_POSITIVE_SESSION_RESP << 24)) {
 	unsigned char ec = NBT_ERR_UNSPECIFIED;
 	char *errstr;
 
-	retry_read(s, &ec, sizeof(ec));
+	retry_read(s, (char *) &ec, sizeof(ec));
 	switch (ec) {
 	case NBT_ERR_NO_LISTEN_CALLED:
 	    errstr = "Not listening on called name";
@@ -854,7 +914,7 @@ static int smb_connect_server(const sasl_utils_t *utils, const char *client,
 	}
 	utils->log(NULL, SASL_LOG_ERR,
 		   "NTLM: negative NetBIOS session response: %s", errstr);
-	close(s);
+	closesocket(s);
 	return -1;
     }
 
@@ -874,6 +934,7 @@ static int smb_negotiate_protocol(const sasl_utils_t *utils,
     struct iovec iov[4+N(SMB_DIALECTS)];
     size_t i, n;
     int rc;
+    pid_t current_pid;
 
     /*** create a negotiate protocol request ***/
 
@@ -884,7 +945,15 @@ static int smb_negotiate_protocol(const sasl_utils_t *utils,
     hdr.flags2 = SMB_FLAGS2_ERR_STATUS;
     if (text->flags & NTLM_USE_UNICODE) hdr.flags2 |= SMB_FLAGS2_UNICODE;
 #endif
-    hdr.pid = getpid();
+    current_pid = getpid();
+    if (sizeof(current_pid) <= 2) {
+	hdr.pid = (uint16) current_pid;
+	hdr.PidHigh = 0;
+    } else {
+	hdr.pid = (uint16) (((uint32) current_pid) & 0xFFFF);
+	hdr.PidHigh = (uint16) (((uint32) current_pid) >> 16);
+    }
+
     load_smb_header(hbuf, &hdr);
 
     /* put together all of the pieces of the request */
@@ -907,7 +976,7 @@ static int smb_negotiate_protocol(const sasl_utils_t *utils,
     /* total up the lengths */
     len = bytecount = 0;
     for (i = 1; i < 4; i++) len += iov[i].iov_len;
-    for (i = 4; i < n; i++) bytecount += iov[i].iov_len;
+    for (i = 4; i < n; i++) bytecount += (uint16) iov[i].iov_len;
     len += bytecount;
     nl = htonl(len);
     htois((char *) &bc, bytecount);
@@ -923,7 +992,7 @@ static int smb_negotiate_protocol(const sasl_utils_t *utils,
     /*** read the negotiate protocol response ***/
 
     /* read the total length */
-    rc = retry_read(text->sock, &nl, sizeof(nl));
+    rc = retry_read(text->sock, (char *) &nl, sizeof(nl));
     if (rc < (int) sizeof(nl)) {
 	utils->log(NULL, SASL_LOG_ERR,
 		   "NTLM: error reading NEGPROT response length");
@@ -1050,8 +1119,13 @@ static int smb_session_setup(const sasl_utils_t *utils, server_context_t *text,
     struct iovec iov[12];
     size_t i, n;
     int rc;
-    struct utsname os;
-    char osbuf[2*SYS_NMLN+2], lanman[20];
+#ifdef WIN32
+    char osbuf[80];
+#else
+    char osbuf[2*SYS_NMLN+2];
+#endif
+    char lanman[20];
+    pid_t current_pid;
 
     /*** create a session setup request ***/
 
@@ -1062,7 +1136,15 @@ static int smb_session_setup(const sasl_utils_t *utils, server_context_t *text,
     hdr.flags2 = SMB_FLAGS2_ERR_STATUS;
     if (text->flags & NTLM_USE_UNICODE) hdr.flags2 |= SMB_FLAGS2_UNICODE;
 #endif
-    hdr.pid = getpid();
+    current_pid = getpid();
+    if (sizeof(current_pid) <= 2) {
+	hdr.pid = (uint16) current_pid;
+	hdr.PidHigh = 0;
+    } else {
+	hdr.pid = (uint16) (((uint32) current_pid) & 0xFFFF);
+	hdr.PidHigh = (uint16) (((uint32) current_pid) >> 16);
+    }
+
     load_smb_header(hbuf, &hdr);
 
     /* create a the setup parameters */
@@ -1077,8 +1159,7 @@ static int smb_session_setup(const sasl_utils_t *utils, server_context_t *text,
 #endif
     load_session_setup(sbuf, &setup);
 
-    uname(&os);
-    snprintf(osbuf, sizeof(osbuf), "%s %s", os.sysname, os.release);
+    _plug_snprintf_os_info (osbuf, sizeof(osbuf));
 
     snprintf(lanman, sizeof(lanman), "Cyrus SASL %u.%u.%u",
 	     SASL_VERSION_MAJOR, SASL_VERSION_MINOR,
@@ -1116,7 +1197,7 @@ static int smb_session_setup(const sasl_utils_t *utils, server_context_t *text,
     /* total up the lengths */
     len = bytecount = 0;
     for (i = 1; i < 5; i++) len += iov[i].iov_len;
-    for (i = 5; i < n; i++) bytecount += iov[i].iov_len;
+    for (i = 5; i < n; i++) bytecount += (uint16) iov[i].iov_len;
     len += bytecount;
     nl = htonl(len);
     htois((char *) &bc, bytecount);
@@ -1132,7 +1213,7 @@ static int smb_session_setup(const sasl_utils_t *utils, server_context_t *text,
     /*** read the session setup response ***/
 
     /* read the total length */
-    rc = retry_read(text->sock, &nl, sizeof(nl));
+    rc = retry_read(text->sock, (char *) &nl, sizeof(nl));
     if (rc < (int) sizeof(nl)) {
 	utils->log(NULL, SASL_LOG_ERR,
 		   "NTLM: error reading SESSIONSETUP response length");
@@ -1592,7 +1673,7 @@ static void ntlm_server_mech_dispose(void *conn_context,
     if (!text) return;
     
     if (text->out_buf) utils->free(text->out_buf);
-    if (text->sock != -1) close(text->sock);
+    if (text->sock != -1) closesocket(text->sock);
 
     utils->free(text);
 }

@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.c,v 1.14 2003/07/23 00:57:48 ken3 Exp $
+ * $Id: plugin_common.c,v 1.15 2003/09/14 13:38:28 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -51,6 +51,7 @@
 # include <netinet/in.h>
 # include <arpa/inet.h>
 # include <netdb.h>
+# include <sys/utsname.h>
 #endif /* WIN32 */
 #endif /* macintosh */
 #ifdef HAVE_UNISTD_H
@@ -63,6 +64,7 @@
 
 #include <errno.h>
 #include <ctype.h>
+#include <stdio.h>
 
 #ifdef HAVE_INTTYPES_H
 #include <inttypes.h>
@@ -750,4 +752,138 @@ int _plug_parseuser(const sasl_utils_t *utils,
     }
 
     return ret;
+}
+
+char * _plug_get_error_message (const sasl_utils_t *utils,
+#ifdef WIN32
+				DWORD error
+#else
+				int error
+#endif
+				)
+{
+    char * return_value;
+#ifdef WIN32
+    LPVOID lpMsgBuf;
+
+    FormatMessage( 
+	FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+	FORMAT_MESSAGE_FROM_SYSTEM | 
+	FORMAT_MESSAGE_IGNORE_INSERTS,
+	NULL,
+	error,
+	MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), /* Default language */
+	(LPTSTR) &lpMsgBuf,
+	0,
+	NULL 
+    );
+
+    if (_plug_strdup (utils, lpMsgBuf, &return_value, NULL) != SASL_OK) {
+	return_value = NULL;
+    }
+
+    LocalFree( lpMsgBuf );
+#else /* !WIN32 */
+    if (_plug_strdup (utils, strerror(error), &return_value, NULL) != SASL_OK) {
+	return_value = NULL;
+    }
+#endif /* WIN32 */
+    return (return_value);
+}
+
+void _plug_snprintf_os_info (char * osbuf, int osbuf_len)
+{
+#ifdef WIN32
+    OSVERSIONINFOEX versioninfo;
+    char *sysname;
+
+/* :
+  DWORD dwOSVersionInfoSize; 
+  DWORD dwMajorVersion; 
+  DWORD dwMinorVersion; 
+  DWORD dwBuildNumber; 
+  TCHAR szCSDVersion[ 128 ];
+//Only NT SP 6 and later
+  WORD wServicePackMajor;
+  WORD wServicePackMinor;
+  WORD wSuiteMask;
+  BYTE wProductType;
+ */
+
+    versioninfo.dwOSVersionInfoSize = sizeof (versioninfo);
+    sysname = "Unknown Windows";
+
+    if (GetVersionEx ((OSVERSIONINFO *) &versioninfo) == FALSE) {
+	snprintf(osbuf, osbuf_len, "%s", sysname);
+	goto SKIP_OS_INFO;
+    }
+
+    switch (versioninfo.dwPlatformId) {
+	case VER_PLATFORM_WIN32s: /* Win32s on Windows 3.1 */
+	    sysname = "Win32s on Windows 3.1";
+/* I can't test if dwBuildNumber has any meaning on Win32s */
+	    break;
+
+	case VER_PLATFORM_WIN32_WINDOWS: /* 95/98/ME */
+	    switch (versioninfo.dwMinorVersion) {
+		case 0:
+		    sysname = "Windows 95";
+		    break;
+		case 10:
+		    sysname = "Windows 98";
+		    break;
+		case 90:
+		    sysname = "Windows Me";
+		    break;
+		default:
+		    sysname = "Unknown Windows 9X/ME series";
+		    break;
+	    }
+/* Clear the high order word, as it contains major/minor version */
+	    versioninfo.dwBuildNumber &= 0xFFFF;
+	    break;
+
+	case VER_PLATFORM_WIN32_NT: /* NT/2000/XP/.NET */
+	    if (versioninfo.dwMinorVersion > 99) {
+	    } else {
+		switch (versioninfo.dwMajorVersion * 100 + versioninfo.dwMinorVersion) {
+		    case 351:
+			sysname = "Windows NT 3.51";
+			break;
+		    case 400:
+			sysname = "Windows NT 4.0";
+			break;
+		    case 500:
+			sysname = "Windows 2000";
+			break;
+		    case 501:
+			sysname = "Windows XP/.NET"; /* or Windows .NET Server */
+			break;
+		    default:
+			sysname = "Unknown Windows NT series";
+			break;
+		}
+	    }
+	    break;
+
+	default:
+	    break;
+    }
+
+    snprintf(osbuf, osbuf_len,
+	     "%s %s (Build %u)",
+	     sysname,
+	     versioninfo.szCSDVersion,
+	     versioninfo.dwBuildNumber
+	     );
+
+SKIP_OS_INFO:
+    ;
+
+#else /* !WIN32 */
+    struct utsname os;
+
+    uname(&os);
+    snprintf(osbuf, osbuf_len, "%s %s", os.sysname, os.release);
+#endif /* WIN32 */
 }

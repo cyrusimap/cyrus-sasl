@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.47 2000/01/21 20:57:52 tmartin Exp $
+ * $Id: kerberos4.c,v 1.48 2000/01/27 20:03:19 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -551,19 +551,13 @@ static int server_continue_step (void *conn_context,
     return SASL_CONTINUE;
   }
 
-  if (text->state==1)
-  {
+  if (text->state == 1) {
     int nchal;
     unsigned char sout[8];  
     AUTH_DAT ad;
     KTEXT_ST ticket;
     int lup;
     struct sockaddr_in *addr;
-
-    FILE *stream;
-    stream = fopen("/tmp/krbsrv","a+");
-    fprintf(stream, "HERE step 2!!\n");
-    fclose(stream);
 
     VL(("KERBEROS_V4 Step 2\n"));
 
@@ -593,29 +587,19 @@ static int server_continue_step (void *conn_context,
     result = sparams->utils->getprop(sparams->utils->conn,
 				     SASL_IP_REMOTE, (void **)&addr);
     if (result != SASL_OK) {
-
-	stream = fopen("/tmp/krbsrv","a+");
-	fprintf(stream, "HERE SASL_IP_REMOTE failed\n");
-	fclose(stream);
-
-	VL(("getprop SASL_IP_REMOTE failed\n"));
+	*errstr = "couldn't get remote IP address";
 	return SASL_BADAUTH;
     }
 
     /* check ticket */
-    result=krb_rd_req(&ticket, (char *) sparams->service,
-		      text->instance, addr->sin_addr.s_addr, &ad, srvtab);
+    result = krb_rd_req(&ticket, (char *) sparams->service,
+			text->instance, addr->sin_addr.s_addr, &ad, srvtab);
 #endif
 
     if (result) { /* if fails mechanism fails */
-	stream = fopen("/tmp/krbsrv","a+");
-	fprintf(stream, "krb_rd_req failed service=%s instance=%s error code=%i\n",
-	    sparams->service, text->instance,result);
-	fclose(stream);
-
-
 	VL(("krb_rd_req failed service=%s instance=%s error code=%i\n",
 	    sparams->service, text->instance,result));
+	*errstr = krb_err_txt[result];
 	return SASL_BADAUTH;
     }
 
@@ -671,11 +655,6 @@ static int server_continue_step (void *conn_context,
     int testnum;
     int lup, flag;
     unsigned char in[1024];
-	FILE *stream;
-
-    stream = fopen("/tmp/krbsrv","a+");
-    fprintf(stream, "step 3!!\n");
-    fclose(stream);
 
     for (lup=0;lup<clientinlen;lup++)
       in[lup]=clientin[lup];
@@ -693,63 +672,54 @@ static int server_continue_step (void *conn_context,
 
     testnum=(in[0]*256*256*256)+(in[1]*256*256)+(in[2]*256)+in[3];
 
-    stream = fopen("/tmp/krbsrv","a+");
-    fprintf(stream, "step 3.1!!\n");
-    fclose(stream);
-
-    if (testnum!=text->challenge)
-    {
-
-	stream = fopen("/tmp/krbsrv","a+");
-	fprintf(stream, "BAD NUM!!\n");
-	fclose(stream);
-
-      return SASL_BADAUTH;
+    if (testnum != text->challenge) {
+	*errstr = "incorrect response to challenge";
+	return SASL_BADAUTH;
     }
 
-    stream = fopen("/tmp/krbsrv","a+");
-    fprintf(stream, "step 3.2!!\n");
-    fclose(stream);
-
-    if (! cando_sec(&sparams->props, in[4] & KRB_SECFLAGS))
-      return SASL_BADPROT;
+    if (! cando_sec(&sparams->props, in[4] & KRB_SECFLAGS)) {
+	*errstr = "invalid security property specified";
+	return SASL_BADPROT;
+    }
     
     switch (in[4] & KRB_SECFLAGS) {
     case KRB_SECFLAG_NONE:
-      oparams->encode=NULL;
-      oparams->decode=NULL;
-      oparams->mech_ssf=0;
-      break;
+	oparams->encode=NULL;
+	oparams->decode=NULL;
+	oparams->mech_ssf=0;
+	break;
     case KRB_SECFLAG_INTEGRITY:
-      oparams->encode=&integrity_encode;
-      oparams->decode=&integrity_decode;
-      oparams->mech_ssf=KRB_INTEGRITY_BITS;
-      break;
+	oparams->encode=&integrity_encode;
+	oparams->decode=&integrity_decode;
+	oparams->mech_ssf=KRB_INTEGRITY_BITS;
+	break;
     case KRB_SECFLAG_ENCRYPTION:
-      oparams->encode=&privacy_encode;
-      oparams->decode=&privacy_decode;
-      oparams->mech_ssf=KRB_DES_SECURITY_BITS;
-      break;
+	oparams->encode=&privacy_encode;
+	oparams->decode=&privacy_decode;
+	oparams->mech_ssf=KRB_DES_SECURITY_BITS;
+	break;
     default:
       /* not a supported encryption layer */
-      return SASL_BADPROT;
+	*errstr = "unsupported layer";
+	return SASL_BADPROT;
     }
 
     /* get ip data */
     result = sparams->utils->getprop(sparams->utils->conn,
 				     SASL_IP_LOCAL,
 				     (void **)&(text->ip_local));
-    if (result != SASL_OK) return result;
+    if (result != SASL_OK) {
+	*errstr =  "couldn't get local IP address";
+	return result;
+    }
 
     result = sparams->utils->getprop(sparams->utils->conn,
 				     SASL_IP_REMOTE,
 				     (void **)&(text->ip_remote));
-
-    if (result!=SASL_OK) return result;
-
-    stream = fopen("/tmp/krbsrv","a+");
-    fprintf(stream, "step 3.3!!\n");
-    fclose(stream);
+    if (result != SASL_OK) {
+	*errstr = "couldn't get remote IP address";
+	return result;
+    }
 
     text->malloc=sparams->utils->malloc;        
     text->free=sparams->utils->free;
@@ -811,10 +781,6 @@ static int server_continue_step (void *conn_context,
     text->size=-1;
     text->needsize=4;
 
-    stream = fopen("/tmp/krbsrv","a+");
-    fprintf(stream, "success!!\n");
-    fclose(stream);
-
     return SASL_OK;
   }
 
@@ -861,7 +827,7 @@ int sasl_server_plug_init(sasl_utils_t *utils,
     strcpy(srvtab, ret);
 
     /* fail if we can't open the srvtab file */
-    if (access(srvtab, R_OK)!=0)
+    if (access(srvtab, R_OK) != 0)
 	return SASL_FAIL;
 
     if (maxversion<KERBEROS_VERSION)
@@ -918,7 +884,6 @@ static int client_continue_step (void *conn_context,
     int result;
     KTEXT_ST ticket;
     char *service=(char *)params->service;
-    FILE *stream;
 
     VL(("KERBEROS_V4 Step 2\n"));
 
@@ -935,15 +900,13 @@ static int client_continue_step (void *conn_context,
 
     text->challenge=ntohl(text->challenge); 
 
-    if (params->serverFQDN==NULL)
-    {
-      VL(("No serverFQDN set\n"));
-      return SASL_BADAUTH;
+    if (params->serverFQDN == NULL) {
+	VL(("No serverFQDN set\n"));
+	return SASL_BADPARAM;
     }
-    if (params->service==NULL)
-    {
-      VL(("No service set\n"));
-      return SASL_BADAUTH;
+    if (params->service == NULL) {
+	VL(("No service set\n"));
+	return SASL_BADPARAM;
     }
 
     text->realm=krb_realmofhost(params->serverFQDN);
@@ -959,17 +922,11 @@ static int client_continue_step (void *conn_context,
     VL (("instance=%s\n",text->instance));
 
     if ((result=krb_mk_req(&ticket, service, text->instance,
-			   text->realm,text->challenge)))
+			   text->realm,text->challenge))) 
     {
-	stream = fopen("/tmp/krb","a+");
-	fprintf(stream, "krb_mk_req failed service=%s instance=%s realm=%s krb error=%i\n",
-	     service,text->instance,text->realm,result);
-	fclose(stream);
-
-
-      VL(("krb_mk_req failed service=%s instance=%s realm=%s krb error=%i\n",
-	     service,text->instance,text->realm,result));
-      return SASL_FAIL;
+	VL(("krb_mk_req failed service=%s instance=%s realm=%s krb error=%d\n",
+	    service,text->instance,text->realm,result));
+	return SASL_FAIL;
     }
     
     *clientout=params->utils->malloc(ticket.length);

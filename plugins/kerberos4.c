@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.91 2002/09/19 18:36:58 rjs3 Exp $
+ * $Id: kerberos4.c,v 1.92 2002/11/01 16:06:38 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -107,7 +107,7 @@ extern int gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: kerberos4.c,v 1.91 2002/09/19 18:36:58 rjs3 Exp $";
+static const char plugin_id[] = "$Id: kerberos4.c,v 1.92 2002/11/01 16:06:38 rjs3 Exp $";
 
 #ifndef KEYFILE
 #define KEYFILE "/etc/srvtab";
@@ -787,7 +787,7 @@ static int kerberosv4_server_mech_step(void *conn_context,
 	if (sparams->canon_user) {
 	    char *user=NULL, *authid=NULL;
 	    size_t ulen = 0, alen = strlen(text->pname);
-	    int ret;
+	    int ret, cflag = SASL_CU_AUTHID;
 	    
 	    if (text->pinst[0]) {
 		alen += strlen(text->pinst) + 1 /* for the . */;
@@ -824,26 +824,24 @@ static int kerberosv4_server_mech_step(void *conn_context,
 		strcpy(user, (char *) in + 8);
 		ulen = strlen(user);
 	    } else {
-		user = authid;
-		ulen = alen;
+	    	cflag |= SASL_CU_AUTHZID;
 	    }
 	    
-	    ret = sparams->canon_user(sparams->utils->conn, user, ulen,
-				      SASL_CU_AUTHZID, oparams);
-	    
+	    ret = sparams->canon_user(sparams->utils->conn, authid, alen,
+				      cflag, oparams);
+	    sparams->utils->free(authid);
 	    if (ret != SASL_OK) {
-		sparams->utils->free(authid);
-		if (user != authid)
+		if (user)
 		    sparams->utils->free(user);
 		return ret;
 	    }
 	    
-	    ret = sparams->canon_user(sparams->utils->conn, authid, alen,
-				      SASL_CU_AUTHID, oparams);
+	    if (user) {
+	    	ret = sparams->canon_user(sparams->utils->conn, user, ulen,
+				      SASL_CU_AUTHZID, oparams);
 	    
-	    sparams->utils->free(authid);
-	    if (user != authid)
 		sparams->utils->free(user);
+	    }
 	    
 	    if (ret != SASL_OK) return ret;
 	}

@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb5.c,v 1.16 2005/02/01 12:26:34 mel Exp $"
+#ident "$Id: auth_krb5.c,v 1.17 2005/02/14 05:50:49 shadow Exp $"
 #endif
 
 /* ok, this is  wrong but the most convenient way of doing 
@@ -353,6 +353,7 @@ auth_krb5 (
     char * result;
     char tfname[2048];
     char principalbuf[2048];
+    krb5_error_code code;
     /* END VARIABLES */
 
     if (!user|| !password) {
@@ -398,13 +399,13 @@ auth_krb5 (
     krb5_get_init_creds_opt_init(&opts);
     /* 15 min should be more than enough */
     krb5_get_init_creds_opt_set_tkt_life(&opts, 900); 
-    if (krb5_get_init_creds_password(context, &creds, 
+    if (code = krb5_get_init_creds_password(context, &creds, 
 				     auth_user, password, NULL, NULL, 
 				     0, NULL, &opts)) {
 	krb5_cc_destroy(context, ccache);
 	krb5_free_principal(context, auth_user);
 	krb5_free_context(context);
-	syslog(LOG_ERR, "auth_krb5: krb5_get_init_creds_password");
+	syslog(LOG_ERR, "auth_krb5: krb5_get_init_creds_password: %d", code);
 	return strdup("NO saslauthd internal error");
     }
     

@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.77 2000/04/12 19:56:42 tmartin Exp $
+ * $Id: server.c,v 1.78 2000/05/08 16:16:32 leg Exp $
  */
 
 /* 
@@ -298,23 +298,22 @@ int sasl_setpass(sasl_conn_t *conn,
     const char *plainmech;
      
     /* check params */
-    if (!conn)
-	return SASL_BADPARAM;
+    if (errstr) { *errstr = NULL; }
+    if (!conn) return SASL_BADPARAM;
      
     if (!mechlist) {
+	if (errstr) *errstr = "No mechanisms available";
 	return SASL_FAIL;
     }
-    if (passlen == 0)
-    {
+    if (!(flags & SASL_SET_DISABLE) && passlen == 0) {
 	if (errstr) *errstr = "Password must be at least one character long";
 	return SASL_BADPARAM;
     }
 
     if ((flags & SASL_SET_CREATE) && (flags & SASL_SET_DISABLE)) {
+	if (errstr) *errstr = "Can't both create and disable simultaneously";
 	return SASL_BADPARAM;
     }
-
-    if (errstr) { *errstr = NULL; }
 
     if (_sasl_getcallback(conn, SASL_CB_GETOPT, 
 			  &getopt, &context) == SASL_OK) {

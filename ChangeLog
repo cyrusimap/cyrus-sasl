@@ -1,3 +1,8 @@
+2000-05-03  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/common.c: vararg chars are always read as ints (Dowson Tong
+	<dtong@sendmail.com>)
+
 2000-05-02  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* doc/gssapi.html: gssapi doc contributed by Ken Hornstein

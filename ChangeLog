@@ -1,3 +1,9 @@
+2002-07-06  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/mysql.c: Further memory management cleanup. (never
+	  strdup the options, and therefore don't free staticly allocated
+	  strings)
+	* man/sasl_getopt_t.3: Clarify semantics of memory management
+
 2002-07-05  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/lak.c: Better handling of downed ldap servers
 	  (Igor Brezac <igor@ipass.net>)

@@ -700,6 +700,7 @@ LIBSASL_API int sasl_getprop(sasl_conn_t *conn, int propnum,
 #define SASL_AUTHSOURCE   14	/* name of auth source last used, useful
 				 * for failed authentication tracking */
 #define SASL_MECHNAME     15    /* active mechanism name, if any */
+#define SASL_AUTHUSER     16    /* authentication/admin user */
 
 /* This returns a string which is either empty or has an error message
  * from sasl_seterror (e.g., from a plug-in or callback).  It differs

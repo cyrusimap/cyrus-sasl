@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.81 2002/06/19 18:07:23 rjs3 Exp $
+ * $Id: common.c,v 1.82 2002/08/02 17:32:49 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -540,6 +540,12 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, const void **pvalue)
 	  result = SASL_NOTDONE;
       else
 	  *((const char **)pvalue) = conn->oparams.user;
+      break;
+  case SASL_AUTHUSER:
+      if(! conn->oparams.authid)
+	  result = SASL_NOTDONE;
+      else
+	  *((const char **)pvalue) = conn->oparams.authid;
       break;
   case SASL_SERVERFQDN:
       *((const char **)pvalue) = conn->serverFQDN;

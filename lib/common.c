@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.106 2004/10/26 17:28:45 mel Exp $
+ * $Id: common.c,v 1.107 2004/11/02 11:32:18 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -591,7 +591,7 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, const void **pvalue)
 	      break;
 	  }
 	  *((const char **)pvalue) =
-	      ((sasl_client_conn_t *)conn)->mech->plugname;
+	      ((sasl_client_conn_t *)conn)->mech->m.plugname;
       } else if (conn->type == SASL_CONN_SERVER) {
 	  if(!((sasl_server_conn_t *)conn)->mech) {
 	      result = SASL_NOTDONE;
@@ -610,7 +610,7 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, const void **pvalue)
 	      break;
 	  }
 	  *((const char **)pvalue) =
-	      ((sasl_client_conn_t *)conn)->mech->plug->mech_name;
+	      ((sasl_client_conn_t *)conn)->mech->m.plug->mech_name;
       } else if (conn->type == SASL_CONN_SERVER) {
 	  if(!((sasl_server_conn_t *)conn)->mech) {
 	      result = SASL_NOTDONE;

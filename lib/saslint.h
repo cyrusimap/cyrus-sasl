@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.55 2004/10/26 17:28:45 mel Exp $
+ * $Id: saslint.h,v 1.56 2004/11/02 11:32:18 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -226,11 +226,7 @@ typedef struct sasl_server_conn {
 
 typedef struct cmechanism
 {
-    int version;
-
-    char *plugname;
-    const sasl_client_plug_t *plug;
-
+    client_sasl_mechanism_t m;
     struct cmechanism *next;  
 } cmechanism_t;
 

@@ -208,6 +208,17 @@ typedef struct sasl_out_params {
     int param_version;
 } sasl_out_params_t;
 
+
+
+/* Used by both client and server side plugins */
+typedef enum  {
+    SASL_INFO_LIST_START = 0,
+    SASL_INFO_LIST_MECH,
+    SASL_INFO_LIST_END
+} sasl_info_callback_stage_t;
+
+
+
 /******************************
  * Client Mechanism Functions *
  ******************************/
@@ -414,10 +425,29 @@ typedef int sasl_client_plug_init_t(const sasl_utils_t *utils,
 				    sasl_client_plug_t **pluglist,
 				    int *plugcount);
 
+
 /* add a client plug-in
  */
 LIBSASL_API int sasl_client_add_plugin(const char *plugname,
 				       sasl_client_plug_init_t *cplugfunc);
+
+typedef struct client_sasl_mechanism
+{
+    int version;
+
+    char *plugname;
+    const sasl_client_plug_t *plug;
+} client_sasl_mechanism_t;
+
+typedef void sasl_client_info_callback_t (client_sasl_mechanism_t *m,
+					  sasl_info_callback_stage_t stage,
+					  void *rock);
+
+/* Dump information about available client plugins */
+LIBSASL_API int sasl_client_plugin_info (char *mech_list,
+	sasl_client_info_callback_t *info_cb,
+	void *info_cb_rock);
+
 
 /********************
  * Server Functions *
@@ -749,12 +779,6 @@ typedef struct server_sasl_mechanism
     const sasl_server_plug_t *plug;
     char *f;       /* where should i load the mechanism from? */
 } server_sasl_mechanism_t;
-
-typedef enum  {
-    SASL_INFO_LIST_START = 0,
-    SASL_INFO_LIST_MECH,
-    SASL_INFO_LIST_END
-} sasl_info_callback_stage_t;
 
 typedef void sasl_server_info_callback_t (server_sasl_mechanism_t *m,
 					  sasl_info_callback_stage_t stage,

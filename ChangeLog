@@ -1,3 +1,7 @@
+2004-11-02  Alexey Melnikov <alexey.melnikov@isode.com>
+	* include/saslplug.h, lib/common.c, lib/saslint.h,
+	  lib/client.c: Added sasl_client_plugin_info().
+
 2004-10-26  Alexey Melnikov <alexey.melnikov@isode.com>
 	* sample/sample-client.c, sample/sample-server.c: Fixed several
 	  64 bit portability warnings.

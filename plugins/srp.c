@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.55 2004/01/12 19:20:00 rjs3 Exp $
+ * $Id: srp.c,v 1.56 2004/06/16 17:03:35 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -100,7 +100,7 @@ typedef unsigned short uint32;
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: srp.c,v 1.55 2004/01/12 19:20:00 rjs3 Exp $";
+static const char plugin_id[] = "$Id: srp.c,v 1.56 2004/06/16 17:03:35 ken3 Exp $";
 
 /* Size limit of cipher block size */
 #define SRP_MAXBLOCKSIZE 16
@@ -1854,7 +1854,7 @@ static int srp_server_mech_step1(context_t *text,
     
     /* this will trigger the getting of the aux properties */
     result = params->canon_user(params->utils->conn,
-				user, 0, SASL_CU_AUTHID, oparams);
+				text->authid, 0, SASL_CU_AUTHID, oparams);
     if (result != SASL_OK) goto cleanup;
     
     result = params->canon_user(params->utils->conn,
@@ -1917,7 +1917,7 @@ static int srp_server_mech_step1(context_t *text,
 	    goto cleanup;
 	}
 	
-	result = CalculateV(text, &text->N, &text->g, user,
+	result = CalculateV(text, &text->N, &text->g, text->authid,
 			    auxprop_values[1].values[0], len,
 			    &text->v, &text->salt, &text->saltlen);
 	if (result) {

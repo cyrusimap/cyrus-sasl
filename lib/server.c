@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.87 2001/06/20 11:45:17 n3liw Exp $
+ * $Id: server.c,v 1.88 2001/06/20 11:47:24 n3liw Exp $
  */
 
 /* 
@@ -50,10 +50,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
-#ifndef MACPORT
+#ifndef macintosh
 #include <sys/types.h>
 #include <sys/stat.h>
-#endif MACPORT
+#endif
 #include <fcntl.h>
 #include <string.h>
 #include <ctype.h>
@@ -613,7 +613,7 @@ static int verify_server_callbacks(const sasl_callback_t *callbacks)
     return SASL_OK;
 }
 
-char *grab_field(char *line, char **eofield)
+static char *grab_field(char *line, char **eofield)
 {
     int d = 0;
     char *field;

@@ -58,10 +58,12 @@
 /* Do we have OpenSSL? */
 #undef HAVE_OPENSSL
 
-/* Things SASLAUTHd doesn't really care about */
-#undef HAVE_SASLAUTHD
+/* DES configuration */
 #undef WITH_DES
 #undef WITH_SSL_DES
+
+/* Things SASLAUTHd doesn't really care about */
+#undef HAVE_SASLAUTHD
 #undef STATIC_GSSAPIV2
 #undef STATIC_KERBEROS4
 #undef STATIC_PLAIN

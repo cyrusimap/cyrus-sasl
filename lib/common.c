@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.69 2002/01/04 22:49:29 rjs3 Exp $
+ * $Id: common.c,v 1.70 2002/01/09 18:39:42 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -239,9 +239,6 @@ int sasl_decode(sasl_conn_t *conn,
 	return SASL_TOOWEAK;
     }
 
-    if(inputlen > conn->oparams.maxoutbuf)
-	PARAMERROR(conn);
-    
     if(conn->oparams.decode == NULL)
     {
 	/* Since we know how long the output is maximally, we can

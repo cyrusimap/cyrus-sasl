@@ -2,6 +2,7 @@
 	* include/sasl.h: Update for sasl_global_listmech API
 	* lib/common.c, lib/client.c, lib/server.c: sasl_global_listmech()
 	* lib/dlopen.c (_parse_la): fix parseing of dlname= line
+	* Ready for 2.1.0
 
 2002-01-09  Ken Murchison <ken@oceana.com>
 	* plugins/otp.c: fixed security_flags
@@ -23,7 +24,6 @@
 	  (Courtesy Marshall T. Rose <mrose@dbc.mtview.ca.us>)
 
 2002-01-05  Lawrence Greenfield  <leg+@andrew.cmu.edu>
-
 	* saslauthd/saslauthd.c: F_SETLK doesn't block; F_SETLKW does
 	* saslauthd/saslauthd.c: detect errors somewhat better
 

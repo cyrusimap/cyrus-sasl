@@ -1,7 +1,7 @@
 # Makefile.am for the SASL plugins
 # Rob Siemborski
 # Rob Earhart
-# $Id: Makefile.am,v 1.43 2001/12/05 21:41:07 ken3 Exp $
+# $Id: Makefile.am,v 1.44 2002/01/10 22:49:38 rjs3 Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -46,16 +46,16 @@
 
 # Library version info - here at the top, for sanity
 # CURRENT:REVISION:AGE
-plain_version = 1:5:0
-anonymous_version = 1:5:0
-kerberos4_version = 1:5:0
-crammd5_version = 1:5:0
-gssapiv2_version = 1:5:0
-digestmd5_version = 1:5:0
-login_version = 1:5:0
-sasldb_version = 1:5:0
-srp_version = 1:5:0
-otp_version = 1:5:0
+plain_version = 2:0:0
+anonymous_version = 2:0:0
+kerberos4_version = 2:0:0
+crammd5_version = 2:0:0
+gssapiv2_version = 2:0:0
+digestmd5_version = 2:0:0
+login_version = 2:0:0
+sasldb_version = 2:0:0
+srp_version = 2:0:0
+otp_version = 2:0:0
 
 INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/lib
 LDFLAGS = @LDFLAGS@ -module -export-dynamic -rpath $(plugindir)

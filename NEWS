@@ -1,3 +1,11 @@
+New in 2.1.0
+------------
+* The Cyrus SASL library is now considered stable.  It is still not backwards
+  compatible with applications that require SASLv1.
+* Minor API changes occured, namely the canon_user callback interface.
+* saslauthd now preforks a number of processes to handle connections
+* Many bugfixes through the entire library.
+
 New in 2.0.5-BETA
 -----------------
 * THIS IS A BETA-QUALITY RELEASE THAT IS NOT INTENDED FOR PRODUCTION USE.

@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.26 2002/05/08 20:19:37 rjs3 Exp $
+ * $Id: testsuite.c,v 1.27 2002/06/25 19:49:31 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2214,6 +2214,7 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
     if(result == SASL_NOMECH && test_props[i]->min_ssf > 0) {
 	printf("  Testing SSF: SKIPPED (requested minimum > 0: %d)\n",
 	       test_props[i]->min_ssf);
+	cleanup_auth(&sconn, &cconn);
 	continue;
     } else if(result != SASL_OK) {
 	fatal("doauth failed in testseclayer");

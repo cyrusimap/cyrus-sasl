@@ -1,6 +1,7 @@
 2002-07-24  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/Makefile.am: Fix DEFS to still supply -I. and -I..
-	* configure.in: Make --with-ldap show up in top level configure script
+	* configure.in: Make --with-ldap show up in top level configure script,
+	  make saslauthd compile by default
 	* lib/saslutil.c: use read() and not fread() on /dev/random to preserve
 	  entropy
 	* doc/sysadmin.html: Add note about using /dev/urandom

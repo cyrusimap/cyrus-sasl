@@ -2220,11 +2220,11 @@ server_continue_step(void *conn_context,
 
       } else if (strcmp(name, "realm") == 0) {
 	  if (realm) {
-	      *errstr = "duplicate realm: authentication aborted";
+	      if (errstr) *errstr = "duplicate realm: authentication aborted";
 	      result = SASL_FAIL;
 	      goto FreeAllMem;
 	  } else if (text->realm && (strcmp(value, text->realm) != 0)) {
-	      *errstr = "realm changed: authentication aborted";
+	      if (errstr) *errstr = "realm changed: authentication aborted";
 	      result = SASL_FAIL;
 	      goto FreeAllMem;
 	  } else {
@@ -2235,7 +2235,7 @@ server_continue_step(void *conn_context,
 	      /*
 	       * Nonce changed: Abort authentication!!!
 	       */
-	      *errstr = "nonce changed: authentication aborted";
+	      if (errstr) *errstr = "nonce changed: authentication aborted";
 	      result = SASL_BADAUTH;
 	      goto FreeAllMem;
 	  }
@@ -2255,22 +2255,22 @@ server_continue_step(void *conn_context,
 	maxbuf_count++;
 	if (maxbuf_count != 1) {
 	  result = SASL_BADAUTH;
-	  *errstr = "duplicate maxbuf: authentication aborted";
+	  if (errstr) *errstr = "duplicate maxbuf: authentication aborted";
 	  goto FreeAllMem;
 	} else if (sscanf(value, "%u", &client_maxbuf) != 1) {
 	  result = SASL_BADAUTH;
-	  *errstr = "invalid maxbuf parameter";
+	  if (errstr) *errstr = "invalid maxbuf parameter";
 	  goto FreeAllMem;
 	} else {
             if (client_maxbuf <= 16) {
 	      result = SASL_BADAUTH;
-	      *errstr = "maxbuf parameter too small";
+	      if (errstr) *errstr = "maxbuf parameter too small";
 	      goto FreeAllMem;
             }
 	}
       } else if (strcmp(name, "charset") == 0) {
 	if (strcmp(value, "utf-8") != 0) {
-	    *errstr = "client doesn't support UTF-8";
+	    if (errstr) *errstr = "client doesn't support UTF-8";
 	    result = SASL_FAIL;
 	    goto FreeAllMem;
 	}
@@ -2316,7 +2316,7 @@ server_continue_step(void *conn_context,
 	    sparams->utils->log(sparams->utils->conn, SASL_LOG_WARNING,
 			    "DIGEST_MD5", SASL_FAIL, 0,
 		    "protocol violation: client requested invalid cipher");
-	    *errstr = "client requested invalid cipher";
+	    if (errstr) *errstr = "client requested invalid cipher";
 	    result = SASL_FAIL;
 	    goto FreeAllMem;
 	}
@@ -2338,7 +2338,7 @@ server_continue_step(void *conn_context,
 	sparams->utils->log(sparams->utils->conn, SASL_LOG_WARNING,
 			    "DIGEST_MD5", SASL_FAIL, 0,
                           "protocol violation: client requested invalid qop");
-	*errstr = "client requested invalid qop";
+	if (errstr) *errstr = "client requested invalid qop";
 	result = SASL_FAIL;
 	goto FreeAllMem;
     }
@@ -2362,7 +2362,7 @@ server_continue_step(void *conn_context,
 	(cnonce == NULL) ||
 	(digesturi == NULL) ||
 	(response == NULL)) {
-	*errstr = "required parameters missing";
+	if (errstr) *errstr = "required parameters missing";
 	result = SASL_BADAUTH;
 	goto FreeAllMem;
     }
@@ -2587,7 +2587,7 @@ server_continue_step(void *conn_context,
      * Send additional information for reauthentication
      */
     if (clientinlen != 0) {
-	*errstr =  "no more data expected from client";
+	if (errstr) *errstr =  "no more data expected from client";
 	return SASL_FAIL;
     }
     *serverout = NULL;

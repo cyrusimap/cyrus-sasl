@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.49 2002/03/07 19:14:04 ken3 Exp $
+ * $Id: checkpw.c,v 1.50 2002/04/10 16:34:34 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -247,6 +247,7 @@ int _sasl_auxprop_verify_apop(sasl_conn_t *conn,
        PARAMERROR(conn)
 
     /* We've done the auxprop lookup already (in our caller) */
+    /* sadly, APOP has no provision for storing secrets */
     ret = prop_getnames(sconn->sparams->propctx, password_request,
 			auxprop_values);
     if(ret < 0) {

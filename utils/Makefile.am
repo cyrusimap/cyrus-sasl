@@ -26,8 +26,9 @@ sbin_PROGRAMS = saslpasswd
 man_MANS = saslpasswd.8
 saslpasswd_LDADD = ../lib/libsasl.la
 
-noinst_PROGRAMS = dbconverter-1.5.9
+noinst_PROGRAMS = dbconverter-1.5.9 testsuite
 dbconverter_1_5_9_LDADD = ../lib/libsasl.la $(SASL_DB_LIB)
+testsuite_LDADD = ../lib/libsasl.la $(SASL_DB_LIB)
 
 include_HEADERS = @SASL_UTIL_HEADERS_EXTRA@
 EXTRA_HEADERS = sfsasl.h
@@ -38,4 +39,4 @@ libsfsasl_la_SOURCES = sfsasl.c
 libsfsasl_la_LDFLAGS = -version-info 0:0:0 -export-dynamic -rpath $(libdir)
 
 INCLUDES=-I$(top_srcdir)/include
-EXTRA_DIST = saslpasswd.8 sfsasl.h dbconverter-1.5.5.c
+EXTRA_DIST = saslpasswd.8 sfsasl.h dbconverter-1.5.5.c testsuite.c

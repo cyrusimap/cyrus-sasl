@@ -4,6 +4,8 @@
 	* doc/draft-nerenberg-sasl-crammd5-01.txt: added
 	* doc/draft-nerenberg-sasl-crammd5-00.txt: deleted
 	* doc/index.html: changed link to updated draft
+	* plugins/login.c (login_client_mech_step): fix client-first
+	  handling
 
 2002-01-21  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* lib/server.c (sasl_server_start): null out *serverout and

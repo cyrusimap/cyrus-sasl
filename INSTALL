@@ -46,6 +46,8 @@ settings to configure the system on various platforms:
 	Linux: ./configure
 
 ----------------------------------------------------------------------
+IF YOU ARE USING SASL UNDER Win32 OR HAVE COMPILED IT, 
+PLEASE LET US KNOW!
 
 Installation under Win32:
 

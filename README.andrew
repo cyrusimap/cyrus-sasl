@@ -16,7 +16,8 @@ To release:
 - compile successfully without kerberos or gssapi support
 - compile successfully on all andrew systypes
 - increment version in configure.in
-- synchronize version with include/sasl.h, win32/common.mak and win32/include/config.h
+- synchronize version with include/sasl.h, win32/common.mak and
+  win32/include/config.h
 - increment version in saslauthd/configure.in as needed
 - modify library versions in lib/Makefile.am, sasldb/Makefile.am
   and plugins/Makefile.am accordingly (see libtool info file for details) 

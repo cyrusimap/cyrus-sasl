@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.67 2002/07/30 17:06:20 rjs3 Exp $
+ * $Id: gssapi.c,v 1.68 2002/08/02 14:24:28 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -87,7 +87,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.67 2002/07/30 17:06:20 rjs3 Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.68 2002/08/02 14:24:28 leg Exp $";
 
 #ifndef HAVE_GSS_C_NT_HOSTBASED_SERVICE
 extern gss_OID gss_nt_service_name;
@@ -372,7 +372,7 @@ static int gssapi_decode_once(void *context,
 	    text->size = ntohl(text->size);
 	    text->cursize = 0;
 	    
-	    if (text->size > 0xFFFF || text->size <= 0) {
+	    if (text->size > 0xFFFFFF || text->size <= 0) {
 		SETERROR(text->utils, "Illegal size in sasl_gss_decode_once");
 		return SASL_FAIL;
 	    }
@@ -838,7 +838,12 @@ gssapi_server_mech_step(void *conn_context,
 	}
 	
 	/* build up our security properties token */
-	*((unsigned long *)sasldata) = params->props.maxbufsize & 0xFFFFFF;
+        if (params->props.maxbufsize > 0xFFFFFF) {
+            /* make sure maxbufsize isn't too large */
+            *((unsigned long *)sasldata) = 0xFFFFFF;
+        } else {
+            *((unsigned long *)sasldata) = params->props.maxbufsize & 0xFFFFFF;
+        }
 	sasldata[0] = 0;
 	if(text->requiressf != 0 && !params->props.maxbufsize) {
 	    params->utils->seterror(params->utils->conn, 0,
@@ -1431,9 +1436,14 @@ static int gssapi_client_mech_step(void *conn_context,
 	
 	if (alen)
 	    memcpy((char *)input_token->value+4,oparams->user,alen);
-	
-	*((unsigned long *)input_token->value) =
-	    params->props.maxbufsize & 0xFFFFFF;
+
+        /* make sure maxbufsize isn't too large */
+        if (params->props.maxbufsize > 0xFFFFFF) {
+            *((unsigned long *)input_token->value) = 0xFFFFFF;
+        } else {
+            *((unsigned long *)input_token->value) =
+                params->props.maxbufsize & 0xFFFFFF;
+        }
 	((unsigned char *)input_token->value)[0] = mychoice;
 	
 	maj_stat = gss_wrap (&min_stat,

@@ -1,6 +1,6 @@
 /* Plain SASL plugin
  * Tim Martin 
- * $Id: plain.c,v 1.35 1999/08/16 21:13:03 leg Exp $
+ * $Id: plain.c,v 1.36 1999/10/25 18:45:32 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -622,7 +622,7 @@ static int make_prompts(sasl_client_params_t *params,
 static int client_continue_step (void *conn_context,
 				 sasl_client_params_t *params,
 				 const char *serverin __attribute__((unused)),
-				 int serverinlen __attribute__((unused)),
+				 int serverinlen,
 				 sasl_interact_t **prompt_need,
 				 char **clientout,
 				 int *clientoutlen,
@@ -637,8 +637,7 @@ static int client_continue_step (void *conn_context,
 
   /* doesn't really matter how the server responds */
 
-  if (text->state==1)
-  {
+  if (text->state==1 || (text->state == 2 && serverinlen == 0)) {
     int user_result=SASL_OK;
     int auth_result=SASL_OK;
     int pass_result=SASL_OK;
@@ -685,8 +684,10 @@ static int client_continue_step (void *conn_context,
 
     
     /* free prompts we got */
-    if (prompt_need)
-      free_prompts(params,*prompt_need);
+    if (prompt_need) {
+	free_prompts(params,*prompt_need);
+	*prompt_need = NULL;
+    }
 
     /* if there are prompts not filled in */
     if ((user_result==SASL_INTERACT) || (auth_result==SASL_INTERACT) ||
@@ -758,7 +759,7 @@ static int client_continue_step (void *conn_context,
 
     oparams->param_version = 0;
 
-    text->state = 99; /* so fail next time */
+    text->state++;
 
     return SASL_OK;
   }

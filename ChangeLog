@@ -1,3 +1,9 @@
+2003-12-18  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/plugin_common.c: Fix handling of blob unwrapping
+	  in _plug_decode
+	* lib/checkpw.c: Fix some file descriptor leaks during failures
+	  in the saslauthd code.
+
 2003-12-15  Rob Siemborksi <rjs3@andrew.cmu.edu>
 	* utils/saslauthd.c: Fix Typo
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)

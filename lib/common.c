@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.75 2002/01/10 22:13:46 rjs3 Exp $
+ * $Id: common.c,v 1.76 2002/01/17 05:20:12 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -810,6 +810,8 @@ const char *sasl_errdetail(sasl_conn_t *conn)
     unsigned need_len;
     const char *errstr;
     char leader[128];
+
+    if(!conn) return NULL;
     
     errstr = sasl_errstring(conn->error_code, NULL, NULL);
     snprintf(leader,128,"SASL(%d): %s: ",

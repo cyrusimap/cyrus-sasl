@@ -596,9 +596,11 @@ static int lak_bind(LAK *lak, char flag, const char *bind_dn, const char *passwo
 static int lak_search(LAK *lak, const char *filter, const char **attrs, LDAPMessage **res)
 {
 	int rc = 0;
+	int retry = 1;
 
 	*res = NULL;
 
+retry:
 	rc = lak_bind(lak, LAK_BIND_ANONYMOUS, lak->conf->bind_dn, lak->conf->bind_pw);
 	if (rc) {
 		syslog(LOG_WARNING|LOG_AUTH, "lak_bind() failed");
@@ -610,18 +612,23 @@ static int lak_search(LAK *lak, const char *filter, const char **attrs, LDAPMess
 		case LDAP_SUCCESS:
 		case LDAP_SIZELIMIT_EXCEEDED:
 			break;
-
+		case LDAP_SERVER_DOWN:
+			if (retry) {
+				syslog(LOG_WARNING|LOG_AUTH, "ldap_search_st() failed: %s. Trying to reconnect.", ldap_err2string(rc));
+				ldap_msgfree(*res);
+				lak->bind_status = LAK_NOT_BOUND;
+				retry = 0;
+				goto retry;
+			}
 		default:
-			syslog(LOG_WARNING|LOG_AUTH, "ldap_search_st() failed: %s", ldap_err2string(rc));
+			syslog(LOG_ERR|LOG_AUTH, "ldap_search_st() failed: %s", ldap_err2string(rc));
 			ldap_msgfree(*res);
 			lak->bind_status = LAK_NOT_BOUND;
 			return LAK_FAIL;
 	}
 
 	if ((ldap_count_entries(lak->ld, *res)) != 1) {
-		if (lak->conf->debug) {
-			syslog(LOG_WARNING|LOG_AUTH, "object not found or got ambiguous search result (%s).", filter);
-		}
+		syslog(LOG_DEBUG|LOG_AUTH, "Entry not found or more than one entries found (%s).", filter);
 		ldap_msgfree(*res);
 		return LAK_FAIL;
 	}

@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Options for Cyrus SASL</title>
-<!-- $Id: options.html,v 1.24 2003/10/04 17:02:48 ken3 Exp $ -->
+<!-- $Id: options.html,v 1.25 2003/10/07 16:17:21 ken3 Exp $ -->
 </HEAD>
 <BODY>
 <h1>Options for Cyrus SASL</h1>
@@ -129,17 +129,12 @@ cached for a fast reauth.  A value of 0 will disable reauth.</TD>
 </TR>
 <TR>
 <TD>sql_insert</TD><TD>SQL plugin</TD>
-<TD>INSERT statement to use for creating properties.</TD>
+<TD>INSERT statement to use for creating properties for new users.</TD>
 <TD><i>none</i></TD>
 </TR>
 <TR>
 <TD>sql_update</TD><TD>SQL plugin</TD>
 <TD>UPDATE statement to use for modifying properties.</TD>
-<TD><i>none</i></TD>
-</TR>
-<TR>
-<TD>sql_delete</TD><TD>SQL plugin</TD>
-<TD>DELETE statement to use for removing properties.</TD>
 <TD><i>none</i></TD>
 </TR>
 <TR>
@@ -161,17 +156,17 @@ dependant)</TD>
 
 <h2>Notes on SQL auxprop options</h2>
 
-<p>The <tt>sql_insert</tt>, <tt>sql_update</tt> and
-<tt>sql_delete</tt> options are optional and are only needed if you
-wish to allow the SASL library (e.g., saslpasswd2) and plugins (e.g.,
-OTP) to write properties to the SQL server.  If used, all 3
-statements MUST be provided so that properties can be added, changed
-and deleted.
+<p>The <tt>sql_insert</tt> and <tt>sql_update</tt> options are
+optional and are only needed if you wish to allow the SASL library
+(e.g., saslpasswd2) and plugins (e.g., OTP) to write properties to the
+SQL server.  If used, both statements MUST be provided so that
+properties can be added, changed and deleted.
+<font color=red>NOTE: The columns for writable properites MUST accept NULL values.</font>
 
 <p>The SQL statements provided in the <tt>sql_select</tt>,
-<tt>sql_insert</tt>, <tt>sql_update</tt> and <tt>sql_delete</tt>
-options can contain arguments which will be substituted with the
-appropriate values.  The valid arguments are:
+<tt>sql_insert</tt> and <tt>sql_update</tt> options can contain
+arguments which will be substituted with the appropriate values.  The
+valid arguments are:
 
 <DL compact>
 <DT><tt>%u</tt> <DD>Username whose properties are being fetched/stored.
@@ -192,7 +187,8 @@ appropriate values.  The valid arguments are:
 </DL>
 
 <font color=red>NOTE: DO NOT put quotes around the entire SQL
-statement, but each individual argument MUST be quoted.</font>
+statement, but each individual %u, %r and %v argument MUST be
+quoted.</font>
 
 
 <h3>Examples:</h3>
@@ -212,7 +208,7 @@ statement, but each individual argument MUST be quoted.</font>
 </pre>
 
 <pre>
-     <tt>sql_insert: INSERT INTO user_table (username, realm, '%p') VALUES ('%u', '%r', '%v')</tt>
+     <tt>sql_insert: INSERT INTO user_table (username, realm, %p) VALUES ('%u', '%r', '%v')</tt>
 
 </pre>
 

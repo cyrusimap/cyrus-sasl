@@ -1,3 +1,8 @@
+2003-10-07  Ken Murchison <ken@oceana.com>
+	* plugins/sql.c: removed sql_delete - don't DELETE rows from the
+	  table, just set the properties to NULL
+	* doc/options.html: removed sql_delete option; clarifications
+
 2003-10-06  Ken Murchison <ken@oceana.com>
 	* plugins/sql.c: use the correct propctx in sql_auxprop_store()
 

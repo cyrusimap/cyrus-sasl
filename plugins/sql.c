@@ -3,67 +3,12 @@
 ** SQL Auxprop plugin
 **
 ** Ken Murchison
-**   based on the original work of Simon Loader and Patrick Welche
+** Maya Nigrosh -- original store() and txn support
+** Simon Loader -- original mysql plugin
+** Patrick Welche -- original pgsql plugin
 **
-** $Id: sql.c,v 1.20 2003/10/06 17:02:42 ken3 Exp $
+** $Id: sql.c,v 1.21 2003/10/07 16:17:21 ken3 Exp $
 **
-**  Auxiliary property plugin for Sasl 2.1.x
-**
-**   The plugin uses the following options in the
-** sasl application config file ( usually in /usr/lib/sasl2 )
-**
-**  sql_engine: <database engine to use>
-**  sql_user: <username to login as>
-**  sql_passwd: <password to use>
-**  sql_hostnames: < comma separated host[:port] list >
-**  sql_database: <database to connect to>
-**  sql_select: <select statement to use>
-**  sql_insert: <insert statement to use>
-**  sql_update: <update statement to use>
-**  sql_delete: <delete statement to use>
-**  sql_usessl:  ( if it exists will make a secured connection to server )
-**
-**   The select statement used in the option sql_select is parsed
-** for 3 place holders %u %r and %p they are replaced with username
-** realm and property required respectively.
-**
-**  e.g
-**    sql_select: select %p from user_table where username = %u and
-**    realm = %r
-**  would produce a statement like this :-
-**
-**     select userPassword from user_table where username = simon
-**     and realm = madoka.surf.org.uk
-**
-**   Presuming username is simon, the sasl application is trying to
-**   authenticate and you didn't have a realm to start with (and it was
-**   my computer).
-**
-**    sql_insert works in much the same way, with the addition of another
-**  placeholder
-**
-**   for example:
-**
-**     sql_insert: INSERT INTO user_table (username, realm, password)
-**                 VALUES ('%u', '%r', '%v')
-**
-**   would yield
-**
-**       INSERT INTO user_table (username, realm, password)
-**       VALUES ('simon', 'madoka.surf.org.uk', 'wert');
-**
-** OK so thats a bit complex but essential
-**   %u is the username the user logged in as
-**   %p is the property requested this could technically be anything
-**     but sasl authentication will try userPassword and
-**     cmusaslsecretMECHNAME (where MECHNAME is the name of a mechanism).
-**   %r is the realm which could be the kerbros realm, the FQDN of the 
-**     computer the sasl app is on or what ever is after the @ on a username.
-**   %v is the value of the requested property
-** 
-**   These do not have to be all used or used at all
-** in testing I used select password from auth where username = '%u'
-**     
 */
 
 #include <config.h>
@@ -108,11 +53,13 @@ typedef struct sql_settings {
     const char *sql_select;
     const char *sql_insert;
     const char *sql_update;
-    const char *sql_delete;
     int sql_usessl;
 } sql_settings_t;
 
 static const char * SQL_BLANK_STRING = "";
+static const char * SQL_WILDCARD = "*";
+static const char * SQL_NULL_VALUE = "NULL";
+
 
 #if HAVE_MYSQL
 #include <mysql.h>
@@ -183,7 +130,7 @@ static int _mysql_exec(void *conn, const char *cmd, char *value, size_t size,
     /* now get the result set value and value_len */
     /* we only fetch one because we don't care about the rest */
     row = mysql_fetch_row(result);
-    if (!row) {
+    if (!row || !row[0]) {
 	/* umm nothing found */
 	mysql_free_result(result);
 	return -1;
@@ -583,12 +530,6 @@ static void sql_get_settings(const sasl_utils_t *utils, void *glob_context)
 	settings->sql_update = SQL_BLANK_STRING;
     }
 
-    r = utils->getopt(utils->getopt_context, "SQL", "sql_delete",
-		      &settings->sql_delete, NULL);
-    if (r || !settings->sql_delete) {
-	settings->sql_delete = SQL_BLANK_STRING;
-    }
-
     r = utils->getopt(utils->getopt_context, "SQL", "sql_usessl",
 		  &usessl, NULL);
     if (r || !usessl) usessl = "no";
@@ -826,8 +767,7 @@ static int sql_auxprop_store(void *glob_context,
     /* just checking if we are enabled */
     if (!ctx &&
 	sql_exists(settings->sql_insert) &&
-	sql_exists(settings->sql_update) &&
-	sql_exists(settings->sql_delete)) return SASL_OK;
+	sql_exists(settings->sql_update)) return SASL_OK;
     
     /* make sure our input is okay */
     if (!glob_context || !sparams || !user) return SASL_BADPARAM;
@@ -889,39 +829,36 @@ static int sql_auxprop_store(void *glob_context,
     }
     for (cur = to_store; ret == SASL_OK && cur->name; cur++) {
 	/* determine which command we need */
-	cmd = settings->sql_insert;
-	if (!cur->values || !cur->values[0]) {
-	    /* no secret => DELETE */
-	    cmd = settings->sql_delete;
+	/* see if we already have a row for this user */
+	statement = sql_create_statement(settings->sql_select,
+					 SQL_WILDCARD, escap_userid,
+					 escap_realm, NULL,
+					 sparams->utils);
+	if (!settings->sql_engine->sql_exec(conn, statement, NULL, 0, NULL,
+					    sparams->utils)) {
+	    /* already have a row => UPDATE */
+	    cmd = settings->sql_update;
+	} else {
+	    /* new row => INSERT */
+	    cmd = settings->sql_insert;
 	}
-	else {
-	    /* see if we already have a secret */
-	    statement = sql_create_statement(settings->sql_select,
-					     cur->name, escap_userid,
-					     escap_realm, NULL,
-					     sparams->utils);
-	    if (!settings->sql_engine->sql_exec(conn, statement, NULL, 0, NULL,
-						sparams->utils)) {
-		/* already have a secret => UPDATE */
-		cmd = settings->sql_update;
-	    }
-	    
-	    sparams->utils->free(statement);
-	}
+	sparams->utils->free(statement);
 
 	/* create a statement that we will use */
 	statement = sql_create_statement(cmd, cur->name, escap_userid,
 					 escap_realm,
 					 cur->values && cur->values[0] ?
-					 cur->values[0] : NULL,
+					 cur->values[0] : SQL_NULL_VALUE,
 					 sparams->utils);
 	
 	{
-	    char *log_statement = sql_create_statement(cmd, cur->name,
-						       escap_userid,
-						       escap_realm,
-						       "<omitted>",
-						       sparams->utils);
+	    char *log_statement =
+		sql_create_statement(cmd, cur->name,
+				     escap_userid,
+				     escap_realm,
+				     cur->values && cur->values[0] ?
+				     "<omitted>" : SQL_NULL_VALUE,
+				     sparams->utils);
 	    sparams->utils->log(NULL, SASL_LOG_DEBUG,
 				"sql plugin doing statement %s\n",
 				log_statement);

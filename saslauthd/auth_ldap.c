@@ -31,7 +31,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_ldap.c,v 1.16 2003/02/13 16:13:44 rjs3 Exp $"
+#ident "$Id: auth_ldap.c,v 1.17 2004/12/08 12:12:27 mel Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -83,7 +83,7 @@ auth_ldap(
 	}
 }
 
-/* FUNCTION: auth_rimap_init */
+/* FUNCTION: auth_ldap_init */
 
 /* SYNOPSIS
  * Validate the host and service names for the remote server.

@@ -1,6 +1,6 @@
 # Makefile.am for the SASL plugins
 # Rob Earhart
-# $Id: Makefile.am,v 1.4 1998/11/24 18:14:01 rob Exp $
+# $Id: Makefile.am,v 1.5 1998/11/30 20:26:35 rob Exp $
 #
 #
 #         Copyright 1998 by Carnegie Mellon University
@@ -44,6 +44,7 @@ EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la li
 
 libplain_la_SOURCES = plain.c
 libplain_la_LDFLAGS = -version-info $(plain_version)
+libplain_la_LIBADD = $(PLAIN_LIBS)
 
 libanonymous_la_SOURCES = anonymous.c
 libanonymous_la_LDFLAGS = -version-info $(anonymous_version)

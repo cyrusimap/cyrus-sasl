@@ -1,3 +1,9 @@
+1998-11-30  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* plugins/Makefile.am: added PLAIN_LIBS to libplain_la_LIBADD
+
+	* configure.in: check for libcrypt for plain
+
 1998-11-30  Ryan Troll <ryan@andrew.cmu.edu>
 
         * win32/libsasl workspace: Updated to handle new server db

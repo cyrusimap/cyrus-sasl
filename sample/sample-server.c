@@ -58,6 +58,9 @@ __declspec(dllimport) int getsubopt(char **optionp, char * const *tokens, char *
 #ifdef HAVE_GETOPT_H
 #include <getopt.h>
 #endif
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 #ifndef HAVE_GETSUBOPT
 int getsubopt(char **optionp, char * const *tokens, char **valuep);

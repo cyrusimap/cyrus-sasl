@@ -76,7 +76,7 @@ void listusers_cb(const char *authid, const char *realm, const char *mechanism)
 int listusers(const char *path, listcb_t *cb)
 {
     GDBM_FILE indb, outdb;
-    datum dkey, dvalue, nextkey, ekey;
+    datum dkey, nextkey, ekey;
 
     indb = gdbm_open(path, 0, GDBM_READER, S_IRUSR | S_IWUSR, NULL);
 
@@ -102,8 +102,6 @@ int listusers(const char *path, listcb_t *cb)
 
 	free(mech);
 
-	/* xxx	dvalue = gdbm_fetch(indb, dkey); */
-
 	nextkey=gdbm_nextkey(indb, dkey);
 	dkey=nextkey;
     }
@@ -121,7 +119,7 @@ int listusers(const char *path, listcb_t *cb)
 int listusers(const char *path, listcb_t *cb)
 {
     DBM *indb;
-    datum dkey, dvalue, nextkey, ekey;
+    datum dkey, nextkey;
 
     indb = dbm_open(path, O_RDONLY, S_IRUSR | S_IWUSR);
 
@@ -147,9 +145,7 @@ int listusers(const char *path, listcb_t *cb)
 
 	free(mech);
 
-	/* xxx	dvalue = gdbm_fetch(indb, dkey); */
-
-	nextkey=dbm_nextkey(indb, dkey);
+	nextkey=dbm_nextkey(indb);
 	dkey=nextkey;
     }
 
@@ -293,7 +289,9 @@ int listusers(listcb_t *cb)
 
 int main(int argc, char **argv)
 {
-
+    (void) argc;
+    (void) argv;
+    
     listusers(SASL_DB_PATH, (listcb_t *) &listusers_cb);
 
     exit(0);

@@ -30,6 +30,7 @@ Digest-MD5
 ) correct handling of SASL_SET_CREATE
 ) allow sending multiple realms from server to client
 ) reauth?
+) eliminate last client step. Applications will need to be rewritten.
 
 Kerberos_V4
 ~~~~~~~~~~~

@@ -1,5 +1,11 @@
 2000-03-09  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
+	* sample/sample-client.c: add unistd for BSD. Patch via Simon Jefferson
+
+	* utils/sasldblistusers.c (listusers): tested more with gdbm/ndbm
+
+	* plugins/digestmd5.c (c_continue_step): extra step for end.
+	
 	* utils/sasldblistusers.c (listusers): compatability with db2.x cursor()
 
 	* version 1.5.17 BETA ready for release

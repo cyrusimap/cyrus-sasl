@@ -2537,7 +2537,8 @@ server_continue_step(void *conn_context,
       result = SASL_FAIL;
       goto FreeAllMem;
     }
-    result = SASL_CONTINUE;
+    result = SASL_CONTINUE; /* xxx this should be SASL_OK but would cause applications to fail
+			       will fix for 2.0 */
 
   FreeAllMem:
     /* free everything */
@@ -3783,10 +3784,6 @@ c_continue_step(void *conn_context,
       goto FreeAllocatedMem;
     }
 
-    result = SASL_CONTINUE;
-
-    text->state = 3;
-
     if (digest_strdup(params->utils, text->realm, 
 		      &oparams->realm, NULL) == SASL_NOMEM) {
       result = SASL_NOMEM;
@@ -3843,6 +3840,10 @@ c_continue_step(void *conn_context,
 			  enckey,deckey);		       
       }
     }
+
+    result = SASL_CONTINUE;
+
+    text->state = 3;
 
 FreeAllocatedMem:
     if (response) { params->utils->free(response); }
@@ -3917,7 +3918,8 @@ FreeAllocatedMem:
  	  *clientout = params->utils->malloc(1);
 	  (*clientout)[0] = '\0';
 	  *clientoutlen = 0;
-	  return SASL_OK;
+	  text->state = 4;
+	  return SASL_CONTINUE;
 	}
       } else {
 	VL(("unrecognized pair: ignoring\n"));
@@ -3927,6 +3929,16 @@ FreeAllocatedMem:
     params->utils->free(in_start);
 
     return SASL_FAIL;
+  }
+
+  /* xxx note: this state is for compatability reasons. will be elimated in sasl 2.0 */
+  if (text->state == 4)
+  {
+      *clientout = NULL;
+      *clientoutlen = 0;
+      VL(("Verify we're done step"));
+      text->state++;
+      return SASL_OK;      
   }
 
 

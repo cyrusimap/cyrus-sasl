@@ -1,4 +1,4 @@
-/* MODULE: auth_dce */
+/* MODULE: auth_ldap */
 /* COPYRIGHT
  * Copyright (c) 2002-2002 Igor Brezac
  * All rights reserved.
@@ -31,7 +31,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_ldap.c,v 1.2 2002/05/03 19:40:22 rjs3 Exp $"
+#ident "$Id: auth_ldap.c,v 1.3 2002/05/03 19:54:55 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */

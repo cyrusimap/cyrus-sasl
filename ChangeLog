@@ -1,3 +1,32 @@
+2000-04-06  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* man/Makefile.am: moved all man pages to section 3
+	* man/sasl.3: wrote
+
+2000-04-05  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* doc/sysadmin.html (pwcheck_method): fix
+
+	* doc/programming.html: finished up (kinda)
+
+2000-04-03  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* plugins/srp.c: started writing.
+
+	* plugins/kerberos4.c (server_continue_step): additions cases where errstr is filled in
+
+2000-04-02  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* Makefile.am: added testing.txt to distribution
+	
+	* utils/sasllistdbusers.c: added clauses sasldblistusers.c patch
+
+2000-03-29  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* utils/Makefile.am (EXTRA_DIST): add an 's' :)
+
+	* plugins/Makefile.am (libdigestmd5_la_LIBADD): -ldes -> $(LIB_DES)
+
 2000-03-29  Larry Greenfield  <leg+@andrew.cmu.edu>
 
 	* utils/sasldblistusers.c: added ability to list an arbitrary

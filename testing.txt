@@ -1,3 +1,5 @@
+** This document is mainly useful for people doing libsasl development or users having a lot of difficulty getting libsasl to work.
+
 Testing the CMU SASL Library with the included sample applications
 ##################################################################
 

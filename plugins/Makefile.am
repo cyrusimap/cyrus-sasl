@@ -53,6 +53,7 @@ scrammd5_version = 1:5:0
 gssapiv2_version = 1:11:0
 digestmd5_version = 0:13:0
 login_version = 0:2:0
+srp_version = 0:0:0
 
 INCLUDES=-I$(top_srcdir)/include
 
@@ -62,7 +63,7 @@ plugindir = @plugindir@
 
 sasldir = $(prefix)/lib/sasl
 sasl_LTLIBRARIES = @SASL_MECHS@
-EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la libscrammd5.la libgssapiv2.la libdigestmd5.la liblogin.la
+EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la libscrammd5.la libgssapiv2.la libdigestmd5.la liblogin.la libsrp.la
 
 libplain_la_SOURCES = plain.c
 libplain_la_LDFLAGS = -version-info $(plain_version)
@@ -92,3 +93,7 @@ libdigestmd5_la_LIBADD = $(LIB_DES) $(LIB_RC4) $(LIB_SOCKET)
 liblogin_la_SOURCES = login.c
 liblogin_la_LDFLAGS = -version-info $(login_version)
 liblogin_la_LIBADD = $(PLAIN_LIBS)
+
+libsrp_la_SOURCES = srp.c
+libsrp_la_LDFLAGS = -version-info $(srp_version)
+libsrp_la_LIBADD = $(SRP_LIBS)

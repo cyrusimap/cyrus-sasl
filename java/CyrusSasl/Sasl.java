@@ -77,6 +77,14 @@ public class Sasl
 					       cbh);
     }
 
+    public static void setSaslClientFactory(SaslClientFactory fac) {
+	client_factory = fac;
+    }
+
+    public static void setSaslServerFactory(SaslServerFactory fac) {
+	server_factory = fac;
+    }
+
 
     public static SaslServer CreateSaslServer(String mechanism,
 					      String protocol,

@@ -1,8 +1,16 @@
-To install, run "./configure", then "make".  If you're checking this
-directly out of CVS, you'll need to run "sh ./SMakefile" to build the
-configure script first.
+To install:
+  cd (directory it was untarred into)
+  ./configure
+  make
+  make install
+
+If you're checking this directly out of CVS, you'll need to run "sh
+./SMakefile" to build the configure script first.
 
 Read doc/sysadmin.html to learn how to configure SASL.
+
+
+
 
 **********
 If you are upgrading, be sure to read the Upgrading section of the

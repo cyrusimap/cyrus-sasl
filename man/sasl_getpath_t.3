@@ -1,0 +1,47 @@
+.\" Hey Emacs! This file is -*- nroff -*- source.
+.\"
+.\" This manpage is Copyright (C) 1999 Tim Martin
+.\"
+.\" Permission is granted to make and distribute verbatim copies of this
+.\" manual provided the copyright notice and this permission notice are
+.\" preserved on all copies.
+.\"
+.\" Permission is granted to copy and distribute modified versions of this
+.\" manual under the conditions for verbatim copying, provided that the
+.\" entire resulting derived work is distributed under the terms of a
+.\" permission notice identical to this one
+.\" 
+.\" Formatted or processed versions of this manual, if unaccompanied by
+.\" the source, must acknowledge the copyright and authors of this work.
+.\"
+.\"
+.TH sasl_getpath_t "26 March 2000" SASL "SASL man pages"
+.SH NAME
+sasl_getpath_t \- The SASL callback to indicate location of the mechanism drivers
+
+
+.SH SYNOPSIS
+.nf
+.B #include <sasl.h>
+
+.sp
+.BI "int sasl_getpath_t(void " *context ", "
+.BI "		        char ** " path ")";
+
+.fi
+.SH DESCRIPTION
+
+.B sasl_getpath_t
+is used if the application wishes to use a different location for the SASL mechanism drivers (the shared library files). If this callback is not used SASL will either use the location in the enviornment variable SASL_PATH or /usr/lib/sasl by default.
+.PP
+
+.SH "RETURN VALUE"
+
+SASL callback functions should return SASL return codes. See sasl.h for a complete list. SASL_OK indicates success.
+
+.SH "CONFORMING TO"
+RFC 2222
+.SH "SEE ALSO"
+.BR other sasl stuff
+.BR 
+.BR 

@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.58 2000/03/29 04:44:13 leg Exp $
+ * $Id: kerberos4.c,v 1.59 2000/04/09 22:54:11 tmartin Exp $
  */
 /* 
  * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -585,7 +585,11 @@ static int server_continue_step (void *conn_context,
     /* received authenticator */
 
     /* create ticket */
-    if (clientinlen > MAX_KTXT_LEN) return SASL_FAIL;
+    if (clientinlen > MAX_KTXT_LEN) {
+	if (errstr)
+	    *errstr = "Request larger than maximum ticket size";
+	return SASL_FAIL;
+    }
 
     ticket.length=clientinlen;
     for (lup=0;lup<clientinlen;lup++)      
@@ -812,8 +816,9 @@ static int server_continue_step (void *conn_context,
     sparams->utils->free(in);
     return SASL_OK;
   }
-
-
+  
+  if (errstr)
+      *errstr = "Improper step. Probably application error";
   return SASL_FAIL; /* should never get here */
 }
 
@@ -962,7 +967,7 @@ static int client_continue_step (void *conn_context,
     VL (("instance=%s\n",text->instance));
 
     if ((result=krb_mk_req(&ticket, service, text->instance,
-			   text->realm,text->challenge))) 
+			   text->realm,text->challenge)))
     {
 	VL(("krb_mk_req failed service=%s instance=%s realm=%s krb error=%d\n",
 	    service,text->instance,text->realm,result));

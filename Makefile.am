@@ -70,3 +70,5 @@ install-exec-local:
 	  echo "* the library should use."; \
 	  echo "********************************************************"; \
 	fi
+
+EXTRA_DIST = testing.txt

@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.75 2000/03/28 06:47:55 tmartin Exp $
+ * $Id: server.c,v 1.76 2000/04/09 22:53:46 tmartin Exp $
  */
 
 /* 
@@ -1214,7 +1214,8 @@ int sasl_checkpass(sasl_conn_t *conn,
 
     if (user == NULL) return SASL_NOUSER;
 
-    if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context) 
+    /* figure out how to check (i.e. PAM or /etc/passwd or kerberos or etc...) */
+    if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context)
 	    == SASL_OK) {
 	getopt(context, NULL, "pwcheck_method", &mech, NULL);
     }

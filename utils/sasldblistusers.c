@@ -248,17 +248,47 @@ int listusers(const char *path, listcb_t *cb)
 
     while (result != DB_NOTFOUND)
     {
-	char *authid = key.data;
-	char *realm  = ((char *)key.data)+strlen(authid)+1;
-	char *tmp    = realm + strlen(realm)+1;
+	char *authid;
+	char *realm;
+	char *tmp;
+	int len;
 	char mech[1024];
+<<<<<<< sasldblistusers.c
+	int numnulls = 0;
+	int lup;
+=======
 	int len = key.size - (tmp - ((char *)key.data));
+>>>>>>> 1.7
 
+<<<<<<< sasldblistusers.c
+	/* make sure there are exactly 3 null's */
+	for (lup=0;lup<key.size;lup++)
+	    if (((char *)key.data)[lup]=='\0')
+		numnulls++;
+
+	if (numnulls!=3)
+	{
+	    fprintf(stderr,"Warning: Possibly database corruption\n");
+	    break;
+	}
+
+	authid = key.data;
+	realm  = authid + strlen(authid)+1;
+	tmp    = realm + strlen(realm)+1;
+	len = key.size - (tmp - authid);
+
+	/* make sure we have enough space of mech */
+	if (len >=sizeof(mech))
+	    break;
+
+	memcpy(mech, tmp, key.size - (tmp - ((char *)key.data)));
+=======
 	if (len >= (int) sizeof mech) {
 	    fprintf(stderr, "malformed database entry\n");
 	    break;
 	}
 	memcpy(mech, tmp, len);
+>>>>>>> 1.7
 	mech[key.size - (tmp - ((char *)key.data))] = '\0';
 
 	if (*authid) {
@@ -303,9 +333,11 @@ int listusers(listcb_t *cb)
 
 int main(int argc, char **argv)
 {
-    char *db = SASL_DB_PATH;
+    char *db= SASL_DB_PATH;
+    
+    if (argc > 1)
+	db = argv[1];
 
-    if (argc > 1) db = argv[1];
     listusers(db, (listcb_t *) &listusers_cb);
 
     exit(0);

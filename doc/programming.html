@@ -115,8 +115,8 @@
     <a name="about_this_guide"><h3>About this Guide</h3></a>
 
     <p>This guide gives a tutorial on the use of the Cyrus SASL library
-    for a client or server application. It compiles with versions up
-    to and including 1.5.5. The following pages should only be
+    for a client or server application. It complies with versions up
+    to and including 1.5.15. The following pages should only be
     considered a guide, not the final word on programming with the
     Cyrus SASL library. Consult the sasl.h file in the distribution in
     the case of ambiguities.
@@ -231,7 +231,10 @@
     </ol>
 
     <a name="client_code"><h3>How does this look in code</h3></a>
-    <pre>
+
+    Initialize the library. (done once).
+
+    <tt><pre>    
 	    int result;
 
 	    /* attempt to start sasl 
@@ -243,12 +246,14 @@
             
             /* check to see if that worked */
             if (result!=SASL_OK) [failure]
+     </pre></tt>
 
-            
-            [for each new connection]
+     For every network connection make a new SASL connection:
+
+     <tt><pre>	     
+            		      
             sasl_conn_t *conn; /* The SASL context kept for the life of the connection */
  
-
             /* client new connection */
             result=sasl_client_new("imap",     /* The service we are using */
 			           serverFQDN, /* The fully qualified domain name
@@ -260,10 +265,16 @@
             /* check to see if that worked */
             if (result!=SASL_OK) [failure]
 
-            
-            [get list of mechanisms supported by the server. format them as a single
-             string separated by spaces]
-            
+      </pre></tt>
+
+       Next get the list of SASL mechanisms the server supports. This
+       is usually done throught a capability command. Format the list
+       as a single string seperated by spaces.
+       
+       Feed this string into SASL to begin the authentication process.
+
+       <tt><pre>
+       
             sasl_interact_t *client_interact=NULL;
             char *out;
             unsigned outlen;
@@ -281,42 +292,75 @@
 
               if (result==SASL_INTERACT)
               {
-                 [deal with the interactions]
+                 [deal with the interactions. See interactions section below]
               }
 
 
            } while (result==SASL_INTERACT); /* the mechanism may ask us to fill in things
-                                               many times. result is SASL_OK on success */
+                                               many times. result is SASL_CONTINUE on success */
 
-           if (result!=SASL_OK) [failure]
+           if (result!=SASL_CONTINUE) [failure]
 
-           [send over the network a request to start authentication with mechanism mechusing
-            depending on the protocol the string out should also be sent.
+        </pre></tt>
 
-            For IMAP this might look like:
-             A01 AUTHENTICATE KERBEROS_V4\r\n
-           ]
+        If this is sucessful send the protocol specific command to
+        start the authentication process. This may or may not allow
+        for initial data to be sent (see the documentation of the
+        protocol to see).
 
-           [read from the network]
+        <pre>
+        For IMAP this might look like:
+          {tag} "AUTHENTICATE" {mechusing}\r\n
+          A01 AUTHENTICATE KERBEROS_V4\r\n
+           
+        SMTP looks like:
+         "AUTH" {mechusing}[ {out base64 encoded}]
+         AUTH DIGEST-MD5 GHGJJGDDFDKHGHJG=
+        </pre>
+       
+	<br>	      
+        <a name="client_authentication_step">Check Results</a>
+        <br>
 
-           [check what it is: success (authentication complete), failure, data to continue
-            the authentication]
+        Next, read what the server sent back. It can be one of three things:
+        <ol>
+	  <li>Authentication failure. Authentication process is
+	  halted. This might look like <tt>A01 NO Authentication
+	  failure</tt> in IMAP or <tt>501 Failed</tt> in SMTP. Either
+	  retry the authentication or abort.
 
-           while ([there it's data])
-           {
-              [convert the server response to a string. This may include Base64 decoding it]
+	  <li>Authentication success. We're now sucessfully
+	  authenticated. This might look like <tt>A01 OK Authenticated
+	  successful</tt> in IMAP or <tt>235 Authentication
+	  successful</tt> in SMPT. Go <a
+	  href="#client_authentication_success">here</a>
+
+	  <li>Another step in the authentication process is
+	  necessary. This might look like <tt>+ HGHDS1HAFJ=</tt> in
+	  IMAP or <tt>334
+	  PENCeUxFREJoU0NnbmhNWitOMjNGNndAZWx3b29kLmlubm9zb2Z0LmNvbT4=</tt>
+	  in SMTP. Note it could be an empty string such as <tt>+
+	  \r\n</tt> in IMAP.
+
+        </ol>
+
+        Convert the continuation data to binary format (this may include base64 decoding it).
+
+        Perform another step in the authentication.
+
+        <tt><pre>
 
               do {
                 result=sasl_client_step(conn,  /* our context */
-				      in,    /* the data from the server */
-				      inlen, /* it's length */
-				      &client_interact,  /* this should be unallocated and NULL */
-				      &out,  /* filled in on success */
-				      &outlen); /* filled in on success */
+				        in,    /* the data from the server */
+				        inlen, /* it's length */
+				        &client_interact,  /* this should be unallocated and NULL */
+				        &out,     /* filled in on success */
+				        &outlen); /* filled in on success */
 
                 if (result==SASL_INTERACT)
                 {
-                   [deal with the interactions]
+                   [deal with the interactions. See below]
                 }
 
 
@@ -324,42 +368,148 @@
 
               if (result!=SASL_OK) [failure]
               
+          </pre></tt>
 
-              [format out with length outlen in the protocol specific manner 
-               and send it over the network]
+          Format the output (variable out of lenght outlen) in the
+          protocol specific manner and send it across the network to
+          the server.
 
-           }
+          <br>
 
+          Goto <a href="#client_authentication_step">here</a>
+         
+          <br><br><br>
 
-           [the life of the connection
+          <a name="client_authentication_success">Authentication Successful</a><br><br>
 
-            keep the context around. Call sasl_encode() and sasl_decode() for
-            sending and reading from the network. This may encrypt/decrypt the traffic
-            if a layer was negotiated.
-            ]
-           
+          <p>Before we're done we need to call sasl_client_step() one
+          more time to make sure the server isn't trying to fool
+          us. Some protocols include data along with the last step. If
+          so this data should be used here. If not use a length of
+          zero.
 
+	    <tt><pre>
 
-            [when we're done with the connection]
+                result=sasl_client_step(conn,  /* our context */
+				        in,    /* the data from the server */
+				        inlen, /* it's length */
+				        &client_interact,  /* this should be unallocated and NULL */
+				        &out,     /* filled in on success */
+				        &outlen); /* filled in on success */
 
-            sasl_dispose(&conn);
+                if (result!=SASL_OK) [failure]
+	    </pre></tt>
+		     
+          <p>Congradulations. You have successfully authenticated to the server.</p>
 
+          <p>Don't throw away the SASL connection object (sasl_conn_t* )
+          yet though. If a security layer was negotiated you will need
+          it to encode and decode the data sent over the network.</p>
 
-            [when we're done with SASL forever]
-            sasl_done();
+          <br>
  
+          Done with connection to server. Dispose of SASL connection
 
-	    </pre>
+          <tt><pre>
+	  
+               sasl_dispose(&conn);
+
+          </pre></tt>
+
+
+	Done with SASL forever (application quiting for example).
+ 
+          <tt><pre>
+            sasl_done();         
+	  </pre></tt>
 	    
 
     <h3>sasl_client_init</h3>
+    <pre>
+    int sasl_client_init(const sasl_callback_t *callbacks);
+    </pre>
     
+    <ul>Paramaters:
+      <li>callbacks - List of callbacks. See Callbacks section
+    </ul>
+
+    This function initializes the SASL library. This must be called
+    before any other SASL calls. See the callbacks section for
+    complete description of callbacks.
+        
     <h3>sasl_client_new</h3>
+
+    <pre>
+    int sasl_client_new(const char *service,
+		        const char *serverFQDN,
+		        const sasl_callback_t *prompt_supp,
+		        int secflags,
+		        sasl_conn_t **pconn);
+    </pre>
+    
+    <ul>Paramaters:
+      <li>service - the service name being used. This usually is the protocol name (e.g. "ldap")
+      <li>serverFQDN - Fully qualified domain name of server
+      <li>prompt_supp - List off callbacks specific to this connection
+      <li>secflags - security flags ORed together requested (e.g. SASL_SEC_NOPLAINTEXT)
+      <li>pconn - the SASL connection object allocated upon success
+    </ul>
+
+    This function creates a new SASL connection object. It should be
+    called once for every connection you want to authenticate for.
 
     <h3>sasl_client_start</h3>
 
+    <pre>
+    int sasl_client_start(sasl_conn_t *conn,
+		          const char *mechlist,
+			  sasl_secret_t *secret,
+			  sasl_interact_t **prompt_need,
+			  char **clientout,
+			  unsigned *clientoutlen,
+			  const char **mech);
+    </pre>
+    
+    <ul>Paramaters:
+      <li>conn - the SASL connection object gotten from sasl_client_new()
+      <li>mechlist - the list of mechanisms to try seperated by spaces
+      <li>secret - secret (optional)
+      <li>prompt_need - filled in when a SASL_INTERACT is returned
+      <li>clientout - filled in upon sucess with data to send to server
+      <li>clientoutlen - length of that data
+      <li>mech - filled in with mechanism being used
+    </ul>
+
+    This function starts an authentication session. It takes a list of
+    possible mechanisms (usually gotten from the server through a
+    capability command) and chooses the "best" mechanism to try. Upon
+    success clientout is filled in with data to send to the server.
+
     <h3>sasl_client_step</h3>
 
+    <pre>
+    int sasl_client_step(sasl_conn_t *conn,
+		 const char *serverin,
+		 unsigned serverinlen,
+		 sasl_interact_t **prompt_need,
+		 char **clientout,
+		 unsigned *clientoutlen);
+    </pre>
+    
+    <ul>Paramaters:
+      <li>conn - the SASL connection object gotten from sasl_client_new()
+      <li>serverin - data from the server
+      <li>serverinlen - length of data from the server
+      <li>prompt_need - filled in with a SASL_INTERACT is returned
+      <li>clientout - filled in upon sucess with data to send to server
+      <li>clientoutlen - length of that data
+    </ul>
+
+    This step preforms a step in the authentication process. It takes
+    the data from the server (serverin) and outputs data to send to
+    the server (clientout) upon success. SASL_CONTINUE is returned if
+    another step in the authentication process is necesssary. SASL_OK
+    is returned if we're all done.
 
 
 <a name="server_section"><h2>Server-only Section</h2></a>
@@ -850,7 +1000,7 @@ none of them currently do anything.
     <address><a href="mailto:tmartin+@andrew.cmu.edu">Timothy L Martin</a></address>
 <!-- Created: Wed Aug 18 13:05:55 EDT 1999 -->
 <!-- hhmts start -->
-Last modified: Fri Aug 20 18:37:32 EDT 1999
+Last modified: Wed Apr  5 15:24:47 EDT 2000
 <!-- hhmts end -->
   </body>
 </html>

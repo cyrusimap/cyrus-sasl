@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.12 2000/04/09 07:24:44 leg Exp $ -->
+<!-- $Id: sysadmin.html,v 1.13 2000/04/09 22:53:45 tmartin Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -276,7 +276,7 @@ information.  Check your application's documentation for specifics.
 <p>For instance, Cyrus imapd reads its sasl options from it's own
 configuration file, <tt>/etc/imapd.conf</tt>, by prepending all SASL
 options with "<tt>sasl_</tt>": the SASL option "pwcheck_method" is set
-by changing "sasl_pwcheck_option" in <tt>/etc/imapd.conf</tt>.
+by changing "sasl_pwcheck_method" in <tt>/etc/imapd.conf</tt>.
 
 Check your application's documentation for more information.
 
@@ -344,6 +344,7 @@ probably a conversion tool you'll have to run.
 plaintext mechanism.  It's included in the SASL distribution purely
 for sites that need it to interoperate with old clients; we don't
 support it.  Don't enable it unless you know you need it.
+
 
 <p>
 <dt><b>Q:</b> How come PAM doesn't work as an plaintext verifier?

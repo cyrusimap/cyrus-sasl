@@ -9,6 +9,11 @@ Library
 ) better support for including missing routines
 ) check return settings (ssf, etc.) on auth failure
 ) Make real global objects in cram, digest
+) when making callbacks, the returned strings are sometimes only valid
+  until the next time that callback is made.  (i believe the config
+  callback is an example of this.)
+
+
 
 Documentation
 ~~~~~~~~~~~~~

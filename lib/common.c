@@ -682,8 +682,10 @@ _sasl_proxy_policy(void *context __attribute__((unused)),
 		   const char **user,
 		   const char **errstr)
 {
+    int r = 0;
+
     *user = NULL;
-    if (!requested_user || *requsted_user == '\0') {
+    if (!requested_user || *requested_user == '\0') {
 	requested_user = auth_identity;
     }
     if (!auth_identity || !requested_user || 
@@ -692,9 +694,9 @@ _sasl_proxy_policy(void *context __attribute__((unused)),
 	    *errstr = "Requested identity not authenticated identity";
 	return SASL_BADAUTH;
     }
-    *user = xstrdup(requested_user);
+    r = _sasl_strdup(requested_user, (char **) user, NULL);
     
-    return SASL_OK;
+    return r;
 }
 
 int

@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.57 2001/06/20 10:17:30 n3liw Exp $
+ * $Id: cram.c,v 1.58 2001/06/20 11:55:37 n3liw Exp $
  */
 
 /* 
@@ -46,13 +46,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif /* HAVE_CONFIG_H */
-#ifdef WIN32
-/* # include "winconfig.h" */
-#include <config.h>
-#endif /* WIN32 */
 #include <time.h>
 #ifndef macintosh
 #include <sys/stat.h>

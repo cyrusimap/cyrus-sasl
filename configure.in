@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.82 2000/03/28 07:50:13 tmartin Exp $
+dnl $Id: configure.in,v 1.83 2000/03/29 04:45:44 leg Exp $
 dnl
 dnl Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -58,7 +58,7 @@ AC_ARG_ENABLE(cmulocal, [  --enable-cmulocal       enable local mods for CMU [no
 
 AC_ARG_ENABLE(sample, [  --enable-sample         compile sample code [yes]],,enable_sample=yes)
 
-AC_ARG_ENABLE(java, [  --enable-java           compile Java support [no]],,enable_java=yes)
+AC_ARG_ENABLE(java, [  --enable-java           compile Java support [no]],,enable_java=no)
 
 AC_PROG_CC
 AC_PROG_CPP
@@ -70,16 +70,6 @@ CMU_GUESS_RUNPATH_SWITCH
 dnl let's just link against local.  otherwise we never find anything useful.
 CPPFLAGS="-I/usr/local/include ${CPPFLAGS}"
 CMU_ADD_LIBPATH("/usr/local/lib")
-
-if test "$enable_java" = yes; then
-  AC_PATH_PROG(JAVAC, javac, no)
-  AC_PATH_PROGS(JAVAH, javah kaffeh, no)
-  AC_CHECK_PROGS(JAVADOC, javadoc, :)	
-  if test "$JAVAC" = "no" -o "$JAVAH" = "no"; then
-    AC_WARN([Disabling Java support])
-    enable_java=no
-  fi
-fi
 
 AM_DISABLE_STATIC
 
@@ -99,11 +89,18 @@ if test "$with_purify" = yes; then
 fi
 
 if test "$enable_java" = yes; then
-dnl  AC_ERROR([java is not supported in this release])
-  DIRS="$DIRS java"
+  AC_PATH_PROG(JAVAC, javac, no)
+  AC_PATH_PROGS(JAVAH, javah kaffeh, no)
+  AC_CHECK_PROGS(JAVADOC, javadoc, :)	
+  if test "$JAVAC" = "no" -o "$JAVAH" = "no"; then
+    AC_WARN([Disabling Java support])
+    enable_java=no
+  fi
 fi
 
 if test "$enable_java" = yes; then
+  DIRS="$DIRS java"
+
   AC_MSG_CHECKING([JNI cpp flags])
   if test `echo $JAVAH | sed 's,.*/,,'` = "kaffeh"; then
     JAVA_INCLUDES=-I`echo $JAVAH | sed -e 's,/bin.*,/include/kaffe,'`
@@ -129,8 +126,6 @@ if test "$enable_java" = yes; then
   JAVAC=`echo "$JAVAC" | sed 's,.*/,,'`
   JAVAH=`echo "$JAVAH" | sed 's,.*/,,'`
 fi
-
-
 
 if test "$enable_sample" = yes; then
   DIRS="$DIRS sample"

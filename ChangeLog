@@ -1,3 +1,7 @@
+2003-10-04  Ken Murchison <ken@oceana.com>
+	* plugins/sql.c: only do a txn when we have a property to fetch;
+	  _pgsql_open() cleanup/fixes
+
 2003-10-03  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* sasldb/allockey.c, sasldb/sasldb.h, utils/sasldblistusers.c:
 	  Add enumeration capability to the sasldb API

@@ -5,7 +5,7 @@
 ** Ken Murchison
 **   based on the original work of Simon Loader and Patrick Welche
 **
-** $Id: sql.c,v 1.14 2003/10/03 01:45:40 ken3 Exp $
+** $Id: sql.c,v 1.15 2003/10/04 14:33:24 ken3 Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -230,53 +230,67 @@ static void _mysql_close(void *conn)
 #if HAVE_PGSQL
 #include <libpq-fe.h>
 
-static void *_pgsql_open(char *host, char *port,
-			 int usessl __attribute__((unused)),
+static void *_pgsql_open(char *host, char *port, int usessl,
 			 const char *user, const char *password,
-			 const char *database,
-			 const sasl_utils_t *utils)
+			 const char *database, const sasl_utils_t *utils)
 {
     PGconn *conn = NULL;
-    char *conninfo;
-    
-    /* we have to have a host */
-    if (!sql_exists(host)) return NULL;
+    char *conninfo, *sep;
     
     /* create the connection info string */
     /* The 64 represents the number of characters taken by
      * the keyword tokens, plus a small pad
      */
-    conninfo = utils->malloc(sql_len(user) + sql_len(password) 
-			     + sql_len(database) 
-			     + sql_len(host) + sql_len(port) + 64);
+    conninfo = utils->malloc(64 + sql_len(host) + sql_len(port)
+			     + sql_len(user) + sql_len(password)
+			     + sql_len(database));
+    if (!conninfo) {
+	MEMERROR(utils);
+	return NULL;
+    }
     
-    strcpy(conninfo, "host='");
-    strcat(conninfo, host);
-    strcat(conninfo, "'");
-    
-    /* check if other terms exist */
+    /* add each term that exists */
+    conninfo[0] = '\0';
+    sep = "";
+    if (sql_exists(host)) {
+	strcat(conninfo, sep);
+	strcat(conninfo, "host='");
+	strcat(conninfo, host);
+	strcat(conninfo, "'");
+	sep = " ";
+    }
     if (sql_exists(port)) {
-	strcat(conninfo, " port='");
+	strcat(conninfo, sep);
+	strcat(conninfo, "port='");
 	strcat(conninfo, port);
 	strcat(conninfo, "'");
+	sep = " ";
     }
     if (sql_exists(user)) {
-	strcat(conninfo, " user='");
+	strcat(conninfo, sep);
+	strcat(conninfo, "user='");
 	strcat(conninfo, user);
 	strcat(conninfo, "'");
+	sep = " ";
     }
     if (sql_exists(password)) {
-	strcat(conninfo, " password='");
+	strcat(conninfo, sep);
+	strcat(conninfo, "password='");
 	strcat(conninfo, password);
 	strcat(conninfo, "'");
+	sep = " ";
     }
     if (sql_exists(database)) {
-	strcat(conninfo, " dbname='");
+	strcat(conninfo, sep);
+	strcat(conninfo, "dbname='");
 	strcat(conninfo, database);
 	strcat(conninfo, "'");
+	sep = " ";
     }
-    /* Postgres is very picky about ssl */
-    if (usessl) strcat(conninfo, " requiressl='1'");
+    if (usessl) {
+	strcat(conninfo, sep);
+	strcat(conninfo, "requiressl='1'");
+    }
     
     conn = PQconnectdb(conninfo);
     free(conninfo);
@@ -660,6 +674,7 @@ static void sql_auxprop_lookup(void *glob_context,
     char *escap_realm = NULL;
     sql_settings_t *settings;
     void *conn = NULL;
+    int do_txn = 0;
     
     if (!glob_context || !sparams || !user) return;
     
@@ -714,11 +729,6 @@ static void sql_auxprop_lookup(void *glob_context,
     settings->sql_engine->sql_escape_str(escap_userid, userid);
     settings->sql_engine->sql_escape_str(escap_realm, realm);
     
-    if (settings->sql_engine->sql_begin_txn(conn, sparams->utils)) {
-	sparams->utils->log(NULL, SASL_LOG_ERR, 
-			    "Unable to begin transaction\n");
-    }
-    
     for (cur = to_fetch; cur->name; cur++) {
 	char *realname = (char *) cur->name;
 
@@ -739,7 +749,16 @@ static void sql_auxprop_lookup(void *glob_context,
 	    continue;
 	else if (cur->values)
 	    sparams->utils->prop_erase(sparams->propctx, cur->name);
-	
+
+	if (!do_txn) {
+	    do_txn = 1;
+	    sparams->utils->log(NULL, SASL_LOG_DEBUG, "begin transaction");
+	    if (settings->sql_engine->sql_begin_txn(conn, sparams->utils)) {
+		sparams->utils->log(NULL, SASL_LOG_ERR, 
+				    "Unable to begin transaction\n");
+	    }
+	}
+    
 	sparams->utils->log(NULL, SASL_LOG_DEBUG,
 			    "sql plugin create statement from %s %s %s\n",
 			    realname, escap_userid, escap_realm);
@@ -762,9 +781,13 @@ static void sql_auxprop_lookup(void *glob_context,
 	
 	sparams->utils->free(query);
     }
-    if (settings->sql_engine->sql_commit_txn(conn, sparams->utils)) {
-	sparams->utils->log(NULL, SASL_LOG_ERR, 
-			    "Unable to commit transaction\n");
+
+    if (do_txn) {
+	sparams->utils->log(NULL, SASL_LOG_DEBUG, "commit transaction");
+	if (settings->sql_engine->sql_commit_txn(conn, sparams->utils)) {
+	    sparams->utils->log(NULL, SASL_LOG_ERR, 
+				"Unable to commit transaction\n");
+	}
     }
     
   done:

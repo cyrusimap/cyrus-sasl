@@ -1,3 +1,7 @@
+1999-03-30  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* plugins/cram.c: fixed endian bug
+
 1999-03-29  Rob Earhart  <rob+@andrew.cmu.edu>
 
 	* config/{libtool things}: updated to libtool-1.2f

@@ -279,7 +279,10 @@ static int server_continue_step (void *conn_context,
     sparams->utils->hmac_md5_final((unsigned char *)&digest, &ctx);
     memset(&ctx, 0, sizeof(ctx));
     sprintf(digest_str, "%08lx%08lx%08lx%08lx",
-	    digest[0], digest[1], digest[2], digest[3]);
+	    ntohl(digest[0]),
+	    ntohl(digest[1]),
+	    ntohl(digest[2]),
+	    ntohl(digest[3]));
     memset(&digest, 0, sizeof(digest));
 
     VL(("Server digest: %s\n", digest_str));
@@ -745,7 +748,10 @@ static int c_continue_step (void *conn_context,
     sprintf(*clientout,
 	    "%s %08lx%08lx%08lx%08lx",
 	    text->authid,
-	    digest[0], digest[1], digest[2], digest[3]);
+	    ntohl(digest[0]),
+	    ntohl(digest[1]),
+	    ntohl(digest[2]),
+	    ntohl(digest[3]));
     
     *clientoutlen=strlen(*clientout);
 

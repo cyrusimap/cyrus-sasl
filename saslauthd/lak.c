@@ -57,7 +57,7 @@
 
 #include <ldap.h>
 #include <lber.h>
-#include <sasl/sasl.h>
+#include <sasl.h>
 #include "lak.h"
 
 typedef struct lak_auth_method {

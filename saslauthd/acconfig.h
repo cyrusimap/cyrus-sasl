@@ -78,6 +78,9 @@
 #undef HAVE_SOCKLEN_T
 #undef HAVE_SOCKADDR_SA_LEN
 
+/* for modules that want to know if we're threaded or not */
+#undef SASLAUTHD_THREADED
+
 @BOTTOM@
 
 #ifndef HAVE___ATTRIBUTE__

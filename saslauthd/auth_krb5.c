@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb5.c,v 1.7 2002/05/21 16:41:04 rjs3 Exp $"
+#ident "$Id: auth_krb5.c,v 1.8 2002/08/21 19:05:49 leg Exp $"
 #endif
 
 /* ok, this is  wrong but the most convenient way of doing 
@@ -160,9 +160,14 @@ auth_krb5 (
 	return strdup("NO saslauthd internal krb5_parse_name error");
     }
     
+#ifdef SASLAUTHD_THREADED
     /* create a new CCACHE so we don't stomp on anything */
     snprintf(tfname,sizeof(tfname), "%s/k5cc_%d_%d", tf_dir,
 	     getpid(), pthread_self());
+#else
+    /* create a new CCACHE so we don't stomp on anything */
+    snprintf(tfname,sizeof(tfname), "%s/k5cc_%d", tf_dir, getpid());
+#endif
     if (krb5_cc_resolve(context, tfname, &ccache)) {
 	krb5_free_principal(context, auth_user);
 	krb5_free_context(context);

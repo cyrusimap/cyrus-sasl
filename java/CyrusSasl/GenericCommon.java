@@ -15,16 +15,16 @@ public abstract class GenericCommon
    * see javasasl.c for their implementations
    */
 
-  private native void jni_sasl_set_prop_string(int ptr, int propnum, String value);
-  private native void jni_sasl_set_prop_int(int ptr, int propnum, int value);
-  private native void jni_sasl_set_prop_bytes(int ptr, int propnum, byte[] value);
-  private native void jni_sasl_set_server(int ptr, byte []ipnum, int port);
-  private native void jni_sasl_set_client(int ptr, byte []ipnum, int port);
-  private native void jni_sasl_setSecurity(int ptr, int minssf, int maxssf);
-  private native byte[] jni_sasl_encode(int ptr, byte[] in,int len);
-  private native byte[] jni_sasl_decode(int ptr, byte[] in,int len);
-  private native void jni_sasl_dispose(int ptr);
-
+    private native void jni_sasl_set_prop_string(int ptr, int propnum, String value);
+    private native void jni_sasl_set_prop_int(int ptr, int propnum, int value);
+    private native void jni_sasl_set_prop_bytes(int ptr, int propnum, byte[] value);
+    private native void jni_sasl_set_server(int ptr, byte []ipnum, int port);
+    private native void jni_sasl_set_client(int ptr, byte []ipnum, int port);
+    private native void jni_sasl_setSecurity(int ptr, int minssf, int maxssf);
+    private native int jni_sasl_getSecurity(int ptr);
+    private native byte[] jni_sasl_encode(int ptr, byte[] in,int len);
+    private native byte[] jni_sasl_decode(int ptr, byte[] in,int len);
+    private native void jni_sasl_dispose(int ptr);
 
   /**
    * security layer security strength factor
@@ -186,15 +186,18 @@ public abstract class GenericCommon
    */
 
 
-  public boolean setSecurity(int external, int minssf, int maxssf)
-  {
-      /* setproperty(SASL_SSF_EXTERNAL, external); */
+    public boolean setSecurity(int external, int minssf, int maxssf)
+    {
+	/* setproperty(SASL_SSF_EXTERNAL, external); */
+	
+	jni_sasl_setSecurity(ptr,minssf,maxssf);
+	
+	return true;
+    }
 
-      jni_sasl_setSecurity(ptr,minssf,maxssf);
-
-    return true;
-  }
-
+    public int getSecurity() {
+	return jni_sasl_getSecurity(ptr);
+    }
 
   /**
    * Encode a String with the negotiated layer

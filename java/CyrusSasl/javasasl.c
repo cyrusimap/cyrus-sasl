@@ -834,3 +834,22 @@ JNIEXPORT void JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1setSecurity
   if (result!=SASL_OK)
     throwexception(env,result);
 }
+
+JNIEXPORT jint JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1getSecurity
+  (JNIEnv *env,
+   jobject obj __attribute__((unused)),
+   jint ptr)
+{
+    int r = SASL_FAIL;
+    sasl_conn_t *conn = (sasl_conn_t *) ptr;
+    int *ssfp;
+
+    r = sasl_getprop(conn, SASL_SSF, (void **) &ssfp);
+    if (r != SASL_OK) {
+	throwexception(env, r);
+    }
+
+    return *ssfp;
+}
+
+

@@ -164,12 +164,22 @@ public class GenericClient extends GenericCommon implements SaslClient
 
     public InputStream getInputStream(InputStream source) throws IOException
     {
-	return new SaslInputStream(source,this);
+	if (getSecurity() > 0) {
+	    return new SaslInputStream(source,this);
+	} else {
+	    // no security layer, no indirection needed
+	    return source;
+	}
     }
 
     public OutputStream getOutputStream(OutputStream dest) throws IOException
     {
-	return new SaslOutputStream(dest,this);
+	if (getSecurity() > 0) {
+	    return new SaslOutputStream(dest,this);
+	} else {
+	    // no security layer, no indirection needed
+	    return dest;
+	}
     }
 
     public byte[] createInitialResponse(){

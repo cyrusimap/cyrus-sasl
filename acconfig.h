@@ -299,11 +299,17 @@ struct sockaddr_storage {
 #define	AF_INET6	AF_MAX
 #endif
 
-#if !defined(HAVE_GETADDRINFO) || !defined(HAVE_GETNAMEINFO)
+#ifndef HAVE_GETADDRINFO
 #define	getaddrinfo	sasl_getaddrinfo
 #define	freeaddrinfo	sasl_freeaddrinfo
-#define	getnameinfo	sasl_getnameinfo
 #define	gai_strerror	sasl_gai_strerror
+#endif
+
+#ifndef HAVE_GETNAMEINFO
+#define	getnameinfo	sasl_getnameinfo
+#endif
+
+#if !defined(HAVE_GETNAMEINFO) || !defined(HAVE_GETADDRINFO)
 #include "gai.h"
 #endif
 

@@ -1,3 +1,7 @@
+2002-09-05  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* doc/os390.html: added
+	* doc/index.html: referenced os390.html and macosx.html
+
 2002-09-04  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* (throughout) Extensive cleanup of how we build static and
 	  shared versions of libsasl.  Also some more portability

@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.44 2003/07/25 14:40:44 rjs3 Exp $ -->
+<!-- $Id: sysadmin.html,v 1.45 2003/07/25 15:06:20 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -237,7 +237,8 @@ However, this means that the individual servers, such as imapd, need
 read/write access to sasldb, not just read access.  By default,
 "auto_transition" is set to false; set it to true to enable.  (There's
 no point in enabling this option if "pwcheck_method" is "auxprop",
-and the sasldb plugin is installed)
+and the sasldb plugin is installed, since you'll be transitioning from
+a plaintext store to a plaintext store)
 
 <h3>Kerberos mechanisms</h3>
 

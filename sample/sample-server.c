@@ -282,7 +282,7 @@ main(int argc, char *argv[])
   secprops.max_ssf = UINT_MAX;
   memset(&extprops, 0L, sizeof(extprops));
 
-  while ((c = getopt(argc, argv, "hb:e:m:f:i:p:s:l:u:?")) != EOF)
+  /*  while ((c = getopt(argc, argv, "hb:e:m:f:i:p:s:l:u:?")) != EOF)
     switch (c) {
     case 'b':
       options = optarg;
@@ -400,15 +400,15 @@ main(int argc, char *argv[])
       userdomain = optarg;
       break;
 
-    default:			/* unknown flag */
+    default:		
       errflag = 1;
       break;
     }
 
   if (optind != argc) {
-    /* We don't *have* extra arguments */
+    
     errflag = 1;
-  }
+  }*/
 
   if (errflag) {
     fprintf(stderr, "%s: Usage: %s [-b min=N,max=N] [-e ssf=N,id=ID] [-m MECH] [-f FLAGS] [-i local=IP,remote=IP] [-p PATH] [-l DOM] [-u DOM] [-s NAME]\n"

@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.99 2004/03/10 15:50:06 rjs3 Exp $
+ * $Id: common.c,v 1.100 2004/05/20 16:55:21 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -566,6 +566,13 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, const void **pvalue)
       else
 	  *((const char **)pvalue) = conn->oparams.authid;
       break;
+  case SASL_APPNAME:
+      /* Currently we only support server side contexts, but we should
+         be able to extend this to support client side contexts as well */
+      if(conn->type != SASL_CONN_SERVER) result = SASL_BADPROT;
+      else
+	  *((const char **)pvalue) = ((sasl_server_conn_t *)conn)->sparams->appname;
+      break;
   case SASL_SERVERFQDN:
       *((const char **)pvalue) = conn->serverFQDN;
       break;
@@ -810,6 +817,29 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
       }
       break;
   }
+
+  case SASL_APPNAME:
+      /* Currently we only support server side contexts, but we should
+         be able to extend this to support client side contexts as well */
+      if(conn->type != SASL_CONN_SERVER) {
+	sasl_seterror(conn, 0, "Tried to set application name on non-server connection");
+	result = SASL_BADPROT;
+	break;
+      }
+
+      if(((sasl_server_conn_t *)conn)->sparams->appname)
+      	  sasl_FREE(((sasl_server_conn_t *)conn)->sparams->appname);
+
+      if(value && strlen(value)) {
+	  result = _sasl_strdup(value, &str, NULL);
+	  if(result != SASL_OK) MEMERROR(conn);
+	  ((sasl_server_conn_t *)conn)->sparams->appname = str;
+	  ((sasl_server_conn_t *)conn)->sparams->applen = (unsigned) strlen(str);
+      } else {
+	  ((sasl_server_conn_t *)conn)->sparams->appname = NULL;
+	  ((sasl_server_conn_t *)conn)->sparams->applen = 0;
+      }
+      break;
 
   default:
       sasl_seterror(conn, 0, "Unknown parameter type");

@@ -1,3 +1,9 @@
+2004-05-20  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* include/sasl.h, lib/common.c, lib/saslint.h, lib/server.c:
+	  Add SASL_APPNAME to sasl_getprop/sasl_setprop for further
+	  compatibilty with SASL C API draft
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+
 2004-05-18  Ken Murchison <ken@oceana.com>
 	* plugins/digest-md5.c: made the global context a struct
 	  containing the reauth_cache so we can NULL it after we free it

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.137 2004/02/20 23:54:51 rjs3 Exp $
+ * $Id: server.c,v 1.138 2004/05/20 16:55:21 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -95,7 +95,7 @@ static int _sasl_checkpass(sasl_conn_t *conn,
 
 static mech_list_t *mechlist = NULL; /* global var which holds the list */
 
-static sasl_global_callbacks_t global_callbacks;
+sasl_global_callbacks_t global_callbacks;
 
 /* set the password for a user
  *  conn        -- SASL connection
@@ -274,6 +274,9 @@ static void server_dispose(sasl_conn_t *pconn)
   if (s_conn->sparams->propctx)
       prop_dispose(&s_conn->sparams->propctx);
 
+  if (s_conn->sparams->appname)
+      sasl_FREE(s_conn->sparams->appname);
+
   if (s_conn->user_realm)
       sasl_FREE(s_conn->user_realm);
 
@@ -438,6 +441,12 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
   char *config_filename=NULL;
   size_t len;
   const sasl_callback_t *getpath_cb=NULL;
+
+  /* If appname was not provided, behave as if there is no config file 
+     (see also sasl_config_init() */
+  if (global_callbacks.appname == NULL) {
+      return SASL_CONTINUE;
+  }
 
   /* get the path to the plugins; for now the config file will reside there */
   getpath_cb=_sasl_find_getpath_callback( global_callbacks.callbacks );
@@ -616,7 +625,8 @@ static int parse_mechlist_file(const char *mechlistfile)
 /* initialize server drivers, done once per process
  *  callbacks      -- callbacks for all server connections; must include
  *                    getopt callback
- *  appname        -- name of calling application (for lower level logging)
+ *  appname        -- name of calling application
+ *                    (for lower level logging and reading of the configuration file)
  * results:
  *  state          -- server state
  * returns:
@@ -644,8 +654,8 @@ int sasl_server_init(const sasl_callback_t *callbacks,
 	{ NULL, NULL }
     };
 
-    /* we require the appname to be non-null and short enough to be a path */
-    if (!appname || strlen(appname) >= PATH_MAX)
+    /* we require the appname (if present) to be short enough to be a path */
+    if (appname != NULL && strlen(appname) >= PATH_MAX)
 	return SASL_BADPARAM;
 
     if (_sasl_server_active) {
@@ -665,7 +675,12 @@ int sasl_server_init(const sasl_callback_t *callbacks,
 	return ret;
 
     global_callbacks.callbacks = callbacks;
-    global_callbacks.appname = appname;
+    
+    /* A shared library calling sasl_server_init will pass NULL as appname.
+       This should retain the original appname. */
+    if (appname != NULL) {
+        global_callbacks.appname = appname;
+    }
 
     /* If we fail now, we have to call server_done */
     _sasl_server_active = 1;
@@ -875,8 +890,19 @@ int sasl_server_new(const char *service,
   serverconn->sparams->service = (*pconn)->service;
   serverconn->sparams->servicelen = (unsigned) strlen((*pconn)->service);
 
-  serverconn->sparams->appname = global_callbacks.appname;
-  serverconn->sparams->applen = (unsigned) strlen(global_callbacks.appname);
+  if (global_callbacks.appname && global_callbacks.appname[0] != '\0') {
+    result = _sasl_strdup (global_callbacks.appname,
+			   &serverconn->sparams->appname,
+			   NULL);
+    if (result != SASL_OK) {
+      result = SASL_NOMEM;
+      goto done_error;
+    }
+    serverconn->sparams->applen = (unsigned) strlen(serverconn->sparams->appname);
+  } else {
+    serverconn->sparams->appname = NULL;
+    serverconn->sparams->applen = 0;
+  }
 
   serverconn->sparams->serverFQDN = (*pconn)->serverFQDN;
   serverconn->sparams->slen = (unsigned) strlen((*pconn)->serverFQDN);

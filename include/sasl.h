@@ -723,6 +723,9 @@ LIBSASL_API int sasl_getprop(sasl_conn_t *conn, int propnum,
 				 * for failed authentication tracking */
 #define SASL_MECHNAME     15    /* active mechanism name, if any */
 #define SASL_AUTHUSER     16    /* authentication/admin user */
+#define SASL_APPNAME	  17	/* application name (used for logging/
+				   configuration), same as appname parameter
+				   to sasl_server_init */
 
 /* This returns a string which is either empty or has an error message
  * from sasl_seterror (e.g., from a plug-in or callback).  It differs

@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.52 2004/02/20 23:54:51 rjs3 Exp $
+ * $Id: saslint.h,v 1.53 2004/05/20 16:55:21 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -108,6 +108,8 @@ typedef struct {
   const sasl_callback_t *callbacks;
   const char *appname;
 } sasl_global_callbacks_t;
+
+extern sasl_global_callbacks_t global_callbacks;
 
 typedef struct _sasl_external_properties 
 {

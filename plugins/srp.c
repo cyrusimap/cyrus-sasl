@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.21 2002/01/16 15:55:50 ken3 Exp $
+ * $Id: srp.c,v 1.22 2002/01/18 16:40:06 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -87,6 +87,9 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 /* Size limit of SRP buffer */
 #define MAXBUFFERSIZE 2147483643
 
+#define DEFAULT_MDA		"SHA-1"
+
+#define OPTION_MDA		"mda="
 #define OPTION_REPLAY_DETECTION	"replay detection"
 #define OPTION_INTEGRITY	"integrity="
 #define OPTION_CONFIDENTIALITY	"confidentiality="
@@ -149,15 +152,16 @@ typedef struct layer_option_s {
     const char *evp_name;	/* name used for lookup in EVP table */
 } layer_option_t;
 
-static layer_option_t integrity_options[] = {
-    {"HMAC-SHA-1",	0, (1<<0), 1,	"sha1"},
-    {"HMAC-RIPEMD-160",	0, (1<<1), 1,	"rmd160"},
-    {"HMAC-MD5",	0, (1<<2), 1,	"md5"},
-    {NULL,		0, (0<<0), 1,	NULL}
+static layer_option_t digest_options[] = {
+    {"SHA-1",		0, (1<<0), 1,	"sha1"},
+    {"RIPEMD-160",	0, (1<<1), 1,	"rmd160"},
+    {"MD5",		0, (1<<2), 1,	"md5"},
+    {NULL,		0, (0<<0), 0,	NULL}
 };
-static layer_option_t *default_integrity = &integrity_options[0];
+static layer_option_t *default_digest = &digest_options[0];
+static layer_option_t *server_mda = NULL;
 
-static layer_option_t confidentiality_options[] = {
+static layer_option_t cipher_options[] = {
     {"DES",		0, (1<<0), 56,	"des-ofb"},
     {"3DES",		0, (1<<1), 112,	"des-ede-ofb"},
     {"AES",		0, (1<<2), 128,	"aes-128-ofb"},
@@ -168,9 +172,9 @@ static layer_option_t confidentiality_options[] = {
 };
 /* XXX Hack until OpenSSL 0.9.7 */
 #if OPENSSL_VERSION_NUMBER < 0x00907000L
-static layer_option_t *default_confidentiality = &confidentiality_options[0];
+static layer_option_t *default_cipher = &cipher_options[0];
 #else
-static layer_option_t *default_confidentiality = &confidentiality_options[2];
+static layer_option_t *default_cipher = &cipher_options[2];
 #endif
 
 
@@ -181,6 +185,7 @@ enum {
 };
 
 typedef struct srp_options_s {
+    unsigned mda;		/* bitmask of MDAs */
     unsigned replay_detection;	/* replay detection on/off flag */
     unsigned integrity;		/* bitmask of integrity layers */
     unsigned confidentiality;	/* bitmask of confidentiality layers */
@@ -222,7 +227,6 @@ typedef struct context_s {
     int saltlen;
 
     const EVP_MD *md;		/* underlying MDA */
-    const char *mech_name;	/* used for propName in sasldb */
 
     /* copy of utils from the params structures */
     const sasl_utils_t *utils;
@@ -1495,7 +1499,25 @@ static layer_option_t *FindOptionFromBit(unsigned bit, layer_option_t *opts)
 static int ParseOptionString(const sasl_utils_t *utils,
 			     char *str, srp_options_t *opts, int isserver)
 {
-    if (!strcasecmp(str, OPTION_REPLAY_DETECTION)) {
+    if (!strncasecmp(str, OPTION_MDA, strlen(OPTION_MDA))) {
+
+	int bit = FindBit(str+strlen(OPTION_MDA), digest_options);
+
+	if (isserver && (!bit || opts->mda)) {
+	    opts->mda = -1;
+	    if (!bit)
+		utils->log(NULL, SASL_LOG_ERR,
+			   "MDA %s not supported\n",
+			   str+strlen(OPTION_MDA));
+	    else
+		utils->log(NULL, SASL_LOG_ERR,
+			   "Multiple MDAs given\n");
+	    return SASL_FAIL;
+	}
+
+	opts->mda = opts->mda | bit;
+
+    } else if (!strcasecmp(str, OPTION_REPLAY_DETECTION)) {
 	if (opts->replay_detection) {
 	    utils->log(NULL, SASL_LOG_ERR,
 		       "Replay Detection option appears twice\n");
@@ -1503,9 +1525,10 @@ static int ParseOptionString(const sasl_utils_t *utils,
 	}
 	opts->replay_detection = 1;
 
-    } else if (!strncasecmp(str, OPTION_INTEGRITY, strlen(OPTION_INTEGRITY))) {
+    } else if (!strncasecmp(str, OPTION_INTEGRITY, strlen(OPTION_INTEGRITY)) &&
+	       !strncasecmp(str+strlen(OPTION_INTEGRITY), "HMAC-", 5)) {
 
-	int bit = FindBit(str+strlen(OPTION_INTEGRITY), integrity_options);
+	int bit = FindBit(str+strlen(OPTION_INTEGRITY)+5, digest_options);
 
 	if (isserver && (!bit || opts->integrity)) {
 	    opts->integrity = -1;
@@ -1525,7 +1548,7 @@ static int ParseOptionString(const sasl_utils_t *utils,
 			    strlen(OPTION_CONFIDENTIALITY))) {
 
 	int bit = FindBit(str+strlen(OPTION_CONFIDENTIALITY),
-			  confidentiality_options);
+			  cipher_options);
 
 	if (isserver && (!bit || opts->confidentiality)) {
 	    opts->confidentiality = -1;
@@ -1639,6 +1662,22 @@ static int OptionsToString(const sasl_utils_t *utils,
     alloced = 1;
     ret[0] = '\0';
 
+    optlist = digest_options;
+    while(optlist->name) {
+	if (opts->mda & optlist->bit) {
+	    alloced += strlen(OPTION_MDA)+strlen(optlist->name)+1;
+	    ret = utils->realloc(ret, alloced);
+	    if (!ret) return SASL_NOMEM;
+
+	    if (!first) strcat(ret, ",");
+	    strcat(ret, OPTION_MDA);
+	    strcat(ret, optlist->name);
+	    first = 0;
+	}
+
+	optlist++;
+    }
+
     if (opts->replay_detection) {
 	alloced += strlen(OPTION_REPLAY_DETECTION)+1;
 	ret = utils->realloc(ret, alloced);
@@ -1649,15 +1688,16 @@ static int OptionsToString(const sasl_utils_t *utils,
 	first = 0;
     }
 
-    optlist = integrity_options;
+    optlist = digest_options;
     while(optlist->name) {
 	if (opts->integrity & optlist->bit) {
-	    alloced += strlen(OPTION_INTEGRITY)+strlen(optlist->name)+1;
+	    alloced += strlen(OPTION_INTEGRITY)+5+strlen(optlist->name)+1;
 	    ret = utils->realloc(ret, alloced);
 	    if (!ret) return SASL_NOMEM;
 
 	    if (!first) strcat(ret, ",");
 	    strcat(ret, OPTION_INTEGRITY);
+	    strcat(ret, "HMAC-");
 	    strcat(ret, optlist->name);
 	    first = 0;
 	}
@@ -1665,7 +1705,7 @@ static int OptionsToString(const sasl_utils_t *utils,
 	optlist++;
     }
 
-    optlist = confidentiality_options;
+    optlist = cipher_options;
     while(optlist->name) {
 	if (opts->confidentiality & optlist->bit) {
 	    alloced += strlen(OPTION_CONFIDENTIALITY)+strlen(optlist->name)+1;
@@ -1693,28 +1733,84 @@ static int OptionsToString(const sasl_utils_t *utils,
 	first = 0;
     }
 
+    if (opts->mandatory & BIT_REPLAY_DETECTION) {
+	alloced += strlen(OPTION_MANDATORY)+strlen(OPTION_REPLAY_DETECTION)+1;
+	ret = utils->realloc(ret, alloced);
+	if (!ret) return SASL_NOMEM;
+
+	if (!first) strcat(ret, ",");
+	strcat(ret, OPTION_MANDATORY);
+	strcat(ret, OPTION_REPLAY_DETECTION);
+	first = 0;
+    }
+
+    if (opts->mandatory & BIT_INTEGRITY) {
+	alloced += strlen(OPTION_MANDATORY)+strlen(OPTION_INTEGRITY)-1+1;
+	ret = utils->realloc(ret, alloced);
+	if (!ret) return SASL_NOMEM;
+
+	if (!first) strcat(ret, ",");
+	strcat(ret, OPTION_MANDATORY);
+	strncat(ret, OPTION_INTEGRITY, strlen(OPTION_INTEGRITY)-1);
+	/* terminate string */
+	ret[alloced-1] = '\0';
+	first = 0;
+    }
+
+    if (opts->mandatory & BIT_CONFIDENTIALITY) {
+	alloced += strlen(OPTION_MANDATORY)+strlen(OPTION_CONFIDENTIALITY)-1+1;
+	ret = utils->realloc(ret, alloced);
+	if (!ret) return SASL_NOMEM;
+
+	if (!first) strcat(ret, ",");
+	strcat(ret, OPTION_MANDATORY);
+	strncat(ret, OPTION_CONFIDENTIALITY, strlen(OPTION_CONFIDENTIALITY)-1);
+	/* terminate string */
+	ret[alloced-1] = '\0';
+	first = 0;
+    }
+
     *out = ret;
     return SASL_OK;
 }
 
-static int CreateServerOptions(const sasl_utils_t *utils,
-			       sasl_security_properties_t *props,
+static int CreateServerOptions(sasl_server_params_t *sparams,
 			       char **out)
 {
     srp_options_t opts;
+    sasl_ssf_t limitssf, requiressf;
     layer_option_t *optlist;
 
     /* zero out options */
     memset(&opts,0,sizeof(srp_options_t));
 
-    /* Add integrity options */
-    optlist = integrity_options;
-    while(optlist->name) {
-	if (optlist->enabled &&
-	    (props->min_ssf <= 1) && (props->max_ssf >= 1)) {
-	    opts.integrity |= optlist->bit;
+    /* Add mda */
+    opts.mda = server_mda->bit;
+
+    if (sparams->props.max_ssf < sparams->external_ssf) {
+	limitssf = 0;
+    } else {
+	limitssf = sparams->props.max_ssf - sparams->external_ssf;
+    }
+    if (sparams->props.min_ssf < sparams->external_ssf) {
+	requiressf = 0;
+    } else {
+	requiressf = sparams->props.min_ssf - sparams->external_ssf;
+    }
+
+    /*
+     * Add integrity options
+     * Can't advertise integrity w/o support for default HMAC
+     */
+    if (default_digest->enabled) {
+	optlist = digest_options;
+	while(optlist->name) {
+	    if (optlist->enabled &&
+		/*(requiressf <= 1) &&*/ (limitssf >= 1)) {
+		opts.integrity |= optlist->bit;
+	    }
+	    optlist++;
 	}
-	optlist++;
     }
 
     /* if we set any integrity options we can advertise replay detection */
@@ -1722,23 +1818,35 @@ static int CreateServerOptions(const sasl_utils_t *utils,
 	opts.replay_detection = 1;
     }
 
-    /* Add confidentiality options */
-    optlist = confidentiality_options;
-    while(optlist->name) {
-	if (optlist->enabled &&
-	    (props->min_ssf <= optlist->ssf) &&
-	    (props->max_ssf >= optlist->ssf)) {
-	    opts.confidentiality |= optlist->bit;
+    /*
+     * Add confidentiality options
+     * Can't advertise confidentiality w/o support for default cipher
+     */
+    if (default_cipher->enabled) {
+	optlist = cipher_options;
+	while(optlist->name) {
+	    if (optlist->enabled &&
+		(requiressf <= optlist->ssf) &&
+		(limitssf >= optlist->ssf)) {
+		opts.confidentiality |= optlist->bit;
+	    }
+	    optlist++;
 	}
-	optlist++;
     }
+
+    /* Add mandatory options */
+    if (requiressf >= 1)
+	opts.mandatory = BIT_REPLAY_DETECTION | BIT_INTEGRITY;
+    if (requiressf > 1)
+	opts.mandatory |= BIT_CONFIDENTIALITY;
 
     /* Add maxbuffersize */
     opts.maxbufsize = MAXBUFFERSIZE;
-    if (props->maxbufsize && props->maxbufsize < opts.maxbufsize)
-	opts.maxbufsize = props->maxbufsize;
+    if (sparams->props.maxbufsize &&
+	sparams->props.maxbufsize < opts.maxbufsize)
+	opts.maxbufsize = sparams->props.maxbufsize;
 
-    return OptionsToString(utils, &opts, out);
+    return OptionsToString(sparams->utils, &opts, out);
 }
 		    
 
@@ -1746,23 +1854,39 @@ static int CreateClientOpts(sasl_client_params_t *params,
 			    srp_options_t *available, 
 			    srp_options_t *out)
 {
-    int external;
-    int limit;
-    int musthave;
+    layer_option_t *opt;
+    sasl_ssf_t external;
+    sasl_ssf_t limit;
+    sasl_ssf_t musthave;
 
     /* zero out output */
     memset(out, 0, sizeof(srp_options_t));
+
+    params->utils->log(NULL, SASL_LOG_DEBUG,
+		       "Available MDA = %d\n",available->mda);
+
+    /* mda */
+    opt = FindBest(available->mda, 0, 256, digest_options);
+	
+    if (opt) {
+	out->mda = opt->bit;
+    }
+    else {
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Can't find an acceptable MDA\n");
+	return SASL_TOOWEAK;
+    }
 
     /* get requested ssf */
     external = params->external_ssf;
 
     /* what do we _need_?  how much is too much? */
-    if ((int)params->props.max_ssf > external) {
+    if (params->props.max_ssf > external) {
 	limit = params->props.max_ssf - external;
     } else {
 	limit = 0;
     }
-    if ((int)params->props.min_ssf > external) {
+    if (params->props.min_ssf > external) {
 	musthave = params->props.min_ssf - external;
     } else {
 	musthave = 0;
@@ -1774,15 +1898,14 @@ static int CreateClientOpts(sasl_client_params_t *params,
 		       "Available confidentiality = %d\n",
 		       available->confidentiality);
 
+    /* confidentiality */
     if (limit > 1) {
-	/* confidentiality */
-	layer_option_t *copt = NULL;
 
-	copt = FindBest(available->confidentiality, musthave, limit,
-			confidentiality_options);
+	opt = FindBest(available->confidentiality, musthave, limit,
+			cipher_options);
 	
-	if (copt) {
-	    out->confidentiality = copt->bit;
+	if (opt) {
+	    out->confidentiality = opt->bit;
 	    /* we've already satisfied the SSF with the confidentiality
 	     * layer, but we'll also use an integrity layer if we can
 	     */
@@ -1798,15 +1921,14 @@ static int CreateClientOpts(sasl_client_params_t *params,
     params->utils->log(NULL, SASL_LOG_DEBUG,
 		       "Available integrity = %d\n",available->integrity);
 
+    /* integrity */
     if ((limit >= 1) && (musthave <= 1)) {
-	/* integrity */
-	layer_option_t *iopt;
 
-	iopt = FindBest(available->integrity, musthave, limit,
-			integrity_options);
+	opt = FindBest(available->integrity, musthave, limit,
+			digest_options);
 	
-	if (iopt) {
-	    out->integrity = iopt->bit;
+	if (opt) {
+	    out->integrity = opt->bit;
 
 	    /* if we set an integrity option we can set replay detection */
 	    out->replay_detection = available->replay_detection;
@@ -1851,6 +1973,17 @@ static int SetOptions(srp_options_t *opts,
 		      const sasl_utils_t *utils,
 		      sasl_out_params_t *oparams)
 {
+    layer_option_t *opt;
+
+    opt = FindOptionFromBit(opts->mda, digest_options);
+    if (!opt) {
+	utils->log(NULL, SASL_LOG_ERR,
+		   "Unable to find MDA option now\n");
+	return SASL_FAIL;
+    }
+
+    text->md = EVP_get_digestbyname(opt->evp_name);
+
     text->size=-1;
     text->needsize=4;
 
@@ -1871,42 +2004,40 @@ static int SetOptions(srp_options_t *opts,
 
 	/* If no integrity layer specified, use default */
 	if (!opts->integrity)
-	    opts->integrity = default_integrity->bit;
+	    opts->integrity = default_digest->bit;
     }
 
     if (opts->integrity) {
-	layer_option_t *iopt;
 
 	text->enabled |= BIT_INTEGRITY;
 
-	iopt = FindOptionFromBit(opts->integrity, integrity_options);
-	if (!iopt) {
+	opt = FindOptionFromBit(opts->integrity, digest_options);
+	if (!opt) {
 	    utils->log(NULL, SASL_LOG_ERR,
 		       "Unable to find integrity layer option now\n");
 	    return SASL_FAIL;
 	}
 
-	oparams->mech_ssf = iopt->ssf;
-	text->hmac_md = EVP_get_digestbyname(iopt->evp_name);
+	oparams->mech_ssf = opt->ssf;
+	text->hmac_md = EVP_get_digestbyname(opt->evp_name);
 
 	/* account for os() */
 	oparams->maxoutbuf -= (EVP_MD_size(text->hmac_md) + 1);
     }
 
     if (opts->confidentiality) {
-	layer_option_t *iopt;
 
 	text->enabled |= BIT_CONFIDENTIALITY;
 
-	iopt = FindOptionFromBit(opts->confidentiality, confidentiality_options);
-	if (!iopt) {
+	opt = FindOptionFromBit(opts->confidentiality, cipher_options);
+	if (!opt) {
 	    utils->log(NULL, SASL_LOG_ERR,
-		       "Unable to find integrity layer option now\n");
+		       "Unable to find confidentiality layer option now\n");
 	    return SASL_FAIL;
 	}
 
-	oparams->mech_ssf = iopt->ssf;
-	text->cipher = EVP_get_cipherbyname(iopt->evp_name);
+	oparams->mech_ssf = opt->ssf;
+	text->cipher = EVP_get_cipherbyname(opt->evp_name);
     }
 
     return SASL_OK;
@@ -1970,11 +2101,11 @@ static void srp_both_mech_free(void *global_context,
 
 
 static int
-srp_sha1_server_mech_new(void *glob_context __attribute__((unused)),
-			 sasl_server_params_t *params,
-			 const char *challenge __attribute__((unused)),
-			 unsigned challen __attribute__((unused)),
-			 void **conn)
+srp_server_mech_new(void *glob_context __attribute__((unused)),
+		    sasl_server_params_t *params,
+		    const char *challenge __attribute__((unused)),
+		    unsigned challen __attribute__((unused)),
+		    void **conn)
 {
   context_t *text;
 
@@ -1992,70 +2123,7 @@ srp_sha1_server_mech_new(void *glob_context __attribute__((unused)),
 
   text->state = 1;
   text->utils = params->utils;
-  text->mech_name  = "SRP-SHA-1";
-  text->md = EVP_get_digestbyname("sha1");
-
-  *conn=text;
-
-  return SASL_OK;
-}
-
-static int
-srp_rmd160_server_mech_new(void *glob_context __attribute__((unused)),
-			   sasl_server_params_t *params,
-			   const char *challenge __attribute__((unused)),
-			   unsigned challen __attribute__((unused)),
-			   void **conn)
-{
-  context_t *text;
-
-  if (!conn)
-      return SASL_BADPARAM;
-
-  /* holds state are in */
-  text = params->utils->malloc(sizeof(context_t));
-  if (text==NULL) {
-      MEMERROR(params->utils);
-      return SASL_NOMEM;
-  }
-
-  memset(text, 0, sizeof(context_t));
-
-  text->state = 1;
-  text->utils = params->utils;
-  text->mech_name  = "SRP-RIPEMD-160";
-  text->md = EVP_get_digestbyname("rmd160");
-
-  *conn=text;
-
-  return SASL_OK;
-}
-
-static int
-srp_md5_server_mech_new(void *glob_context __attribute__((unused)),
-			sasl_server_params_t *params,
-			const char *challenge __attribute__((unused)),
-			unsigned challen __attribute__((unused)),
-			void **conn)
-{
-  context_t *text;
-
-  if (!conn)
-      return SASL_BADPARAM;
-
-  /* holds state are in */
-  text = params->utils->malloc(sizeof(context_t));
-  if (text==NULL) {
-      MEMERROR(params->utils);
-      return SASL_NOMEM;
-  }
-
-  memset(text, 0, sizeof(context_t));
-
-  text->state = 1;
-  text->utils = params->utils;
-  text->mech_name  = "SRP-MD5";
-  text->md = EVP_get_digestbyname("md5");
+  text->md = EVP_get_digestbyname(server_mda->evp_name);
 
   *conn=text;
 
@@ -2262,15 +2330,17 @@ static int server_step1(context_t *text,
     int utf8Llen;
     char *realm = NULL;
     char *user = NULL;
-    char propName[100];
     const char *password_request[] = { SASL_AUX_PASSWORD,
-				       propName,
+				       "cmusaslsecretSRP",
 				       NULL };
     struct propval auxprop_values[3];
 
     /* Expect:
      *
-     * { utf8(U) }
+     * U - authentication identity
+     * I - authorization identity
+     *
+     * { utf8(U) utf8(I) }
      *
      */
     r = UnBuffer(params->utils, (char *) clientin, clientinlen,
@@ -2285,6 +2355,13 @@ static int server_step1(context_t *text,
     if (r) {
       params->utils->seterror(params->utils->conn, 0, 
 			      "Error getting UTF8 string from input");
+      return r;
+    }
+
+    r = GetUTF8(params->utils, data, datalen, &text->userid, &data, &datalen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+			      "Error parsing out userid");
       return r;
     }
 
@@ -2312,7 +2389,6 @@ static int server_step1(context_t *text,
     }
 
     /* Get user secret */
-    sprintf(propName, "cmusaslsecret%s", text->mech_name);
     r = params->utils->prop_request(params->propctx, password_request);
     if (r != SASL_OK) goto fail;
 
@@ -2321,6 +2397,10 @@ static int server_step1(context_t *text,
 			   user, 0, SASL_CU_AUTHID, oparams);
     if (r != SASL_OK) goto fail;
 
+    r = params->canon_user(params->utils->conn,
+			   text->userid, 0, SASL_CU_AUTHZID, oparams);
+    if (r != SASL_OK) goto fail;
+    
     r = params->utils->prop_getnames(params->propctx, password_request,
 				     auxprop_values);
     if (r < 0 ||
@@ -2372,8 +2452,7 @@ static int server_step1(context_t *text,
     params->utils->prop_clear(params->propctx, 1);
 
 
-    r = CreateServerOptions(params->utils, &params->props,
-			    &text->server_options);
+    r = CreateServerOptions(params, &text->server_options);
     if (r) {
       params->utils->seterror(params->utils->conn, 0, 
 	"Error creating server options");
@@ -2460,10 +2539,9 @@ static int server_step2(context_t *text,
     /* Expect:
      *
      * A - client's public key
-     * I - authorization
      * o - client option list
      *
-     * { mpi(A) utf8(I) utf8(o) }
+     * { mpi(A) utf8(o) }
      *
      */
     r = UnBuffer(params->utils, (char *) clientin, clientinlen,
@@ -2486,17 +2564,6 @@ static int server_step2(context_t *text,
 	params->utils->log(NULL, SASL_LOG_ERR, "Illegal value for 'A'\n");
 	return SASL_FAIL;
     }
-    
-    r = GetUTF8(params->utils, data, datalen, &text->userid, &data, &datalen);
-    if (r) {
-      params->utils->seterror(params->utils->conn, 0, 
-	"Error parsing out userid");
-      return r;
-    }
-
-    r = params->canon_user(params->utils->conn,
-			   text->userid, 0, SASL_CU_AUTHZID, oparams);
-    if (r != SASL_OK) return r;
     
     r = GetUTF8(params->utils, data, datalen, &text->client_options,
 		&data, &datalen);
@@ -2797,7 +2864,17 @@ static int srp_setpass(context_t *text,
     char *user = NULL;
     char *realm = NULL;
     sasl_secret_t *sec = NULL;
-    char propName[100];
+
+    /* Do we have database support? */
+    /* Note that we can use a NULL sasl_conn_t because our
+     * sasl_utils_t is "blessed" with the global callbacks */
+    if(_sasl_check_db(sparams->utils, NULL) != SASL_OK) {
+	SETERROR(sparams->utils, "No database support");
+	return SASL_FAIL;
+    }
+
+    text.utils = sparams->utils;
+    text.md = EVP_get_digestbyname(server_mda->evp_name);
 
     r = parseuser(sparams->utils, &user, &realm, sparams->user_realm,
 		       sparams->serverFQDN, userstr);
@@ -2887,9 +2964,8 @@ static int srp_setpass(context_t *text,
     }
 
     /* do the store */
-    sprintf(propName, "cmusaslsecret%s", text->mech_name);
     r = (*_sasldb_putdata)(sparams->utils, sparams->utils->conn,
-			   user, realm, propName,
+			   user, realm, "cmusaslsecretSRP",
 			   (sec ? sec->data : NULL), (sec ? sec->len : 0));
 
     if (r) {
@@ -2908,90 +2984,26 @@ static int srp_setpass(context_t *text,
 
     return r;
 }
-
-static int srp_sha1_setpass(void *glob_context __attribute__((unused)),
-			    sasl_server_params_t *sparams,
-			    const char *userstr,
-			    const char *pass,
-			    unsigned passlen,
-			    const char *oldpass __attribute__((unused)),
-			    unsigned oldpasslen __attribute__((unused)),
-			    unsigned flags)
-{
-    context_t text;
-
-    text.utils = sparams->utils;
-    text.mech_name  = "SRP-SHA-1";
-    text.md = EVP_get_digestbyname("sha1");
-
-    return srp_setpass(&text, sparams, userstr,
-		       pass, passlen, flags);
-}
-
-static int srp_rmd160_setpass(void *glob_context __attribute__((unused)),
-			      sasl_server_params_t *sparams,
-			      const char *userstr,
-			      const char *pass,
-			      unsigned passlen,
-			      const char *oldpass __attribute__((unused)),
-			      unsigned oldpasslen __attribute__((unused)),
-			      unsigned flags)
-{
-    context_t text;
-
-    text.utils = sparams->utils;
-    text.mech_name  = "SRP-RIPEMD-160";
-    text.md = EVP_get_digestbyname("rmd160");
-
-    return srp_setpass(&text, sparams, userstr,
-		       pass, passlen, flags);
-}
-
-static int srp_md5_setpass(void *glob_context __attribute__((unused)),
-			   sasl_server_params_t *sparams,
-			   const char *userstr,
-			   const char *pass,
-			   unsigned passlen,
-			   const char *oldpass __attribute__((unused)),
-			   unsigned oldpasslen __attribute__((unused)),
-			   unsigned flags)
-{
-    context_t text;
-
-    text.utils = sparams->utils;
-    text.mech_name  = "SRP-MD5";
-    text.md = EVP_get_digestbyname("sha1");
-
-    return srp_setpass(&text, sparams, userstr,
-		       pass, passlen, flags);
-}
 #endif /* DO_SRP_SETPASS */
 
-static int srp_sha1_mech_avail(void *glob_context __attribute__((unused)),
-			       sasl_server_params_t *sparams __attribute__((unused)),
-			       void **conn_context __attribute__((unused))) 
+static int srp_mech_avail(void *glob_context __attribute__((unused)),
+			  sasl_server_params_t *sparams,
+			  void **conn_context __attribute__((unused))) 
 {
-    return (EVP_get_digestbyname("sha1") ? SASL_OK : SASL_NOMECH);
-}
+    /* Do we have access to the selected MDA? */
+    if (!server_mda || !server_mda->enabled) {
+	SETERROR(sparams->utils,
+		 "SRP unavailable due to selected MDA unavailable");
+	return SASL_NOMECH;
+    }
 
-static int srp_rmd160_mech_avail(void *glob_context __attribute__((unused)),
-				 sasl_server_params_t *sparams __attribute__((unused)),
-				 void **conn_context __attribute__((unused))) 
-{
-    return (EVP_get_digestbyname("rmd160") ? SASL_OK : SASL_NOMECH);
-}
-
-static int srp_md5_mech_avail(void *glob_context __attribute__((unused)),
-			      sasl_server_params_t *sparams __attribute__((unused)),
-			      void **conn_context __attribute__((unused))) 
-{
-    return (EVP_get_digestbyname("md5") ? SASL_OK : SASL_NOMECH);
+    return SASL_OK;
 }
 
 static sasl_server_plug_t srp_server_plugins[] = 
 {
   {
-    "SRP-SHA-1",		/* mech_name */
+    "SRP",			/* mech_name */
     0,				/* max_ssf */
     SASL_SEC_NOPLAINTEXT
     | SASL_SEC_NOANONYMOUS
@@ -3000,67 +3012,18 @@ static sasl_server_plug_t srp_server_plugins[] =
     | SASL_SEC_FORWARD_SECRECY,	/* security_flags */
     SASL_FEAT_WANT_CLIENT_FIRST,/* features */
     NULL,			/* glob_context */
-    &srp_sha1_server_mech_new,	/* mech_new */
+    &srp_server_mech_new,	/* mech_new */
     &srp_server_mech_step,	/* mech_step */
     &srp_both_mech_dispose,	/* mech_dispose */
     &srp_both_mech_free,	/* mech_free */
 #if DO_SRP_SETPASS
-    &srp_sha1_setpass,		/* setpass */
+    &srp_setpass,		/* setpass */
 #else
     NULL,
 #endif
     NULL,			/* user_query */
     NULL,			/* idle */
-    &srp_sha1_mech_avail,	/* mech avail */
-    NULL			/* spare */
-  },
-  /* XXX  May need aliases for SHA-1 here */
-  {
-    "SRP-RIPEMD-160",	        /* mech_name */
-    0,				/* max_ssf */
-    SASL_SEC_NOPLAINTEXT
-    | SASL_SEC_NOANONYMOUS
-    | SASL_SEC_NOACTIVE
-    | SASL_SEC_NODICTIONARY
-    | SASL_SEC_FORWARD_SECRECY,	/* security_flags */
-    SASL_FEAT_WANT_CLIENT_FIRST,/* features */
-    NULL,			/* glob_context */
-    &srp_rmd160_server_mech_new,/* mech_new */
-    &srp_server_mech_step,	/* mech_step */
-    &srp_both_mech_dispose,	/* mech_dispose */
-    &srp_both_mech_free,	/* mech_free */
-#if DO_SRP_SETPASS
-    &srp_rmd160_setpass,	/* setpass */
-#else
-    NULL,
-#endif
-    NULL,			/* user_query */
-    NULL,			/* idle */
-    &srp_rmd160_mech_avail,	/* mech avail */
-    NULL			/* spare */
-  },
-  {
-    "SRP-MD5",			/* mech_name */
-    0,				/* max_ssf */
-    SASL_SEC_NOPLAINTEXT
-    | SASL_SEC_NOANONYMOUS
-    | SASL_SEC_NOACTIVE
-    | SASL_SEC_NODICTIONARY
-    | SASL_SEC_FORWARD_SECRECY,	/* security_flags */
-    SASL_FEAT_WANT_CLIENT_FIRST,/* features */
-    NULL,			/* glob_context */
-    &srp_md5_server_mech_new,	/* mech_new */
-    &srp_server_mech_step,	/* mech_step */
-    &srp_both_mech_dispose,	/* mech_dispose */
-    &srp_both_mech_free,	/* mech_free */
-#if DO_SRP_SETPASS
-    &srp_md5_setpass,		/* setpass */
-#else
-    NULL,
-#endif
-    NULL,			/* user_query */
-    NULL,			/* idle */
-    &srp_md5_mech_avail,	/* mech avail */
+    &srp_mech_avail,		/* mech avail */
     NULL			/* spare */
   }
 };
@@ -3072,7 +3035,8 @@ int srp_server_plug_init(const sasl_utils_t *utils,
 			 int *plugcount,
 			 const char *plugname __attribute__((unused)))
 {
-    int nplug;
+    const char *mda;
+    unsigned int len;
     layer_option_t *opts;
 
     if (maxversion<SASL_SERVER_PLUG_VERSION) {
@@ -3080,70 +3044,57 @@ int srp_server_plug_init(const sasl_utils_t *utils,
 	return SASL_BADVERS;
     }
 
-    nplug = sizeof(srp_server_plugins)/sizeof(sasl_server_plug_t);
+    utils->getopt(utils->getopt_context, "SRP", "srp_mda", &mda, &len);
+    if (!mda) mda = DEFAULT_MDA;
 
     /* Add all digests and ciphers */
     OpenSSL_add_all_algorithms();
 
-    /* Can't advertise integrity w/o support for default HMAC */
-    if (EVP_get_digestbyname(default_integrity->evp_name)) {
-	/* See which digests we have available */
-	opts = integrity_options;
-	while (opts->name) {
-	    if (EVP_get_digestbyname(opts->evp_name)) {
-		opts->enabled = 1;
-	    }
+    /* See which digests we have available and set max_ssf accordingly */
+    opts = digest_options;
+    while (opts->name) {
+	if (EVP_get_digestbyname(opts->evp_name)) {
+	    opts->enabled = 1;
+
+	    srp_server_plugins[0].max_ssf = opts->ssf;
+	}
 	    
-	    opts++;
+	/* Locate the server MDA */
+	if (!strcasecmp(opts->name, mda) || !strcasecmp(opts->evp_name, mda)) {
+	    server_mda = opts;
 	}
+
+	opts++;
     }
 
-    /* Can't advertise confidentiality w/o support for default cipher */
-    if (EVP_get_cipherbyname(default_confidentiality->evp_name)) {
-	/* See which ciphers we have available and set max_ssf accordingly */
-	opts = confidentiality_options;
-	while (opts->name) {
-	    if (EVP_get_cipherbyname(opts->evp_name)) {
-		opts->enabled = 1;
+    /* See which ciphers we have available and set max_ssf accordingly */
+    opts = cipher_options;
+    while (opts->name) {
+	if (EVP_get_cipherbyname(opts->evp_name)) {
+	    opts->enabled = 1;
 
-		if (opts->ssf > srp_server_plugins[0].max_ssf) {
-		    int i;
-		    for (i = 0; i < nplug; i++) {
-			srp_server_plugins[i].max_ssf = opts->ssf;
-		    }
-		}
+	    if (opts->ssf > srp_server_plugins[0].max_ssf) {
+		srp_server_plugins[0].max_ssf = opts->ssf;
 	    }
-
-	    opts++;
 	}
-    }
 
-#ifdef DO_SRP_SETPASS
-    /* Do we have database support? */
-    /* Note that we can use a NULL sasl_conn_t because our
-     * sasl_utils_t is "blessed" with the global callbacks */
-    if(_sasl_check_db(utils, NULL) != SASL_OK)
-	return SASL_NOMECH;
-#endif
+	opts++;
+    }
 
     *pluglist=srp_server_plugins;
 
-    *plugcount=nplug;
+    *plugcount=1;
     *out_version=SASL_SERVER_PLUG_VERSION;
 
     return SASL_OK;
 }
 
 /* put in sasl_wrongmech */
-static int srp_sha1_client_mech_new(void *glob_context __attribute__((unused)),
+static int srp_client_mech_new(void *glob_context __attribute__((unused)),
 			       sasl_client_params_t *params,
 			       void **conn)
 {
-    const EVP_MD *md;
     context_t *text;
-
-    if ((md = EVP_get_digestbyname("sha1")) == NULL)
-	return SASL_NOMECH;
 
     /* holds state are in */
     text = params->utils->malloc(sizeof(context_t));
@@ -3156,63 +3107,6 @@ static int srp_sha1_client_mech_new(void *glob_context __attribute__((unused)),
 
     text->state=1;
     text->utils = params->utils;
-    text->md = md;
-    *conn=text;
-
-    return SASL_OK;
-}
-
-static int srp_rmd160_client_mech_new(void *glob_context __attribute__((unused)),
-				      sasl_client_params_t *params,
-				      void **conn)
-{
-    const EVP_MD *md;
-    context_t *text;
-
-    if ((md = EVP_get_digestbyname("rmd160")) == NULL)
-	return SASL_NOMECH;
-
-    /* holds state are in */
-    text = params->utils->malloc(sizeof(context_t));
-    if (text==NULL) {
-	MEMERROR( params->utils );
-	return SASL_NOMEM;
-    }
-    
-    memset(text, 0, sizeof(context_t));
-
-    text->state=1;
-    text->utils = params->utils;
-    text->md = md;
-
-    *conn=text;
-
-    return SASL_OK;
-}
-
-static int srp_md5_client_mech_new(void *glob_context __attribute__((unused)),
-			       sasl_client_params_t *params,
-			       void **conn)
-{
-    const EVP_MD *md;
-    context_t *text;
-
-    if ((md = EVP_get_digestbyname("md5")) == NULL)
-	return SASL_NOMECH;
-
-    /* holds state are in */
-    text = params->utils->malloc(sizeof(context_t));
-    if (text==NULL) {
-	MEMERROR( params->utils );
-	return SASL_NOMEM;
-    }
-    
-    memset(text, 0, sizeof(context_t));
-
-    text->state=1;
-    text->utils = params->utils;
-    text->md = md;
-
     *conn=text;
 
     return SASL_OK;
@@ -3465,8 +3359,8 @@ static int client_step1(context_t *text,
     int pass_result=SASL_OK;
     int user_result=SASL_OK;
     int r;
-    char *utf8U = NULL;
-    int utf8Ulen;
+    char *utf8U = NULL, *utf8I = NULL;
+    int utf8Ulen, utf8Ilen;
 
     /* Expect: 
      *   absolutely nothing
@@ -3539,16 +3433,34 @@ static int client_step1(context_t *text,
     params->canon_user(params->utils->conn, text->userid, 0,
 		       SASL_CU_AUTHZID, oparams);
 
-    /* send authentication identity 
-     * { utf8(U) }
+    /* Send out:
+     *
+     * U - authentication identity 
+     * I - authorization identity
+     *
+     * { utf8(U) utf8(I) }
      */
 
     r = MakeUTF8(params->utils, text->authid, &utf8U, &utf8Ulen);
-    if (r) goto done;
+    if (r) {
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Error making UTF8 string from authid ('U')\n");
+	goto done;
+    }
 
-    r = MakeBuffer(text, utf8U, utf8Ulen, NULL, 0, NULL, 0, NULL, 0,
+    r = MakeUTF8(params->utils, text->userid, &utf8I, &utf8Ilen);
+    if (r) {
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Error making UTF8 string from userid ('I')\n");
+	goto done;
+    }
+
+    r = MakeBuffer(text, utf8U, utf8Ulen, utf8I, utf8Ilen, NULL, 0, NULL, 0,
 		   clientout, clientoutlen);
-    if (r) goto done;
+    if (r) {
+	params->utils->log(NULL, SASL_LOG_ERR, "Error making output buffer\n");
+	goto done;
+    }
 
     text->state++;
     r = SASL_CONTINUE;
@@ -3556,6 +3468,7 @@ static int client_step1(context_t *text,
  done:
 
     if (utf8U)    params->utils->free(utf8U);
+    if (utf8I)    params->utils->free(utf8I);
 
     return r;
 }
@@ -3595,8 +3508,8 @@ static int client_step2(context_t *text,
     char *data;
     int datalen;
     int r;    
-    char *utf8I = NULL, *mpiA = NULL, *utf8o = NULL;
-    int utf8Ilen, mpiAlen, utf8olen;
+    char *mpiA = NULL, *utf8o = NULL;
+    int mpiAlen, utf8olen;
     srp_options_t server_opts;
 
     /* expect:
@@ -3705,23 +3618,15 @@ static int client_step2(context_t *text,
     /* Send out:
      *
      * A - client's public key
-     * I - authorization
      * o - client option list
      *
-     * { mpi(A) uf8(I) utf8(o) }
+     * { mpi(A) utf8(o) }
      */
     
     r = MakeMPI(params->utils, &text->A, &mpiA, &mpiAlen);
     if (r) {
 	params->utils->log(NULL, SASL_LOG_ERR,
 			   "Error making MPI string from A\n");
-	goto done;
-    }
-
-    r = MakeUTF8(params->utils, text->userid, &utf8I, &utf8Ilen);
-    if (r) {
-	params->utils->log(NULL, SASL_LOG_ERR,
-			   "Error making UTF8 string from userid ('I')\n");
 	goto done;
     }
 
@@ -3732,8 +3637,8 @@ static int client_step2(context_t *text,
 	goto done;
     }
 
-    r = MakeBuffer(text, mpiA, mpiAlen, utf8I, utf8Ilen,
-		   utf8o, utf8olen, NULL, 0, clientout, clientoutlen);
+    r = MakeBuffer(text, mpiA, mpiAlen, utf8o, utf8olen,
+		   NULL, 0, NULL, 0, clientout, clientoutlen);
     if (r) {
 	params->utils->log(NULL, SASL_LOG_ERR, "Error making output buffer\n");
 	goto done;
@@ -3744,7 +3649,6 @@ static int client_step2(context_t *text,
 
  done:
     
-    if (utf8I)    params->utils->free(utf8I);
     if (mpiA)     params->utils->free(mpiA);
     if (utf8o)    params->utils->free(utf8o);
 
@@ -3964,7 +3868,7 @@ static int srp_client_mech_step(void *conn_context,
 static sasl_client_plug_t srp_client_plugins[] = 
 {
   {
-    "SRP-SHA-1",   	        /* mech_name */
+    "SRP",   	        	/* mech_name */
     0,				/* max_ssf */
     SASL_SEC_NOPLAINTEXT
     | SASL_SEC_NOANONYMOUS
@@ -3974,46 +3878,7 @@ static sasl_client_plug_t srp_client_plugins[] =
     SASL_FEAT_WANT_CLIENT_FIRST,/* features */
     NULL,			/* required_prompts */
     NULL,			/* glob_context */
-    &srp_sha1_client_mech_new,	/* mech_new */
-    &srp_client_mech_step,	/* mech_step */
-    &srp_both_mech_dispose,	/* mech_dispose */
-    &srp_both_mech_free,	/* mech_free */
-    NULL,			/* idle */
-    NULL,			/* spare1 */
-    NULL			/* spare2 */
-  },
-  /* XXX  May need aliases for SHA-1 here */
-  {
-    "SRP-RIPEMD-160",   	/* mech_name */
-    0,				/* max_ssf */
-    SASL_SEC_NOPLAINTEXT
-    | SASL_SEC_NOANONYMOUS
-    | SASL_SEC_NOACTIVE
-    | SASL_SEC_NODICTIONARY
-    | SASL_SEC_FORWARD_SECRECY,	/* security_flags */
-    SASL_FEAT_WANT_CLIENT_FIRST,/* features */
-    NULL,			/* required_prompts */
-    NULL,			/* glob_context */
-    &srp_rmd160_client_mech_new,/* mech_new */
-    &srp_client_mech_step,	/* mech_step */
-    &srp_both_mech_dispose,	/* mech_dispose */
-    &srp_both_mech_free,	/* mech_free */
-    NULL,			/* idle */
-    NULL,			/* spare1 */
-    NULL			/* spare2 */
-  },
-  {
-    "SRP-MD5",   	        /* mech_name */
-    0,				/* max_ssf */
-    SASL_SEC_NOPLAINTEXT
-    | SASL_SEC_NOANONYMOUS
-    | SASL_SEC_NOACTIVE
-    | SASL_SEC_NODICTIONARY
-    | SASL_SEC_FORWARD_SECRECY,	/* security_flags */
-    SASL_FEAT_WANT_CLIENT_FIRST,/* features */
-    NULL,			/* required_prompts */
-    NULL,			/* glob_context */
-    &srp_md5_client_mech_new,	/* mech_new */
+    &srp_client_mech_new,	/* mech_new */
     &srp_client_mech_step,	/* mech_step */
     &srp_both_mech_dispose,	/* mech_dispose */
     &srp_both_mech_free,	/* mech_free */
@@ -4030,7 +3895,6 @@ int srp_client_plug_init(const sasl_utils_t *utils __attribute__((unused)),
 			 int *plugcount,
 			 const char *plugname __attribute__((unused)))
 {
-    int nplug;
     layer_option_t *opts;
 
     if (maxversion < SASL_CLIENT_PLUG_VERSION) {
@@ -4038,31 +3902,29 @@ int srp_client_plug_init(const sasl_utils_t *utils __attribute__((unused)),
 	return SASL_BADVERS;
     }
 
-    nplug = sizeof(srp_client_plugins)/sizeof(sasl_client_plug_t);
-
     /* Add all digests and ciphers */
     OpenSSL_add_all_algorithms();
 
-    /* See which digests we have available */
-    opts = integrity_options;
+    /* See which digests we have available and set max_ssf accordingly */
+    opts = digest_options;
     while (opts->name) {
-	if (EVP_get_digestbyname(opts->evp_name))
+	if (EVP_get_digestbyname(opts->evp_name)) {
 	    opts->enabled = 1;
+
+	    srp_client_plugins[0].max_ssf = opts->ssf;
+	}
 
 	opts++;
     }
 
     /* See which ciphers we have available and set max_ssf accordingly */
-    opts = confidentiality_options;
+    opts = cipher_options;
     while (opts->name) {
 	if (EVP_get_cipherbyname(opts->evp_name)) {
 	    opts->enabled = 1;
 
 	    if (opts->ssf > srp_client_plugins[0].max_ssf) {
-		int i;
-		for (i = 0; i < nplug; i++) {
-		    srp_client_plugins[i].max_ssf = opts->ssf;
-		}
+		srp_client_plugins[0].max_ssf = opts->ssf;
 	    }
 	}
 
@@ -4071,7 +3933,7 @@ int srp_client_plug_init(const sasl_utils_t *utils __attribute__((unused)),
 
     *pluglist=srp_client_plugins;
 
-    *plugcount=nplug;
+    *plugcount=1;
     *out_version=SASL_CLIENT_PLUG_VERSION;
 
     return SASL_OK;

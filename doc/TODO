@@ -18,9 +18,7 @@ Mechs to write
 
 SRP
 ~~~
-) Add support for maxbuffersize
-) Cleanup code (debug/error messages, etc)
-) testing
+) Testing
 
 OTP
 ~~~

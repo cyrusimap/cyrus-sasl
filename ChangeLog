@@ -1,6 +1,9 @@
 2003-09-23  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* doc/gssapi.html: Misc updates
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+	* lib/Makefile.am, plugins/Makefile.am, saslauthd/Makefile.am,
+	  sasldb/Makefile.am: Cleanup INCLUDES for different build
+	  directories. (Alexey Melnikov <Alexey.Melnikov@isode.com>)
 
 2003-09-23  Maya Nigrosh <mnigrosh@andrew.cmu.edu>
 	* plugins/sql.c: put transaction handling around the entirety of 

@@ -1,7 +1,7 @@
 # Makefile.am for the SASL plugins
 # Rob Siemborski
 # Rob Earhart
-# $Id: Makefile.am,v 1.65 2003/07/15 17:38:59 ken3 Exp $
+# $Id: Makefile.am,v 1.66 2003/09/24 19:36:08 rjs3 Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -59,7 +59,7 @@ otp_version = 2:15:0
 sql_version = 2:15:0
 srp_version = 2:15:0
 
-INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/sasldb
+INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/sasldb -I$(top_builddir)/include
 LDFLAGS = @LDFLAGS@ -module -export-dynamic -rpath $(plugindir)
 
 COMPAT_OBJS = @LTGETADDRINFOOBJS@ @LTGETNAMEINFOOBJS@ @LTSNPRINTFOBJS@

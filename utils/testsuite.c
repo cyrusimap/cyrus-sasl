@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.21 2002/04/26 17:59:22 rjs3 Exp $
+ * $Id: testsuite.c,v 1.22 2002/04/26 18:44:42 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -132,13 +132,17 @@ const char *corrupt_types[] = {
     "CORRUPT_SIZE"
 };
 
-/* callbacks we support */
-static sasl_callback_t client_callbacks[] = {
+void fatal(char *str)
+{
+    printf("Failed with: %s\n",str);
+    exit(3);
+}
+
+/* interactions we support */
+static sasl_callback_t client_interactions[] = {
   {
-#ifdef SASL_CB_GETREALM
     SASL_CB_GETREALM, NULL, NULL
   }, {
-#endif
     SASL_CB_USER, NULL, NULL
   }, {
     SASL_CB_AUTHNAME, NULL, NULL
@@ -149,11 +153,73 @@ static sasl_callback_t client_callbacks[] = {
   }
 };
 
+int test_getrealm(void *context __attribute__((unused)), int id,
+		  const char **availrealms __attribute__((unused)),
+		  const char **result) 
+{
+    if(id != SASL_CB_GETREALM) fatal("test_getrealm not looking for realm");
+    if(!result) return SASL_BADPARAM;
+    *result = myhostname;
+    return SASL_OK;
+}
+
+/* yeah, yeah, this leaks memory, but we don't really care in
+ * the testsuite */
+int test_getsecret(sasl_conn_t *conn __attribute__((unused)),
+		   void *context __attribute__((unused)), int id,
+		   sasl_secret_t **psecret) 
+{
+    if(id != SASL_CB_PASS) fatal("test_getsecret not looking for pass");
+    if(!psecret) return SASL_BADPARAM;
+
+    *psecret = malloc(sizeof(sasl_secret_t) + strlen(password));
+    (*psecret)->len = strlen(password);
+    strcpy((*psecret)->data, password);
+
+    return SASL_OK;
+}
+
+int test_getsimple(void *context __attribute__((unused)), int id,
+		   const char **result, unsigned *len) 
+{
+    if(!result) return SASL_BADPARAM;
+    
+    if (id==SASL_CB_USER && proxyflag == 0) {
+	*result=(char *) username;
+    } else if (id==SASL_CB_USER && proxyflag == 1) {
+	*result=(char *) proxyasname;
+    } else if (id==SASL_CB_AUTHNAME) {
+	*result=(char *) authname;
+    } else {
+	printf("I want %d\n", id);
+	fatal("unknown callback in test_getsimple");
+    }
+
+    if(len) *len = strlen(*result);
+    return SASL_OK;
+}
+
+/* callbacks we support */
+static sasl_callback_t client_callbacks[] = {
+  {
+    SASL_CB_GETREALM, test_getrealm, NULL
+  }, {
+    SASL_CB_USER, test_getsimple, NULL
+  }, {
+    SASL_CB_AUTHNAME, test_getsimple, NULL
+  }, {
+    SASL_CB_PASS, test_getsecret, NULL    
+  }, {
+    SASL_CB_LIST_END, NULL, NULL
+  }
+};
+
 typedef void *foreach_t(char *mech, void *rock);
 
 typedef struct tosend_s {
     corrupt_type_t type; /* type of corruption to make */
     int step; /* step it should send bogus data on */
+    sasl_callback_t *client_callbacks; /* which client callbacks to use */
 } tosend_t;
 
 typedef struct mem_info 
@@ -308,12 +374,6 @@ int mem_stat()
 
 
 /************* End Memory Allocation functions ******/
-
-void fatal(char *str)
-{
-    printf("Failed with: %s\n",str);
-    exit(3);
-}
 
 /* my mutex functions */
 int g_mutex_cnt = 0;
@@ -640,7 +700,7 @@ void test_listmech(void)
 
     if (sasl_server_init(emptysasl_cb,"TestSuite")!=SASL_OK)
 	fatal("can't sasl_server_init");
-    if (sasl_client_init(client_callbacks)!=SASL_OK)
+    if (sasl_client_init(client_interactions)!=SASL_OK)
 	fatal("can't sasl_client_init");
 
     if (sasl_server_new("rcmd", myhostname,
@@ -992,10 +1052,8 @@ void interaction (int id, const char *prompt,
 	*tresult=(char *) proxyasname;
     } else if (id==SASL_CB_AUTHNAME) {
 	*tresult=(char *) authname;
-#ifdef SASL_CB_GETREALM
     } else if ((id==SASL_CB_GETREALM)) {
 	*tresult=(char *) myhostname;
-#endif
     } else {
 	int c;
 	
@@ -1164,7 +1222,7 @@ void sendbadsecond(char *mech, void *rock)
     
     if (strcmp(mech,"GSSAPI")==0) service = gssapi_service;
 
-    if (sasl_client_init(client_callbacks)!=SASL_OK) fatal("Unable to init client");
+    if (sasl_client_init(client_interactions)!=SASL_OK) fatal("Unable to init client");
 
     if (sasl_server_init(goodsasl_cb,"TestSuite")!=SASL_OK) fatal("unable to init server");
 
@@ -1387,7 +1445,8 @@ void sendbadsecond(char *mech, void *rock)
 /* Authenticate two sasl_conn_t's to eachother, validly.
  * used to test the security layer */
 int doauth(char *mech, sasl_conn_t **server_conn, sasl_conn_t **client_conn,
-           const sasl_security_properties_t *props, int fail_ok)
+           const sasl_security_properties_t *props,
+	   sasl_callback_t *c_calls, int fail_ok)
 {
     int result, need_another_client = 0;
     sasl_conn_t *saslconn;
@@ -1405,7 +1464,7 @@ int doauth(char *mech, sasl_conn_t **server_conn, sasl_conn_t **client_conn,
     
     if (strcmp(mech,"GSSAPI")==0) service = gssapi_service;
 
-    result = sasl_client_init(client_callbacks);
+    result = sasl_client_init((c_calls ? c_calls : client_interactions));
     if (result!=SASL_OK) {
 	if(!fail_ok) fatal("Unable to init client");
 	else return result;
@@ -1540,7 +1599,8 @@ int doauth(char *mech, sasl_conn_t **server_conn, sasl_conn_t **client_conn,
  * without allowing client-send-first */
 int doauth_noclientfirst(char *mech, sasl_conn_t **server_conn,
 			 sasl_conn_t **client_conn,
-			 const sasl_security_properties_t *props)
+			 const sasl_security_properties_t *props,
+			 sasl_callback_t *c_calls)
 {
     int result, need_another_client = 0;
     sasl_conn_t *saslconn;
@@ -1560,7 +1620,7 @@ int doauth_noclientfirst(char *mech, sasl_conn_t **server_conn,
     if (strcmp(mech,"GSSAPI")==0) service = gssapi_service;
 
 
-    if (sasl_client_init(client_callbacks)!=SASL_OK)
+    if (sasl_client_init((c_calls ? c_calls : client_interactions))!=SASL_OK)
 	fatal("Unable to init client");
 
     if (sasl_server_init(goodsasl_cb,"TestSuite")!=SASL_OK)
@@ -1672,7 +1732,8 @@ int doauth_noclientfirst(char *mech, sasl_conn_t **server_conn,
  * used to test the security layer */
 int doauth_serverlast(char *mech, sasl_conn_t **server_conn,
 		      sasl_conn_t **client_conn,
-		      const sasl_security_properties_t *props)
+		      const sasl_security_properties_t *props,
+		      sasl_callback_t *c_calls)
 {
     int result, need_another_client = 0;
     sasl_conn_t *saslconn;
@@ -1691,9 +1752,11 @@ int doauth_serverlast(char *mech, sasl_conn_t **server_conn,
     
     if (strcmp(mech,"GSSAPI")==0) service = gssapi_service;
 
-    if (sasl_client_init(client_callbacks)!=SASL_OK) fatal("Unable to init client");
+    if (sasl_client_init((c_calls ? c_calls : client_interactions))!=SASL_OK)
+	fatal("unable to init client");
 
-    if (sasl_server_init(goodsasl_cb,"TestSuite")!=SASL_OK) fatal("unable to init server");
+    if (sasl_server_init(goodsasl_cb,"TestSuite")!=SASL_OK)
+	fatal("unable to init server");
 
     if ((hp = gethostbyname(myhostname)) == NULL) {
 	perror("gethostbyname");
@@ -1807,7 +1870,8 @@ int doauth_serverlast(char *mech, sasl_conn_t **server_conn,
  * without allowing client-send-first */
 int doauth_noclientfirst_andserverlast(char *mech, sasl_conn_t **server_conn,
 				       sasl_conn_t **client_conn,
-				       const sasl_security_properties_t *props)
+				       const sasl_security_properties_t *props,
+				       sasl_callback_t *c_calls)
 {
     int result, need_another_client = 0;
     sasl_conn_t *saslconn;
@@ -1826,9 +1890,11 @@ int doauth_noclientfirst_andserverlast(char *mech, sasl_conn_t **server_conn,
     
     if (strcmp(mech,"GSSAPI")==0) service = gssapi_service;
 
-    if (sasl_client_init(client_callbacks)!=SASL_OK) fatal("Unable to init client");
+    if (sasl_client_init((c_calls ? c_calls : client_interactions))!=SASL_OK)
+	fatal("unable to init client");
 
-    if (sasl_server_init(goodsasl_cb,"TestSuite")!=SASL_OK) fatal("unable to init server");
+    if (sasl_server_init(goodsasl_cb,"TestSuite")!=SASL_OK)
+	fatal("unable to init server");
 
     if ((hp = gethostbyname(myhostname)) == NULL) {
 	perror("gethostbyname");
@@ -2007,7 +2073,7 @@ void do_proxypolicy_test(char *mech, void *rock __attribute__((unused)))
     
     printf("%s --> start\n", mech);
     proxyflag = 1;
-    if(doauth(mech, &sconn, &cconn, &security_props, 0) != SASL_OK) {
+    if(doauth(mech, &sconn, &cconn, &security_props, NULL, 0) != SASL_OK) {
 	fatal("doauth failed in do_proxypolicy_test");
     }
 
@@ -2025,14 +2091,16 @@ void do_proxypolicy_test(char *mech, void *rock __attribute__((unused)))
     printf("%s --> successful result\n",mech);
 }
 
-void test_clientfirst(char *mech, void *rock __attribute__((unused))) 
+void test_clientfirst(char *mech, void *rock) 
 {
     sasl_conn_t *sconn, *cconn;
+    tosend_t *tosend = (tosend_t *)rock;
     
     printf("%s --> start\n", mech);
 
     /* Basic crash-tests (none should cause a crash): */
-    if(doauth(mech, &sconn, &cconn, &security_props, 0) != SASL_OK) {
+    if(doauth(mech, &sconn, &cconn, &security_props, tosend->client_callbacks,
+	      0) != SASL_OK) {
 	fatal("doauth failed in test_clientfirst");
     }
 
@@ -2041,15 +2109,16 @@ void test_clientfirst(char *mech, void *rock __attribute__((unused)))
     printf("%s --> successful result\n", mech);
 }
 
-void test_noclientfirst(char *mech, void *rock __attribute__((unused))) 
+void test_noclientfirst(char *mech, void *rock) 
 {
     sasl_conn_t *sconn, *cconn;
+    tosend_t *tosend = (tosend_t *)rock;
     
     printf("%s --> start\n", mech);
 
     /* Basic crash-tests (none should cause a crash): */
-    if(doauth_noclientfirst(mech, &sconn, &cconn, &security_props)
-       != SASL_OK) {
+    if(doauth_noclientfirst(mech, &sconn, &cconn, &security_props,
+	tosend->client_callbacks) != SASL_OK) {
 	fatal("doauth failed in test_noclientfirst");
     }
 
@@ -2058,14 +2127,16 @@ void test_noclientfirst(char *mech, void *rock __attribute__((unused)))
     printf("%s --> successful result\n", mech);
 }
 
-void test_serverlast(char *mech, void *rock __attribute__((unused))) 
+void test_serverlast(char *mech, void *rock) 
 {
     sasl_conn_t *sconn, *cconn;
+    tosend_t *tosend = (tosend_t *)rock;
     
     printf("%s --> start\n", mech);
 
     /* Basic crash-tests (none should cause a crash): */
-    if(doauth_serverlast(mech, &sconn, &cconn, &security_props) != SASL_OK) {
+    if(doauth_serverlast(mech, &sconn, &cconn, &security_props,
+			 tosend->client_callbacks) != SASL_OK) {
 	fatal("doauth failed in test_serverlast");
     }
 
@@ -2075,16 +2146,18 @@ void test_serverlast(char *mech, void *rock __attribute__((unused)))
 }
 
 
-void test_noclientfirst_andserverlast(char *mech,
-				      void *rock __attribute__((unused))) 
+void test_noclientfirst_andserverlast(char *mech, void *rock) 
 {
     sasl_conn_t *sconn, *cconn;
+    tosend_t *tosend = (tosend_t *)rock;
     
     printf("%s --> start\n", mech);
 
     /* Basic crash-tests (none should cause a crash): */
     if(doauth_noclientfirst_andserverlast(mech, &sconn, &cconn,
-					  &security_props) != SASL_OK) {
+					  &security_props,
+					  tosend->client_callbacks)
+       != SASL_OK) {
 	fatal("doauth failed in test_noclientfirst_andserverlast");
     }
 
@@ -2119,7 +2192,7 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
     for(i=0; i<num_properties; i++) {
         
     /* Basic crash-tests (none should cause a crash): */
-    result = doauth(mech, &sconn, &cconn, test_props[i], 1);
+    result = doauth(mech, &sconn, &cconn, test_props[i], NULL, 1);
     if(result == SASL_NOMECH && test_props[i]->min_ssf > 0) {
 	printf("  Testing SSF: SKIPPED (requested minimum > 0: %d)\n",
 	       test_props[i]->min_ssf);
@@ -2167,7 +2240,7 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
     cleanup_auth(&sconn, &cconn);
 
     /* Basic I/O Test */
-    if(doauth(mech, &sconn, &cconn, test_props[i], 0) != SASL_OK) {
+    if(doauth(mech, &sconn, &cconn, test_props[i], NULL, 0) != SASL_OK) {
 	fatal("doauth failed in testseclayer");
     }
 
@@ -2184,7 +2257,7 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
     cleanup_auth(&sconn, &cconn);
 
     /* Split one block and reassemble */
-    if(doauth(mech, &sconn, &cconn, test_props[i], 0) != SASL_OK) {
+    if(doauth(mech, &sconn, &cconn, test_props[i], NULL, 0) != SASL_OK) {
 	fatal("doauth failed in testseclayer");
     }
 
@@ -2222,7 +2295,7 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
     cleanup_auth(&sconn, &cconn);
 
     /* Combine 2 blocks */
-    if(doauth(mech, &sconn, &cconn, test_props[i], 0) != SASL_OK) {
+    if(doauth(mech, &sconn, &cconn, test_props[i], NULL, 0) != SASL_OK) {
 	fatal("doauth failed in testseclayer");
     }
 
@@ -2259,7 +2332,7 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
     cleanup_auth(&sconn, &cconn);
 
     /* Combine 2 blocks with 1 split */
-    if(doauth(mech, &sconn, &cconn, test_props[i], 0) != SASL_OK) {
+    if(doauth(mech, &sconn, &cconn, test_props[i], NULL, 0) != SASL_OK) {
 	fatal("doauth failed in testseclayer");
     }
 
@@ -2466,6 +2539,7 @@ void test_rand_corrupt(unsigned steps)
     {
 	tosend.type = rand() % CORRUPT_SIZE;
 	tosend.step = lup % MAX_STEPS;
+	tosend.client_callbacks = NULL;
 
 	printf("RANDOM TEST: (%s in step %d) (%d of %d)\n",corrupt_types[tosend.type],tosend.step,lup+1,steps);
 	foreach_mechanism((foreach_t *) &sendbadsecond,&tosend);
@@ -2480,7 +2554,8 @@ void test_proxypolicy()
 void test_all_corrupt() 
 {
     tosend_t tosend;
-    
+    tosend.client_callbacks = NULL;
+
     /* Start just beyond NOTHING */
     for(tosend.type=1; tosend.type<CORRUPT_SIZE; tosend.type++) {
 	for(tosend.step=0; tosend.step<MAX_STEPS; tosend.step++) {
@@ -2808,6 +2883,31 @@ int main(int argc, char **argv)
 	
 	tosend.type = NOTHING;
 	tosend.step = 500;
+	tosend.client_callbacks = client_interactions;
+	
+	printf("Testing client-first/no-server-last correctly...\n");
+	foreach_mechanism((foreach_t *) &test_clientfirst,&tosend);
+	if(mem_stat() != SASL_OK) fatal("memory error");
+	printf("Test of client-first/no-server-last...ok\n");
+
+	printf("Testing no-client-first/no-server-last correctly...\n");
+	foreach_mechanism((foreach_t *) &test_noclientfirst, &tosend);
+	if(mem_stat() != SASL_OK) fatal("memory error");
+	printf("Test of no-client-first/no-server-last...ok\n");
+	
+	printf("Testing no-client-first/server-last correctly...\n");
+	foreach_mechanism((foreach_t *) &test_serverlast, &tosend);
+	if(mem_stat() != SASL_OK) fatal("memory error");
+	printf("Test of no-client-first/server-last...ok\n");
+
+	printf("Testing client-first/server-last correctly...\n");
+	foreach_mechanism((foreach_t *) &test_noclientfirst_andserverlast,
+			  &tosend);
+	if(mem_stat() != SASL_OK) fatal("memory error");
+	printf("Test of client-first/server-last...ok\n");
+
+	tosend.client_callbacks = client_callbacks;
+	printf("-=-=-=-=- And now using the callbacks interface -=-=-=-=-\n");
 
 	printf("Testing client-first/no-server-last correctly...\n");
 	foreach_mechanism((foreach_t *) &test_clientfirst,&tosend);
@@ -2834,6 +2934,7 @@ int main(int argc, char **argv)
 	printf("Testing no-client-first/no-server-last correctly...skipped\n");
 	printf("Testing no-client-first/server-last correctly...skipped\n");
 	printf("Testing client-first/server-last correctly...skipped\n");
+	printf("Above tests with callbacks interface...skipped\n");
     }
     
     /* FIXME: do memory tests below here on the things

@@ -888,7 +888,7 @@ LIBSASL_API int sasl_server_new(const char *service,
  * which lists all possible mechanisms that the library can supply
  *
  * Returns NULL on failure. */
-LIBSASL_API const char ** sasl_global_listmech();
+LIBSASL_API const char ** sasl_global_listmech(void);
 
 /* This returns a list of mechanisms in a NUL-terminated string
  *  conn          -- the connection to list mechanisms for (either client

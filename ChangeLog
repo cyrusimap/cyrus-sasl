@@ -1,3 +1,15 @@
+1999-02-17  Timothy L Martin  <tmartin+@andrew.cmu.edu>
+
+	* plugins/kerberos4.c: doesn't work now. no clue why
+
+	* lib/saslutil.c: fixed some stuff. added comments
+
+	* plugings/cram.c: fixed various things. works now. please don't
+ 	touch Rob
+
+	* lib/common.c: fixed username error
+	
+
 1999-02-12  Rob Earhart  <rob+@andrew.cmu.edu>
 
 	* include/sasl.h: added credentials interface.  This may change at 

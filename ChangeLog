@@ -1,3 +1,7 @@
+2004-05-18  Ken Murchison <ken@oceana.com>
+	* plugins/digest-md5.c: made the global context a struct
+	  containing the reauth_cache so we can NULL it after we free it
+
 2004-05-07  Ken Murchison <ken@oceana.com>
 	* contrib/stripplus_canonuser.patch: added
 

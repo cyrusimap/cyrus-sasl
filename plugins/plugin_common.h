@@ -1,6 +1,7 @@
+
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.h,v 1.15 2003/02/13 19:56:05 rjs3 Exp $
+ * $Id: plugin_common.h,v 1.16 2003/04/07 16:03:43 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -95,6 +96,16 @@ PLUG_API int sasl_auxprop_plug_init(const sasl_utils_t *utils, \
                            sasl_auxprop_plug_t **plug, \
                            const char *plugname) {\
         return x##_auxprop_plug_init(utils, maxversion, out_version, \
+                                     plug, plugname); \
+}
+
+#define SASL_CANONUSER_PLUG_INIT( x ) \
+extern sasl_canonuser_init_t x##_canonuser_plug_init; \
+PLUG_API int sasl_canonuser_init(const sasl_utils_t *utils, \
+                           int maxversion, int *out_version, \
+                           sasl_canonuser_plug_t **plug, \
+                           const char *plugname) {\
+        return x##_canonuser_plug_init(utils, maxversion, out_version, \
                                      plug, plugname); \
 }
 

@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.75 2002/01/31 17:58:37 ken3 Exp $
+ * $Id: kerberos4.c,v 1.76 2002/03/11 15:29:40 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -449,15 +449,6 @@ kerberosv4_server_mech_new(void *glob_context __attribute__((unused)),
 			   unsigned challen __attribute__((unused)),
 			   void **conn_context)
 {
-    if(!krb_mutex) {
-	krb_mutex = sparams->utils->mutex_alloc();
-	if(!krb_mutex) {
-	    sparams->utils->seterror(sparams->utils->conn, 0,
-				     "couldn't allocate mutex");
-	    return SASL_FAIL;
-	}
-    }
-    
     return new_text(sparams->utils, (context_t **) conn_context);
 }
 #endif
@@ -930,6 +921,14 @@ int kerberos4_server_plug_init(const sasl_utils_t *utils,
 	return SASL_BADVERS;
     }
 
+
+    if(!krb_mutex) {
+	krb_mutex = utils->mutex_alloc();
+	if(!krb_mutex) {
+	    return SASL_FAIL;
+	}
+    }
+
     if(!srvtab) {	
 	utils->getopt(utils->getopt_context,
 		      "KERBEROS_V4", "srvtab", &ret, &rl);
@@ -975,15 +974,6 @@ static int kerberosv4_client_mech_new(
 		 sasl_client_params_t *params,
 		 void **conn)
 {
-    if(!krb_mutex) {
-	krb_mutex = params->utils->mutex_alloc();
-	if(!krb_mutex) {
-	    params->utils->seterror(params->utils->conn, 0,
-				     "couldn't allocate mutex");
-	    return SASL_FAIL;
-	}
-    }
-
     return new_text(params->utils, (context_t **) conn);
 }
 
@@ -1462,6 +1452,13 @@ int kerberos4_client_plug_init(
     if (maxversion < SASL_CLIENT_PLUG_VERSION) {
 	SETERROR(utils, "Wrong KERBEROS_V4 version");
 	return SASL_BADVERS;
+    }
+
+    if(!krb_mutex) {
+	krb_mutex = utils->mutex_alloc();
+	if(!krb_mutex) {
+	    return SASL_FAIL;
+	}
     }
 
     *pluglist=kerberosv4_client_plugins;

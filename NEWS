@@ -1,3 +1,8 @@
+New in 1.5.12
+-------------
+* lots of bugfixes
+* DIGEST-MD5 more in conformance with spec
+
 New in 1.5.11
 -------------
 * bugfix in realm support for DIGEST-MD5

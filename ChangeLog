@@ -1,8 +1,14 @@
+Tue Nov 16 14:33:49 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* version 1.5.12 cut for testing 
+
 1999-11-15  Timothy L Martin  <tmartin@andrew.cmu.edu>
 
-	* lib/server.c (mech_permitted): special case to allow PLAIN under external layer
+	* lib/server.c (mech_permitted): special case to allow PLAIN under
+	external layer
 
-	* plugins/gssapi.c (sasl_gss_client_step): changed "unsigned int need" to int need so negative numbers wouldn't underflow
+	* plugins/gssapi.c (sasl_gss_client_step): changed "unsigned int
+	need" to int need so negative numbers wouldn't underflow
 
 Mon Nov 15 00:43:10 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 

@@ -1,3 +1,7 @@
+2003-01-23  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/acconfig.h: protect file from being included more than
+	  once (reported by Jeremy Rumpf <jrumpf@heavyload.net>)
+
 2003-01-21  Ken Murchison <ken@oceana.com>
 	* plugins/ntlm.c: only _require_ one response (LM and/or NT), not both
 

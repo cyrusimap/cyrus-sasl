@@ -1,3 +1,6 @@
+#ifndef _SASLAUTHD_H
+#define _SASLAUTHD_H
+
 #include <stdio.h>
 
 @TOP@
@@ -51,6 +54,9 @@
 
 /* Are we building with doors */
 #undef USE_DOORS
+
+/* Do we have OpenSSL? */
+#undef HAVE_OPENSSL
 
 /* Things SASLAUTHd doesn't really care about */
 #undef HAVE_SASLAUTHD
@@ -147,3 +153,4 @@ struct iovec {
 #define NI_WITHSCOPEID  0
 #endif
 
+#endif

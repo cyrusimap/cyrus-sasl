@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb5.c,v 1.10 2003/05/14 18:32:23 rjs3 Exp $"
+#ident "$Id: auth_krb5.c,v 1.11 2004/04/26 20:55:21 rjs3 Exp $"
 #endif
 
 /* ok, this is  wrong but the most convenient way of doing 
@@ -36,9 +36,6 @@
  * the Kerberos 5 headers and libraries exist.   
  * What really should be done is a configure.in check for krb5.h and use 
  * that since none of this code is GSSAPI but rather raw Kerberos5.
- *
- * This function also has a bug where an alternate realm can't be
- * specified.  
  */
 
 /* PUBLIC DEPENDENCIES */
@@ -140,6 +137,8 @@ auth_krb5 (
     krb5_context context;
     krb5_ccache ccache = NULL;
     krb5_principal auth_user;
+    const char *fulluser = user;
+    char * localuser = NULL;
     char * result;
     char tfname[2048];
     /* END VARIABLES */
@@ -153,13 +152,33 @@ auth_krb5 (
 	syslog(LOG_ERR, "auth_krb5: krb5_init_context");
 	return strdup("NO saslauthd internal krb5_init_context error");
     }
+
+    if (realm[0]) {
+	size_t len = strlen(realm) + strlen(user) + 2;
+	char *p;
+	
+	localuser = malloc(len);
+	if(!localuser) return strdup("NO out of memory");
+
+	snprintf(localuser, len, "%s@%s", user, realm);
+	fulluser = localuser;
+
+	/* Force the realm to uppercase */
+	p = strrchr(localuser, '@');
+	while(*(++p)) {
+	    *p = toupper(*p);
+	}
+    }
+
+    printf("user is %s\n", fulluser);
     
-    if (krb5_parse_name (context, user, &auth_user)) {
+    if (krb5_parse_name (context, fulluser, &auth_user)) {
 	krb5_free_context(context);
+	if(localuser) free(localuser);
 	syslog(LOG_ERR, "auth_krb5: krb5_parse_name");
 	return strdup("NO saslauthd internal krb5_parse_name error");
     }
-    
+
 #ifdef SASLAUTHD_THREADED
     /* create a new CCACHE so we don't stomp on anything */
     snprintf(tfname,sizeof(tfname), "%s/k5cc_%d_%d", tf_dir,
@@ -168,17 +187,20 @@ auth_krb5 (
     /* create a new CCACHE so we don't stomp on anything */
     snprintf(tfname,sizeof(tfname), "%s/k5cc_%d", tf_dir, getpid());
 #endif
+
     if (krb5_cc_resolve(context, tfname, &ccache)) {
 	krb5_free_principal(context, auth_user);
 	krb5_free_context(context);
+	if(localuser) free(localuser);
 	syslog(LOG_ERR, "auth_krb5: krb5_cc_resolve");
 	return strdup("NO saslauthd internal error");
     }
-    
+
     if (krb5_cc_initialize (context, ccache, auth_user)) {
 	krb5_free_principal(context, auth_user);
 	krb5_cc_destroy(context, ccache);
 	krb5_free_context(context);
+	if(localuser) free(localuser);
 	syslog(LOG_ERR, "auth_krb5: krb5_cc_initialize");
 	return strdup("NO saslauthd internal error");
     }
@@ -192,6 +214,7 @@ auth_krb5 (
     krb5_free_principal(context, auth_user);
     krb5_cc_destroy(context, ccache);
     krb5_free_context(context);
+    if(localuser) free(localuser);
 
     return result;
 }

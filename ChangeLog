@@ -1,3 +1,6 @@
+2004-04-26  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/auth_krb5.c: Alternate realm support for Kerberos 5
+
 2004-04-16  Ken Murchison <ken@oceana.com>
 	* plugins/ntlm.c: Mac OS X fix
 	  (Chris Ridd <chris.ridd@isode.com>)

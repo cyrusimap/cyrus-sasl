@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.62 2003/10/20 15:19:58 rjs3 Exp $
+ * $Id: client.c,v 1.63 2003/11/11 16:26:06 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -307,8 +307,8 @@ int sasl_client_new(const char *service,
 
   if(_sasl_client_active==0) return SASL_NOTINIT;
   
-  /* Remember, iplocalport and ipremoteport can be NULL and be valid! */
-  if (!pconn || !service || !serverFQDN)
+  /* Remember, serverFQDN, iplocalport and ipremoteport can be NULL and be valid! */
+  if (!pconn || !service)
     return SASL_BADPARAM;
 
   *pconn=sasl_ALLOC(sizeof(sasl_client_conn_t));
@@ -576,8 +576,10 @@ int sasl_client_start(sasl_conn_t *conn,
     c_conn->cparams->service = conn->service;
     c_conn->cparams->servicelen = (unsigned) strlen(conn->service);
     
-    c_conn->cparams->serverFQDN = conn->serverFQDN; 
-    c_conn->cparams->slen = (unsigned) strlen(conn->serverFQDN);
+    if (conn->serverFQDN) {
+	c_conn->cparams->serverFQDN = conn->serverFQDN; 
+	c_conn->cparams->slen = (unsigned) strlen(conn->serverFQDN);
+    }
 
     c_conn->cparams->clientFQDN = c_conn->clientFQDN; 
     c_conn->cparams->clen = (unsigned) strlen(c_conn->clientFQDN);

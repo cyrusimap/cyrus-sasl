@@ -1,3 +1,8 @@
+2003-11-11  Ken Murchison <ken@oceana.com>
+	* lib/client.c: allow serverFDQN to be NULL in sasl_client_new()
+	* plugins/digestmd5.c, gssapi.c: require that we have serverFQDN
+	  for the client side of the plugin
+
 2003-11-07  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* --with-gss_impl configure option
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)

@@ -1,4 +1,7 @@
-2004-07-01  Derrick Brashear <shadow@andrew.cmu.edu> 
+2004-10-24  Derrick Brashear <shadow@andrew.cmu.edu> 
+	* lib/common.c: initialize path in case caller didn't.
+
+2004-10-24  Derrick Brashear <shadow@andrew.cmu.edu> 
 	* Prep for 2.1.20
 
 2004-10-19  Derrick Brashear <shadow@dementia.org>

@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Options for Cyrus SASL</title>
-<!-- $Id: options.html,v 1.9 2002/07/02 16:41:57 rjs3 Exp $ -->
+<!-- $Id: options.html,v 1.10 2002/07/24 18:18:24 leg Exp $ -->
 </HEAD>
 <BODY>
 <h1>Options for Cyrus SASL</h1>
@@ -18,8 +18,8 @@ users to other mechs when they do a successful plaintext
 authentication</TD><TD>no</TD>
 </TR>
 <TR>
-<TD>auxprop_plugin</TD><TD>Auxilliary Property Plugin</TD>
-<TD>Name of auxillary plugin to use, you may specify a space-separated
+<TD>auxprop_plugin</TD><TD>Auxiliary Property Plugin</TD>
+<TD>Name of auxiliary plugin to use, you may specify a space-separated
 list of plugin names, and the plugins will be queried in order</TD>
 <TD>(null) - querys all plugins</TD>
 </TR>
@@ -80,8 +80,57 @@ dependant)</TD>
 </TR>
 </TABLE>
 
+<h2>Mysql auxprop options</h2>
+
+<DL compact>
+<DT>mysql_user <DD>username to login as to the MySQL server
+<DT>mysql_passwd <DD> password to use
+<DT>mysql_hostnames <DD> comma separated host list
+<DT>mysql_database <DD>database to connect to
+<DT>mysql_statement <DD> select statement to use
+<DT>mysql_verbose <DD>if set, the plugin will print select statement
+to syslog)
+</DL>
+
+<p>The select statement used in the option <tt>mysql_statement</tt> is
+parsed for 3 place holders <tt>%u</tt>, <tt>%r</tt>, and <tt>%p</tt>
+they are replaced with username, realm, and property requested
+respectively. For example:
+
+<pre>
+    mysql_statement: select %p from user_table where username = '%u' and realm = '%r'
+</pre>
+
+   would send the following statement to MySQL for user "bovik" and
+   the default realm for the machine "madoka.surf.org.uk":
+
+<pre>
+     select userPassword from user_table where username = 'bovik' and realm = 'madoka.surf.org.uk'
+</pre>
+
+<font color=red>DO NOT put quotes around the statement but do around
+the arguments %r, %u, etc.</font>
+
+<DL compact>
+<DT><tt>%u</tt> <DD>the username the user logged in as
+
+<DT><tt>%p</tt> <DD>the property requested this could technically be
+     anything but sasl authentication will try userPassword and
+     cmusaslsecretMECHNAME (where MECHNAME is the name of a
+     mechanism).
+
+<DT><tt>%r</tt> <DD>the realm which could be the kerbros realm, the
+     FQDN of the computer the sasl app is on or what ever is after the
+     @ on a username.  (read the realm documentation)
+</DL>
+
+<p>All substitutions do not have to be used. For instance, 
+"<tt>select password from auth where username = '%u'</tt>" is a
+valid value for "<tt>mysql_statement</tt>".
+
 <hr>
 Back to the <A href=index.html>index</a>
 
 </body>
 </html>
+

@@ -1,7 +1,7 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Siemborski
  * Rob Earhart
- * $Id: dlopen.c,v 1.38 2002/02/13 20:31:52 rjs3 Exp $
+ * $Id: dlopen.c,v 1.39 2002/04/17 18:45:53 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -286,7 +286,11 @@ static int _parse_la(const char *prefix, const char *in, char *out)
 		ntmp=&start[1];
 		*end='\0';
 		/* Do we have dlname="" ? */
-		if(ntmp == end) continue;
+		if(ntmp == end) {
+		    _sasl_log(NULL, SASL_LOG_DEBUG,
+			      "dlname is empty in .la file: %s", in);
+		    return SASL_FAIL;
+		}
 		strcpy(out, prefix);
 		strcat(out, ntmp);
 	    }

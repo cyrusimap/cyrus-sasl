@@ -24,7 +24,13 @@ SOFTWARE.
 ******************************************************************/
 
 /* checkpw stuff */
+
+#include <sasl.h>
+#include <saslint.h>
+
+#ifdef HAVE_KRB
 #include <krb.h>
+#endif
 #include <stdlib.h>
 
 #include <strings.h>
@@ -32,8 +38,6 @@ SOFTWARE.
 #include <sys/types.h>
 #include <sys/param.h>
 #include <netinet/in.h>
-
-#include <sasl.h>
 
 #include <ctype.h>
 
@@ -47,6 +51,12 @@ SOFTWARE.
 #include <shadow.h>
 #endif /* HAVE_SHADOW_H */
 
+#ifdef HAVE_PAM
+#include <security/pam_appl.h>
+#endif
+
+#ifdef HAVE_KRB
+
 /* This defines the Andrew string_to_key function.  It accepts a password
  * string as input and converts its via a one-way encryption algorithm to a DES
  * encryption key.  It is compatible with the original Andrew authentication
@@ -58,7 +68,7 @@ afs_cmu_StringToKey (str, cell, key)
 char *str;
 char *cell;                  /* cell for password */
 des_cblock key;
-{   char  password[8+1];                /* crypt is limited to 8 chars anyway */
+{   char  password[8+1];              /* crypt is limited to 8 chars anyway */
     int   i;
     int   passlen;
 
@@ -107,9 +117,9 @@ des_cblock key;
     int  passlen;
 
     strncpy (password, str, sizeof(password));
-    if ((passlen = strlen (password)) < sizeof(password)-1)
+    if ((passlen = strlen (password)) < (int) sizeof(password)-1)
         strncat (password, cell, sizeof(password)-passlen);
-    if ((passlen = strlen(password)) > sizeof(password)) passlen = sizeof(password);
+    if ((passlen = strlen(password)) > (int) sizeof(password)) passlen = sizeof(password);
 
     memcpy (ivec, "kerberos", 8);
     memcpy (temp_key, "kerberos", 8);
@@ -155,12 +165,10 @@ char *lcase(char* str)
     return (str);
 }
 
-static use_key(user, instance, realm, key, returned_key)
-char *user;
-char *instance;
-char *realm;
-des_cblock key;
-des_cblock returned_key;
+static int use_key(char *user __attribute__((unused)), 
+		   char *instance __attribute__((unused)), 
+		   char *realm __attribute__((unused)), 
+		   des_cblock key, des_cblock returned_key)
 {
     memcpy (returned_key, key, sizeof(des_cblock));
     return 0;
@@ -186,7 +194,7 @@ int _sasl_kerberos_verify_password(const char *user, const char *passwd,char *se
     char instance[INST_SZ];
     AUTH_DAT kdata;
 
-    if (krb_get_lrealm(realm,1)) SASL_FAIL;
+    if (krb_get_lrealm(realm, 1)) return SASL_FAIL;
 
     sprintf(tfname, "/tmp/tkt_imapd_%d", getpid());
     krb_set_tkt_string(tfname);
@@ -245,12 +253,13 @@ int _sasl_kerberos_verify_password(const char *user, const char *passwd,char *se
     return result;
 }
 
+#endif /* HAVE_KRB */
 
-int _sasl_shadow_verify_password(const char *userid,const char *password,const char **reply)
+int _sasl_shadow_verify_password(const char *userid, const char *password,
+				 const char **reply __attribute__((unused)) )
 {
 #ifdef HAVE_GETSPNAM
 
-  struct passwd *pwd;
   char *salt;
   char *crypted;
 
@@ -272,7 +281,9 @@ int _sasl_shadow_verify_password(const char *userid,const char *password,const c
 
 }
 
-int _sasl_passwd_verify_password(const char *userid,const char *password,const char **reply)
+int _sasl_passwd_verify_password(const char *userid,
+				 const char *password,
+				 const char **reply __attribute__((unused)) )
 {
   struct passwd *pwd;
   char *salt;
@@ -290,3 +301,102 @@ int _sasl_passwd_verify_password(const char *userid,const char *password,const c
 
   return SASL_BADAUTH;
 }
+
+#ifdef HAVE_PAM
+struct sasl_pam_data {
+    const char *userid;
+    const char *password;
+    int pam_error;
+};
+
+static int sasl_pam_conv(int num_msg, struct pam_message **msg,
+			 struct pam_response **resp, void *appdata_ptr)
+{
+    struct pam_response *reply = NULL;
+    struct sasl_pam_data *pd = (struct sasl_pam_data *) appdata_ptr;
+    int i;
+    int ret;
+
+    reply = (struct pam_response *) sasl_ALLOC(sizeof(struct pam_response) * 
+					   num_msg);
+    if (reply == NULL)
+	return PAM_CONV_ERR;
+
+    for (i = 0; i < num_msg; i++) {
+	switch (msg[i]->msg_style) {
+	    /* making the blatant assumption that echo on means user,
+	       echo off means password */
+	case PAM_PROMPT_ECHO_ON:
+	    reply[i].resp_retcode = PAM_SUCCESS;
+	    ret = _sasl_strdup(pd->userid, &reply[i].resp, NULL);
+	    if (ret != SASL_OK)
+		return PAM_CONV_ERR;
+	    break;
+	case PAM_PROMPT_ECHO_OFF:
+	    reply[i].resp_retcode = PAM_SUCCESS;
+	    ret = _sasl_strdup(pd->password, &reply[i].resp, NULL);
+	    if (ret != SASL_OK)
+		return PAM_CONV_ERR;
+	    break;
+	case PAM_TEXT_INFO:
+	case PAM_ERROR_MSG:
+	    /* ignore it, but pam still wants a NULL response... */
+	    reply[i].resp_retcode = PAM_SUCCESS;
+	    reply[i].resp = NULL;
+	    break;
+	default:		/* error! */
+	    sasl_FREE(reply);
+	    pd->pam_error = 1;
+	    return PAM_CONV_ERR;
+	}
+    }
+    *resp = reply;
+    return PAM_SUCCESS;
+}
+
+static struct pam_conv my_conv = {
+    &sasl_pam_conv,		/* int (*conv) */
+    NULL			/* appdata_ptr */
+};
+
+int _sasl_PAM_verify_password(const char *userid, const char *password,
+			      const char **reply __attribute__((unused)) )
+{
+    pam_handle_t *pamh;
+    struct sasl_pam_data *pd;
+    int pam_error;
+
+    if (!userid || !password) {
+	return SASL_BADPARAM;
+    }
+
+    pd = (struct sasl_pam_data *) sasl_ALLOC(sizeof(struct sasl_pam_data));
+    if (pd == NULL)
+	return SASL_NOMEM;
+
+    my_conv.appdata_ptr = (void *) pd;
+
+    pd->userid = userid;
+    pd->password = password;
+    pd->pam_error = 0;
+
+    pam_error = pam_start("SASL", userid, &my_conv, &pamh);
+    if (pam_error != PAM_SUCCESS) {
+	goto pam_err;
+    }
+    pam_error = pam_authenticate(pamh, PAM_SILENT);
+    if (pam_error != PAM_SUCCESS) {
+	goto pam_err;
+    }
+    pam_end(pamh, PAM_SUCCESS);
+
+    return SASL_OK;    
+
+pam_err:
+    sasl_FREE(pd);
+    return SASL_BADAUTH;
+}
+
+#endif /* HAVE_PAM */
+
+

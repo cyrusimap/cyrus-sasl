@@ -1180,10 +1180,11 @@ static int init_des(context_t *text, char *key, int keylen)
 
 #ifdef WITH_RC4
 static int
-init_rc4(context_t *text,
+init_rc4(void *v,
 	 char *key,
 	 int keylen)
 {
+  context_t *text = (context_t *) v;
   text->rc4_enc_context=(rc4_context_t *) text->malloc(sizeof(rc4_context_t));
   if (text->rc4_enc_context==NULL) return SASL_NOMEM;
 
@@ -1422,12 +1423,12 @@ privacy_decode(void *context,
     if (text->cipher_init==(&init_rc4))
     {
       text->cipher_dec(text, digest, MAC_SIZE,
-		       &macmid, &tmpnum);
+		       (char **) &macmid, &tmpnum);
     } else { /* else is DES */
 
       macmid=(char *)malloc(MAC_SIZE+12);
       text->cipher_enc(text, digest, MAC_SIZE,
-		       &macmid, &tmpnum);
+		       (char **) &macmid, &tmpnum);
     }
   /*    text->cipher_dec(text, (text->buffer)+text->size-(MAC_SIZE+4), MAC_SIZE,
 	(char **) &macmid, &tmpnum);*/
@@ -2089,21 +2090,21 @@ server_continue_step(void *conn_context,
       } else if (strcmp(cipher,"rc4")==0) {
 	text->cipher_enc=(cipher_function_t *) &enc_rc4;
 	text->cipher_dec=(cipher_function_t *) &dec_rc4;
-	text->cipher_init=(cipher_init_t *) &init_rc4;
+	text->cipher_init=&init_rc4;
 	oparams->mech_ssf = 128;
  	n = 16;
  
       } else if (strcmp(cipher,"rc4-40")==0) {
  	text->cipher_enc=(cipher_function_t *) &enc_rc4;
  	text->cipher_dec=(cipher_function_t *) &dec_rc4;
- 	text->cipher_init=(cipher_init_t *) &init_rc4;
+ 	text->cipher_init=&init_rc4;
  	oparams->mech_ssf = 40;
  	n = 5;
 
       } else if (strcmp(cipher,"rc4-56")==0) {
  	text->cipher_enc=(cipher_function_t *) &enc_rc4;
  	text->cipher_dec=(cipher_function_t *) &dec_rc4;
- 	text->cipher_init=(cipher_init_t *) &init_rc4;
+ 	text->cipher_init=&init_rc4;
  	oparams->mech_ssf = 56;
  	n = 7;
  
@@ -3134,7 +3135,7 @@ c_continue_step(void *conn_context,
 	cipher = "rc4";
 	text->cipher_enc=(cipher_function_t *) &enc_rc4; /* uses same function both ways */
 	text->cipher_dec=(cipher_function_t *) &dec_rc4;
-	text->cipher_init=(cipher_init_t *) &init_rc4;
+	text->cipher_init=&init_rc4;
 	oparams->mech_ssf = 128;
 	n=16;
 #endif /* WITH_RC4 */
@@ -3156,7 +3157,7 @@ c_continue_step(void *conn_context,
  	cipher = "rc4-56";
  	text->cipher_enc=(cipher_function_t *) &enc_rc4; /* uses same function both ways */
  	text->cipher_dec=(cipher_function_t *) &dec_rc4;
- 	text->cipher_init=(cipher_init_t *) &init_rc4;
+ 	text->cipher_init=&init_rc4;
  	oparams->mech_ssf = 56;
  	n = 7;
 #endif /* WITH_RC4 */
@@ -3177,7 +3178,7 @@ c_continue_step(void *conn_context,
  	cipher = "rc4-40";
  	text->cipher_enc=(cipher_function_t *) &enc_rc4; /* uses same function both ways */
  	text->cipher_dec=(cipher_function_t *) &dec_rc4;
- 	text->cipher_init=(cipher_init_t *) &init_rc4;
+ 	text->cipher_init=&init_rc4;
  	oparams->mech_ssf = 40;
  	n = 5;
  

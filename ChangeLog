@@ -1,3 +1,23 @@
+Tue Jun 15 15:21:05 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c (init_rc4): changed type so it comforms to
+	cipher_init_t
+
+	* lib/checkpw.c (_sasl_kerberos_verify_password): return
+	SASL_FAIL
+
+	* configure.in (LIB_PAM): added check for PAM
+
+	* lib/checkpw.c (_sasl_PAM_verify_password): added a PAM mechanism
+	for verifying passwords
+
+	* lib/server.c (sasl_checkpass): added PAM support
+
+	* lib/common.c (sasl_getprop): changed so it correctly does the
+	indirection (void ** != int *). added comment.
+	SASL_GETOPTCTX still not implemented---currently returns SASL_FAIL.
+	(sasl_setprop): bug in SASL_SSF_EXTERNAL fixed.
+
 1999-06-10  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
 	* lib/server.c (_sasl_transition): checks config now

@@ -560,6 +560,7 @@ LIBSASL_API int sasl_setprop(sasl_conn_t *conn,
 #define SASL_SSF_EXTERNAL 100  /* external SSF active --
 				* sasl_external_properties_t */
 #define SASL_SEC_PROPS    101  /* sasl_security_properties_t */
+			       /* also allows SASL_IP_LOCAL, SASL_IP_REMOTE */
 
 /* do precalculations during an idle period or network round trip
  *  may pass NULL to precompute for some mechanisms prior to connect

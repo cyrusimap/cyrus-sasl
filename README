@@ -23,9 +23,13 @@ list of directories containing plugins.
 
 The library uses a gdbm or ndbm file on the server side to store
 per-user authentication secrets (except for the PLAIN mechanism, which
-tries to use crypt with /etc/passwd and /etc/shadow, if
-available).  The utility saslpassed has been included for adding
-authentication secrets to the file.
+is discussed below).  The utility saslpassed has been included for
+adding authentication secrets to the file.
+
+PLAIN can either check /etc/passwd, Kerberos V4, or use PAM.  By
+default PAM is used if PAM is found, then Kerberos, finally
+/etc/passwd (non-shadow).  This is also tweakable in the configuration
+file.
 
 The sample directory contains two programs which provide a reference
 for using the library, as well as making it easy to test a mechanism
@@ -43,7 +47,7 @@ change at some point in the future.
 
 Comments/Suggestions:
 
-Rob Earhart (rob@andrew.cmu.edu)
+Larry Greenfield (leg@andrew.cmu.edu)
 Tim Martin (tmartin@andrew.cmu.edu)
 
 

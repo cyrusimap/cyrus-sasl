@@ -34,6 +34,13 @@ SOFTWARE.
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
+
+#ifdef HAVE_PAM
+#define DEFAULT_PLAIN_MECHANISM "PAM"
+#else
+#define DEFAULT_PLAIN_MECHANISM "passwd"
+#endif
+
 #include "sasl.h"
 #include "saslint.h"
 #include "saslutil.h"
@@ -616,7 +623,7 @@ _sasl_transition(sasl_conn_t * conn,
     return SASL_NOTDONE;
 
   /* check if this is enabled: default to false */
-  /*  if (sasl_config_getswitch("Transition",0)==0) return SASL_OK;*/
+  if (sasl_config_getswitch("auto_transition", 0) == 0) return SASL_OK;
 
   return sasl_setpass(conn,
 		      conn->oparams.authid,
@@ -981,9 +988,6 @@ int sasl_listmech(sasl_conn_t *conn,
  *  SASL_NOMECH  -- user found, but no verifier
  *  SASL_NOUSER  -- user not found
  */
-
-/* xxx major overhaul this */
-
 int sasl_checkpass(sasl_conn_t *conn,
 		   const char *user,
 		   unsigned userlen __attribute__((unused)),
@@ -991,70 +995,39 @@ int sasl_checkpass(sasl_conn_t *conn,
 		   unsigned passlen,
 		   const char **errstr)
 {
-  int result;
-  int try_plain=1;
-  int try_shadow=1;
-  int try_krb=1;
+    const char *mech;
+    int result = SASL_NOMECH;
 
-  const char *mechs=NULL;
+    mech = sasl_config_getstring("plainmech", DEFAULT_PLAIN_MECHANISM);
 
-  mechs=sasl_config_getstring("plainmech",NULL); /* default to NULL */
-  
-  /* if that parameter exists then we only want to do one of the
-     tests not all of them */
-  if (mechs!=NULL)
-  {
-    try_plain=0;
-    try_shadow=0;
-    try_krb=0;
-
-    if (strcmp(mechs,"KERBEROS_V4")==0)
-      try_krb=1;
-    
-    if (strcmp(mechs,"PASSWD")==0)
-      try_plain=1;
-    
-    if (strcmp(mechs,"SHADOW")==0)
-      try_shadow=1;
-  }
-
-  result=SASL_FAIL;
-
-  if (try_plain==1)
-  {
-    /* check against /etc/passwd */
-    result=_sasl_passwd_verify_password(user, pass, errstr);
-
-    if (result==SASL_OK) return SASL_OK;
-  }
-
-  if (try_shadow==1)
-  {
-    /* check against /etc/passwd */
-    result=_sasl_shadow_verify_password(user, pass, errstr);
-
-    if (result==SASL_OK) return SASL_OK;
-  }
-
-  if (try_krb==1)
-  {
-    /* check against krb */
-    result=_sasl_kerberos_verify_password(user, pass, conn->service, errstr);
-
-    if (result==SASL_OK)
-    {
-      result = _sasl_strdup(user,
-			    &(conn->oparams.authid),
-			    NULL);
-      if (result != SASL_OK)  return result;
-      
-      _sasl_transition(conn,
-		       pass,
-		       passlen);
-      return SASL_OK;
+#ifdef HAVE_PAM
+    if (!strcmp(mech, "PAM")) {
+	result = _sasl_PAM_verify_password(user, pass, errstr);
     }
-  }
+#endif
 
-  return result;
+    if (!strcmp(mech, "passwd")) {
+	result = _sasl_passwd_verify_password(user, pass, errstr);
+    }
+
+    if (!strcmp(mech, "shadow")) {
+	result = _sasl_shadow_verify_password(user, pass, errstr);
+    }
+
+#ifdef HAVE_KRB
+    if (!strcmp(mech, "kerberos")) {
+	/* check against krb */
+	result = _sasl_kerberos_verify_password(user, pass, 
+						conn->service, errstr);
+    }
+#endif
+
+    if (result == SASL_OK) {
+	result = _sasl_strdup(user, &(conn->oparams.authid), NULL);
+	if (result != SASL_OK) return result;
+      
+	_sasl_transition(conn, pass, passlen);
+    }
+
+    return result;
 }
-

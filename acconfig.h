@@ -48,6 +48,12 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 /* Do we have rc4 available? */
 #undef WITH_RC4
 
+/* Do we have kerberos for plaintext password checking? */
+#undef HAVE_KRB
+
+/* do we have PAM for plaintext password checking? */
+#undef HAVE_PAM
+
 @BOTTOM@
 
 /* Make Solaris happy... */

@@ -255,6 +255,14 @@ void _sasl_conn_dispose(sasl_conn_t *conn) {
 }
 
 
+/* get property from SASL connection state
+ *  propnum       -- property number
+ *  pvalue        -- pointer to value
+ * returns:
+ *  SASL_OK       -- no error
+ *  SASL_NOTDONE  -- property not available yet
+ *  SASL_BADPARAM -- bad property number
+ */
 int sasl_getprop(sasl_conn_t *conn, int propnum, void **pvalue)
 {
   int result;
@@ -271,34 +279,35 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, void **pvalue)
       if (! conn->oparams.user)
 	result = SASL_NOTDONE;
       else
-	*pvalue=conn->oparams.user;
+	*(char **)pvalue=conn->oparams.user;
       break;
     case SASL_SSF:
-      *(sasl_ssf_t *)pvalue= conn->oparams.mech_ssf;
+      *(sasl_ssf_t **)pvalue= &conn->oparams.mech_ssf;
       break;      
     case SASL_MAXOUTBUF:
-      *(unsigned *)pvalue = conn->oparams.maxoutbuf;
+      *(unsigned **)pvalue = &conn->oparams.maxoutbuf;
       break;
     case SASL_REALM:
       if (! conn->oparams.realm)
 	result = SASL_NOTDONE;
       else
-	*pvalue = conn->oparams.realm;
+	*(char **)pvalue = conn->oparams.realm;
       break;
     case SASL_GETOPTCTX:
+      result = SASL_FAIL;
       /* ??? */
       break;
     case SASL_IP_LOCAL:
       if (! conn->got_ip_local)
 	result = SASL_NOTDONE;
       else
-	*(struct sockaddr_in *)pvalue = conn->ip_local;
+	*(struct sockaddr_in **)pvalue = &conn->ip_local;
       break;
     case SASL_IP_REMOTE:
       if (! conn->got_ip_remote)
 	result = SASL_NOTDONE;
       else
-	*(struct sockaddr_in *)pvalue = conn->ip_remote;
+	*(struct sockaddr_in **)pvalue = &conn->ip_remote;
       break;
     default: 
       result = SASL_BADPARAM;
@@ -307,6 +316,11 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, void **pvalue)
   return result; 
 }
 
+/* set property in SASL connection state
+ * returns:
+ *  SASL_OK       -- value set
+ *  SASL_BADPARAM -- invalid property or value
+ */
 int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
 {
   int result;
@@ -336,7 +350,7 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
 	str = NULL;
       if (conn->external.auth_id)
 	sasl_FREE(conn->external.auth_id);
-      conn->external.auth_id = NULL;
+      conn->external.auth_id = str;
       conn->external.ssf = external->ssf;
       break;
     }

@@ -253,6 +253,9 @@ AC_MSG_CHECKING(KERBEROS_V4)
 if test "$krb4" != no; then
   AC_MSG_RESULT(enabled)
   SASL_MECHS="$SASL_MECHS libkerberos4.la"
+  AC_DEFINE(HAVE_KRB)
+  SASL_KRB_LIB="-lkrb -ldes"
+  AC_SUBST(SASL_KRB_LIB)
 else
   AC_MSG_RESULT(disabled)
 fi
@@ -386,6 +389,31 @@ if test "$with_rc4" != no; then
   LIB_RC4="-lrc4"
 fi
 AC_SUBST(LIB_RC4)
+
+AC_ARG_WITH(pam, [  --with-pam=DIR          use PAM (rooted in DIR) [yes] ],
+	with_pam=$withval,
+	with_pam=yes)
+if test "$with_pam" != no; then
+  if test -d $with_pam; then
+    CPPFLAGS="$CPPFLAGS -I${with_pam}/include"
+    LDFLAGS="$LDFLAGS -L${with_pam}/lib"
+  fi
+  cmu_save_LIBS="$LIBS"
+  AC_CHECK_LIB(pam, pam_start,
+	  AC_CHECK_HEADER(security/pam_appl.h,,
+			  AC_WARN([Disabling PAM support (1)]); with_pam=no),
+		AC_WARN([Disabling PAM support (2)]); with_pam=no, -ldl)
+  LIBS="$cmu_save_LIBS"
+fi
+
+AC_MSG_CHECKING(PAM support)
+AC_MSG_RESULT($with_pam)
+LIB_PAM=""
+if test "$with_pam" != no; then
+  AC_DEFINE(HAVE_PAM)
+  LIB_PAM="-lpam"
+fi
+AC_SUBST(LIB_PAM)
 
 AC_HEADER_DIRENT
 AC_HEADER_STDC

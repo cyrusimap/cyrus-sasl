@@ -454,15 +454,23 @@ typedef int sasl_chalprompt_t(void *context, int id,
  * input:
  *  context     -- context from callback structure
  *  id          -- callback id
- *  availrealms -- available realms; NULL terminated
+ *  availrealms -- available realms; string list; NULL terminated
  * output:
  *  result      -- NUL terminated realm; NULL is equivalent to ""
  * returns SASL_OK
  */
+
+/* If there is an interaction with SASL_CB_GETREALM the challenge of
+ *  the sasl_interact_t will be of the format: {realm1, realm2,
+ *  ...}. That is a list of possible realms seperated by comma spaces
+ *  enclosed by brackets. 
+ */
+
 typedef int sasl_getrealm_t(void *context, int id,
 			    const char **availrealms,
 			    const char **result);
 #define SASL_CB_GETREALM (0x4007) /* realm to attempt authentication in */
+
 
 /* server callbacks:
  */
@@ -588,8 +596,8 @@ LIBSASL_API int sasl_idle(sasl_conn_t *conn);
  */
 typedef struct sasl_interact {
     unsigned long id;		/* same as client/user callback ID */
-    const char *challenge;
-    const char *prompt;
+    const char *challenge;      /* may be computer readable */
+    const char *prompt;         /* always human readable */
     const char *defresult;	/* default result string */
     void *result;		/* set to point to result -- this will 
 				 * be freed by the library iff it

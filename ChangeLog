@@ -1,4 +1,9 @@
-2004-03-17  Rob Siemborski <rjs3@andrew.cmu.edu.
+2004-03-25  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/saslauthd-main.c: add -r option to saslauthd for combining
+	  user and realm into user@realm (for the userid).  Based on a patch
+	  by Jeremy Rumpf <jrumpf@heavyload.net>.
+
+2004-03-17  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/checkpw.c: Include errno.h when HAVE_AUTHDAEMON is defined
 	* doc/windows.html: Updates (Alexey Melnikov <Alexey.Melnikov@isode.com>)
 

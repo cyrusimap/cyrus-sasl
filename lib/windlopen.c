@@ -29,6 +29,7 @@ SOFTWARE.
 /* gets the list of mechanisms */
 int _sasl_get_mech_list(const char *entryname,
 			const sasl_callback_t *getpath_cb,
+			const sasl_callback_t *verifyfile_cb,
 			int (*add_plugin)(void *,void *))
 {
 

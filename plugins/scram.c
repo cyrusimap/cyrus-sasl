@@ -355,7 +355,7 @@ static int server_continue_step (void *conn_context,
     info[2]=0x00;
     info[3]=0x00;
     
-    sprintf(serviceid,"%s@%s",params->service , params->local_domain);
+    sprintf(serviceid,"%s@%s",params->service , params->serverFQDN);
     
     sprintf(nonce,"%s%i%s",time, text->number, randdigits);
     params->utils->free(time);

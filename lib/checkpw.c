@@ -33,12 +33,16 @@ SOFTWARE.
 #endif
 #include <stdlib.h>
 
+#ifndef WIN32
 #include <strings.h>
 #include <netdb.h>
-#include <sys/types.h>
-#include <sys/param.h>
 #include <netinet/in.h>
+#include <sys/param.h>
+#else
+#include <string.h>
+#endif
 
+#include <sys/types.h>
 #include <ctype.h>
 
 #ifndef SASL_MINIMAL_SERVER
@@ -294,7 +298,7 @@ int _sasl_shadow_verify_password(sasl_conn_t *conn __attribute__((unused)),
 #endif
 
 }
-
+#ifndef SASL_MINIMAL_SERVER
 int _sasl_passwd_verify_password(sasl_conn_t *conn __attribute__((unused)),
 				 const char *userid,
 				 const char *password,
@@ -316,7 +320,7 @@ int _sasl_passwd_verify_password(sasl_conn_t *conn __attribute__((unused)),
 
   return SASL_BADAUTH;
 }
-
+#endif /* SASL_MINIMAL_SERVER */
 #ifdef HAVE_PAM
 struct sasl_pam_data {
     const char *userid;

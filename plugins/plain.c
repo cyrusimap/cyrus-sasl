@@ -1,6 +1,6 @@
 /* Plain SASL plugin
  * Tim Martin 
- * $Id: plain.c,v 1.32 1999/07/11 03:52:56 leg Exp $
+ * $Id: plain.c,v 1.33 1999/07/23 13:58:28 diskin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -95,6 +95,8 @@ static void free_secret(sasl_utils_t *utils,
 
   (*secret)->len=0;
 
+  //this fail in the debug version on win32, which
+  //does tighter checking
   utils->free(*secret);
 
   *secret=NULL;

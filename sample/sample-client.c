@@ -29,6 +29,9 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <stdio.h>
 #ifdef WIN32
 # include <winsock.h>
+__declspec(dllimport) char *optarg;
+__declspec(dllimport) int optind;
+__declspec(dllimport) int getsubopt(char **optionp, char * const *tokens, char **valuep);
 #else  /* WIN32 */
 # include <netinet/in.h>
 #endif /* WIN32 */
@@ -99,7 +102,12 @@ free_conn(void)
 }
 
 static int
+#ifndef WIN32
 log(void *context __attribute__((unused)),
+#else
+//win32 has a name conflict with the logarithm-calculating log function
+sasl_win32_log(void *context __attribute__((unused)),
+#endif //WIN32
     int priority,
     const char *message) 
 {
@@ -328,7 +336,11 @@ set_ip(char *ipaddr, int prop)
     exit(EXIT_FAILURE);
   }
   memcpy(&sin.sin_addr, hent->h_addr, sizeof(struct in_addr));
+#ifndef WIN32
   sin.sin_port = htons(atoi(sep));
+#else
+  sin.sin_port = htons((short)atoi(sep));
+#endif //WIN32
   if (! sin.sin_port)
     fail("Unable to parse port in IP addr");
   result = sasl_setprop(conn, prop, &sin);
@@ -573,7 +585,11 @@ main(int argc, char *argv[])
 
   /* log */
   callback->id = SASL_CB_LOG;
+#ifndef WIN32
   callback->proc = &log;
+#else
+  callback->proc = &sasl_win32_log;
+#endif //WIN32
   callback->context = NULL;
   ++callback;
   
@@ -691,7 +707,10 @@ main(int argc, char *argv[])
     puts("Preparing initial.");
     memcpy(buf + strlen(buf) + 1, data, len);
     len += strlen(buf) + 1;
+#ifndef WIN32
+	//This free causes win32 to fail
     free(data);
+#endif //WIN32
     data = NULL;
   } else {
     len = strlen(buf);
@@ -710,7 +729,10 @@ main(int argc, char *argv[])
     if (data) {
       puts("Sending response...");
       samp_send(data, len);
+#ifndef WIN32
+	//This free causes win32 to fail
       free(data);
+#endif //WIN32
     }
   }
   puts("Negotiation complete");

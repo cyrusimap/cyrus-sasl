@@ -47,6 +47,14 @@ typedef int sasl_getcallback_t(sasl_conn_t *conn,
 			       int (**pproc)(),
 			       void **pcontext);
 
+#ifdef WIN32
+//need to handle the fact that errno has been defined as a function
+//in a dll, not an extern int
+#ifdef errno
+#undef errno
+#endif //errno
+#endif //WIN32
+
 /* utility function set for plug-ins
  */
 typedef struct sasl_utils {

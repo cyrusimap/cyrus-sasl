@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.39 1999/07/11 03:52:53 leg Exp $
+ * $Id: server.c,v 1.40 1999/07/23 13:58:22 diskin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -328,7 +328,12 @@ int sasl_setpass(sasl_conn_t *conn,
 	_sasl_log(conn,
 		  SASL_LOG_WARNING,
 		  m->plug->mech_name,
-		  tmpresult, errno,
+		  tmpresult,
+#ifndef WIN32
+		  errno,
+#else
+		  GetLastError(),
+#endif //WIN32
 		  "Failed to set secret for %s: %z",
 		  user);
       } else {
@@ -1028,11 +1033,11 @@ static int _sasl_checkpass(sasl_conn_t *conn,
 	result = _sasl_PAM_verify_password(conn, user, pass, service, NULL);
     }
 #endif
-
+#ifndef SASL_MINIMAL_SERVER
     if (!strcmp(mech, "passwd")) {
 	result = _sasl_passwd_verify_password(conn, user, pass, NULL);
     }
-
+#endif //SASL_MINIMAL_SERVER
     if (!strcmp(mech, "shadow")) {
 	result = _sasl_shadow_verify_password(conn, user, pass, NULL);
     }

@@ -900,6 +900,5 @@ LIBSASL_API int sasl_cred_install(sasl_conn_t *conn);
  *  SASL_FAIL    -- failure
  */
 LIBSASL_API int sasl_cred_uninstall(sasl_conn_t *conn);
-
 #endif /* SASL_H */
 

@@ -156,7 +156,11 @@ _sasl_log(sasl_conn_t *conn,
 	  int priority,
 	  const char *plugin_name,
 	  int sasl_error,	/* %z */
+#ifndef WIN32
 	  int errno,	/* %m */
+#else
+	  int error_value, /* %m */
+#endif //WIN32
 	  const char *format,
 	  ...);
 

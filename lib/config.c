@@ -38,7 +38,9 @@ SOFTWARE.
 
 #include <stdio.h>
 #include <ctype.h>
+#ifndef WIN32
 #include <syslog.h>
+#endif //WIN32
 
 struct configlist {
     char *key;

@@ -27,7 +27,10 @@ SOFTWARE.
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
 #ifdef WIN32
-# include "winconfig.h"
+//# include "winconfig.h"
+#include <config.h>
+//for sprintf, snprinft
+#include <stdio.h>
 #endif /* WIN32 */
 #include <time.h>
 #include <sys/stat.h>

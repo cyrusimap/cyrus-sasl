@@ -33,6 +33,15 @@ SOFTWARE.
 #include <saslutil.h>
 #include <saslplug.h>
 #include "saslint.h"
+#ifdef WIN32
+//for snprintf
+#include <stdio.h>
+//need to handle the fact that errno has been defined as a function
+//in a dll, not an extern int
+#ifdef errno
+#undef errno
+#endif //errno
+#endif //WIN32
 
 int _sasl_debug = 0;
 
@@ -532,6 +541,11 @@ static int _sasl_syslog(void *context __attribute__((unused)),
 
 #endif				/* HAVE_VSYSLOG */
 
+
+#ifdef WIN32
+#define MAX_VALUE_NAME	128
+#endif //WIN32
+
 static int
 _sasl_getsimple(void *context,
 		int id,
@@ -540,6 +554,11 @@ _sasl_getsimple(void *context,
 {
   const char *userid;
   sasl_conn_t *conn;
+#ifdef WIN32
+  DWORD i;
+  BOOL rval;
+  static char sender[MAX_VALUE_NAME];
+#endif //WIN32
 
   if (! context || ! result)
     return SASL_BADPARAM;
@@ -548,12 +567,28 @@ _sasl_getsimple(void *context,
 
   switch(id) {
   case SASL_CB_AUTHNAME:
+#ifndef WIN32
     userid = getenv("USER");
+#else
+    userid = getenv("USERNAME");
+#endif //WIN32
     if (userid != NULL) {
       *result = userid;
       if (len) *len = strlen(userid);
       return SASL_OK;
     }
+#ifdef WIN32
+    //for win32, try using the GetUserName standard call
+    else {
+	i=sizeof(sender);
+	rval = GetUserName(sender, &i);
+	if ( rval) { //got a userid
+		*result = sender;
+		if (len) *len = strlen(sender);
+		return SASL_OK;
+	}
+    }
+#endif //WIN32
     return SASL_FAIL;
   default:
     return SASL_BADPARAM;

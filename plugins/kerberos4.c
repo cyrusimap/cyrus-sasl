@@ -55,7 +55,8 @@ typedef struct krb_principal {
 #ifndef R_OK
 #define R_OK 04
 #endif
-
+//we also need io.h for access() prototype
+#include <io.h>
 #endif /* WIN32 */
 
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
@@ -430,8 +431,9 @@ server_start(void *glob_context __attribute__((unused)),
 	     void **conn,
 	     const char **errstr)
 {
+#ifndef WIN32
   context_t *text;
-
+#endif //win32
   if (errstr)
     *errstr = NULL;
 

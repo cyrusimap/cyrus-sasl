@@ -1,6 +1,6 @@
 /* saslint.h - internal SASL library definitions
  * Tim Martin
- * $Id: saslint.h,v 1.1 1998/11/16 20:06:37 rob Exp $
+ * $Id: saslint.h,v 1.2 1998/11/17 03:57:43 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -61,8 +61,6 @@ struct sasl_conn {
   int got_ip_local, got_ip_remote;
   struct sockaddr_in ip_local, ip_remote;
   sasl_ssf_t ssf;
-
-  char *mech_using;  /* name of mechanism using */
 
   void *context;
   sasl_out_params_t *oparams;

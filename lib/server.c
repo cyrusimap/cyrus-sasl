@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.2 1998/11/17 00:50:23 rob Exp $
+ * $Id: server.c,v 1.3 1998/11/17 03:57:43 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -653,7 +653,6 @@ int sasl_server_step(sasl_conn_t *conn,
 
 
   /* call the security layer WRONG PARAMS*/
-  /*  conn->mech_using->pluglist->mech_continue( conn, *clientin, clientinlen, **serverout, *serveroutlen, char **errstr);*/
 
   /* if returns SASL_OK check to make sure
    * is valid username and then

@@ -1,5 +1,9 @@
 1998-11-30  Rob Earhart  <rob+@andrew.cmu.edu>
 
+	* include/winconfig.h: added copyright, updated version
+
+	* include/Makefile.am: added winconfig.h to distribution
+
 	* sasl/Makefile.am: removed saslMechList.java
 
 1998-11-30  Rob Earhart  <rob@ANDREW.CMU.EDU>

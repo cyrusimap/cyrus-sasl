@@ -1,6 +1,6 @@
 # Makefile.am for SASL includes
 # Rob Earhart
-# $Id: Makefile.am,v 1.1 1998/11/16 20:06:38 rob Exp $
+# $Id: Makefile.am,v 1.2 1998/11/30 14:56:09 rob Exp $
 #
 ################################################################
 #        Copyright 1998 by Carnegie Mellon University
@@ -25,3 +25,5 @@
 ################################################################
 
 include_HEADERS=hmac-md5.h md5.h md5global.h sasl.h saslplug.h saslutil.h
+
+noinst_HEADERS=winconfig.h

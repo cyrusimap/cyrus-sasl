@@ -2,7 +2,7 @@
  * Rob Siemborski (SASLv2 Conversion)
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.12 2002/01/21 21:04:50 rjs3 Exp $
+ * $Id: login.c,v 1.13 2002/01/21 22:27:05 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -511,81 +511,60 @@ static int login_client_mech_step(void *conn_context,
   context_t *text;
   text=conn_context;
 
-  if (text->state==1)
-  {
-    int user_result=SASL_OK;
-    int pass_result=SASL_OK;
+  if (text->state==1) {
+      int user_result=SASL_OK;
+      int pass_result=SASL_OK;
 
-    /* check if sec layer strong enough */
-    if (params->props.min_ssf>0+params->external_ssf) {
-	SETERROR( params->utils, "SSF requested of LOGIN plugin");
-	return SASL_TOOWEAK;
-    }
+      /* check if sec layer strong enough */
+      if (params->props.min_ssf>0+params->external_ssf) {
+	  SETERROR( params->utils, "SSF requested of LOGIN plugin");
+	  return SASL_TOOWEAK;
+      }
 
-    /* try to get the userid */
-    if (oparams->user==NULL)
-    {
-      user_result=get_userid(params,
-			     &user,
-			     prompt_need);
+      /* try to get the userid */
+      if (oparams->user==NULL) {
+	  user_result=get_userid(params,
+				 &user,
+				 prompt_need);
 
-      if ((user_result!=SASL_OK) && (user_result!=SASL_INTERACT))
-	return user_result;
-    }
+	  if ((user_result!=SASL_OK) && (user_result!=SASL_INTERACT))
+	      return user_result;
+      }
 
-    /* try to get the password */
-    if (text->password==NULL)
-    {
-      pass_result=get_password(params,
-			       &text->password,
-			       prompt_need);
+      /* try to get the password */
+      if (text->password==NULL) {
+	  pass_result=get_password(params,
+				   &text->password,
+				   prompt_need);
       
-      if ((pass_result!=SASL_OK) && (pass_result!=SASL_INTERACT))
-	return pass_result;
-    }
+	  if ((pass_result!=SASL_OK) && (pass_result!=SASL_INTERACT))
+	      return pass_result;
+      }
 
-    /* free prompts we got */
-    if (prompt_need && *prompt_need) {
-	params->utils->free(*prompt_need);
-	*prompt_need = NULL;
-    }
+      /* free prompts we got */
+      if (prompt_need && *prompt_need) {
+	  params->utils->free(*prompt_need);
+	  *prompt_need = NULL;
+      }
 
-    /* if there are prompts not filled in */
-    if ((user_result==SASL_INTERACT) ||	(pass_result==SASL_INTERACT))
-    {
-      /* make the prompt list */
-      result=make_prompts(params,prompt_need,
-			  user_result, pass_result);
-      if (result!=SASL_OK) return result;
+      /* if there are prompts not filled in */
+      if ((user_result==SASL_INTERACT) || (pass_result==SASL_INTERACT)) {
+	  /* make the prompt list */
+	  result=make_prompts(params,prompt_need,
+			      user_result, pass_result);
+	  if (result!=SASL_OK) return result;
       
-      return SASL_INTERACT;
-    }
+	  return SASL_INTERACT;
+      }
 
-    ret = params->canon_user(params->utils->conn, user, 0,
-			     SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
-    if(ret != SASL_OK) return ret;
-    
-    /* set oparams */
-    oparams->mech_ssf=0;
-    oparams->maxoutbuf=0;
-    oparams->encode=NULL;
-    oparams->decode=NULL;
-    oparams->param_version = 0;
+      ret = params->canon_user(params->utils->conn, user, 0,
+			       SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
+      if(ret != SASL_OK) return ret;
 
-    text->state = 2;
-
-    /* Watch for initial client send, which we do not support */
-    if(serverinlen == 0) {
-	*clientout = NULL;
-	*clientoutlen = 0;
-        return SASL_CONTINUE;
-    }
-  }
-
-  if (text->state == 2) {
-      /* server should have sent request for username */
-      if (serverinlen != strlen(USERNAME) || strcmp(USERNAME,serverin)) {
-	  SETERROR( params->utils, "Invalid Server USERNAME response in LOGIN plugin");
+      /* server should have sent request for username - we ignore it */
+      if (!serverin) {
+	  SETERROR( params->utils,
+		    "Server didn't issue challenge for USERNAME");
 	  return SASL_BADPROT;
       }
 
@@ -597,14 +576,16 @@ static int login_client_mech_step(void *conn_context,
       if(clientoutlen) *clientoutlen = oparams->alen;
       *clientout = oparams->authid;
 
-      text->state = 3;
+      text->state = 2;
 
       return SASL_CONTINUE;
   }
 
-  if (text->state == 3) {
-      if (serverinlen != strlen(PASSWORD) || strcmp(PASSWORD,serverin)) {
-	  SETERROR( params->utils, "Invalid Server PASSWORD response in LOGIN plugin");
+  if (text->state == 2) {
+      /* server should have sent request for password - we ignore it */
+      if (!serverin) {
+	  SETERROR( params->utils,
+		    "Server didn't issue challenge for PASSWORD");
 	  return SASL_BADPROT;
       }
 
@@ -617,6 +598,10 @@ static int login_client_mech_step(void *conn_context,
       *clientout = text->password->data;
       
       /* set oparams */
+      oparams->mech_ssf=0;
+      oparams->maxoutbuf=0;
+      oparams->encode=NULL;
+      oparams->decode=NULL;
       oparams->param_version = 0;
       oparams->doneflag = 1;
 

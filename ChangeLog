@@ -1,3 +1,6 @@
+2003-09-22  Maya Nigrosh <mnigrosh@andrew.cmu.edu>
+	* plugins/sql.c: added semicolon at the end of each sql statement
+	
 2003-09-19  Maya Nigrosh <mnigrosh@andrew.cmu.edu>
 	* plugins/sql.c: moved transaction handling to a more useful place,
 	  minor bugfixes

@@ -173,6 +173,7 @@ main(int argc, char *argv[])
   int result;
   sasl_conn_t *conn;
   char *user_domain = NULL;
+  char *appname = "saslpasswd";
 
   if (! argv[0])
     progname = "saslpasswd";
@@ -184,7 +185,7 @@ main(int argc, char *argv[])
       progname = argv[0];
   }
 
-  while ((c = getopt(argc, argv, "pcdu:h?")) != EOF)
+  while ((c = getopt(argc, argv, "pcdu:a:h?")) != EOF)
     switch (c) {
     case 'p':
       flag_pipe = 1;
@@ -204,6 +205,13 @@ main(int argc, char *argv[])
     case 'u':
       user_domain = optarg;
       break;
+    case 'a':
+      appname = optarg;
+      if (strchr(optarg, '/') != NULL) {
+        (void)fprintf(stderr, "filename must not contain /\n");
+        exit(-SASL_FAIL);
+      }
+      break;
     default:
       flag_error = 1;
       break;
@@ -214,10 +222,11 @@ main(int argc, char *argv[])
 
   if (flag_error) {
     (void)fprintf(stderr,
-		  "%s: usage: %s [-p] [-c] [-d] [-u DOM] userid\n"
+		  "%s: usage: %s [-a appname] [-p] [-c] [-d] [-u DOM] userid\n"
 		  "\t-p\tpipe mode -- no prompt, password read on stdin\n"
 		  "\t-c\tcreate -- ask mechs to create the account\n"
 		  "\t-d\tdisable -- ask mechs to disable the account\n"
+		  "\t-a appname\tuse appname as application name\n"
 		  "\t-u DOM\tuse DOM for user domain\n",
 		  progname, progname);
     exit(-SASL_FAIL);
@@ -225,7 +234,7 @@ main(int argc, char *argv[])
 
   userid = argv[optind];
 
-  result = sasl_server_init(NULL, "saslpasswd");
+  result = sasl_server_init(NULL, appname);
   if (result != SASL_OK)
     exit_sasl(result, NULL);
 

@@ -1,7 +1,7 @@
 /* saslutil.c
  * Rob Siemborski
  * Tim Martin
- * $Id: saslutil.c,v 1.35 2002/07/24 16:14:31 rjs3 Exp $
+ * $Id: saslutil.c,v 1.36 2002/07/24 17:22:26 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -53,6 +53,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <errno.h>
 #ifdef HAVE_GETTIMEOFDAY
 #include <sys/time.h>
 #endif
@@ -78,8 +79,9 @@
 char *encode_table;
 char *decode_table;
 
+#define RPOOL_SIZE 3
 struct sasl_rand_s {
-    unsigned short pool[3];
+    unsigned short pool[RPOOL_SIZE];
     /* since the init time might be really bad let's make this lazy */
     int initialized; 
 };
@@ -281,11 +283,11 @@ int sasl_utf8verify(const char *str, unsigned len)
  * without specialized hardware etc...
  * thus, this is for nonce use only
  */
-void getranddata(unsigned short ret[3])
+void getranddata(unsigned short ret[RPOOL_SIZE])
 {
     long curtime;
     
-    memset(ret, 0, sizeof(ret));
+    memset(ret, 0, RPOOL_SIZE*sizeof(unsigned short));
 
 #ifdef DEV_RANDOM    
     {
@@ -294,11 +296,13 @@ void getranddata(unsigned short ret[3])
 	fd = open(DEV_RANDOM, O_RDONLY);
 	if(fd != -1) {
 	    unsigned char *buf = (unsigned char *)ret;
-	    size_t bytesread = 0, bytesleft = sizeof(ret);
+	    size_t bytesread = 0;
+	    size_t bytesleft = RPOOL_SIZE*sizeof(unsigned short);
 	    
 	    do {
-		bytesread = read(fd, &buf, bytesleft);
-		if(bytesread == 0) break;
+		bytesread = read(fd, buf, bytesleft);
+		if(bytesread == -1 && errno == EINTR) continue;
+		else if(bytesread <= 0) break;
 		bytesleft -= bytesread;
 		buf += bytesread;
 	    } while(bytesleft != 0);
@@ -364,7 +368,7 @@ void sasl_randseed (sasl_rand_t *rpool, const char *seed, unsigned len)
     if (rpool == NULL) return;
 
     rpool->initialized = 1;
-    if (len > 6) len = 6;
+    if (len > 6) len = sizeof(unsigned short)*RPOOL_SIZE;
     for (lup = 0; lup < len; lup += 2)
 	rpool->pool[lup/2] = (seed[lup] << 8) + seed[lup + 1];
 }
@@ -424,7 +428,7 @@ void sasl_churn (sasl_rand_t *rpool, const char *data, unsigned len)
     randinit(rpool);
     
     for (lup=0; lup<len; lup++)
-	rpool->pool[lup % 3] ^= data[lup];
+	rpool->pool[lup % RPOOL_SIZE] ^= data[lup];
 }
 
 void sasl_erasebuffer(char *buf, unsigned len) {

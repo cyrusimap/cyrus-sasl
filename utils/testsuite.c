@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.23 2002/04/27 04:09:50 ken3 Exp $
+ * $Id: testsuite.c,v 1.24 2002/05/05 14:18:50 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2908,13 +2908,13 @@ int main(int argc, char **argv)
 	printf("Test of no-client-first/no-server-last...ok\n");
 	
 	printf("Testing no-client-first/server-last correctly...\n");
-	foreach_mechanism((foreach_t *) &test_serverlast, &tosend);
+	foreach_mechanism((foreach_t *) &test_noclientfirst_andserverlast,
+			  &tosend);
 	if(mem_stat() != SASL_OK) fatal("memory error");
 	printf("Test of no-client-first/server-last...ok\n");
 
 	printf("Testing client-first/server-last correctly...\n");
-	foreach_mechanism((foreach_t *) &test_noclientfirst_andserverlast,
-			  &tosend);
+	foreach_mechanism((foreach_t *) &test_serverlast, &tosend);
 	if(mem_stat() != SASL_OK) fatal("memory error");
 	printf("Test of client-first/server-last...ok\n");
 
@@ -2932,13 +2932,13 @@ int main(int argc, char **argv)
 	printf("Test of no-client-first/no-server-last...ok\n");
 	
 	printf("Testing no-client-first/server-last correctly...\n");
-	foreach_mechanism((foreach_t *) &test_serverlast, &tosend);
+	foreach_mechanism((foreach_t *) &test_noclientfirst_andserverlast,
+			  &tosend);
 	if(mem_stat() != SASL_OK) fatal("memory error");
 	printf("Test of no-client-first/server-last...ok\n");
 
 	printf("Testing client-first/server-last correctly...\n");
-	foreach_mechanism((foreach_t *) &test_noclientfirst_andserverlast,
-			  &tosend);
+	foreach_mechanism((foreach_t *) &test_serverlast, &tosend);
 	if(mem_stat() != SASL_OK) fatal("memory error");
 	printf("Test of client-first/server-last...ok\n");
     } else {

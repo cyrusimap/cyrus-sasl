@@ -1,6 +1,12 @@
 2002-07-05  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/lak.c: Better handling of downed ldap servers
 	  (Igor Brezac <igor@ipass.net>)
+	* sasldb/db_berkeley.c, utils/dbconverter-2.c: Use db_strerror()
+          rather than strerror() for Berkeley DB error values.
+	  (J.H.M. Dassen (Ray) <jdassen@debian.org>)
+	* saslauthd/Makefile.am, saslauthd/auth_ldap.c: don't
+	  hardwire the saslauthd conf file
+	  (J.H.M. Dassen (Ray) <jdassen@debian.org>)
 
 2002-07-03  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* man/sasl_user_exists.3: fix sasl_idle reference

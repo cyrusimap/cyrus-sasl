@@ -1,3 +1,7 @@
+2003-01-28  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* config/sasldb.m4: Don't build sasldb plugin if compiling
+	  --with-dblib=none, since it will only fail to load anyway.
+
 2003-01-27  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/configure.in: use CMU_ADD_LIBPATH for LDAP support
 	  (Simon Brady <simon.brady@otago.ac.nz>)

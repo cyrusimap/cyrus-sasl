@@ -102,16 +102,21 @@ SASL_DB_MANS="saslpasswd2.8 sasldblistusers2.8"
 
 case "$dblib" in
   gdbm) 
+    SASL_MECHS="$SASL_MECHS libsasldb.la"
     AC_DEFINE(SASL_GDBM)
     ;;
   ndbm)
+    SASL_MECHS="$SASL_MECHS libsasldb.la"
     AC_DEFINE(SASL_NDBM)
     ;;
   berkeley)
+    SASL_MECHS="$SASL_MECHS libsasldb.la"
     AC_DEFINE(SASL_BERKELEYDB)
     ;;
   *)
     AC_MSG_WARN([Disabling SASL authentication database support])
+    dnl note that we do not add libsasldb.la to SASL_MECHS, since it
+    dnl will just fail to load anyway.
     SASL_DB_BACKEND="db_none.lo"
     SASL_DB_BACKEND_STATIC="../sasldb/db_none.o"
     SASL_DB_UTILS=""
@@ -120,10 +125,13 @@ case "$dblib" in
     ;;
 esac
 
-SASL_MECHS="$SASL_MECHS libsasldb.la"
 if test "$enable_static" = yes; then
+    if test "$dblib" != "none"; then
       SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/sasldb.o $SASL_DB_BACKEND_STATIC"
       AC_DEFINE(STATIC_SASLDB)
+    else
+      SASL_STATIC_OBJS="$SASL_STATIC_OBJS $SASL_DB_BACKEND_STATIC"
+    fi
 fi
 AC_SUBST(SASL_DB_UTILS)
 AC_SUBST(SASL_DB_MANS)

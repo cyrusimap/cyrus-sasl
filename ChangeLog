@@ -1,10 +1,12 @@
 1998-11-30  Ryan Troll <ryan@andrew.cmu.edu>
 
-  * win32/libsasl workspace: Updated to handle new server db
-  mechanism.  Now just uses 'db_none'.
+        * win32/libsasl workspace: Updated to handle new server db
+ 	mechanism.  Now just uses 'db_none'.
 
 1998-11-30  Rob Earhart  <rob+@andrew.cmu.edu>
 
+	* plugins/*.c: made plugin structs static
+	
 	* lib/Makefile.am: added windlopen.c
 
 	* plugins/plain.c: passing a len return to getsimple callbacks

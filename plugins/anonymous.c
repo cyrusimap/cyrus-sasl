@@ -1,6 +1,6 @@
 /* Anonymous SASL plugin
  * Tim Martin 
- * $Id: anonymous.c,v 1.7 1998/11/23 15:31:25 rob Exp $
+ * $Id: anonymous.c,v 1.8 1998/11/30 20:05:48 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -193,7 +193,7 @@ static int continue_step (void *conn_context,
   return SASL_FAIL; /* should never get here */
 }
 
-const sasl_server_plug_t plugins[] = 
+static const sasl_server_plug_t plugins[] = 
 {
   {
     "ANONYMOUS",
@@ -315,7 +315,7 @@ static int c_continue_step (void *conn_context,
   return SASL_FAIL; /* should never get here */
 }
 
-const sasl_client_plug_t client_plugins[] = 
+static const sasl_client_plug_t client_plugins[] = 
 {
   {
     "ANONYMOUS",

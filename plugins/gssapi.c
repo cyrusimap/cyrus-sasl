@@ -430,7 +430,7 @@ sasl_gss_server_step (void *conn_context,
   return SASL_FAIL;
 }
 
-const sasl_server_plug_t plugins[] = 
+static const sasl_server_plug_t plugins[] = 
 {
   {
     "GSSAPI",
@@ -710,7 +710,7 @@ sasl_gss_client_step (void *conn_context,
   return SASL_FAIL;
 }
 
-const sasl_client_plug_t client_plugins[] = 
+static const sasl_client_plug_t client_plugins[] = 
 {
   {
     "GSSAPI",

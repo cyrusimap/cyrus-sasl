@@ -1,6 +1,6 @@
 /* Plain SASL plugin
  * Tim Martin 
- * $Id: plain.c,v 1.7 1998/11/29 23:50:26 rob Exp $
+ * $Id: plain.c,v 1.8 1998/11/30 20:05:51 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -162,14 +162,15 @@ static int verify_password(const char *userid,
   return SASL_OK;
 }
 
-static int server_continue_step (void *conn_context,
-	      sasl_server_params_t *params,
-	      const char *clientin,
-	      int clientinlen,
-	      char **serverout,
-	      int *serveroutlen,
-	      sasl_out_params_t *oparams,
-	      const char **errstr)
+static int
+server_continue_step (void *conn_context,
+		      sasl_server_params_t *params,
+		      const char *clientin,
+		      int clientinlen,
+		      char **serverout,
+		      int *serveroutlen,
+		      sasl_out_params_t *oparams,
+		      const char **errstr)
 {
   context_t *text;
   text=conn_context;
@@ -283,8 +284,7 @@ static int server_continue_step (void *conn_context,
 }
 #endif /* SASL_MINIMAL_SERVER */
 
-
-const sasl_server_plug_t plugins[] = 
+static const sasl_server_plug_t plugins[] = 
 {
   {
     "PLAIN",
@@ -348,6 +348,7 @@ static int client_continue_step (void *conn_context,
 {
   int result;
   context_t *text;
+  unsigned len;
 
   text=conn_context;
 
@@ -392,7 +393,7 @@ static int client_continue_step (void *conn_context,
 	  (*prompt_need)->defresult=getenv("USER");
 	  return SASL_INTERACT;
 	}
-	result = getit(context, SASL_CB_USER, &userid, NULL);
+	result = getit(context, SASL_CB_USER, &userid, &len);
 	if (result != SASL_OK)
 	  return result;
 	text->userid = params->utils->malloc(strlen(userid) + 1);
@@ -435,7 +436,7 @@ static int client_continue_step (void *conn_context,
 	  (*prompt_need)->defresult=getenv("USER");
 	  return SASL_INTERACT;
 	}
-	result = getit(context, SASL_CB_AUTHNAME, &authid, NULL);
+	result = getit(context, SASL_CB_AUTHNAME, &authid, &len);
 	if (result != SASL_OK)
 	  return result;
 	text->authid = params->utils->malloc(strlen(authid) + 1);
@@ -528,7 +529,7 @@ static int client_continue_step (void *conn_context,
   return SASL_FAIL; /* should never get here */
 }
 
-const sasl_client_plug_t client_plugins[] = 
+static const sasl_client_plug_t client_plugins[] = 
 {
   {
     "PLAIN",

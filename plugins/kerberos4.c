@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.12 1998/11/24 22:56:43 ryan Exp $
+ * $Id: kerberos4.c,v 1.13 1998/11/30 20:05:50 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -683,7 +683,7 @@ static int server_continue_step (void *conn_context,
   return SASL_FAIL; /* should never get here */
 }
 
-const sasl_server_plug_t plugins[] = 
+static const sasl_server_plug_t plugins[] = 
 {
   {
     "KERBEROS_V4",
@@ -999,7 +999,7 @@ static int c_continue_step (void *conn_context,
   return SASL_FAIL; /* should never get here */
 }
 
-const sasl_client_plug_t client_plugins[] = 
+static const sasl_client_plug_t client_plugins[] = 
 {
   {
     "KERBEROS_V4",

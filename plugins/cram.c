@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.5 1998/11/20 16:22:01 ryan Exp $
+ * $Id: cram.c,v 1.6 1998/11/30 20:05:48 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -392,7 +392,7 @@ setpass(void *glob_context __attribute__((unused)),
 		   secret);
 }
 
-const sasl_server_plug_t plugins[] = 
+static const sasl_server_plug_t plugins[] = 
 {
   {
     "CRAM-MD5",
@@ -573,7 +573,7 @@ static int c_continue_step (void *conn_context,
   return SASL_FAIL; /* should never get here */
 }
 
-const sasl_client_plug_t client_plugins[] = 
+static const sasl_client_plug_t client_plugins[] = 
 {
   {
     "CRAM-MD5",

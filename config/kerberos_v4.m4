@@ -76,7 +76,7 @@ AC_DEFUN([SASL_KERBEROS_V4_CHK], [
 
   AC_ARG_ENABLE(krb4, [  --enable-krb4           enable KERBEROS_V4 authentication [yes] ],
     krb4=$enableval,
-    krb4=yes)
+    krb4=no)
 
   if test "$krb4" != no; then
     dnl In order to compile kerberos4, we need libkrb and libdes.

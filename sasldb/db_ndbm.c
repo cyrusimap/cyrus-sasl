@@ -1,7 +1,7 @@
 /* db_ndbm.c--SASL ndbm interface
  * Rob Siemborski
  * Rob Earhart
- * $Id: db_ndbm.c,v 1.3 2001/12/12 00:23:16 rjs3 Exp $
+ * $Id: db_ndbm.c,v 1.4 2001/12/21 02:27:18 rjs3 Exp $
  */
 /*
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -102,7 +102,8 @@ int _sasldb_getdata(const sasl_utils_t *utils,
   db = dbm_open(path, O_RDONLY, S_IRUSR | S_IWUSR);
   if (! db) {
       utils->seterror(cntxt, 0, "Could not open db");
-      return SASL_FAIL;
+      result = SASL_FAIL;
+      goto cleanup;
   }
   dkey.dptr = key;
   dkey.dsize = key_len;
@@ -130,7 +131,8 @@ int _sasldb_getdata(const sasl_utils_t *utils,
 
  cleanup:
   utils->free(key);
-  dbm_close(db);
+  if(db)
+    dbm_close(db);
 
   return result;
 }

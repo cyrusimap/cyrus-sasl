@@ -1,7 +1,11 @@
+2001-12-20  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* sasldb/db_ndbm.c: Fixed small memory leak
+	  (Courtesy  Howard Chu <hyc@highlandsun.com>)
+
 2001-12-18  Ken Murchison <ken@oceana.com>
 	* plugins/srp.c: more constraint checks
 
-2001-12-17  Rob Siemborski <rjs3@andrew.cmu.edu>
+2001-12-17  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* saslauthd/saslauthd.c: Prefork a number of processes to handle
 	  connections.
 	* saslauthd/auth_krb4.c: Handle concurrent accesses better.

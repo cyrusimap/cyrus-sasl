@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.172 2004/07/06 14:03:49 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.173 2004/07/29 19:21:57 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -120,7 +120,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.172 2004/07/06 14:03:49 rjs3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.173 2004/07/29 19:21:57 rjs3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -152,6 +152,8 @@ const char *SIGNING_SERVER_CLIENT="Digest session key to server-to-client signin
 #define DEL	(127)
 
 #define NEED_ESCAPING	"\"\\"
+
+#define REALM_CHAL_PREFIX	"Available realms:"
 
 static char *quote (char *str);
 
@@ -222,6 +224,10 @@ typedef struct context {
     unsigned char *nonce;
     unsigned int nonce_count;
     unsigned char *cnonce;
+
+    /* only used by the client */
+    char ** realms;
+    int realm_cnt;
 
     char *response_value;
     
@@ -1521,11 +1527,21 @@ static void digestmd5_common_mech_dispose(void *conn_context,
 					  const sasl_utils_t *utils)
 {
     context_t *text = (context_t *) conn_context;
+    int lup;
     
     if (!text || !utils) return;
     
     if (text->authid) utils->free(text->authid);
     if (text->realm) utils->free(text->realm);
+
+    if (text->realms) {
+	/* need to free all the realms */
+	for (lup = 0; lup < text->realm_cnt; lup++)
+	    utils->free (text->realms[lup]);
+	
+	utils->free(text->realms);
+    }
+
     if (text->nonce) utils->free(text->nonce);
     if (text->cnonce) utils->free(text->cnonce);
 
@@ -3497,6 +3513,8 @@ static int ask_user_info(client_context_t *ctext,
     int auth_result = SASL_OK;
     int pass_result = SASL_OK;
     int realm_result = SASL_FAIL;
+    int i;
+    size_t len;
 
     /* try to get the authid */
     if (oparams->authid == NULL) {
@@ -3562,12 +3580,29 @@ static int ask_user_info(client_context_t *ctext,
 	(pass_result == SASL_INTERACT) || (realm_result == SASL_INTERACT)) {
 
 	/* make our default realm */
-	if ((realm_result == SASL_INTERACT) && params->serverFQDN) {
-	    realm_chal = params->utils->malloc(3+strlen(params->serverFQDN));
-	    if (realm_chal) {
-		sprintf(realm_chal, "{%s}", params->serverFQDN);
-	    } else {
-		return SASL_NOMEM;
+	if (realm_result == SASL_INTERACT) {
+	    if (realms) {
+		len = strlen(REALM_CHAL_PREFIX);
+		for (i = 0; i < nrealm; i++) {
+		    len += strlen(realms[i]) + 4 /* " {}," */;
+		}
+		realm_chal = params->utils->malloc(len + 1);
+		strcpy (realm_chal, REALM_CHAL_PREFIX);
+		for (i = 0; i < nrealm; i++) {
+		    strcat (realm_chal, " {");
+		    strcat (realm_chal, realms[i]);
+		    strcat (realm_chal, "},");
+		}
+		/* Replace the terminating comma with dot */
+		realm_chal[len-1] = '.';
+
+	    } else if (params->serverFQDN) {
+		realm_chal = params->utils->malloc(3+strlen(params->serverFQDN));
+		if (realm_chal) {
+		    sprintf(realm_chal, "{%s}", params->serverFQDN);
+		} else {
+		    return SASL_NOMEM;
+		}
 	    }
 	}
 
@@ -3738,7 +3773,15 @@ static int digestmd5_client_mech_step2(client_context_t *ctext,
 	    /* free realms */
 	    params->utils->free(realms);
 	    realms = NULL;
+	} else {
+	    /* Save realms for later use */
+	    text->realms = realms;
+	    text->realm_cnt = nrealm;
 	}
+    } else {
+	/* Restore the list of realms */
+	realms = text->realms;
+	nrealm = text->realm_cnt;
     }
 
     result = ask_user_info(ctext, params, realms, nrealm,
@@ -3761,16 +3804,6 @@ static int digestmd5_client_mech_step2(client_context_t *ctext,
     result = SASL_CONTINUE;
     
   FreeAllocatedMem:
-    if (realms) {
-	int lup;
-	
-	/* need to free all the realms */
-	for (lup = 0;lup < nrealm; lup++)
-	    params->utils->free(realms[lup]);
-	
-	params->utils->free(realms);
-    }
-
     return result;
 }
 

@@ -1,7 +1,12 @@
+2003-09-23  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* doc/gssapi.html: Misc updates
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+
 2003-09-23  Maya Nigrosh <mnigrosh@andrew.cmu.edu>
 	* plugins/sql.c: put transaction handling around the entirety of 
 	  the queries, and not just per-property; return the result status
 	  of bad postgres tuples
+
 2003-09-22  Maya Nigrosh <mnigrosh@andrew.cmu.edu>
 	* plugins/sql.c: added semicolon at the end of each sql statement
 	

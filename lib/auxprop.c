@@ -1,6 +1,6 @@
 /* auxprop.c - auxilliary property support
  * Rob Siemborski
- * $Id: auxprop.c,v 1.5 2002/06/20 13:39:54 rjs3 Exp $
+ * $Id: auxprop.c,v 1.6 2002/07/02 16:41:59 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -45,6 +45,7 @@
 #include <config.h>
 #include <sasl.h>
 #include <prop.h>
+#include <ctype.h>
 #include "saslint.h"
 
 struct proppool 
@@ -818,28 +819,61 @@ void _sasl_auxprop_lookup(sasl_server_params_t *sparams,
     sasl_getopt_t *getopt;
     int ret, found = 0;
     void *context;
-    const char *pluginname = NULL;
+    const char *plist = NULL;
     auxprop_plug_list_t *ptr;
-    
-    /* xxx support more than one at the same time? */
-    if(_sasl_getcallback(NULL, SASL_CB_GETOPT, &getopt, &context) == SASL_OK) {
-	ret = getopt(context, NULL, "auxprop_plugin", &pluginname, NULL);
-	if(ret != SASL_OK) pluginname = NULL;
+
+    if(_sasl_getcallback(sparams->utils->conn,
+			 SASL_CB_GETOPT, &getopt, &context) == SASL_OK) {
+	ret = getopt(context, NULL, "auxprop_plugin", &plist, NULL);
+	if(ret != SASL_OK) plist = NULL;
     }
 
-    for(ptr = auxprop_head; ptr; ptr = ptr->next) {
-	/* Skip non-matching plugins */
-	if(pluginname &&
-	   (!ptr->plug->name || strcasecmp(ptr->plug->name, pluginname)))
-	    continue;
+    if(!plist) {
+	/* Do lookup in all plugins */
+	for(ptr = auxprop_head; ptr; ptr = ptr->next) {
+	    found=1;
+	    ptr->plug->auxprop_lookup(ptr->plug->glob_context,
+				      sparams, flags, user, ulen);
+	}
+    } else {
+	char *pluginlist = NULL, *freeptr = NULL, *thisplugin = NULL;
 
-	found=1;
-      	ptr->plug->auxprop_lookup(ptr->plug->glob_context,
-				  sparams, flags, user, ulen);
+	if(_sasl_strdup(plist, &pluginlist, NULL) != SASL_OK) return;
+	thisplugin = freeptr = pluginlist;
+	
+	/* Do lookup in all *specified* plugins, in order */
+	while(*thisplugin) {
+	    char *p;
+	    int last=0;
+	    
+	    while(*thisplugin && isspace(*thisplugin)) thisplugin++;
+	    if(!(*thisplugin)) break;
+	    
+	    for(p = thisplugin;*p && !isspace(*p); p++);
+	    if(!*p) last = 1;
+	    else *p='\0';
+	    
+	    for(ptr = auxprop_head; ptr; ptr = ptr->next) {
+		/* Skip non-matching plugins */
+		if(!ptr->plug->name
+		   || strcasecmp(ptr->plug->name, thisplugin))
+		    continue;
+	    
+		found=1;
+		ptr->plug->auxprop_lookup(ptr->plug->glob_context,
+					  sparams, flags, user, ulen);
+	    }
+
+	    if(last) break;
+
+	    thisplugin = p+1;
+	}
+
+	sasl_FREE(freeptr);
     }
 
     if(!found)
 	_sasl_log(NULL, SASL_LOG_DEBUG,
-		  "could not find auxprop plugin, was searching for %s",
-		  pluginname ? pluginname : "[any]");
+		  "could not find auxprop plugin, was searching for '%s'",
+		  plist ? plist : "[all]");
 }

@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.c,v 1.15 2003/09/14 13:38:28 ken3 Exp $
+ * $Id: plugin_common.c,v 1.16 2003/12/15 19:03:08 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -636,7 +636,6 @@ int _plug_decode(decode_context_t *text,
     int ret;
     
     *outputlen = 0;
-    *output = NULL;
 
     while (inputlen) { /* more input */
 	if (text->needsize) { /* need to get the rest of the 4-byte size */

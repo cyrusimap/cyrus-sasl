@@ -38,7 +38,7 @@ javasasl_JAVA = Sasl.java GenericClient.java \
 		SaslUtils.java ServerFactory.java \
                 SaslServerFactory.java SaslServer.java \
                 GenericServer.java
-
+EXTRA_DIST = $(javasasl_JAVA)
 CLASSES = $(javasasl_JAVA:.java=.class)
 
 lib_LTLIBRARIES = libjavasasl.la

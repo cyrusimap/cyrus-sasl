@@ -89,10 +89,10 @@ typedef struct sasl_utils {
     void (*hmac_md5_import)(HMAC_MD5_CTX *, HMAC_MD5_STATE *);
 
     /* mechanism utility functions (same as above): */
-    int (*mkchal)(sasl_conn_t *conn, char *buf, int maxlen, int hostflag);
-    int (*utf8verify)(const char *str, int len);
-    void (*rand)(sasl_rand_t *rpool, char *buf, int len);
-    void (*churn)(sasl_rand_t *rpool, const char *data, int len);
+    int (*mkchal)(sasl_conn_t *conn, char *buf, unsigned maxlen, int hostflag);
+    int (*utf8verify)(const char *str, unsigned len);
+    void (*rand)(sasl_rand_t *rpool, char *buf, unsigned len);
+    void (*churn)(sasl_rand_t *rpool, const char *data, unsigned len);
 } sasl_utils_t;
 
 /* NOPLAINTEXT     -- don't permit mechanisms susceptible to simple

@@ -1,6 +1,6 @@
 /* saslutil.c
  * Tim Martin 5/20/98
- * $Id: saslutil.c,v 1.5 1998/11/20 16:22:00 ryan Exp $
+ * $Id: saslutil.c,v 1.6 1998/11/23 15:31:24 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -86,9 +86,11 @@ static char index_64[128] = {
 };
 
 
-int sasl_encode64(const unsigned char *in, int inlen,
-	       unsigned char *out, int outmax, int *outlen)
+int sasl_encode64(const char *_in, unsigned inlen,
+		  char *_out, unsigned outmax, unsigned *outlen)
 {
+    const unsigned char *in = (const unsigned char *)_in;
+    unsigned char *out = (unsigned char *)_out;
     unsigned char oval;
     char *blah;
 
@@ -115,9 +117,10 @@ int sasl_encode64(const unsigned char *in, int inlen,
 }
 
 
-int sasl_decode64(const char *in,int inlen, char *out,int *outlen)
+int sasl_decode64(const char *in, unsigned inlen,
+		  char *out, unsigned *outlen)
 {
-    int len = 0,lup;
+    unsigned len = 0,lup;
     int c1, c2, c3, c4;
 
     if (in[0] == '+' && in[1] == ' ') in += 2;
@@ -151,16 +154,12 @@ int sasl_decode64(const char *in,int inlen, char *out,int *outlen)
     return SASL_OK;
 }
 
-
-
-
-
   /* borrowed from larry. probably works :)
    * probably is also in acap server somewhere
    */
-int sasl_utf8verify(const char *str, int len)
+int sasl_utf8verify(const char *str, unsigned len)
 {
-  int i;
+  unsigned i;
   for (i = 0; i < len; i++) {
     /* how many octets? */
     int seqlen = 0;
@@ -174,7 +173,8 @@ int sasl_utf8verify(const char *str, int len)
   return SASL_OK;
 }      
 
-int parityof(unsigned char ch)
+static int
+parityof(unsigned char ch)
 {
   int ret=0;
   int lup;
@@ -259,7 +259,7 @@ void sasl_randfree(sasl_rand_t **rpool)
   sasl_FREE((*rpool));
 }
 
-void sasl_randseed (sasl_rand_t *rpool, const char *seed, int len)
+void sasl_randseed (sasl_rand_t *rpool, const char *seed, unsigned len)
 {
   /* is it acceptable to just use the 1st 3 char's given??? */
   int lup;
@@ -269,7 +269,7 @@ void sasl_randseed (sasl_rand_t *rpool, const char *seed, int len)
       rpool->pool[lup]=seed[lup];
 }
 
-void sasl_rand (sasl_rand_t *rpool, char *buf, int len)
+void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
 {
   int lup;
   if (buf==NULL) return;
@@ -283,14 +283,14 @@ void sasl_rand (sasl_rand_t *rpool, char *buf, int len)
 #endif /* WIN32 */
 }
 
-void sasl_churn (sasl_rand_t *rpool, const char *data, int len)
+void sasl_churn (sasl_rand_t *rpool, const char *data, unsigned len)
 {
   int lup,spot;
   spot=0;
 
   for (lup=0;lup<len;lup++)
   {
-    rpool->pool[spot]+=data[lup];
+    rpool->pool[spot]^=data[lup];
     spot++;
     if (spot==3)
       spot=0;

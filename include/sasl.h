@@ -80,13 +80,16 @@
 #ifndef SASL_H
 #define SASL_H 1
 
-/* The following ifdef block is the standard way of creating macros which make exporting 
- * from a DLL simpler. All files within this DLL are compiled with the LIBSASL_EXPORTS
- * symbol defined on the command line. this symbol should not be defined on any project
- * that uses this DLL. This way any other project whose source files include this file see 
- * LIBSASL_API functions as being imported from a DLL, wheras this DLL sees symbols
- * defined with this macro as being exported.
- */
+/* The following ifdef block is the standard way of creating macros
+ * which make exporting from a DLL simpler. All files within this DLL
+ * are compiled with the LIBSASL_EXPORTS symbol defined on the command
+ * line. this symbol should not be defined on any project that uses
+ * this DLL. This way any other project whose source files include
+ * this file see LIBSASL_API functions as being imported from a DLL,
+ * wheras this DLL sees symbols defined with this macro as being
+ * exported.  */
+/* Under Unix, life is simpler: we just need to mark library functions
+ * as extern.  (Technically, we don't even have to do that.) */
 #ifdef WIN32
 # ifdef LIBSASL_EXPORTS
 #  define LIBSASL_API __declspec(dllexport)
@@ -95,7 +98,7 @@
 # endif /* LIBSASL_EXPORTS */
 LIBSASL_API int _sasl_debug;
 #else /* WIN32 */
-# define LIBSASL_API
+# define LIBSASL_API extern
 #endif /* WIN32 */
 
 /*************
@@ -172,7 +175,9 @@ typedef void *sasl_calloc_t(unsigned long, unsigned long);
 typedef void *sasl_realloc_t(void *, unsigned long);
 typedef void sasl_free_t(void *);
 
-LIBSASL_API void sasl_set_alloc(sasl_malloc_t *, sasl_calloc_t *, sasl_realloc_t *,
+LIBSASL_API void sasl_set_alloc(sasl_malloc_t *,
+				sasl_calloc_t *,
+				sasl_realloc_t *,
                                 sasl_free_t *);
 
 /* mutex functions which may optionally be replaced:
@@ -432,7 +437,9 @@ LIBSASL_API int sasl_getprop(sasl_conn_t *conn, int propnum, void **pvalue);
  *  SASL_OK       -- value set
  *  SASL_BADPARAM -- invalid property or value
  */
-LIBSASL_API int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value);
+LIBSASL_API int sasl_setprop(sasl_conn_t *conn,
+			     int propnum,
+			     const void *value);
 #define SASL_SSF_EXTERNAL 100  /* external SSF active */
 #define SASL_SEC_PROPS    101  /* sasl_security_properties_t */
 
@@ -742,16 +749,18 @@ int sasl_setpass(sasl_conn_t *conn,
  *  SASL_OK      -- success (returns input if no layer negotiated)
  *  SASL_NOTDONE -- security layer negotiation not finished
  */
-LIBSASL_API int sasl_encode(sasl_conn_t *conn, const char *input, unsigned inputlen,
-		char **output, unsigned *outputlen);
+LIBSASL_API int sasl_encode(sasl_conn_t *conn,
+			    const char *input, unsigned inputlen,
+			    char **output, unsigned *outputlen);
 
 /* decode a block of data received using security layer
  * returns:
  *  SASL_OK      -- success (returns input if no layer negotiated)
  *  SASL_NOTDONE -- security layer negotiation not finished
  */
-LIBSASL_API int sasl_decode(sasl_conn_t *conn, const char *input, unsigned inputlen,
-		char **output, unsigned *outputlen);
+LIBSASL_API int sasl_decode(sasl_conn_t *conn,
+			    const char *input, unsigned inputlen,
+			    char **output, unsigned *outputlen);
 
 #endif /* SASL_H */
 

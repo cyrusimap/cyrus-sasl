@@ -1,6 +1,6 @@
 /* Anonymous SASL plugin
  * Tim Martin 
- * $Id: anonymous.c,v 1.6 1998/11/20 16:22:01 ryan Exp $
+ * $Id: anonymous.c,v 1.7 1998/11/23 15:31:25 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -119,6 +119,7 @@ static int continue_step (void *conn_context,
 	      sasl_out_params_t *oparams,
 	      const char **errstr)
 {
+  int result;
   context_t *text;
   text=conn_context;
 
@@ -138,7 +139,6 @@ static int continue_step (void *conn_context,
 
   if (text->state==2)
   {
-    int result;
     sasl_log_t *log_proc;
     void *log_context;
 
@@ -172,9 +172,7 @@ static int continue_step (void *conn_context,
     }
 
     oparams->mech_ssf=0;
-
-    oparams->maxoutbuf=1024; /* no clue what this should be */
-  
+    oparams->maxoutbuf=0;
     oparams->encode=NULL;
     oparams->decode=NULL;
 
@@ -186,8 +184,6 @@ static int continue_step (void *conn_context,
 
     /*nothing more to do; authenticated */
     oparams->doneflag=1;
-
-    /* XXX Consider logging the trace info */
 
     *serverout = NULL;
     *serveroutlen = 0;
@@ -260,11 +256,12 @@ static int c_continue_step (void *conn_context,
 	      int *clientoutlen,
 	      sasl_out_params_t *oparams)
 {
+  int result;
   context_t *text;
   text=conn_context;
 
-  oparams->mech_ssf=1;
-  oparams->maxoutbuf=1024; /* no clue what this should be */
+  oparams->mech_ssf=0;
+  oparams->maxoutbuf=0;
   oparams->encode=NULL;
   oparams->decode=NULL;
   oparams->user="anonymous"; /* set username */
@@ -276,47 +273,41 @@ static int c_continue_step (void *conn_context,
 
   if (text->state==1)
   {
+    unsigned userlen;
+    const char *username;
+    char hostname[256];
+
     /* check if sec layer strong enough */
     if (params->props.min_ssf>0)
       return SASL_TOOWEAK;
 
-    *clientout = text->malloc(1);
-    if (! *clientout) return SASL_NOMEM;
-    **clientout = '\0';
-    *clientoutlen = 0;
-
-    text->state=2;
-    return SASL_CONTINUE;
-  }
-
-  if (text->state==2)
- {
-    int result;
-    char hostname[256];
-    char *userid="undefined";
-    
     result = params->utils->getprop(params->utils->conn,
-			  SASL_USERNAME, (void **)&userid);
-    if (result != SASL_OK) return result;
-    
-    VL(("user=%s\n",userid));
+				    SASL_USERNAME,
+				    (void **)&username);
+    if (result != SASL_OK)
+      username = "(unknown)";
 
+    VL(("user=%s\n",username));
+
+    userlen = strlen(username);
+
+    memset(hostname, 0, sizeof(hostname));
     gethostname(hostname,sizeof(hostname));
 
-    *clientoutlen = strlen(userid)+1+strlen(hostname);
+    *clientoutlen = userlen + strlen(hostname) + 1;
+
     *clientout = text->malloc(*clientoutlen + 1);
     if (! *clientout) return SASL_NOMEM;
-    strcpy(*clientout, userid);
-    strcat(*clientout, "@");
-    strcat(*clientout,hostname);
 
-    VL(("out=%s\n",*clientout));
+    strcpy(*clientout, username);
+    (*clientout)[userlen] = '@';
+    strcpy(*clientout + userlen, hostname);
 
-    /*nothing more to do; authenticated */
-    oparams->doneflag=1;
+    VL(("out=%s\n", *clientout));
 
-    /* fill fail if try to call again */
-    text->state=3;
+    oparams->doneflag = 1;
+
+    text->state=2;
 
     return SASL_OK;
   }

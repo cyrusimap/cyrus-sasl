@@ -1,3 +1,9 @@
+New in 1.5.19
+-------------
+* Initial srp work
+* Programmers Guide more complete
+* bug fixes (of course)
+
 New in 1.5.18
 -------------
 * javasasl library in conformance with internet draft

@@ -89,7 +89,7 @@
 
 #define SASL_VERSION_MAJOR 1
 #define SASL_VERSION_MINOR 5
-#define SASL_VERSION_STEP 18
+#define SASL_VERSION_STEP 19
 
 /* The following ifdef block is the standard way of creating macros
  * which make exporting from a DLL simpler. All files within this DLL

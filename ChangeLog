@@ -1,5 +1,7 @@
 2000-04-13  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
+	* sasl: releasing 1.5.19
+
 	* plugins/digestmd5.c (c_continue_step): free input string on SASL_INTERACT
 	(c_continue_step): free nonce string on SASL_INTERACT
 
@@ -23,6 +25,7 @@
 	* plugins/digestmd5.c (c_continue_step): infinite loop fix
 
 2000-03-22  Walter Wong (wcw+@cmu.edu)
+
 	* pwcheck/Makefile.am: add LIB_SOCKET
 
 2000-04-06  Timothy Martin  <tmartin+@andrew.cmu.edu>

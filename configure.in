@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.86 2000/04/12 19:56:41 tmartin Exp $
+dnl $Id: configure.in,v 1.87 2000/04/13 20:11:06 tmartin Exp $
 dnl
 dnl Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -49,7 +49,7 @@ dnl
 dnl REMINDER: When changing the version number here, please also update
 dnl the values in win32/include/config.h and include/sasl.h as well.
 dnl
-AM_INIT_AUTOMAKE(cyrus-sasl, 1.5.18)
+AM_INIT_AUTOMAKE(cyrus-sasl, 1.5.19)
 CMU_INIT_AUTOMAKE
 
 DIRS=""
@@ -567,6 +567,7 @@ AC_ARG_ENABLE(srp, [  --enable-srp           enable SRP authentication [no] ],
 
 AC_MSG_CHECKING(SRP)
 if test "$srp" != no; then
+  AC_ERROR([This is pre-alpha. You probably don't want to use this])
   AC_MSG_RESULT(enabled)
   SRP_LIBS="-lgmp -lcrypto"
   AC_SUBST(SRP_LIBS)

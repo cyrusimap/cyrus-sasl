@@ -41,7 +41,7 @@ case `uname` in
 esac
 
 MAKE=gmake
-LNCOMMAND="${SRCDIR}/configure --with-staticsasl --prefix=/usr/local --enable-cmulocal --with-sfio=/usr/local --enable-java ${LNEXTRA} --with-saslauthd=/var/run/saslauthd --enable-login --enable-srp --disable-otp --disable-checkapop --enable-krb4"
+LNCOMMAND="${SRCDIR}/configure --with-staticsasl --prefix=/usr/local --enable-cmulocal --with-sfio=/usr/local --enable-java ${LNEXTRA} --with-saslauthd=/var/run/saslauthd --enable-login --enable-srp --disable-otp --disable-checkapop --enable-krb4 --with-dblib=none"
 INSTCOMMAND="rm -rf ${DESTDIR}/*; ${MAKE} DESTDIR=${DESTDIR} install; echo 'usr/local /' > ${DESTDIR}/depot.conf; echo '~delete sbin/smtptest' >> ${DESTDIR}/depot.conf"
 
 export CC CFLAGS CPPFLAGS LIBS

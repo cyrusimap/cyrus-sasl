@@ -216,6 +216,7 @@ server_continue_step (void *conn_context,
     int lup=0;
     char *mem;
     int result;
+    char *passcopy; 
 
     /* should have received author-id NUL authen-id NUL password */
 
@@ -249,9 +250,20 @@ server_continue_step (void *conn_context,
     if (lup != clientinlen)
       return SASL_BADPROT;
 
+    /* this kinda sucks. we need password to be null terminated
+       but we can't assume there is an allocated byte at the end
+       of password so we have to copy it */
+    passcopy = params->utils->malloc(password_len + 1);    
+    if (passcopy==NULL) return SASL_NOMEM;
+
+    strcpy(passcopy,password);
+
     /* verify password - return sasl_ok on success*/    
     result=verify_password(authen,
-			   password);
+			   passcopy);
+    
+    params->utils->free(passcopy);
+
     if (result!=SASL_OK)
       return result;
 
@@ -286,10 +298,10 @@ server_continue_step (void *conn_context,
     strcpy(mem, authen);
     oparams->authid = mem;
 
-    if (params->local_domain) {
-      mem = params->utils->malloc(strlen(params->local_domain) + 1);
+    if (params->serverFQDN) {
+      mem = params->utils->malloc(strlen(params->serverFQDN) + 1);
       if (! mem) return SASL_NOMEM;
-      strcpy(mem, params->local_domain);
+      strcpy(mem, params->serverFQDN);
       oparams->realm = mem;
     } else oparams->realm = NULL;
 

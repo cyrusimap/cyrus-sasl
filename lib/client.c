@@ -357,6 +357,7 @@ int sasl_client_init(const sasl_callback_t *callbacks)
   
   ret=_sasl_get_mech_list("sasl_client_plug_init",
 			  _sasl_find_getpath_callback(callbacks),
+			  _sasl_find_verifyfile_callback(callbacks),
 			  &add_plugin);
 
   return ret;
@@ -648,6 +649,10 @@ int sasl_client_step(sasl_conn_t *conn,
 {
   sasl_client_conn_t *c_conn= (sasl_client_conn_t *) conn;
 
+  /* check parameters */
+  if ((serverin==NULL) && (serverinlen>0))
+    return SASL_BADPARAM;
+
   /* do a step */
    return c_conn->mech->plug->mech_step(conn->context,
 				    c_conn->cparams,
@@ -698,7 +703,7 @@ void sasl_free_secret(sasl_secret_t **secret)
 
   /* overwrite the memory */
   for (lup=0;lup<(*secret)->len;lup++)
-    (*secret)->data[lup]='X';
+    (*secret)->data[lup]='\0';
 
   sasl_FREE(*secret);
 

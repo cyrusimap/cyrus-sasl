@@ -32,10 +32,14 @@ SOFTWARE.
 
 extern int _sasl_get_mech_list(const char *entryname,
 			       const sasl_callback_t *getpath_callback,
+			       const sasl_callback_t *verifyfile_callback,
 			       int (*add_plugin)(void *,void *));
 
 extern const sasl_callback_t *
 _sasl_find_getpath_callback(const sasl_callback_t *callbacks);
+
+extern const sasl_callback_t *
+_sasl_find_verifyfile_callback(const sasl_callback_t *callbacks);
 
 extern int _sasl_done_with_plugin(void *plugin);
 
@@ -82,7 +86,7 @@ struct sasl_conn {
   const sasl_global_callbacks_t *global_callbacks; /* global callbacks
 						    * for this
 						    * connection */
-  char *local_domain;
+  char *serverFQDN; /* xxx i think this is only used in server */
 };
 
 extern int _sasl_conn_init(sasl_conn_t *conn,

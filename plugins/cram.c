@@ -117,7 +117,7 @@ static void free_string(sasl_utils_t *utils,
 			char **str)
 {
   size_t lup;
-  int len;
+  size_t len;
   VL(("Freeing string\n"));
 
   if (str==NULL) return;
@@ -127,7 +127,7 @@ static void free_string(sasl_utils_t *utils,
 
   /* overwrite the memory */
   for (lup=0;lup<len;lup++)
-    (*str)[lup]='X';
+    (*str)[lup]='\0';
 
   utils->free(*str);
 
@@ -293,7 +293,7 @@ static int server_continue_step (void *conn_context,
 
     /* create the nonce */
     snprintf((char *)*serverout,200,"<%s.%s@%s>",randdigits,time,
-	    sparams->local_domain);
+	    sparams->serverFQDN);
 
     /* free stuff */
     sparams->utils->free(time);    

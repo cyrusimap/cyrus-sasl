@@ -156,6 +156,13 @@ static int privacy_decode(void *context,
     context_t *text=context;
     char *extra;
     unsigned int extralen=0;
+    FILE *stream;
+    int lup;
+
+    stream=fopen("/tmp/krbfoo","a+");
+    for (lup=0;lup<inputlen;lup++)
+      fprintf(stream,"%i. %i\n",lup,(unsigned char) input[lup]);
+    fclose(stream);
   
     if (text->needsize>0) /* 4 bytes for how long message is */
     {
@@ -223,7 +230,7 @@ static int privacy_decode(void *context,
     if (len!=0)
     {
       text->free(text->buffer);
-      return SASL_FAIL;
+      return SASL_FAIL-(len*100);
     }
 
     *output=text->malloc(data->app_length+1);
@@ -244,7 +251,7 @@ static int privacy_decode(void *context,
     /* if received more than the end of a packet */
     if (inputlen!=0)
     {
-      
+      extra=NULL;
       privacy_decode(text, input, inputlen,
 			   &extra, &extralen);
       if (extra!=NULL) /* if received 2 packets merge them together */
@@ -301,6 +308,13 @@ static int integrity_decode(void *context, const char *input, unsigned inputlen,
     char *extra;
     unsigned int extralen=0;
     unsigned diff;
+    FILE *stream;
+    int lup;
+
+    stream=fopen("/tmp/krbfoo","a+");
+    for (lup=0;lup<inputlen;lup++)
+      fprintf(stream,"%i. %i\n",lup,(unsigned char) input[lup]);
+    fclose(stream);
   
     if (text->needsize>0) /* 4 bytes for how long message is */
     {
@@ -365,7 +379,7 @@ static int integrity_decode(void *context, const char *input, unsigned inputlen,
 
     if (len!=0)
     {
-      return SASL_FAIL;
+      return SASL_FAIL-(len*100);
     }
 
     *output=text->malloc(data->app_length+1);
@@ -517,10 +531,10 @@ static int server_continue_step (void *conn_context,
     for (lup=0;lup<clientinlen;lup++)      
       ticket.dat[lup]=clientin[lup];
 
-    text->realm=krb_realmofhost(sparams->local_domain);    
+    text->realm=krb_realmofhost(sparams->serverFQDN);
 
     /* get instance */
-    strncpy (text->instance, krb_get_phost (sparams->local_domain),
+    strncpy (text->instance, krb_get_phost (sparams->serverFQDN),
 	     sizeof (text->instance));
     text->instance[sizeof(text->instance)-1] = 0;
 
@@ -645,12 +659,12 @@ static int server_continue_step (void *conn_context,
     /* get ip data */
     result = sparams->utils->getprop(sparams->utils->conn,
 				     SASL_IP_LOCAL,
-				     (void **)&text->ip_local);
+				     (void **)&(text->ip_local));
     if (result != SASL_OK) return result;
 
     result = sparams->utils->getprop(sparams->utils->conn,
 				     SASL_IP_REMOTE,
-				     (void **)&text->ip_remote);
+				     (void **)&(text->ip_remote));
 
     if (result!=SASL_OK) return result;
 
@@ -1075,11 +1089,11 @@ static int client_continue_step (void *conn_context,
 
     /*nothing more to do; should be authenticated */
     result = params->utils->getprop(params->utils->conn,
-                          SASL_IP_LOCAL, (void **)&text->ip_local);
+                          SASL_IP_LOCAL, (void **)&(text->ip_local));
     if (result!=SASL_OK) return result;
 
     result = params->utils->getprop(params->utils->conn,
-                          SASL_IP_REMOTE, (void **)&text->ip_remote);
+                          SASL_IP_REMOTE, (void **)&(text->ip_remote));
     if (result!=SASL_OK) return result;
 
     oparams->authid =
@@ -1123,7 +1137,7 @@ static int client_continue_step (void *conn_context,
 }
 
 static const long client_required_prompts[] = {
-  SASL_CB_AUTH,
+  SASL_CB_AUTHNAME,
   SASL_CB_LIST_END
 };
 

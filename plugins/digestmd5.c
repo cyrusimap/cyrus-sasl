@@ -166,7 +166,8 @@ typedef struct context {
   des_key_schedule keysched_dec2;   /* key schedule for 3des initialization */
 
 #ifdef WITH_RC4
-  rc4_context_t rc4_context;
+  rc4_context_t *rc4_enc_context;
+  rc4_context_t *rc4_dec_context;
 #endif /* WITH_RC4 */
 }               context_t;
 
@@ -189,6 +190,109 @@ static int      htoi(unsigned char *hexin, int *res);
 #define KEYS_FILE NULL
 
 static unsigned char *COLON = (unsigned char *) ":";
+
+void
+tmp_rc4_init(rc4_context_t *text,
+         const unsigned char *key,
+         unsigned keylen)
+{
+  int i, j;
+
+  /* fill in linearly s0=0 s1=1... */
+  for (i=0;i<256;i++)
+    text->sbox[i]=i;
+
+  j=0;
+  for (i=0; i<256; i++)
+  {
+    unsigned char tmp;
+    /* j = (j + Si + Ki) mod 256 */
+    j=(j+text->sbox[i]+key[i%keylen])%256;
+
+    /* swap Si and Sj */
+    tmp=text->sbox[i];
+    text->sbox[i]=text->sbox[j];
+    text->sbox[j]=tmp;
+  }
+
+  /* counters initialized to 0 */
+  text->i=0;
+  text->j=0;
+}
+
+void
+tmp_rc4_encrypt(rc4_context_t *text,
+            const char *input,
+            char *output,
+            unsigned len)
+{
+  int tmp;
+  int i=text->i;
+  int j=text->j;
+  int t;
+  int K;
+  const char *input_end = input + len;
+
+  while (input < input_end)
+  {
+    i=(i+1) %256;
+
+    j=(j + text->sbox[i] ) %256;
+
+    /* swap Si and Sj */
+    tmp=text->sbox[i];
+    text->sbox[i]=text->sbox[j];
+    text->sbox[j]=tmp;
+  
+    t=( text->sbox[i] + text->sbox[j]) %256;
+    
+    K=text->sbox[t];
+
+    /* byte K is Xor'ed with plaintext */
+    *output++ = *input++ ^ K;
+  }
+
+  text->i=i;
+  text->j=j;
+}
+
+void
+tmp_rc4_decrypt(rc4_context_t *text,
+            const char *input,
+            char *output,
+            unsigned len)
+{
+  int tmp;
+  int i=text->i;
+  int j=text->j;
+  int t;
+  int K;
+  const char *input_end = input + len;
+
+  while (input < input_end)
+  {
+    i=(i+1) %256;
+
+    j=(j + text->sbox[i] ) %256;
+
+    /* swap Si and Sj */
+    tmp=text->sbox[i];
+    text->sbox[i]=text->sbox[j];
+    text->sbox[j]=tmp;
+  
+    t=( text->sbox[i] + text->sbox[j]) %256;
+    
+    K=text->sbox[t];
+
+    /* byte K is Xor'ed with plaintext */
+    *output++ = *input++ ^ K;
+  }
+
+  text->i=i;
+  text->j=j;
+}
+
+
 
 void
 CvtHex(
@@ -1080,7 +1184,15 @@ init_rc4(context_t *text,
 	 char *key,
 	 int keylen)
 {
-  rc4_init(&text->rc4_context, key, keylen);
+  text->rc4_enc_context=(rc4_context_t *) text->malloc(sizeof(rc4_context_t));
+  if (text->rc4_enc_context==NULL) return SASL_NOMEM;
+
+  text->rc4_dec_context=(rc4_context_t *) text->malloc(sizeof(rc4_context_t));
+  if (text->rc4_dec_context==NULL) return SASL_NOMEM;
+
+  tmp_rc4_init(text->rc4_enc_context, key, keylen);
+  tmp_rc4_init(text->rc4_dec_context, key, keylen);
+
   return SASL_OK;
 }
 
@@ -1094,7 +1206,7 @@ dec_rc4(context_t *text,
   *output = (char *) text->malloc(inputlen);
   if (*output == NULL) return SASL_NOMEM;
   *outputlen = inputlen;
-  rc4_decrypt(&text->rc4_context, input, *output, inputlen);
+  tmp_rc4_decrypt(text->rc4_dec_context, input, *output, inputlen);
   return SASL_OK;
 }
 
@@ -1106,7 +1218,7 @@ enc_rc4(context_t *text,
 	unsigned *outputlen)
 {
   *outputlen = inputlen;
-  rc4_encrypt(&text->rc4_context, input, *output, inputlen);
+  tmp_rc4_encrypt(text->rc4_enc_context, input, *output, inputlen);
   return SASL_OK;
 }
 
@@ -1159,6 +1271,7 @@ privacy_encode(void *context,
   /* construct (seqnum, msg) */
   param2 = (unsigned char *) text->malloc(inputlen + 4);
   if (param2 == NULL) return SASL_NOMEM;
+
   tmpnum = htonl(text->seqnum);
   memcpy(param2, &tmpnum, 4);
   memcpy(param2 + 4, input, inputlen);
@@ -1167,6 +1280,8 @@ privacy_encode(void *context,
   /* HMAC(ki, (seqnum, msg) ) */
   text->hmac_md5(text->Ki, HASHLEN,
 		 param2, inputlen + 4, digest);
+
+  text->free(param2);
 
   /* MAC foo */
   text->cipher_enc(text, digest, MAC_SIZE,
@@ -1294,13 +1409,26 @@ privacy_decode(void *context,
     text->hmac_md5(text->Ki, HASHLEN,
 		   param2, (*outputlen) + 4, digest);
 
-    macmid=(char *)malloc(MAC_SIZE+12);
+    text->free(param2);
+
+
 
 
     /* MAC foo */
-  text->cipher_enc(text, digest, MAC_SIZE,
-		   &macmid, &tmpnum);
 
+    /* this sucks. we want to encode but we want to use rc4's decode sbox's 
+     * so stuff doesn't get out of sync 
+     */
+    if (text->cipher_init==(&init_rc4))
+    {
+      text->cipher_dec(text, digest, MAC_SIZE,
+		       &macmid, &tmpnum);
+    } else { /* else is DES */
+
+      macmid=(char *)malloc(MAC_SIZE+12);
+      text->cipher_enc(text, digest, MAC_SIZE,
+		       &macmid, &tmpnum);
+    }
   /*    text->cipher_dec(text, (text->buffer)+text->size-(MAC_SIZE+4), MAC_SIZE,
 	(char **) &macmid, &tmpnum);*/
 
@@ -1308,9 +1436,11 @@ privacy_decode(void *context,
 
   tmpbuf=((unsigned char *)(text->buffer)+text->size-(MAC_SIZE+4));
 
-  for (lup=0;lup<MAC_SIZE;lup++)
+  for (lup=0;lup<MAC_SIZE;lup++) /*     printf("%i %i %i\n",lup,macmid[lup],tmpbuf[lup]);
+				  */
     if (macmid[lup]!=tmpbuf[lup])
     {
+      text->free(macmid);
       VL(("CMAC doesn't match!\n"));
       return SASL_FAIL;
     }
@@ -1325,7 +1455,7 @@ privacy_decode(void *context,
     /* if received more than the end of a packet */
     if (inputlen!=0)
     {
-      
+      extra=NULL;
       privacy_decode(text, input, inputlen,
 			   &extra, &extralen);
       if (extra!=NULL) /* if received 2 packets merge them together */
@@ -1623,11 +1753,17 @@ static int
 get_realm(sasl_server_params_t * params,
 	  char **realm)
 {
-  if (params->local_domain == NULL) {
+  /* look at user realm first */
+  if (params->user_realm != NULL)
+  {
+    *realm = (char *) params->user_realm;  
+
+  } else if (params->serverFQDN != NULL) {
+    *realm = (char *) params->serverFQDN;
+
+  } else {
     VL(("No way to obtain domain\n"));
     return SASL_FAIL;
-  } else {
-    *realm = (char *) params->local_domain;
   }
 
   return SASL_OK;
@@ -1939,7 +2075,7 @@ server_continue_step(void *conn_context,
 	text->cipher_enc=(cipher_function_t *) &enc_des;
 	text->cipher_dec=(cipher_function_t *) &dec_des;
 	text->cipher_init=(cipher_init_t *) &init_des;	
-	oparams->mech_ssf = 56;
+	oparams->mech_ssf = 55;
 	n=16; /* number of bits to make privacy key */
 
       } else if (strcmp(cipher,"3des")==0) {
@@ -2282,17 +2418,21 @@ static int
       || !pass)
     return SASL_BADPARAM;
 
-  if (!sparams->local_domain) {
+  /* get the realm */
+  result=get_realm(sparams,
+		   &realm);
+
+  if ((result!=SASL_OK) || (realm==NULL)) {
     VL(("Digest-MD5 requires a domain\n"));
     return SASL_NOTDONE;
   }
-  realm = (char *) sparams->local_domain;
+
   realmlen = strlen(realm);
   userlen = strlen(user);
 
   DigestCalcSecret(sparams->utils,
 		   (unsigned char *) user,
-		   (unsigned char *) sparams->local_domain,
+		   (unsigned char *) realm,
 		   (char *) pass,
 		   passlen,
 		   HA1);
@@ -2321,7 +2461,7 @@ static int
   memcpy(userid, user, userlen);
   userid[userlen] = (char) ':';
 
-  memcpy(userid + userlen + 1, sparams->local_domain, realmlen);
+  memcpy(userid + userlen + 1, realm, realmlen);
   userid[userlen + realmlen + 1] = '\0';
 
 
@@ -2344,7 +2484,7 @@ const sasl_server_plug_t plugins[] =
 {
   {
     "DIGEST-MD5",
-    0,				/* max ssf */
+    128,				/*xxx max ssf */
     0,
     NULL,
     &server_start,
@@ -2988,8 +3128,18 @@ c_continue_step(void *conn_context,
 
       /* Client request encryption, server support it */
       /* encryption */
-      if ((secprops.max_ssf>=112) && ((ciphers & CIPHER_3DES) == CIPHER_3DES))
-      {
+#ifdef WITH_RC4
+      if ((secprops.max_ssf>=128)  && ((ciphers & CIPHER_RC4) == CIPHER_RC4)) { /* rc4 */
+	VL(("Trying to use rc4"));
+	cipher = "rc4";
+	text->cipher_enc=(cipher_function_t *) &enc_rc4; /* uses same function both ways */
+	text->cipher_dec=(cipher_function_t *) &dec_rc4;
+	text->cipher_init=(cipher_init_t *) &init_rc4;
+	oparams->mech_ssf = 128;
+	n=16;
+#endif /* WITH_RC4 */
+
+      } else if ((secprops.max_ssf>=112) && ((ciphers & CIPHER_3DES) == CIPHER_3DES)) {
 	VL(("Trying to use 3des"));
 	cipher = "3des";
 	text->cipher_enc=(cipher_function_t *) &enc_3des;
@@ -2998,16 +3148,9 @@ c_continue_step(void *conn_context,
 	oparams->mech_ssf = 112; 
 	n=16; /* number of bits to use for privacy key */
 
-#ifdef WITH_RC4
-      } else if ((secprops.max_ssf>=128)  && ((ciphers & CIPHER_RC4) == CIPHER_RC4)) { /* rc4 */
-	VL(("Trying to use rc4"));
-	cipher = "rc4";
-	text->cipher_enc=(cipher_function_t *) &enc_rc4; /* uses same function both ways */
-	text->cipher_dec=(cipher_function_t *) &dec_rc4;
-	text->cipher_init=(cipher_init_t *) &init_rc4;
-	oparams->mech_ssf = 128;
-	n=16;
 
+
+#ifdef WITH_RC4
       } else if ((secprops.max_ssf>=56)  && ((ciphers & CIPHER_RC456) == CIPHER_RC456)) { /* rc4-56 */
  	VL(("Trying to use rc4-56"));
  	cipher = "rc4-56";
@@ -3016,16 +3159,16 @@ c_continue_step(void *conn_context,
  	text->cipher_init=(cipher_init_t *) &init_rc4;
  	oparams->mech_ssf = 56;
  	n = 7;
-
-
 #endif /* WITH_RC4 */
-      } else if ((secprops.max_ssf>=56)  && ((ciphers & CIPHER_DES) == CIPHER_DES)) { /* des */
+
+
+      } else if ((secprops.max_ssf>=55)  && ((ciphers & CIPHER_DES) == CIPHER_DES)) { /* des */
 	VL(("Trying to use des"));
 	cipher = "des";
 	text->cipher_enc=(cipher_function_t *) &enc_des;
 	text->cipher_dec=(cipher_function_t *) &dec_des;
 	text->cipher_init=(cipher_init_t *) &init_des;
-	oparams->mech_ssf = 56; 
+	oparams->mech_ssf = 55; 
 	n=16;
 
 #ifdef WITH_RC4

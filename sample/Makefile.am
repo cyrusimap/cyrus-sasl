@@ -23,6 +23,9 @@
 #PERFORMANCE OF THIS SOFTWARE.
 ################################################################
 
+INCLUDES=-I$(top_srcdir)/include
+
 noinst_PROGRAMS = sample-client sample-server
 sample_client_LDADD = ../lib/libsasl.la $(LIB_SOCKET)
-sample_client_INCLUDES=-I$(top_srcdir)/include
+sample_server_LDADD = ../lib/libsasl.la $(LIB_SOCKET)
+

@@ -237,7 +237,7 @@ typedef struct mech_list {
 typedef struct sasl_server_conn {
   sasl_conn_t base; /* parts common to server + client */
 
-  char *user_domain; /* domain the user authenticating is in This is
+  char *user_realm; /* domain the user authenticating is in This is
 		      * usually simply their hostname */
 
   int authenticated;
@@ -304,9 +304,9 @@ int sasl_setpass(sasl_conn_t *conn,
       user, passlen, pass, passlen));
 
   /* copy info into sparams */
-  s_conn->sparams->local_domain=conn->local_domain;
+  s_conn->sparams->serverFQDN=conn->serverFQDN;
   s_conn->sparams->service=conn->service;
-  s_conn->sparams->user_domain=s_conn->user_domain;
+  s_conn->sparams->user_realm=s_conn->user_realm;
 
   _sasl_log(conn,
 	    SASL_LOG_WARNING,
@@ -373,8 +373,8 @@ static void server_dispose(sasl_conn_t *pconn)
     s_conn->mech->plug->mech_dispose(pconn->context,
 				     s_conn->sparams->utils);
 
-  if (s_conn->user_domain)
-    sasl_FREE(s_conn->user_domain);
+  if (s_conn->user_realm)
+    sasl_FREE(s_conn->user_realm);
 
   _sasl_free_utils(&s_conn->sparams->utils);
 
@@ -494,7 +494,7 @@ server_idle(sasl_conn_t *conn)
   return 0;
 }
 
-static int load_config(void)
+static int load_config(const sasl_callback_t *verifyfile_cb)
 {
   int result;
   char *path_to_config=NULL;
@@ -528,10 +528,17 @@ static int load_config(void)
   strcat(config_filename, global_callbacks.appname);
   strcat(config_filename, ".conf");
 
+
+  /* Ask the application if it's safe to use this file */
+  result = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(verifyfile_cb->context,
+							config_filename);	  
+  /* returns continue if this file is to be skipped */
+  
   /* returns SASL_CONTINUE if doesn't exist
    * if doesn't exist we can continue using default behavior
    */
-  result=sasl_config_init(config_filename);
+  if (result==SASL_OK)
+    result=sasl_config_init(config_filename);
 
   sasl_FREE(config_filename);
 
@@ -568,7 +575,7 @@ int sasl_server_init(const sasl_callback_t *callbacks,
   if (mechlist==NULL) return SASL_NOMEM;
 
   /* load config file if applicable */
-  ret=load_config();
+  ret=load_config(_sasl_find_verifyfile_callback(callbacks));
   if ((ret!=SASL_OK) && (ret!=SASL_CONTINUE)) return ret;
 
   /* load plugins */
@@ -582,6 +589,7 @@ int sasl_server_init(const sasl_callback_t *callbacks,
 
   ret=_sasl_get_mech_list("sasl_server_plug_init",
 			  _sasl_find_getpath_callback(callbacks),
+			  _sasl_find_verifyfile_callback(callbacks),
 			  &add_plugin);
 
   return ret;
@@ -607,6 +615,9 @@ _sasl_transition(sasl_conn_t * conn,
   if (! conn->oparams.authid)
     return SASL_NOTDONE;
 
+  /* check if this is enabled: default to false */
+  /*  if (sasl_config_getswitch("Transition",0)==0) return SASL_OK;*/
+
   return sasl_setpass(conn,
 		      conn->oparams.authid,
 		      pass,
@@ -618,9 +629,9 @@ _sasl_transition(sasl_conn_t * conn,
 
 /* create context for a single SASL connection
  *  service        -- registered name of the service using SASL (e.g. "imap")
- *  local_domain   -- Fully qualified local domain name.  May be NULL
- *                    for default domain.  Useful for multi-homed servers.
- *  user_domain    -- permits multiple user domains on server, NULL = default
+ *  serverFQDN     -- Fully qualified server domain name.  NULL means use
+ *                    gethostbyname().  Useful for multi-homed servers.
+ *  user_realm     -- permits multiple user domains on server, NULL = default
  *  callbacks      -- callbacks (e.g., authorization, lang, new getopt context)
  *  secflags       -- security flags (see above)
  * returns:
@@ -632,8 +643,8 @@ _sasl_transition(sasl_conn_t * conn,
  */
 
 int sasl_server_new(const char *service,
-		    const char *local_domain,
-		    const char *user_domain,
+		    const char *serverFQDN,
+		    const char *user_realm,
 		    const sasl_callback_t *callbacks,
 		    int secflags,
 		    sasl_conn_t **pconn)
@@ -650,7 +661,7 @@ int sasl_server_new(const char *service,
   (*pconn)->destroy_conn = &server_dispose;
   result = _sasl_conn_init(*pconn, service, secflags,
 			   &server_idle,
-			   local_domain,
+			   serverFQDN,
 			   callbacks, &global_callbacks);
   if (result != SASL_OK) return result;
 
@@ -672,10 +683,10 @@ int sasl_server_new(const char *service,
   serverconn->sparams->props = serverconn->base.props;
 
   /* set some variables */
-  if (user_domain==NULL)
-    serverconn->user_domain=NULL;
+  if (user_realm==NULL)
+    serverconn->user_realm=NULL;
   else {
-    result = _sasl_strdup(user_domain, &serverconn->user_domain, NULL);
+    result = _sasl_strdup(user_realm, &serverconn->user_realm, NULL);
   }
 
   if (result!=SASL_OK)
@@ -741,6 +752,11 @@ int sasl_server_start(sasl_conn_t *conn,
   mechanism_t *m;
   m=mechlist->mech_list;
 
+  /* check parameters */
+  if ((mech==NULL)    ||
+      ((clientin==NULL) && (clientinlen>0)))
+    return SASL_BADPARAM;
+
   if (errstr)
     *errstr = NULL;
 
@@ -763,9 +779,9 @@ int sasl_server_start(sasl_conn_t *conn,
   s_conn->mech=m;
 
   /* call the security layer given by mech */
-  s_conn->sparams->local_domain=conn->local_domain;
+  s_conn->sparams->serverFQDN=conn->serverFQDN;
   s_conn->sparams->service=conn->service;
-  s_conn->sparams->user_domain=s_conn->user_domain;
+  s_conn->sparams->user_realm=s_conn->user_realm;
   s_conn->sparams->props=conn->props;
 
   result = s_conn->mech->plug->mech_new(s_conn->mech->plug->glob_context,
@@ -813,13 +829,16 @@ int sasl_server_step(sasl_conn_t *conn,
 		     unsigned *serveroutlen,
 		     const char **errstr)
 {
+  /* cast */
   sasl_server_conn_t *s_conn;
   s_conn= (sasl_server_conn_t *) conn;
 
+  /* check parameters */
+  if ((clientin==NULL) && (clientinlen>0))
+    return SASL_BADPARAM;
+
   if (errstr)
     *errstr = NULL;
-
-  /* xxx put in a sanity check */
 
   return s_conn->mech->plug->mech_step(conn->context,
 				       s_conn->sparams,
@@ -951,7 +970,7 @@ int sasl_listmech(sasl_conn_t *conn,
 /* check if a plaintext password is valid
  * if user is NULL, check if plaintext is enabled
  * inputs:
- *  user         -- user to query in current user_domain
+ *  user         -- user to query in current user_realm
  *  userlen      -- length of username, 0 = strlen(user)
  *  pass         -- plaintext password to check
  *  passlen      -- length of password, 0 = strlen(pass)
@@ -969,7 +988,7 @@ int sasl_checkpass(sasl_conn_t *conn,
 		   const char *user,
 		   unsigned userlen __attribute__((unused)),
 		   const char *pass,
-		   unsigned passlen __attribute__((unused)),
+		   unsigned passlen,
 		   const char **errstr)
 {
   int result;
@@ -1022,7 +1041,18 @@ int sasl_checkpass(sasl_conn_t *conn,
     /* check against krb */
     result=_sasl_kerberos_verify_password(user, pass, conn->service, errstr);
 
-    if (result==SASL_OK) return SASL_OK;
+    if (result==SASL_OK)
+    {
+      result = _sasl_strdup(user,
+			    &(conn->oparams.authid),
+			    NULL);
+      if (result != SASL_OK)  return result;
+      
+      _sasl_transition(conn,
+		       pass,
+		       passlen);
+      return SASL_OK;
+    }
   }
 
   return result;

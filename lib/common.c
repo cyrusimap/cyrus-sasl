@@ -169,7 +169,7 @@ int _sasl_conn_init(sasl_conn_t *conn,
 		    const char *service,
 		    int secflags,
 		    int (*idle_hook)(sasl_conn_t *conn),
-		    const char *local_domain,
+		    const char *serverFQDN,
 		    const sasl_callback_t *callbacks,
 		    const sasl_global_callbacks_t *global_callbacks) {
   int result = SASL_OK;
@@ -198,25 +198,16 @@ int _sasl_conn_init(sasl_conn_t *conn,
   conn->callbacks = callbacks;
   conn->global_callbacks = global_callbacks;
 
-  if (local_domain==NULL) {
+  if (serverFQDN==NULL) {
     char name[MAXHOSTNAMELEN];
     memset(name, 0, sizeof(name));
     gethostname(name, MAXHOSTNAMELEN);
-#ifdef HAVE_GETDOMAINNAME
-    {
-      char *dot = strchr(name, '.');
-      if (! dot) {
-	size_t namelen = strlen(name);
-	name[namelen] = '.';
-	getdomainname(name + namelen + 1, MAXHOSTNAMELEN - namelen - 1);
-      }
-    }
-#endif /* HAVE_GETDOMAINNAME */
-    result = _sasl_strdup(name, &conn->local_domain, NULL);
+
+    result = _sasl_strdup(name, &conn->serverFQDN, NULL);
     if (result != SASL_OK)
       goto cleanup_mutex;
   } else {
-    result = _sasl_strdup(local_domain, &conn->local_domain, NULL);
+    result = _sasl_strdup(serverFQDN, &conn->serverFQDN, NULL);
     if (result != SASL_OK)
       goto cleanup_mutex;
   }
@@ -259,8 +250,8 @@ void _sasl_conn_dispose(sasl_conn_t *conn) {
 
   sasl_MUTEX_DISPOSE(conn->mutex);
 
-  if (conn->local_domain)
-    sasl_FREE(conn->local_domain);
+  if (conn->serverFQDN)
+    sasl_FREE(conn->serverFQDN);
 }
 
 
@@ -565,6 +556,14 @@ _sasl_getpath(void *context __attribute__((unused)),
   return _sasl_strdup(path, path_dest, NULL);
 }
 
+static int
+_sasl_verifyfile(void *context __attribute__((unused)),
+		 char *file  __attribute__((unused)))
+{
+  /* always say ok */
+  return SASL_OK;
+}
+
 int
 _sasl_getcallback(sasl_conn_t * conn,
 		  unsigned long callbackid,
@@ -639,6 +638,10 @@ _sasl_getcallback(sasl_conn_t * conn,
     return SASL_OK;
   case SASL_CB_SERVER_PUTSECRET:
     *pproc = _sasl_server_putsecret_hook;
+    *pcontext = NULL;
+    return SASL_OK;
+  case SASL_CB_VERIFYFILE:
+    *pproc = & _sasl_verifyfile;
     *pcontext = NULL;
     return SASL_OK;
   }
@@ -782,20 +785,22 @@ _sasl_log (sasl_conn_t *conn,
 	    done=1;
 	    break;
 
-	  /* only d, i, o, u, x, or X 
-	     c, e,  E, f,  g, or G can end the format thing */
 	  case 'c':
+	    frmt[frmtpos++]=format[pos];
+	    frmt[frmtpos]=0;
+	    tempbuf[0] = va_arg(ap, char); /* get the next arg */
+	    tempbuf[1]='\0';
+	    
+	    /* now add the character */
+	    result = add_string(&out, &alloclen, &outlen, tempbuf);
+	    if (result != SASL_OK)
+	      return result;
+	    done=1;
+
+	    break;
+
 	  case 'd':
 	  case 'i':
-	  case 'o':
-	  case 'u':
-	  case 'x':
-	  case 'X':
-	  case 'e':
-	  case 'E':
-	  case 'f':
-	  case 'g':
-	  case 'G':
 	    frmt[frmtpos++]=format[pos];
 	    frmt[frmtpos]=0;
 	    ival = va_arg(ap, int); /* get the next arg */
@@ -937,5 +942,28 @@ _sasl_find_getpath_callback(const sasl_callback_t *callbacks)
     }
   
   return &default_getpath_cb;
+}
+
+const sasl_callback_t *
+_sasl_find_verifyfile_callback(const sasl_callback_t *callbacks)
+{
+  static const sasl_callback_t default_verifyfile_cb = {
+    SASL_CB_VERIFYFILE,
+    &_sasl_verifyfile,
+    NULL
+  };
+
+  if (callbacks)
+    while (callbacks->id != SASL_CB_LIST_END)
+    {
+      if (callbacks->id == SASL_CB_VERIFYFILE)
+      {
+	return callbacks;
+      } else {
+	++callbacks;
+      }
+    }
+  
+  return &default_verifyfile_cb;
 }
 

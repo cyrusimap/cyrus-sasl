@@ -56,6 +56,7 @@ SOFTWARE.
 /* gets the list of mechanisms */
 int _sasl_get_mech_list(const char *entryname,
 			const sasl_callback_t *getpath_cb,
+			const sasl_callback_t *verifyfile_cb,
 			int (*add_plugin)(void *,void *))
 {
   /* XXX These fixed-length buffers could be a problem;
@@ -74,12 +75,15 @@ int _sasl_get_mech_list(const char *entryname,
       || ! getpath_cb
       || getpath_cb->id != SASL_CB_GETPATH
       || ! getpath_cb->proc
+      || ! verifyfile_cb
+      || verifyfile_cb->id != SASL_CB_VERIFYFILE
+      || ! verifyfile_cb->proc
       || ! add_plugin)
     return SASL_BADPARAM;
 
+  /* get the path to the plugins */
   result = ((sasl_getpath_t *)(getpath_cb->proc))(getpath_cb->context,
 						  &path);
-
   if (result != SASL_OK)
     return result;
 
@@ -133,6 +137,14 @@ int _sasl_get_mech_list(const char *entryname,
 
 	  VL(("entry is = [%s]\n",tmp));
 
+	  /* Ask the application if we should use this file or not */
+	  result = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(verifyfile_cb->context,
+								tmp);	  
+	  /* returns continue if this file is to be skipped */
+	  if (result==SASL_CONTINUE) continue; 
+	  
+	  if (result!=SASL_OK) return result;
+	  
 	  library=NULL;
 	  if (!(library=dlopen(tmp,RTLD_NOW))) /* xxx no RTLD_LOCAL | on linux */
 	    {

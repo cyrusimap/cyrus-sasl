@@ -1,3 +1,32 @@
+1999-06-10  Timothy L Martin  <tmartin+@andrew.cmu.edu>
+
+	* lib/server.c (_sasl_transition): checks config now
+	(sasl_checkpass): transitions
+
+1999-06-09  Timothy L Martin  <tmartin+@andrew.cmu.edu>
+
+	* lib/common.c: doesn't do getdomain name anymore b/c it's usually broken
+
+	* lib/common.c (_sasl_log): fixed casting problem. doesn't support as many types anymore	
+
+1999-06-08  Timothy L Martin  <tmartin+@andrew.cmu.edu>
+
+	* lib/server.c (sasl_server_init): verify config file ok
+
+	* lib/dlopen.c (_sasl_get_mech_list): callback to verify files ok
+
+	* lib/client.c,server.c: check parameters before passing to mechanism
+
+1999-06-07  Timothy L Martin  <tmartin+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c (get_realm): tries user_realm then serverFQDN
+
+	* lib/common.c: local_domain -> serverFQDN
+	* lib/saslutil.c: local_domain -> serverFQDN
+
+	* lib/server.c: user_domain -> user_realm
+	* lib/server.c: local_domain -> serverFQDN
+
 1999-06-02  Timothy L Martin  <tmartin@andrew.cmu.edu>
 
 	* lib/saslutil.c (sasl_rand): made random seeding lazy

@@ -196,8 +196,8 @@ int sasl_mkchal(sasl_conn_t *conn,
   len = 4			/* <.>\0 */
     + (2 * 20);			/* 2 numbers, 20 => max size of 64bit
 				 * ulong in base 10 */
-  if (hostflag && conn->local_domain)
-    len += strlen(conn->local_domain) + 1 /* for the @ */;
+  if (hostflag && conn->serverFQDN)
+    len += strlen(conn->serverFQDN) + 1 /* for the @ */;
 
   if (maxlen < len)
     return 0;
@@ -208,8 +208,8 @@ int sasl_mkchal(sasl_conn_t *conn,
 
   time(&now);
 
-  if (hostflag && conn->local_domain)
-    snprintf(buf,maxlen, "<%lu.%lu@%s>", randnum, now, conn->local_domain);
+  if (hostflag && conn->serverFQDN)
+    snprintf(buf,maxlen, "<%lu.%lu@%s>", randnum, now, conn->serverFQDN);
   else
     snprintf(buf,maxlen, "<%lu.%lu>", randnum, now);
 
@@ -357,7 +357,7 @@ void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
   {
     data=getranddata();
     if (data==NULL)
-      return SASL_FAIL;
+      return; /* xxx */
 
     memcpy(rpool->pool, data, 6);
     

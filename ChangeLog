@@ -1,3 +1,7 @@
+2003-07-29  Ken Murchison <ken@oceana.com>
+	* plugins/cram.c: don't truncate long secrets to 64 bytes on the
+	  client-side of CRAM-MD5 (jiang_xiong@yahoo.com)
+
 2003-07-28  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/gssapi.c: another missed pointer init
 	  (Will Fiveash <william.fiveash@sun.com>)

@@ -1,7 +1,7 @@
 /* CRAM-MD5 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: cram.c,v 1.79 2003/02/18 18:27:37 rjs3 Exp $
+ * $Id: cram.c,v 1.80 2003/07/29 21:01:42 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -65,7 +65,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: cram.c,v 1.79 2003/02/18 18:27:37 rjs3 Exp $";
+static const char plugin_id[] = "$Id: cram.c,v 1.80 2003/07/29 21:01:42 ken3 Exp $";
 
 /* convert a string of 8bit chars to it's representation in hex
  * using lowercase letters
@@ -474,27 +474,14 @@ static int crammd5_client_mech_new(void *glob_context __attribute__((unused)),
 static char *make_hashed(sasl_secret_t *sec, char *nonce, int noncelen, 
 			 const sasl_utils_t *utils)
 {
-    char secret[65];
     unsigned char digest[24];  
-    int lup;
     char *in16;
     
     if (sec == NULL) return NULL;
     
-    if (sec->len < 64) {
-	memcpy(secret, sec->data, sec->len);
-	
-	/* fill in rest with 0's */
-	for (lup= sec->len; lup < 64; lup++)
-	    secret[lup]='\0';
-	
-    } else {
-	memcpy(secret, sec->data, 64);
-    }
-    
     /* do the hmac md5 hash output 128 bits */
     utils->hmac_md5((unsigned char *) nonce, noncelen,
-		    (unsigned char *) secret, 64, digest);
+		    sec->data, sec->len, digest);
     
     /* convert that to hex form */
     in16 = convert16(digest, 16, utils);

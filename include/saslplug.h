@@ -820,9 +820,11 @@ typedef struct sasl_auxprop_plug {
 			   unsigned flags,
 			   const char *user, unsigned ulen);
 
+    /* name of the auxprop plugin */
+    void *name;
+
     /* for additions which don't require a version upgrade; set to 0 */
     void (*spare_fptr1)();
-    void (*spare_fptr2)();
 } sasl_auxprop_plug_t;
 
 /* auxprop lookup flags */

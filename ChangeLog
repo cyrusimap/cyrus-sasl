@@ -11,6 +11,10 @@
 	  configure.in, lak.c, lak.h, mechanisms.c, mechanisms.h,
 	  saslauthd.conf: added experimental LDAP saslauthd module 
 	  (by Igor Brezac <igor@ipass.net>)
+	* include/saslplug.h: give auxprop plugins a name
+	* plugins/sasldb.c: give sasldb plugin a name
+	* lib/auxprop.c: allow auxprop selection
+	* doc/options.html: document auxprop_plugin option
 
 2002-05-01  Ken Murchison <ken@oceana.com>
 	* plugins/digestmd5.c, gssapi.c, kerberos4.c, srp.c:

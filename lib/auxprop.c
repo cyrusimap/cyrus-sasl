@@ -1,6 +1,6 @@
 /* auxprop.c - auxilliary property support
  * Rob Siemborski
- * $Id: auxprop.c,v 1.3 2002/02/13 20:31:52 rjs3 Exp $
+ * $Id: auxprop.c,v 1.4 2002/05/03 19:57:21 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -815,10 +815,31 @@ void _sasl_auxprop_lookup(sasl_server_params_t *sparams,
 			  unsigned flags,
 			  const char *user, unsigned ulen) 
 {
+    sasl_getopt_t *getopt;
+    int ret, found = 0;
+    void *context;
+    const char *pluginname = NULL;
     auxprop_plug_list_t *ptr;
     
+    /* xxx support more than one at the same time? */
+    if(_sasl_getcallback(NULL, SASL_CB_GETOPT, &getopt, &context) == SASL_OK) {
+	ret = getopt(context, NULL, "auxprop_plugin", &pluginname, NULL);
+	if(ret != SASL_OK) pluginname = NULL;
+    }
+
     for(ptr = auxprop_head; ptr; ptr = ptr->next) {
-	ptr->plug->auxprop_lookup(ptr->plug->glob_context,
+	/* Skip non-matching plugins */
+	if(pluginname &&
+	   (!ptr->plug->name || strcasecmp(ptr->plug->name, pluginname)))
+	    continue;
+
+	found=1;
+      	ptr->plug->auxprop_lookup(ptr->plug->glob_context,
 				  sparams, flags, user, ulen);
     }
+
+    if(!found)
+	_sasl_log(NULL, SASL_LOG_ERR,
+		  "could not find auxprop plugin, was searching for %s",
+		  pluginname ? pluginname : "[any]");
 }

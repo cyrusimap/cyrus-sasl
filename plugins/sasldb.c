@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: sasldb.c,v 1.5 2002/04/30 17:45:34 ken3 Exp $
+ * $Id: sasldb.c,v 1.6 2002/05/03 19:57:25 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -134,8 +134,8 @@ static sasl_auxprop_plug_t sasldb_auxprop_plugin = {
     NULL,        /* glob_context */
     NULL,        /* auxprop_free */
     sasldb_auxprop_lookup, /* auxprop_lookup */
-    NULL,        /* spares */
-    NULL
+    "sasldb",    /* name */
+    NULL         /* spare */
 };
 
 int sasldb_auxprop_plug_init(const sasl_utils_t *utils,

@@ -87,7 +87,7 @@ libscrammd5_la_LDFLAGS = -version-info $(scrammd5_version)
 
 libdigestmd5_la_SOURCES = digestmd5.c
 libdigestmd5_la_LDFLAGS = -version-info $(digestmd5_version)
-libdigestmd5_la_LIBADD = -ldes $(LIB_RC4) $(LIB_SOCKET)
+libdigestmd5_la_LIBADD = $(LIB_DES) $(LIB_RC4) $(LIB_SOCKET)
 
 liblogin_la_SOURCES = login.c
 liblogin_la_LDFLAGS = -version-info $(login_version)

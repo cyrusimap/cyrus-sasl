@@ -3,7 +3,7 @@
 ** SQL Auxprop plugin
 **   based on the original work of Simon Loader and Patrick Welche
 **
-** $Id: sql.c,v 1.4 2003/09/12 13:41:23 rjs3 Exp $
+** $Id: sql.c,v 1.5 2003/09/12 13:50:35 rjs3 Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -612,11 +612,14 @@ static void sql_auxprop_lookup(void *glob_context,
 					      settings->sql_database,
 					      sparams->utils);
 	if (conn)
-	  {
-	   
 	    break;
-	  }
-	
+
+	/* xxx we should do this and get the error codes correctly for
+	 * both pgsql and MySQL */	
+        sparams->utils->log(NULL, SASL_LOG_ERR,
+                            "SQL plugin could not connect to host %s",
+                            cur_host);
+
 	cur_host = db_host;
     }
     

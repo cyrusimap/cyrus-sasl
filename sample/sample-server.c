@@ -282,6 +282,8 @@ main(int argc, char *argv[])
   secprops.max_ssf = 9999; /* xxx solaris doesn't compile UINT_MAX; */
   memset(&extprops, 0L, sizeof(extprops));
 
+#ifdef HAVE_SUBOPT
+
   while ((c = getopt(argc, argv, "hb:e:m:f:i:p:s:l:u:?")) != EOF)
     switch (c) {
     case 'b':
@@ -436,6 +438,8 @@ main(int argc, char *argv[])
 	    progname, progname);
     exit(EXIT_FAILURE);
   }
+
+#endif
 
   result = sasl_server_init(callbacks, "sample");
   if (result != SASL_OK)

@@ -439,7 +439,7 @@ static sasl_interact_t *find_prompt(sasl_interact_t *promptlist,
     if (promptlist->id==lookingfor)
       return promptlist;
 
-    promptlist+=sizeof(sasl_interact_t);
+    promptlist++;
   }
 
   return NULL;
@@ -625,7 +625,7 @@ static void free_prompts(sasl_client_params_t *params,
     if (ptr->result!=NULL)
       params->utils->free(ptr->result);
 
-    ptr+=sizeof(sasl_interact_t);
+    ptr++;
   } while(ptr->id!=SASL_CB_LIST_END);
 
   params->utils->free(prompts);
@@ -652,7 +652,7 @@ static int make_prompts(sasl_client_params_t *params,
 
   if (num==1) return SASL_FAIL;
 
-  prompts=params->utils->malloc(sizeof(sasl_interact_t)*num);
+  prompts=params->utils->malloc(sizeof(sasl_interact_t)*(num+1));
   if ((prompts) ==NULL) return SASL_NOMEM;
   *prompts_res=prompts;
 
@@ -664,8 +664,13 @@ static int make_prompts(sasl_client_params_t *params,
     (prompts)->prompt="Please enter your userid";
     (prompts)->defresult=text->authid;
 
-    prompts+=sizeof(sasl_interact_t);
+    printf("id=%ld  %ld\n",(prompts)->id, SASL_CB_USER);
+    printf("%i\n",prompts);
+    prompts++;
+    printf("%i size=%i\n",prompts,sizeof(sasl_interact_t));
   }
+
+
 
   if (auth_res==SASL_INTERACT)
   {
@@ -675,7 +680,7 @@ static int make_prompts(sasl_client_params_t *params,
     (prompts)->prompt="Please enter your authentication name";
     (prompts)->defresult=text->userid;
 
-    prompts+=sizeof(sasl_interact_t);
+    prompts++;
   }
 
 
@@ -687,7 +692,7 @@ static int make_prompts(sasl_client_params_t *params,
     (prompts)->prompt="Please enter your password";
     (prompts)->defresult=NULL;
 
-    prompts+=sizeof(sasl_interact_t);
+    prompts++;
   }
 
 
@@ -696,6 +701,8 @@ static int make_prompts(sasl_client_params_t *params,
   (prompts)->challenge=NULL;
   (prompts)->prompt   =NULL;
   (prompts)->defresult=NULL;
+
+  printf("id=%ld  %ld\n",(prompts)->id, SASL_CB_USER);
 
   return SASL_OK;
 }
@@ -806,6 +813,7 @@ static int client_continue_step (void *conn_context,
       *clientoutlen = (userid_len + 1
 		       + authid_len + 1
 		       + text->password->len);
+      printf("clientoutlen=%i %i %i %i\n",*clientoutlen,userid_len,authid_len,text->password->len);
       *clientout=params->utils->malloc(*clientoutlen);
       if (! *clientout) return SASL_NOMEM;
       memset(*clientout, 0, *clientoutlen);

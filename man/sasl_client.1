@@ -1,7 +1,6 @@
 .\" Hey Emacs! This file is -*- nroff -*- source.
 .\"
-.\" This manpage is Copyright (C) 1992 Drew Eckhardt;
-.\"                               1993 Michael Haardt, Ian Jackson.
+.\" This manpage is Copyright (C) 1999 Tim Martin
 .\"
 .\" Permission is granted to make and distribute verbatim copies of this
 .\" manual provided the copyright notice and this permission notice are
@@ -60,7 +59,7 @@ SASL (simple authentication security layer) is an abstract way to connect to var
 .B sasl_client_init()
 initializes SASL. It must be called before any calls to sasl_client_start. This call initializes all SASL client drivers (e.g. authentication mechanisms). These are searched for in the enviornment variable SASL_PATH directory, or the default directory XXX if none is specified. The 
 .I callbacks
-parameter specifies the base callbacks for all client connections.
+parameter specifies the base callbacks for all client connections. See the sasl_properties man page for more information
 .PP
 
 .B sasl_client_new()
@@ -75,7 +74,7 @@ is a list of client interactions supported. It may also include a sasl_getopt_t 
 .I secflags
 XXX security flags (see above)
 .I pconn
-is the conection contect. If the passed value is NULL it is allocated for by the library. This structure will be used for all future SASL calls for this connection.
+is the conection context. If the passed value is NULL it is allocated for by the library. This structure will be used for all future SASL calls for this connection.
 .PP
 
 .B sasl_client_start()
@@ -107,9 +106,6 @@ Success
 .TP 0.8i
 .B SASL_INTERACT
 user interaction needed to fill in prompt_need list
-.TP 0.8i
-.B SASL_NOMEM
-Not enough memory
 .TP 0.8i
 .B SASL_BADVERS
 Mechanism version mismatch

@@ -587,7 +587,7 @@ static sasl_interact_t *find_prompt(sasl_interact_t *promptlist,
     if (promptlist->id==lookingfor)
       return promptlist;
 
-    promptlist+=sizeof(sasl_interact_t);
+    promptlist++;
   }
 
   return NULL;
@@ -718,7 +718,7 @@ static void free_prompts(sasl_client_params_t *params,
     if (ptr->result!=NULL)
       params->utils->free(ptr->result);
 
-    ptr+=sizeof(sasl_interact_t);
+    ptr++;
   } while(ptr->id!=SASL_CB_LIST_END);
 
   params->utils->free(prompts);
@@ -755,7 +755,7 @@ static int make_prompts(sasl_client_params_t *params,
     (prompts)->defresult=NULL;
 
     VL(("authid callback added\n"));
-    prompts+=sizeof(sasl_interact_t);
+    prompts++;
   }
 
   if (pass_res==SASL_INTERACT)
@@ -767,7 +767,7 @@ static int make_prompts(sasl_client_params_t *params,
     (prompts)->defresult=NULL;
 
     VL(("password callback added\n"));
-    prompts+=sizeof(sasl_interact_t);
+    prompts++;
   }
 
 
@@ -899,6 +899,8 @@ static int c_continue_step (void *conn_context,
 
     /*nothing more to do; authenticated */
     oparams->doneflag=1;
+
+    VL(("clientout looks like=%s %i\n",*clientout,*clientoutlen));
 
     text->state++; /* fail if called again */
 

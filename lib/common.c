@@ -846,7 +846,6 @@ _sasl_alloc_utils(sasl_conn_t *conn,
   utils->rand=&sasl_rand;
 
   utils->log=&sasl_log;
-  utils->free_secret=&sasl_free_secret;
 
   sasl_randcreate(&utils->rpool);
   /* there are more to fill in */

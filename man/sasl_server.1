@@ -1,0 +1,177 @@
+.\" Hey Emacs! This file is -*- nroff -*- source.
+.\"
+.\" This manpage is Copyright (C) 1999 Tim Martin
+.\"
+.\" Permission is granted to make and distribute verbatim copies of this
+.\" manual provided the copyright notice and this permission notice are
+.\" preserved on all copies.
+.\"
+.\" Permission is granted to copy and distribute modified versions of this
+.\" manual under the conditions for verbatim copying, provided that the
+.\" entire resulting derived work is distributed under the terms of a
+.\" permission notice identical to this one
+.\" 
+.\" Formatted or processed versions of this manual, if unaccompanied by
+.\" the source, must acknowledge the copyright and authors of this work.
+.\"
+.\"
+.TH sasl_server_* "10 March 1999" SASL "SASL man pages"
+.SH NAME
+sasl_server_init\, sasl_server_new\, sasl_server_start\, sasl_listmech\, sasl_server_step \- SASL server authentication functions.
+
+
+.SH SYNOPSIS
+.nf
+.B #include <sasl.h>
+.sp
+.BI "int sasl_server_init(const sasl_callback_t " *callbacks ", "
+.BI "                     const char " *appname ");"
+
+.sp
+.BI "int sasl_server_new(const char " *service ", "
+.BI "			 const char " *local_domain ", "
+.BI "			 const char " *user_domain ", "
+.BI "			 const sasl_callback_t " *callbacks ", "
+.BI "			 int " secflags ", "
+.BI "			 sasl_conn_t ** " pconn ");"
+
+.sp
+.BI "int sasl_listmech(sasl_conn_t *" conn ", "
+.BI "		       const char *" user ", "
+.BI "		       const char *" prefix ", "
+.BI "		       const char *" sep ", "
+.BI "		       const char *" suffix ", "
+.BI "		       char **" result ", "
+.BI "		       unsigned *" plen ", "
+.BI "		       unsigned *" pcount ");"
+
+.sp
+.BI "int sasl_server_start(sasl_conn_t * " conn ", "
+.BI "		           const char * " mech ", "
+.BI "		           const char * " clientin ", "
+.BI "		           unsigned * " clientinlen ", "
+.BI "		           char ** " serverout ", "
+.BI "		           unsigned * " serveroutlen ", "
+.BI "		           const char ** " errstr ");"
+
+.sp
+.BI "int sasl_server_step(sasl_conn_t " *conn ", "
+.BI "		          const char " *clientin ", "
+.BI "		          unsigned " clientinlen ", "
+.BI "	        	  char ** " serverout ", "
+.BI "		          unsigned * " serveroutlen ", "
+.BI "		          const char ** " errstr ");"
+		    
+.fi
+.SH DESCRIPTION
+
+SASL (simple authentication security layer) is an abstract way to authenticate users using a variety of different authentication mechanisms. A server implementing these functions does not need to know any information about the mechanisms. A server does need to handle sending and receiving data from the network and passing it to the SASL function though. These are the SASL server authentication functions.
+.PP
+
+.B sasl_server_init()
+initializes SASL. It must be called before any calls to sasl_server_start. This call initializes all SASL server drivers (e.g. authentication mechanisms). These are searched for in the enviornment variable SASL_PATH directory, by an optionally sent path callback, or the default directory XXX if none is specified. The 
+.I callbacks
+parameter specifies the callbacks to be used for all server connections. See the sasl_property man page for more information.
+.PP
+
+.B sasl_server_new()
+creates a new SASL context. This context will be used for all SASL calls for one connection. It handles both authentication and integrity/encyption layers after authentication if used.
+.PP
+.I service
+is the registered name of the service using SASL (e.g. "imap").
+.I local_domain
+Fully qualified local domain name.  May be NULL for default domain.  Useful for multi-homed servers.
+.I user_domain
+permits multiple user domains on server, NULL = default
+.I secflags
+XXX security flags (see above)
+.I pconn
+is the conection context. If the passed value is NULL it is allocated for by the library. This structure will be used for all future SASL calls for this connection.
+.PP
+
+.B sasl_listmech()
+returns a string listing the SASL names of all the mechanisms available to the specified user. This is typically given to the client through a capability command or initial server response. Client applications need this list so that they know what mechanisms the server supports.
+
+.I conn
+the SASL context for this connection
+.I user
+(optional) restricts the mechanism list to only those available to the user.
+.I prefix
+appended to beginning of result
+.I sep
+appended between mechanisms
+.I suffix
+appended to end of result
+.I result
+NULL terminated result string (allocated by library)
+.I plen
+length of result filled in by library. May be NULL
+.I pcount
+Number of mechanisms available. May be NULL
+
+Example:
+
+sasl_listmech(conn,NULL,"(",",",")",&mechlist,NULL,NULL) may give the string (ANONYMOUS,KERBEROS_V4,DIGEST-MD5) as a result
+
+
+
+.B sasl_server_start()
+begins the authentication with the mechanism specified with mech. This fails if the mechanism is not supported. SASL_OK is returned if the authentication is complete and the user is authenticated. SASL_CONTINUE is returned if one or more steps are still required in the authentication. All other return values indicate failure.
+
+.I conn
+the SASL context for this connection
+.I mech
+the mechanism name that the client requested
+.I clientin
+client initial response, NULL if empty
+.I clientinlen
+length of initial response
+.I serverout
+is created by the library. It is the initial server response to send to the client. This is allocated for by the library and it is the job of the client to send it over the network to the server. Also protocal specific encoding (such as base64 encoding) must needs to be done by the server.
+.I serveroutlen
+length of initial server challenge
+.I errstr
+is set to a string to send to the user on failure
+
+.B sasl_server_step()
+preforms a step of the authentication. sasl_server_start() must have been called before. The server gives this function the data it obtained from the client. It may be necessary to preforming some decoding (such as base64 decoding) before giving the data to sasl_server_step. The server should loop calling sasl_server_step while it returns SASL_CONTINUE. SASL_OK indicates sucessful authentication. Any other result indicates failure.
+
+.PP
+.SH "RETURN VALUE"
+
+All calls return an integer which corresponds to the following codes. SASL_CONTINUE and SASL_OK indicate sucess. All others return values indicate errors and should either be handled or the authentication session should be quit.
+
+
+.SH ERRORS
+.TP 0.8i
+.B SASL_OK
+Success
+.TP 0.8i
+.B SASL_INTERACT
+user interaction needed to fill in prompt_need list
+.TP 0.8i
+.B SASL_BADVERS
+Mechanism version mismatch
+.TP 0.8i
+.B SASL_BADPARAM
+error in config file
+.TP 0.8i
+.B SASL_NOMECH
+no mechanism available or meet requested properties
+.TP 0.8i
+.B SASL_NOMEM
+not enough memory to complete operation
+.TP 0.8i
+.B SASL_BADPROT
+server protocol incorrect/cancelled
+.TP 0.8i
+.B SASL_BADSERV
+server failed mutual authentication
+
+
+.SH "CONFORMING TO"
+RFC 2222
+.SH "SEE ALSO"
+.BR other sasl stuff
+.BR 
+.BR 

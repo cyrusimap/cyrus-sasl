@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.26 2002/01/31 17:58:37 ken3 Exp $
+ * $Id: srp.c,v 1.27 2002/01/31 18:43:55 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -476,10 +476,11 @@ static int srp_decode_once(context_t *text,
 	    hashlen = EVP_MD_size(text->hmac_md) + 1; /* 1 for os() count */
 
 	    if (buflen < hashlen) {
-		text->utils->log(NULL, SASL_LOG_ERR,
-				 "Input is smaller than hash length: %d vs %d\n",
-				 buflen, hashlen);
-		return SASL_FAIL;
+		text->utils->seterror(text->utils->conn, 0,
+				      "SRP input is smaller"
+				      "than hash length: %d vs %d\n",
+				      buflen, hashlen);
+		return SASL_BADPROT;
 	    }
 
 	    /* create my version of the hash */
@@ -498,8 +499,8 @@ static int srp_decode_once(context_t *text,
 	    /* compare to hash given */
 	    for (i = 0; i < hashlen; i++) {
 		if (hash[i] != buf[buflen - hashlen + i]) {
-		    text->utils->log(NULL, SASL_LOG_ERR, "Hash is incorrect\n");
-		    return SASL_FAIL;
+		    SETERROR(text->utils, "Hash is incorrect\n");
+		    return SASL_BADMAC;
 		}
 	    }
 	}
@@ -743,9 +744,9 @@ static int UnBuffer(const sasl_utils_t *utils, char *in, int inlen,
     int len;
 
     if ((!in) || (inlen < 4)) {
-	utils->log(NULL, SASL_LOG_ERR,
+	utils->seterror(utils->conn, 0,
 		   "Buffer is not big enough to be SRP buffer: %d\n", inlen);
-	return SASL_FAIL;
+	return SASL_BADPROT;
     }
 
     /* get the length */
@@ -754,9 +755,8 @@ static int UnBuffer(const sasl_utils_t *utils, char *in, int inlen,
 
     /* make sure it's right */
     if (len + 4 != inlen) {
-	utils->log(NULL, SASL_LOG_ERR,
-		   "SRP Buffer isn't of the right length\n");
-	return SASL_FAIL;
+	SETERROR(utils, "SRP Buffer isn't of the right length\n");
+	return SASL_BADPROT;
     }
 
     *out = in+4;
@@ -812,9 +812,8 @@ static int GetUTF8(const sasl_utils_t *utils, char *data, int datalen,
     int len;
 
     if ((!data) || (datalen < 2)) {
-	utils->log(NULL, SASL_LOG_ERR,
-		   "Buffer is not big enough to be SRP UTF8\n");
-	return SASL_FAIL;
+	SETERROR(utils, "Buffer is not big enough to be SRP UTF8\n");
+	return SASL_BADPROT;
     }
 
     /* get the length */
@@ -823,8 +822,8 @@ static int GetUTF8(const sasl_utils_t *utils, char *data, int datalen,
 
     /* make sure it's right */
     if (len + 2 > datalen) {
-	utils->log(NULL, SASL_LOG_ERR, "Not enough data for this SRP UTF8\n");
-	return SASL_FAIL;
+	SETERROR(utils, "Not enough data for this SRP UTF8\n");
+	return SASL_BADPROT;
     }
 
     *outstr = (char *)utils->malloc(len+1);
@@ -876,9 +875,8 @@ static int GetOS(const sasl_utils_t *utils, char *data, int datalen,
     int len;
 
     if ((!data) || (datalen < 1)) {
-	utils->log(NULL, SASL_LOG_ERR,
-		   "Buffer is not big enough to be SRP os\n");
-	return SASL_FAIL;
+	SETERROR(utils, "Buffer is not big enough to be SRP os\n");
+	return SASL_BADPROT;
     }
 
     /* get the length */
@@ -886,7 +884,7 @@ static int GetOS(const sasl_utils_t *utils, char *data, int datalen,
 
     /* make sure it's right */
     if (len + 1 > datalen) {
-	utils->log(NULL, SASL_LOG_ERR, "Not enough data for this SRP os\n");
+	SETERROR(utils, "Not enough data for this SRP os\n");
 	return SASL_FAIL;
     }
 
@@ -974,9 +972,10 @@ static int GetMPI(const sasl_utils_t *utils,
     int len;
 
     if ((!data) || (datalen < 2)) {
-	utils->log(NULL, SASL_LOG_ERR,
-		   "Buffer is not big enough to be SRP MPI: %d\n", datalen);
-	return SASL_FAIL;
+	utils->seterror(utils->conn, 0,
+			"Buffer is not big enough to be SRP MPI: %d\n",
+			datalen);
+	return SASL_BADPROT;
     }
 
     /* get the length */
@@ -985,10 +984,10 @@ static int GetMPI(const sasl_utils_t *utils,
 
     /* make sure it's right */
     if (len + 2 > datalen) {
-	utils->log(NULL, SASL_LOG_ERR,
-		   "Not enough data for this SRP MPI: we have %d; "
-		   "it says it's %d\n",datalen, len+2);
-	return SASL_FAIL;
+	utils->seterror(utils->conn, 0,
+			"Not enough data for this SRP MPI: we have %d; "
+			"it says it's %d\n", datalen, len+2);
+	return SASL_BADPROT;
     }
 
     BN_init(outnum);
@@ -1178,8 +1177,8 @@ static int CalculateK_client(context_t *text,
 
     /* per Tom Wu: make sure u != 0 */
     if (BN_is_zero(&u)) {
-	text->utils->log(NULL, SASL_LOG_ERR, "Illegal value for 'u'\n");
-	r = SASL_FAIL;
+	SETERROR(text->utils, "SRP: Illegal value for 'u'\n");
+	r = SASL_BADPROT;
 	goto err;
     }
 
@@ -1506,22 +1505,20 @@ static int ParseOptionString(const sasl_utils_t *utils,
 	if (isserver && (!bit || opts->mda)) {
 	    opts->mda = -1;
 	    if (!bit)
-		utils->log(NULL, SASL_LOG_ERR,
-			   "MDA %s not supported\n",
-			   str+strlen(OPTION_MDA));
+		utils->seterror(utils->conn, 0,
+				"SRP MDA %s not supported\n",
+				str+strlen(OPTION_MDA));
 	    else
-		utils->log(NULL, SASL_LOG_ERR,
-			   "Multiple MDAs given\n");
-	    return SASL_FAIL;
+		SETERROR(utils, "Multiple SRP MDAs given\n");
+	    return SASL_BADPROT;
 	}
 
 	opts->mda = opts->mda | bit;
 
     } else if (!strcasecmp(str, OPTION_REPLAY_DETECTION)) {
 	if (opts->replay_detection) {
-	    utils->log(NULL, SASL_LOG_ERR,
-		       "Replay Detection option appears twice\n");
-	    return SASL_FAIL;
+	    SETERROR(utils, "SRP Replay Detection option appears twice\n");
+	    return SASL_BADPROT;
 	}
 	opts->replay_detection = 1;
 
@@ -1533,13 +1530,12 @@ static int ParseOptionString(const sasl_utils_t *utils,
 	if (isserver && (!bit || opts->integrity)) {
 	    opts->integrity = -1;
 	    if (!bit)
-		utils->log(NULL, SASL_LOG_ERR,
-			   "Integrity option %s not supported\n",
-			   str+strlen(OPTION_INTEGRITY));
+		utils->seterror(utils->conn, 0,
+				"SRP Integrity option %s not supported\n",
+				str+strlen(OPTION_INTEGRITY));
 	    else
-		utils->log(NULL, SASL_LOG_ERR,
-			   "Multiple Integrity options given\n");
-	    return SASL_FAIL;
+		SETERROR(utils, "Multiple SRP Integrity options given\n");
+	    return SASL_BADPROT;
 	}
 
 	opts->integrity = opts->integrity | bit;
@@ -1553,12 +1549,12 @@ static int ParseOptionString(const sasl_utils_t *utils,
 	if (isserver && (!bit || opts->confidentiality)) {
 	    opts->confidentiality = -1;
 	    if (!bit)
-		utils->log(NULL, SASL_LOG_ERR,
-			   "Confidentiality option %s not supported\n",
-			   str+strlen(OPTION_CONFIDENTIALITY));
+		utils->seterror(utils->conn, 0,
+				"SRP Confidentiality option %s not supported\n",
+				str+strlen(OPTION_CONFIDENTIALITY));
 	    else
-		utils->log(NULL, SASL_LOG_ERR,
-			   "Multiple Confidentiality options given\n");
+		SETERROR(utils,
+			 "Multiple SRP Confidentiality options given\n");
 	    return SASL_FAIL;
 	}
 
@@ -1578,9 +1574,9 @@ static int ParseOptionString(const sasl_utils_t *utils,
 			      strlen(OPTION_CONFIDENTIALITY)-1))
 	    opts->mandatory |= BIT_CONFIDENTIALITY;
 	else {
-	    utils->log(NULL, SASL_LOG_ERR,
-		       "Mandatory option %s not supported\n", layer);
-	    return SASL_FAIL;
+	    utils->seterror(utils->conn, 0,
+			    "Mandatory SRP option %s not supported\n", layer);
+	    return SASL_BADPROT;
 	}
 
     } else if (!strncasecmp(str, OPTION_MAXBUFFERSIZE,
@@ -1589,10 +1585,10 @@ static int ParseOptionString(const sasl_utils_t *utils,
 	opts->maxbufsize = strtoul(str+strlen(OPTION_MAXBUFFERSIZE), NULL, 10);
 
 	if (opts->maxbufsize > MAXBUFFERSIZE) {
-	    utils->log(NULL, SASL_LOG_ERR,
-		       "Maxbuffersize %lu too big (> %lu)\n",
-		       opts->maxbufsize, MAXBUFFERSIZE);
-	    return SASL_FAIL;
+	    utils->seterror(utils->conn, 0,
+			    "SRP Maxbuffersize %lu too big (> %lu)\n",
+			    opts->maxbufsize, MAXBUFFERSIZE);
+	    return SASL_BADPROT;
 	}
 
     } else {
@@ -1872,9 +1868,8 @@ static int CreateClientOpts(sasl_client_params_t *params,
 	out->mda = opt->bit;
     }
     else {
-	params->utils->log(NULL, SASL_LOG_ERR,
-			   "Can't find an acceptable MDA\n");
-	return SASL_TOOWEAK;
+	SETERROR(params->utils, "Can't find an acceptable SRP MDA\n");
+	return SASL_BADAUTH;
     }
 
     /* get requested ssf */
@@ -1912,8 +1907,8 @@ static int CreateClientOpts(sasl_client_params_t *params,
 	    musthave = 0;
 	}
 	else if (musthave > 1) {
-	    params->utils->log(NULL, SASL_LOG_ERR,
-			       "Can't find an acceptable privacy layer\n");
+	    SETERROR(params->utils,
+		     "Can't find an acceptable SRP confidentiality layer\n");
 	    return SASL_TOOWEAK;
 	}
     }
@@ -1934,8 +1929,8 @@ static int CreateClientOpts(sasl_client_params_t *params,
 	    out->replay_detection = available->replay_detection;
 	}
 	else if (musthave > 0) {
-	    params->utils->log(NULL, SASL_LOG_ERR,
-			       "Can't find an acceptable integrity layer\n");
+	    SETERROR(params->utils,
+		     "Can't find an acceptable SRP integrity layer\n");
 	    return SASL_TOOWEAK;
 	}
     }
@@ -1950,9 +1945,8 @@ static int CreateClientOpts(sasl_client_params_t *params,
 	 (available->mandatory & BIT_INTEGRITY)) ||
 	(!out->confidentiality &&
 	 (available->mandatory & BIT_CONFIDENTIALITY))) {
-	params->utils->log(NULL, SASL_LOG_ERR,
-			   "Mandatory layer not supported\n");
-	return SASL_TOOWEAK;
+	SETERROR(params->utils, "Mandatory SRP layer not supported\n");
+	return SASL_BADAUTH;
     }
 
     /* Add maxbuffersize */
@@ -1978,7 +1972,7 @@ static int SetOptions(srp_options_t *opts,
     opt = FindOptionFromBit(opts->mda, digest_options);
     if (!opt) {
 	utils->log(NULL, SASL_LOG_ERR,
-		   "Unable to find MDA option now\n");
+		   "Unable to find SRP MDA option now\n");
 	return SASL_FAIL;
     }
 
@@ -2014,7 +2008,7 @@ static int SetOptions(srp_options_t *opts,
 	opt = FindOptionFromBit(opts->integrity, digest_options);
 	if (!opt) {
 	    utils->log(NULL, SASL_LOG_ERR,
-		       "Unable to find integrity layer option now\n");
+		       "Unable to find SRP integrity layer option now\n");
 	    return SASL_FAIL;
 	}
 
@@ -2032,7 +2026,7 @@ static int SetOptions(srp_options_t *opts,
 	opt = FindOptionFromBit(opts->confidentiality, cipher_options);
 	if (!opt) {
 	    utils->log(NULL, SASL_LOG_ERR,
-		       "Unable to find confidentiality layer option now\n");
+		       "Unable to find SRP confidentiality layer option now\n");
 	    return SASL_FAIL;
 	}
 
@@ -2236,16 +2230,16 @@ static int ServerCalculateK(context_t *text, BIGNUM *v,
 
     /* per Tom Wu: make sure Av^u != 1 (mod N) */
     if (BN_is_one(&base)) {
-	text->utils->log(NULL, SASL_LOG_ERR, "Unsafe value for 'Av^u'\n");
-	r = SASL_FAIL;
+	SETERROR(text->utils, "Unsafe SRP value for 'Av^u'\n");
+	r = SASL_BADPROT;
 	goto err;
     }
 
     /* per Tom Wu: make sure Av^u != -1 (mod N) */
     BN_add_word(&base, 1);
     if (BN_cmp(&S, N) == 0) {
-	text->utils->log(NULL, SASL_LOG_ERR, "Unsafe value for 'Av^u'\n");
-	r = SASL_FAIL;
+	SETERROR(text->utils, "Unsafe SRP value for 'Av^u'\n");
+	r = SASL_BADPROT;
 	goto err;
     }
 
@@ -2561,16 +2555,16 @@ static int server_step2(context_t *text,
 
     /* Per [SRP]: reject A <= 0 */
     if (BigIntCmpWord(&text->A, 0) <= 0) {
-	params->utils->log(NULL, SASL_LOG_ERR, "Illegal value for 'A'\n");
-	return SASL_FAIL;
+	SETERROR(params->utils, "Illegal value for 'A'\n");
+	return SASL_BADPROT;
     }
     
     r = GetUTF8(params->utils, data, datalen, &text->client_options,
 		&data, &datalen);
     if (r) {
-      params->utils->seterror(params->utils->conn, 0, 
-	"Error parsing out client options 'o'");
-      return r;
+	params->utils->seterror(params->utils->conn, 0, 
+				"Error parsing out SRP client options 'o'");
+	return r;
     }
     params->utils->log(NULL, SASL_LOG_DEBUG, "o: '%s'", text->client_options);
 
@@ -2709,9 +2703,7 @@ static int server_step3(context_t *text,
 
     if (myM1len != M1len) {
       params->utils->seterror(params->utils->conn, 0, 
-	"M1 lengths do not match");
-      params->utils->log(NULL, SASL_LOG_ERR,
-			 "M1 lengths do not match: %d vs %d",M1len, myM1len);
+			      "SRP M1 lengths do not match");
       goto end;
     }
 
@@ -3345,9 +3337,8 @@ static int client_step1(context_t *text,
      * 
      */
     if (serverinlen > 0) {
-	params->utils->log(NULL, SASL_LOG_ERR,
-			   "Invalid input to first step of SRP\n");
-	return SASL_FAIL;
+	SETERROR(params->utils, "Invalid input to first step of SRP\n");
+	return SASL_BADPROT;
     }
 
     /* try to get the authid */
@@ -3549,7 +3540,8 @@ static int client_step2(context_t *text,
     memset(&server_opts, 0, sizeof(srp_options_t));
     r = ParseOptions(params->utils, text->server_options, &server_opts, 0);
     if (r) {
-	params->utils->log(NULL, SASL_LOG_ERR, "Error parsing options\n");
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Error parsing SRP server options\n");
 	goto done;
     }
 
@@ -3662,13 +3654,13 @@ static int client_step3(context_t *text,
 
     /* Per [SRP]: reject B <= 0, B >= N */
     if (BigIntCmpWord(&text->B, 0) <= 0 || BN_cmp(&text->B, &text->N) >= 0) {
-	params->utils->log(NULL, SASL_LOG_ERR, "Illegal value for 'B'\n");
-	return SASL_FAIL;
+	SETERROR(params->utils, "Illegal value for 'B'\n");
+	return SASL_BADPROT;
     }
     
     if (datalen != 0) {
-	params->utils->log(NULL, SASL_LOG_ERR, "Extra data parsing buffer\n");
-	return SASL_FAIL;
+	SETERROR(params->utils, "Extra data parsing buffer\n");
+	return SASL_BADPROT;
     }
 
     /* Calculate shared context key K
@@ -3758,8 +3750,8 @@ static int client_step4(context_t *text,
     if (r) return r;
 
     if (datalen != 0) {
-	params->utils->log(NULL, SASL_LOG_ERR, "Extra data parsing buffer\n");
-	r = SASL_FAIL;
+	SETERROR(params->utils, "Extra data parsing buffer\n");
+	r = SASL_BADPROT;
 	goto done;
     }
 
@@ -3775,17 +3767,17 @@ static int client_step4(context_t *text,
 
     /* compare to see if is server spoof */
     if (myM2len != serverM2len) {
-	params->utils->log(NULL, SASL_LOG_ERR, "Server M2 length wrong\n");
-	r = SASL_FAIL;
+	SETERROR(params->utils, "SRP Server M2 length wrong\n");
+	r = SASL_BADSERV;
 	goto done;
     }
 
     
     for (i = 0; i < myM2len; i++) {
 	if (serverM2[i] != myM2[i]) {
-	    params->utils->log(NULL, SASL_LOG_ERR,
-			       "Server spoof detected. M2 incorrect\n");
-	    r = SASL_FAIL;
+	    SETERROR(params->utils,
+		     "SRP Server spoof detected. M2 incorrect\n");
+	    r = SASL_BADSERV;
 	    goto done;
 	}
     }

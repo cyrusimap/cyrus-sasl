@@ -19,9 +19,6 @@ DIGEST-MD5 plugin and continues to work on it.
 Rainer Schoepf <schoepf@uni-mainz.de> contributed the LOGIN plugin,
 based on Tim Martin's PLAIN plugin.
 
-Igor Brezac <igor@ipass.net> has done a good deal of work on the saslauthd
-LDAP module.
-
 Simon Loader <simon@surf.org.uk> wrote the MySQL auxprop module.
 
 Rolf Braun <rbraun@andrew.cmu.edu> wrote the MacOS ports.
@@ -36,4 +33,4 @@ Chris Newman <chris.newman@innosoft.com> wrote the initial version of the
 SASL API, as well as the version 2 SASL API (documented in sasl.h,
 saslutil.h, saslplug.h, and prop.h).
 
-$Id: AUTHORS,v 1.11 2002/09/05 19:21:10 rjs3 Exp $
+$Id: AUTHORS,v 1.12 2003/03/28 19:56:31 rjs3 Exp $

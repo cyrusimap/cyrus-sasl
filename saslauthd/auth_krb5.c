@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb5.c,v 1.8 2002/08/21 19:05:49 leg Exp $"
+#ident "$Id: auth_krb5.c,v 1.9 2003/03/06 17:23:17 rjs3 Exp $"
 #endif
 
 /* ok, this is  wrong but the most convenient way of doing 
@@ -252,7 +252,11 @@ static int k5support_verify_tgt(krb5_context context,
 	goto fini;
     }
     
-    
+    if (auth_context) {
+	krb5_auth_con_free(context, auth_context);
+	auth_context = NULL;
+    }
+
     /* all is good now */
     result = 1;
  fini:

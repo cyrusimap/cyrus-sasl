@@ -3,6 +3,8 @@
 	* lib/client.c, common.c, saslint.h, server.c: Pass global
 	  callbacks to global utils structure
 	  (Howard Chu <hyc@highlandsun.com>)
+	* saslauthd/auth_krb5.c: Fix memory/file descriptor leak
+	  in krb5 authentication (Jonathen Chen <jon@spock.org>)
 
 2002-02-20  Ken Murchison <ken@oceana.com>
 	* doc/draft-ietf-sasl-rfc2831bis-00.txt: added

@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: client.c,v 1.5 1998/11/20 16:21:59 ryan Exp $
+ * $Id: client.c,v 1.6 1999/01/12 19:03:16 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -317,6 +317,7 @@ int sasl_client_start(sasl_conn_t *conn,
   minssf=conn->props.min_ssf;
 
   /* parse mechlist */
+  VL(("mech list from server is %s\n", list));
   list_len = strlen(list);
   while (pos<list_len)
   {

@@ -1,6 +1,6 @@
 # Makefile.am for the SASL plugins
 # Rob Earhart
-# $Id: Makefile.am,v 1.5 1998/11/30 20:26:35 rob Exp $
+# $Id: Makefile.am,v 1.6 1999/01/12 19:03:18 rob Exp $
 #
 #
 #         Copyright 1998 by Carnegie Mellon University
@@ -51,11 +51,11 @@ libanonymous_la_LDFLAGS = -version-info $(anonymous_version)
 
 libkerberos4_la_SOURCES = kerberos4.c
 libkerberos4_la_LDFLAGS = -version-info $(kerberos4_version)
-libkerberos4_la_LIBADD = -lkrb -ldes
+libkerberos4_la_LIBADD = -lkrb -ldes $(LIB_SOCKET)
 
 libgssapiv2_la_SOURCES = gssapi.c
 libgssapiv2_la_LDFLAGS = -version-info $(gssapiv2_version)
-libgssapiv2_la_LIBADD = $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS)
+libgssapiv2_la_LIBADD = $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET)
 
 libcrammd5_la_SOURCES = cram.c
 libcrammd5_la_LDFLAGS = -version-info $(crammd5_version)

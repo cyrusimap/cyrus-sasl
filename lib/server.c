@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.11 1998/12/09 06:55:40 tmartin Exp $
+ * $Id: server.c,v 1.12 1999/01/12 19:03:17 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -139,7 +139,7 @@ static sasl_global_callbacks_t global_callbacks;
  * sasl_server_step
  * sasl_checkpass NTI
  * sasl_userexists NTI
- * sasl_setpass NTI
+ * sasl_setpass
  */
 
 int sasl_setpass(sasl_conn_t *conn,
@@ -164,12 +164,16 @@ int sasl_setpass(sasl_conn_t *conn,
   if (! mechlist)		/* if haven't init'ed yet */
     return SASL_FAIL;
 
+  VL(("Setting password for \"%s\" to \"%*s\" (len is %d)\n",
+      user, passlen, pass, passlen));
+
   for (m = mechlist->mech_list;
        m;
        m = m->next)
     if (m->plug->setpass)
     {
       /* TODO: Log something if this fails */
+      VL(("Setting it for mech %s\n", m->plug->mech_name));
       tmpresult=m->plug->setpass(m->plug->glob_context,
 			   ((sasl_server_conn_t *)conn)->sparams,
 			   user,

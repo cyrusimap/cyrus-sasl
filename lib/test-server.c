@@ -66,7 +66,7 @@
 #endif
 
 static char rcsid[] = 
-"$Id: test-server.c,v 1.2 1998/11/24 22:56:42 ryan Exp $";
+"$Id: test-server.c,v 1.3 1999/01/12 19:03:17 rob Exp $";
 
 /***************************************************************************
  *
@@ -237,10 +237,11 @@ EndOfDashArgs:
 		       &len,        /* Length of string */
 		       &num);       /* Number of mechanisms */
   checkerror(result);
-  test_WriteBuf('S', 1, mechlist, strlen(mechlist));
 
   if (Verbose)
      fprintf(stderr, "Sending mechanism list '%s'\n", mechlist);
+
+  test_WriteBuf('S', 1, mechlist, strlen(mechlist));
 
   /* 4: Client specifies mechanism */
   result = test_ReadBuf('C', 0, &clientin, &clientinlen);

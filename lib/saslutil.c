@@ -1,6 +1,6 @@
 /* saslutil.c
  * Tim Martin 5/20/98
- * $Id: saslutil.c,v 1.7 1998/11/24 22:56:38 ryan Exp $
+ * $Id: saslutil.c,v 1.8 1999/01/12 19:03:16 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -203,6 +203,7 @@ static unsigned short* getranddata()
     return ret;
   }
   
+#if 0
   if ((f=fopen("/dev/audio","r"))!=NULL)
   {
     int parity=0,lup,lup2;     
@@ -225,6 +226,7 @@ static unsigned short* getranddata()
     fclose(f);
     return ret;
   }
+#endif
 
   /* if all else fails just use timer */
   curtime=(long) time(NULL);

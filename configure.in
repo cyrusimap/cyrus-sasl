@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.13 1998/11/30 20:29:22 rob Exp $
+dnl $Id: configure.in,v 1.14 1999/01/12 19:03:14 rob Exp $
 dnl
 dnl
 dnl         Copyright 1998 by Carnegie Mellon University
@@ -23,13 +23,14 @@ dnl WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
 dnl ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 dnl SOFTWARE.
 dnl
-AC_REVISION($Id: configure.in,v 1.13 1998/11/30 20:29:22 rob Exp $)
+AC_REVISION($Id: configure.in,v 1.14 1999/01/12 19:03:14 rob Exp $)
 AC_INIT(lib/saslint.h)
 AC_CONFIG_AUX_DIR(config)
 AM_CONFIG_HEADER(config.h)
 
 AC_CANONICAL_HOST
-AM_INIT_AUTOMAKE(cyrus-sasl, v1.2b3)
+AM_INIT_AUTOMAKE(cyrus-sasl, v1.3b1)
+CMU_INIT_AUTOMAKE
 
 dnl With and Enable
 AC_ARG_WITH(nana, [  --with-nana             use NANA [yes]],,with_nana=yes)
@@ -52,28 +53,7 @@ fi
 
 AM_DISABLE_STATIC
 
-dnl Libtool tries to compile an empty file to see whether it can build
-dnl shared libraries, and treats *any* warning as a problem.
-dnl Solaris's cc complains about the empty file.  So we hack the CFLAGS
-dnl to make cc not complain.
-
-if test "$ac_cv_prog_gcc" = no; then
-  case "$host_os" in
-    solaris2*)
-      save_cflags="${CFLAGS}"
-      CFLAGS="-erroff=E_EMPTY_TRANSLATION_UNIT ${CFLAGS}"
-      ;;
-  esac
-fi
-
-AM_PROG_LIBTOOL
-
-if test "$ac_cv_prog_gcc" = no; then
-  case "$host_os" in
-    solaris2*)
-      CFLAGS="${save_cflags}"
-  esac
-fi
+CMU_PROG_LIBTOOL
 
 if test "$ac_cv_prog_gcc" = yes; then
   CFLAGS="-pedantic -ansi -fbuiltin -Wall -W ${CFLAGS}"
@@ -175,6 +155,7 @@ AC_SUBST(SASL_DL_LIB)
 dnl See if we can provide a default logging function...
 AC_CHECK_FUNCS(vsyslog)
 
+CMU_SOCKETS
 
 dnl CRAM-MD5
 AC_ARG_ENABLE(cram, [  --enable-cram           enable CRAM-MD5 authentication [yes] ],
@@ -226,8 +207,6 @@ KERBEROS_LIBS=""
 AC_MSG_CHECKING(KERBEROS_V4)
 if test "$krb4" != no; then
   AC_MSG_RESULT(enabled)
-  AC_CHECK_LIB(nsl, inet_ntoa, KERBEROS_LIBS="$KERBEROS_LIBS -lnsl")
-  AC_CHECK_LIB(socket, socket, KERBEROS_LIBS="$KERBEROS_LIBS -lsocket")
   SASL_MECHS="$SASL_MECHS libkerberos4.la"
 else
   AC_MSG_RESULT(disabled)
@@ -281,8 +260,6 @@ GSSAPI_LIBS=""
 AC_MSG_CHECKING(GSSAPI)
 if test "$gssapi" != no; then
   AC_MSG_RESULT(with implementation ${gss_impl})
-  AC_CHECK_LIB(nsl, inet_ntoa, GSSAPI_LIBS="$GSSAPI_LIBS -lnsl")
-  AC_CHECK_LIB(socket, socket, GSSAPI_LIBS="$GSSAPI_LIBS -lsocket")
   AC_CHECK_LIB(ndbm,dbm_open,GSSAPIBASE_LIBS="$GSSAPIBASE_LIBS -lndbm")
   AC_CHECK_LIB(resolv,res_search,GSSAPIBASE_LIBS="$GSSAPIBASE_LIBS -lresolv")
   SASL_MECHS="$SASL_MECHS libgssapiv2.la"
@@ -347,4 +324,4 @@ AC_C_INLINE
 
 AC_CHECK_FUNCS(getdomainname)
 
-AC_OUTPUT(Makefile include/Makefile lib/Makefile plugins/Makefile sasl/Makefile)
+AC_OUTPUT(Makefile include/Makefile lib/Makefile plugins/Makefile sasl/Makefile util/Makefile)

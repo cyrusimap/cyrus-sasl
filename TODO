@@ -3,13 +3,10 @@ C
 ) Set username after authenticate (done sometimes already)
 ) Authorization in kerberos
 ) Work with our GSSAPI libs
-) Use callbacks before trying a SASL_INTERACT
 ) No buffers on the stack
 ) No fixed-length buffers
 ) Zero sensitive data after use
 ) Better/FASTER random numbers (init time is pretty miserable)
-) sasl_setpass
-) saslpasswd -- utility to set a user's SASL password
 ) Test suite
 
 Java

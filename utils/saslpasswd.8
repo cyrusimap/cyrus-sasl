@@ -1,0 +1,57 @@
+.\" saslpasswd.8 -- saslpasswd man page
+.\" Rob Earhart
+.\"
+.\"         Copyright 1999 by Carnegie Mellon University
+.\"
+.\"                       All Rights Reserved
+.\"
+.\" Permission to use, copy, modify, and distribute this software and its
+.\" documentation for any purpose and without fee is hereby granted,
+.\" provided that the above copyright notice appear in all copies and that
+.\" both that copyright notice and this permission notice appear in
+.\" supporting documentation, and that the name of Carnegie Mellon University
+.\" not be used in advertising or publicity pertaining to distribution of the
+.\" software without specific, written prior permission.
+.\"
+.\" CARNEGIE MELLON UNIVERSITY DISCLAIMS ALL WARRANTIES WITH REGARD TO 
+.\" THIS SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND 
+.\" FITNESS, IN NO EVENT SHALL CARNEGIE MELLON UNIVERSITY BE LIABLE FOR ANY 
+.\" SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+.\" RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF 
+.\" CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN 
+.\" CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+
+.TH SASLPASSWD 8 "Jan 11, 1999" "CMU SASL"
+.SH NAME
+saslpasswd \- set a user's sasl password
+.SH SYNOPSIS
+.B saslpasswd
+.RB [ -p ]
+.RB [ -d ]
+.RB [ -c ]
+.B userid
+.SH DESCRIPTION
+.I saslpasswd
+is used by a server administrator to set a user's sasl password for
+server programs and SASL mechanisms which use the standard libsasl
+database of user secrets.
+.SH OPTIONS
+.TP
+.B -p
+Pipe mode \- saslpasswd will neither prompt for the password nor
+verify that it was entered correctly.  This is the default when
+standard input is not a terminal.
+.TP
+.B -c
+Creates an entry for the user if the user doesn't already exist.  This
+is mutually exclusive with the
+.B -d
+(delete user) flag.
+.TP
+.B -d
+Deletes the entry for the user.  This is mutually exclusive with the
+.B -c
+(create user) flag.
+.SH SEE ALSO
+rfc2222 \- Simple Authentication and Security Layer (SASL)

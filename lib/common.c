@@ -1,6 +1,6 @@
 /* common.c - Functions that are common to server and clinet
  * Tim Martin
- * $Id: common.c,v 1.11 1999/01/08 01:47:56 rob Exp $
+ * $Id: common.c,v 1.12 1999/01/12 19:03:16 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -57,7 +57,7 @@ char *strchr(), *strrchr();
 
 int _sasl_debug = 0;
 
-static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
+static const char build_ident[] = "$Build: libsasl " PACKAGE "-" VERSION " $";
 
 void (*_sasl_client_cleanup_hook)(void) = NULL;
 void (*_sasl_server_cleanup_hook)(void) = NULL;

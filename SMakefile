@@ -1,6 +1,6 @@
 if test ! -x configure; then
-  echo aclocal
-  aclocal
+  echo aclocal -I cmulocal
+  aclocal -I cmulocal
   echo autoheader
   autoheader
   echo autoconf

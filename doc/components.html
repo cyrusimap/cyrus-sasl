@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>SASL Components</title>
-<!-- $Id: components.html,v 1.1 2003/07/03 21:24:14 rjs3 Exp $ -->
+<!-- $Id: components.html,v 1.2 2003/07/04 14:44:06 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>SASL Components</H1>
@@ -90,6 +90,14 @@ These mechanisms take care of both server-side and client-side parts
 of the SASL negotiation.  If the given mechanism supports a security layer
 (that is, makes guarantees about privacy or integrity of data after the
 negotiation is complete), the plugin provides that functionality as well.</p>
+
+<p>SASL mechanisms are generally defined by the IETF standards process,
+however, some mechanisms are not (For example, NTLM).  This is in contrast
+to the other types of plugins, which provide database and username
+canonicalization services to other plugins and thus aren't standardized in
+their behavior (they are specific to our implementation).  Password verifiers
+are also an implementation detail (though saslauthd makes use of
+standards such as PAM and LDAP to perform that verification)</p>
 
 <p>There are several types of mechanisms, in broad strokes we have:</p>
 <ul>

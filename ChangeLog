@@ -1,6 +1,7 @@
 2002-06-12  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/digestmd5.c: rename get_realm to get_server_realm, and
 	  pay attention to its return value
+	* lib/external.c, lib/seterror.c: cleanup size_t/unsigned confusion
 
 2002-06-10  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* sasldb/Makefile.am: fix handling of allockey (only include it once)

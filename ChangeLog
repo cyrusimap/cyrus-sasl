@@ -1,3 +1,7 @@
+2002-06-13  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/ : remove LDAP support
+	* Ready for 2.1.5
+
 2002-06-12  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/digestmd5.c: rename get_realm to get_server_realm, and
 	  pay attention to its return value

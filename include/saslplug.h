@@ -466,8 +466,10 @@ typedef struct sasl_server_params {
     sasl_security_properties_t props;
     sasl_ssf_t external_ssf;	/* external SSF active */
 
-    /* server plug-in calls this when it first has access to the plaintext
-     *  passphrase.  This is used to transition users via setpass calls.
+    /* Pointer to the function which takes the plaintext passphrase and
+     *  transitions a user to non-plaintext mechanisms via setpass calls.
+     *  (NULL = auto transition not enabled/supported)
+     *
      *  If passlen is 0, it defaults to strlen(pass).
      *  returns 0 if no entry added, 1 if entry added
      */
@@ -475,7 +477,7 @@ typedef struct sasl_server_params {
 
     /* Canonicalize a user name from on-wire to internal format
      *  added cjn 1999-09-21
-     *  Must be called once user name aquired if canon_user is non-NULL.
+     *  Must be called once user name acquired if canon_user is non-NULL.
      *  conn        connection context
      *  user        user name from wire protocol (need not be NUL terminated)
      *  ulen        length of user name from wire protocol (0 = strlen(user))

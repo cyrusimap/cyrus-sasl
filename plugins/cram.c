@@ -1,7 +1,7 @@
 /* CRAM-MD5 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: cram.c,v 1.80 2003/07/29 21:01:42 ken3 Exp $
+ * $Id: cram.c,v 1.81 2003/11/03 18:25:24 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -65,7 +65,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: cram.c,v 1.80 2003/07/29 21:01:42 ken3 Exp $";
+static const char plugin_id[] = "$Id: cram.c,v 1.81 2003/11/03 18:25:24 ken3 Exp $";
 
 /* convert a string of 8bit chars to it's representation in hex
  * using lowercase letters
@@ -269,7 +269,7 @@ crammd5_server_mech_step2(server_context_t *text,
 	/* We didn't find this username */
 	sparams->utils->seterror(sparams->utils->conn,0,
 				 "no secret in database");
-	result = SASL_NOUSER;
+	result = sparams->transition ? SASL_TRANS : SASL_NOUSER;
 	goto done;
     }
     

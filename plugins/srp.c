@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.51 2003/10/01 19:08:51 rjs3 Exp $
+ * $Id: srp.c,v 1.52 2003/11/03 18:25:25 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -98,7 +98,7 @@ typedef unsigned short uint32;
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: srp.c,v 1.51 2003/10/01 19:08:51 rjs3 Exp $";
+static const char plugin_id[] = "$Id: srp.c,v 1.52 2003/11/03 18:25:25 ken3 Exp $";
 
 /* Size limit of cipher block size */
 #define SRP_MAXBLOCKSIZE 16
@@ -1867,7 +1867,7 @@ static int srp_server_mech_step1(context_t *text,
 	/* We didn't find this username */
 	params->utils->seterror(params->utils->conn,0,
 				"no secret in database");
-	result = SASL_NOUSER;
+	result = params->transition ? SASL_TRANS : SASL_NOUSER;
 	goto cleanup;
     }
     

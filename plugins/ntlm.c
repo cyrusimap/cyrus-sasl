@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.17 2003/09/14 13:38:28 ken3 Exp $
+ * $Id: ntlm.c,v 1.18 2003/11/03 18:25:25 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -94,7 +94,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.17 2003/09/14 13:38:28 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.18 2003/11/03 18:25:25 ken3 Exp $";
 
 #ifdef WIN32
 static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);
@@ -1521,7 +1521,7 @@ static int ntlm_server_mech_step2(server_context_t *text,
 	    (!auxprop_values[0].name || !auxprop_values[0].values)) {
 	    /* We didn't find this username */
 	    SETERROR(sparams->utils, "no secret in database");
-	    result = SASL_NOUSER;
+	    result = sparams->transition ? SASL_TRANS : SASL_NOUSER;
 	    goto cleanup;
 	}
     

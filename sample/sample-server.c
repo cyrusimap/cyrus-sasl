@@ -612,6 +612,32 @@ main(int argc, char *argv[])
     sasldebug(result, "ssf", NULL);
   else
     printf("SSF: %d\n", *ssf);
+#define CLIENT_MSG1 "client message 1"
+#define SERVER_MSG1 "srv message 1"
+  result=sasl_encode(conn,SERVER_MSG1,sizeof(SERVER_MSG1),
+  	&data,&len);
+  if (result != SASL_OK)
+      saslfail(result, "sasl_encode", NULL);
+  printf("sending encrypted message '%s'\n",SERVER_MSG1);
+  samp_send(data,len);
+  printf("Waiting for encrypted message...\n");
+  len=samp_recv();
+ {
+ 	unsigned int recv_len;
+ 	char *recv_data;
+	result=sasl_decode(conn,buf,len,&recv_data,&recv_len);
+ 	if (result != SASL_OK)
+      saslfail(result, "sasl_encode", NULL);
+    printf("recieved decoded message '%s'\n",recv_data);
+    if(strcmp(recv_data,CLIENT_MSG1)!=0)
+    	saslfail(1,"recive decoded server message",NULL);
+#ifndef WIN32
+	free(recv_data);
+#endif
+#ifndef WIN32
+  free(data);
+#endif
+ }
 
   return (EXIT_SUCCESS);
 }

@@ -40,10 +40,11 @@
  * AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-
 #include <config.h>
 #include <limits.h>
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #ifdef WIN32
 # include <winsock.h>
 __declspec(dllimport) char *optarg;
@@ -54,6 +55,24 @@ __declspec(dllimport) int getsubopt(char **optionp, char * const *tokens, char *
 #endif /* WIN32 */
 #include <sasl.h>
 #include <saslutil.h>
+
+#ifdef macintosh
+#include <sioux.h>
+#include <parse_cmd_line.h>
+#define MAX_ARGC (100)
+int xxx_main(int argc, char *argv[]);
+int main(void)
+{
+	char *argv[MAX_ARGC];
+	int argc;
+	char line[400];
+	SIOUXSettings.asktosaveonclose = 0;
+	SIOUXSettings.showstatusline = 1;
+	argc=parse_cmd_line(MAX_ARGC,argv,sizeof(line),line);
+	return xxx_main(argc,argv);
+}
+#define main xxx_main
+
 #ifdef HAVE_GETOPT_H
 #include <getopt.h>
 #endif
@@ -415,6 +434,7 @@ samp_recv()
   if (result != SASL_OK)
     saslfail(result, "Decoding data from base64", NULL);
   buf[len] = '\0';
+  printf("recieved %d byte message\n",len);
   if (verbose) { printf("got '%s'\n", buf); }
   return len;
 }
@@ -776,9 +796,8 @@ main(int argc, char *argv[])
 			      &data, &len);
     if (result != SASL_OK && result != SASL_CONTINUE)
       saslfail(result, "Performing SASL negotiation", NULL);
-
-    puts("Sending response...");      
     if (data) {
+      puts("Sending response...");
       samp_send(data, len);
 #ifndef WIN32
       /* This free causes win32 to fail */
@@ -801,12 +820,33 @@ main(int argc, char *argv[])
     sasldebug(result, "realm", NULL);
   else
     printf("Realm: %s\n", data);
+#define CLIENT_MSG1 "client message 1"
+#define SERVER_MSG1 "srv message 1"
 
   result = sasl_getprop(conn, SASL_SSF, (void **)&ssf);
   if (result != SASL_OK)
     sasldebug(result, "ssf", NULL);
   else
     printf("SSF: %d\n", *ssf);
+ 
+ printf("Waiting for encoded message...\n");
+ len=samp_recv();
+ {
+ 	unsigned int recv_len;
+ 	char *recv_data;
+	result=sasl_decode(conn,buf,len,&recv_data,&recv_len);
+ 	if (result != SASL_OK)
+      saslfail(result, "sasl_encode", NULL);
+    printf("recieved decoded message '%s'\n",recv_data);
+    if(strcmp(recv_data,SERVER_MSG1)!=0)
+    	saslfail(1,"recive decoded server message",NULL);
+ }
+  result=sasl_encode(conn,CLIENT_MSG1,sizeof(CLIENT_MSG1),
+  	&data,&len);
+  if (result != SASL_OK)
+      saslfail(result, "sasl_encode", NULL);
+  printf("sending encrypted message '%s'\n",CLIENT_MSG1);
+  samp_send(data,len);
 
   return (EXIT_SUCCESS);
 }

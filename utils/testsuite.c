@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.24 2002/05/05 14:18:50 ken3 Exp $
+ * $Id: testsuite.c,v 1.25 2002/05/06 21:00:37 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1226,6 +1226,7 @@ void sendbadsecond(char *mech, void *rock)
     struct sockaddr_in addr;
     struct hostent *hp;
     char buf[8192];
+    int reauth = 1;
 
     printf("%s --> start\n",mech);
     
@@ -1244,6 +1245,7 @@ void sendbadsecond(char *mech, void *rock)
     memcpy(&addr.sin_addr, hp->h_addr, hp->h_length);
     addr.sin_port = htons(0);
 
+ reauth: /* loop back for reauth testing */
     sprintf(buf,"%s;%d", inet_ntoa(addr.sin_addr), 23);
 
     /* client new connection */
@@ -1393,6 +1395,13 @@ void sendbadsecond(char *mech, void *rock)
 	    fatal("client was not ok on last server step");
     }
     
+    if (reauth) {
+ 	sasl_dispose(&clientconn);
+ 	sasl_dispose(&saslconn);
+ 
+ 	reauth = 0;
+ 	goto reauth;
+    }
 
     /* client to server */
     result = sasl_encode(clientconn, CLIENT_TO_SERVER,

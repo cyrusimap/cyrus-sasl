@@ -1,0 +1,94 @@
+<HTML><HEAD>
+<title>Cyrus SASLv2 README</title>
+<!-- $Id: readme.html,v 1.1 2001/12/04 19:58:50 rjs3 Exp $ -->
+</HEAD>
+<BODY>
+<H1>Read Me First</H1>
+
+This document offers a general overview of the SASL library.
+
+<H1>FEATURES</H1>
+
+The following mechanisms are included in this distribution:
+<ul>
+<li>ANONYMOUS
+<li>CRAM-MD5
+<li>DIGEST-MD5
+<li>GSSAPI (MIT Kerberos 5 or Heimdal Kerberos 5)
+<li>KERBEROS_V4
+<li>PLAIN
+<li>OTP (Requires libopie)
+<li>SRP-SHA-160
+<li>SRP-MD5-120
+</ul>
+
+The library uses a Berkeley DB, gdbm or ndbm file on the server side
+to store per-user authentication secrets.  The utility saslpasswd has
+been included for adding authentication secrets to the file.<p>
+
+PLAIN uses sasldb, the pwcheck daemon, or the saslauthd daemon.<p>
+
+The sample directory contains two programs which provide a reference
+for using the library, as well as making it easy to test a mechanism
+on the command line.  See "docs/programming.html" for more
+information.<p>
+
+This library is believed to be thread safe IF:
+<ul>
+<li>you supply mutex functions (see sasl_set_mutex())
+<li>you make no SASL calls until sasl_client/server_init() completes
+<li>no SASL calls are made after sasl_done() is begun
+</ul>
+
+<H1>INSTALLATION</H1>
+Please see the file "INSTALL" to install this package.  We hope it to
+be relatively straightforward; if you try it on systems that we
+haven't, please contact us with your experiences.<p>
+
+The library uses the environment variable SASL_PATH to locate the
+directory where the mechanisms are; this should be a colon-seperated
+list of directories containing plugins.
+
+<H1>INSTALLATION ON MAC OS X</H1>
+Please read <A HREF=macosx.html>this file</A>
+
+<H1>CONFIGURATION</H1>
+By default, libsasl looks for configuration files in
+/usr/lib/sasl/Appname.conf where Appname is settable by the
+application (for example, Sendmail 8.10 and later set this to
+"Sendmail").  Applications can also override this default
+configuration mechanism.<p>
+
+For a detailed guide on configuring SASL, please look at
+<A HREF=sysadmin.html>sysadmin.html</A> and <A HREF=options.html>options.html</A>
+
+<H1>KNOWN BUGS</H1>
+<ul>
+<li>There are some interoperability problems with the DIGEST-MD5 plugin.
+<li>There is an API issue with the username canonicalization functions which
+will be fixed by the next release.
+<li>libtool doesn't always link libraries together.  In our environment,
+we only have static Krb5 libraries; the GSSAPI plugin should link
+these libraries in on platforms that support it (Solaris and Linux
+among them) but it does not.  It also doesn't always get the runpath
+of libraries correct.
+<li>Also see the "TODO" file and our <A HREF=http://bugzilla.andrew.cmu.edu>bugzilla</A>.
+</ul>
+
+<H1>UPGRADING from SASLv1</H1>
+See <a href=upgrading.html>this document</a>.
+
+<H1>AUTHORS</H1>
+For any comments/suggestions/bug reports, please contact
+cyrus-bugs@andrew.cmu.edu.  Be sure to include the version of libsasl
+and your operating system; messages without this information will not
+be answered.<p>
+
+Authors can be found in the file AUTHORS<p>
+
+<hr>
+Back to the <A href=index.html>index</a>
+
+</body>
+</html>
+

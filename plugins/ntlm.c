@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.14 2003/09/08 20:46:04 ken3 Exp $
+ * $Id: ntlm.c,v 1.15 2003/09/09 14:17:52 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -85,7 +85,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.14 2003/09/08 20:46:04 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.15 2003/09/09 14:17:52 ken3 Exp $";
 
 #ifndef UINT16_MAX
 #define UINT16_MAX 65535U
@@ -573,7 +573,7 @@ static void unload_smb_header(unsigned char buf[], SMB_Header *hdr)
     hdr->tid = itohs(p); p += 2;
     hdr->pid = itohs(p); p += 2;
     hdr->uid = itohs(p); p += 2;
-    hdr->mid = itohs(p); p += 2;
+    hdr->mid = itohs(p);
 }
 
 static void unload_negprot_resp(unsigned char buf[], SMB_NegProt_Resp *resp)
@@ -674,6 +674,34 @@ static int retry_writev(int fd, struct iovec *iov, int iovcnt)
 	}
 
 	if (i == iovcnt) return written;
+    }
+}
+
+/*
+ * Keep calling the read() system call with 'fd', 'buf', and 'nbyte'
+ * until all the data is read in or an error occurs.
+ */
+static int retry_read(int fd, void *buf0, unsigned nbyte)
+{
+    int n;
+    int nread = 0;
+    char *buf = buf0;
+
+    if (nbyte == 0) return 0;
+
+    for (;;) {
+	n = read(fd, buf, nbyte);
+	if (n == -1 || n == 0) {
+	    if (errno == EINTR || errno == EAGAIN) continue;
+	    return -1;
+	}
+
+	nread += n;
+
+	if (nread >= (int) nbyte) return nread;
+
+	buf += n;
+	nbyte -= n;
     }
 }
 
@@ -801,13 +829,13 @@ static int smb_connect_server(const sasl_utils_t *utils, const char *client,
 	return -1;
     }
 
-    rc = read(s, &pkt, sizeof(pkt));
+    rc = retry_read(s, &pkt, sizeof(pkt));
     pkt = ntohl(pkt);
     if (rc == -1 || pkt != (uint32) (NBT_POSITIVE_SESSION_RESP << 24)) {
 	unsigned char ec = NBT_ERR_UNSPECIFIED;
 	char *errstr;
 
-	read(s, &ec, sizeof(ec));
+	retry_read(s, &ec, sizeof(ec));
 	switch (ec) {
 	case NBT_ERR_NO_LISTEN_CALLED:
 	    errstr = "Not listening on called name";
@@ -895,7 +923,7 @@ static int smb_negotiate_protocol(const sasl_utils_t *utils,
     /*** read the negotiate protocol response ***/
 
     /* read the total length */
-    rc = read(text->sock, &nl, sizeof(nl));
+    rc = retry_read(text->sock, &nl, sizeof(nl));
     if (rc < (int) sizeof(nl)) {
 	utils->log(NULL, SASL_LOG_ERR,
 		   "NTLM: error reading NEGPROT response length");
@@ -910,7 +938,7 @@ static int smb_negotiate_protocol(const sasl_utils_t *utils,
 	return SASL_NOMEM;
     }
 
-    rc = read(text->sock, text->out_buf, len);
+    rc = retry_read(text->sock, text->out_buf, len);
     if (rc < (int) len) {
 	utils->log(NULL, SASL_LOG_ERR,
 		   "NTLM: error reading NEGPROT response");
@@ -1104,7 +1132,7 @@ static int smb_session_setup(const sasl_utils_t *utils, server_context_t *text,
     /*** read the session setup response ***/
 
     /* read the total length */
-    rc = read(text->sock, &nl, sizeof(nl));
+    rc = retry_read(text->sock, &nl, sizeof(nl));
     if (rc < (int) sizeof(nl)) {
 	utils->log(NULL, SASL_LOG_ERR,
 		   "NTLM: error reading SESSIONSETUP response length");
@@ -1120,7 +1148,7 @@ static int smb_session_setup(const sasl_utils_t *utils, server_context_t *text,
 	return SASL_NOMEM;
     }
 
-    rc = read(text->sock, text->out_buf, len);
+    rc = retry_read(text->sock, text->out_buf, len);
     if (rc < (int) len) {
 	utils->log(NULL, SASL_LOG_ERR,
 		   "NTLM: error reading SESSIONSETUP response");

@@ -372,7 +372,7 @@ typedef int sasl_log_t(void *context,
  * outputs:
  *  path	-- colon seperated path (allocated on the heap; the
  *                 library will free it using the sasl_free_t *
- *                 passed to sasl_set_callback, or the standard free()
+ *                 passed to sasl_set_alloc(), or the standard free()
  *                 library call).
  * returns:
  *  SASL_OK     -- no error

@@ -904,9 +904,9 @@ void get_pair(char **in, char **name, char **value)
   curp = skip_token(curp,1);
 
   /* strip wierd chars */
-  if (curp[0] != '=') {
-    *curp++='\0';
-  }
+  if (curp[0] != '=' && curp[0] != '\0') {
+    *curp++ = '\0';
+  };
 
   curp = skip_lws(curp);
   

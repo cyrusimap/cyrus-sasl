@@ -99,7 +99,7 @@ typedef int		    intptr_t;
 /* #undef STATIC_KERBEROS4 */
 #define STATIC_LOGIN 1
 /* #undef STATIC_MYSQL */
-/* #undef STATIC_OTP */
+#define STATIC_OTP 1
 #define STATIC_PLAIN 1
 #define STATIC_SASLDB 1
 #define STATIC_SRP 1
@@ -176,9 +176,22 @@ struct sockaddr_storage {
 #ifndef HAVE_GETADDRINFO
 #define	getaddrinfo	sasl_getaddrinfo
 #define	freeaddrinfo	sasl_freeaddrinfo
-#define	getnameinfo	sasl_getnameinfo
 #define	gai_strerror	sasl_gai_strerror
+#endif
+
+#ifndef HAVE_GETNAMEINFO
+#define	getnameinfo	sasl_getnameinfo
+#endif
+
+#if !defined(HAVE_GETNAMEINFO) || !defined(HAVE_GETADDRINFO)
 #include "gai.h"
+#endif
+
+#ifndef AI_NUMERICHOST   /* support glibc 2.0.x */
+#define AI_NUMERICHOST  4
+#define NI_NUMERICHOST  2
+#define NI_NAMEREQD     4
+#define NI_NUMERICSERV  8
 #endif
 
 #include <time.h>

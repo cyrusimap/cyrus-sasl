@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.88 2002/07/30 17:06:21 rjs3 Exp $
+ * $Id: kerberos4.c,v 1.89 2002/09/18 22:08:40 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -107,7 +107,7 @@ extern int gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: kerberos4.c,v 1.88 2002/07/30 17:06:21 rjs3 Exp $";
+static const char plugin_id[] = "$Id: kerberos4.c,v 1.89 2002/09/18 22:08:40 rjs3 Exp $";
 
 #ifndef KEYFILE
 #define KEYFILE "/etc/srvtab";
@@ -455,21 +455,32 @@ kerberosv4_common_mech_free(void *glob_context __attribute__((unused)),
 /*****************************  Server Section  *****************************/
 
 static int cando_sec(sasl_security_properties_t *props,
+		     int external_ssf,
 		     int secflag)
 {
+    int need;
+    int musthave;
+    
+    if(props->maxbufsize == 0) {
+	need = musthave = 0;
+    } else {
+	need = props->max_ssf - external_ssf;
+	musthave = props->min_ssf - external_ssf;
+    }
+
     switch (secflag) {
     case KRB_SECFLAG_NONE:
-	if (props->min_ssf == 0)
+	if (musthave <= 0)
 	    return 1;
 	break;
     case KRB_SECFLAG_INTEGRITY:
-	if ((props->min_ssf <= KRB_INTEGRITY_BITS)
-	    && (KRB_INTEGRITY_BITS <= props->max_ssf))
+	if ((musthave <= KRB_INTEGRITY_BITS)
+	    && (KRB_INTEGRITY_BITS <= need))
 	    return 1;
 	break;
     case KRB_SECFLAG_ENCRYPTION:
-	if ((props->min_ssf <= KRB_DES_SECURITY_BITS)
-	    && (KRB_DES_SECURITY_BITS <= props->max_ssf))
+	if ((musthave <= KRB_DES_SECURITY_BITS)
+	    && (KRB_DES_SECURITY_BITS <= need))
 	    return 1;
 	break;
     case KRB_SECFLAG_CREDENTIALS:
@@ -621,18 +632,34 @@ static int kerberosv4_server_mech_step(void *conn_context,
 	nchal=htonl(text->challenge+1);
 	memcpy(sout, &nchal, 4);
 	sout[4]= 0;
-	if (cando_sec(&sparams->props, KRB_SECFLAG_NONE))
+	if (cando_sec(&sparams->props, sparams->external_ssf,
+		      KRB_SECFLAG_NONE))
 	    sout[4] |= KRB_SECFLAG_NONE;
-	if (cando_sec(&sparams->props, KRB_SECFLAG_INTEGRITY))
+	if (cando_sec(&sparams->props, sparams->external_ssf,
+		      KRB_SECFLAG_INTEGRITY))
 	    sout[4] |= KRB_SECFLAG_INTEGRITY;
-	if (cando_sec(&sparams->props, KRB_SECFLAG_ENCRYPTION))
+	if (cando_sec(&sparams->props, sparams->external_ssf,
+		      KRB_SECFLAG_ENCRYPTION))
 	    sout[4] |= KRB_SECFLAG_ENCRYPTION;
-	if (cando_sec(&sparams->props, KRB_SECFLAG_CREDENTIALS))
+	if (cando_sec(&sparams->props, sparams->external_ssf,
+		      KRB_SECFLAG_CREDENTIALS))
 	    sout[4] |= KRB_SECFLAG_CREDENTIALS;
-	sout[5]=0x00;  /* max ciphertext buffer size */
-	sout[6]=0xFF;  /* let's say we can support up to 64K */
-	sout[7]=0xFF;  /* no inherent inability with our layers to support more */
-	
+
+	if(sparams->props.maxbufsize) {
+	    int tmpmaxbuf = htonl(sparams->props.maxbufsize & 0xFFFFFF);
+
+	    sout[5]=((tmpmaxbuf >> 16) & 0xFF);
+	    sout[6]=((tmpmaxbuf >> 8) & 0xFF);
+	    sout[7]=(tmpmaxbuf & 0xFF);
+	} else {
+            /* let's say we can support up to 64K */
+	    /* no inherent inability with our layers to support more */
+
+	    sout[5]=0x00;  /* max ciphertext buffer size */
+	    sout[6]=0xFF;
+	    sout[7]=0xFF;
+	}
+    
 	memcpy(text->session, ad.session, 8);
 	memcpy(text->pname, ad.pname, sizeof(text->pname));
 	memcpy(text->pinst, ad.pinst, sizeof(text->pinst));
@@ -700,7 +727,8 @@ static int kerberosv4_server_mech_step(void *conn_context,
 	    return SASL_BADAUTH;
 	}
 	
-	if (!cando_sec(&sparams->props, in[4] & KRB_SECFLAGS)) {
+	if (!cando_sec(&sparams->props, sparams->external_ssf,
+		       in[4] & KRB_SECFLAGS)) {
 	    SETERROR(sparams->utils,
 		     "invalid security property specified");
 	    return SASL_BADPROT;
@@ -1183,8 +1211,12 @@ static int kerberosv4_client_mech_step(void *conn_context,
 	memcpy(sout, &nchal, 4);
 	
 	/* need bits of layer */
-	need = cparams->props.max_ssf - cparams->external_ssf;
-	musthave = cparams->props.min_ssf - cparams->external_ssf;
+	if(cparams->props.maxbufsize == 0) {
+	    need = musthave = 0;
+	} else {
+	    need = cparams->props.max_ssf - cparams->external_ssf;
+	    musthave = cparams->props.min_ssf - cparams->external_ssf;
+	}
 	
 	oparams->decode = &kerberosv4_decode;
 	oparams->encode = &kerberosv4_encode;
@@ -1225,6 +1257,20 @@ static int kerberosv4_client_mech_step(void *conn_context,
 	    oparams->maxoutbuf -= 50;
 	}
 	
+	if(cparams->props.maxbufsize) {
+	    int tmpmaxbuf = htonl(cparams->props.maxbufsize & 0xFFFFFF);
+
+	    sout[5]=((tmpmaxbuf >> 16) & 0xFF);
+	    sout[6]=((tmpmaxbuf >> 8) & 0xFF);
+	    sout[7]=(tmpmaxbuf & 0xFF);
+	} else {
+            /* let's say we can support up to 64K */
+	    /* no inherent inability with our layers to support more */
+
+	    sout[5]=0x00;  /* max ciphertext buffer size */
+	    sout[6]=0xFF;
+	    sout[7]=0xFF;
+	}
 	sout[5] = (oparams->maxoutbuf) >> 16;  /* max ciphertext buffer size */
 	sout[6] = (oparams->maxoutbuf) >> 8;
 	sout[7] = (oparams->maxoutbuf);

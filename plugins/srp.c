@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.42 2002/07/30 17:06:22 rjs3 Exp $
+ * $Id: srp.c,v 1.43 2002/09/18 22:08:40 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -75,7 +75,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: srp.c,v 1.42 2002/07/30 17:06:22 rjs3 Exp $";
+static const char plugin_id[] = "$Id: srp.c,v 1.43 2002/09/18 22:08:40 rjs3 Exp $";
 
 /* Size of diffie-hellman secrets a and b */
 #define BITSFORab 64
@@ -1905,16 +1905,21 @@ static int CreateServerOptions(sasl_server_params_t *sparams, char **out)
     
     /* Add mda */
     opts.mda = server_mda->bit;
-    
-    if (sparams->props.max_ssf < sparams->external_ssf) {
+
+    if(sparams->props.maxbufsize == 0) {
 	limitssf = 0;
-    } else {
-	limitssf = sparams->props.max_ssf - sparams->external_ssf;
-    }
-    if (sparams->props.min_ssf < sparams->external_ssf) {
 	requiressf = 0;
     } else {
-	requiressf = sparams->props.min_ssf - sparams->external_ssf;
+	if (sparams->props.max_ssf < sparams->external_ssf) {
+	    limitssf = 0;
+	} else {
+	    limitssf = sparams->props.max_ssf - sparams->external_ssf;
+	}
+	if (sparams->props.min_ssf < sparams->external_ssf) {
+	    requiressf = 0;
+	} else {
+	    requiressf = sparams->props.min_ssf - sparams->external_ssf;
+	}
     }
     
     /*
@@ -2938,17 +2943,22 @@ static int CreateClientOpts(sasl_client_params_t *params,
     external = params->external_ssf;
     
     /* what do we _need_?  how much is too much? */
-    if (params->props.max_ssf > external) {
-	limit = params->props.max_ssf - external;
-    } else {
-	limit = 0;
-    }
-    if (params->props.min_ssf > external) {
-	musthave = params->props.min_ssf - external;
-    } else {
+    if(params->props.maxbufsize == 0) {
 	musthave = 0;
+	limit = 0;
+    } else {
+	if (params->props.max_ssf > external) {
+	    limit = params->props.max_ssf - external;
+	} else {
+	    limit = 0;
+	}
+	if (params->props.min_ssf > external) {
+	    musthave = params->props.min_ssf - external;
+	} else {
+	    musthave = 0;
+	}
     }
-    
+        
     /* we now go searching for an option that gives us at least "musthave"
        and at most "limit" bits of ssf. */
     params->utils->log(NULL, SASL_LOG_DEBUG,

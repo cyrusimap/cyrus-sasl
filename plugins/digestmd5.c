@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.140 2002/09/03 15:11:57 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.141 2002/09/18 22:08:39 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -103,7 +103,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.140 2002/09/03 15:11:57 rjs3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.141 2002/09/18 22:08:39 rjs3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -1879,6 +1879,7 @@ digestmd5_server_mech_step1(server_context_t *stext,
     struct digest_cipher *cipher;
     unsigned       resplen;
     int added_conf = 0;
+    char maxbufstr[64];
     
     sparams->utils->log(sparams->utils->conn, SASL_LOG_DEBUG,
 			"DIGEST-MD5 server step 1");
@@ -1998,12 +1999,25 @@ digestmd5_server_mech_step1(server_context_t *stext,
      * once; if multiple instances are present, the client should abort the
      * authentication exchange.
      */
+    if(sparams->props.maxbufsize) {
+	snprintf(maxbufstr, sizeof(maxbufstr), "%d",
+		 sparams->props.maxbufsize);
+	if (add_to_challenge(sparams->utils,
+			     &text->out_buf, &text->out_buf_len, &resplen,
+			     "maxbuf", 
+			     (unsigned char *) maxbufstr, FALSE) != SASL_OK) {
+	    SETERROR(sparams->utils,
+		     "internal error: add_to_challenge 5 failed");
+	    return SASL_FAIL;
+	}
+    }
     
+
     if (add_to_challenge(sparams->utils,
 			 &text->out_buf, &text->out_buf_len, &resplen,
 			 "charset", 
 			 (unsigned char *) charset, FALSE) != SASL_OK) {
-	SETERROR(sparams->utils, "internal error: add_to_challenge 5 failed");
+	SETERROR(sparams->utils, "internal error: add_to_challenge 6 failed");
 	return SASL_FAIL;
     }
     
@@ -2023,7 +2037,7 @@ digestmd5_server_mech_step1(server_context_t *stext,
 			 &text->out_buf, &text->out_buf_len, &resplen,
 			 "algorithm",
 			 (unsigned char *) "md5-sess", FALSE)!=SASL_OK) {
-	SETERROR(sparams->utils, "internal error: add_to_challenge 6 failed");
+	SETERROR(sparams->utils, "internal error: add_to_challenge 7 failed");
 	return SASL_FAIL;
     }
     
@@ -2318,7 +2332,7 @@ digestmd5_server_mech_step2(server_context_t *stext,
     result = sparams->canon_user(sparams->utils->conn,
 				 username, 0, SASL_CU_AUTHID, oparams);
     if (result != SASL_OK) {
-	SETERROR(sparams->utils, "unable cannonify user and get auxprops");
+	SETERROR(sparams->utils, "unable canonify user and get auxprops");
 	goto FreeAllMem;
     }
     
@@ -2563,16 +2577,24 @@ digestmd5_server_mech_step(void *conn_context,
 	
     case 1:
 	/* setup SSF limits */
-	if (sparams->props.max_ssf < sparams->external_ssf) {
+	if(!sparams->props.maxbufsize) {
 	    stext->limitssf = 0;
-	} else {
-	    stext->limitssf = sparams->props.max_ssf - sparams->external_ssf;
-	}
-	if (sparams->props.min_ssf < sparams->external_ssf) {
 	    stext->requiressf = 0;
 	} else {
-	    stext->requiressf = sparams->props.min_ssf - sparams->external_ssf;
+	    if (sparams->props.max_ssf < sparams->external_ssf) {
+		stext->limitssf = 0;
+	    } else {
+		stext->limitssf =
+		    sparams->props.max_ssf - sparams->external_ssf;
+	    }
+	    if (sparams->props.min_ssf < sparams->external_ssf) {
+		stext->requiressf = 0;
+	    } else {
+		stext->requiressf =
+		    sparams->props.min_ssf - sparams->external_ssf;
+	    }
 	}
+	
 #if 0
 	/* should we attempt reauth? */
 	if (clientin /* && we have reauth info */) {
@@ -2824,6 +2846,7 @@ make_client_response(context_t *text,
     unsigned char  *digesturi = NULL;
     bool            IsUTF8 = FALSE;
     char           ncvalue[10];
+    char           maxbufstr[64];
     char           *response = NULL;
     unsigned        resplen = 0;
     int result;
@@ -2896,7 +2919,7 @@ make_client_response(context_t *text,
 	result = SASL_FAIL;
 	goto FreeAllocatedMem;
     }
-    sprintf(ncvalue, "%08x", text->global->nonce_count);
+    snprintf(ncvalue, sizeof(ncvalue), "%08x", text->global->nonce_count);
     if (add_to_challenge(params->utils,
 			 &text->out_buf, &text->out_buf_len, &resplen,
 			 "nc", (unsigned char *) ncvalue, FALSE) != SASL_OK) {
@@ -2909,7 +2932,7 @@ make_client_response(context_t *text,
 	result = SASL_FAIL;
 	goto FreeAllocatedMem;
     }
-    if (text->global->bestcipher != NULL)
+    if (text->global->bestcipher != NULL) {
 	if (add_to_challenge(params->utils,
 			     &text->out_buf, &text->out_buf_len, &resplen,
 			     "cipher", 
@@ -2918,6 +2941,19 @@ make_client_response(context_t *text,
 	    result = SASL_FAIL;
 	    goto FreeAllocatedMem;
 	}
+    }
+
+    if(params->props.maxbufsize) {
+	snprintf(maxbufstr, sizeof(maxbufstr), "%d", params->props.maxbufsize);
+	if (add_to_challenge(params->utils,
+			     &text->out_buf, &text->out_buf_len, &resplen,
+			     "maxbuf", (unsigned char *) maxbufstr, 
+			     FALSE) != SASL_OK) {
+	    SETERROR(params->utils,
+		     "internal error: add_to_challenge maxbuf failed");
+	    goto FreeAllocatedMem;
+	}
+    }
     
     if (IsUTF8) {
 	if (add_to_challenge(params->utils,
@@ -3295,7 +3331,7 @@ digestmd5_client_mech_step2(client_context_t *ctext,
 		if (server_maxbuf<=16) {
 		    result = SASL_BADAUTH;
 		    params->utils->seterror(params->utils->conn, 0,
-					    "Invalid maxbuf parameter received from server (too small)");
+					    "Invalid maxbuf parameter received from server (too small: %s)", value);
 		    goto FreeAllocatedMem;
 		}
 	    }
@@ -3488,15 +3524,20 @@ digestmd5_client_mech_step2(client_context_t *ctext,
     external = params->external_ssf;
     
     /* what do we _need_?  how much is too much? */
-    if (params->props.max_ssf > external) {
-	limit = params->props.max_ssf - external;
-    } else {
-	limit = 0;
-    }
-    if (params->props.min_ssf > external) {
-	musthave = params->props.min_ssf - external;
-    } else {
+    if(params->props.maxbufsize == 0) {
 	musthave = 0;
+	limit = 0;
+    } else {
+	if (params->props.max_ssf > external) {
+	    limit = params->props.max_ssf - external;
+	} else {
+	    limit = 0;
+	}
+	if (params->props.min_ssf > external) {
+	    musthave = params->props.min_ssf - external;
+	} else {
+	    musthave = 0;
+	}
     }
     
     /* we now go searching for an option that gives us at least "musthave"
@@ -3592,7 +3633,8 @@ digestmd5_client_mech_step2(client_context_t *ctext,
 
     *clientoutlen = strlen(text->out_buf);
     *clientout = text->out_buf;
-    
+
+    /* xxx needs to be protected by a mutex */
     /* setup for a potential reauth */
     _plug_strdup(params->utils, oparams->authid,
 		 (char **) &text->global->authid, NULL);

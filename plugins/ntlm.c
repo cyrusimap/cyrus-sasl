@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.27 2004/06/30 13:19:36 ken3 Exp $
+ * $Id: ntlm.c,v 1.28 2004/10/14 13:35:04 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -99,7 +99,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.27 2004/06/30 13:19:36 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.28 2004/10/14 13:35:04 ken3 Exp $";
 
 #ifdef WIN32
 static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);
@@ -107,7 +107,7 @@ static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);
 ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt)
 {
     ssize_t nwritten;		/* amount written */
-    size_t nbytes;
+    ssize_t nbytes;
     size_t i;
   
     nbytes = 0;
@@ -235,7 +235,7 @@ enum {
     ((il)[0] | ((il)[1] << 8) | ((il)[2] << 16) | ((il)[3] << 24))
 
 /* convert string to all upper case */
-static const char *ucase(const char *str, unsigned len)
+static const char *ucase(const char *str, size_t len)
 {
     char *cp = (char *) str;
 
@@ -429,7 +429,7 @@ static unsigned char *V2(unsigned char *V2, sasl_secret_t *passwd,
     int len;
 
     /* Allocate enough space for the unicode target */
-    len = strlen(authid) + xstrlen(target);
+    len = (int) (strlen(authid) + xstrlen(target));
     if (_plug_buf_alloc(utils, buf, buflen, 2 * len + 1) != SASL_OK) {
 	SETERROR(utils, "cannot allocate NTLMv2 hash");
 	*result = SASL_NOMEM;
@@ -783,7 +783,7 @@ static void make_netbios_name(const char *in, unsigned char out[])
     out[j] = 0;
 }
 
-static int smb_connect_server(const sasl_utils_t *utils, const char *client,
+static SOCKET smb_connect_server(const sasl_utils_t *utils, const char *client,
 			      const char *server)
 {
     struct addrinfo hints;
@@ -949,8 +949,9 @@ static int smb_negotiate_protocol(const sasl_utils_t *utils,
     unsigned char bc[sizeof(uint16)];
     uint16 bytecount;
     uint32 len, nl;
-    struct iovec iov[4+N(SMB_DIALECTS)];
-    size_t i, n;
+    int n_dialects = N(SMB_DIALECTS);
+    struct iovec iov[4+n_dialects];
+    int i, n;
     int rc;
     pid_t current_pid;
 
@@ -986,9 +987,9 @@ static int smb_negotiate_protocol(const sasl_utils_t *utils,
     iov[n++].iov_len = sizeof(bc);
 
     /* add our supported dialects */
-    for (i = 0; i < N(SMB_DIALECTS); i++) {
+    for (i = 0; i < n_dialects; i++) {
 	iov[n].iov_base = (char *) SMB_DIALECTS[i];
-	iov[n++].iov_len = strlen(SMB_DIALECTS[i]) + 1;
+	iov[n++].iov_len = (long) strlen(SMB_DIALECTS[i]) + 1;
     }
 
     /* total up the lengths */
@@ -1135,7 +1136,7 @@ static int smb_session_setup(const sasl_utils_t *utils, server_context_t *text,
     uint16 bytecount;
     uint32 len, nl;
     struct iovec iov[12];
-    size_t i, n;
+    int i, n;
     int rc;
 #ifdef WIN32
     char osbuf[80];
@@ -1204,14 +1205,14 @@ static int smb_session_setup(const sasl_utils_t *utils, server_context_t *text,
 	iov[n++].iov_len = NTLM_RESP_LENGTH;
     }
     iov[n].iov_base = (char*) authid;
-    iov[n++].iov_len = strlen(authid) + 1;
+    iov[n++].iov_len = (long) strlen(authid) + 1;
     if (!domain) domain = "";
     iov[n].iov_base = domain;
-    iov[n++].iov_len = strlen(domain) + 1;
+    iov[n++].iov_len = (long) strlen(domain) + 1;
     iov[n].iov_base = osbuf;
-    iov[n++].iov_len = strlen(osbuf) + 1;
+    iov[n++].iov_len = (long) strlen(osbuf) + 1;
     iov[n].iov_base = lanman;
-    iov[n++].iov_len = strlen(lanman) + 1;
+    iov[n++].iov_len = (long) strlen(lanman) + 1;
 
     /* total up the lengths */
     len = bytecount = 0;
@@ -1346,7 +1347,7 @@ static int create_challenge(const sasl_utils_t *utils,
     memcpy(base + NTLM_SIG_OFFSET, NTLM_SIGNATURE, sizeof(NTLM_SIGNATURE));
     htoil(base + NTLM_TYPE_OFFSET, NTLM_TYPE_CHALLENGE);
     load_buffer(base + NTLM_TYPE2_TARGET_OFFSET,
-		ucase(target, 0), xstrlen(target), flags & NTLM_USE_UNICODE,
+		ucase(target, 0), (uint16) xstrlen(target), flags & NTLM_USE_UNICODE,
 		base, &offset);
     htoil(base + NTLM_TYPE2_FLAGS_OFFSET, flags);
     memcpy(base + NTLM_TYPE2_CHALLENGE_OFFSET, nonce, NTLM_NONCE_LENGTH);
@@ -1363,14 +1364,14 @@ static int ntlm_server_mech_new(void *glob_context __attribute__((unused)),
     server_context_t *text;
     const char *serv;
     unsigned int len;
-    int sock = -1;
+    SOCKET sock = (SOCKET) -1;
 
     sparams->utils->getopt(sparams->utils->getopt_context,
 			   "NTLM", "ntlm_server", &serv, &len);
     if (serv) {
 	/* try to start a NetBIOS session with the server */
 	sock = smb_connect_server(sparams->utils, sparams->serverFQDN, serv);
-	if (sock == -1) return SASL_UNAVAIL;
+	if (sock == (SOCKET) -1) return SASL_UNAVAIL;
     }
     
     /* holds state are in */
@@ -1517,7 +1518,7 @@ static int ntlm_server_mech_step2(server_context_t *text,
 	/* verify the response internally */
 
 	sasl_secret_t *password = NULL;
-	unsigned pass_len;
+	size_t pass_len;
 	const char *password_request[] = { SASL_AUX_PASSWORD,
 				       NULL };
 	struct propval auxprop_values[2];
@@ -1557,7 +1558,7 @@ static int ntlm_server_mech_step2(server_context_t *text,
 	    goto cleanup;
 	}
 	
-	password->len = pass_len;
+	password->len = (unsigned) pass_len;
 	strncpy(password->data, auxprop_values[0].values[0], pass_len + 1);
 
 	/* erase the plaintext password */
@@ -1782,9 +1783,9 @@ static int create_request(const sasl_utils_t *utils,
     htoil(base + NTLM_TYPE_OFFSET, NTLM_TYPE_REQUEST);
     htoil(base + NTLM_TYPE1_FLAGS_OFFSET, flags);
     load_buffer(base + NTLM_TYPE1_DOMAIN_OFFSET,
-		domain, xstrlen(domain), 0, base, &offset);
+		domain, (uint16) xstrlen(domain), 0, base, &offset);
     load_buffer(base + NTLM_TYPE1_WORKSTN_OFFSET,
-		wkstn, xstrlen(wkstn), 0, base, &offset);
+		wkstn, (uint16) xstrlen(wkstn), 0, base, &offset);
 
     return SASL_OK;
 }
@@ -1838,12 +1839,12 @@ static int create_response(const sasl_utils_t *utils,
     load_buffer(base + NTLM_TYPE3_NTRESP_OFFSET,
 		nt_resp, nt_resp ? NTLM_RESP_LENGTH : 0, 0, base, &offset);
     load_buffer(base + NTLM_TYPE3_DOMAIN_OFFSET,
-		ucase(domain, 0), xstrlen(domain), flags & NTLM_USE_UNICODE,
+		ucase(domain, 0), (uint16) xstrlen(domain), flags & NTLM_USE_UNICODE,
 		base, &offset);
     load_buffer(base + NTLM_TYPE3_USER_OFFSET,
-		user, xstrlen(user), flags & NTLM_USE_UNICODE, base, &offset);
+		user, (uint16) xstrlen(user), flags & NTLM_USE_UNICODE, base, &offset);
     load_buffer(base + NTLM_TYPE3_WORKSTN_OFFSET,
-		ucase(wkstn, 0), xstrlen(wkstn), flags & NTLM_USE_UNICODE,
+		ucase(wkstn, 0), (uint16) xstrlen(wkstn), flags & NTLM_USE_UNICODE,
 		base, &offset);
     load_buffer(base + NTLM_TYPE3_SESSIONKEY_OFFSET,
 		key, key ? NTLM_SESSKEY_LENGTH : 0, 0, base, &offset);

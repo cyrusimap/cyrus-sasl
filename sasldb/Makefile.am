@@ -1,6 +1,6 @@
 # Makefile.am for the SASLdb library
 # Rob Siemborski
-# $Id: Makefile.am,v 1.21 2003/10/14 20:03:52 rjs3 Exp $
+# $Id: Makefile.am,v 1.22 2003/10/14 20:06:54 rjs3 Exp $
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -58,8 +58,9 @@ libsasldb_la_LIBADD = $(SASL_DB_BACKEND)
 
 LOCAL_SASL_DB_BACKEND_STATIC := $(shell echo $(SASL_DB_BACKEND_STATIC) | sed -e "s%\.\./sasldb/%%g")
 
-libsasldb_a_SOURCES = $(libsasldb_la_SOURCES)
-EXTRA_libsasldb_a_SOURCES = $(EXTRA_libsasldb_la_SOURCES)
+# Prevent make dist stupidity
+libsasldb_a_SOURCES =
+EXTRA_libsasldb_a_SOURCES =
 
 libsasldb.a: libsasldb.la $(LOCAL_SASL_DB_BACKEND_STATIC)
 	$(AR) cru .libs/$@ $(LOCAL_SASL_DB_BACKEND_STATIC)

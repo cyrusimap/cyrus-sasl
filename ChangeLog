@@ -1,3 +1,10 @@
+2003-07-21  Ken Murchison <ken@oceana.com>
+	* plugins/srp.c: updated auth code to draft -08 (layers still need
+	  to be updated)
+	  auxprop_store() instead of direct sasldb access
+	* configure.in, plugins/srp.c: use auxprop_store() instead of
+	  direct sasldb access
+
 2003-07-21  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* configure.in: add runpath information for MySQL and Postgres;
 	  better behavior for the interaction of --enable-sql and

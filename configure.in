@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.172 2003/07/21 15:49:04 rjs3 Exp $
+dnl $Id: configure.in,v 1.173 2003/07/21 19:54:54 ken3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -483,7 +483,6 @@ dnl srp_setpass support
   if test "$srp_setpass" != no; then
     AC_MSG_RESULT(enabled)
     AC_DEFINE(DO_SRP_SETPASS)
-    SRP_LIBS="$SRP_LIBS ../sasldb/libsasldb.la \$(SASL_DB_LIB)"
   else
     AC_MSG_RESULT(disabled)
   fi

@@ -1,6 +1,6 @@
 # Makefile.am for SASL documentation
 # Rob Earhart
-# $Id: Makefile.am,v 1.16 2002/04/29 20:43:50 rjs3 Exp $
+# $Id: Makefile.am,v 1.17 2002/11/07 15:18:55 rjs3 Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -60,8 +60,13 @@ EXTRA_DIST =	rfc1321.txt \
 		server-plugin-flow.fig \
 		draft-burdis-cat-srp-sasl-06.txt \
 		draft-ietf-cat-sasl-gssapi-05.txt \
+		draft-melnikov-rfc2831bis-02.txt \
 		draft-myers-saslrev-02.txt \
+		draft-nerenberg-sasl-crammd5-02.txt \
+		draft-newman-sasl-c-api-00.txt \
 		draft-sasl-login.txt \
+		draft-zeilenga-sasl-anon-00.txt \
+		draft-zeilenga-sasl-plain-00.txt \
 		programming.html \
 		sysadmin.html \
 		gssapi.html \

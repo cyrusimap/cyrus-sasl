@@ -227,6 +227,7 @@ static int saslauthd_verify_password(const char *saslauthd_path,
     assert(arg.data_size < sizeof(response));
     response[arg.data_size] = '\0';
 
+    close(s);
 #else
     s = socket(AF_UNIX, SOCK_STREAM, 0);
     if (s == -1) {
@@ -304,9 +305,13 @@ main(int argc, char *argv[])
   const char *errstr = NULL;
   int result;
   char *user_domain = NULL;
+  int repeat;
 
-  while ((c = getopt(argc, argv, "p:u:r:s:f:")) != EOF)
+  while ((c = getopt(argc, argv, "p:u:r:s:f:R:")) != EOF)
       switch (c) {
+      case 'R':
+	  repeat = atoi(optarg);
+	  break;
       case 'f':
 	  path = optarg;
 	  break;
@@ -332,13 +337,20 @@ main(int argc, char *argv[])
 
   if (flag_error) {
     (void)fprintf(stderr,
-		 "%s: usage: %s -u username -p password\n"
-		 "              [-r realm] [-s servicename] [-f socket path]\n",
+		  "%s: usage: %s -u username -p password\n"
+		  "              [-r realm] [-s servicename]\n"
+		  "              [-f socket path] [-R repeatnum]\n"
 		  argv[0], argv[0]);
     exit(1);
   }
 
-  /* saslauthd-authenticated login */
-  return saslauthd_verify_password(path, user, password, service, realm);
+  if (!repeat) repeat = 1;
+  for (c = 0; c < repeat; c++) {
+      /* saslauthd-authenticated login */
+      printf("%d: ", c);
+      result = saslauthd_verify_password(path, user, password, service, realm);
+  }
+  return result;
 }
+
 

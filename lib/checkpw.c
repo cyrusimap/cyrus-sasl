@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.48 2002/03/04 17:18:39 rjs3 Exp $
+ * $Id: checkpw.c,v 1.49 2002/03/07 19:14:04 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -299,7 +299,7 @@ static int retry_writev(int fd, struct iovec *iov, int iovcnt)
     int n;
     int i;
     int written = 0;
-    static unsigned int iov_max =
+    static int iov_max =
 #ifdef MAXIOV
 	MAXIOV
 #else

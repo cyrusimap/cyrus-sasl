@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.76 2002/01/17 05:20:12 rjs3 Exp $
+ * $Id: common.c,v 1.77 2002/01/22 19:16:39 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1670,7 +1670,7 @@ int _sasl_build_mechlist(void)
     return SASL_OK;
 }
 
-const char ** sasl_global_listmech() 
+const char ** sasl_global_listmech(void) 
 {
     return global_mech_list;
 }

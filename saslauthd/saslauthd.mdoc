@@ -1,4 +1,4 @@
-.\" $Id: saslauthd.mdoc,v 1.12 2002/06/13 15:58:21 rjs3 Exp $
+.\" $Id: saslauthd.mdoc,v 1.13 2002/06/24 22:27:50 rjs3 Exp $
 .\" Copyright 1997-2001 Messaging Direct Ltd. All rights reserved.
 .\"
 .\" This manpage uses the BSD mdoc manpage macros. Please don't
@@ -186,6 +186,13 @@ want to be using, and is even disabled at compile-time by default.
 If you want to use sasldb with the SASL library, you probably want to
 use the pwcheck_method of "auxprop" along with the sasldb auxprop plugin
 instead.
+.It Li ldap
+.Em (All platforms that support OpenLDAP 2.0 or higher)
+.Pp
+Authenticate against an ldap server.  The ldap configuration parameters are
+read from /usr/local/etc/saslauthd.conf.  The location of this file can be
+changed with the -O parameter. See the LDAP_SASLAUTHD file included with the
+distribution for the list of available parameters.
 .It Li sia
 .Em (Digital UNIX)
 .Pp
@@ -216,6 +223,8 @@ was never intended to be used in this manner, anyway.)
 .Bl -tag -width "/var/run/saslauthd/mux"
 .It Pa /var/run/saslauthd/mux
 The default communications socket.
+.It Pa /usr/local/etc/saslauthd.conf
+The default configuration file for ldap support.
 .El
 .Sh SEE ALSO
 .Xr passwd 1 ,

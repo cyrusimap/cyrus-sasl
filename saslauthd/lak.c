@@ -25,7 +25,9 @@
  * DAMAGE.
  * END COPYRIGHT */
 
-#ifdef WITH_LDAP
+#include "mechanisms.h"
+
+#ifdef AUTH_LDAP
 
 #include <sys/time.h>
 #include <stdio.h>
@@ -34,6 +36,8 @@
 #include <syslog.h>
 #include <crypt.h>
 
+#include <ldap.h>
+#include <lber.h>
 #include "lak.h"
 
 LAK_CONN *conn = NULL;
@@ -525,4 +529,4 @@ void lak_close(LAK *conf, LAK_CONN *conn)
 	}
 }
 
-#endif /* WITH_LDAP */
+#endif /* AUTH_LDAP */

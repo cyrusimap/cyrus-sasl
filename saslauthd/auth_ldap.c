@@ -31,7 +31,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_ldap.c,v 1.4 2002/05/03 19:55:21 rjs3 Exp $"
+#ident "$Id: auth_ldap.c,v 1.5 2002/05/08 16:53:30 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -48,6 +48,8 @@
 
 #ifdef AUTH_LDAP
 
+#include <ldap.h>
+#include <lber.h>
 #include "lak.h"
 
 #define CONFIGLISTGROWSIZE 100

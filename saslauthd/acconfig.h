@@ -43,6 +43,9 @@
 /* do we have a sys/sio.h? */
 #undef HAVE_SYS_UIO_H
 
+/* do we have a sys/time.h */
+#undef HAVE_SYS_TIME_H
+
 /* Things SASLAUTHd doesn't really care about */
 #undef HAVE_SASLAUTHD
 #undef WITH_DES

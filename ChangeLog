@@ -1,3 +1,8 @@
+2002-09-10  Ken Murchison <ken@oceana.com>
+	* acconfig.h, configure.in: enable/disable NTLM
+	* lib/staticopen.h, plugins/Makefile.am, makeinit.sh, ntlm.c:
+	  added NTLM support (client-side only)
+
 2002-09-07  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/configure.in, saslauthd/Makefile.am: don't
 	  do configure substitutions for the saslauthd_SOURCES variable

@@ -1,4 +1,4 @@
-for mech in anonymous crammd5 digestmd5 gssapiv2 kerberos4 login plain srp otp; do
+for mech in anonymous crammd5 digestmd5 gssapiv2 kerberos4 login ntlm otp plain srp; do
 
 echo "
 #include <config.h>

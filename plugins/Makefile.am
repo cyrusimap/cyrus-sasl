@@ -1,7 +1,7 @@
 # Makefile.am for the SASL plugins
 # Rob Siemborski
 # Rob Earhart
-# $Id: Makefile.am,v 1.54 2002/08/09 16:36:23 rjs3 Exp $
+# $Id: Makefile.am,v 1.55 2002/09/10 17:14:47 ken3 Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -56,6 +56,7 @@ login_version = 2:7:0
 sasldb_version = 2:7:0
 srp_version = 2:7:0
 otp_version = 2:7:0
+ntlm_version = 2:7:0
 mysql_version = 2:7:0
 
 INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/sasldb
@@ -76,7 +77,7 @@ sasldir = $(prefix)/lib/sasl2
 sasl_LTLIBRARIES = @SASL_MECHS@
 EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la \
 	libgssapiv2.la libdigestmd5.la liblogin.la libsrp.la libotp.la \
-	libsasldb.la libmysql.la
+	libntlm.la libsasldb.la libmysql.la
 
 libplain_la_SOURCES = plain.c plain_init.c $(common_sources)
 libplain_la_LDFLAGS = -version-info $(plain_version)
@@ -123,6 +124,11 @@ libotp_la_LDFLAGS = -version-info $(otp_version)
 libotp_la_DEPENDENCIES = $(COMPAT_OBJS)
 libotp_la_LIBADD = $(OTP_LIBS) $(COMPAT_OBJS)
 
+libntlm_la_SOURCES = ntlm.c ntlm_init.c $(common_sources)
+libntlm_la_LDFLAGS = -version-info $(ntlm_version)
+libntlm_la_DEPENDENCIES = $(COMPAT_OBJS)
+libntlm_la_LIBADD = $(NTLM_LIBS) $(COMPAT_OBJS)
+
 # Auxprop Plugins
 libsasldb_la_SOURCES = sasldb.c sasldb_init.c $(common_sources)
 libsasldb_la_LDFLAGS = -version-info $(sasldb_version)
@@ -139,7 +145,8 @@ libmysql_la_LIBADD = $(COMPAT_OBJS)
 # Instructions for making the _init files
 
 init_src=anonymous_init.c crammd5_init.c digestmd5_init.c gssapiv2_init.c \
-kerberos4_init.c login_init.c plain_init.c srp_init.c otp_init.c sasldb_init.c mysqlauxprop_init.c
+kerberos4_init.c login_init.c plain_init.c srp_init.c otp_init.c ntlm_init.c \
+sasldb_init.c mysqlauxprop_init.c
 
 
 CLEANFILES=$(init_src)

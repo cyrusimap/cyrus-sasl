@@ -1,7 +1,7 @@
 /* staticopen.h
  * Rob Siemborski
  * Howard Chu
- * $Id: staticopen.h,v 1.4 2002/09/05 19:21:15 rjs3 Exp $
+ * $Id: staticopen.h,v 1.5 2002/09/10 17:14:45 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -100,6 +100,14 @@ extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( kerberos4 );
 extern SPECIFIC_SERVER_PLUG_INIT_PROTO( login );
 extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( login );
 #endif
+#ifdef STATIC_NTLM
+extern SPECIFIC_SERVER_PLUG_INIT_PROTO( ntlm );
+extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( ntlm );
+#endif
+#ifdef STATIC_OTP
+extern SPECIFIC_SERVER_PLUG_INIT_PROTO( otp );
+extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( otp );
+#endif
 #ifdef STATIC_PLAIN
 extern SPECIFIC_SERVER_PLUG_INIT_PROTO( plain );
 extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( plain );
@@ -107,10 +115,6 @@ extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( plain );
 #ifdef STATIC_SRP
 extern SPECIFIC_SERVER_PLUG_INIT_PROTO( srp );
 extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( srp );
-#endif
-#ifdef STATIC_OTP
-extern SPECIFIC_SERVER_PLUG_INIT_PROTO( otp );
-extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( otp );
 #endif
 #ifdef STATIC_SASLDB
 extern SPECIFIC_AUXPROP_PLUG_INIT_PROTO( sasldb );
@@ -144,6 +148,14 @@ _sasl_plug_rec _sasl_static_plugins[] = {
 	SPECIFIC_SERVER_PLUG_INIT( login, "LOGIN" ),
 	SPECIFIC_CLIENT_PLUG_INIT( login, "LOGIN" ),
 #endif
+#ifdef STATIC_NTLM
+	SPECIFIC_SERVER_PLUG_INIT( ntlm, "NTLM" ),
+	SPECIFIC_CLIENT_PLUG_INIT( ntlm, "NTLM" ),
+#endif
+#ifdef STATIC_OTP
+	SPECIFIC_SERVER_PLUG_INIT( otp, "OTP" ),
+	SPECIFIC_CLIENT_PLUG_INIT( otp, "OTP" ),
+#endif
 #ifdef STATIC_PLAIN
 	SPECIFIC_SERVER_PLUG_INIT( plain, "PLAIN" ),
 	SPECIFIC_CLIENT_PLUG_INIT( plain, "PLAIN" ),
@@ -151,10 +163,6 @@ _sasl_plug_rec _sasl_static_plugins[] = {
 #ifdef STATIC_SRP
 	SPECIFIC_SERVER_PLUG_INIT( srp, "SRP" ),
 	SPECIFIC_CLIENT_PLUG_INIT( srp, "SRP" ),
-#endif
-#ifdef STATIC_OTP
-	SPECIFIC_SERVER_PLUG_INIT( otp, "OTP" ),
-	SPECIFIC_CLIENT_PLUG_INIT( otp, "OTP" ),
 #endif
 #ifdef STATIC_SASLDB
 	SPECIFIC_AUXPROP_PLUG_INIT( sasldb, "SASLDB" ),

@@ -88,6 +88,9 @@
 #undef WITH_DES
 #undef WITH_SSL_DES
 
+/* what about OpenSSL? */
+#undef HAVE_OPENSSL
+
 /* should we support srp_setpass */
 #undef DO_SRP_SETPASS
 

@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.154 2002/12/29 19:11:59 rjs3 Exp $
+dnl $Id: configure.in,v 1.155 2003/01/23 21:22:43 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -379,36 +379,7 @@ else
   AC_MSG_RESULT(disabled)
 fi
 
-dnl Test for OpenSSL (required for OTP, SRP and NTLM)
-AC_ARG_WITH(with-openssl,[  --with-openssl=PATH     use OpenSSL from PATH],
-	with_openssl="${withval}")
-
-case "$with_openssl" in
-	no) with_openssl="no";;
-	""|yes) 
-	  dnl if openssl has been compiled with the rsaref2 libraries,
-	  dnl we need to include the rsaref libraries in the crypto check
-                LIB_RSAREF=""
-	        AC_CHECK_LIB(rsaref, RSAPublicEncrypt,
-		       LIB_RSAREF="-lRSAglue -lrsaref"; cmu_have_rsaref=yes,
-		       cmu_have_rsaref=no)
-
-		AC_CHECK_HEADER(openssl/evp.h, [
-			AC_CHECK_LIB(crypto, EVP_DigestInit,
-					with_openssl="yes",
-					with_openssl="no", $LIB_RSAREF)],
-			with_openssl=no)
-		;;
-	*)
-		if test -d $with_openssl; then
-		  CPPFLAGS="${CPPFLAGS} -I${with_openssl}/include"
-		  LDFLAGS="${LDFLAGS} -L${with_openssl}/lib"
-		else
-		  with_openssl="no"
-		fi
-		;;
-esac
-
+CMU_HAVE_OPENSSL
 AC_MSG_CHECKING(for OpenSSL)
 AC_MSG_RESULT($with_openssl)
 

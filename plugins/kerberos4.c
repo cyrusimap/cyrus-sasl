@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.66 2001/05/31 18:19:32 rjs3 Exp $
+ * $Id: kerberos4.c,v 1.67 2001/06/20 10:36:49 n3liw Exp $
  */
 /* 
  * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -43,10 +43,14 @@
  */
 
 #include <config.h>
+#include <stdlib.h>
+#include <string.h>
 #include <krb.h>
 #include <des.h>
 #ifdef WIN32
 # include <winsock.h>
+#elif defined(macintosh)
+#include <kcglue_krb.h>
 #else
 # include <sys/param.h>
 # include <sys/socket.h>
@@ -63,6 +67,14 @@
 #include <saslplug.h>
 
 #include <errno.h>
+
+#ifdef macintosh
+/*
+ * krb.h doenst include some functions and mac compiler is picky about declartions\
+ */
+#include <extra_krb.h>
+#include <sasl_kerberos4_plugin_decl.h>
+#endif
 
 #ifdef WIN32
 /* This must be after sasl.h, saslutil.h */
@@ -469,6 +481,7 @@ new_text(sasl_utils_t *utils, context_t **text)
     return SASL_OK;
 }
 
+#ifndef macintosh
 static int
 server_start(void *glob_context __attribute__((unused)),
 	     sasl_server_params_t *sparams,
@@ -482,7 +495,7 @@ server_start(void *glob_context __attribute__((unused)),
 
   return new_text(sparams->utils, (context_t **) conn);
 }
-
+#endif
 
 
 static void dispose(void *conn_context, sasl_utils_t *utils)
@@ -525,6 +538,7 @@ static int cando_sec(sasl_security_properties_t *props,
   return 0;
 }
 
+#ifndef macintosh
 static int server_continue_step (void *conn_context,
 	      sasl_server_params_t *sparams,
 	      const char *clientin,
@@ -842,6 +856,7 @@ static const sasl_server_plug_t plugins[] =
     NULL
   }
 };
+#endif
 
 int sasl_server_plug_init(sasl_utils_t *utils,
 			  int maxversion,
@@ -849,6 +864,9 @@ int sasl_server_plug_init(sasl_utils_t *utils,
 			  const sasl_server_plug_t **pluglist,
 			  int *plugcount)
 {
+#ifdef macintosh
+	return SASL_BADVERS;
+#else
     const char *ret;
     unsigned int rl;
     
@@ -878,6 +896,7 @@ int sasl_server_plug_init(sasl_utils_t *utils,
     *out_version = KERBEROS_VERSION;
     
     return SASL_OK;
+#endif
 }
 
 static int client_start(void *glob_context __attribute__((unused)), 
@@ -977,8 +996,22 @@ static int client_continue_step (void *conn_context,
 	/* text->instance is NULL terminated unless it was too long */
 	text->instance[sizeof(text->instance)-1] = '\0';
 
+#ifdef macintosh
+	memset(&text->credentials,0,sizeof(text->credentials));
+    result=kcglue_krb_mk_req(ticket.dat,
+    		   &ticket.length,
+    		   service,
+    		   text->instance,
+			   text->realm,
+			   text->challenge,
+			   &text->credentials.session,
+			   text->credentials.pname,
+			   text->credentials.pinst);
+	if(result!=0)
+#else
 	if ((result=krb_mk_req(&ticket, (char *) params->service, 
 			       text->instance, text->realm,text->challenge)))
+#endif
 	{
 	    params->utils->log(NULL, SASL_LOG_ERR, "KERBEROS_V4", 
 			       SASL_FAIL, 0, 
@@ -1098,6 +1131,7 @@ static int client_continue_step (void *conn_context,
 
 	memcpy(in, serverin, 8);
 
+#ifndef macintosh
 	/* get credentials */
 	if ((result = krb_get_cred((char *)params->service,
 			  text->instance,
@@ -1109,7 +1143,7 @@ static int client_continue_step (void *conn_context,
 			       krb_err_txt[result], result);
 	    return SASL_BADAUTH;
 	}
-
+#endif
 	memcpy(text->session, text->credentials.session, 8);
 
 	/* make key schedule for encryption and decryption */

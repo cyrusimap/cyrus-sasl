@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.45 2002/02/13 20:31:52 rjs3 Exp $
+ * $Id: checkpw.c,v 1.46 2002/02/21 18:25:22 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -172,7 +172,7 @@ static int auxprop_verify_password(sasl_conn_t *conn,
          || !auxprop_values[0].values || !auxprop_values[0].values[0])
        && (!auxprop_values[1].name
          || !auxprop_values[1].values || !auxprop_values[1].values[0]))
-	    return SASL_FAIL;
+	    return SASL_NOUSER;
         
     /* It is possible for us to get useful information out of just
      * the lookup, so we won't check that we have a password until now */

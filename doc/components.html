@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>SASL Components</title>
-<!-- $Id: components.html,v 1.2 2003/07/04 14:44:06 rjs3 Exp $ -->
+<!-- $Id: components.html,v 1.3 2003/07/13 14:15:24 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>SASL Components</H1>
@@ -81,6 +81,15 @@ site-specific ways to canonicalize a username or perform other tasks.</p>
 
 <p>In the Cyrus SASL Implementation, the glue code is entirely contained
 within <tt>libsasl2.so</tt> (or <tt>libsasl2.a</tt>)</p>
+
+<h3>Plugins (General)</h3>
+
+<p>The Cyrus SASL architechure is very modular, using loadable modules for
+things such as the mechanism profiles and the database access done by the
+auxillary property plugins.  This means that it is easy to limit what
+parts are loaded by a given application, and that third parties can write
+their own modules to provide services, just by adhering to the API description
+in <tt>saslplug.h</tt>.</p>
 
 <h3>Plugins (SASL Mechanisms)</h3>
 

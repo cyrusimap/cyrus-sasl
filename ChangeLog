@@ -1,3 +1,6 @@
+2002-01-04  Ken Murchison <ken@oceana.com>
+	* plugins/srp.c: don't send M2 if using a confidentiality layer
+
 2002-01-03  Ken Murchison <ken@oceana.com>
 	* configure.in: removed check fpr gmp
 	* plugins/srp.c: migrated to OpenSSL's BN (removed GNU MP dependency)

@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.13 2002/01/03 22:02:26 ken3 Exp $
+ * $Id: srp.c,v 1.14 2002/01/04 18:56:50 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2169,14 +2169,6 @@ server_step1(context_t *text,
 				       NULL };
     struct propval auxprop_values[3];
 
-    /* if nothing we send nothing and except data next time */
-    if ((clientinlen == 0) && (text->state == 1)) {
-	text->state++;
-	*serverout = NULL;
-	*serveroutlen = 0;
-	return SASL_CONTINUE;
-    }
-
     /* Expect:
      *
      * { utf8(U) }
@@ -2555,6 +2547,20 @@ server_step3(context_t *text,
 	    r = SASL_BADAUTH;
 	    goto end;
 	}
+    }
+
+    /* if we have a confidentiality layer we're done - send nothing */
+    if (text->enabled & BIT_CONFIDENTIALITY) {
+
+	oparams->doneflag=1;
+
+	oparams->param_version = 0;
+
+	*serverout = NULL;
+	*serveroutlen = 0;
+
+	text->state = 5;
+	return SASL_OK;
     }
 
     /* calculate M2 to send */
@@ -3356,7 +3362,6 @@ client_step1(context_t *text,
 	return SASL_FAIL;
     }
 
-
     /* try to get the authid */
     if (text->authid==NULL)
     {
@@ -3694,6 +3699,12 @@ client_step3(context_t *text,
 	params->utils->log(NULL, SASL_LOG_ERR,
 			   "Error creating buffer in step 3\n");
 	goto done;
+    }
+
+    /* if we have a confidentiality layer we're done */
+    if (text->enabled & BIT_CONFIDENTIALITY) {
+	text->state = 5;
+	return SASL_OK;
     }
 
     text->state++;

@@ -1,4 +1,4 @@
-.\" $Id: saslauthd.mdoc,v 1.7 2002/01/21 18:01:41 rjs3 Exp $
+.\" $Id: saslauthd.mdoc,v 1.8 2002/02/27 17:22:11 rjs3 Exp $
 .\" Copyright 1997-2001 Messaging Direct Ltd. All rights reserved.
 .\"
 .\" This manpage uses the BSD mdoc manpage macros. Please don't
@@ -94,12 +94,6 @@ The mechanism is selected by the
 .Fl a
 flag from the following list of choices:
 .Bl -tag -width "kerberos4"
-.It Li sasldb
-.Em (All platforms)
-.Pp
-Authenticate against the
-SASL
-authentication database.
 .It Li dce
 .Em (AIX)
 .Pp
@@ -181,6 +175,15 @@ library routines. Some systems
 honour the
 .Fl T
 flag.
+.It Li sasldb
+.Em (All platforms)
+.Pp
+Authenticate against the
+SASL authentication database.  Note that this is probabally not what you
+want to be using, and is even disabled at compile-time by default.
+If you want to use sasldb with the SASL library, you probably want to
+use the pwcheck_method of "auxprop" along with the sasldb auxprop plugin
+instead.
 .It Li sia
 .Em (Digital UNIX)
 .Pp

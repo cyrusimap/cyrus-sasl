@@ -1,6 +1,6 @@
 /* auxprop.c - auxilliary property support
  * Rob Siemborski
- * $Id: auxprop.c,v 1.4 2002/05/03 19:57:21 rjs3 Exp $
+ * $Id: auxprop.c,v 1.5 2002/06/20 13:39:54 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -839,7 +839,7 @@ void _sasl_auxprop_lookup(sasl_server_params_t *sparams,
     }
 
     if(!found)
-	_sasl_log(NULL, SASL_LOG_ERR,
+	_sasl_log(NULL, SASL_LOG_DEBUG,
 		  "could not find auxprop plugin, was searching for %s",
 		  pluginname ? pluginname : "[any]");
 }

@@ -323,6 +323,12 @@ static void server_dispose(sasl_conn_t *pconn)
   if (s_conn->sparams)
     sasl_FREE(s_conn->sparams);
 
+  if (s_conn->base.oparams.credentials)
+  {
+    s_conn->mech->plug->dispose_credentials(s_conn->base.context,
+					    s_conn->base.oparams.credentials);
+  }
+
   _sasl_conn_dispose(pconn);
 }
 
@@ -463,7 +469,7 @@ _sasl_transition(sasl_conn_t * conn,
   if (! mechlist)		/* *shouldn't* ever happen... */
     return SASL_FAIL;
 
-  if (! conn->oparams->authid)
+  if (! conn->oparams.authid)
     return SASL_NOTDONE;
 
   for (m = mechlist->mech_list;
@@ -473,7 +479,7 @@ _sasl_transition(sasl_conn_t * conn,
       /* TODO: Log something if this fails */
       if (m->plug->setpass(m->plug->glob_context,
 			   ((sasl_server_conn_t *)conn)->sparams,
-			   conn->oparams->authid,
+			   conn->oparams.authid,
 			   pass,
 			   passlen,
 			   0,
@@ -630,17 +636,13 @@ int sasl_server_start(sasl_conn_t *conn,
 			       errstr);
 
 
-  conn->oparams=sasl_ALLOC(sizeof(sasl_out_params_t));
-  if (conn->oparams==NULL) return SASL_NOMEM;
-  memset(conn->oparams, 0, sizeof(sasl_out_params_t));
-
   result = s_conn->mech->plug->mech_step(conn->context,
 				       s_conn->sparams,
 				       clientin,
 				       clientinlen,
 				       serverout,
 				       (int *) serveroutlen,
-				       conn->oparams,
+				       &conn->oparams,
 				       errstr);
 			     
   /* if returns SASL_OK check to make sure
@@ -648,8 +650,8 @@ int sasl_server_start(sasl_conn_t *conn,
    * correct password using sasl_checkpass XXXXX
    */
   if (result == SASL_OK) {
-    if (conn->oparams->user)
-      sasl_setprop(conn, SASL_USERNAME, conn->oparams->user);
+    if (conn->oparams.user)
+      sasl_setprop(conn, SASL_USERNAME, conn->oparams.user);
   }
 
   return result;
@@ -675,12 +677,12 @@ int sasl_server_step(sasl_conn_t *conn,
 					 clientinlen,
 					 serverout,
 					 (int *) serveroutlen,
-					 conn->oparams,
+					 &conn->oparams,
 					 errstr);
 
   if (result == SASL_OK) {
-    if (conn->oparams->user)
-      sasl_setprop(conn, SASL_USERNAME, conn->oparams->user);
+    if (conn->oparams.user)
+      sasl_setprop(conn, SASL_USERNAME, conn->oparams.user);
   }
 
   return result;

@@ -72,7 +72,7 @@ struct sasl_conn {
   sasl_external_properties_t external;
 
   void *context;
-  sasl_out_params_t *oparams;
+  sasl_out_params_t oparams;
 
   sasl_security_properties_t props;
 

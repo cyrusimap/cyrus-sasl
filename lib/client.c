@@ -467,7 +467,7 @@ int sasl_client_start(sasl_conn_t *conn,
 					   0,
 					   prompt_need,
 					   clientout, (int *) clientoutlen,
-					   conn->oparams);
+					   &conn->oparams);
 
 
   /* set secret */
@@ -545,10 +545,6 @@ int sasl_client_start(sasl_conn_t *conn,
 			       &(conn->context));
 
 
-  conn->oparams=sasl_ALLOC(sizeof(sasl_out_params_t));
-  if (conn->oparams==NULL) return SASL_NOMEM;
-  memset(conn->oparams, 0, sizeof(sasl_out_params_t));
-
     /* do a step */
   return c_conn->mech->plug->mech_step(conn->context,
 				    c_conn->cparams,
@@ -556,7 +552,7 @@ int sasl_client_start(sasl_conn_t *conn,
 				    0,
 				    prompt_need,
 				    clientout, (int *) clientoutlen,
-				    conn->oparams);
+				    &conn->oparams);
 }
 
 
@@ -575,7 +571,7 @@ int sasl_client_step(sasl_conn_t *conn,
 				    serverinlen,
 				    prompt_need,
 				    clientout, (int *)clientoutlen,
-				    conn->oparams);
+				    &conn->oparams);
 }
 
 

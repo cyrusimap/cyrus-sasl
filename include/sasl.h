@@ -111,8 +111,6 @@
 # define LIBSASL_API extern
 #endif /* WIN32 */
 
-LIBSASL_API int _sasl_debug;
-
 /*************
  * Basic API *
  *************/

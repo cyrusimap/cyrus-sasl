@@ -1,4 +1,4 @@
-.\" $Id: saslauthd.mdoc,v 1.13 2002/06/24 22:27:50 rjs3 Exp $
+.\" $Id: saslauthd.mdoc,v 1.14 2002/10/14 19:43:12 rjs3 Exp $
 .\" Copyright 1997-2001 Messaging Direct Ltd. All rights reserved.
 .\"
 .\" This manpage uses the BSD mdoc manpage macros. Please don't
@@ -19,7 +19,7 @@
 .Nm
 .Fl a
 .Ar authmech
-.Op Fl \&Tv
+.Op Fl \&Tvd
 .Op Fl O Ar option
 .Op Fl m Ar mux_path
 .Op Fl n Ar threads
@@ -79,6 +79,8 @@ Honour time-of-day login restrictions.
 .It Fl v
 Print the version number and available authentication
 mechanisms on standard error, then exit.
+.It Fl d
+Debugging mode.
 .El
 .Ss Logging
 .Nm

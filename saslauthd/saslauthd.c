@@ -1,7 +1,7 @@
 /* MODULE: saslauthd */
 
 /* COPYRIGHT
- * Copyright (c) 1997, 1998 Messaging Direct Ltd.
+ * Copyright (c) 1997-2000 Messaging Direct Ltd.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -71,7 +71,7 @@
  * END HISTORY */
 
 #ifdef __GNUC__
-#ident "$Id: saslauthd.c,v 1.2 2000/10/01 21:02:42 esys Exp $"
+#ident "$Id: saslauthd.c,v 1.3 2000/10/01 22:32:18 esys Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -123,7 +123,7 @@ void		show_version(void);
 
 #define LOCK_FILE_MODE	(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH)
 #define LOCK_SUFFIX ".pid"
-#define MAX_REQ_LEN 1024	/* login/pw input buffer size */
+#define MAX_REQ_LEN 1024		/* login/pw input buffer size */
 
 #ifdef _AIX
 # define SALEN_TYPE size_t
@@ -295,7 +295,7 @@ main(
 	}
 
 	/* : For now we can only create CRAM accounts */
-	if (strcasecmp("cramdb", authmech->name)) {
+	if (strcasecmp("sasldb", authmech->name)) {
 	    syslog(LOG_ERR, "FATAL: %s does not support proxy creation",
 		   authmech->name);
 	    fprintf(stderr, "saslauthd: %s does not support proxy creation",

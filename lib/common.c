@@ -151,16 +151,8 @@ int sasl_encode(sasl_conn_t *conn, const char *input, unsigned inputlen,
 	return SASL_OK;
     } else {
 
-	/* can not allow two encodes concurrently because things like
-	   rc4 require serializability */
-	result = sasl_MUTEX_LOCK(conn->mutex);
-	if (result != SASL_OK) return result;
-
 	result = conn->oparams.encode(conn->context, input,
 				      inputlen, output, outputlen);
-
-	sasl_MUTEX_UNLOCK(conn->mutex);
-
 	return result;
     }
 }
@@ -182,16 +174,8 @@ int sasl_decode(sasl_conn_t *conn, const char *input, unsigned inputlen,
 	return SASL_OK;
 	
     } else {
-	/* can not allow two encodes concurrently because things like
-	   rc4 require serializability */
-	result = sasl_MUTEX_LOCK(conn->mutex);
-	if (result != SASL_OK) return result;
-
 	result = conn->oparams.decode(conn->context, input, inputlen,
 				      output, outputlen);
-
-	sasl_MUTEX_UNLOCK(conn->mutex);
-
 	return result;
     }
 }

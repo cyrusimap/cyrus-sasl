@@ -76,10 +76,25 @@ dnl named.  arg.
 	BERKELEY_DB_CHK()
 	;;
   gdbm)
-	AC_CHECK_HEADER(gdbm.h,
+	AC_ARG_WITH(with-gdbm,[  --with-gdbm=PATH        use gdbm from PATH],
+                    with_gdbm="${withval}")
+
+        case "$with_gdbm" in
+           ""|yes)
+               AC_CHECK_HEADER(gdbm.h,
 			AC_CHECK_LIB(gdbm, gdbm_open, SASL_DB_LIB="-lgdbm",
                                            dblib="no"),
 			dblib="no")
+               ;;
+           *)
+               if test -d $with_gdbm; then
+                 CPPFLAGS="${CPPFLAGS} -I${with_gdbm}/include"
+                 LDFLAGS="${LDFLAGS} -L${with_gdbm}/lib"
+                 SASL_DB_LIB="-lgdbm" 
+               else
+                 with_gdbm="no"
+               fi
+       esac
 	;;
   ndbm)
 	dnl We want to attempt to use -lndbm if we can, just in case

@@ -1,6 +1,6 @@
 /* Anonymous SASL plugin
  * Tim Martin 
- * $Id: anonymous.c,v 1.1 1998/11/16 20:06:40 rob Exp $
+ * $Id: anonymous.c,v 1.2 1998/11/16 21:59:19 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -113,7 +113,7 @@ static int continue_step (void *conn_context,
 
     result =sparams->utils->getcallback(sparams->utils->conn,
 					SASL_CB_LOG,
-					&log_proc,
+					(int (**)())&log_proc,
 					&log_context);
     if (result == SASL_OK && log_proc) {
       struct sockaddr_in remote_addr;

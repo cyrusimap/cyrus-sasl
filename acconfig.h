@@ -1,6 +1,6 @@
 /* acconfig.h - autoheader configuration input
  * Rob Earhart
- * $Id: acconfig.h,v 1.1 1998/11/16 20:06:36 rob Exp $
+ * $Id: acconfig.h,v 1.2 1998/11/16 21:59:18 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -49,7 +49,9 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 @BOTTOM@
 
 /* Make Solaris happy... */
+#ifndef __EXTENSIONS__
 #define __EXTENSIONS__
+#endif
 
 /* Make Linux happy... */
 #define _GNU_SOURCE

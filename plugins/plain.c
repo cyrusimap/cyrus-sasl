@@ -1,6 +1,6 @@
 /* Plain SASL plugin
  * Tim Martin 
- * $Id: plain.c,v 1.1 1998/11/16 20:06:40 rob Exp $
+ * $Id: plain.c,v 1.2 1998/11/16 21:59:19 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -141,6 +141,7 @@ static int server_continue_step (void *conn_context,
     int password_len;
     int pos=0;
     int lup=0;
+    char *mem;
     int result;
     /* should have received author-id NUL authen-id NUL password */
 
@@ -189,13 +190,15 @@ static int server_continue_step (void *conn_context,
 			   password);
     if (result!=SASL_OK) return result;
 
-    oparams->user = params->utils->malloc(authen_len + 1);
-    if (! oparams->user) return SASL_NOMEM;
-    memcpy(oparams->user, authen, authen_len);
+    mem = params->utils->malloc(authen_len + 1);
+    if (! mem) return SASL_NOMEM;
+    memcpy(mem, authen, authen_len);
+    oparams->user = mem;
 
-    oparams->authid = params->utils->malloc(authen_len + 1);
-    if (! oparams->authid) return SASL_NOMEM;
-    memcpy(oparams->authid, authen, authen_len);
+    mem = params->utils->malloc(authen_len + 1);
+    if (! mem) return SASL_NOMEM;
+    memcpy(mem, authen, authen_len);
+    oparams->authid = mem;
 
     if (params->transition)
       params->transition(params->utils->conn,

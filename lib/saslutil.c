@@ -1,6 +1,6 @@
 /* saslutil.c
  * Tim Martin 5/20/98
- * $Id: saslutil.c,v 1.1 1998/11/16 20:06:37 rob Exp $
+ * $Id: saslutil.c,v 1.2 1998/11/16 21:59:19 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -31,11 +31,6 @@ SOFTWARE.
 #include <string.h>
 #include "sasl.h"
 #include "saslint.h"
-
-#include <sys/socket.h>
-#include <sys/file.h>
-#include <netinet/in.h>
-#include <netdb.h>
 
 /*  Contains:
  *

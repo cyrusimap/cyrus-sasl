@@ -1,9 +1,11 @@
 2002-04-12  Ken Murchison <ken@oceana.com>
+	* doc/draft-melnikov-rfc2831bis-00.txt: added
 	* doc/draft-myers-saslrev-02.txt: moved TOC
 	* doc/draft-myers-saslrev-02.txt: added
 	* doc/draft-myers-saslrev-01.txt: deleted
 	* doc/index.html: changed link to updated saslrev draft,
-	  added KERBEROS_V4 notation
+	  added KERBEROS_V4 notation,
+	  added link to rfc2831bis draft
 
 2002-04-03  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* saslauthd/configure.in: properly define AUTH_KRB5

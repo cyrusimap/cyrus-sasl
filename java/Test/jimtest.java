@@ -13,25 +13,16 @@ class jimtest
 
   static void send(String str)
   {
-      /*    if (conn==null)
-	    { */
       os.print(str+"\r\n");
       os.flush();
-       /*
-     } else {
-      os.print( new String( conn.encode(str+"\r\n")) );
-       os.flush();
-       idle=true;
-       }*/
-      /*   System.out.println("send: "+str+"]");*/
     
   }
 
-    static boolean connect(String servername)
+    static boolean connect(String servername, int port)
     {
 	try
 	    {
-		s=new Socket(servername,143);
+		s=new Socket(servername,port);
 	    } catch (UnknownHostException e){
 		System.out.println("invalid host");
 		return false;
@@ -77,7 +68,6 @@ class jimtest
 	    if (tmp.startsWith("AUTH=")==true)
 	    {
 		ret[size++] = tmp.substring(5);
-		System.out.println("foo = "+ret[size-1]);		
 	    }
 	}
 	
@@ -91,7 +81,7 @@ class jimtest
 	
 	try {
 	    
-	    send("A01 CAPABILITY");
+	    send(". CAPABILITY");
 	    
 	    do {
 		line = br.readLine();
@@ -101,7 +91,7 @@ class jimtest
 
 	    do {
 		line = br.readLine();
-	    } while (line.startsWith("A01")==false);
+	    } while (line.startsWith(".")==false);
 
 	} catch (IOException e) {
 	    System.out.println("IO no work");	
@@ -111,13 +101,13 @@ class jimtest
 	return mechs;
     }
 
-    static SaslClient start_sasl(String[] mechs, String remoteserver, int minssf, int maxssf)
+    static SaslClient start_sasl(String[] mechs, String remoteserver, String localaddr, int minssf, int maxssf)
     {
 	SaslClient conn;
 	Hashtable props = new Hashtable();
 	props.put("javax.security.sasl.encryption.minimum",String.valueOf(minssf));
 	props.put("javax.security.sasl.encryption.maximum",String.valueOf(maxssf));
-	props.put("javax.security.sasl.ip.local","cyrus-dev.andrew.cmu.edu");
+	props.put("javax.security.sasl.ip.local",localaddr);
 	props.put("javax.security.sasl.ip.remote",remoteserver);
 
 	Handler cbh = new Handler();
@@ -138,7 +128,7 @@ class jimtest
 		/* xxx */
 	    }
 
-	    send("A02 AUTHENTICATE "+conn.getMechanismName());
+	    send(". AUTHENTICATE "+conn.getMechanismName());
 
 	    do {
 
@@ -148,21 +138,15 @@ class jimtest
 
 		    line = line.substring(2);
 
-		    System.out.println("line = ["+line+"]");
-
 		    byte[] in = SaslUtils.decode64(line);
-
-		    System.out.println("len = "+in.length);
 
 		    byte[] out = conn.evaluateChallenge(in);
 
 		    String outline = SaslUtils.encode64(out);
 
-		    System.out.println("out = "+outline);
-
 		    send(outline);
 
-		} else if (line.startsWith("A02 OK")==true) {
+		} else if (line.startsWith(". OK")==true) {
 		    System.out.println("S: " + line);
 
 		    if (conn.isComplete()==false) {
@@ -250,6 +234,7 @@ class jimtest
 	int minssf = 0;
 	int maxssf = 9999;
 	String onemech = null;
+	int port = 143;
 
         while ((i < (args.length-1) ) && (args[i].startsWith("-"))) {
 	    arg = args[i++];
@@ -277,6 +262,13 @@ class jimtest
 		    System.err.println("-m requires parameter");
 		    usage();
 		}
+	    } else if (arg.equals("-p")) {
+		if (i < args.length)
+		    port = Integer.parseInt(args[i++]);
+		else {
+		    System.err.println("-p requires a number");
+		    usage();
+		}
 	    } else {
 		usage();
 	    }
@@ -286,7 +278,7 @@ class jimtest
 
 	String servername = args[i];
 
-	if (connect(servername)==false) {
+	if (connect(servername,port)==false) {
 	    System.out.println("Unable to connect to host: "+servername);
 	    System.exit(1);
 	}
@@ -298,7 +290,7 @@ class jimtest
 	    mechs[0]=onemech;
 	}
 
-	conn = start_sasl(mechs,servername, minssf,maxssf);
+	conn = start_sasl(mechs,servername, s.getLocalAddress().getHostName(), minssf,maxssf);
 
 	if (conn == null) {
 	    System.out.println("Authentication failed");

@@ -12,6 +12,11 @@ public class SaslException extends IOException
 	foo = 3;
 
     }
+
+    public SaslException(String message)
+    {
+	super(message);
+    }
     
     public SaslException(String message,
 			 Throwable ex)

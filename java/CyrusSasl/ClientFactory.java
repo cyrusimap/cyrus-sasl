@@ -24,10 +24,9 @@ class ClientFactory implements SaslClientFactory
 	try {
 	    System.loadLibrary("javasasl");
 	} catch (UnsatisfiedLinkError e) {
-	    System.out.println("unable to load library");
+	    /* xxx */
+	    System.out.println("Unable to load javasasl library");
 	}
-
-	System.out.println("loaded library");
 
 	jni_sasl_client_init(appname);    
 	
@@ -47,8 +46,6 @@ class ClientFactory implements SaslClientFactory
 	throws SaslException
     {
 	int cptr;
-
-	System.out.println("here");	
 
 	if (client_initialized == false) {
 	    /* TODO: This should only be done once, even if called in

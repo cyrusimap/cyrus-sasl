@@ -1,3 +1,12 @@
+2000-03-28  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* lib/server.c/client.c: take out pointless mutexes some fool put in
+
+2000-03-26  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* man/: Man pages for all functions (i think) written
+	* man/Makefile.am: added new files
+
 2000-03-21  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
 	* java/: Added with client side of javasasl

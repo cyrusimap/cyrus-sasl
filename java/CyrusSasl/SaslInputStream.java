@@ -10,11 +10,11 @@ public class SaslInputStream extends InputStream
     private int bufferend=0;
     private int size = 0;
 
-  private GenericClient conn;
+    private GenericCommon conn;
 
   public InputStream in;
     
-  public SaslInputStream(InputStream in, GenericClient conn)
+  public SaslInputStream(InputStream in, GenericCommon conn)
   {
     this.in = in;
     this.conn=conn;
@@ -52,7 +52,7 @@ public class SaslInputStream extends InputStream
     return -1;
   }
 
-  private void buffer_add(byte[] str,int len)
+  private void buffer_add(byte[] str,int len) throws IOException
   {
     if (str==null)
       return;
@@ -69,12 +69,12 @@ public class SaslInputStream extends InputStream
 
       size++;
       if (size >= BUFFERSIZE) {
-	System.out.println("uh oh. growing buffer!");	
+	  throw new IOException();
       }
     }
   }
 
-  private void buffer_add(byte[] str)
+  private void buffer_add(byte[] str) throws IOException
   {
     buffer_add(str,str.length);
   }

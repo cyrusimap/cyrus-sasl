@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.74 2000/03/14 23:20:36 tmartin Exp $
+ * $Id: server.c,v 1.75 2000/03/28 06:47:55 tmartin Exp $
  */
 
 /* 
@@ -904,9 +904,6 @@ int sasl_server_start(sasl_conn_t *conn,
   if (errstr)
     *errstr = NULL;
 
-  result = sasl_MUTEX_LOCK(conn->mutex);
-  if (result != SASL_OK) return result;
-
   while (m!=NULL)
   {
     if ( strcasecmp(mech,m->plug->mech_name)==0)
@@ -953,8 +950,6 @@ int sasl_server_start(sasl_conn_t *conn,
 					     &conn->oparams,
 					     errstr);
  done:
-  sasl_MUTEX_UNLOCK(conn->mutex);
-  
   return result;
 }
 
@@ -994,9 +989,6 @@ int sasl_server_step(sasl_conn_t *conn,
     if (errstr)
 	*errstr = NULL;
 
-    ret = sasl_MUTEX_LOCK(conn->mutex);
-    if (ret != SASL_OK) return ret;
-
     ret = s_conn->mech->plug->mech_step(conn->context,
 					s_conn->sparams,
 					clientin,
@@ -1027,8 +1019,6 @@ int sasl_server_step(sasl_conn_t *conn,
 	    s_conn->base.oparams.user = (char *) canonuser;
 	}
     }
-
-    sasl_MUTEX_UNLOCK(conn->mutex);
 
     return ret;
 }

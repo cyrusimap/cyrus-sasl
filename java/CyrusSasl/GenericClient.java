@@ -64,15 +64,6 @@ public class GenericClient extends GenericCommon implements SaslClient
 	return false;
     }
 	
-    public boolean isComplete()
-    {
-	return complete;
-    }
-    private void setcomplete(int a)
-    {
-	complete = true;
-    }
-
     /**
      * Use this method to obtain the name of the mechanism being
      * negotiated with the server. After giving start() a list of
@@ -89,8 +80,6 @@ public class GenericClient extends GenericCommon implements SaslClient
     /* called from C layer */
     private void callback_setmechanism(String mech)
     {
-	System.out.println("mechanism = "+mech);
-	
 	mechanism=mech;
     }
 
@@ -101,7 +90,6 @@ public class GenericClient extends GenericCommon implements SaslClient
 
     private void do_callbacks(int wantuid, int wantaid, int wantpass, int wantrealm) throws SaslException
     {
-	System.out.println("woohoo i got here!\n");	
 	int numcb = wantuid+wantaid+wantpass+wantrealm;
 
 	Callback[] cbs = new Callback[numcb];

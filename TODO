@@ -14,7 +14,7 @@ Documentation
 ~~~~~~~~~~~~~
 ) so much to do here
 ) how to write an application using sasl (programmer's guide)
-) man pages (saslpasswd, individual functions, etc.)
+) man pages (check spelling) (do saslpasswd, sasldblistusers etc)
 ) how to configure sasl (sysadmin guide)
 ) update INSTALL to have clearer step-by-step instructions
 
@@ -35,6 +35,7 @@ Digest-MD5
 Kerberos_V4
 ~~~~~~~~~~~
 ) client-side should set realm
+) is prompt_need callback set default value
 
 GSSAPI
 ~~~~~~

@@ -6,7 +6,8 @@ import javax.security.auth.callback.*;
 public class Sasl
 {
 
-    static SaslClientFactory client_factory = null;
+    private static SaslClientFactory client_factory = null;
+    private static SaslServerFactory server_factory = null;
 
     /*
    Creates a SaslClient using the parameters supplied. It returns null
@@ -77,8 +78,34 @@ public class Sasl
     }
 
 
+    public static SaslServer CreateSaslServer(String mechanism,
+					      String protocol,
+					      String serverName,
+					      Hashtable props,
+					      javax.security.auth.callback.CallbackHandler cbh)
+					      throws SaslException
+    {
+	if (server_factory == null)
+	{
+	    server_factory = new ServerFactory();
+	}
 
+	return server_factory.createSaslServer(mechanism,
+					       protocol,
+					       serverName,
+					       props,
+					       cbh);
+    }
 
+    public static String[] getMechanismNames()
+    {
+	if (server_factory == null)
+	{
+	    server_factory = new ServerFactory();
+	}
+
+	return server_factory.getMechanismNames();	
+    }
 
 
 

@@ -34,7 +34,9 @@ javasasl_JAVA = CyrusSasl/Sasl.java CyrusSasl/GenericClient.java CyrusSasl/Clien
 	        CyrusSasl/GenericCommon.java CyrusSasl/SaslClient.java \
 	        CyrusSasl/SaslClientFactory.java CyrusSasl/SaslException.java \
 	        CyrusSasl/SaslInputStream.java CyrusSasl/SaslOutputStream.java\
-		CyrusSasl/SaslUtils.java
+		CyrusSasl/SaslUtils.java CyrusSasl/ServerFactory.java \
+                CyrusSasl/SaslServerFactory.java CyrusSasl/SaslServer.java \
+                CyrusSasl/GenericServer.java
 
 CLASSES = $(javasasl_JAVA:.java=.class)
 
@@ -44,6 +46,7 @@ libjavasasl_la_LDFLAGS = -export_dynamic -lsasl -version-info $(javasasl_version
 
 javasasl.c: javasasl.h
 
+# makes via smake but not regular make. wierd...
 javasasl.h: $(CLASSES)
 	$(CLASSPATH_ENV) $(JAVAH) -o $@ -jni $(patsubst CyrusSasl/%.class,CyrusSasl.%,$^)
 

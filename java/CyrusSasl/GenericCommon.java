@@ -187,9 +187,9 @@ public abstract class GenericCommon
 
   public boolean setSecurity(int external, int minssf, int maxssf)
   {
-    setproperty(SASL_SSF_EXTERNAL, external);
+      /* setproperty(SASL_SSF_EXTERNAL, external); */
 
-    jni_sasl_setSecurity(ptr,minssf,maxssf);
+      jni_sasl_setSecurity(ptr,minssf,maxssf);
 
     return true;
   }
@@ -268,8 +268,23 @@ public abstract class GenericCommon
   }
 
 
-  final protected void finalize () throws Throwable 
-  {
-    jni_sasl_dispose(ptr);
-  }
+    final protected void finalize () throws Throwable 
+    {
+	jni_sasl_dispose(ptr);
+    }
+
+    private boolean complete = false;
+
+    public boolean isComplete()
+    {
+	return complete;
+    }
+
+    /* called by JNI layer */
+    public void setcomplete(int a)
+    {
+	complete = true;
+    }
+
+
 }

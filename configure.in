@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.80 2000/03/21 19:34:06 tmartin Exp $
+dnl $Id: configure.in,v 1.81 2000/03/28 06:47:53 tmartin Exp $
 dnl
 dnl Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -109,6 +109,11 @@ if test "$enable_java" = yes; then
     JAVA_INCLUDES=-I`echo $JAVAH | sed -e 's,/bin.*,/include/kaffe,'`
   else
     java_base=`echo $JAVAC | sed 's,/bin.*,'','`
+
+    AC_ARG_WITH(javabase, [  --with-javabase=PATH      set path to find jni.h in [/usr/java/include] ],
+        java_base=$withval,)
+	
+
     JAVA_INCLUDES=''
     for dir in `find ${java_base}/include -follow -type d -print | grep -v green_threads`; do
       JAVA_INCLUDES="${JAVA_INCLUDES} -I$dir"
@@ -117,10 +122,7 @@ if test "$enable_java" = yes; then
   JAVAROOT="."
   AC_SUBST(JAVAROOT)
 
-  AC_ARG_WITH(javapath, [  --with-javaincludepath=PATH      set path to find jni.h in [/usr/java/include] ],
-    	javapath=$withval,
-	javapath=/usr/java/include)
-  JAVA_INCLUDES = "${JAVA_INCLUDES} -I$javapath"
+  JAVA_INCLUDES = "${JAVA_INCLUDES} -I$javapath/include"
 
   AC_SUBST(JAVA_INCLUDES)
   AC_MSG_RESULT(JAVA_INCLUDES)
@@ -658,4 +660,4 @@ fi
 
 AC_SUBST(DIRS)
 
-AC_OUTPUT(Makefile include/Makefile lib/Makefile plugins/Makefile utils/Makefile doc/Makefile sample/Makefile java/Makefile man/Makefile pwcheck/Makefile)
+AC_OUTPUT(Makefile include/Makefile lib/Makefile plugins/Makefile utils/Makefile doc/Makefile sample/Makefile java/Makefile man/Makefile)

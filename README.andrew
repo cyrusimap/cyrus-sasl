@@ -35,3 +35,21 @@ To release:
     comp.mail.sendmail after 8.10 comes out
     
     www.freshmeat.net
+
+sample announcement:
+
+I'd like to announce the beta release of Cyrus SASL 1.5.17 on
+ftp.andrew.cmu.edu. This version mostly includes bug fixes. One new
+utility that may be of interest to System Administrators is
+sasldblistusers which allows one to list the users that exist in
+sasldb. This is a beta release because it has not been thoroughly
+tested against all applications that make use of it.
+
+Please send any feedback either to cyrus-sasl@lists.andrew.cmu.edu
+(public list) or to cyrus-bugs@andrew.cmu.edu.
+
+Download at:
+ftp://ftp.andrew.cmu.edu/pub/cyrus-mail/BETA/cyrus-sasl-1.5.17.tar.gz
+
+Thanks,
+Tim Martin

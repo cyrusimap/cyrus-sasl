@@ -539,9 +539,6 @@ int sasl_client_start(sasl_conn_t *conn,
 	return SASL_BADPARAM;
     }
 
-    result = sasl_MUTEX_LOCK(conn->mutex);
-    if (result != SASL_OK) return result;
-
     VL(("in sasl_client_start\n"));
 
     /* if prompt_need != NULL we've already been here
@@ -557,7 +554,6 @@ int sasl_client_start(sasl_conn_t *conn,
 					       clientout, (int *) clientoutlen,
 					       &conn->oparams);
 
-	sasl_MUTEX_UNLOCK(conn->mutex);
 	return result;
     }
 
@@ -669,7 +665,6 @@ int sasl_client_start(sasl_conn_t *conn,
 					 clientout, (int *) clientoutlen,
 					 &conn->oparams);    
  done:
-    sasl_MUTEX_UNLOCK(conn->mutex);
     return result;
 }
 
@@ -701,9 +696,6 @@ int sasl_client_step(sasl_conn_t *conn,
   if ((serverin==NULL) && (serverinlen>0))
     return SASL_BADPARAM;
 
-  result = sasl_MUTEX_LOCK(conn->mutex);
-  if (result != SASL_OK) return result;  
-    
   /* do a step */
   result = c_conn->mech->plug->mech_step(conn->context,
 					 c_conn->cparams,
@@ -712,7 +704,6 @@ int sasl_client_step(sasl_conn_t *conn,
 					 prompt_need,
 					 clientout, (int *)clientoutlen,
 					 &conn->oparams);
-  sasl_MUTEX_UNLOCK(conn->mutex);
   return result;
 }
 

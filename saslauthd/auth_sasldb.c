@@ -32,7 +32,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_sasldb.c,v 1.3 2002/02/06 15:11:26 rjs3 Exp $"
+#ident "$Id: auth_sasldb.c,v 1.4 2002/04/18 17:06:04 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -148,8 +148,8 @@ auth_sasldb (
     }
     
 
-    ret = _sasldb_getdata(&utils, (void *)0x1, login, realm, "userPassword",
-			  pw, 1024, &outsize);
+    ret = _sasldb_getdata(&utils, (void *)0x1, login, use_realm,
+			  "userPassword", pw, 1024, &outsize);
 
     if (ret != SASL_OK) {
 	RETURN("NO");

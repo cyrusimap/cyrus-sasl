@@ -1,3 +1,7 @@
+2002-04-18  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/auth_sasldb.c: Use "use_realm" instead of "realm"
+	  for lookup of secret. (Jonas Oberg <jonas@gnu.org>)
+
 2002-04-17  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/cram.c, digestmd5.c, srp.c: Adjust cmusaslsecretFOO to
 	  *cmusaslsecretFOO

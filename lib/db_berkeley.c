@@ -1,6 +1,6 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Tim Martin
- * $Id: db_berkeley.c,v 1.6 1999/11/19 02:04:23 leg Exp $
+ * $Id: db_berkeley.c,v 1.7 1999/11/19 18:05:40 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -46,11 +46,8 @@ static int berkeleydb_open(sasl_conn_t *conn, DB **mbdb)
 {
     const char *path = SASL_DB_PATH;
     int ret;
-    DB_INFO dbinfo;
     void *cntxt;
     sasl_getopt_t *getopt;
-
-    memset(&dbinfo, 0, sizeof(dbinfo));
 
     if (_sasl_getcallback(conn, SASL_CB_GETOPT,
 			  &getopt, &cntxt) == SASL_OK) {
@@ -60,7 +57,22 @@ static int berkeleydb_open(sasl_conn_t *conn, DB **mbdb)
 	    path = p;
 	}
     }
-    ret = db_open(path, DB_HASH, DB_CREATE, 0664, NULL, &dbinfo, mbdb);
+
+#if DB_VERSION_MAJOR > 2
+    ret = db_create(mbdb, NULL, 0);
+    if (ret == 0 && *mbdb != NULL)
+    {
+	    ret = (*mbdb)->open(*mbdb, path, NULL, DB_HASH, DB_CREATE, 0664);
+	    if (ret != 0)
+	    {
+		    (void) (*mbdb)->close(*mbdb, 0);
+		    *mbdb = NULL;
+	    }
+    }
+#else /* DB_VERSION_MAJOR > 2 */
+    ret = db_open(path, DB_HASH, DB_CREATE, 0664, NULL, NULL, mbdb);
+#endif /* DB_VERSION_MAJOR > 2 */
+
     if (ret != 0) {
 	_sasl_log (NULL, SASL_LOG_ERR, NULL,
 		   SASL_FAIL,	/* %z */ 0,	/* %m */

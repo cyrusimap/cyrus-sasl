@@ -1,3 +1,10 @@
+New in 2.1.2
+------------
+* Mostly a minor-bugfix release
+* Improved documentation / cleanup of old references to obsolete
+  pwcheck_methods
+* Better error reporting for auxprop password verifiers
+
 New in 2.1.1
 ------------
 * Many minor bugfixes throughout.

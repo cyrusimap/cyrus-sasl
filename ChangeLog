@@ -1,3 +1,6 @@
+2002-03-26  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* Ready for 2.1.2
+
 2002-03-11  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* plugins/kerberos4.c: Fix a race condition during mutex allocation
 

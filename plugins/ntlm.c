@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.24 2004/03/09 18:02:30 rjs3 Exp $
+ * $Id: ntlm.c,v 1.25 2004/04/15 13:45:19 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -94,7 +94,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.24 2004/03/09 18:02:30 rjs3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.25 2004/04/15 13:45:19 ken3 Exp $";
 
 #ifdef WIN32
 static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);
@@ -1199,6 +1199,7 @@ static int smb_session_setup(const sasl_utils_t *utils, server_context_t *text,
     }
     iov[n].iov_base = (char*) authid;
     iov[n++].iov_len = strlen(authid) + 1;
+    if (!domain) domain = "";
     iov[n].iov_base = domain;
     iov[n++].iov_len = strlen(domain) + 1;
     iov[n].iov_base = osbuf;

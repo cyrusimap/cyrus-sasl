@@ -1,6 +1,6 @@
 /* saslint.h - internal SASL library definitions
  * Tim Martin
- * $Id: saslint.h,v 1.2 1998/11/17 03:57:43 rob Exp $
+ * $Id: saslint.h,v 1.3 1998/11/20 16:22:00 ryan Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -27,7 +27,12 @@ SOFTWARE.
 #ifndef SASLINT_H
 #define SASLINT_H
 
+#ifdef WIN32
+#include "winconfig.h"
+#include <windows.h>
+#else /* WIN32 */
 #include <netinet/in.h>
+#endif /* WIN32 */
 #include "sasl.h"
 #include "saslplug.h"
 

@@ -26,10 +26,24 @@ documentation and/or software.
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
+#ifdef WIN32
+# include "winconfig.h"
+#endif /* WIN32 */
 #include <sys/types.h>
+#ifdef HAVE_STRINGS_H
 #include <strings.h>
+#endif /* HAVE_STRINGS_H */
 #include "md5global.h"
 #include "md5.h"
+
+#ifndef STDC_HEADERS
+# ifndef HAVE_MEMCPY
+#  define memcpy(d, s, n) bcopy ((s), (d), (n))
+#  define memmove(d, s, n) bcopy ((s), (d), (n))
+#  define memset(s, b, l) bzero ((s), (l))
+# endif
+#endif
+
 
 /* Constants for MD5Transform routine.
 */
@@ -355,7 +369,7 @@ unsigned char* text; /* pointer to data stream */
 int text_len; /* length of data stream */
 unsigned char* key; /* pointer to authentication key */
 int key_len; /* length of authentication key */
-caddr_t digest; /* caller digest to be filled in */
+char *digest; /* caller digest to be filled in */
 {
   MD5_CTX context; 
 
@@ -392,10 +406,10 @@ caddr_t digest; /* caller digest to be filled in */
    */
 
   /* start out by storing key in pads */
-  bzero( k_ipad, sizeof k_ipad);
-  bzero( k_opad, sizeof k_opad);
-  bcopy( key, k_ipad, key_len);
-  bcopy( key, k_opad, key_len);
+  memset(k_ipad, '\0', sizeof k_ipad);
+  memset(k_opad, '\0', sizeof k_opad);
+  memcpy( k_ipad, key, key_len);
+  memcpy( k_opad, key, key_len);
 
   /* XOR key with ipad and opad values */
   for (i=0; i<64; i++) {

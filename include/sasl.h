@@ -80,6 +80,24 @@
 #ifndef SASL_H
 #define SASL_H 1
 
+/* The following ifdef block is the standard way of creating macros which make exporting 
+ * from a DLL simpler. All files within this DLL are compiled with the LIBSASL_EXPORTS
+ * symbol defined on the command line. this symbol should not be defined on any project
+ * that uses this DLL. This way any other project whose source files include this file see 
+ * LIBSASL_API functions as being imported from a DLL, wheras this DLL sees symbols
+ * defined with this macro as being exported.
+ */
+#ifdef WIN32
+# ifdef LIBSASL_EXPORTS
+#  define LIBSASL_API __declspec(dllexport)
+# else /* LIBSASL_EXPORTS */
+#  define LIBSASL_API __declspec(dllimport)
+# endif /* LIBSASL_EXPORTS */
+LIBSASL_API int _sasl_debug;
+#else /* WIN32 */
+# define LIBSASL_API
+#endif /* WIN32 */
+
 /*************
  * Basic API *
  *************/
@@ -153,8 +171,9 @@ typedef void *sasl_malloc_t(unsigned long);
 typedef void *sasl_calloc_t(unsigned long, unsigned long);
 typedef void *sasl_realloc_t(void *, unsigned long);
 typedef void sasl_free_t(void *);
-void sasl_set_alloc(sasl_malloc_t *, sasl_calloc_t *, sasl_realloc_t *,
-		    sasl_free_t *);
+
+LIBSASL_API void sasl_set_alloc(sasl_malloc_t *, sasl_calloc_t *, sasl_realloc_t *,
+                                sasl_free_t *);
 
 /* mutex functions which may optionally be replaced:
  *  sasl_mutex_new allocates a mutex structure
@@ -169,8 +188,9 @@ typedef void *sasl_mutex_new_t();
 typedef int sasl_mutex_lock_t(void *mutex);
 typedef int sasl_mutex_unlock_t(void *mutex);
 typedef void sasl_mutex_dispose_t(void *mutex);
-void sasl_set_mutex(sasl_mutex_new_t *, sasl_mutex_lock_t *,
-		    sasl_mutex_unlock_t *, sasl_mutex_dispose_t *);
+
+LIBSASL_API void sasl_set_mutex(sasl_mutex_new_t *, sasl_mutex_lock_t *,
+                                sasl_mutex_unlock_t *, sasl_mutex_dispose_t *);
 
 /******************
  * Callback types *
@@ -363,17 +383,17 @@ typedef unsigned sasl_ssf_t;
 /* dispose of all SASL plugins.  Connection
  * states have to be disposed of before calling this.
  */
-void sasl_done(void);
+LIBSASL_API void sasl_done(void);
 
 /* dispose connection state, sets it to NULL
  *  checks for pointer to NULL
  */
-void sasl_dispose(sasl_conn_t **pconn);
+LIBSASL_API void sasl_dispose(sasl_conn_t **pconn);
 
 /* translate server error code to user error code
  *  currently only maps SASL_NOUSER to SASL_BADAUTH
  */
-int sasl_usererr(int saslerr);
+LIBSASL_API int sasl_usererr(int saslerr);
 
 /* translate an error number into a string
  * input:
@@ -384,7 +404,7 @@ int sasl_usererr(int saslerr);
  * returns:
  *  the error message
  */
-const char *sasl_errstring(int saslerr,
+LIBSASL_API const char *sasl_errstring(int saslerr,
 			   const char *langlist,
 			   const char **outlang);
 			   
@@ -396,7 +416,7 @@ const char *sasl_errstring(int saslerr,
  *  SASL_NOTDONE  -- property not available yet
  *  SASL_BADPARAM -- bad property number
  */
-int sasl_getprop(sasl_conn_t *conn, int propnum, void **pvalue);
+LIBSASL_API int sasl_getprop(sasl_conn_t *conn, int propnum, void **pvalue);
 #define SASL_USERNAME   0     /* pointer to NUL terminated user name */
 #define SASL_SSF        1     /* security layer security strength factor,
 			       * if 0, call to sasl_encode, sasl_decode
@@ -412,7 +432,7 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, void **pvalue);
  *  SASL_OK       -- value set
  *  SASL_BADPARAM -- invalid property or value
  */
-int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value);
+LIBSASL_API int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value);
 #define SASL_SSF_EXTERNAL 100  /* external SSF active */
 #define SASL_SEC_PROPS    101  /* sasl_security_properties_t */
 
@@ -420,7 +440,7 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value);
  *  may pass NULL to precompute for some mechanisms prior to connect
  *  returns 1 if action taken, 0 if no action taken
  */
-int sasl_idle(sasl_conn_t *conn);
+LIBSASL_API int sasl_idle(sasl_conn_t *conn);
 
 /**************
  * Client API *
@@ -447,7 +467,7 @@ typedef struct sasl_interact {
  *  SASL_NOMECH    -- No mechanisms available
  *  ...
  */
-int sasl_client_init(const sasl_callback_t *callbacks);
+LIBSASL_API int sasl_client_init(const sasl_callback_t *callbacks);
 
 /* initialize a client exchange based on the specified mechanism
  *  service       -- registered name of the service using SASL (e.g. "imap")
@@ -467,7 +487,7 @@ int sasl_client_init(const sasl_callback_t *callbacks);
  *  SASL_NOMECH   -- no mechanism meets requested properties
  *  SASL_NOMEM    -- not enough memory
  */
-int sasl_client_new(const char *service,
+LIBSASL_API int sasl_client_new(const char *service,
 		    const char *serverFQDN,
 		    const sasl_callback_t *prompt_supp,
 		    int secflags,
@@ -487,7 +507,7 @@ int sasl_client_new(const char *service,
  *  SASL_NOMECH   -- no mechanism meets requested properties
  *  SASL_INTERACT -- user interaction needed to fill in prompt_need list
  */
-int sasl_client_start(sasl_conn_t *conn,
+LIBSASL_API int sasl_client_start(sasl_conn_t *conn,
 		      const char *mechlist,
 		      sasl_secret_t *secret,
 		      sasl_interact_t **prompt_need,
@@ -508,7 +528,7 @@ int sasl_client_start(sasl_conn_t *conn,
  *  SASL_BADPROT   -- server protocol incorrect/cancelled
  *  SASL_BADSERV   -- server failed mutual auth
  */
-int sasl_client_step(sasl_conn_t *conn,
+LIBSASL_API int sasl_client_step(sasl_conn_t *conn,
 		     const char *serverin,
 		     unsigned serverinlen,
 		     sasl_interact_t **prompt_need,
@@ -528,7 +548,7 @@ int sasl_client_step(sasl_conn_t *conn,
  *  SASL_OK       -- success
  *  SASL_NOMEM    -- failure
  */
-int sasl_client_auth(sasl_conn_t *conn,
+LIBSASL_API int sasl_client_auth(sasl_conn_t *conn,
 		     const char *user,
 		     const char *pass, unsigned passlen,
 		     sasl_interact_t *prompts, sasl_secret_t **keepcopy);
@@ -536,11 +556,16 @@ int sasl_client_auth(sasl_conn_t *conn,
 /* erase & dispose of a sasl_secret_t
  *  calls free utility last set by sasl_set_alloc
  */
-void sasl_free_secret(sasl_secret_t **);
+LIBSASL_API void sasl_free_secret(sasl_secret_t **);
 
 /**************
  * Server API *
  **************/
+
+/* WIN32 NOTE:  Did not implement Server API yet, so I'm not adding
+ * LIBSASL_API to these functions.  If I did, the linker may complain
+ * about not finding them for export.
+ */
 
 /* initialize server drivers, done once per process
  *  callbacks      -- base callbacks for all server connections
@@ -717,7 +742,7 @@ int sasl_setpass(sasl_conn_t *conn,
  *  SASL_OK      -- success (returns input if no layer negotiated)
  *  SASL_NOTDONE -- security layer negotiation not finished
  */
-int sasl_encode(sasl_conn_t *conn, const char *input, unsigned inputlen,
+LIBSASL_API int sasl_encode(sasl_conn_t *conn, const char *input, unsigned inputlen,
 		char **output, unsigned *outputlen);
 
 /* decode a block of data received using security layer
@@ -725,7 +750,7 @@ int sasl_encode(sasl_conn_t *conn, const char *input, unsigned inputlen,
  *  SASL_OK      -- success (returns input if no layer negotiated)
  *  SASL_NOTDONE -- security layer negotiation not finished
  */
-int sasl_decode(sasl_conn_t *conn, const char *input, unsigned inputlen,
+LIBSASL_API int sasl_decode(sasl_conn_t *conn, const char *input, unsigned inputlen,
 		char **output, unsigned *outputlen);
 
 #endif /* SASL_H */

@@ -1,6 +1,6 @@
 /* saslutil.c
  * Tim Martin 5/20/98
- * $Id: saslutil.c,v 1.4 1998/11/17 19:28:45 rob Exp $
+ * $Id: saslutil.c,v 1.5 1998/11/20 16:22:00 ryan Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -27,6 +27,9 @@ SOFTWARE.
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
+#ifdef WIN32
+# include "winconfig.h"
+#endif /* WIN32 */
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
@@ -45,6 +48,7 @@ char *strchr(), *strrchr();
 #endif
 #include "sasl.h"
 #include "saslint.h"
+#include "saslutil.h"
 
 /*  Contains:
  *
@@ -270,8 +274,13 @@ void sasl_rand (sasl_rand_t *rpool, char *buf, int len)
   int lup;
   if (buf==NULL) return;
 
+#ifdef WIN32
+  for (lup=0;lup<len;lup++)
+    buf[lup]= (char) (rand());
+#else /* WIN32 */
   for (lup=0;lup<len;lup++)
     buf[lup]= (char) jrand48(rpool->pool);
+#endif /* WIN32 */
 }
 
 void sasl_churn (sasl_rand_t *rpool, const char *data, int len)
@@ -288,7 +297,3 @@ void sasl_churn (sasl_rand_t *rpool, const char *data, int len)
   }
 
 }
-
-
-
-

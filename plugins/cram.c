@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.4 1998/11/17 19:28:46 rob Exp $
+ * $Id: cram.c,v 1.5 1998/11/20 16:22:01 ryan Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -27,6 +27,9 @@ SOFTWARE.
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
+#ifdef WIN32
+# include "winconfig.h"
+#endif /* WIN32 */
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -49,6 +52,11 @@ char *strchr(), *strrchr();
 #include <sasl.h>
 #include <saslplug.h>
 #include <saslutil.h>
+
+#ifdef WIN32
+/* This must be after sasl.h, saslutil.h */
+# include "saslCRAM.h"
+#endif /* WIN32 */
 
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
 

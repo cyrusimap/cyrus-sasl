@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.10 1998/11/18 22:34:37 rob Exp $
+ * $Id: kerberos4.c,v 1.11 1998/11/20 16:22:01 ryan Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -27,6 +27,9 @@ SOFTWARE.
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
+#ifdef WIN32
+# include "winconfig.h"
+#endif /* WIN32 */
 #include <stdlib.h>
 #if STDC_HEADERS
 # include <string.h>
@@ -44,11 +47,15 @@ char *strchr(), *strrchr();
 #include <krb.h>
 #include <des.h>
 #include <sys/types.h>
-#include <sys/param.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
+#ifdef WIN32
+# include <winsock.h>
+#else
+# include <sys/param.h>
+# include <sys/socket.h>
+# include <netinet/in.h>
+# include <arpa/inet.h>
+# include <netdb.h>
+#endif /* WIN32 */
 #if HAVE_UNISTD_H
 # include <sys/types.h>
 # include <unistd.h>
@@ -57,6 +64,19 @@ char *strchr(), *strrchr();
 #include <sasl.h>
 #include <saslutil.h>
 #include <saslplug.h>
+
+#ifdef WIN32
+/* This must be after sasl.h, saslutil.h */
+# include "saslKERBEROSV4.h"
+
+/* KClient doesn't define this */
+typedef struct krb_principal {
+    char name[ANAME_SZ];
+    char instance[INST_SZ];
+    char realm[REALM_SZ];
+} krb_principal;
+
+#endif /* WIN32 */
 
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
 
@@ -680,6 +700,9 @@ int sasl_server_plug_init(sasl_utils_t *utils, int maxversion,
 			  const sasl_server_plug_t **pluglist,
 			  int *plugcount)
 {
+#ifdef SASL_CLIENT_ONLY
+  return SASL_FAIL;
+#else /* SASL_CLIENT_ONLY */
   /* fail if we can't open the srvtab file */
   if (access(KEYFILE, R_OK)!=0)
     return SASL_FAIL;
@@ -693,6 +716,7 @@ int sasl_server_plug_init(sasl_utils_t *utils, int maxversion,
   *out_version=KERBEROS_VERSION;
 
   return SASL_OK;
+#endif /* SASL_CLIENT_ONLY */
 }
 
 /* put in sasl_wrongmech */
@@ -805,13 +829,15 @@ static int c_continue_step (void *conn_context,
     params->utils->getprop(params->utils->conn, SASL_USERNAME,
 			   (void **)&userid);
 
+#ifndef WIN32
     if (! userid) {
       krb_get_default_principal(principal.name,
 				principal.instance,
 				principal.realm);
       userid = principal.name;
     }
-      
+#endif /* WIN32 */
+
     /* must be 8 octets */
     if (serverinlen!=8)
     {

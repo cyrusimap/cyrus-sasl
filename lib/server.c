@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.6 1998/11/17 19:28:45 rob Exp $
+ * $Id: server.c,v 1.7 1998/11/20 16:22:00 ryan Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -29,14 +29,22 @@ SOFTWARE.
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
+#ifdef WIN32
+# include "winconfig.h"
+#endif /* WIN32 */
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <sys/types.h>
 #if HAVE_UNISTD_H
-# include <sys/types.h>
 # include <unistd.h>
 #endif
-#include <netdb.h>
+#ifndef WIN32
+# include <netdb.h>
+# include <sys/param.h>
+#else /* WIN32 */
+# include <winsock.h>
+#endif /* WIN32 */
 #include <sys/stat.h>
 #include <fcntl.h>
 #ifdef SASL_DB_TYPE
@@ -51,7 +59,6 @@ SOFTWARE.
 #include "sasl.h"
 #include "saslint.h"
 #include "saslutil.h"
-#include <sys/param.h>
 #if HAVE_DIRENT_H
 # include <dirent.h>
 # define NAMLEN(dirent) strlen((dirent)->d_name)

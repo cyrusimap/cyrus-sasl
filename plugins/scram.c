@@ -1,6 +1,6 @@
 /* SCRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: scram.c,v 1.3 1998/11/17 19:28:47 rob Exp $
+ * $Id: scram.c,v 1.4 1998/11/20 16:22:02 ryan Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -27,6 +27,9 @@ SOFTWARE.
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
+#ifdef WIN32
+# include "winconfig.h"
+#endif /* WIN32 */
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -54,6 +57,10 @@ char *strchr(), *strrchr();
 #include <saslplug.h>
 #include <saslutil.h>
 
+#ifdef WIN32
+/* This must be after sasl.h, saslutil.h */
+# include "saslSCRAM.h"
+#endif /* WIN32 */
 
 #define SCRAM_MD5_VERSION 2;
 

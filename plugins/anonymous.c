@@ -1,6 +1,6 @@
 /* Anonymous SASL plugin
  * Tim Martin 
- * $Id: anonymous.c,v 1.5 1998/11/17 19:28:46 rob Exp $
+ * $Id: anonymous.c,v 1.6 1998/11/20 16:22:01 ryan Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -27,6 +27,9 @@ SOFTWARE.
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
+#ifdef WIN32
+# include "winconfig.h"
+#endif /* WIN32 */
 #include <stdlib.h>
 #if HAVE_UNISTD_H
 # include <sys/types.h>
@@ -45,9 +48,15 @@ char *strchr(), *strrchr();
 #  define memmove(d, s, n) bcopy ((s), (d), (n))
 # endif
 #endif
-#include <netinet/in.h>
 #include <sasl.h>
 #include <saslplug.h>
+
+#ifdef WIN32
+/* This must be after sasl.h, saslutil.h */
+# include "saslANONYMOUS.h"
+#else /* WIN32 */
+#include <netinet/in.h>
+#endif /* WIN32 */
 
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
 

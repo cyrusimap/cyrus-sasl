@@ -30,6 +30,10 @@
 #include "config.h"
 #endif /* HAVE_CONFIG_H */
 
+#ifdef WIN32
+# include "winconfig.h"
+#endif /* WIN32 */
+
 #include <stdio.h>
 #include <sys/types.h>
 
@@ -63,7 +67,7 @@
 #endif
 
 static char rcsid[] = 
-"$Id: test-client.c,v 1.1 1998/11/19 02:00:25 ryan Exp $";
+"$Id: test-client.c,v 1.2 1998/11/20 16:22:00 ryan Exp $";
 
 /***************************************************************************
  *
@@ -71,8 +75,11 @@ static char rcsid[] =
 
 /* ----------------------------------------------------------------------- */
 
+#ifdef WIN32
+#else /* WIN32 */
 #include <netdb.h>
 #include <sys/param.h>
+#endif /* WIN32 */
 #include "sasl.h"
 #include "saslint.h"
 #include "saslutil.h"
@@ -86,8 +93,6 @@ static char rcsid[] =
 #define TEST_USERID    "anonymous"
 #define TEST_MECHANISM "ANONYMOUS"
 #define TEST_SERVICE   "rcmd"
-
-
 
 void checkerror(int result)
 {
@@ -173,7 +178,7 @@ void Usage(char *arg)
   if (arg)
     fprintf(stderr, "Unknown argument: %s\n", arg);
   fprintf(stderr, "\n");
-  fprintf(stderr, "test-client [-d] [-v] [-u user] [-m mechanism] [-s service]\n");
+  fprintf(stderr, "test-client [-d] [-v] [-u user] [-m mechanism] [-s service] [-r remotehostname]\n");
   fprintf(stderr, "\n");
   exit(-1);
 }
@@ -185,50 +190,79 @@ int main(int argc, char **argv)
   sasl_conn_t *conn;
   sasl_secret_t *secret;
   sasl_interact_t *client_interact=NULL;
-  int fd;
 
   char *serverin, *clientout;
   int serverinlen, clientoutlen;
   char *mechusing;
 
+  char hostname[MAXHOSTNAMELEN];
+
   int   Verbose   = 0;
   char *Mechanism = TEST_MECHANISM;
   char *UserID    = TEST_USERID;
   char *Service   = TEST_SERVICE;
+  char *RemoteHost = hostname;
 
-  char hostname[MAXHOSTNAMELEN];
   extern int _sasl_debug;
 
-  int c;
+  int arg;
 
-  while ((c = getopt (argc, argv, "dvu:m:s:")) != -1)
-    switch (c)
-    {
-    case 'd':
-      _sasl_debug = 1;
-      break;
-    case 'v':
-      Verbose = 1;
-      break;
-    case 'u':
-      UserID = optarg;
-      break;
-    case 's':
-      Service = optarg;
-      break;
-    case 'm':
-      Mechanism = optarg;
-      break;
-    default:
-      Usage(NULL);
+  for (arg=1; arg<argc; arg++) {
+    if (argv[arg][0] == '-') {
+      switch(argv[arg][1]) {
+      case 'd':
+        _sasl_debug = 1;
+        break;
+      case 'v':
+        Verbose = 1;
+        break;
+      case 'u':
+        UserID = argv[++arg];
+        break;  
+      case 's':
+        Service = argv[++arg];
+        break;
+      case 'm':
+        Mechanism = argv[++arg];
+        break;
+      case 'r':
+        RemoteHost = argv[++arg];
+        break;
+      default:
+        Usage(argv[arg]);
+      } 
+    } else {
+      goto EndOfDashArgs;
+    } /* End of - */
+  } /* End of loop */
+
+EndOfDashArgs:
+
+#ifdef WIN32
+  {
+    WORD wVersionRequested;
+    WSADATA wsaData;
+    int err; 
+
+    wVersionRequested = MAKEWORD( 2, 2 ); 
+
+    err = WSAStartup( wVersionRequested, &wsaData );
+    if ( err != 0 ) {
+      fprintf(stderr, "Unable to start winsock!\n");
+      exit(0);
     }
+  }
+#endif /* WIN32 */
 
   printf("Using mechanism %s\n", Mechanism);
   printf("Using userid %s\n", UserID);
   printf("Using service %s\n", Service);
 
   /* 0: Initialize */
-  gethostname(hostname, MAXHOSTNAMELEN);
+  result = gethostname(hostname, MAXHOSTNAMELEN);
+
+  printf("Local hostname: %s\n", hostname);
+  printf("Remote hostname: %s\n", RemoteHost);
 
   secret=malloc(sizeof(sasl_secret_t)+9);
   strcpy(secret->data,"password");
@@ -241,21 +275,28 @@ int main(int argc, char **argv)
   fprintf(stderr, "Ready and waiting for server mechanisms.\n");
 
   /* 2: client new connection */
-  result=sasl_client_new(Service, hostname, NULL, 0, &conn);
+  result=sasl_client_new(Service, RemoteHost, NULL, 0, &conn);
 
   /* Initialize connection properties */
   {
     sasl_security_properties_t *secprops=NULL;
     int ssf;
     struct hostent *hp;
+
     if ((hp = gethostbyname(hostname)) == NULL) {
-	perror("gethostbyname");
-	exit(1);
+      perror("gethostbyname");
+      exit(1);
     }
 
-    sasl_setprop(conn, SASL_USERNAME, UserID);
     sasl_setprop(conn, SASL_IP_LOCAL, &(hp->h_addr));
+
+    if ((hp = gethostbyname(RemoteHost)) == NULL) {
+      perror("gethostbyname (remote)");
+      exit(1);
+    }
     sasl_setprop(conn, SASL_IP_REMOTE, &(hp->h_addr));
+
+    sasl_setprop(conn, SASL_USERNAME, UserID);
 
     ssf=0;
     sasl_setprop(conn, SASL_SSF_EXTERNAL, &ssf);  

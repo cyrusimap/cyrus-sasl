@@ -1,6 +1,6 @@
 /* Plain SASL plugin
  * Tim Martin 
- * $Id: plain.c,v 1.4 1998/11/17 19:28:47 rob Exp $
+ * $Id: plain.c,v 1.5 1998/11/20 16:22:01 ryan Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -27,12 +27,17 @@ SOFTWARE.
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
+#ifdef WIN32
+# include "winconfig.h"
+#endif /* WIN32 */
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
+#ifndef SASL_CLIENT_ONLY
 #include <pwd.h>
+#endif /* SASL_CLIENT_ONLY */
 #if HAVE_UNISTD_H
 # include <sys/types.h>
 # include <unistd.h>
@@ -52,6 +57,11 @@ char *strchr(), *strrchr();
 #endif
 #include <sasl.h>
 #include <saslplug.h>
+
+#ifdef WIN32
+/* This must be after sasl.h */
+# include "saslPLAIN.h"
+#endif /* WIN32 */
 
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
 
@@ -94,6 +104,22 @@ static void mech_free(void *global_context, sasl_utils_t *utils)
 {
   utils->free(global_context);  
 }
+
+#ifdef SASL_CLIENT_ONLY
+
+static int server_continue_step (void *conn_context,
+	      sasl_server_params_t *params,
+	      const char *clientin,
+	      int clientinlen,
+	      char **serverout,
+	      int *serveroutlen,
+	      sasl_out_params_t *oparams,
+	      const char **errstr)
+{
+  return SASL_FAIL;
+}
+
+#else /* SASL_CLIENT_ONLY */
 
 /* fills in password  remember to free password and wipe it out correctly */
 static int verify_password(char *userid,
@@ -232,6 +258,8 @@ static int server_continue_step (void *conn_context,
 
   return SASL_FAIL; /* should never get here */
 }
+#endif /* SASL_CLIENT_ONLY */
+
 
 const sasl_server_plug_t plugins[] = 
 {

@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.89 2003/02/13 19:55:54 rjs3 Exp $
+ * $Id: common.c,v 1.90 2003/03/06 17:05:26 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -413,13 +413,13 @@ int _sasl_conn_init(sasl_conn_t *conn,
   RETURN(conn, SASL_OK);
 }
 
-int _sasl_common_init(void)
+int _sasl_common_init(sasl_global_callbacks_t *global_callbacks)
 {
     int result;
     
     /* Setup the global utilities */
     if(!sasl_global_utils) {
-	sasl_global_utils = _sasl_alloc_utils(NULL, NULL);
+	sasl_global_utils = _sasl_alloc_utils(NULL, global_callbacks);
 	if(sasl_global_utils == NULL) return SASL_NOMEM;
     }
 

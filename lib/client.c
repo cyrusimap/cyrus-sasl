@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.58 2003/02/13 19:55:53 rjs3 Exp $
+ * $Id: client.c,v 1.59 2003/03/06 17:05:26 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -210,7 +210,7 @@ int sasl_client_init(const sasl_callback_t *callbacks)
 
   sasl_client_add_plugin("EXTERNAL", &external_client_plug_init);
 
-  ret = _sasl_common_init();
+  ret = _sasl_common_init(&global_callbacks);
 
   if (ret == SASL_OK)
       ret = _sasl_load_plugins(ep_list,

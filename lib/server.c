@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.119 2003/02/13 19:55:54 rjs3 Exp $
+ * $Id: server.c,v 1.120 2003/03/06 17:05:27 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -585,7 +585,7 @@ int sasl_server_init(const sasl_callback_t *callbacks,
     /* we require the appname to be non-null */
     if (appname==NULL) return SASL_BADPARAM;
 
-    ret = _sasl_common_init();
+    ret = _sasl_common_init(&global_callbacks);
     if (ret != SASL_OK)
 	return ret;
  

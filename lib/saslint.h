@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.46 2003/02/13 19:55:54 rjs3 Exp $
+ * $Id: saslint.h,v 1.47 2003/03/06 17:05:27 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -358,7 +358,7 @@ _sasl_find_getpath_callback(const sasl_callback_t *callbacks);
 extern const sasl_callback_t *
 _sasl_find_verifyfile_callback(const sasl_callback_t *callbacks);
 
-extern int _sasl_common_init(void);
+extern int _sasl_common_init(sasl_global_callbacks_t *global_callbacks);
 
 extern int _sasl_conn_init(sasl_conn_t *conn,
 			   const char *service,

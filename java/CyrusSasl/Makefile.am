@@ -43,7 +43,7 @@ CLASSES = $(javasasl_JAVA:.java=.class)
 
 lib_LTLIBRARIES = libjavasasl.la
 libjavasasl_la_SOURCES = javasasl.h javasasl.c
-libjavasasl_la_LDFLAGS = -export_dynamic -lsasl2 -version-info $(javasasl_version) $(wildcard ../lib/*.lo)
+libjavasasl_la_LDFLAGS = -export_dynamic -L../../lib -lsasl2 -version-info $(javasasl_version) $(wildcard ../lib/*.lo)
 BUILT_SOURCES = javasasl.h $(CLASSES)
 
 $(srcdir)/javasasl.c: javasasl.h

@@ -1,4 +1,9 @@
+2001-07-18  Rob Siemborski <rjs3+@andrew.cmu.edu>
+
+        * Updated config.guess and config.sub
+
 2001-06-19  Rob Siemborski <rjs3+@andrew.cmu.edu>
+
 	* Forced a truncation in the anonymous plugin (RFC 2245)
 	* Clean up some memory leaks in the non-standard LOGIN mechanism.	
 	* Fixed a potential mis-cast in the CRAM-MD5 mechanism.

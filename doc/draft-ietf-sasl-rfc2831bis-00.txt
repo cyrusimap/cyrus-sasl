@@ -10,10 +10,10 @@ Intended category: Standards track                             C. Newman
                                                                 Innosoft
                                                              A. Melnikov
                                                          MessagingDirect
-                                                            October 2002
+                                                           February 2003
 
             Using Digest Authentication as a SASL Mechanism
-                    draft-melnikov-rfc2831bis-02.txt
+                   draft-ietf-sasl-rfc2831bis-00.txt
 
 Status of this Memo
 
@@ -37,7 +37,7 @@ Status of this Memo
 
 Copyright Notice
 
-   Copyright (C) The Internet Society (2002).  All Rights Reserved.
+   Copyright (C) The Internet Society (2003).  All Rights Reserved.
 
 Abstract
 
@@ -55,13 +55,13 @@ Abstract
 
 
 
-Leach & Newman             Expires: April 2003                  [Page 1]
+Leach & Newman            Expires: August 2003                  [Page 1]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
 Table of Contents
@@ -73,39 +73,39 @@ Table of Contents
     2.1 INITIAL AUTHENTICATION........................................5
      2.1.1 Step One...................................................5
      2.1.2 Step Two...................................................9
-     2.1.3 Step Three................................................16
+     2.1.3 Step Three................................................15
     2.2 SUBSEQUENT AUTHENTICATION....................................16
-     2.2.1 Step one..................................................17
-     2.2.2 Step Two..................................................17
+     2.2.1 Step one..................................................16
+     2.2.2 Step Two..................................................16
     2.3 INTEGRITY PROTECTION.........................................17
-    2.4 CONFIDENTIALITY PROTECTION...................................18
-   3 SECURITY CONSIDERATIONS.........................................20
-    3.1 AUTHENTICATION OF CLIENTS USING DIGEST AUTHENTICATION........20
-    3.2 COMPARISON OF DIGEST WITH PLAINTEXT PASSWORDS................20
-    3.3 REPLAY ATTACKS...............................................20
-    3.4 ONLINE DICTIONARY ATTACKS....................................20
-    3.5 OFFLINE DICTIONARY ATTACKS...................................21
-    3.6 MAN IN THE MIDDLE............................................21
-    3.7 CHOSEN PLAINTEXT ATTACKS.....................................21
-    3.8 SPOOFING BY COUNTERFEIT SERVERS..............................22
-    3.9 STORING PASSWORDS............................................22
-    3.10 MULTIPLE REALMS.............................................22
-    3.11 SUMMARY.....................................................23
-   4 EXAMPLE.........................................................23
-   5 REFERENCES......................................................25
-    5.1 NORMATIVE REFERENCES.........................................25
-    5.2 INFORMATIVE REFERENCES.......................................26
-   6 AUTHORS' ADDRESSES..............................................27
-   7 ABNF............................................................28
-    7.1 AUGMENTED BNF................................................28
-    7.2 BASIC RULES..................................................30
-   8 SAMPLE CODE.....................................................32
-   9 INTEROPERABILITY CONSIDERATIONS.................................33
-    9.1 Implementing DES cipher in CBC mode..........................33
-   10  ACKNOWLEDGEMENTS..............................................33
-   11 FULL COPYRIGHT STATEMENT.......................................34
-   Appendix A: Changes from 2831.....................................35
-   Appendix B: Open Issues...........................................35
+    2.4 CONFIDENTIALITY PROTECTION...................................17
+   3 SECURITY CONSIDERATIONS.........................................19
+    3.1 AUTHENTICATION OF CLIENTS USING DIGEST AUTHENTICATION........19
+    3.2 COMPARISON OF DIGEST WITH PLAINTEXT PASSWORDS................19
+    3.3 REPLAY ATTACKS...............................................19
+    3.4 ONLINE DICTIONARY ATTACKS....................................19
+    3.5 OFFLINE DICTIONARY ATTACKS...................................20
+    3.6 MAN IN THE MIDDLE............................................20
+    3.7 CHOSEN PLAINTEXT ATTACKS.....................................20
+    3.8 SPOOFING BY COUNTERFEIT SERVERS..............................21
+    3.9 STORING PASSWORDS............................................21
+    3.10 MULTIPLE REALMS.............................................21
+    3.11 SUMMARY.....................................................22
+   4 EXAMPLE.........................................................22
+   5 REFERENCES......................................................24
+    5.1 NORMATIVE REFERENCES.........................................24
+    5.2 INFORMATIVE REFERENCES.......................................25
+   6 AUTHORS' ADDRESSES..............................................26
+   7 ABNF............................................................27
+    7.1 AUGMENTED BNF................................................27
+    7.2 BASIC RULES..................................................29
+   8 SAMPLE CODE.....................................................31
+   9 INTEROPERABILITY CONSIDERATIONS.................................32
+    9.1 Implementing DES cipher in CBC mode..........................32
+   10  ACKNOWLEDGEMENTS..............................................32
+   11 FULL COPYRIGHT STATEMENT.......................................33
+   Appendix A: Changes from 2831.....................................34
+   Appendix B: Open Issues...........................................34
 
 
 
@@ -115,13 +115,13 @@ Table of Contents
 
 
 
-Leach & Newman             Expires: April 2003                  [Page 2]
+Leach & Newman            Expires: August 2003                  [Page 2]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
 1  Introduction
@@ -175,13 +175,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-Leach & Newman             Expires: April 2003                  [Page 3]
+Leach & Newman            Expires: August 2003                  [Page 3]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
    Let unq(X) be the value of the quoted-string X without the
@@ -235,13 +235,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-Leach & Newman             Expires: April 2003                  [Page 4]
+Leach & Newman            Expires: August 2003                  [Page 4]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
 2  Authentication
@@ -295,13 +295,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-Leach & Newman             Expires: April 2003                  [Page 5]
+Leach & Newman            Expires: August 2003                  [Page 5]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
    digest-challenge  =
@@ -355,13 +355,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-Leach & Newman             Expires: April 2003                  [Page 6]
+Leach & Newman            Expires: August 2003                  [Page 6]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
       security of the implementation depends on a good choice. It is
@@ -408,27 +408,31 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
    charset
       This directive, if present, specifies that the server supports
-      UTF-8 [UTF-8] encoding for the username and password. If present,
-      the username and password MUST be in Unicode Normalization Form KC
-      [UNICODE-NORMALIZATION] (without NUL character) encoded as UTF-8
-      [UTF-8].  If not present, the username and password must be
+      UTF-8 [UTF-8] encoding for the username, realm and password. If
+      present, the username, realm and password MUST be in Unicode
+      Normalization Form KC [UNICODE-NORMALIZATION] (without NUL
+      character) encoded as UTF-8 [UTF-8]. If not present, the username,
 
 
 
-Leach & Newman             Expires: April 2003                  [Page 7]
+Leach & Newman            Expires: August 2003                  [Page 7]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
-      encoded in ISO 8859-1 [ISO-8859] (of which US-ASCII [USASCII] is a
-      subset). The directive is needed for backwards compatibility with
-      HTTP Digest, which only supports ISO 8859-1. This directive may
-      appear at most once; if multiple instances are present, the client
-      should abort the authentication exchange.
+      realm and password must be encoded in ISO 8859-1 [ISO-8859] (of
+      which US-ASCII [USASCII] is a subset). The directive is needed for
+      backwards compatibility with HTTP Digest, which only supports ISO
+      8859-1. This directive may appear at most once; if multiple
+      instances are present, the client should abort the authentication
+      exchange.
+
+      Note, that this directive doesn't affect authorization id
+      ("authzid") which is always in UTF-8.
 
    algorithm
       This directive is required for backwards compatibility with HTTP
@@ -468,21 +472,21 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
    and MUST be ignored if received):
 
     opaque
+
+
+
+Leach & Newman            Expires: August 2003                  [Page 8]
+
+
+
+
+
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
+
+
     domain
 
    The size of a digest-challenge MUST be less than 2048 bytes.
-
-
-
-
-Leach & Newman             Expires: April 2003                  [Page 8]
-
-
-
-
-
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
-
 
 2.1.2  Step Two
 
@@ -529,21 +533,21 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
       value of the "charset" directive. This directive is required and
       MUST be present exactly once; otherwise, authentication fails.
 
+
+
+Leach & Newman            Expires: August 2003                  [Page 9]
+
+
+
+
+
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
+
+
    realm
-      The realm containing the user's account. This directive is
-      required if the server provided any realms in the
-
-
-
-Leach & Newman             Expires: April 2003                  [Page 9]
-
-
-
-
-
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
-
-
+      The realm containing the user's account, encoded according to the
+      value of the "charset" directive. This directive is required if
+      the server provided any realms in the
       "digest-challenge", in which case it may appear exactly once and
       its value SHOULD be one of those realms. If the directive is
       missing, "realm-value" will set to the empty string when computing
@@ -551,7 +555,7 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
    nonce
       The server-specified data string received in the preceding digest-
-      challenge. This directive is required and MUST be present exactly
+      challenge.  This directive is required and MUST be present exactly
       once; otherwise, authentication fails.
 
 
@@ -591,17 +595,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-
-
-
-
-Leach & Newman             Expires: April 2003                 [Page 10]
+Leach & Newman            Expires: August 2003                 [Page 10]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
    cnonce
@@ -635,7 +635,7 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
       that this is a single token, not a quoted list of alternatives.
 
    serv-type
-      Indicates the type of service, such as "www" for web service,
+      Indicates the type of service, such as "http" for web service,
       "ftp" for FTP service, "smtp" for mail delivery service, etc. The
       service name as defined in the SASL profile for the protocol see
       section 4 of [RFC 2222], registered in the IANA registry of
@@ -655,13 +655,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-Leach & Newman             Expires: April 2003                 [Page 11]
+Leach & Newman            Expires: August 2003                 [Page 11]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
    serv-name
@@ -686,13 +686,14 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
       For example, the FTP service on "ftp.example.com" would have a
       "digest-uri" value of "ftp/ftp.example.com"; the SMTP server from
       the example above would have a "digest-uri" value of
-      "smtp/mail3.example.com/example.com".
+      "SMTP/mail3.example.com/example.com".
 
    Servers SHOULD check that the supplied value is correct. This will
-   detect accidental connection to the incorrect server. It is also so
-   that clients will be trained to provide values that will work with
-   implementations that use a shared back-end authentication service
-   that can provide server authentication.
+   detect accidental connection to the incorrect server, as well as some
+   redirection attacks. It is also so that clients will be trained to
+   provide values that will work with implementations that use a shared
+   back-end authentication service that can provide server
+   authentication.
 
    The serv-type component should match the service being offered. The
    host component should match one of the host names of the host on
@@ -709,80 +710,24 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
    URI (usually a URL) of the resource requested -- hence the name of
    the directive.
 
+
+
+
+
+
+Leach & Newman            Expires: August 2003                 [Page 12]
+
+
+
+
+
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
+
+
    response
       A string of 32 hex digits computed as defined below, which proves
       that the user knows a password. This directive is required and
-
-
-
-Leach & Newman             Expires: April 2003                 [Page 12]
-
-
-
-
-
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
-
-
       MUST be present exactly once; otherwise, authentication fails.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Leach & Newman             Expires: April 2003                 [Page 13]
-
-
-
-
-
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
-
 
    maxbuf
       A number indicating the size of the largest buffer the client is
@@ -793,15 +738,18 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
    charset
       This directive, if present, specifies that the client has used
-      UTF-8 [UTF-8] encoding for the username and password. If present,
-      the username and password MUST be in Unicode Normalization Form KC
-      [UNICODE-NORMALIZATION] (without NUL character) encoded as UTF-8
-      [UTF-8]. If not present, the username and password must be encoded
-      in ISO 8859-1 [ISO-8859] (of which
+      UTF-8 [UTF-8] encoding for the username, realm and password. If
+      present, the username, realm and password MUST be in Unicode
+      Normalization Form KC [UNICODE-NORMALIZATION] (without NUL
+      character) encoded as UTF-8 [UTF-8]. If not present, the username
+      and password must be encoded in ISO 8859-1 [ISO-8859] (of which
       US-ASCII [USASCII] is a subset). The client should send this
       directive only if the server has indicated it supports UTF-8
       [UTF-8]. The directive is needed for backwards compatibility with
       HTTP Digest, which only supports ISO 8859-1.
+
+      Note, that this directive doesn't affect authorization id
+      ("authzid") which is always in UTF-8.
 
    LHEX
       32 hex digits, where the alphabetic characters MUST be lower case,
@@ -825,6 +773,17 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
    The size of a digest-response MUST be less than 4096 bytes.
 
+
+
+Leach & Newman            Expires: August 2003                 [Page 13]
+
+
+
+
+
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
+
+
 2.1.2.1   Response-value
 
    The definition of "response-value" above indicates the encoding for
@@ -832,18 +791,6 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
    show how the value is computed.
 
    Although qop-value and components of digest-uri-value may be
-
-
-
-Leach & Newman             Expires: April 2003                 [Page 14]
-
-
-
-
-
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
-
-
    case-insensitive, the case which the client supplies in step two is
    preserved for the purpose of computing and verifying the
    response-value.
@@ -871,18 +818,31 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
    The "username-value", "realm-value" and "passwd" are encoded
    according to the value of the "charset" directive. If "charset=UTF-8"
-   is present, and all the characters of "username-value"/"passwd" are,
-   after converting to Unicode Normalization Form KC [UNICODE-
-   NORMALIZATION], in the ISO 8859-1 character set, then it must be
-   converted to ISO 8859-1 before being hashed. This is so that
-   authentication databases that store the hashed username, realm and
-   password (which is common) can be shared compatibly with HTTP, which
-   specifies ISO 8859-1. A sample implementation of this conversion is
-   in section 8.
+   is present, and all the characters of "username-value" are, after
+   converting to Unicode Normalization Form KC [UNICODE-NORMALIZATION],
+   in the ISO 8859-1 character set, then it must be converted to ISO
+   8859-1 before being hashed. The same transformation has to be done
+   for "realm-value" and "passwd". This is so that authentication
+   databases that store the hashed username, realm and password (which
+   is common) can be shared compatibly with HTTP, which specifies ISO
+   8859-1. A sample implementation of this conversion is in section 8.
 
    If the "qop" directive's value is "auth", then A2 is:
 
       A2       = { "AUTHENTICATE:", digest-uri-value }
+
+
+
+
+
+Leach & Newman            Expires: August 2003                 [Page 14]
+
+
+
+
+
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
+
 
    If the "qop" value is "auth-int" or "auth-conf" then A2 is:
 
@@ -891,18 +851,6 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
    Note that "AUTHENTICATE:" must be in upper case, and the second
    string constant is a string with a colon followed by 32 zeros.
-
-
-
-
-Leach & Newman             Expires: April 2003                 [Page 15]
-
-
-
-
-
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
-
 
    These apparently strange values of A2 are for compatibility with
    HTTP; they were arrived at by setting "Method" to "AUTHENTICATE" and
@@ -945,6 +893,17 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
        cnonce
        nonce-count
 
+
+
+Leach & Newman            Expires: August 2003                 [Page 15]
+
+
+
+
+
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
+
+
 2.2  Subsequent Authentication
 
    If the client has previously authenticated to the server, and
@@ -952,17 +911,6 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
    and qop that it used in that authentication, and the SASL profile for
    a protocol permits an initial client response, then it MAY perform
    "subsequent authentication", as defined in this section.
-
-
-
-Leach & Newman             Expires: April 2003                 [Page 16]
-
-
-
-
-
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
-
 
 2.2.1  Step one
 
@@ -1005,25 +953,22 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
    "digest-challenge" authentication proceeds as in the case of initial
    authentication.
 
+
+
+Leach & Newman            Expires: August 2003                 [Page 16]
+
+
+
+
+
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
+
+
 2.3   Integrity Protection
 
    If the server offered "qop=auth-int" and the client responded
    "qop=auth-int", then subsequent messages, up to but not including the
    next subsequent authentication, between the client and the server
-
-
-
-
-
-Leach & Newman             Expires: April 2003                 [Page 17]
-
-
-
-
-
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
-
-
    MUST be integrity protected. Using as a base session key the value of
    H(A1) as defined above the client and server calculate a pair of
    message integrity keys as follows.
@@ -1067,22 +1012,22 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
    with a "cipher" directive, then subsequent messages between the
    client and the server MUST be confidentiality protected. Using as a
    base session key the value of H(A1) as defined above the client and
+
+
+
+Leach & Newman            Expires: August 2003                 [Page 17]
+
+
+
+
+
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
+
+
    server calculate a pair of message integrity keys as follows.
 
    The key for confidentiality protecting messages from client to server
    is:
-
-
-
-
-Leach & Newman             Expires: April 2003                 [Page 18]
-
-
-
-
-
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
-
 
    Kcc = MD5({H(A1)[0..n-1],
    "Digest H(A1) to client-to-server sealing key magic constant"})
@@ -1130,18 +1075,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
+Leach & Newman            Expires: August 2003                 [Page 18]
 
 
 
 
 
-Leach & Newman             Expires: April 2003                 [Page 19]
-
-
-
-
-
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
 3  Security Considerations
@@ -1179,30 +1119,37 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
    Replay attacks are defeated if the client or the server chooses a
    fresh nonce for each authentication, as this specification requires.
 
+   As a security precaution, the server, when verifying a response from
+   the client, must use the original server nonce ("nonce") it sent, not
+   the one returned by the client in the response, as it might have been
+   modified by an attacker.
+
+   To prevent some redirection attacks it is recommended that the server
+   verifies that the "serv-type" part of the "digest-uri" matches the
+   service name and that the hostname/IP address belongs to the server.
+
 3.4  Online dictionary attacks
 
    If the attacker can eavesdrop, then it can test any overheard
    nonce/response pairs against a (potentially very large) list of
+
+
+
+Leach & Newman            Expires: August 2003                 [Page 19]
+
+
+
+
+
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
+
+
    common words. Such a list is usually much smaller than the total
    number of possible passwords. The cost of computing the response for
    each password on the list is paid once for each challenge.
 
    The server can mitigate this attack by not allowing users to select
    passwords that are in a dictionary.
-
-
-
-
-
-
-Leach & Newman             Expires: April 2003                 [Page 20]
-
-
-
-
-
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
-
 
 3.5  Offline dictionary attacks
 
@@ -1248,20 +1195,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
+Leach & Newman            Expires: August 2003                 [Page 20]
 
 
 
 
 
-
-
-Leach & Newman             Expires: April 2003                 [Page 21]
-
-
-
-
-
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
 3.8  Spoofing by Counterfeit Servers
@@ -1315,13 +1255,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-Leach & Newman             Expires: April 2003                 [Page 22]
+Leach & Newman            Expires: August 2003                 [Page 21]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
 3.11  Summary
@@ -1375,13 +1315,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-Leach & Newman             Expires: April 2003                 [Page 23]
+Leach & Newman            Expires: August 2003                 [Page 22]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
     The password in this example was "secret".
@@ -1435,13 +1375,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-Leach & Newman             Expires: April 2003                 [Page 24]
+Leach & Newman            Expires: August 2003                 [Page 23]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
 5   References
@@ -1495,13 +1435,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-Leach & Newman             Expires: April 2003                 [Page 25]
+Leach & Newman            Expires: August 2003                 [Page 24]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
    [RFC 2119] Bradner, S., "Key words for use in RFCs to Indicate
@@ -1555,13 +1495,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-Leach & Newman             Expires: April 2003                 [Page 26]
+Leach & Newman            Expires: August 2003                 [Page 25]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
    [RFC 2616] Fielding, R., Gettys, J., Mogul, J., Frystyk, H.,
@@ -1615,13 +1555,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-Leach & Newman             Expires: April 2003                 [Page 27]
+Leach & Newman            Expires: August 2003                 [Page 26]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
 7  ABNF
@@ -1675,13 +1615,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-Leach & Newman             Expires: April 2003                 [Page 28]
+Leach & Newman            Expires: August 2003                 [Page 27]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
       <m> occurrences of element. Default values are 0 and infinity so
@@ -1735,13 +1675,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-Leach & Newman             Expires: April 2003                 [Page 29]
+Leach & Newman            Expires: August 2003                 [Page 28]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
 7.2   Basic Rules
@@ -1795,13 +1735,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-Leach & Newman             Expires: April 2003                 [Page 30]
+Leach & Newman            Expires: August 2003                 [Page 29]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
    string to be used within a parameter value.
@@ -1855,13 +1795,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-Leach & Newman             Expires: April 2003                 [Page 31]
+Leach & Newman            Expires: August 2003                 [Page 30]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
 8  Sample Code
@@ -1915,13 +1855,13 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-Leach & Newman             Expires: April 2003                 [Page 32]
+Leach & Newman            Expires: August 2003                 [Page 31]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
 9   Interoperability considerations
@@ -1975,18 +1915,18 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-Leach & Newman             Expires: April 2003                 [Page 33]
+Leach & Newman            Expires: August 2003                 [Page 32]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
 11  Full Copyright Statement
 
-   Copyright (C) The Internet Society (2002).  All Rights Reserved.
+   Copyright (C) The Internet Society (2003).  All Rights Reserved.
 
    This document and translations of it may be copied and furnished to
    others, and derivative works that comment on or otherwise explain it
@@ -2035,13 +1975,13 @@ Acknowledgement
 
 
 
-Leach & Newman             Expires: April 2003                 [Page 34]
+Leach & Newman            Expires: August 2003                 [Page 33]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
 Appendix A: Changes from 2831
@@ -2077,46 +2017,40 @@ Appendix A: Changes from 2831
 
    12). Clarified how sequence counters are modified.
 
-   13). Minor text clarifications.
+   13). Addition warnings about preventing reply/redirection attacks.
+
+   14). Specified that "charset" directive affects "realm" and doesn't
+   affect
+        "authzid".
+
+   15). Minor text clarifications.
 
 Appendix B: Open Issues
 
    1). The latest revision prohibits escaped characters in nonce/cnonce.
    Any objections?
 
-   2). Is a realm in UTF-8?
-
-   3). Normative vs. Informative references must be carefully rechecked.
-
-   4). Merge DIGEST-MD5 AES cipher with this document?
-
-   5). What to do about CBC mode attack that affects TLS document and
+   2). What to do about CBC mode attack that affects TLS document and
    DIGEST-MD5 as well?
 
 
 
-Leach & Newman             Expires: April 2003                 [Page 35]
+Leach & Newman            Expires: August 2003                 [Page 34]
 
 
 
 
 
-INTERNET DRAFT            Digest SASL Mechanism             October 2002
+INTERNET DRAFT            Digest SASL Mechanism            February 2003
 
 
-   6). Disallow special IPv4/IPv6 addresses?
+   One of the proposals is to drop DES/3DES ciphers and define a new one
+   (e.g. AES) in such a way that is not susceptible to this kind of
+   attack.
 
+   3). Merge DIGEST-MD5 AES cipher with this document?
 
-
-
-
-
-
-
-
-
-
-
+   4). Normative vs. Informative references must be carefully rechecked.
 
 
 
@@ -2155,6 +2089,12 @@ INTERNET DRAFT            Digest SASL Mechanism             October 2002
 
 
 
-Leach & Newman             Expires: April 2003                 [Page 36]
+
+
+
+
+
+
+Leach & Newman            Expires: August 2003                 [Page 35]
 
 

@@ -1,27 +1,39 @@
+2000-03-03  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/login.c: when creating context, set password to
+	NULL. (Claus Assmann <ca+sasl@sendmail.org>)
+
 2000-02-29  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
 	* plugins/cram.c (server_continue_step): be less leaky
 
-	* plugins/digestmd5.c (c_continue_step): changes to try and leak less memory
+	* plugins/digestmd5.c (c_continue_step): changes to try and leak
+	less memory
 
 	* plugins/kerberos4.c (sasl_server_plug_init): free srvtab on failure
 
-	* plugins/cram.c (server_continue_step): rework to always free memory (hopefully)
+	* plugins/cram.c (server_continue_step): rework to always free
+	memory (hopefully)
 
 	* lib/checkpw.c (sasldb_verify_password): free tmp values
 
 2000-02-28  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
-	* plugins/gssapi.c (sasl_gss_server_step): don't free memory if gss_unwrap did on failure
+	* plugins/gssapi.c (sasl_gss_server_step): don't free memory if
+	gss_unwrap did on failure
 
-	* plugins/cram.c (server_continue_step): BADPARAM negative length inputs
+	* plugins/cram.c (server_continue_step): BADPARAM negative length
+	inputs
 
-	* plugins/digestmd5.c (c_continue_step): make sure client gives us a nonce
+	* plugins/digestmd5.c (c_continue_step): make sure client gives us
+	a nonce
 
-	* plugins/cram.c (server_continue_step): alloc space for null byte in nonce
+	* plugins/cram.c (server_continue_step): alloc space for null byte
+	in nonce
 
 	* plugins/digestmd5.c (c_continue_step): memory leaks
-	(server_continue_step): fail on any input greate 2048 bytes (client is not allowed to send that big)
+	(server_continue_step): fail on any input greater 2048 bytes
+	(client is not allowed to send that big)
 
 	* plugins/kerberos4.c (integrity_decode): fail on huge requests
 
@@ -29,11 +41,13 @@
 
 	* plugins/digestmd5.c (privacy_decode): fail on huge requests
 
-	* utils/Makefile.am (testsuite_LDADD): needs socket libraries on solaris
+	* utils/Makefile.am (testsuite_LDADD): needs socket libraries on
+	solaris
 
 2000-02-27  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
-	* plugins/kerberos4.c (server_continue_step): step 2: deal with large inputs
+	* plugins/kerberos4.c (server_continue_step): step 2: deal with
+	large inputs
 	(server_continue_step): step 1: deal with large inputs
 
 	* utils/testsuite.c: added tests of sasl_checkpass

@@ -221,7 +221,9 @@ struct iovec {
 #endif
 
 /* Make Linux happy... */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #ifndef HAVE___ATTRIBUTE__
 /* Can't use attributes... */

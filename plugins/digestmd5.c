@@ -36,16 +36,18 @@ SOFTWARE.
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#ifdef WIN32
+# include <winsock.h>
+#else /* Unix */
+# include <netinet/in.h>
+#endif /* WIN32 */
+
 #ifdef WITH_RC4
 #include <rc4.h>
 #endif /* WITH_RC4 */
 
-#ifdef WIN32
-# include <winsock.h>
 #include <des.h>
-#else /* Unix */
-# include <netinet/in.h>
-#endif /* WIN32 */
 
 #include <sasl.h>
 #include <saslplug.h>

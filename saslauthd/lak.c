@@ -675,6 +675,9 @@ static int lak_bind(LAK *lak, char flag, const char *bind_dn, const char *passwo
 		}
 	} else {
 		if (lak->conf->version == LDAP_VERSION2) {
+
+			lak->bind_status = LAK_NOT_BOUND;
+
 			if (lak->ld != NULL) {
 				if (lak->conf->cache_ttl)
 					ldap_destroy_cache(lak->ld);
@@ -693,6 +696,7 @@ static int lak_bind(LAK *lak, char flag, const char *bind_dn, const char *passwo
 	if (rc != LDAP_SUCCESS) {
 		if (flag == LAK_BIND_ANONYMOUS) {
 			syslog(LOG_WARNING|LOG_AUTH, "ldap_simple_bind(as %s) failed (%s)", bind_dn, ldap_err2string(rc));
+			lak->bind_status = LAK_NOT_BOUND;
 		}
 		return LAK_FAIL;
 	}

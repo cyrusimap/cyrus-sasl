@@ -11,8 +11,8 @@ INCLUDES	= -I$(top_srcdir)/include
 dist-hook: saslauthd.8
 
 saslauthd.8: saslauthd.mdoc
-	nroff -mdoc saslauthd.mdoc > saslauthd.8
+	nroff -mdoc $(srcdir)/saslauthd.mdoc > saslauthd.8
 
 install-data-local: saslauthd.8
 	$(mkinstalldirs) $(DESTDIR)$(mandir)/cat8
-	$(INSTALL_DATA) $(srcdir)/saslauthd.8 $(DESTDIR)$(mandir)/cat8/saslauthd.8
+	$(INSTALL_DATA) saslauthd.8 $(DESTDIR)$(mandir)/cat8/saslauthd.8

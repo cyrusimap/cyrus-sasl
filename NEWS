@@ -1,3 +1,12 @@
+New in 2.1.1
+------------
+* Many minor bugfixes throughout.
+* Improvements to OTP and SRP mechanisms (now compliant with
+  draft-burdis-cat-srp-sasl-06.txt)
+* API additions including sasl_global_listmech, and a cleaner handling of
+  client-first and server-last semantics (no application level changes)
+* Minor documentation improvements
+
 New in 2.1.0
 ------------
 * The Cyrus SASL library is now considered stable.  It is still not backwards

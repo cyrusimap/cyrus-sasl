@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: external.c,v 1.15 2002/09/19 16:28:51 ken3 Exp $
+ * $Id: external.c,v 1.16 2002/10/23 17:47:09 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -57,7 +57,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: external.c,v 1.15 2002/09/19 16:28:51 ken3 Exp $";
+static const char plugin_id[] = "$Id: external.c,v 1.16 2002/10/23 17:47:09 ken3 Exp $";
 
 /*****************************  Server Section  *****************************/
 
@@ -355,6 +355,7 @@ static sasl_client_plug_t external_client_plugins[] =
 	"EXTERNAL",			/* mech_name */
 	0,				/* max_ssf */
 	SASL_SEC_NOPLAINTEXT
+	| SASL_SEC_NOANONYMOUS
 	| SASL_SEC_NODICTIONARY,	/* security_flags */
 	SASL_FEAT_WANT_CLIENT_FIRST
 	| SASL_FEAT_ALLOWS_PROXY,	/* features */

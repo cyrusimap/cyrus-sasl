@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.9 2003/08/26 18:14:50 ken3 Exp $
+ * $Id: ntlm.c,v 1.10 2003/08/26 20:51:55 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -68,7 +68,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.9 2003/08/26 18:14:50 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.10 2003/08/26 20:51:55 ken3 Exp $";
 
 #define NTLM_SIGNATURE		"NTLMSSP"
 
@@ -1178,11 +1178,9 @@ static int ntlm_server_mech_step1(server_context_t *text,
     /* if client can do Unicode, turn off ASCII */
     if (text->flags & NTLM_USE_UNICODE) text->flags &= ~NTLM_USE_ASCII;
 
-    if (text->sock != -1) {
-	result = smb_negotiate_protocol(sparams->utils, text, &domain);
-	if (result != SASL_OK) goto cleanup;
-    }
-    else {
+    if (text->sock == -1) {
+	/* generate challenge interally */
+
 	/* if client asked for target, use FQDN as server target */
 	if (text->flags & NTLM_ASK_TARGET) {
 	    result = _plug_strdup(sparams->utils, sparams->serverFQDN,
@@ -1195,6 +1193,11 @@ static int ntlm_server_mech_step1(server_context_t *text,
 	/* generate a nonce */
 	sparams->utils->rand(sparams->utils->rpool,
 			     (char *) text->nonce, NTLM_NONCE_LENGTH);
+    }
+    else {
+	/* proxy the response/challenge */
+	result = smb_negotiate_protocol(sparams->utils, text, &domain);
+	if (result != SASL_OK) goto cleanup;
     }
 
     result = create_challenge(sparams->utils, text, domain, text->flags,
@@ -1264,16 +1267,9 @@ static int ntlm_server_mech_step2(server_context_t *text,
 	goto cleanup;
     }
 
-    if (text->sock != -1) {
-	result = sparams->canon_user(sparams->utils->conn, authid, authid_len,
-				     SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
-	if (result != SASL_OK) goto cleanup;
+    if (text->sock == -1) {
+	/* verify the response internally */
 
-	result = smb_session_setup(sparams->utils, text, oparams->authid,
-				   domain, lm_resp_c, nt_resp_c);
-	if (result != SASL_OK) goto cleanup;
-    }
-    else {
 	sasl_secret_t *password = NULL;
 	unsigned pass_len;
 	const char *password_request[] = { SASL_AUX_PASSWORD,
@@ -1331,6 +1327,16 @@ static int ntlm_server_mech_step2(server_context_t *text,
 	    result = SASL_BADAUTH;
 	    goto cleanup;
 	}
+    }
+    else {
+	/* proxy the response */
+	result = smb_session_setup(sparams->utils, text, authid,
+				   domain, lm_resp_c, nt_resp_c);
+	if (result != SASL_OK) goto cleanup;
+
+	result = sparams->canon_user(sparams->utils->conn, authid, authid_len,
+				     SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
+	if (result != SASL_OK) goto cleanup;
     }
 
     /* set oparams */

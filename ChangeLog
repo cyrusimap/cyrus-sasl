@@ -1,5 +1,6 @@
 2003-08-26  Ken Murchison <ken@oceana.com>
-	* plugins/ntlm.c: only send one NT/LM response to server (NT preferred)
+	* plugins/ntlm.c: only send one NT/LM response to server
+	  (NT preferred); don't use canonified authid when proxying
 
 2003-08-24  Ken Murchison <ken@oceana.com>
 	* plugins/ntlm.c, doc/options.html: allow NTLM authentication to

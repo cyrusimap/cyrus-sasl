@@ -102,8 +102,7 @@ int dbm_convert(char *dbfilename, char *user_domain)
   dkey=gdbm_firstkey(db);
 #endif
 
-  for (dkey = dbm_firstkey(db); dkey.dptr;
-       dkey = dbm_nextkey(db))
+  while (dkey.dptr!=NULL)
   {
     char *userid;
     char *mech;
@@ -116,36 +115,48 @@ int dbm_convert(char *dbfilename, char *user_domain)
 
     memcpy(mech, dkey.dptr+strlen(dkey.dptr)+1, 
 	   dkey.dsize-strlen(dkey.dptr)-1);
-    
-    if (strcmp(mech,"CRAM-MD5")!=0)
-	continue;
+
+    if (strcmp(mech,"CRAM-MD5")==0)
+    {
+      /* only gets here if it is the cram passwd */
 
 
-    /* only gets here if it is the cram passwd */
-
-
-    userid=dkey.dptr;
-    printf("Found %s\n",userid);
-    
-    /* grab the password (which is plaintext ) */
+      userid=dkey.dptr;
+      printf("Found %s\n",userid);
+      
+      /* grab the password (which is plaintext ) */
 #ifdef NDBM
-    dvalue = dbm_fetch(db, dkey);
+      dvalue = dbm_fetch(db, dkey);
 #else
-    dvalue = gdbm_fetch(db, dkey);
+      dvalue = gdbm_fetch(db, dkey);
 #endif
     
-    result = sasl_setpass(conn,
-			  userid,
-			  dvalue.dptr,
-			  dvalue.dsize,
-			  SASL_SET_CREATE,
-			  &errstr);
+      result = sasl_setpass(conn,
+			    userid,
+			    dvalue.dptr,
+			    dvalue.dsize,
+			    SASL_SET_CREATE,
+			    &errstr);
 
-    if (result != SASL_OK)
-      exit_sasl(result, errstr);    
+      if (result != SASL_OK)
+	exit_sasl(result, errstr);
+    }
+
+#ifdef NDBM
+    nextkey=dbm_nextkey(db);
+#else
+    nextkey=gdbm_nextkey(db, dkey);
+#endif    
+    
+    dkey=nextkey;
+      
   }
 
+#ifdef NDBM
   dbm_close(db);
+#else
+  gdbm_close(db);
+#endif
 
   printf("Closed Db file. Suceeded!\n");
 

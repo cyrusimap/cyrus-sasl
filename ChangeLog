@@ -1,3 +1,7 @@
+2002-05-13  Ken Murchison <ken@oceana.com>
+	* plugins/plugin_common.c: NULL the results of the _plug_get_*()
+	  functions before we get started
+
 2002-05-09  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/configure.in: --with-ldap now takes a path
 

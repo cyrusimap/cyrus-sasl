@@ -1,3 +1,8 @@
+1999-03-04  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* plugins/kerberos4.c (client_continue_step): fixed to deal nicely 
+	with NULL userid and authid
+
 1999-03-01  Rob Earhart  <rob+@andrew.cmu.edu>
 
 	* plugins/kerberos4.c: interaction and callback fixes.  This'll

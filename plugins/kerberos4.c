@@ -858,6 +858,8 @@ static int client_continue_step (void *conn_context,
     sasl_getsimple_t *getuser_cb;
     void *getuser_context;
     sasl_interact_t *prompt;
+    int prompt_for_userid = 0,
+      prompt_for_authid = 0;
 
     if (prompt_need && *prompt_need) {
       /* If we requested prompts, make sure they're
@@ -910,6 +912,7 @@ static int client_continue_step (void *conn_context,
       switch (result) {
       case SASL_INTERACT:
 	/* We'll set up an interaction later. */
+	prompt_for_userid = 1;
 	return SASL_INTERACT;
       case SASL_OK:
 	if (! getuser_cb)
@@ -920,12 +923,12 @@ static int client_continue_step (void *conn_context,
 			    NULL);
 	if (result != SASL_OK)
 	  return result;
-	if (! userid)
-	  return SASL_BADPARAM;
-	oparams->user = params->utils->malloc(strlen(userid) + 1);
-	if (! oparams->user)
-	  return SASL_NOMEM;
-	strcpy(oparams->user, userid);
+	if (userid) {
+	  oparams->user = params->utils->malloc(strlen(userid) + 1);
+	  if (! oparams->user)
+	    return SASL_NOMEM;
+	  strcpy(oparams->user, userid);
+	}
 	break;
       default:
 	return result;
@@ -942,6 +945,7 @@ static int client_continue_step (void *conn_context,
       switch (result) {
       case SASL_INTERACT:
 	/* We'll set up an interaction later. */
+	prompt_for_authid = 1;
 	return SASL_INTERACT;
       case SASL_OK:
 	if (! getuser_cb)
@@ -952,12 +956,12 @@ static int client_continue_step (void *conn_context,
 			    NULL);
 	if (result != SASL_OK)
 	  return result;
-	if (! authid)
-	  return SASL_BADPARAM;
-	oparams->authid = params->utils->malloc(strlen(authid) + 1);
-	if (! oparams->authid)
-	  return SASL_NOMEM;
-	strcpy(oparams->authid, authid);
+	if (authid) {
+	  oparams->authid = params->utils->malloc(strlen(authid) + 1);
+	  if (! oparams->authid)
+	    return SASL_NOMEM;
+	  strcpy(oparams->authid, authid);
+	}
 	break;
       default:
 	return result;
@@ -965,24 +969,27 @@ static int client_continue_step (void *conn_context,
     }
 
     /* And now, if we *still* don't have either of them,
-     * we need to set up a prompt. */
-    if (! oparams->authid || ! oparams->user) {
+     * but we think we can prompt, we need to set up a prompt. */
+    if ((! oparams->authid && prompt_for_authid)
+	|| (! oparams->user && prompt_for_userid)) {
       if (! prompt_need)
 	return SASL_INTERACT;
       *prompt_need = params->utils->malloc(sizeof(sasl_interact_t) *
 					   ((! oparams->authid
-					     && ! oparams->user)
+					     && prompt_for_authid
+					     && ! oparams->user
+					     && prompt_for_userid)
 					    ? 3 : 2));
       if (! *prompt_need)
 	return SASL_NOMEM;
       prompt = *prompt_need;
-      if (! oparams->user) {
+      if (! oparams->user && prompt_for_userid) {
 	prompt->id = SASL_CB_USER;
 	prompt->prompt = "Remote Userid";
 	prompt->defresult = NULL;
 	prompt++;
       }
-      if (! oparams->authid) {
+      if (! oparams->authid && prompt_for_authid) {
 	prompt->id = SASL_CB_AUTHNAME;
 	prompt->prompt = "Kerberos Identifier";
 	prompt->defresult = NULL;
@@ -993,11 +1000,20 @@ static int client_continue_step (void *conn_context,
     }
       
 #ifndef WIN32
-    if (! userid) {
+    if (! oparams->authid) {
       krb_get_default_principal(principal.name,
 				principal.instance,
 				principal.realm);
-      userid = principal.name;
+      oparams->authid = params->utils->malloc(strlen(principal.name)
+					      + strlen(principal.instance)
+					      + 2);
+      if (! oparams->authid)
+	return SASL_NOMEM;
+      strcpy(oparams->authid, principal.name);
+      if (principal.instance[0]) {
+	strcat(oparams->authid, ".");
+	strcat(oparams->authid, principal.instance);
+      }
     }
 #endif /* WIN32 */
 
@@ -1105,11 +1121,14 @@ static int client_continue_step (void *conn_context,
     sout[5]=0x0F;  /* max ciphertext buffer size */
     sout[6]=0xFF;
     sout[7]=0xFF;
-
+    sout[8]=0x00;
 
     /* append userid */
-    strcpy(sout + 8, oparams->user);
-    len=9+strlen(oparams->user);
+    len = 9;			/* 8 + trailing NULL */
+    if (oparams->user) {
+      strcpy(sout + 8, oparams->user);
+      len += strlen(oparams->user);
+    }
 
     /* append 0 based octets so is multiple of 8 */
     while(len%8)

@@ -1073,8 +1073,10 @@ static int server_continue_step (void *conn_context,
 	if (strcmp(qop,"auth-conf")==0)
 	{
 	  VL (("Client requested privacy layer\n"));
+#if 0
 	  oparams->encode=&privacy_encode;
 	  oparams->decode=&privacy_decode;
+#endif
 	} else if (strcmp(qop,"auth-int")==0) {
 	  VL (("Client requested integrity layer\n"));
 	  oparams->encode=&integrity_encode;
@@ -1739,9 +1741,11 @@ static int c_continue_step (void *conn_context,
     if (secprops.max_ssf>1000) /* xxx */
     {
       /* xxx encryption */
+#if 0
       oparams->encode=&privacy_encode;
       oparams->decode=&privacy_decode;
       oparams->mech_ssf=56;
+#endif
       qop="auth-priv";
       VL (("Using encryption layer\n"));
     } else if ((secprops.min_ssf<=1) && (secprops.max_ssf>=1)) {

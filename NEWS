@@ -1,3 +1,8 @@
+New in 1.5.24
+-------------
+* be a little paranoid about what we give PAM
+* small bugfixes
+
 New in 1.5.22
 -------------
 * fixed some DIGEST-MD5 buglets

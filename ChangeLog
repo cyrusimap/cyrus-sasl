@@ -1,5 +1,7 @@
 2000-07-20  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
+	* version 1.5.24 ready for release
+
 	* plugins/gssapi.c: remove some dead code
 
 	* lib/checkpw.c: ensure that PAM only sees non-empty usernames and

@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.53 2000/03/12 02:20:00 leg Exp $
+ * $Id: cram.c,v 1.54 2000/07/22 03:58:39 leg Exp $
  */
 
 /* 
@@ -1021,8 +1021,8 @@ static int make_prompts(sasl_client_params_t *params,
   {
     /* We weren't able to get the callback; let's try a SASL_INTERACT */
     (prompts)->id=SASL_CB_AUTHNAME;
-    (prompts)->challenge="Authorization Name";
-    (prompts)->prompt="Please enter your authorization name";
+    (prompts)->challenge="Authentication Name";
+    (prompts)->prompt="Please enter your authentication name";
     (prompts)->defresult=NULL;
 
     VL(("authid callback added\n"));

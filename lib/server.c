@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.91 2001/12/06 22:27:27 rjs3 Exp $
+ * $Id: server.c,v 1.92 2001/12/13 17:07:57 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -501,7 +501,6 @@ struct secflag_map_s secflag_map[] = {
     { NULL, 0x0 }
 };
 
-
 static int parse_mechlist_file(const char *mechlistfile)
 {
     FILE *f;
@@ -555,7 +554,6 @@ static int parse_mechlist_file(const char *mechlistfile)
 		_sasl_log(NULL, SASL_LOG_ERR,
 			  "%s: couldn't identify flag '%s'",
 			  nplug->mech_name, t);
-
 	    }
 	    free(t);
 	}
@@ -639,13 +637,15 @@ int sasl_server_init(const sasl_callback_t *callbacks,
     if (!_is_sasl_server_static &&
 	_sasl_getcallback(NULL, SASL_CB_GETOPT, &getopt, &context) 
 	   == SASL_OK) {
-	getopt(context, NULL, "plugin_list", &pluginfile, NULL);
+	/* No sasl_conn_t was given to getcallback, so we provide the
+	 * global callbacks structure */
+	ret = getopt(&global_callbacks, NULL, "plugin_list", &pluginfile, NULL);
     }
     
     if (pluginfile != NULL) {
 	/* this file should contain a list of plugins available.
 	   we'll load on demand. */
-	
+
 	/* Ask the application if it's safe to use this file */
 	ret = ((sasl_verifyfile_t *)(vf->proc))(vf->context,
 						pluginfile,

@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.67 2001/12/04 02:05:25 rjs3 Exp $
+ * $Id: common.c,v 1.68 2001/12/13 17:07:57 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -768,6 +768,9 @@ const char *sasl_errdetail(sasl_conn_t *conn)
 }
 
 
+/* Note that this needs the global callbacks, so if you don't give getcallbacks
+ * a sasl_conn_t, you're going to need to pass it yourself (or else we couldn't
+ * have client and server at the same time */
 static int
 _sasl_global_getopt(void *context,
 		    const char *plugin_name,

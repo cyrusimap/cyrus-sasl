@@ -608,10 +608,10 @@ static int get_authid(sasl_client_params_t *params,
   int result;
   sasl_getsimple_t *getauth_cb;
   void *getauth_context;
-  sasl_interact_t *prompt;
+  sasl_interact_t *prompt = NULL;
 
   /* see if we were given the authname in the prompt */
-  prompt=find_prompt(*prompt_need,SASL_CB_AUTHNAME);
+  if (prompt_need) prompt = find_prompt(*prompt_need,SASL_CB_AUTHNAME);
   if (prompt!=NULL)
   {
     /* copy it */

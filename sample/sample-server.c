@@ -38,6 +38,10 @@ __declspec(dllimport) int getsubopt(char **optionp, char * const *tokens, char *
 #include <sasl.h>
 #include <saslutil.h>
 
+#ifndef HAVE_GETSUBOPT
+int getsubopt(char **optionp, char * const *tokens, char **valuep);
+#endif
+
 static const char
 build_ident[] = "$Build: sample-server " PACKAGE "-" VERSION " $";
 

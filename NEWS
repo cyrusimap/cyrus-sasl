@@ -1,3 +1,21 @@
+New in 2.1.3
+------------
+* Significant amount of plugin cleanup / standardization.  A good deal of code
+  is now shared between them. (mostly due to Ken Murchison <ken@oceana.com>)
+* DIGEST-MD5 now supports reauthentication.  Also has a fix for DES
+  interoperability.
+* saslauthd now supports the Solaris "doors" IPC method
+  (--with-ipctype=doors)
+* Significant GSSAPI fixes (mostly due to Howard Chu <hyc@highlandsun.com>)
+* Auxprop interface now correctly deals with the * prefix indicating 
+  authid vs. authzid.  (May break some incompatible auxprop plugins).
+* We now allow multiple pwcheck_method(s).  Also you can restrict auxprop
+  plugins to the use of a single plugin.
+* Added an experimental saslauthd LDAP module (Igor Brezac <igor@ipass.net>)
+* Removed check for db3/db.h
+* Misc. documentation updates.  (Marshall Rose, and others)
+* Other misc. bugfixes.
+
 New in 2.1.2
 ------------
 * Mostly a minor-bugfix release

@@ -1,3 +1,6 @@
+2002-05-07  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* Ready for 2.1.3
+
 2002-05-06  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* include/saslplug.h: add name member for canon_user plugins
 	* lib/canonusr.c: use name member

@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: client.c,v 1.2 1998/11/17 00:50:22 rob Exp $
+ * $Id: client.c,v 1.3 1998/11/17 02:10:47 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -279,6 +279,8 @@ int sasl_client_start(sasl_conn_t *conn,
   if (name==NULL)
     return SASL_NOMEM;
 
+  VL(("in sasl_client_start\n"));
+
   /* if prompt_need != NULL we've already been here
      and just need to do the continue step again */
    /* do a step */
@@ -320,6 +322,8 @@ int sasl_client_start(sasl_conn_t *conn,
     }
     pos++;
     name[place]=0;
+
+    VL(("mech - %s\n",name));
 
     if (! place) continue;
 

@@ -1,6 +1,6 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Earhart
- * $Id: dlopen.c,v 1.2 1998/11/17 00:50:23 rob Exp $
+ * $Id: dlopen.c,v 1.3 1998/11/17 02:10:50 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -105,6 +105,8 @@ int _sasl_get_mech_list(const char *entryname,
 	void *library;
 	void *entry_point;
 
+
+
 	length = NAMLEN(dir);
 	if (length < 4) continue;
 	if (strcmp(dir->d_name + (length - 3), ".so")) continue;
@@ -116,9 +118,12 @@ int _sasl_get_mech_list(const char *entryname,
 	  strcpy(tmp,prefix);
 	  strcat(tmp,name);
 
+	  VL(("entry is = [%s]\n",dir->d_name));
+
 	  library=NULL;
 	  if (!(library=dlopen(tmp,RTLD_LAZY)))
 	    {
+	      VL(("can't dlopen!\n"));
 	      continue;
 	    }
 	}
@@ -127,14 +132,17 @@ int _sasl_get_mech_list(const char *entryname,
 
 
 	if (entry_point == NULL) {
+	  VL(("can't get an entry point\n"));
 	  dlclose(library);
 	  continue;
 	}
 
 	if ((*add_plugin)(entry_point, library) != SASL_OK) {
+	  VL(("add_plugin to list failed\n"));
 	  dlclose(library);
 	  continue;
-	}	
+	}
+	VL(("added [%s] sucessfully\n",dir->d_name));
       }
 
      closedir(dp);

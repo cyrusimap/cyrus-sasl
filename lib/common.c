@@ -1,6 +1,6 @@
 /* common.c - Functions that are common to server and clinet
  * Tim Martin
- * $Id: common.c,v 1.4 1998/11/17 01:38:53 rob Exp $
+ * $Id: common.c,v 1.5 1998/11/17 02:10:48 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -313,26 +313,18 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
 {
   int result;
 
-  printf("1 1\n");
-
   /* make sure the sasl context is valid */
   if (!conn)
     return SASL_BADPARAM;
-
-  printf("2 2\n");
 
   /* grab mutex so can only one thread can modify a property at a time */
   result = sasl_MUTEX_LOCK(conn->mutex);
   if (result != SASL_OK) return result;
 
-  printf("3 3\n");
-
   switch(propnum)
   {
     case SASL_USERNAME:
-  printf("1 4\n");
       _sasl_strdup(value, &conn->username, NULL);
-  printf("1 5\n");
       break;
     case SASL_SSF:
       conn->oparams->mech_ssf=* (sasl_ssf_t *) value;
@@ -364,7 +356,6 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
     default:
       result = SASL_BADPARAM;
   }
-  printf("1 6\n");
   sasl_MUTEX_UNLOCK(conn->mutex);
   return result;
 }

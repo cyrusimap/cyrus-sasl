@@ -1295,6 +1295,8 @@ privacy_encode(void *context,
   unsigned char   digest[16];
   char *param2;
 
+  assert(text->maxbuf > 0);
+
   *output = (char *) text->malloc(4+ /* for length */
 				  inputlen+ /* for encrypted text */
 				  10+ /* for MAC */
@@ -1534,7 +1536,7 @@ integrity_encode(void *context,
   context_t      *text = (context_t *) context;
 
   assert(inputlen > 0);
-
+  assert(text->maxbuf > 0);
 
   param2 = (unsigned char *) text->malloc(inputlen + 4);
   if (param2 == NULL)

@@ -40,7 +40,7 @@ extern int _sasl_get_mech_list(const char *entryname,
 			       int (*add_plugin)(void *,void *));
 
 extern const sasl_callback_t *
-_sasl_find_getpath_callback(const sasl_callback_t *callbacks);
+_sasl_find_getpath_callback(const sasl_callback_t *callbacks)
 
 extern int _sasl_done_with_plugin(void *plugin);
 

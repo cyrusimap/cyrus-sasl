@@ -73,7 +73,7 @@ char *strchr(), *strrchr();
 
 /* gets the list of mechanisms */
 int _sasl_get_mech_list(const char *entryname,
-			const sasl_callback_t *getpath_cb,
+			const sasl_callback_t *getpath_cb;
 			int (*add_plugin)(void *,void *))
 {
   /* XXX These fixed-length buffers could be a problem;
@@ -86,11 +86,12 @@ int _sasl_get_mech_list(const char *entryname,
   int position;
   DIR *dp;
   struct dirent *dir;
+  const sasl_callback_t *callback;
 
-  if (! entryname
-      || ! getpath_cb
-      || getpath_cb->id != SASL_CB_GETPATH
-      || ! getpath_cb->proc
+  if (! entry_name
+      || ! getpath_callback
+      || getpath_callback->id != SASL_CB_GETPATH
+      || ! getpath_callback->proc
       || ! add_plugin)
     return SASL_BADPARAM;
 

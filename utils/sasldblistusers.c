@@ -261,10 +261,10 @@ int listusers(const char *path, listcb_t *cb)
 	    if (((char *)key.data)[lup]=='\0')
 		numnulls++;
 
-	if (numnulls!=3)
-	{
-	    fprintf(stderr,"Warning: Possibly database corruption\n");
-	    break;
+	if (numnulls != 2) {
+	    fprintf(stderr,"warning: probable database corruption\n");
+	    result = cursor->c_get(cursor, &key, &data, DB_NEXT);
+	    continue;
 	}
 
 	authid = key.data;
@@ -273,8 +273,11 @@ int listusers(const char *path, listcb_t *cb)
 	len = key.size - (tmp - authid);
 
 	/* make sure we have enough space of mech */
-	if (len >=sizeof(mech))
-	    break;
+	if (len >=sizeof(mech)) {
+	    fprintf(stderr,"warning: absurdly long mech name\n");
+	    result = cursor->c_get(cursor, &key, &data, DB_NEXT);
+	    continue;
+	}
 
 	memcpy(mech, tmp, key.size - (tmp - ((char *)key.data)));
 	mech[key.size - (tmp - ((char *)key.data))] = '\0';

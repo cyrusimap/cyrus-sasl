@@ -7,35 +7,33 @@ ANONYMOUS
 CRAM-MD5
 KERBEROS_V4
 PLAIN
-SCRAM-MD5
+SCRAM-MD5 (deprecated)
 GSSAPI (MIT Kerberos 5 or Heimdal Kerberos 5)
+DIGEST-MD5 (beta)
 
 The library uses the enviornment variable SASL_PATH to locate the
 directory where the mechanisms are; this should be a colon-seperated
 list of directories containing plugins.
 
-The library uses a gdbm or ndbm file on the server side to check the
-passwords. The utility makedbm.c has been included for creating a gdbm
-file.
+The library uses a gdbm or ndbm file on the server side to store
+per-user authentication secrets (except for the PLAIN mechanism, which
+tries to use crypt with /etc/passwd and /etc/shadow, if
+available).  The utility saslpassed has been included for adding
+authentication secrets to the file.
 
-The test.c program tests a mechanism given on the command line. It
-does a server client authentication interaction with that mechanism
-and attempts to send some data from the client to server and server to
-client.
+The sample directory contains two programs which provide a reference
+for using the library, as well as making it easy to test a mechanism
+on the command line.
 
+We use a slightly unusual version of libtool--this one (libtool-1.2f)
+includes inter-library dependancies when linking dynamic libraries.
+Hopefully, this will be released to the rest of the world sometime
+soon; as is, it works for us...
 
-We use a slightly hacked version of libtool--ours includes
-inter-library dependancies when linking dynamic libraries.  We
-understand why this isn't done as part of the standard libtool
-distribution--it's not portable; there are some operating systems
-which can't deal with dependancies between dynamic libraries--but all
-the operating systems we care about deal with this Just Fine.  A
-future project might involve opening the *.la files, looking for the
-dependancy_libs information, parsing out the -L switches and resolving
-each library in turn, but frankly, that'd be a real pain in the neck,
-and we have better things to do for now.
-
-Known Bugs: None
+Known Bugs: SCRAM-MD5 is no longer being maintained, and probably
+needs some work in order to be useable.  DIGEST-MD5 is still unstable.
+The interfaces for setting local and remote IP addresses will likely
+change at some point in the future.
 
 Comments/Suggestions:
 

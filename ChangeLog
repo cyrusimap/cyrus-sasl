@@ -1,5 +1,7 @@
 1999-03-29  Rob Earhart  <rob+@andrew.cmu.edu>
 
+	* README: updated
+
 	* plugins/cram.c (setpass): aligned buffer
 
 	* plugins/digestmd5.c: no longer requiring errstr to be passed in

@@ -107,37 +107,37 @@ extern int _sasl_debug;
  *************/
 
 /* SASL result codes: */
-#define SASL_CONTINUE    1   /* another step is needed in authentication */
-#define SASL_OK          0   /* successful result */
-#define SASL_FAIL       -1   /* generic failure */
-#define SASL_NOMEM      -2   /* memory shortage failure */
-#define SASL_BUFOVER    -3   /* overflowed buffer */
-#define SASL_NOMECH     -4   /* mechanism not supported */
-#define SASL_BADPROT    -5   /* bad protocol / cancel */
-#define SASL_NOTDONE    -6   /* can't request info until later in exchange */
-#define SASL_BADPARAM   -7   /* invalid parameter supplied */
-#define SASL_TRYAGAIN   -8   /* transient failure (e.g., weak key) */
-#define SASL_BADMAC	-9   /* integrity check failed */
+#define SASL_CONTINUE   (1)  /* another step is needed in authentication */
+#define SASL_OK         (0)  /* successful result */
+#define SASL_FAIL      (-1)  /* generic failure */
+#define SASL_NOMEM     (-2)  /* memory shortage failure */
+#define SASL_BUFOVER   (-3)  /* overflowed buffer */
+#define SASL_NOMECH    (-4)  /* mechanism not supported */
+#define SASL_BADPROT   (-5)  /* bad protocol / cancel */
+#define SASL_NOTDONE   (-6)  /* can't request info until later in exchange */
+#define SASL_BADPARAM  (-7)  /* invalid parameter supplied */
+#define SASL_TRYAGAIN  (-8)  /* transient failure (e.g., weak key) */
+#define SASL_BADMAC    (-9)  /* integrity check failed */
                              /* -- client only codes -- */
-#define SASL_INTERACT    2   /* needs user interaction */
-#define SASL_BADSERV    -10  /* server failed mutual authentication step */
-#define SASL_WRONGMECH  -11  /* mechanism doesn't support requested feature */
-#define SASL_NEWSECRET  -12  /* new secret needed */
+#define SASL_INTERACT   (2)  /* needs user interaction */
+#define SASL_BADSERV   (-10) /* server failed mutual authentication step */
+#define SASL_WRONGMECH (-11) /* mechanism doesn't support requested feature */
+#define SASL_NEWSECRET (-12) /* new secret needed */
                              /* -- server only codes -- */
-#define SASL_BADAUTH    -13  /* authentication failure */
-#define SASL_NOAUTHZ    -14  /* authorization failure */
-#define SASL_TOOWEAK    -15  /* mechanism too weak for this user */
-#define SASL_ENCRYPT    -16  /* encryption needed to use mechanism */
-#define SASL_TRANS      -17  /* One time use of a plaintext password will
+#define SASL_BADAUTH   (-13) /* authentication failure */
+#define SASL_NOAUTHZ   (-14) /* authorization failure */
+#define SASL_TOOWEAK   (-15) /* mechanism too weak for this user */
+#define SASL_ENCRYPT   (-16) /* encryption needed to use mechanism */
+#define SASL_TRANS     (-17) /* One time use of a plaintext password will
 				enable requested mechanism for user */
-#define SASL_EXPIRED    -18  /* passphrase expired, has to be reset */
-#define SASL_DISABLED   -19  /* account disabled */
-#define SASL_NOUSER     -20  /* user not found */
-#define SASL_PWLOCK     -21  /* password locked */
-#define SASL_NOCHANGE   -22  /* requested change was not needed */
-#define SASL_BADVERS    -23  /* version mismatch with plug-in */
+#define SASL_EXPIRED   (-18) /* passphrase expired, has to be reset */
+#define SASL_DISABLED  (-19) /* account disabled */
+#define SASL_NOUSER    (-20) /* user not found */
+#define SASL_PWLOCK    (-21) /* password locked */
+#define SASL_NOCHANGE  (-22) /* requested change was not needed */
+#define SASL_BADVERS   (-23) /* version mismatch with plug-in */
 
-#define SASL_NOPATH     -25  /* path not set */
+#define SASL_NOPATH    (-25) /* path not set */
 
 /* max size of a sasl mechanism name */
 #define SASL_MECHNAMEMAX 20

@@ -1186,6 +1186,34 @@ enc_rc4(context_t *text,
   return SASL_OK;
 }
 
+#else
+
+static int
+init_rc4(void *v, sasl_utils_t *utils, char *key, int keylen)
+{
+    return SASL_FAIL;
+}
+
+static int
+dec_rc4(context_t *text,
+	const char *input,
+	unsigned inputlen,
+	char **output,
+	unsigned *outputlen)
+{
+    return SASL_FAIL;
+}
+
+static int
+enc_rc4(context_t *text,
+	const char *input,
+	unsigned inputlen,
+	char **output,
+	unsigned *outputlen)
+{
+    return SASL_FAIL;
+}
+
 #endif /* WITH_RC4 */
 
 static unsigned int version = 1;
@@ -1375,12 +1403,15 @@ privacy_decode(void *context,
     /* this sucks. we want to encode but we want to use rc4's decode sbox's 
      * so stuff doesn't get out of sync 
      */
+#if HAVE_RC4
     if (text->cipher_init==(&init_rc4))
+#else
+    if (0)
+#endif
     {
       text->cipher_dec(text, digest, MAC_SIZE,
 		       (char **) &macmid, &tmpnum);
     } else { /* else is DES */
-
       macmid=(char *)malloc(MAC_SIZE+12);
       text->cipher_enc(text, digest, MAC_SIZE,
 		       (char **) &macmid, &tmpnum);
@@ -2809,43 +2840,28 @@ c_continue_step(void *conn_context,
   }
   if (text->state == 2) {
     unsigned char  *digesturi = NULL;
-
     unsigned char  *nonce = NULL;
     unsigned char  *ncvalue = (unsigned char *) "00000001";
     unsigned char  *cnonce = NULL;
-
     char           *qop = NULL;
     char           *qop_list = NULL;
     int             protection = 0;
-
     char           *cipher = NULL;
     char           *cipher_list = NULL;
     int             ciphers=0;
     unsigned int  n=0;
-
     char           *response = NULL;
-
     char           *realm = NULL;
-
     unsigned int    server_maxbuf = 2096;
-
     int             maxbuf_count = 0;
-
     bool            IsUTF8 = FALSE;
-
     char           *charset = NULL;
-    /* char *cipher = NULL; unused */
-
     char           *xxx;
     char           *prev_xxx;
-
     int             result = SASL_FAIL;
-
     char           *client_response = NULL;
-
     sasl_security_properties_t secprops;
     int             external;
-
     int             auth_result = SASL_OK;
     int             pass_result = SASL_OK;
 
@@ -3098,7 +3114,11 @@ c_continue_step(void *conn_context,
       /* Client request encryption, server support it */
       /* encryption */
 #ifdef WITH_RC4
-      if ((secprops.max_ssf>=128)  && ((ciphers & CIPHER_RC4) == CIPHER_RC4)) { /* rc4 */
+      if ((secprops.max_ssf>=128)  && 
+	  ((ciphers & CIPHER_RC4) == CIPHER_RC4)) { /* rc4 */
+#else
+      if (0) {
+#endif /* WITH_RC4 */
 	VL(("Trying to use rc4"));
 	cipher = "rc4";
 	text->cipher_enc=(cipher_function_t *) &enc_rc4; /* uses same function both ways */
@@ -3106,7 +3126,6 @@ c_continue_step(void *conn_context,
 	text->cipher_init=&init_rc4;
 	oparams->mech_ssf = 128;
 	n=16;
-#endif /* WITH_RC4 */
 
       } else if ((secprops.max_ssf>=112) && ((ciphers & CIPHER_3DES) == CIPHER_3DES)) {
 	VL(("Trying to use 3des"));

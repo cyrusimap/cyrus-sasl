@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.4 1998/11/17 05:11:41 rob Exp $
+ * $Id: server.c,v 1.5 1998/11/17 05:25:57 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -66,6 +66,11 @@ SOFTWARE.
 # endif
 #endif
 #include <string.h>
+
+#ifdef sun
+/* gotta define gethostname ourselves on suns */
+extern int gethostname(char *, int);
+#endif
 
 typedef struct mechanism
 {
@@ -653,8 +658,8 @@ int sasl_server_step(sasl_conn_t *conn,
 					 errstr);
 
   if (result == SASL_OK) {
-    if (conn->oparams->userid)
-      sasl_setprop(conn, SASL_USERNAME, conn->oparams->userid);
+    if (conn->oparams->user)
+      sasl_setprop(conn, SASL_USERNAME, conn->oparams->user);
   }
 
   return result;

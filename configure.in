@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.137 2002/07/16 20:34:40 rjs3 Exp $
+dnl $Id: configure.in,v 1.138 2002/07/24 16:04:04 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -496,6 +496,11 @@ if test "$login" != no; then
 else
   AC_MSG_RESULT(disabled)
 fi
+
+
+# make the option show up so people don't whine that it is only in the
+# saslauthd configure script --help
+AC_ARG_WITH(ldap,   [  --with-ldap=DIR         use LDAP (in DIR) for saslauthd (experimental) [no] ],,)
 
 
 ############################################################################

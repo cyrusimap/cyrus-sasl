@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb5.c,v 1.6 2002/04/25 18:31:33 leg Exp $"
+#ident "$Id: auth_krb5.c,v 1.7 2002/05/21 16:41:04 rjs3 Exp $"
 #endif
 
 /* ok, this is  wrong but the most convenient way of doing 
@@ -172,6 +172,7 @@ auth_krb5 (
     
     if (krb5_cc_initialize (context, ccache, auth_user)) {
 	krb5_free_principal(context, auth_user);
+	krb5_cc_destroy(context, ccache);
 	krb5_free_context(context);
 	syslog(LOG_ERR, "auth_krb5: krb5_cc_initialize");
 	return strdup("NO saslauthd internal error");

@@ -252,22 +252,19 @@ static void DigestCalcSecret(IN sasl_utils_t *utils,
 			     IN bool IsUTF8,
 			     OUT HASH HA1)
 {
-
   MD5_CTX Md5Ctx;
-      
-  utils->MD5Init(&Md5Ctx);
 
+  utils->MD5Init(&Md5Ctx);
+  
   if (IsUTF8)
     utils->MD5Update (&Md5Ctx, pszUserName, strlen ((char *) pszUserName));
   else	    /* We have to convert UTF-8 to ISO-8859-1 if possible */
     MD5_UTF8_8859_1 (utils, &Md5Ctx, pszUserName, 
 		     strlen ((char *) pszUserName));
 
-
   utils->MD5Update(&Md5Ctx, COLON, 1);
   utils->MD5Update(&Md5Ctx, pszRealm, strlen((char *) pszRealm));
   utils->MD5Update(&Md5Ctx, COLON, 1);
-
 
   if (IsUTF8)
     utils->MD5Update (&Md5Ctx, pszPassword->data, pszPassword->len);
@@ -587,7 +584,49 @@ static char *create_response(context_t *text,
   return result;
 }
 
+static char basis_64[] =
+   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/???????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????";
 
+static int encode64(const char *_in, unsigned inlen,
+		  char *_out, unsigned outmax, unsigned *outlen)
+{
+    const unsigned char *in = (const unsigned char *)_in;
+    unsigned char *out = (unsigned char *)_out;
+    unsigned char oval;
+    char *blah;
+    unsigned olen;
+
+    /* Will it fit? */
+    olen = (inlen + 2) / 3 * 4;
+    if (outlen)
+      *outlen = olen;
+    if (outmax < olen)
+      return SASL_BUFOVER;
+
+    /* Do the work... */
+    blah=(char *) out;
+    while (inlen >= 3) {
+      /* user provided max buffer size; make sure we don't go over it */
+        *out++ = basis_64[in[0] >> 2];
+        *out++ = basis_64[((in[0] << 4) & 0x30) | (in[1] >> 4)];
+        *out++ = basis_64[((in[1] << 2) & 0x3c) | (in[2] >> 6)];
+        *out++ = basis_64[in[2] & 0x3f];
+        in += 3;
+        inlen -= 3;
+    }
+    if (inlen > 0) {
+      /* user provided max buffer size; make sure we don't go over it */
+        *out++ = basis_64[in[0] >> 2];
+        oval = (in[0] << 4) & 0x30;
+        if (inlen > 1) oval |= in[1] >> 4;
+        *out++ = basis_64[oval];
+        *out++ = (inlen < 2) ? '=' : basis_64[(in[1] << 2) & 0x3c];
+        *out++ = '=';
+    }
+    *out = '\0';
+    
+    return SASL_OK;
+}
 
 static unsigned char * create_nonce(sasl_utils_t *utils)
 {
@@ -598,7 +637,7 @@ static unsigned char * create_nonce(sasl_utils_t *utils)
   if (ret==NULL)
     return NULL;
 
-  sasl_rand(utils->rpool,(char *) ret, NONCE_SIZE);
+  utils->rand(utils->rpool,(char *) ret, NONCE_SIZE);
 
   /* base 64 encode it so it has valid chars */
   base64len = (NONCE_SIZE * 4 / 3) + (NONCE_SIZE % 3 ? 4 : 0);
@@ -612,8 +651,8 @@ static unsigned char * create_nonce(sasl_utils_t *utils)
 /* 
  * Returns SASL_OK on success, SASL_BUFOVER if result won't fit
  */
-  if (sasl_encode64(ret, NONCE_SIZE,
-		    (char *) base64buf, base64len, NULL) != SASL_OK)
+  if (encode64(ret, NONCE_SIZE,
+	       (char *) base64buf, base64len, NULL) != SASL_OK)
   {
    utils->free(ret);
    return NULL;
@@ -1217,7 +1256,7 @@ char *response_auth = NULL;
 
 	if (htoi((unsigned char *) value, &noncecount)!=SASL_OK)
 	{
-	  result = SASL_BADAUTH;
+	  result = -91; /*SASL_BADAUTH;*/
 	  goto FreeAllMem;
 	}
 
@@ -1242,7 +1281,7 @@ char *response_auth = NULL;
 	{
 	  /*Nonce changed: Abort authentication!!!*/
 	  VL (("Nonce changed: Aborting authentication\n"));
-	  result = SASL_BADAUTH;
+	  result = -92; /*SASL_BADAUTH;*/
 	  goto FreeAllMem;
 	}
 
@@ -1291,13 +1330,13 @@ char *response_auth = NULL;
 	
 	if (maxbuf_count != 1)
 	{
-	  result = SASL_BADAUTH;
+	  result = -93; /*SASL_BADAUTH;*/
 	  VL (("At least two maxbuf directives found. Authentication aborted\n"));
 	  goto FreeAllMem;
 	}
 	else if (sscanf (value, "%u", &client_maxbuf) != 1)
 	{
-	  result = SASL_BADAUTH;
+	  result = -94; /*SASL_BADAUTH;*/
 	  VL (("Invalid maxbuf parameter received from client\n"));
 	  goto FreeAllMem;
 	}
@@ -1344,7 +1383,7 @@ char *response_auth = NULL;
 	     (response==NULL) )
     {
       VL(("Didn't get enough parameters\n"));
-      result = SASL_BADAUTH; /*Not enough parameters!!!*/
+      result = -95; /*SASL_BADAUTH;*/ /*Not enough parameters!!!*/
       goto FreeAllMem;
     }
 
@@ -1460,7 +1499,7 @@ char *response_auth = NULL;
     /* if ok verified*/
     if (strcmp(serverresponse,response)!=0)
     {
-      result = SASL_BADAUTH;
+      result = -97; /*SASL_BADAUTH;*/
 
        VL (("Client Sent: %s\n",response));
 
@@ -1651,17 +1690,18 @@ setpass(void *glob_context __attribute__((unused)),
   int result;
   sasl_server_putsecret_t *putsecret;
   void *putsecret_context;
-  sasl_secret_t *sec=(sasl_secret_t *) malloc(sizeof(sasl_secret_t)+HASHLEN+1);
-
+  sasl_secret_t *sec;
   HASH HA1;
-  
+
+  sec=(sasl_secret_t *) malloc(sizeof(sasl_secret_t)+HASHLEN+1);
+  if (sec==NULL) return SASL_NOMEM;
+
   DigestCalcSecret(sparams->utils,			    
 		   (unsigned char *) user,
 		   (unsigned char *) "alive.andrew.cmu.edu", /* xxx fix */
-		   (unsigned char *) pass,
+		   (sasl_secret_t *) sec,
 		   TRUE, /* use UTF-8 */
 		   HA1);
-
 
   /* construct sec */
   sec->len=HASHLEN;
@@ -2202,7 +2242,7 @@ static int c_continue_step (void *conn_context,
 
 	      if (protection == 0)
 		{
-		  result = SASL_BADAUTH;
+		  result = -98; /*SASL_BADAUTH;*/
 		  VL (("Server doesn't support known qop level\n"));
 		  goto FreeAllocatedMem;
 		}
@@ -2230,13 +2270,13 @@ static int c_continue_step (void *conn_context,
 
 	      if (maxbuf_count != 1)
 		{
-		  result = SASL_BADAUTH;
+		  result = -99; /*SASL_BADAUTH;*/
 		  VL (("At least two maxbuf directives found. Authentication aborted\n"));
 		  goto FreeAllocatedMem;
 		}
 	      else if (sscanf (value, "%u", &server_maxbuf) != 1)
 		{
-		  result = SASL_BADAUTH;
+		  result = -101; /*SASL_BADAUTH;*/
 		  VL (("Invalid maxbuf parameter received from server\n"));
 		  goto FreeAllocatedMem;
 		}
@@ -2245,7 +2285,7 @@ static int c_continue_step (void *conn_context,
 
 	if (strcmp (value, "utf-8") != 0)
 		{
-		  result = SASL_BADAUTH;
+		  result = -102; /*SASL_BADAUTH;*/
 		  VL (("Charset must be UTF-8\n"));
 		  goto FreeAllocatedMem;
 		}

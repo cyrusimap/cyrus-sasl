@@ -554,8 +554,6 @@ _sasl_getcallback(sasl_conn_t * conn,
 {
   const sasl_callback_t *callback;
 
-  printf("in getcallback\n");
-
   if (! conn || ! pproc || ! pcontext)
     return SASL_BADPARAM;
 
@@ -569,8 +567,6 @@ _sasl_getcallback(sasl_conn_t * conn,
     *pcontext = conn;
     return SASL_OK;
   }
-
-  printf("in getcallback 2\n");
 
   /* If it's not always provided by the library, see if there's
    * a version provided by the application for this connection... */
@@ -587,8 +583,6 @@ _sasl_getcallback(sasl_conn_t * conn,
 	  return SASL_INTERACT;
       }
 
-  printf("in getcallback 3\n");
-
   /* And, if not for this connection, see if there's one
    * for all {server,client} connections... */
   if (conn->global_callbacks && conn->global_callbacks->callbacks)
@@ -603,8 +597,6 @@ _sasl_getcallback(sasl_conn_t * conn,
 	else
 	  return SASL_INTERACT;
       }
-
-  printf("in getcallback 4\n");
 
   /* Otherwise, see if the library provides a default callback. */
   switch (callbackid) {
@@ -632,11 +624,9 @@ _sasl_getcallback(sasl_conn_t * conn,
     *pcontext = NULL;
     break;
   default:
-  printf("in getcallback 4.5\n");
     return SASL_INTERACT;
   }
 
-  printf("in getcallback 5\n");
   return SASL_OK;
 }
 
@@ -856,6 +846,7 @@ _sasl_alloc_utils(sasl_conn_t *conn,
   utils->rand=&sasl_rand;
 
   utils->log=&sasl_log;
+  utils->free_secret=&sasl_free_secret;
 
   sasl_randcreate(&utils->rpool);
   /* there are more to fill in */

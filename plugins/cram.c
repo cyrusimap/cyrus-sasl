@@ -92,13 +92,58 @@ static int start(void *glob_context __attribute__((unused)),
 }
 
 
+static void free_secret(sasl_utils_t *utils,
+			sasl_secret_t **secret)
+{
+  size_t lup;
+
+  VL(("Freeing secret\n"));
+
+  if (secret==NULL) return;
+  if (*secret==NULL) return;
+
+  /* overwrite the memory */
+  for (lup=0;lup<(*secret)->len;lup++)
+    (*secret)->data[lup]='X';
+
+  (*secret)->len=0;
+
+  utils->free(*secret);
+
+  *secret=NULL;
+}
+
+static void free_string(sasl_utils_t *utils,
+			char **str)
+{
+  size_t lup;
+  int len;
+  VL(("Freeing string\n"));
+
+  if (str==NULL) return;
+  if (*str==NULL) return;
+
+  len=strlen(*str);
+
+  /* overwrite the memory */
+  for (lup=0;lup<len;lup++)
+    (*str)[lup]='X';
+
+  utils->free(*str);
+
+  *str=NULL;
+}
 
 static void dispose(void *conn_context, sasl_utils_t *utils)
 {
   context_t *text;
   text=conn_context;
 
-  utils->free(text->msgid);
+  /* get rid of all sensetive info */
+  free_string(utils,&(text->msgid));
+  free_string(utils,&(text->authid));
+  free_secret(utils,&(text->password));
+
   utils->free(text);
 }
 
@@ -175,6 +220,8 @@ static char *make_hashed(sasl_secret_t *sec, char *nonce, int noncelen,
 
   sasl_server_params_t *params=(sasl_server_params_t *) inparams;
 
+  if (sec==NULL) return NULL;
+
   if (sec->len<64)
   {
     memcpy(secret, sec->data, sec->len);
@@ -200,6 +247,7 @@ static char *make_hashed(sasl_secret_t *sec, char *nonce, int noncelen,
 
   return in16;
 }
+
 
 
 static int server_continue_step (void *conn_context,
@@ -316,6 +364,7 @@ static int server_continue_step (void *conn_context,
     if (result != SASL_OK)
     {
       VL(("userid=%s\n",userid));
+      sparams->utils->free(userid);
       VL(("error %i in getsecret\n",result));
       return result;
     }
@@ -337,18 +386,23 @@ static int server_continue_step (void *conn_context,
     }
     /* XXX this needs to be safer */
 
+    /* free sec */
+    free_secret(sparams->utils,&sec);
 
     VL(("[%s] vs [%s]\n",in16,clientin+pos+1));
 
     /* if same then verified */
     if (strcmp(in16,clientin+pos+1)!=0)
     {
-      sparams->utils->free(in16);    
+      /* free string and wipe out sensetive data */
+      free_string(sparams->utils,&in16);
+
       VL(("bad auth here\n"));
       return SASL_BADAUTH;
     }
 
-    sparams->utils->free(in16);    
+    /* free string and wipe out sensetive data */
+    free_string(sparams->utils,&in16);
 
     /* nothing more to do; authenticated 
      * set oparams information
@@ -510,6 +564,9 @@ static int c_start(void *glob_context __attribute__((unused)),
     text= params->utils->malloc(sizeof(context_t));
     if (text==NULL) return SASL_NOMEM;
     text->state=1;  
+    text->authid=NULL;
+    text->password=NULL;
+
   *conn=text;
 
   return SASL_OK;
@@ -816,7 +873,6 @@ static int c_continue_step (void *conn_context,
       VL(("returning prompt(s)\n"));
       return SASL_INTERACT;
     }
-    
 
     /* username
      * space
@@ -826,6 +882,8 @@ static int c_continue_step (void *conn_context,
     /* make nonce */
     in16=make_hashed(text->password,(char *) serverin, serverinlen, params);
 
+    if (in16==NULL) return SASL_FAIL;
+
     VL(("authid=[%s]\n",text->authid));
     VL(("in16=[%s]\n",in16));
 
@@ -834,7 +892,8 @@ static int c_continue_step (void *conn_context,
 
     sprintf((char *)*clientout,"%s %s",text->authid,in16);
 
-    params->utils->free(in16);    
+    /* get rid of private information */
+    free_string(params->utils, &in16);
 
     *clientoutlen=strlen(*clientout);
 

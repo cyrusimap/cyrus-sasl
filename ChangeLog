@@ -1,3 +1,9 @@
+1999-03-08  Timothy L Martin  <tmartin+@andrew.cmu.edu>
+
+	* plugins/plain.c: No sensetive information leaked
+
+	* plugins/cram.c: No sensetive information leaked
+
 1999-03-07  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
 	* plugins/digestmd5.c: client and server can't send challenges >2048 bytes now

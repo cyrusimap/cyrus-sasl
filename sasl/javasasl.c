@@ -37,6 +37,9 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <netinet/in.h>
 #include "javasasl.h"
 
+static char *username="tmartin";
+static char *authid="tmartin";
+
 static void throwinteract(JNIEnv *env, sasl_interact_t *interact)
 {
   jclass newExcCls;
@@ -92,7 +95,7 @@ static void throwexception(JNIEnv *env, int error)
 
 /* server init */
 
-JNIEXPORT jint JNICALL Java_sasl_saslServerFactory_jni_1sasl_1server_1init
+JNIEXPORT jint JNICALL Java_sasl_ServerFactory_jni_1sasl_1server_1init
   (JNIEnv *env, jobject obj, jstring jstr)
 {
   /* Obtain a C-copy of the Java string */
@@ -109,16 +112,85 @@ JNIEXPORT jint JNICALL Java_sasl_saslServerFactory_jni_1sasl_1server_1init
   return result;
 }
 
-/* client init */
+static int
+simple(void *context __attribute__((unused)),
+       int id,
+       const char **result,
+       unsigned *len)
+{
+  if (! result)
+    return SASL_BADPARAM;
+  switch (id) {
+  case SASL_CB_USER:
+    *result = username;
+    if (len)
+      *len = username ? strlen(username) : 0;
+    printf("retrieved userid through callback\n");
+    break;
+  case SASL_CB_AUTHNAME:
+    authid=username;
+    *result = authid;
+    if (len)
+      *len = authid ? strlen(authid) : 0;
+    printf("retrieved authid through callback\n");
+      break;
+  case SASL_CB_LANGUAGE:
+    *result = NULL;
+    if (len)
+      *len = 0;
+    break;
+  default:
+    return SASL_BADPARAM;
+  }
+  return SASL_OK;
+}
 
-JNIEXPORT jint JNICALL Java_sasl_saslClientFactory_jni_1sasl_1client_1init
+#define PASSWORD "password"
+
+static int
+getsecret(sasl_conn_t *conn,
+	  void *context __attribute__((unused)),
+	  int id,
+	  sasl_secret_t **psecret)
+{
+  if (! conn || ! psecret || id != SASL_CB_PASS)
+    return SASL_BADPARAM;
+
+  *psecret = (sasl_secret_t *) malloc(sizeof(sasl_secret_t)+strlen(PASSWORD)+1);
+  if (! *psecret)
+    return SASL_FAIL;
+
+  strcpy((*psecret)->data, PASSWORD);
+  (*psecret)->len=strlen(PASSWORD);
+
+  printf("retrieved password through callback\n");
+  return SASL_OK;
+}
+
+static sasl_callback_t callbacks[] = {
+  {
+    SASL_CB_PASS, &getsecret, NULL
+  }, {
+    SASL_CB_USER, &simple, NULL
+  }, {
+    SASL_CB_AUTHNAME, &simple, NULL
+  }, {
+    SASL_CB_LIST_END, NULL, NULL
+  }
+};
+
+/* client init */
+JNIEXPORT jint JNICALL Java_sasl_ClientFactory_jni_1sasl_1client_1init
   (JNIEnv *env, jobject obj, jstring jstr)
 {
   /* Obtain a C-copy of the Java string */
   const char *str = (*env)->GetStringUTFChars(env, jstr, 0);
   int result;
 
-  result=sasl_client_init(NULL);
+  printf("initing\n");
+
+  result=sasl_client_init(callbacks);
+  printf("initing %i\n",result);
   if (result!=SASL_OK)
     throwexception(env,result);
 
@@ -130,7 +202,7 @@ JNIEXPORT jint JNICALL Java_sasl_saslClientFactory_jni_1sasl_1client_1init
 
 /* server new */
 
-JNIEXPORT jint JNICALL Java_sasl_saslServerFactory_jni_1sasl_1server_1new
+JNIEXPORT jint JNICALL Java_sasl_ServerFactory_jni_1sasl_1server_1new
   (JNIEnv *env, jobject obj, jstring jservice, jstring jlocal, 
    jstring juser, jint jsecflags)
 {
@@ -155,7 +227,7 @@ JNIEXPORT jint JNICALL Java_sasl_saslServerFactory_jni_1sasl_1server_1new
 }
 
 
-JNIEXPORT jint JNICALL Java_sasl_saslClientFactory_jni_1sasl_1client_1new
+JNIEXPORT jint JNICALL Java_sasl_ClientFactory_jni_1sasl_1client_1new
   (JNIEnv *env, jobject obj,
    jstring jservice, jstring jserver, jint jsecflags)
 {
@@ -166,6 +238,7 @@ JNIEXPORT jint JNICALL Java_sasl_saslClientFactory_jni_1sasl_1client_1new
   int result;
 
   result=sasl_client_new(service, serverFQDN, NULL, jsecflags, &conn);
+  printf("client_new res=%i\n",result);
   if (result!=SASL_OK)
     throwexception(env,result);
 
@@ -178,7 +251,7 @@ JNIEXPORT jint JNICALL Java_sasl_saslClientFactory_jni_1sasl_1client_1new
 
 /* server start */
 
-JNIEXPORT jbyteArray JNICALL Java_sasl_saslServerConn_jni_1sasl_1server_1start
+JNIEXPORT jbyteArray JNICALL Java_sasl_ServerConn_jni_1sasl_1server_1start
   (JNIEnv *env, jobject obj, jint ptr, jstring jstr, jbyteArray jarr, jint jlen)
 {
   sasl_conn_t *conn;
@@ -204,9 +277,11 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_saslServerConn_jni_1sasl_1server_1start
 
   if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
   {
+
     throwexception(env,result);
     return NULL;
   }
+  
 
   arr=(*env)->NewByteArray(env,outlen+1);
 
@@ -224,7 +299,7 @@ extern int _sasl_debug;
 
 /* client start */
 
-JNIEXPORT jbyteArray JNICALL Java_sasl_saslClientConn_jni_1sasl_1client_1start
+JNIEXPORT jbyteArray JNICALL Java_sasl_ClientConn_jni_1sasl_1client_1start
   (JNIEnv *env, jobject obj, jint ptr, jstring jstr, jstring jfill)
 {    
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
@@ -239,7 +314,7 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_saslClientConn_jni_1sasl_1client_1start
   signed char *a;
   const char *fillin;
 
-
+  printf("client start\n");
 
   /* if got info for an interact make one */
   if (jfill!=NULL)
@@ -263,7 +338,7 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_saslClientConn_jni_1sasl_1client_1start
 			   secret, &client_interact,
 			   &out, &outlen,
 			   &mechusing);
-
+  printf("client_start res=%i\n",result);
   if (result==SASL_INTERACT)
   {
     throwinteract(env,client_interact);
@@ -289,7 +364,7 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_saslClientConn_jni_1sasl_1client_1start
 
 /* server step */
 
-JNIEXPORT jbyteArray JNICALL Java_sasl_saslServerConn_jni_1sasl_1server_1step
+JNIEXPORT jbyteArray JNICALL Java_sasl_ServerConn_jni_1sasl_1server_1step
   (JNIEnv *env, jobject obj, jint ptr, jbyteArray jarr, jint jlen)
 {
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
@@ -327,7 +402,7 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_saslServerConn_jni_1sasl_1server_1step
 
 /* client step */
 
-JNIEXPORT jbyteArray JNICALL Java_sasl_saslClientConn_jni_1sasl_1client_1step
+JNIEXPORT jbyteArray JNICALL Java_sasl_ClientConn_jni_1sasl_1client_1step
     (JNIEnv *env, jobject obj, jint ptr, jbyteArray jarr, jint jlen, jstring jstr)
 {    
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
@@ -342,6 +417,9 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_saslClientConn_jni_1sasl_1client_1step
   char *errstr;
   signed char *in = (*env)->GetByteArrayElements(env, jarr, 0);
 
+  in[jlen]=0;
+  printf("in client step 1\n");
+
   /* if got info for an interact make one */
   if (jstr!=NULL)
   {
@@ -352,12 +430,13 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_saslClientConn_jni_1sasl_1client_1step
     memcpy((void *)client_interact->result, fillin, client_interact->len);
   }
 
-  out=(char *) malloc(1000);
+  printf("in client step 2 %s %i\n",in,jlen);
 
   result=sasl_client_step(conn, (const char *) in, jlen,
 			  &client_interact,
 			  &out, &outlen);
 
+  printf("in client step 3\n");
 
 
   if (result==SASL_INTERACT)
@@ -385,7 +464,7 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_saslClientConn_jni_1sasl_1client_1step
 }
 
 
-JNIEXPORT void JNICALL Java_sasl_saslCommonConn_jni_1sasl_1set_1prop_1string
+JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1set_1prop_1string
   (JNIEnv *env, jobject obj, jint ptr, jint propnum, jstring val)
 {
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
@@ -393,12 +472,14 @@ JNIEXPORT void JNICALL Java_sasl_saslCommonConn_jni_1sasl_1set_1prop_1string
 
   int result=sasl_setprop(conn, propnum, value);
 
+  printf("prop res=%i\n",result);
+
   if (result!=SASL_OK)
     throwexception(env,result);
 }
 
 
-JNIEXPORT void JNICALL Java_sasl_saslCommonConn_jni_1sasl_1set_1prop_1int
+JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1set_1prop_1int
   (JNIEnv *env, jobject obj, jint ptr, jint propnum, jint jval)
 {
 
@@ -410,7 +491,7 @@ JNIEXPORT void JNICALL Java_sasl_saslCommonConn_jni_1sasl_1set_1prop_1int
   if (result!=SASL_OK)
     throwexception(env,result);
 }
-JNIEXPORT void JNICALL Java_sasl_saslCommonConn_jni_1sasl_1set_1prop_1bytes
+JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1set_1prop_1bytes
   (JNIEnv *env, jobject obj, jint ptr, jint propnum, jbyteArray jarr)
 {
   signed char *value = (*env)->GetByteArrayElements(env, jarr, 0);
@@ -425,7 +506,7 @@ JNIEXPORT void JNICALL Java_sasl_saslCommonConn_jni_1sasl_1set_1prop_1bytes
 
 /* encode */
 
-JNIEXPORT jbyteArray JNICALL Java_sasl_saslCommonConn_jni_1sasl_1encode
+JNIEXPORT jbyteArray JNICALL Java_sasl_CommonConn_jni_1sasl_1encode
   (JNIEnv *env, jobject obj, jint ptr, jstring jstr)
 {
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
@@ -450,7 +531,7 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_saslCommonConn_jni_1sasl_1encode
 
 /* decode */
 
-JNIEXPORT jbyteArray JNICALL Java_sasl_saslCommonConn_jni_1sasl_1decode
+JNIEXPORT jbyteArray JNICALL Java_sasl_CommonConn_jni_1sasl_1decode
   (JNIEnv *env, jobject obj, jint ptr, jbyteArray jarr, jint jlen)
 {
 
@@ -482,7 +563,7 @@ JNIEXPORT jbyteArray JNICALL Java_sasl_saslCommonConn_jni_1sasl_1decode
   return Java_sasl_saslClientConn_jni_1sasl_1client_1decode(env,obj,ptr,in,inlen);
   }*/
 
-JNIEXPORT void JNICALL Java_sasl_saslCommonConn_jni_1sasl_1dispose
+JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1dispose
   (JNIEnv *env, jobject obj, jint ptr)
 {
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
@@ -491,7 +572,7 @@ JNIEXPORT void JNICALL Java_sasl_saslCommonConn_jni_1sasl_1dispose
 
 }
 
-JNIEXPORT jstring JNICALL Java_sasl_saslServerConn_jni_1sasl_1server_1getlist
+JNIEXPORT jstring JNICALL Java_sasl_ServerConn_jni_1sasl_1server_1getlist
   (JNIEnv *env, jobject obj, jint ptr, jstring jpre, jstring jsep, jstring jsuf)
 {
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
@@ -517,7 +598,7 @@ JNIEXPORT jstring JNICALL Java_sasl_saslServerConn_jni_1sasl_1server_1getlist
   return ret;
 }
 
-JNIEXPORT void JNICALL Java_sasl_saslCommonConn_jni_1sasl_1set_1server
+JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1set_1server
   (JNIEnv *env, jobject obj, jint ptr, jbyteArray jarr, jint jport)
 {
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
@@ -538,7 +619,7 @@ JNIEXPORT void JNICALL Java_sasl_saslCommonConn_jni_1sasl_1set_1server
 
 
 
-JNIEXPORT void JNICALL Java_sasl_saslCommonConn_jni_1sasl_1set_1client
+JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1set_1client
   (JNIEnv *env, jobject obj, jint ptr, jbyteArray jarr, jint jport)
 {
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
@@ -576,7 +657,7 @@ static sasl_security_properties_t *make_secprops(int min,int max)
 }
 
 
-JNIEXPORT void JNICALL Java_sasl_saslCommonConn_jni_1sasl_1setSecurity
+JNIEXPORT void JNICALL Java_sasl_CommonConn_jni_1sasl_1setSecurity
   (JNIEnv *env, jobject obj, jint ptr, jint minssf, jint maxssf)
 {
   int result=SASL_FAIL;

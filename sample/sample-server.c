@@ -209,7 +209,7 @@ set_ip(char *ipaddr, int prop)
   sep++;
   hent = gethostbyname(ipaddr);
   if (! hent) {
-    herror(ipaddr);
+    /* xxx no work on solaris    herror(ipaddr); */
     exit(EXIT_FAILURE);
   }
   memcpy(&sin.sin_addr, hent->h_addr, sizeof(struct in_addr));
@@ -279,10 +279,10 @@ main(int argc, char *argv[])
   /* Init defaults... */
   memset(&secprops, 0L, sizeof(secprops));
   secprops.maxbufsize = SAMPLE_SEC_BUF_SIZE;
-  secprops.max_ssf = UINT_MAX;
+  secprops.max_ssf = 9999; /* xxx solaris doesn't compile UINT_MAX; */
   memset(&extprops, 0L, sizeof(extprops));
 
-  /*  while ((c = getopt(argc, argv, "hb:e:m:f:i:p:s:l:u:?")) != EOF)
+  while ((c = getopt(argc, argv, "hb:e:m:f:i:p:s:l:u:?")) != EOF)
     switch (c) {
     case 'b':
       options = optarg;
@@ -408,7 +408,7 @@ main(int argc, char *argv[])
   if (optind != argc) {
     
     errflag = 1;
-  }*/
+  }
 
   if (errflag) {
     fprintf(stderr, "%s: Usage: %s [-b min=N,max=N] [-e ssf=N,id=ID] [-m MECH] [-f FLAGS] [-i local=IP,remote=IP] [-p PATH] [-l DOM] [-u DOM] [-s NAME]\n"

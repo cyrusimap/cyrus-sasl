@@ -41,6 +41,8 @@ static const char build_ident[] = "$Build: saslpasswd " PACKAGE "-" VERSION " $"
 
 const char *progname = NULL;
 
+extern int _sasl_debug=-1;
+
 void read_password(const char *prompt,
 		   int flag_pipe,
 		   char ** password,
@@ -185,6 +187,7 @@ main(int argc, char *argv[])
 			(flag_create ? SASL_SET_CREATE : 0)
 			| (flag_disable ? SASL_SET_DISABLE : 0),
 			&errstr);
+
 
   if (result != SASL_OK)
     exit_sasl(result, errstr);

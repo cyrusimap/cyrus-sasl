@@ -263,6 +263,8 @@ int sasl_setpass(sasl_conn_t *conn,
 
   /* XXX flag could be disable! */
 
+  _sasl_debug=-1;
+
   /* Zowie -- we have the user's plaintext password.
    * Let's tell all our mechanisms about it...
    */

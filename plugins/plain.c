@@ -85,22 +85,58 @@ static int start(void *glob_context __attribute__((unused)),
   return SASL_OK;
 }
 
+static void free_secret(sasl_utils_t *utils,
+			sasl_secret_t **secret)
+{
+  size_t lup;
+
+  VL(("Freeing secret\n"));
+
+  if (secret==NULL) return;
+  if (*secret==NULL) return;
+
+  /* overwrite the memory */
+  for (lup=0;lup<(*secret)->len;lup++)
+    (*secret)->data[lup]='X';
+
+  (*secret)->len=0;
+
+  utils->free(*secret);
+
+  *secret=NULL;
+}
+
+static void free_string(sasl_utils_t *utils,
+			char **str)
+{
+  size_t lup;
+  int len;
+  VL(("Freeing string\n"));
+
+  if (str==NULL) return;
+  if (*str==NULL) return;
+
+  len=strlen(*str);
+
+  /* overwrite the memory */
+  for (lup=0;lup<len;lup++)
+    (*str)[lup]='X';
+
+  utils->free(*str);
+
+  *str=NULL;
+}
 
 static void dispose(void *conn_context, sasl_utils_t *utils)
 {
   context_t *text;
   text=conn_context;
 
-  if (text->userid)
-    utils->free(text->userid);
-  if (text->authid)
-    utils->free(text->authid);
-  if (text->password) {
-    memset(text->password->data,
-	   0,
-	   text->password->len);
-    utils->free(text->password);
-  }
+  /* free sensetive info */
+  free_string(utils,&(text->userid));
+  free_string(utils,&(text->authid));
+  free_secret(utils,&(text->password));
+
   utils->free(text);
 }
 
@@ -163,12 +199,12 @@ static int verify_password(sasl_server_params_t *sparams,
       VL(("result = %i trying to get secret callback\n",result));
       return result;
     }
+
     if (! getsecret)
     {
       VL(("Received NULL getsecret callback\n"));
       return SASL_FAIL;
     }
-
 
     /* We use the user's SCRAM secret */
     /* Request secret */
@@ -184,9 +220,16 @@ static int verify_password(sasl_server_params_t *sparams,
       VL(("Received NULL sec from getsecret\n"));
       return SASL_FAIL;
     }
-    
+
     VL(("password=[%s]\n",sec->data));
 
+    if (strncmp(sec->data,password,sec->len)!=0)
+    {
+      VL(("Passwords don't match\n"));
+      return SASL_FAIL;
+    }
+
+    free_secret(sparams->utils, &sec);
 
     return SASL_OK;
 }
@@ -300,13 +343,20 @@ server_continue_step (void *conn_context,
     strcpy(mem, authen);
     oparams->authid = mem;
 
+   
+
     if (params->transition)
-      params->transition(params->utils->conn,
-			 password, password_len);
+    {
+      VL(("Trying to transition\n"));
+      /* xxx segfaulting
+	 params->transition(params->utils->conn,
+	 password, password_len); */
+      VL(("Transitioned\n"));
+    }
 
     *serverout = params->utils->malloc(1);
     if (! *serverout) return SASL_NOMEM;
-    **serverout = '\0';
+    (*serverout)[0] = '\0';
     *serveroutlen = 0;
 
     text->state++; /* so fails if called again */

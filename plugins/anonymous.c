@@ -284,6 +284,7 @@ c_continue_step(void *conn_context __attribute__((unused)),
       break;
     default:
       /* Use default */
+      break;
     }
   }
   

@@ -147,7 +147,6 @@ int _sasl_get_mech_list(const char *entryname,
 #endif
   int pos;
   char *path=NULL;
-  int free_path;
   int position;
   DIR *dp;
   struct dirent *dir;
@@ -169,23 +168,12 @@ int _sasl_get_mech_list(const char *entryname,
   /* get the path to the plugins */
   result = ((sasl_getpath_t *)(getpath_cb->proc))(getpath_cb->context,
 						  &path);
-  result = SASL_OK;
+  if (result != SASL_OK) return result;
+  if (! path) return SASL_FAIL;
 
-  if (result != SASL_OK)
-    return result;
-
-  if (! path) {
-    free_path = 0;
-    path = PLUGINDIR;
-  } else {
-    free_path = 1;
-  }
-
-  /* xxx sendmail guys -NAME_MAX */
-  if (strlen(path)>=PATH_MAX) { /* no you can't buffer overrun */
-    if (free_path)
+  if (strlen(path) >= PATH_MAX) { /* no you can't buffer overrun */
       sasl_FREE(path);
-    return SASL_FAIL;
+      return SASL_FAIL;
   }
 
   position=0;
@@ -268,8 +256,7 @@ int _sasl_get_mech_list(const char *entryname,
 
   } while ((c!='=') && (c!=0));
 
-  if (free_path)
-      sasl_FREE(path); 
+  sasl_FREE(path); 
 
   return SASL_OK;
 }

@@ -152,6 +152,6 @@ struct sockaddr_storage {
 #define	NI_WITHSCOPEID	0
 #endif
 
-#define HAVE_TIME_H
+#include <time.h>
 
 #endif /* CONFIG_H */

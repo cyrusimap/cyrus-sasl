@@ -113,7 +113,7 @@ AC_DEFINE_UNQUOTED(SASL_DB_PATH, "$dbpath")
 
 dnl Figure out what database type we're using
 cmu_save_LIBS="$LIBS"
-AC_ARG_WITH(dblib, [  --with-dblib=DBLIB      set the DB library to use [gdbm] ],
+AC_ARG_WITH(dblib, [  --with-dblib=DBLIB      set the DB library to use [ndbm] ],
   dblib=$withval,
   dblib=auto_detect)
 SASL_DB_LIB=""
@@ -132,19 +132,19 @@ case "$dblib" in
 			dblib=no)
 	;;
   auto_detect)
-	dnl Can we use gdbm?
-	AC_CHECK_HEADER(gdbm.h,
-			AC_CHECK_LIB(gdbm, gdbm_open,dblib=gdbm;SASL_DB_LIB="-lgdbm",dblib=no),
+	dnl How about ndbm?
+	AC_CHECK_HEADER(ndbm.h,
+			AC_CHECK_LIB(ndbm, dbm_open,
+				     dblib=ndbm;SASL_DB_LIB="-lndbm",
+				AC_CHECK_FUNC(dbm_open,
+					      dblib=ndbm, dblib=no)),
 			dblib=no)
 	if test "$dblib" = no; then
-		dnl How about ndbm?
-		AC_CHECK_HEADER(ndbm.h,
-				AC_CHECK_LIB(ndbm, dbm_open,
-					     dblib=ndbm;SASL_DB_LIB="-lndbm",
-					AC_CHECK_FUNC(dbm_open,
-						      dblib=ndbm, dblib=no)),
+		dnl Can we use gdbm?
+		AC_CHECK_HEADER(gdbm.h,
+				AC_CHECK_LIB(gdbm, gdbm_open,dblib=gdbm;SASL_DB_LIB="-lgdbm",dblib=no),
 				dblib=no)
-	fi
+		fi
 	;;
   *)
 	AC_MSG_WARN([Bad DB library implementation specified;])

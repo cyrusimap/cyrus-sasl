@@ -92,8 +92,13 @@ int listusers(const char *path, listcb_t *cb)
 	char *realm  = dkey.dptr+strlen(authid)+1;
 	char *tmp    = realm + strlen(realm)+1;
 	char mech[1024];
+	int len = dkey.dsize - (tmp - ((char *)dkey.dptr));
 
-	memcpy(mech, tmp, dkey.dsize - (tmp - ((char *)dkey.dptr)));
+	if (len >= (int) sizeof mech) {
+	    fprintf(stderr, "malformed database entry\n");
+	    break;
+	}
+	memcpy(mech, tmp, len);
 	mech[dkey.dsize - (tmp - ((char *)dkey.dptr))] = '\0';
 
 	if (*authid) {
@@ -134,8 +139,13 @@ int listusers(const char *path, listcb_t *cb)
 	char *realm  = dkey.dptr+strlen(authid)+1;
 	char *tmp    = realm + strlen(realm)+1;
 	char mech[1024];
+	int len = dkey.dsize - (tmp - ((char *)dkey.dptr));
 
-	memcpy(mech, tmp, dkey.dsize - (tmp - ((char *)dkey.dptr)));
+	if (len >= (int) sizeof mech) {
+	    fprintf(stderr, "malformed database entry\n");
+	    break;
+	}
+	memcpy(mech, tmp, len);
 	mech[dkey.dsize - (tmp - ((char *)dkey.dptr))] = '\0';
 
 	if (*authid) {
@@ -178,7 +188,7 @@ static int berkeleydb_open(const char *path,DB **mbdb)
 #endif /* DB_VERSION_MAJOR < 3 */
 
     if (ret != 0) {
-	fprintf(stderr,"Error opening password file");
+	fprintf(stderr,"Error opening password file %s\n", path);
 	return SASL_FAIL;
     }
 
@@ -229,7 +239,7 @@ int listusers(const char *path, listcb_t *cb)
       goto cleanup;
     }
 
-    memset(&key,0,sizeof(key));
+    memset(&key,0, sizeof(key));
     memset(&data,0,sizeof(data));
 
     /* loop thru */
@@ -242,8 +252,13 @@ int listusers(const char *path, listcb_t *cb)
 	char *realm  = ((char *)key.data)+strlen(authid)+1;
 	char *tmp    = realm + strlen(realm)+1;
 	char mech[1024];
+	int len = key.size - (tmp - ((char *)key.data));
 
-	memcpy(mech, tmp, key.size - (tmp - ((char *)key.data)));
+	if (len >= (int) sizeof mech) {
+	    fprintf(stderr, "malformed database entry\n");
+	    break;
+	}
+	memcpy(mech, tmp, len);
 	mech[key.size - (tmp - ((char *)key.data))] = '\0';
 
 	if (*authid) {
@@ -288,10 +303,10 @@ int listusers(listcb_t *cb)
 
 int main(int argc, char **argv)
 {
-    (void) argc;
-    (void) argv;
-    
-    listusers(SASL_DB_PATH, (listcb_t *) &listusers_cb);
+    char *db = SASL_DB_PATH;
+
+    if (argc > 1) db = argv[1];
+    listusers(db, (listcb_t *) &listusers_cb);
 
     exit(0);
 }

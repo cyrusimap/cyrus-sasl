@@ -1,5 +1,10 @@
-2004-07-01  Rob Siemborski <rjs3@andrew.cmu.edu>
+2004-07-06  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/gssapi.c: Fix server side maxoutbuf calculation
+	  (Sam Hartman <hartmans@mit.edu>)
 	* Ready for 2.1.19
+
+2004-07-01  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* Prep for 2.1.19
 
 2004-06-30  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/auth_rimap.c: Fix Tru64 compilation problem

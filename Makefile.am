@@ -1,6 +1,6 @@
 # Top-level Makefile.am for SASL
 # Rob Earhart
-# $Id: Makefile.am,v 1.4 1998/11/25 03:58:27 rob Exp $
+# $Id: Makefile.am,v 1.5 1998/11/25 06:47:54 rob Exp $
 #
 ################################################################
 #        Copyright 1998 by Carnegie Mellon University
@@ -28,3 +28,4 @@ SUBDIRS=include lib plugins @DIRS@
 
 dist-hook:
 	cp -r -p $(srcdir)/config $(srcdir)/win32 $(distdir)
+	find $(distdir) -name CVS -print | xargs rm -rf

@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.48 2002/04/15 14:15:06 rjs3 Exp $
+ * $Id: gssapi.c,v 1.49 2002/04/16 16:40:30 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1010,14 +1010,35 @@ gssapi_server_mech_step(void *conn_context,
 		sasl_gss_free_context_contents(text);
 		return ret;
 	    }
+	} else if(output_token->length == 4) {
+	    /* null authzid */
+	    int ret;
 
-	    memcpy(&oparams->maxoutbuf,((char *) real_output_token.value) + 1,
-		   sizeof(unsigned));
-	    oparams->maxoutbuf = ntohl(oparams->maxoutbuf) - 4;
-	    if(oparams->mech_ssf) {
-		/* FIXME, this is probabally too big */
-		oparams->maxoutbuf -= 50;
-	    }
+	    ret = params->canon_user(params->utils->conn,
+				     text->u.authid,
+				     0, /* strlen(text->u.authid) */
+				     SASL_CU_AUTHZID | SASL_CU_AUTHID,
+				     oparams);
+
+	    if (ret != SASL_OK) {
+		sasl_gss_free_context_contents(text);
+		return ret;
+	    }	    
+	} else {
+	    SETERROR(text->utils,
+		     "token too short");
+	    gss_release_buffer(&min_stat, output_token);
+	    sasl_gss_free_context_contents(text);
+	    return SASL_FAIL;
+	}	
+
+	/* No matter what, set the rest of the oparams */
+	memcpy(&oparams->maxoutbuf,((char *) real_output_token.value) + 1,
+	       sizeof(unsigned));
+	oparams->maxoutbuf = ntohl(oparams->maxoutbuf) - 4;
+	if(oparams->mech_ssf) {
+	    /* FIXME, this is probabally too big */
+	    oparams->maxoutbuf -= 50;
 	}
 
 	gss_release_buffer(&min_stat, output_token);

@@ -62,10 +62,10 @@
 #ifdef HAVE_FUNC
 # define L_FUNC __func__
 # define HAVE_L_FUNC 1
-#elif HAVE_PRETTY_FUNCTION
+#elif defined(HAVE_PRETTY_FUNCTION)
 # define L_FUNC __PRETTY_FUNCTION__
 # define HAVE_L_FUNC 1
-#elif HAVE_FUNCTION
+#elif defined(HAVE_FUNCTION)
 # define L_FUNC __FUNCTION__
 # define HAVE_L_FUNC 1
 #else

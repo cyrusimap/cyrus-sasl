@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.134 2002/06/25 18:55:22 rjs3 Exp $
+dnl $Id: configure.in,v 1.135 2002/07/02 16:48:17 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -501,7 +501,7 @@ fi
 ############################################################################
 # Simon Loader tries to do auto conf
 dnl MySQL
-AC_ARG_WITH(mysql,  [  --with-mysql=path       enable authentication from MySQL database [no] ],
+AC_ARG_WITH(mysql,  [  --with-mysql=path       enable authentication against a MySQL db                                        (experimental) [no] ],
   with_mysql=$withval,
   with_mysql=no)
 

@@ -1106,7 +1106,7 @@ Your application must also be prepared to deal with
 the peer application did something strange (by splitting a single
 SASL blob into two seperate TCP packets).</p>
 
-<p>The only subtly dealing with security layers is the maximum size
+<p>The only subtlety dealing with security layers is the maximum size
 of data that can be passed through <tt>sasl_encode()</tt> or
 <tt>sasl_decode()</tt>. This must be limited to make sure that only
 a finite amount of data needs to be buffered. The simple rules to

@@ -46,15 +46,17 @@ all_sasl_libs = ../lib/libsasl2.la $(SASL_DB_LIB) $(LIB_SOCKET)
 all_sasl_static_libs = ../lib/libsasl2.a $(SASL_DB_LIB) $(LIB_SOCKET) $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(SASL_KRB_LIB) $(LIB_DES) $(PLAIN_LIBS) $(SRP_LIBS)
 
 sbin_PROGRAMS = @SASL_DB_UTILS@ @SMTPTEST_PROGRAM@
-EXTRA_PROGRAMS = saslpasswd sasldblistusers testsuite testsuitestatic smtptest
+EXTRA_PROGRAMS = saslpasswd2 sasldblistusers2 testsuite testsuitestatic smtptest
 
 noinst_PROGRAMS = dbconverter-2
 
 man_MANS = @SASL_DB_MANS@
-EXTRA_MANS = saslpasswd.8 sasldblistusers.8
+EXTRA_MANS = saslpasswd2.8 sasldblistusers2.8
 
-saslpasswd_LDADD = $(all_sasl_libs) ../sasldb/libsasldb.la
-sasldblistusers_LDADD = $(all_sasl_libs) ../sasldb/libsasldb.la
+saslpasswd2_LDADD = $(all_sasl_libs) ../sasldb/libsasldb.la
+saslpasswd2_SOURCES = saslpasswd.c
+sasldblistusers2_LDADD = $(all_sasl_libs) ../sasldb/libsasldb.la
+sasldblistusers2_SOURCES = sasldblistusers.c
 dbconverter_2_LDADD = $(all_sasl_libs) ../sasldb/libsasldb.la
 
 testsuite_LDADD = $(all_sasl_libs) @DMALLOC_LIBS@

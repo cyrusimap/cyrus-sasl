@@ -1,4 +1,4 @@
-$Id: README,v 1.28 2001/12/04 02:02:00 rjs3 Exp $
+$Id: README,v 1.29 2001/12/04 17:05:38 rjs3 Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication and authorization services.
@@ -15,7 +15,7 @@ http://asg.web.cmu.edu/archive/mailbox.php3?mailbox=archive.cyrus-sasl.
 
 BETA WARNING
 -------------
-THIS CODE IS BETA-QUALITY AND IS INTENDED FOR DEVELOPERS ONLY.
+THIS CODE IS BETA-QUALITY AND IS NOT INTENDED FOR PRODUCTION USE.
 IT IS NOT BACKWARDS COMPATIBLE WITH SASLv1.
 
 Bugs can be searched/reported at: http://bugzilla.andrew.cmu.edu
@@ -29,6 +29,9 @@ DIGEST-MD5
 GSSAPI (MIT Kerberos 5 or Heimdal Kerberos 5)
 KERBEROS_V4
 PLAIN
+OTP (Requires libopie)
+SRP-SHA-160
+SRP-MD5-120
 
 The library uses a Berkeley DB, gdbm or ndbm file on the server side
 to store per-user authentication secrets.  The utility saslpasswd has
@@ -85,6 +88,11 @@ doc/sysadmin.html and doc/options.html.
 
 KNOWN BUGS
 ----------
+* There are some interoperability problems with the DIGEST-MD5 plugin.
+
+* There is an API issue with the username canonicalization functions which
+will be fixed by the next release.
+
 * libtool doesn't always link libraries together.  In our environment,
 we only have static Krb5 libraries; the GSSAPI plugin should link
 these libraries in on platforms that support it (Solaris and Linux
@@ -93,26 +101,9 @@ of libraries correct.
 
 * Also see the "TODO" file.
 
-UPGRADING
----------
-SASLv2 is completely incompatible with SASLv1.  That means applications are
-unable to link both versions of the library, and applications built to
-use one version cannot use the other (atleast not without serious pain
-and suffering on the part of the developer).
-
-Likewise, "sasldb" is incompatible between SASLv1 and SASLv2. As of this time
-there is no migration utility because the passwords in the SASLv1 database
-are all encrypted, so there is no easy way to extract them.  (Note that
-as sasldb support has been extracted from the main library into an auxprop
-plugin, thew default pwcheck_method is now "auxprop", which does auxprop
-lookups in search of the userPassword property)
-
-Note that all passwords in the SASLv2 version of sasldb are stored in plain
-text format.  That means that a comprimized sasldb comprimizes all services
-that rely upon it.  Note also that this situation is not significantly worse,
-cryptographicly speaking, than the old method, and allows the database
-to be easy to transition to another format, should the need arise.  Mechanisms
-wishing a more secure password database backend should implement their own.
+UPGRADING from SASLv1
+---------------------
+See doc/upgrading.html
 
 AUTHORS
 -------

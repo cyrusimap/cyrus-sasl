@@ -1,0 +1,48 @@
+<HTML><HEAD>
+<title>Cyrus SASL for System Administrators</title>
+<!-- $Id: upgrading.html,v 1.1 2001/12/04 17:05:40 rjs3 Exp $ -->
+</HEAD>
+<BODY>
+<H1>Upgrading from Cyrus SASLv1 to Cyrus SASLv2</H1>
+
+This document covers issues with upgrading from SASLv1 to SASLv2.
+
+<h2><A NAME="overview">Backwards Compatibility</A></h2>
+SASLv2 is completely incompatible with applications that use SASLv1.  This
+means that applications are unable to simultaniously link both versions
+of the library, and developers are encouraged to instead develop or upgrade
+their applications to link against SASLv2.<p>
+
+Likewise, the format for the sasldb database has been completely revamped.
+See <A HREF="#db">here</A> for a discussion of the relevant upgrade issues
+related to sasldb.  Note that all new passwords stored in the sasldb
+database will be in plaintext, meaning that a comprimised sasldb will
+comprimise all services relying on it.  Note that this situation is not
+significantly worse, cryptographicly speaking, than the old method, and
+allows the database to be easy to transition to another format, should the
+need arise.  Mechanisms requiring a more secure password database backend
+(e.g. SRP) should implement their own or use alternate property names within
+sasldb.<P>
+
+<h2><A NAME="coexist">Coexistance with SASLv1</A></h2>
+The two library versions and the assiciated utilities should be able to coexist
+on the same system.  The man pages will probablly be unable to coexist.
+The SASLv2-specific utilities have had a "2" appended to their name for this
+purpose (e.g. saslpasswd2, sasldblistusers2).  The new-style sasldb now
+defaults to the name /etc/sasldb2, but this is, as always configurable.
+
+<h2><A NAME="db">Database Upgrades</A></h2>
+While there does not seem to be any conflict with the keys stored in the
+database, it is not recommended to use the same database file for both
+versions of the library.  Included in the utils directory is a program
+called dbconverter-2 which will allow you to convert from the old-format
+database to the new format.  Note, however, that if you are using both SASLv1
+and SASLv2 for authentication on the same machine the databases will not be
+kept in sync by any automatic means.<p>
+
+<hr>
+Back to the <A href=index.html>index</a>
+
+</body>
+</html>
+

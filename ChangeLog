@@ -1,3 +1,9 @@
+2001-12-04  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* utils/Makefile.am, config/sasldb.m4: Build sasldblistusers2
+	  and saslpasswd2.  Default database now /etc/sasldb2
+	* INSTALL, README, doc/index.html, doc/upgrading.html: Update
+	  with upgrading instructions in preparation for release.
+
 2001-12-04  Ken Murchison <ken@oceana.com>
 	* acconfig.h, configure.in:
 	* doc/sysadmin.html:

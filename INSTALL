@@ -10,12 +10,11 @@ If you're checking this directly out of CVS, you'll need to run "sh
 Read doc/sysadmin.html to learn how to configure SASL.
 
 **********
-If you are upgrading, be sure to read the Upgrading section of the
-README file.
+If you are upgrading, be sure to read doc/upgrading.html
 **********
 
-Note that the library looks for plugins in /usr/lib/sasl, but installs
-them into ${prefix}/lib/sasl, where ${prefix} is usually something
+Note that the library looks for plugins in /usr/lib/sasl2, but installs
+them into ${prefix}/lib/sasl2, where ${prefix} is usually something
 like /usr/local.  This is intentional - we want the plugins installed
 with the rest of the package (wherever things get installed at your
 site), but we want the library to *always* be able to find its plugins
@@ -29,7 +28,7 @@ variable SASL_PATH to the path the library should use.
 You'll probably need the GNU make program, available as of this
 writing at <url:ftp://ftp.gnu.org/pub/gnu/make-3.77.tar.gz>.
 
-libsasl can use gdbm, Berkeley db, or ndbm to implement its
+libsasl2 can use gdbm, Berkeley db, or ndbm to implement its
 user/password lookup. Most systems come with ndbm these days; as of
 this writing, gdbm's available as
 <url:ftp://ftp.gnu.org/pub/gnu/gdbm-1.7.3.tar.gz>.  
@@ -54,6 +53,8 @@ compilers we use on our platforms by looking at the "SMakefile".
 ----------------------------------------------------------------------
 IF YOU ARE USING SASL UNDER Win32 OR HAVE COMPILED IT, 
 PLEASE LET US KNOW! 
+
+Note: The Win32 port of SASLv2 is Incomplete.
 
 We've tested the latest version under Windows and are eager to see
 other people use it!

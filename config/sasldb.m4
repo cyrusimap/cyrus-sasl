@@ -130,8 +130,8 @@ AC_MSG_RESULT($dblib)
 
 SASL_DB_BACKEND="db_${dblib}.lo"
 SASL_DB_BACKEND_STATIC="../sasldb/db_${dblib}.o ../sasldb/allockey.o"
-SASL_DB_UTILS="saslpasswd sasldblistusers"
-SASL_DB_MANS="saslpasswd.8 sasldblistusers.8"
+SASL_DB_UTILS="saslpasswd2 sasldblistusers2"
+SASL_DB_MANS="saslpasswd2.8 sasldblistusers2.8"
 
 case "$dblib" in
   gdbm) 
@@ -171,9 +171,9 @@ AC_SUBST(SASL_DB_LIB)
 
 dnl Figure out what database path we're using
 AC_DEFUN(SASL_DB_PATH_CHECK, [
-AC_ARG_WITH(dbpath, [  --with-dbpath=PATH      set the DB path to use [/etc/sasldb] ],
+AC_ARG_WITH(dbpath, [  --with-dbpath=PATH      set the DB path to use [/etc/sasldb2] ],
   dbpath=$withval,
-  dbpath=/etc/sasldb)
+  dbpath=/etc/sasldb2)
 AC_MSG_CHECKING(DB path to use)
 AC_MSG_RESULT($dbpath)
 AC_DEFINE_UNQUOTED(SASL_DB_PATH, "$dbpath")])

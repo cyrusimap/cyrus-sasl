@@ -1,3 +1,13 @@
+2000-08-13  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/saslint.h: _sasl_get_plugin() implemented.
+
+	* lib/dlopen.c: _sasl_get_plugin() implemented.
+
+	* lib/server.c: now supports mechlist file
+
+	* lib/config.c: added to comment
+
 2000-07-21  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/cram.c: patch from Kurt/OpenLDAP.  incorrectly prompting

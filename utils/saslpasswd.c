@@ -99,7 +99,17 @@ void read_password(const char *prompt,
 #ifndef WIN32
     tcgetattr(STDIN_FILENO, &ts);
     nts = ts;
-    nts.c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHOCTL| ECHOPRT | ECHOKE);
+    nts.c_lflag &= ~(ECHO | ECHOE | ECHOK
+#ifdef ECHOCTL
+    | ECHOCTL
+#endif
+#ifdef ECHOPRT
+    | ECHOPRT
+#endif
+#ifdef ECHOKE
+    | ECHOKE
+#endif
+    );
     nts.c_lflag |= ICANON | ECHONL;
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &nts);
 #else

@@ -1,12 +1,21 @@
+2000-03-11  Larry Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/cram.c (mechanism_db_filled): htonl/long again
+
+	* plugins/digestmd5.c (mechanism_db_filled): htonl takes a long
+	(mechanism_fill_db): "version" was referring to the global DIGEST
+	version, not a local database tmpversion.
+
 2000-03-09  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
-	* sample/sample-client.c: add unistd for BSD. Patch via Simon Jefferson
+	* sample/sample-client.c: add unistd.h for getopt (BSD).
 
 	* utils/sasldblistusers.c (listusers): tested more with gdbm/ndbm
 
 	* plugins/digestmd5.c (c_continue_step): extra step for end.
 	
-	* utils/sasldblistusers.c (listusers): compatability with db2.x cursor()
+	* utils/sasldblistusers.c (listusers): compatability with db2.x
+	cursor()
 
 	* version 1.5.17 BETA ready for release
 
@@ -28,7 +37,8 @@
 
 	* plugins/plain.c (server_continue_step): ditto
 
-	* plugins/kerberos4.c (client_continue_step): client last step verifier added
+	* plugins/kerberos4.c (client_continue_step): client last step
+	verifier added
 
 2000-03-08  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 

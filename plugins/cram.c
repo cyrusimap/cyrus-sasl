@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.51 2000/03/09 04:53:12 tmartin Exp $
+ * $Id: cram.c,v 1.52 2000/03/11 21:04:31 leg Exp $
  */
 
 /* 
@@ -363,14 +363,8 @@ static int server_continue_step (void *conn_context,
   context_t *text;
   text=conn_context;
 
-  if (errstr) {
-      *errstr = NULL;
-  }
-
-  if (clientinlen < 0)
-  {
-      return SASL_BADPARAM;
-  }
+  if (errstr) *errstr = NULL;
+  if (clientinlen < 0) return SASL_BADPARAM;
 
   if (text->state==1)
   {    
@@ -582,7 +576,7 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
   int result;
   sasl_server_getsecret_t *getsecret;
   void *getsecret_context;
-  int version = -1;
+  long version = -1;
 
   /* get callback so we can request the secret */
   result = utils->getcallback(utils->conn,
@@ -620,7 +614,7 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
 		 mech_name,
 		 SASL_FAIL,
 		 0,
-		 "CRAM-MD5 secrets database has incompatible version (%d). My version (%d)",
+		 "CRAM-MD5 secrets database has incompatible version (%ld). My version (%d)",
 		 version, CRAM_MD5_VERSION);
 
       return SASL_FAIL;
@@ -637,14 +631,13 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
  * Note: this function is duplicated in multiple plugins. If you fix
  * something here please update the other files
  */
-
 static int mechanism_fill_db(char *mech_name, sasl_server_params_t *sparams)
 {
   int result;
   sasl_server_putsecret_t *putsecret;
   void *putsecret_context;
   sasl_secret_t *sec = NULL;
-  int version;
+  long version;
 
   /* don't do this again if it's already set */
   if (mydb_initialized == 1)

@@ -1950,7 +1950,7 @@ static int
 server_continue_step(void *conn_context,
 		     sasl_server_params_t * sparams,
 		     const char *clientin,
-		     unsigned clientinlen,
+		     int clientinlen,
 		     char **serverout,
 		     int *serveroutlen,
 		     sasl_out_params_t * oparams,
@@ -1963,7 +1963,7 @@ server_continue_step(void *conn_context,
   if (errstr)
     *errstr = NULL;
 
-  if (clientinlen > 2048) return SASL_BADPARAM;
+  if (clientinlen > 2048 || clientinlen < 0) return SASL_BADPARAM;
 
   if (text->state == 1) {
     char           *challenge = NULL;
@@ -2616,7 +2616,7 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
   int result;
   sasl_server_getsecret_t *getsecret;
   void *getsecret_context;
-  int tmpversion = -1;
+  long tmpversion = -1;
 
   /* get callback so we can request the secret */
   result = utils->getcallback(utils->conn,
@@ -2657,7 +2657,7 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
 		 mech_name,
 		 SASL_FAIL,
 		 0,
-		 "DIGEST-MD5 secrets database has incompatible version (%d). My version (%d)",
+		 "DIGEST-MD5 secrets database has incompatible version (%ld). My version (%d)",
 		 tmpversion, DIGEST_MD5_VERSION);
 
       return SASL_FAIL;
@@ -2678,6 +2678,7 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
 static int mechanism_fill_db(char *mech_name, sasl_server_params_t *sparams)
 {
   int result;
+  long tmpversion;
   sasl_server_putsecret_t *putsecret;
   void *putsecret_context;
   sasl_secret_t *sec = NULL;
@@ -2709,8 +2710,8 @@ static int mechanism_fill_db(char *mech_name, sasl_server_params_t *sparams)
   sec->len = 4;
 
   /* and insert the data */
-  version = htonl(DIGEST_MD5_VERSION);
-  memcpy(sec->data, &version, 4);
+  tmpversion = htonl(DIGEST_MD5_VERSION);
+  memcpy(sec->data, &tmpversion, 4);
 
   /* do the store */
   result = putsecret(putsecret_context,

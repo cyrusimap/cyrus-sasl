@@ -46,6 +46,7 @@
 
 SUBDIRS=lib plugins utils sample
 INCSUBDIRS=include sasldb win32\include
+DOCSUBDIRS=doc
 
 all-first: all
 
@@ -54,6 +55,6 @@ all-first: all
 all clean: $(SUBDIRS)
 	!cd $? && $(MAKE) /f NTMakefile /$(MAKEFLAGS) VERBOSE=0 $@
 
-install: $(INCSUBDIRS) $(SUBDIRS)
+install: $(INCSUBDIRS) $(SUBDIRS) $(DOCSUBDIRS)
 	!cd $? && $(MAKE) /f NTMakefile /$(MAKEFLAGS) prefix=$(prefix) $@
 

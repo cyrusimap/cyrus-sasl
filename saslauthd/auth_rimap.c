@@ -53,7 +53,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_rimap.c,v 1.3 2001/01/04 21:20:45 leg Exp $"
+#ident "$Id: auth_rimap.c,v 1.4 2001/02/11 09:18:39 esys Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -449,15 +449,15 @@ auth_rimap (
 	*c = '\0';			/* tie off line termination */
     }
 
-    if (!strncmp(rbuf, "* NO", strlen("* NO"))) {
+    if (!strncmp(rbuf, "* NO", sizeof("* NO")-1)) {
 	(void) close(s);
 	return strdup(RESP_UNAVAILABLE);
     }
-    if (!strncmp(rbuf, "* BYE", strlen("* BYE"))) {
+    if (!strncmp(rbuf, "* BYE", sizeof("* BYE")-1)) {
 	(void) close(s);
 	return strdup(RESP_UNAVAILABLE);
     }
-    if (strncmp(rbuf, "* OK", strlen("* OK"))) {
+    if (strncmp(rbuf, "* OK", sizeof("* OK")-1)) {
 	syslog(LOG_WARNING,
 	       "auth_rimap: unexpected response during initial handshake: %s",
 	       rbuf);
@@ -539,13 +539,13 @@ auth_rimap (
 	*c = '\0';			/* tie off line termination */
     }
 
-     if (!strncmp(rbuf, TAG " OK", strlen(TAG " OK"))) {
+     if (!strncmp(rbuf, TAG " OK", sizeof(TAG " OK")-1)) {
 	if (debug) {
 	    syslog(LOG_DEBUG, "auth_rimap: [%s] %s", login, rbuf);
 	}
 	return strdup("OK remote authentication successful");
     }
-    if (!strncmp(rbuf, TAG " NO", strlen(TAG " NO"))) {
+    if (!strncmp(rbuf, TAG " NO", sizeof(TAG " NO")-1)) {
 	if (debug) {
 	    syslog(LOG_DEBUG, "auth_rimap: [%s] %s", login, rbuf);
 	}

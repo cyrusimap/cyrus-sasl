@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.45 1999/11/16 01:28:06 leg Exp $
+ * $Id: kerberos4.c,v 1.46 1999/12/02 05:21:03 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -936,6 +936,7 @@ static int client_continue_step (void *conn_context,
   if (text->state==2)
   {
     int need = 0;
+    int musthave = 0;
     int testnum;
     int nchal;    
     unsigned char sout[1024];
@@ -1085,9 +1086,12 @@ static int client_continue_step (void *conn_context,
 
     /* need bits of layer */
     need = params->props.max_ssf - params->external_ssf;
+    musthave = params->props.min_ssf - params->external_ssf;
+
+    VL(("need = %i musthave = %i \n",need, musthave));
 
     if ((in[4] & KRB_SECFLAG_ENCRYPTION)
-	&& (need>1)) {
+	&& (need>=56) && (musthave <= 56)) {
       /* encryption */
       oparams->encode = &privacy_encode;
       oparams->decode = &privacy_decode;
@@ -1095,14 +1099,14 @@ static int client_continue_step (void *conn_context,
       sout[4] = KRB_SECFLAG_ENCRYPTION;
       VL (("Using encryption layer\n"));
     } else if ((in[4] & KRB_SECFLAG_INTEGRITY)
-	       && (need == 1)) {
+	       && (need >= 1) && (musthave <= 1)) {
       /* integrity */
       oparams->encode=&integrity_encode;
       oparams->decode=&integrity_decode;
       oparams->mech_ssf=1;
       sout[4] = KRB_SECFLAG_INTEGRITY;
       VL (("Using integrity layer\n"));
-    } else if (in[4] & KRB_SECFLAG_NONE) {
+    } else if ((in[4] & KRB_SECFLAG_NONE) && (musthave <= 0)) {
       /* no layer */
       oparams->encode=NULL;
       oparams->decode=NULL;

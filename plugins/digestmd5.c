@@ -3237,6 +3237,7 @@ c_continue_step(void *conn_context,
 
   if (text->state == 2) {
     int need = 0;
+    int musthave = 0;
     unsigned char  *digesturi = NULL;
     unsigned char  *nonce = NULL;
     unsigned char  *ncvalue = (unsigned char *) "00000001";
@@ -3514,6 +3515,7 @@ c_continue_step(void *conn_context,
 
     /* need bits of layer */
     need = params->props.max_ssf - external;
+    musthave = params->props.min_ssf - external;
 
     if ((need > 1) &&
 	((protection & DIGEST_PRIVACY) == DIGEST_PRIVACY)) {
@@ -3527,7 +3529,7 @@ c_continue_step(void *conn_context,
       /* Client request encryption, server supports it */
       /* encryption */
 #ifdef WITH_RC4
-      if ((need>=128)  && 
+      if ((need>=128)  && (musthave <=128) && 
 	  ((ciphers & CIPHER_RC4) == CIPHER_RC4)) { /* rc4 */
 	VL(("Trying to use rc4"));
 	cipher = "rc4";
@@ -3541,7 +3543,8 @@ c_continue_step(void *conn_context,
 #endif /* WITH_RC4 */
 
 #ifdef WITH_DES
-      } else if ((need>=112) && ((ciphers & CIPHER_3DES) == CIPHER_3DES)) {
+      } else if ((need>=112) && (musthave <=112) &&
+		 ((ciphers & CIPHER_3DES) == CIPHER_3DES)) {
 	VL(("Trying to use 3des"));
 	cipher = "3des";
 	text->cipher_enc=(cipher_function_t *) &enc_3des;
@@ -3552,7 +3555,8 @@ c_continue_step(void *conn_context,
 #endif /* WITH_DES */
 
 #ifdef WITH_RC4
-      } else if ((need>=56)  && ((ciphers & CIPHER_RC456) == CIPHER_RC456)) { /* rc4-56 */
+      } else if ((need>=56) && (musthave <=56) &&
+		 ((ciphers & CIPHER_RC456) == CIPHER_RC456)) { /* rc4-56 */
  	VL(("Trying to use rc4-56"));
  	cipher = "rc4-56";
  	text->cipher_enc=(cipher_function_t *) &enc_rc4;
@@ -3563,7 +3567,8 @@ c_continue_step(void *conn_context,
 #endif /* WITH_RC4 */
 
 #ifdef WITH_DES
-      } else if ((need>=55)  && ((ciphers & CIPHER_DES) == CIPHER_DES)) { /* des */
+      } else if ((need>=55) && (musthave <=55) &&
+		 ((ciphers & CIPHER_DES) == CIPHER_DES)) { /* des */
 	VL(("Trying to use des"));
 	cipher = "des";
 	text->cipher_enc=(cipher_function_t *) &enc_des;
@@ -3574,7 +3579,8 @@ c_continue_step(void *conn_context,
 #endif /* WITH_DES */
 
 #ifdef WITH_RC4
-      } else if ((need>=40)  && ((ciphers & CIPHER_RC440) == CIPHER_RC440)) { /* rc4-40 */
+      } else if ((need>=40) && (musthave <=40) &&
+		 ((ciphers & CIPHER_RC440) == CIPHER_RC440)) { /* rc4-40 */
  	VL(("Trying to use rc4-40"));
  	cipher = "rc4-40";
  	text->cipher_enc=(cipher_function_t *) &enc_rc4;
@@ -3594,7 +3600,7 @@ c_continue_step(void *conn_context,
 
     if (qop==NULL)
     {
-      if ((params->props.min_ssf - external <= 1) && (need >= 1) &&
+      if ((need >= 1) && (musthave <=1) &&
 	  ((protection & DIGEST_INTEGRITY) == DIGEST_INTEGRITY)) {
 	/* integrity */
 	oparams->encode = &integrity_encode;
@@ -3602,7 +3608,7 @@ c_continue_step(void *conn_context,
 	oparams->mech_ssf = 1;
 	qop = "auth-int";
 	VL(("Using integrity layer\n"));
-      } else {
+      } else if (musthave <=0) {
 	/* no layer */
 	oparams->encode = NULL;
 	oparams->decode = NULL;
@@ -3616,6 +3622,10 @@ c_continue_step(void *conn_context,
 	  result = SASL_FAIL;
 	  goto FreeAllocatedMem;
 	}
+      } else {
+	  VL(("Can't find an acceptable layer\n"));
+	  result = SASL_FAIL;
+	  goto FreeAllocatedMem;
       }
     }
 

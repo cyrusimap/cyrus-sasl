@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.59 1999/12/01 20:37:56 tmartin Exp $
+ * $Id: server.c,v 1.60 1999/12/02 05:20:59 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -852,6 +852,7 @@ int sasl_server_start(sasl_conn_t *conn,
   s_conn->sparams->service=conn->service;
   s_conn->sparams->user_realm=s_conn->user_realm;
   s_conn->sparams->props=conn->props;
+  s_conn->sparams->external_ssf=conn->external.ssf;
 
   result = s_conn->mech->plug->mech_new(s_conn->mech->plug->glob_context,
 					s_conn->sparams,

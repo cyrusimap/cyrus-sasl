@@ -1,5 +1,13 @@
 1999-12-01  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
+	* plugins/kerberos4.c: enforces minumum ssf
+	
+	* plugins/digestmd5.c: enforces minumum ssf
+
+	* plugins/kerberos4.c (client_continue_step): 
+
+	* lib/server.c (sasl_server_start): from alexey: set external_ssf in sasl_server_start
+
 	* plugins/digestmd5.c: caches db has entries; checks db version
 
 	* plugins/cram.c: caches db has entries; checks db version

@@ -1,5 +1,6 @@
 2002-04-03  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* saslauthd/configure.in: properly define AUTH_KRB5
+	* saslauthd/auth_krb5.c: changes for MIT KRB5
 
 2002-03-27  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* Removed check for db3/db.h (people can just use --with-bdb-incdir)

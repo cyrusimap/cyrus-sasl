@@ -423,12 +423,11 @@ int have_prompts(sasl_conn_t *conn,
   void *pcontext;
   int result;
 
-  if (mech->required_prompts)
-    prompt = mech->required_prompts;
-  else
-    prompt = default_prompts;
-
-  while (*prompt != SASL_CB_LIST_END) {
+  for (prompt = (mech->required_prompts
+		 ? mech->required_prompts :
+		 default_prompts);
+       *prompt != SASL_CB_LIST_END;
+       prompt++) {
     result = _sasl_getcallback(conn, *prompt, &pproc, &pcontext);
     if (result != SASL_OK && result != SASL_INTERACT)
       return 0;			/* we don't have this required prompt */

@@ -1,6 +1,9 @@
 2002-05-08  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/acconfig.h, auth_ldap.c, configure.in, lak.c, lak.h:
-	  Misc compile fixes (mostly header-related)
+	  Misc compile/portability fixes (mostly header-related)
+	* utils/testsuite.c: minor getopt() parameter fix
+	  (Claus Assmann <ca+sasl@sendmail.org>)
+	* lib/checkpw.c: fix some warnings
 
 2002-05-07  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* Ready for 2.1.3-BETA

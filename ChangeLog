@@ -1,3 +1,8 @@
+Sun Dec 12 17:32:02 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* configure.in: if we don't find DES, don't use Kerberos (Simon
+	Josefsson <jas@pdc.kth.se>)
+
 Sat Dec 11 14:27:52 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/dlopen.c: applied patch from Claus Assmann

@@ -755,7 +755,7 @@ int _sasl_pwcheck_verify_password(sasl_conn_t *conn,
 
     if (reply) { *reply = NULL; }
 
-    strcpy(pwpath, "PWCHECKDIR");
+    strcpy(pwpath, PWCHECKDIR);
     strcat(pwpath, "/pwcheck");
 
     s = socket(AF_UNIX, SOCK_STREAM, 0);

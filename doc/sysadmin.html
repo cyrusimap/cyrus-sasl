@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.7 1999/10/01 20:27:48 leg Exp $ -->
+<!-- $Id: sysadmin.html,v 1.8 1999/12/12 23:10:43 leg Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -110,9 +110,9 @@ authentication and password are verified.  The Cyrus SASL library is
 flexible in this regard:
 
 <DL>
-<dt><i>passwd</i><dd> <tt>/etc/passwd</tt> is supported innately in
-  the library.  Simply set the configuration option "pwcheck_method"
-  to "passwd".<p>
+<dt><i>passwd</i><dd> <tt>/etc/passwd</tt>, via the call
+  <tt>getpwnam()</tt>, is supported innately in the library.  Simply
+  set the configuration option "pwcheck_method" to "passwd".<p>
 
 <dt><i>shadow</i><dd> <tt>/etc/shadow</tt> is somewhat trickier.  If
   the servers that use SASL run as root (such as Sendmail) there's no
@@ -142,9 +142,9 @@ flexible in this regard:
   Radius, through NIS, through LDAP, or even using the traditional
   <tt>/etc/passwd</tt> file.  If you wish to use PAM for
   authentication and the Cyrus SASL library found the PAM library when
-  it was configured at compilation time, it is the default (or set
-  "pwcheck_method" to "PAM").  It uses PAM with the service name (for
-  example, Sendmail uses "smtp" and Cyrus imapd uses "imap").<p>
+  it was configured at compilation time, set "pwcheck_method" to
+  "PAM".  It uses PAM with the service name (for example, Sendmail
+  uses "smtp" and Cyrus imapd uses "imap").<p>
 
   The PAM authentication for SASL <i>only</i> affects the plaintext
   authentication it does.  It has no effect on the other mechanisms,

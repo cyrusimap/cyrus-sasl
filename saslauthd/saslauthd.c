@@ -78,7 +78,7 @@
  * END HISTORY */
 
 #ifdef __GNUC__
-#ident "$Id: saslauthd.c,v 1.11 2002/01/21 21:19:09 rjs3 Exp $"
+#ident "$Id: saslauthd.c,v 1.12 2002/03/25 19:21:08 leg Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -811,6 +811,10 @@ int retry_read(int fd, void *buf, unsigned nbyte)
 
     for (;;) {
 	n = read(fd, buf, nbyte);
+	if (n == 0) {
+	    /* end of file */
+	    return -1;
+	}
 	if (n == -1) {
 	    if (errno == EINTR) continue;
 	    return -1;

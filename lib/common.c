@@ -937,7 +937,7 @@ _sasl_log (sasl_conn_t *conn,
 	  case 'c':
 	    frmt[frmtpos++]=format[pos];
 	    frmt[frmtpos]=0;
-	    tempbuf[0] = va_arg(ap, char); /* get the next arg */
+	    tempbuf[0] = (char) va_arg(ap, int); /* get the next arg */
 	    tempbuf[1]='\0';
 	    
 	    /* now add the character */

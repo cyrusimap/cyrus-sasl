@@ -35,6 +35,7 @@ To release:
 
 - update asg.web.cmu.edu
 - announce to:
+    cyrus-announce@lists.andrew.cmu.edu
     info-cyrus@andrew.cmu.edu
     cyrus-sasl@lists.andrew.cmu.edu
 

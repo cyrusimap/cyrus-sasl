@@ -1,3 +1,7 @@
+2004-06-23  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/lak.c: Minor bugfixes, support %R token
+	  (Igor Brezac <igor@ypass.net>)
+
 2004-06-18  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/NTMakefile: Remove only recognized (generated) .rc files,
 	  not just *.rc. This will allow for plugins with own resource files.

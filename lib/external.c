@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: external.c,v 1.7 2002/04/18 17:30:54 rjs3 Exp $
+ * $Id: external.c,v 1.8 2002/04/26 20:20:53 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -50,8 +50,10 @@
 #include <ctype.h>
 #include <string.h>
 #include <sasl.h>
+#include <saslplug.h>
 #include <saslutil.h>
 #include "saslint.h"
+#include "plugin_common.h"
 
 static int
 external_server_new(void *glob_context __attribute__((unused)),
@@ -213,11 +215,9 @@ external_client_step(void *conn_context,
 		     sasl_out_params_t *oparams)
 {
   int result;
-  sasl_getsimple_t *getuser_cb;
-  void *getuser_context;
-  const char *user;
-  unsigned len;
+  const char *user = NULL;
   external_client_context_t *text = (external_client_context_t *)conn_context;
+  int user_result = SASL_OK;
   
   if (!params
       || !params->utils
@@ -234,51 +234,38 @@ external_client_step(void *conn_context,
   if (serverinlen != 0)
     return SASL_BADPROT;
 
-  if (prompt_need && *prompt_need) {
-    /* Second time through; we used a SASL_INTERACT to get the user. */
-    if (! (*prompt_need)[0].result)
-      return SASL_BADPARAM;
-    user = (*prompt_need)[0].result;
-    *clientoutlen = strlen(user);
-    params->utils->free(*prompt_need);
-    *prompt_need = NULL;
-  } else {
-    /* We need to get the user. */
-    result = params->utils->getcallback(params->utils->conn,
-					SASL_CB_USER,
-					&getuser_cb,
-					&getuser_context);
-    switch (result) {
-    case SASL_INTERACT:
-      /* Set up the interaction... */
-      if (prompt_need) {
-	*prompt_need = params->utils->malloc(sizeof(sasl_interact_t) * 2);
-	if (! *prompt_need)
-	  return SASL_FAIL;
-	memset(*prompt_need, 0, sizeof(sasl_interact_t) * 2);
-	(*prompt_need)[0].id = SASL_CB_USER;
-	(*prompt_need)[0].prompt = "Authorization Identity";
-	(*prompt_need)[0].defresult = "";
-	(*prompt_need)[1].id = SASL_CB_LIST_END;
-      }
-      return SASL_INTERACT;
-    case SASL_OK:
-      if (getuser_cb &&
-	  (getuser_cb(getuser_context,
-		      SASL_CB_USER,
-		      &user,
-		      &len)
-	   == SASL_OK)) {
-	*clientoutlen = strlen(user);
-	break;
-      }
-      /* Otherwise, drop through into the default we-lose case. */
-    default:
-      /* Assume userid == authid. */
-      user = NULL;
-      *clientoutlen = 0;
-    }
+  /* try to get the userid */
+  if (user == NULL) {
+      user_result = _plug_get_userid(params, &user, prompt_need);
+
+      if ((user_result != SASL_OK) && (user_result != SASL_INTERACT))
+	  return user_result;
   }
+
+  /* free prompts we got */
+  if (prompt_need && *prompt_need) {
+      params->utils->free(*prompt_need);
+      *prompt_need = NULL;
+  }
+
+  /* if there are prompts not filled in */
+  if (user_result == SASL_INTERACT) {
+      /* make the prompt list */
+      *prompt_need = params->utils->malloc(sizeof(sasl_interact_t) * 2);
+      if (! *prompt_need) {
+	  MEMERROR( params->utils );
+	  return SASL_NOMEM;
+      }
+      memset(*prompt_need, 0, sizeof(sasl_interact_t) * 2);
+      (*prompt_need)[0].id = SASL_CB_USER;
+      (*prompt_need)[0].prompt = "Authorization Identity";
+      (*prompt_need)[0].defresult = "";
+      (*prompt_need)[1].id = SASL_CB_LIST_END;
+
+      return SASL_INTERACT;
+  }
+
+  *clientoutlen = user ? strlen(user) : 0;
 
   result = _buf_alloc(&text->out_buf, &text->out_buf_len, *clientoutlen + 1);
 

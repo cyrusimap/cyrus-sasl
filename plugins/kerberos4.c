@@ -1195,7 +1195,7 @@ static const sasl_client_plug_t client_plugins[] =
 {
   {
     "KERBEROS_V4",
-    KRB_DES_SECURITY_BITS,r
+    KRB_DES_SECURITY_BITS,
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOACTIVE | SASL_SEC_NOANONYMOUS,
     NULL,
     &client_required_prompts,

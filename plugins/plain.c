@@ -380,7 +380,7 @@ static int c_start(void *glob_context __attribute__((unused)),
  */
 
 static sasl_interact_t *find_prompt(sasl_interact_t *promptlist,
-				    int lookingfor)
+				    unsigned int lookingfor)
 {
   if (promptlist==NULL) return NULL;
 
@@ -432,7 +432,7 @@ static int get_userid(sasl_client_params_t *params,
 	return SASL_FAIL;
       result = getuser_cb(getuser_context,
 			  SASL_CB_USER,
-			  userid,
+			  (const char **) userid,
 			  NULL);
       if (result != SASL_OK)
 	return result;
@@ -478,7 +478,7 @@ static int get_authid(sasl_client_params_t *params,
 	return SASL_FAIL;
       result = getauth_cb(getauth_context,
 			  SASL_CB_AUTHNAME,
-			  authid,
+			  (const char **)authid,
 			  NULL);
       if (result != SASL_OK)
 	return result;
@@ -500,7 +500,7 @@ static int get_password(sasl_client_params_t *params,
 {
 
   int result;
-  sasl_getsimple_t *getpass_cb;
+  sasl_getsecret_t *getpass_cb;
   void *getpass_context;
   sasl_interact_t *prompt;
 
@@ -509,8 +509,6 @@ static int get_password(sasl_client_params_t *params,
   if (prompt!=NULL)
   {
     /* We prompted, and got.*/
-    char *passstr;
-    int passlen;
 	
     if (! prompt->result)
       return SASL_FAIL;
@@ -556,12 +554,32 @@ static int get_password(sasl_client_params_t *params,
   return result;
 }
 
+static void free_prompts(sasl_client_params_t *params,
+			sasl_interact_t *prompts)
+{
+  sasl_interact_t *ptr=prompts;
+  if (ptr==NULL) return;
+
+  do
+  {
+    /* xxx might be freeing static memory. is this ok? */
+    if (ptr->result!=NULL)
+      params->utils->free(ptr->result);
+
+    ptr+=sizeof(sasl_interact_t);
+  } while(ptr->id!=SASL_CB_LIST_END);
+
+  params->utils->free(prompts);
+  prompts=NULL;
+}
+
 /*
  * Make the necessary prompts
  */
 
 static int make_prompts(sasl_client_params_t *params,
 			sasl_interact_t **prompts_res,
+			context_t *text,
 			int user_res,
 			int auth_res,
 			int pass_res)
@@ -585,7 +603,7 @@ static int make_prompts(sasl_client_params_t *params,
     (prompts)->id=SASL_CB_USER;
     (prompts)->challenge="Userid";
     (prompts)->prompt="Please enter your userid";
-    (prompts)->defresult=text->authname;
+    (prompts)->defresult=text->authid;
 
     prompts+=sizeof(sasl_interact_t);
   }
@@ -624,6 +642,7 @@ static int make_prompts(sasl_client_params_t *params,
 }
 
 
+
 static int client_continue_step (void *conn_context,
 				 sasl_client_params_t *params,
 				 const char *serverin __attribute__((unused)),
@@ -634,7 +653,6 @@ static int client_continue_step (void *conn_context,
 				 sasl_out_params_t *oparams)
 {
   int result;
-  unsigned len;
 
   context_t *text;
   text=conn_context;
@@ -645,9 +663,9 @@ static int client_continue_step (void *conn_context,
 
   if (text->state==1)
   {
-    int user_result;
-    int auth_result;
-    int pass_result;
+    int user_result=SASL_OK;
+    int auth_result=SASL_OK;
+    int pass_result=SASL_OK;
 
 
     /* check if sec layer strong enough */
@@ -693,16 +711,15 @@ static int client_continue_step (void *conn_context,
     }
 
     
-    /* xxx free prompts we got */
-    *prompt_need=NULL;
-
+    /* free prompts we got */
+    free_prompts(params,*prompt_need);
 
     /* if there are prompts not filled in */
     if ((user_result==SASL_INTERACT) || (auth_result==SASL_INTERACT) ||
 	(pass_result==SASL_INTERACT))
     {
       /* make the prompt list */
-      result=make_prompts(params,prompt_need,
+      result=make_prompts(params,prompt_need, text, 
 			  user_result, auth_result, pass_result);
       if (result!=SASL_OK) return result;
       

@@ -78,7 +78,7 @@
  * END HISTORY */
 
 #ifdef __GNUC__
-#ident "$Id: saslauthd.c,v 1.8 2002/01/07 20:31:24 leg Exp $"
+#ident "$Id: saslauthd.c,v 1.9 2002/01/21 18:01:41 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -235,8 +235,8 @@ main(
 
   	  case 'n':
 	    num_threads = atoi(optarg);
-	    if(num_threads < 1) {
-		fprintf(stderr, "saslauthd needs to have atleast 1 thread!");
+	    if(num_threads < 0) {
+		fprintf(stderr, "invalid number of threads");
 		exit(1);
 	    }
 	    break;
@@ -536,41 +536,56 @@ main(
 	    }
 	}
     }
-    
-    alfd = open(acceptlockfile, O_WRONLY|O_CREAT, LOCK_FILE_MODE);
 
-    if(alfd < 0) {
-	syslog(LOG_ERR, "FATAL: open(acceptlockfile): %m");
-	fprintf(stderr, "could not open acceptlockfile\n");
-	exit(1);
+    /* Only when not in forking or debug mode */
+    if(!debug && num_threads > 0) {
+	alfd = open(acceptlockfile, O_WRONLY|O_CREAT, LOCK_FILE_MODE);
+
+	if(alfd < 0) {
+	    syslog(LOG_ERR, "FATAL: open(acceptlockfile): %m");
+	    fprintf(stderr, "could not open acceptlockfile\n");
+	    exit(1);
+	}
+
+	/* setup the alockinfo structure */
+	alockinfo.l_start = 0;
+	alockinfo.l_len = 0;
+	alockinfo.l_whence = SEEK_SET;
     }
 	
-    /* setup the alockinfo structure */
-    alockinfo.l_start = 0;
-    alockinfo.l_len = 0;
-    alockinfo.l_whence = SEEK_SET;
 
     while (1) {
 	/* The idea here is we only want one process to be waiting on
-	 * an accept() at a time, so that only one wakes up at a time */
-	alockinfo.l_type = F_WRLCK;
-	while ((rc = fcntl(alfd, F_SETLKW, &alockinfo)) < 0 && errno == EINTR)
-	    /* noop */;
-	if (rc < 0) {
-	    syslog(LOG_ERR, "fcntl: F_SETLKW: error getting accept lock: %m");
-	    exit(1);
-	}
+	 * an accept() at a time, so that only one wakes up at a time *
 
-	conn = accept(s, (struct sockaddr *)&client, &len);
-
-	alockinfo.l_type = F_UNLCK;
-	while ((rc = fcntl(alfd, F_SETLKW, &alockinfo)) < 0 && errno == EINTR)
-	    /* noop */;
-	if (rc < 0) {
-	    syslog(LOG_ERR, "fcntl: F_SETLKW: error releasing accept lock: %m");
-	    exit(1);
+	/* Only when not in forking or debug mode */
+	if(!debug && num_threads > 0) {
+	    alockinfo.l_type = F_WRLCK;
+	    while (  (rc = fcntl(alfd, F_SETLKW, &alockinfo)) < 0
+		   && errno == EINTR)
+		/* noop */;
+	    if (rc < 0) {
+		syslog(LOG_ERR,
+		       "fcntl: F_SETLKW: error getting accept lock: %m");
+		exit(1);
+	    }
 	}
 	
+	conn = accept(s, (struct sockaddr *)&client, &len);
+
+	/* Only when not in forking or debug mode */
+	if(!debug && num_threads > 0) {
+	    alockinfo.l_type = F_UNLCK;
+	    while (  (rc = fcntl(alfd, F_SETLKW, &alockinfo)) < 0
+		   && errno == EINTR)
+		/* noop */;
+	    if (rc < 0) {
+		syslog(LOG_ERR,
+		       "fcntl: F_SETLKW: error releasing accept lock: %m");
+		exit(1);
+	    }
+	}
+
 	if (conn == -1) {
 	    if (errno != EINTR) {
 		/*
@@ -582,8 +597,25 @@ main(
 	    continue;
 	} 
 
-	do_request(conn, conn);
-	close(conn);
+	if(!debug && num_threads == 0) {
+	    /* for forking mode only */
+	    pid = fork();
+	    if (pid == 0) {        /* child */
+		close(s);
+		do_request(conn, conn); /* process the request */
+		close(conn);
+		closelog();
+		exit(0);
+	    } else if (pid > 0) {  /* parent */
+		close(conn);
+	    } else if (pid == -1) {
+		syslog(LOG_ERR, "accept fork: %m");
+		close(conn);
+	    }
+	} else {
+	    do_request(conn, conn);
+	    close(conn);
+	}
     }
 
     /*NOTREACHED*/

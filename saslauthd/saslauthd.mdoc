@@ -1,4 +1,4 @@
-.\" $Id: saslauthd.mdoc,v 1.6 2001/12/19 15:29:27 ken3 Exp $
+.\" $Id: saslauthd.mdoc,v 1.7 2002/01/21 18:01:41 rjs3 Exp $
 .\" Copyright 1997-2001 Messaging Direct Ltd. All rights reserved.
 .\"
 .\" This manpage uses the BSD mdoc manpage macros. Please don't
@@ -68,7 +68,10 @@ connection requests. This must be an absolute pathname.
 .It Fl n Ar threads
 Use
 .Ar threads
-processes for responding to authentication queries. (default: 5)
+processes for responding to authentication queries. (default: 5)  A
+value of zero will indicate that saslauthd should fork an individual
+process for each connection.  This can solve leaks that occur in some
+deployments.
 .It Fl T
 Honour time-of-day login restrictions.
 .It Fl v

@@ -13,17 +13,29 @@
 #ifndef HMAC_MD5_H
 #include "hmac-md5.h"
 #endif
-#ifndef PROP_H
-#include "prop.h"
-#endif
+
+/* callback to lookup a property from a SASL connection state
+ * input:
+ *  conn          -- the connection to get a property from
+ *  propnum       -- property number
+ * output:
+ *  pvalue        -- pointer to value
+ * returns:
+ *  SASL_OK       -- no error
+ *  SASL_NOTDONE  -- property not available yet
+ *  SASL_BADPARAM -- bad property number
+ */
+typedef int sasl_getprop_t(sasl_conn_t *conn,
+			   int propnum,
+			   void **pvalue);
 
 /* callback to lookup a sasl_callback_t for a connnection
  * input:
  *  conn        -- the connection to lookup a callback for
  *  callbacknum -- the number of the callback
  * output:
- *  pproc       -- pointer to the callback function (set to NULL on failure)
- *  pcontext    -- pointer to the callback context (set to NULL on failure)
+ *  pproc       -- pointer to the callback function
+ *  pcontext    -- pointer to the callback context
  * returns:
  *  SASL_OK -- no error
  *  SASL_FAIL -- unable to find a callback of the requested type
@@ -34,11 +46,13 @@ typedef int sasl_getcallback_t(sasl_conn_t *conn,
 			       int (**pproc)(),
 			       void **pcontext);
 
-/* The sasl_utils structure will remain backwards compatible unless
- * the SASL_*_PLUG_VERSION is changed incompatibly
- * higher SASL_UTILS_VERSION numbers indicate more functions are available
- */
-#define SASL_UTILS_VERSION 4
+#ifdef WIN32
+/* need to handle the fact that errno has been defined as a function
+   in a dll, not an extern int */
+#ifdef errno
+#undef errno
+#endif /* errno */
+#endif /* WIN32 */
 
 /* utility function set for plug-ins
  */
@@ -52,7 +66,10 @@ typedef struct sasl_utils {
 
     /* option function */
     sasl_getopt_t *getopt;
-    
+
+    /* property function */
+    sasl_getprop_t *getprop;
+
     /* allocation functions: */
     sasl_malloc_t *malloc;
     sasl_calloc_t *calloc;
@@ -60,215 +77,138 @@ typedef struct sasl_utils {
     sasl_free_t *free;
 
     /* mutex functions: */
-    sasl_mutex_alloc_t *mutex_alloc;
+    sasl_mutex_new_t *mutex_new;
     sasl_mutex_lock_t *mutex_lock;
     sasl_mutex_unlock_t *mutex_unlock;
-    sasl_mutex_free_t *mutex_free;
+    sasl_mutex_dispose_t *mutex_dispose;
 
     /* MD5 hash and HMAC functions */
     void (*MD5Init)(MD5_CTX *);
     void (*MD5Update)(MD5_CTX *, const unsigned char *text, unsigned int len);
     void (*MD5Final)(unsigned char [16], MD5_CTX *);
     void (*hmac_md5)(const unsigned char *text, int text_len,
-		     const unsigned char *key, int key_len,
-		     unsigned char [16]);
+		    const unsigned char *key, int key_len,
+		    unsigned char [16]);
     void (*hmac_md5_init)(HMAC_MD5_CTX *, const unsigned char *key, int len);
     /* hmac_md5_update() is just a call to MD5Update on inner context */
     void (*hmac_md5_final)(unsigned char [16], HMAC_MD5_CTX *);
-    void (*hmac_md5_precalc)(HMAC_MD5_STATE *,
-			     const unsigned char *key, int len);
+    void (*hmac_md5_precalc)(HMAC_MD5_STATE *, const unsigned char *key,
+			     int len);
     void (*hmac_md5_import)(HMAC_MD5_CTX *, HMAC_MD5_STATE *);
 
     /* mechanism utility functions (same as above): */
-    int (*mkchal)(sasl_conn_t *conn, char *buf, unsigned maxlen,
-		  unsigned hostflag);
+    int (*mkchal)(sasl_conn_t *conn, char *buf, unsigned maxlen, int hostflag);
     int (*utf8verify)(const char *str, unsigned len);
     void (*rand)(sasl_rand_t *rpool, char *buf, unsigned len);
     void (*churn)(sasl_rand_t *rpool, const char *data, unsigned len);
 
-    /* This allows recursive calls to the sasl_checkpass() routine from
-     * within a SASL plug-in.  This MUST NOT be used in the PLAIN mechanism
-     * as sasl_checkpass MAY be a front-end for the PLAIN mechanism.
-     * This is intended for use by the non-standard LOGIN mechanism and
-     * potentially by a future mechanism which uses public-key technology to
-     * set up a lightweight encryption layer just for sending a password.
-     */
+    /* current CMU hack.  DO NOT USE EXCEPT IN PLAIN */
     int (*checkpass)(sasl_conn_t *conn,
-		     const char *user, unsigned userlen,
-		     const char *pass, unsigned passlen);
-    
-    /* Access to base64 encode/decode routines */
-    int (*decode64)(const char *in, unsigned inlen,
-		    char *out, unsigned outmax, unsigned *outlen);
-    int (*encode64)(const char *in, unsigned inlen,
-		    char *out, unsigned outmax, unsigned *outlen);
-
-    /* erase a buffer */
-    void (*erasebuffer)(char *buf, unsigned len);
-
-    /* callback to sasl_getprop() and sasl_setprop() */
-    int (*getprop)(sasl_conn_t *conn, int propnum, const void **pvalue);
-    int (*setprop)(sasl_conn_t *conn, int propnum, const void *value);
+		     const char *mech, const char *service,
+		     const char *user, const char *pass, 
+		     const char **errstr);
 
     /* callback function */
     sasl_getcallback_t *getcallback;
 
-    /* format a message and then pass it to the SASL_CB_LOG callback
-     *
-     * use syslog()-style formatting (printf with %m as most recent errno
-     * error).  The implementation may use a fixed size buffer not smaller
-     * than 512 octets if it securely truncates the message.
-     *
-     * level is a SASL_LOG_* level (see sasl.h)
-     */
-    void (*log)(sasl_conn_t *conn, int level, const char *fmt, ...);
-
-    /* callback to sasl_seterror() */
-    void (*seterror)(sasl_conn_t *conn, unsigned flags, const char *fmt, ...);
-
-    /* spare function pointer */
-    int *(*spare_fptr)();
-
-    /* auxiliary property utilities */
-    struct propctx *(*prop_new)(unsigned estimate);
-    int (*prop_dup)(struct propctx *src_ctx, struct propctx **dst_ctx);
-    int (*prop_request)(struct propctx *ctx, const char **names);
-    const struct propval *(*prop_get)(struct propctx *ctx);
-    int (*prop_getnames)(struct propctx *ctx, const char **names,
-			 struct propval *vals);
-    void (*prop_clear)(struct propctx *ctx, int requests);
-    void (*prop_dispose)(struct propctx **ctx);
-    int (*prop_format)(struct propctx *ctx, const char *sep, int seplen,
-		       char *outbuf, unsigned outmax, unsigned *outlen);
-    int (*prop_set)(struct propctx *ctx, const char *name,
-		    const char *value, int vallen);
-    int (*prop_setvals)(struct propctx *ctx, const char *name,
-			const char **values);
-    void (*prop_erase)(struct propctx *ctx, const char *name);
-
-    /* for additions which don't require a version upgrade; set to 0 */
-    int (*spare_fptr1)();
-    int (*spare_fptr2)();
-    int (*spare_fptr3)();
+    /* logging */
+    int (*log)(sasl_conn_t *conn,
+	       int priority,
+	       const char *plugin_name,
+	       int sasl_error,	/* %z */
+	       int errnum,	/* %m */
+	       const char *format,
+	       ...);
 } sasl_utils_t;
 
-/*
- * output parameters from SASL API
+/* variable sized secret structure created by client mechanism
  *
- * created / destroyed by the glue code, though probabally filled in
- * by a combination of the plugin, the glue code, and the canon_user callback.
+ * structure uses offsets to allow it to be copied & saved
  *
+ * buf contains the mechanism specific data followed by the mechanism
+ *  name (NUL terminated) followed by the user name (NUL terminated)
+ * mechoffset is offset in buf to start of mechanism name (0 = plain mech)
+ * useroffset is offset in buf to start of user name
+ *
+ * PLAIN:
+ *   len = passlen + userlen + 2
+ *   mechoffset = 0
+ *   useroffset = passlen + 1
+ *   <password> NUL
+ *   <username> NUL
+ * CRAM-MD5/SCRAM-MD5:
+ *   len = userlen + 50
+ *   mechoffset = 32
+ *   useroffset = 41
+ *   <HMAC-MD5 pre-result, big-endian>
+ *   "CRAM-MD5" NUL
+ *   <username> NUL
+ */
+typedef struct sasl_mech_secret {
+    unsigned long len;
+    unsigned long mechoffset;	/* 0 if plain mechanism */
+    unsigned long useroffset;
+    char buf[1];
+} sasl_mech_secret_t;
+
+typedef struct sasl_credentials sasl_credentials_t;
+
+/* output parameters from SASL API
  */
 typedef struct sasl_out_params {
-    unsigned doneflag;		/* exchange complete */
+    int doneflag;		/* exchange complete */
+    sasl_ssf_t mech_ssf;	/* security layer strength factor of mech */
+    unsigned maxoutbuf;		/* max plain output to security layer */
 
-    const char *user;		/* canonicalized user name */
-    const char *authid;		/* canonicalized authentication id */
-
-    unsigned ulen;		/* length of canonicalized user name */
-    unsigned alen;		/* length of canonicalized authid */
-
-    /* security layer information */
-    unsigned maxoutbuf;
-    sasl_ssf_t mech_ssf;
+    /* mic functions differs from encode in that the output is intended to be
+     * appended to the input rather than an encapsulated variant of it.
+     * a plugin which supports getmic()/verifymic() but not
+     * encode()/decode() should be exportable.  Ditto for framework.
+     * datalen param of verifymic returns length of data in buffer
+     */
     void *encode_context;
-    int (*encode)(void *context, const struct iovec *invec, unsigned numiov,
-		  const char **output, unsigned *outputlen);
+    int (*encode)(void *context, const char *input, unsigned inputlen,
+		  char **output, unsigned *outputlen);
+    int (*getmic)(void *context, const char *input, unsigned inputlen,
+		  char **output, unsigned *outputlen);
     void *decode_context;
     int (*decode)(void *context, const char *input, unsigned inputlen,
-		  const char **output, unsigned *outputlen);
-    
-    /* for additions which don't require a version upgrade; set to 0 */
-    void *spare_ptr1;
-    void *spare_ptr2;
-    void *spare_ptr3;
-    void *spare_ptr4;
-    int (*spare_fptr1)();
-    int (*spare_fptr2)();
-    int spare_int1;
-    int spare_int2;
-    int spare_int3;
-    int spare_int4;
+		  char **output, unsigned *outputlen);
+    int (*verifymic)(void *context, const char *input, unsigned inputlen,
+		     unsigned *datalen);
+
+    char *user; 		/* canonicalized user name */
+    char *authid;		/* canonicalized authentication id */
+    char *realm;		/* security realm */
 
     /* set to 0 initially, this allows a plugin with extended parameters
      * to work with an older framework by updating version as parameters
      * are added.
      */
     int param_version;
+
+    /* Credentials passed by clients.  NOTE: this should ONLY
+     * be set by server plugins. */
+    sasl_credentials_t *credentials;
 } sasl_out_params_t;
 
 /******************************
  * Client Mechanism Functions *
  ******************************/
 
-/*
- * input parameters to client SASL plugin
- *
- * created / destroyed by the glue code
- *
+/* input parameters to client SASL plugin
  */
 typedef struct sasl_client_params {
-    const char *service;	/* service name */
-    const char *serverFQDN;	/* server fully qualified domain name */
-    const char *clientFQDN;	/* client's fully qualified domain name */
-    const sasl_utils_t *utils;	/* SASL API utility routines --
-				 * for a particular sasl_conn_t,
-				 * MUST remain valid until mech_free is
-				 * called */
-    const sasl_callback_t *prompt_supp; /* client callback list */
-    const char *iplocalport;	/* server IP domain literal & port */
-    const char *ipremoteport;	/* client IP domain literal & port */
-
-    unsigned servicelen;	/* length of service */
-    unsigned slen;		/* length of serverFQDN */
-    unsigned clen;		/* length of clientFQDN */
-    unsigned iploclen;		/* length of iplocalport */
-    unsigned ipremlen;		/* length of ipremoteport */
+    const char *service;	  /* service name */
+    const char *pass;		  /* plaintext passphrase, if used */
+    const char *serverFQDN;	  /* server fully qualified domain name */
+    const char *clientFQDN;	  /* client's local domain name */
+    sasl_utils_t *utils;	  /* SASL API utility routines */
+    sasl_mech_secret_t *secret;	  /* mech-specific decrypted secret */
 
     /* application's security requirements & info */
     sasl_security_properties_t props;
     sasl_ssf_t external_ssf;	/* external SSF active */
-
-    /* for additions which don't require a version upgrade; set to 0 */
-    void *spare_ptr1;
-    void *spare_ptr2;
-    void *spare_ptr3;
-    void *spare_ptr4;
-
-    /* Canonicalize a user name from on-wire to internal format
-     *  added rjs3 2001-05-23
-     *  Must be called once user name aquired if canon_user is non-NULL.
-     *  conn        connection context
-     *  in          user name from wire protocol (need not be NUL terminated)
-     *  len         length of user name from wire protocol (0 = strlen(user))
-     *  flags       for SASL_CU_* flags
-     *  oparams     the user, authid, ulen, alen, fields are
-     *              set appropriately after canonicalization/copying and
-     *              authorization of arguments
-     *
-     *  responsible for setting user, ulen, authid, and alen in the oparams
-     *  structure
-     *
-     *  default behavior is to strip leading and trailing whitespace, as
-     *  well as allocating space for and copying the parameters.
-     *
-     * results:
-     *  SASL_OK       -- success
-     *  SASL_NOMEM    -- out of memory
-     *  SASL_BADPARAM -- invalid conn
-     *  SASL_BADPROT  -- invalid user/authid
-     */
-    int (*canon_user)(sasl_conn_t *conn,
-                    const char *in, unsigned len,
-                    unsigned flags,
-                    sasl_out_params_t *oparams);
-
-    int (*spare_fptr1)();
-
-    int spare_int1;
-    int spare_int2;
-    int spare_int3;
-    int spare_int4;
 
     /* set to 0 initially, this allows a plugin with extended parameters
      * to work with an older framework by updating version as parameters
@@ -276,17 +216,6 @@ typedef struct sasl_client_params {
      */
     int param_version;
 } sasl_client_params_t;
-
-/* features shared between client and server */
-/* These allow the glue code to handle client-first and server-last issues */
-#define SASL_FEAT_WANT_CLIENT_FIRST 0x0002
-#define SASL_FEAT_WANT_SERVER_LAST 0x0004
-/* This says that client-first is handled internally (e.g. DIGEST-MD5) */
-/* Note that this is not the preferred way of doing things */
-#define SASL_FEAT_INTERNAL_CLIENT_FIRST 0x0008
-
-/* client plug-in features */
-#define SASL_FEAT_NEEDSERVERFQDN 0x0001
 
 /* a C object for a client mechanism
  */
@@ -298,10 +227,7 @@ typedef struct sasl_client_plug {
     sasl_ssf_t max_ssf;
 
     /* best security flags, as defined in sasl_security_properties_t */
-    unsigned security_flags;
-
-    /* features of plugin */
-    unsigned features;
+    int security_flags;
 
     /* required prompt ids, NULL = user/pass only */
     const long *required_prompts;
@@ -319,8 +245,8 @@ typedef struct sasl_client_plug {
      *  SASL_WRONGMECH -- mech doesn't support security params
      */
     int (*mech_new)(void *glob_context,
-		    sasl_client_params_t *cparams,
-		    void **conn_context);
+    		    sasl_client_params_t *params,
+    		    void **conn_context);
     
     /* perform one step of exchange.  NULL is passed for serverin on
      * first step.
@@ -331,37 +257,58 @@ typedef struct sasl_client_plug {
      *  SASL_BADSERV   -- server failed mutual auth
      */
     int (*mech_step)(void *conn_context,
-		     sasl_client_params_t *cparams,
-		     const char *serverin,
-		     unsigned serverinlen,
+    		     sasl_client_params_t *params,
+    		     const char *serverin,
+    		     int serverinlen,
 		     sasl_interact_t **prompt_need,
-		     const char **clientout,
-		     unsigned *clientoutlen,
+    		     char **clientout,
+    		     int *clientoutlen,
 		     sasl_out_params_t *oparams);
     
     /* dispose of connection context from mech_new
      */
-    void (*mech_dispose)(void *conn_context, const sasl_utils_t *utils);
+    void (*mech_dispose)(void *conn_context, sasl_utils_t *utils);
     
     /* free all global space used by mechanism
      *  mech_dispose must be called on all mechanisms first
      */
-    void (*mech_free)(void *glob_context, const sasl_utils_t *utils);
-     
-    /* perform precalculations during a network round-trip
-     *  or idle period.  conn_context may be NULL
-     *  returns 1 if action taken, 0 if no action taken
+    void (*mech_free)(void *glob_context, sasl_utils_t *utils);
+    
+    /* create an authentication secret (optional)
+     *  glob_context -- from above
+     *  user         -- user name
+     *  pass         -- password/passphrase
+     *  passlen      -- length of password/passphrase
+     *  prompts      -- prompts result list, from mech_new or middleware
+     *  utils        -- middleware utilities (e.g., MD5, SHA-1)
+     * output:
+     *  psecret      -- gets unencrypted secret
+     *
+     * returns:
+     *  SASL_INTERACT -- not enough of prompts supplied
+     *  SASL_OK       -- success
+     *  SASL_BADPARAM -- wrong prompts supplied
+     *  SASL_NOMEM    -- out of memory
+     *  SASL_NOMECH   -- missing utility functions
      */
-    int (*idle)(void *glob_context,
-		void *conn_context,
-		sasl_client_params_t *cparams);
-
-    /* for additions which don't require a version upgrade; set to 0 */
-    int (*spare_fptr1)();
-    int (*spare_fptr2)();
+    int (*auth_create)(void *glob_context,
+    		       const char *user,
+    		       const char *pass,
+    		       int passlen,
+    		       sasl_interact_t *prompts,
+    		       sasl_utils_t *utils,
+    		       sasl_mech_secret_t **psecret);
+     
+     /* perform precalculations during a network round-trip
+      *  or idle period.  conn_context may be NULL
+      *  returns 1 if action taken, 0 if no action taken
+      */
+     int (*idle)(void *glob_context,
+     		 void *conn_context,
+     		 sasl_client_params_t *cparams);
 } sasl_client_plug_t;
 
-#define SASL_CLIENT_PLUG_VERSION         4
+#define SASL_CLIENT_PLUG_VERSION 3
 
 /* plug-in entry point:
  *  utils       -- utility callback functions
@@ -377,62 +324,25 @@ typedef struct sasl_client_plug {
  *  SASL_BADPARAM -- bad config string
  *  ...
  */
-typedef int sasl_client_plug_init_t(const sasl_utils_t *utils,
+typedef int sasl_client_plug_init_t(sasl_utils_t *utils,
 				    int max_version,
 				    int *out_version,
-				    sasl_client_plug_t **pluglist,
+				    const sasl_client_plug_t **pluglist,
 				    int *plugcount);
-
-/* add a client plug-in
- */
-LIBSASL_API int sasl_client_add_plugin(const char *plugname,
-				       sasl_client_plug_init_t *cplugfunc);
 
 /********************
  * Server Functions *
  ********************/
 
-/* log message formatting routine */
-typedef void sasl_logmsg_p(sasl_conn_t *conn, const char *fmt, ...);
-
-/*
- * input parameters to server SASL plugin
- *
- * created / destroyed by the glue code
- *
+/* input parameters to server SASL plugin
  */
 typedef struct sasl_server_params {
     const char *service;	/* NULL = default service for user_exists
 				   and setpass */
     const char *appname;	/* name of calling application */
-    const char *serverFQDN;	/* server default fully qualified domain name
-				 * (e.g., gethostname) */
-    const char *user_realm;	/* realm for user (NULL = client supplied) */
-    const char *iplocalport;	/* server IP domain literal & port */
-    const char *ipremoteport;	/* client IP domain literal & port */
-
-    unsigned servicelen;	/* length of service */
-    unsigned applen;		/* length of appname */
-    unsigned slen;		/* length of serverFQDN */
-    unsigned urlen;		/* length of user_realm */
-    unsigned iploclen;		/* length of iplocalport */
-    unsigned ipremlen;		/* length of ipremoteport */
-
-    /* This indicates the level of logging desired.  See SASL_LOG_*
-     * in sasl.h
-     *
-     * Plug-ins can ignore this and just pass their desired level to
-     * the log callback.  This is primarily used to eliminate logging which
-     * might be a performance problem (e.g., full protocol trace) and
-     * to select between SASL_LOG_TRACE and SASL_LOG_PASS alternatives
-     */
-    int log_level;
-
-    const sasl_utils_t *utils;	/* SASL API utility routines --
-				 * for a particular sasl_conn_t,
-				 * MUST remain valid until mech_free is
-				 * called */
-    const sasl_callback_t *callbacks;	/* Callbacks from application */
+    const char *serverFQDN;	/* local domain name */
+    const char *user_realm;	/* set of users who are active */
+    sasl_utils_t *utils;	/* SASL API utility routines */
 
     /* application's security requirements */
     sasl_security_properties_t props;
@@ -443,60 +353,8 @@ typedef struct sasl_server_params {
      *  If passlen is 0, it defaults to strlen(pass).
      *  returns 0 if no entry added, 1 if entry added
      */
-    int (*transition)(sasl_conn_t *conn, const char *pass, unsigned passlen);
-
-    /* Canonicalize a user name from on-wire to internal format
-     *  added cjn 1999-09-21
-     *  Must be called once user name aquired if canon_user is non-NULL.
-     *  conn        connection context
-     *  user        user name from wire protocol (need not be NUL terminated)
-     *  ulen        length of user name from wire protocol (0 = strlen(user))
-     *  flags       for SASL_CU_* flags
-     *  oparams     the user, authid, ulen, alen, fields are
-     *              set appropriately after canonicalization/copying and
-     *              authorization of arguments
-     *
-     *  responsible for setting user, ulen, authid, and alen in the oparams
-     *  structure
-     *
-     *  default behavior is to strip leading and trailing whitespace, as
-     *  well as allocating space for and copying the parameters.
-     *
-     * results:
-     *  SASL_OK       -- success
-     *  SASL_NOMEM    -- out of memory
-     *  SASL_BADPARAM -- invalid conn
-     *  SASL_BADPROT  -- invalid user/authid
-     */
-    int (*canon_user)(sasl_conn_t *conn,
-		      const char *user, unsigned ulen,
-		      unsigned flags,
-		      sasl_out_params_t *oparams);
-    
-    /* auxiliary property context (see definitions in prop.h)
-     *  added cjn 2000-01-30
-     *
-     * NOTE: these properties are the ones associated with the
-     * canonicalized "user" (user to login as / authorization id), not
-     * the "authid" (user whose credentials are used / authentication id)
-     * Prefix the property name with a "*" if a property associated with
-     * the "authid" is interesting.
-     */
-    struct propctx *propctx;
-
-    /* for additions which don't require a version upgrade; set to 0 */
-    void *spare_ptr1;
-    void *spare_ptr2;
-    void *spare_ptr3;
-    void *spare_ptr4;
-    int (*spare_fptr1)();
-    int (*spare_fptr2)();
-    int spare_int1;
-    int spare_int2;
-    int spare_int3;
-
-    /* secflags field as passed to sasl_server_new */
-    unsigned secflags;
+    int (*transition)(sasl_conn_t *conn, const char *pass, int passlen);
+    const char *retain_users;	/* users exempt from password REMOVE/DISABLE */
 
     /* set to 0 initially, this allows a plugin with extended parameters
      * to work with an older framework by updating version as parameters
@@ -505,29 +363,11 @@ typedef struct sasl_server_params {
     int param_version;
 } sasl_server_params_t;
 
-/* logging levels (more levels may be added later, if necessary):
- */
-#define SASL_LOG_NONE  0	/* don't log anything */
-#define SASL_LOG_ERR   1	/* log unusual errors (default) */
-#define SASL_LOG_FAIL  2	/* log all authentication failures */
-#define SASL_LOG_WARN  3	/* log non-fatal warnings */
-#define SASL_LOG_NOTE  4	/* more verbose than LOG_WARN */
-#define SASL_LOG_DEBUG 5	/* more verbose than LOG_NOTE */
-#define SASL_LOG_TRACE 6	/* traces of internal protocols */
-#define SASL_LOG_PASS  7	/* traces of internal protocols, including
-				 * passwords */
-
 /* additional flags for setpass() function below:
  */
 /*      SASL_SET_CREATE                     create user if pass non-NULL */
 /*      SASL_SET_DISABLE                    disable user */
 #define SASL_SET_REMOVE  SASL_SET_CREATE /* remove user if pass is NULL */
-
-/* features for server plug-in
- */
-#define SASL_FEAT_SERVICE    0x0200 /* service-specific passwords supported */
-#define SASL_FEAT_GETSECRET  0x0400 /* sasl_server_{get,put}secret_t callbacks
-				     * required by plug-in */
 
 /* a C object for a server mechanism
  */
@@ -539,10 +379,7 @@ typedef struct sasl_server_plug {
     sasl_ssf_t max_ssf;
 
     /* best security flags, as defined in sasl_security_properties_t */
-    unsigned security_flags;
-
-    /* features of plugin */
-    unsigned features;
+    int security_flags;
     
     /* global state for mechanism */
     void *glob_context;
@@ -554,17 +391,18 @@ typedef struct sasl_server_plug {
      *  challen       -- length of challenge from previous instance or 0
      * out:
      *  conn_context  -- connection context
-     *  errinfo       -- error information
+     *  errstr        -- optional reply error string
      *
      * returns:
      *  SASL_OK       -- successfully created mech instance
      *  SASL_*        -- any other server error code
      */
     int (*mech_new)(void *glob_context,
-		    sasl_server_params_t *sparams,
+    		    sasl_server_params_t *sparams,
 		    const char *challenge,
-		    unsigned challen,
-		    void **conn_context);
+		    int challen,
+    		    void **conn_context,
+    		    const char **errstr);
     
     /* perform one step in exchange
      *
@@ -574,21 +412,22 @@ typedef struct sasl_server_plug {
      *  SASL_*        -- any other server error code
      */
     int (*mech_step)(void *conn_context,
-		     sasl_server_params_t *sparams,
-		     const char *clientin,
-		     unsigned clientinlen,
-		     const char **serverout,
-		     unsigned *serveroutlen,
-		     sasl_out_params_t *oparams);
+    		     sasl_server_params_t *sparams,
+    		     const char *clientin,
+    		     int clientinlen,
+    		     char **serverout,
+    		     int *serveroutlen,
+		     sasl_out_params_t *oparams,
+    		     const char **errstr);
     
     /* dispose of a connection state
      */
-    void (*mech_dispose)(void *conn_context, const sasl_utils_t *utils);
+    void (*mech_dispose)(void *conn_context, sasl_utils_t *utils);
     
     /* free global state for mechanism
      *  mech_dispose must be called on all mechanisms first
      */
-    void (*mech_free)(void *glob_context, const sasl_utils_t *utils);
+    void (*mech_free)(void *glob_context, sasl_utils_t *utils);
     
     /* set a password (optional)
      *  glob_context  -- global context
@@ -596,26 +435,26 @@ typedef struct sasl_server_plug {
      *  user          -- user name
      *  pass          -- password/passphrase (NULL = disable/remove/delete)
      *  passlen       -- length of password/passphrase
-     *  oldpass       -- old password/passphrase (NULL = transition)
-     *  oldpasslen    -- length of password/passphrase
      *  flags         -- see above
+     *  errstr        -- may be set to detailed error string
      *
      * returns:
      *  SASL_NOCHANGE -- no change was needed
      *  SASL_NOUSER   -- no entry for user
-     *  SASL_NOVERIFY -- no mechanism compatible entry for user
+     *  SASL_NOMECH   -- no mechanism compatible entry for user
      *  SASL_PWLOCK   -- password locked
      *  SASL_DIABLED  -- account disabled
      *  etc.
      */
     int (*setpass)(void *glob_context,
-		   sasl_server_params_t *sparams,
-		   const char *user,
-		   const char *pass, unsigned passlen,
-		   const char *oldpass, unsigned oldpasslen,
-		   unsigned flags);
+    		   sasl_server_params_t *sparams,
+    		   const char *user,
+    		   const char *pass,
+    		   unsigned passlen,
+    		   int flags,
+		   const char **errstr);
 
-    /* query which mechanisms are available for user
+    /* query which mechanisms are available to user
      *  glob_context  -- context
      *  sparams       -- service, middleware utilities, etc. props ignored
      *  user          -- NUL terminated user name
@@ -631,7 +470,7 @@ typedef struct sasl_server_plug {
      *  SASL_DISABLED -- account disabled
      *  SASL_NOUSER   -- user not found
      *  SASL_BUFOVER  -- maxmech is too small
-     *  SASL_NOVERIFY -- user found, but no mechanisms available
+     *  SASL_NOMECH   -- user found, but no mechanisms available
      */
     int (*user_query)(void *glob_context,
 		      sasl_server_params_t *sparams,
@@ -639,45 +478,29 @@ typedef struct sasl_server_plug {
 		      int maxmech,
 		      const char **mechlist);
      
-    /* perform precalculations during a network round-trip
-     *  or idle period.  conn_context may be NULL (optional)
-     *  returns 1 if action taken, 0 if no action taken
-     */
-    int (*idle)(void *glob_context,
-		void *conn_context,
-		sasl_server_params_t *sparams);
+     /* perform precalculations during a network round-trip
+      *  or idle period.  conn_context may be NULL (optional)
+      *  returns 1 if action taken, 0 if no action taken
+      */
+     int (*idle)(void *glob_context,
+     		 void *conn_context,
+     		 sasl_server_params_t *sparams);
 
-    /* check if mechanism is available
-     *  optional--if NULL, mechanism is available based on ENABLE= in config
-     *
-     *  If this routine sets conn_context to a non-NULL value, then the call
-     *  to mech_new will be skipped.  This should not be done unless
-     *  there's a significant performance benefit, since it can cause
-     *  additional memory allocation in SASL core code to keep track of
-     *  contexts potentially for multiple mechanisms.
-     *
-     *  This is called by the first call to sasl_listmech() for a
-     *  given connection context, thus for a given protocol it may
-     *  never be called.  Note that if mech_avail returns SASL_NOMECH,
-     *  then that mechanism is considered disabled for the remainder
-     *  of the session.
-     *
-     *  returns SASL_OK on success,
-     *          SASL_NOMECH if mech disabled
-     */
-    int (*mech_avail)(void *glob_context,
-		      sasl_server_params_t *sparams,
-		      void **conn_context);
-
-    /* for additions which don't require a version upgrade; set to 0 */
-    int (*spare_fptr2)();
+     /* install credentials returned earlier by the plugin. */
+     int (*install_credentials)(void *conn_context,
+				sasl_credentials_t *credentials);
+     /* uninstall credentials returned earlier by the plugin. */
+     int (*uninstall_credentials)(void *conn_context,
+				  sasl_credentials_t *credentials);
+     /* free credentials returned earlier by the plugin. */
+     int (*dispose_credentials)(void *conn_context,
+				sasl_credentials_t *credentials);
 } sasl_server_plug_t;
 
-#define SASL_SERVER_PLUG_VERSION 4
+#define SASL_SERVER_PLUG_VERSION 3
 
 /* plug-in entry point:
  *  utils         -- utility callback functions
- *  plugname      -- name of plug-in (may be NULL)
  *  max_version   -- highest server plug version supported
  * returns:
  *  out_version   -- server plug-in version of result
@@ -690,142 +513,11 @@ typedef struct sasl_server_plug {
  *  SASL_BADPARAM -- bad config string
  *  ...
  */
-typedef int sasl_server_plug_init_t(const sasl_utils_t *utils,
+typedef int sasl_server_plug_init_t(sasl_utils_t *utils,
 				    int max_version,
 				    int *out_version,
-				    sasl_server_plug_t **pluglist,
+				    const sasl_server_plug_t **pluglist,
 				    int *plugcount);
 
-/* 
- * add a server plug-in
- */
-LIBSASL_API int sasl_server_add_plugin(const char *plugname,
-				       sasl_server_plug_init_t *splugfunc);
-
-/*********************************************************
- * user canonicalization plug-in -- added cjn 1999-09-29 *
- *********************************************************/
-
-typedef struct sasl_canonuser {
-    /* optional features of plugin (set to 0) */
-    int features;
-
-    /* spare integer (set to 0) */
-    int spare_int1;
-
-    /* global state for plugin */
-    void *glob_context;
-
-    /* name of plugin */
-    void *spare_ptr1;
-
-    /* free global state for plugin */
-    void (*canon_user_free)(void *glob_context, const sasl_utils_t *utils);
-
-    /* canonicalize a username
-     *  glob_context     -- global context from this structure
-     *  sparams          -- server params, note user_realm&propctx elements
-     *  user             -- user to login as (may not be NUL terminated)
-     *  len              -- length of user name (0 = strlen(user))
-     *  flags            -- for SASL_CU_* flags
-     *  out              -- buffer to copy user name
-     *  out_max          -- max length of user name
-     *  out_len          -- set to length of user name
-     *
-     *  note that the output buffers MAY be the same as the input buffers.
-     *
-     * returns
-     *  SASL_OK         on success
-     *  SASL_BADPROT    username contains invalid character
-     */
-    int (*canon_user_server)(void *glob_context,
-			     sasl_server_params_t *sparams,
-			     const char *user, unsigned len,
-			     unsigned flags,
-			     char *out,
-			     unsigned out_umax, unsigned *out_ulen);
-
-    int (*canon_user_client)(void *glob_context,
-			     sasl_client_params_t *cparams,
-			     const char *user, unsigned len,
-			     unsigned flags,
-			     char *out,
-			     unsigned out_max, unsigned *out_len);
-
-    /* for additions which don't require a version upgrade; set to 0 */
-    int (*spare_fptr1)();
-    int (*spare_fptr2)();
-    int (*spare_fptr3)();
-} sasl_canonuser_plug_t;
-
-#define SASL_CANONUSER_PLUG_VERSION 5
-
-/* default name for canonuser plug-in entry point is "sasl_canonuser_init"
- *  similar to sasl_server_plug_init model, except only returns one
- *  sasl_canonuser_plug_t structure;
- */
-typedef int sasl_canonuser_init_t(const sasl_utils_t *utils,
-				  int max_version,
-				  int *out_version,
-				  sasl_canonuser_plug_t **plug,
-				  const char *plugname);
-
-/* add a canonuser plugin
- */
-LIBSASL_API int sasl_canonuser_add_plugin(const char *plugname,
-				  sasl_canonuser_init_t *canonuserfunc);
-
-/******************************************************
- * auxiliary property plug-in -- added cjn 1999-09-29 *
- ******************************************************/
-
-typedef struct sasl_auxprop_plug {
-    /* optional features of plugin (none defined yet, set to 0) */
-    int features;
-
-    /* spare integer, must be set to 0 */
-    int spare_int1;
-
-    /* global state for plugin */
-    void *glob_context;
-
-    /* free global state for plugin (OPTIONAL) */
-    void (*auxprop_free)(void *glob_context, const sasl_utils_t *utils);
-
-    /* fill in fields of an auxiliary property context
-     *  last element in array has id of SASL_AUX_END
-     *  elements with non-0 len should be ignored.
-     */
-    void (*auxprop_lookup)(void *glob_context,
-			   sasl_server_params_t *sparams,
-			   unsigned flags,
-			   const char *user, unsigned ulen);
-
-    /* for additions which don't require a version upgrade; set to 0 */
-    void (*spare_fptr1)();
-    void (*spare_fptr2)();
-} sasl_auxprop_plug_t;
-
-/* auxprop lookup flags */
-#define SASL_AUXPROP_OVERRIDE 0x01 /* if clear, ignore auxiliary properties
-				    * with non-zero len field.  If set,
-				    * override value of those properties */
-
-#define SASL_AUXPROP_PLUG_VERSION 4
-
-/* default name for auxprop plug-in entry point is "sasl_auxprop_init"
- *  similar to sasl_server_plug_init model, except only returns one
- *  sasl_auxprop_plug_t structure;
- */
-typedef int sasl_auxprop_init_t(const sasl_utils_t *utils,
-				int max_version,
-				int *out_version,
-				sasl_auxprop_plug_t **plug,
-				const char *plugname);
-
-/* add an auxiliary property plug-in
- */
-LIBSASL_API int sasl_auxprop_add_plugin(const char *plugname,
-					sasl_auxprop_init_t *auxpropfunc);
-
 #endif /* SASLPLUG_H */
+

@@ -1,5 +1,7 @@
 2000-07-17  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
+	* version 1.5.23 ready for beta release
+
 	* plugins/digestmd5.c: get_authid() and get_userid() should copy
 	the result of the callbacks, not just use as is.
 

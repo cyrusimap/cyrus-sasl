@@ -52,6 +52,9 @@
 #include <fcntl.h>
 #include <ctype.h>
 
+/* DES currently disabled until we figure out what's wrong */
+#undef WITH_DES
+
 /* DES support */
 #ifdef WITH_DES
 # ifdef WITH_SSL_DES

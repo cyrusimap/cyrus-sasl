@@ -1,3 +1,7 @@
+1999-09-20  Gregory M. Diskin  <diskin+@andrew.cmu.edu>
+
+	* plugins/gssapi.c: include saslgssapi.h for win32
+
 Thu Sep  9 13:30:48 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* doc/sysadmin.html: added some links

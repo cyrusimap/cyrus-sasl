@@ -1,3 +1,6 @@
+2003-07-21  Ken Murchison <ken@oceana.com>
+	* plugins/srp.c: updated security layer code to be closer to draft -08
+
 2003-07-23  Rob Siemborksi <rjs3@andrew.cmu.edu>
 	* saslauthd/utils.[ch], saslauthd/configure.in: Detect/replace
 	  strlcpy and strlcat (based on ideas from
@@ -11,7 +14,6 @@
 2003-07-21  Ken Murchison <ken@oceana.com>
 	* plugins/srp.c: updated auth code to draft -08 (layers still need
 	  to be updated)
-	  auxprop_store() instead of direct sasldb access
 	* configure.in, plugins/srp.c: use auxprop_store() instead of
 	  direct sasldb access
 

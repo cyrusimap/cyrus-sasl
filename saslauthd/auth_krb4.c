@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb4.c,v 1.6 2002/01/14 15:52:42 rjs3 Exp $"
+#ident "$Id: auth_krb4.c,v 1.7 2002/01/14 17:03:55 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -55,9 +55,11 @@ extern int swap_bytes;			/* from libkrb.a   */
 /* PRIVATE DEPENDENCIES */
 #ifdef AUTH_KRB4
 static char *tf_dir;			/* Ticket directory pathname    */
+static char default_realm[REALM_SZ];
 #endif /* AUTH_KRB4 */
 /* END PRIVATE DEPENDENCIES */
 
+#define TF_NAME_LEN 128
 #define TF_DIR "/.tf"			/* Private tickets directory,   */
 					/* relative to mux directory    */
 
@@ -130,6 +132,13 @@ auth_krb4_init (
     
     strcat(tf_dir, "/");
 
+    rc = krb_get_lrealm(default_realm, 1);
+    if (rc) {
+	syslog(LOG_ERR, "auth_krb4: krb_get_lrealm: %s",
+	       krb_get_err_text(rc));
+	return -1;
+    }
+
     return 0;
 #else /* ! AUTH_KRB4 */
     return -1;
@@ -152,17 +161,17 @@ auth_krb4 (
   const char *login,			/* I: plaintext authenticator */
   const char *password,			/* I: plaintext password */
   const char *service __attribute__((unused)),
-  const char *realm_in __attribute__((unused))
+  const char *realm_in
   /* END PARAMETERS */
   )
 {
     /* VARIABLES */
     char aname[ANAME_SZ];		/* Kerberos principal */
-    char inst[INST_SZ];			/* Kerberos instance (default: imap) */
-    char realm[REALM_SZ];		/* Kerberos realm to authenticate in */
+    const char *realm;		        /* Kerberos realm to authenticate in */
     char pidstr[128];
+    static unsigned int baselen = 0, loginlen = 0;
     int rc;				/* return code */
-    static char *tf_name;		/* Ticket file name */
+    char tf_name[TF_NAME_LEN];		/* Ticket file name */
     /* END VARIABLES */
 
     /*
@@ -181,13 +190,18 @@ auth_krb4 (
      * NOTE: these ticket files are not used by us. The are created
      * as a side-effect of calling krb_get_pw_in_tkt.
      */
-    snprintf(pidstr, sizeof(pidstr), "%d", getpid());
-    tf_name = malloc(strlen(tf_dir) + strlen(login) + strlen(pidstr) + 2);
-    if (tf_name == NULL) {
-	syslog(LOG_ERR, "auth_krb4: malloc(tf_name) failed");
-	return strdup("NO saslauthd internal error");
-
+    /* avoid calling getpid() every time. */
+    if (baselen == 0) {
+      snprintf(pidstr, sizeof(pidstr), "%d", getpid());
+      baselen = strlen(pidstr) + strlen(tf_dir) + 2;
     }
+    loginlen = strlen(login);
+    if (((loginlen + baselen) > TF_NAME_LEN)
+	|| (loginlen > ANAME_SZ)) {
+      syslog(LOG_ERR, "auth_krb4: login name (%s) too long", login);
+      return strdup("NO saslauthd internal error");
+    }
+
     strcpy(tf_name, tf_dir);
     strcat(tf_name, login);
     strcat(tf_name, pidstr);
@@ -195,42 +209,31 @@ auth_krb4 (
     
     strncpy(aname, login, ANAME_SZ-1);
     aname[ANAME_SZ-1] = '\0';
-    rc = krb_get_lrealm(realm, 1);
-    if (rc) {
-	syslog(LOG_ERR, "auth_krb4: krb_get_lrealm: %s",
-	       krb_get_err_text(rc));
-	free(tf_name);
-	return strdup("NO saslauthd internal error");
+
+    if(realm_in && *realm_in != '\0') {
+	realm = realm_in;
+    } else {
+	realm = default_realm;
     }
-#ifdef NOTYET   
-    strcpy(inst, "imap");	/* XXX need to be able to specify this */
-    rc = krb_get_pw_in_tkt(aname, inst, realm,
-			   KRB_TICKET_GRANTING_TICKET,
-			   realm, 1, password);
-    if (rc == 0) {
-	free(tf_name);
-	return strdup("OK");
-    }
-    if (rc == INTK_BADPW) {
-	free(tf_name);
-	return strdup("NO");			/* Bad username or password */
-    }
-#endif    
-    /* Try again with null instance */
-    inst[0] = '\0';
-    rc = krb_get_pw_in_tkt(aname, inst, realm,
+
+    /* FIXME: Should probabally handle instances better than "" */
+
+    rc = krb_get_pw_in_tkt(aname, "", realm,
 			   KRB_TICKET_GRANTING_TICKET,
 			   realm, 1, password);
     unlink(tf_name);
-    free(tf_name);
+
     if (rc == 0) {
 	return strdup("OK");
     }
+
     if (rc == INTK_BADPW || rc == KDC_PR_UNKNOWN) {
 	return strdup("NO");
     }
+
     syslog(LOG_ERR, "ERROR: auth_krb4: krb_get_pw_in_tkt: %s",
 	   krb_get_err_text(rc));
+
     return strdup("NO saslauthd internal error");
 }
 

@@ -1,6 +1,6 @@
 /* canonusr.c - user canonicalization support
  * Rob Siemborski
- * $Id: canonusr.c,v 1.5 2001/12/07 03:22:54 rjs3 Exp $
+ * $Id: canonusr.c,v 1.6 2002/02/13 20:31:52 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -100,7 +100,7 @@ int _sasl_canon_user(sasl_conn_t *conn,
     else if(conn->type == SASL_CONN_CLIENT) cconn = (sasl_client_conn_t *)conn;
     else return SASL_FAIL;
     
-    if(!ulen) ulen = strlen(user);
+    if(!ulen) ulen = (unsigned int)strlen(user);
     
     /* check to see if we have a callback to make*/
     result = _sasl_getcallback(conn, SASL_CB_CANON_USER,
@@ -296,7 +296,7 @@ static int _canonuser_internal(const sasl_utils_t *utils,
     
     /* Now copy! (FIXME: check for SASL_BUFOVER?) */
     memcpy(out_user, begin_u, MIN(ulen, out_umax));
-    if(u_apprealm) {
+    if(sconn && u_apprealm) {
 	out_user[ulen] = '@';
 	memcpy(&(out_user[ulen+1]), sconn->user_realm,
 	       MIN(u_apprealm-1, out_umax-ulen-1));

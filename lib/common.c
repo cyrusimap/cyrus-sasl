@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.77 2002/01/22 19:16:39 rjs3 Exp $
+ * $Id: common.c,v 1.78 2002/02/13 20:31:52 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -127,7 +127,7 @@ void sasl_set_mutex(sasl_mutex_alloc_t *n, sasl_mutex_lock_t *l,
 }
 
 /* copy a string to malloced memory */
-int _sasl_strdup(const char *in, char **out, int *outlen)
+int _sasl_strdup(const char *in, char **out, size_t *outlen)
 {
   size_t len = strlen(in);
   if (outlen) *outlen = len;
@@ -138,9 +138,10 @@ int _sasl_strdup(const char *in, char **out, int *outlen)
 }
 
 /* adds a string to the buffer; reallocing if need be */
-int _sasl_add_string(char **out, int *alloclen, int *outlen, const char *add)
+int _sasl_add_string(char **out, size_t *alloclen,
+		     size_t *outlen, const char *add)
 {
-  int addlen;
+  size_t addlen;
 
   if (add==NULL) add = "(null)";
 
@@ -319,7 +320,7 @@ void sasl_done(void)
 /* fills in the base sasl_conn_t info */
 int _sasl_conn_init(sasl_conn_t *conn,
 		    const char *service,
-		    int flags,
+		    unsigned int flags,
 		    enum Sasl_conn_type type,
 		    int (*idle_hook)(sasl_conn_t *conn),
 		    const char *serverFQDN,
@@ -829,12 +830,11 @@ const char *sasl_errdetail(sasl_conn_t *conn)
 /* Note that this needs the global callbacks, so if you don't give getcallbacks
  * a sasl_conn_t, you're going to need to pass it yourself (or else we couldn't
  * have client and server at the same time */
-static int
-_sasl_global_getopt(void *context,
-		    const char *plugin_name,
-		    const char *option,
-		    const char ** result,
-		    unsigned *len)
+static int _sasl_global_getopt(void *context,
+			       const char *plugin_name,
+			       const char *option,
+			       const char ** result,
+			       size_t *len)
 {
   const sasl_global_callbacks_t * global_callbacks;
   const sasl_callback_t *callback;
@@ -947,7 +947,7 @@ static int
 _sasl_getsimple(void *context,
 		int id,
 		const char ** result,
-		unsigned * len)
+		size_t *len)
 {
   const char *userid;
   sasl_conn_t *conn;
@@ -1152,10 +1152,10 @@ _sasl_log (sasl_conn_t *conn,
 	   ...)
 {
   char *out=(char *) sasl_ALLOC(250);
-  int alloclen=100; /* current allocated length */
-  int outlen=0; /* current length of output buffer */
-  int pos=0; /* current position in format string */
-  int formatlen;
+  size_t alloclen=100; /* current allocated length */
+  size_t outlen=0; /* current length of output buffer */
+  size_t formatlen;
+  size_t pos=0; /* current position in format string */
   int result;
   sasl_log_t *log_cb;
   void *log_ctx;
@@ -1462,7 +1462,7 @@ _sasl_find_verifyfile_callback(const sasl_callback_t *callbacks)
 }
 
 /* Basically a conditional call to realloc(), if we need more */
-int _buf_alloc(char **rwbuf, unsigned *curlen, unsigned newlen) 
+int _buf_alloc(char **rwbuf, size_t *curlen, size_t newlen) 
 {
     if(!(*rwbuf)) {
 	*rwbuf = sasl_ALLOC(newlen);

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.44 2001/12/06 22:27:27 rjs3 Exp $
+ * $Id: checkpw.c,v 1.45 2002/02/13 20:31:52 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -100,7 +100,7 @@ extern int errno;
  * where <secret> = MD5(<salt>, "sasldb", <pass>)
  */
 static int _sasl_make_plain_secret(const char *salt, 
-				   const char *passwd, int passlen,
+				   const char *passwd, size_t passlen,
 				   sasl_secret_t **secret)
 {
     MD5_CTX ctx;
@@ -195,7 +195,8 @@ static int auxprop_verify_password(sasl_conn_t *conn,
 	const char *db_secret = auxprop_values[1].values[0];
 	sasl_secret_t *construct;
 	
-	ret = _sasl_make_plain_secret(db_secret, passwd, strlen(passwd),
+	ret = _sasl_make_plain_secret(db_secret, passwd,
+				      strlen(passwd),
 				      &construct);
 	if (ret != SASL_OK) {
 	    goto done;
@@ -298,7 +299,7 @@ static int retry_writev(int fd, struct iovec *iov, int iovcnt)
     int n;
     int i;
     int written = 0;
-    static int iov_max =
+    static unsigned int iov_max =
 #ifdef MAXIOV
 	MAXIOV
 #else

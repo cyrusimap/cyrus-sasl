@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.44 2002/01/22 19:51:32 rjs3 Exp $
+ * $Id: client.c,v 1.45 2002/02/13 20:31:52 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -332,13 +332,13 @@ int sasl_client_new(const char *service,
 static int have_prompts(sasl_conn_t *conn,
 			const sasl_client_plug_t *mech)
 {
-  static const long default_prompts[] = {
+  static const unsigned long default_prompts[] = {
     SASL_CB_AUTHNAME,
     SASL_CB_PASS,
     SASL_CB_LIST_END
   };
 
-  const long *prompt;
+  const unsigned long *prompt;
   int (*pproc)();
   void *pcontext;
   int result;
@@ -618,13 +618,13 @@ int _sasl_client_listmech(sasl_conn_t *conn,
 			  const char *sep,
 			  const char *suffix,
 			  const char **result,
-			  unsigned *plen,
+			  size_t *plen,
 			  int *pcount)
 {
     cmechanism_t *m=NULL;
     sasl_ssf_t minssf = 0;
     int ret;
-    int resultlen;
+    unsigned int resultlen;
     int flag;
     const char *mysep;
 

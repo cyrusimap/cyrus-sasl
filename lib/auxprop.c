@@ -1,6 +1,6 @@
 /* auxprop.c - auxilliary property support
  * Rob Siemborski
- * $Id: auxprop.c,v 1.2 2001/12/04 02:05:24 rjs3 Exp $
+ * $Id: auxprop.c,v 1.3 2002/02/13 20:31:52 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -577,9 +577,9 @@ int prop_set(struct propctx *ctx, const char *name,
 	    
 	/* Now allocate the last entry */
 	if(!vallen)
-	    size = strlen(value) + 1;
+	    size = (size_t)(strlen(value) + 1);
 	else
-	    size = vallen + 1;
+	    size = (size_t)(vallen + 1);
 
 	if(size > ctx->mem_cur->unused) {
 	    size_t needed;

@@ -1,7 +1,7 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Siemborski
  * Rob Earhart
- * $Id: dlopen.c,v 1.37 2002/02/05 00:25:52 rjs3 Exp $
+ * $Id: dlopen.c,v 1.38 2002/02/13 20:31:52 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -228,7 +228,7 @@ static int _sasl_plugin_load(char *plugin, void *library,
 static int _parse_la(const char *prefix, const char *in, char *out) 
 {
     FILE *file;
-    int length;
+    size_t length;
     char line[MAX_LINE];
     char *ntmp = NULL;
 
@@ -277,7 +277,7 @@ static int _parse_la(const char *prefix, const char *in, char *out)
 	    /* We found the line with the name in it */
 	    char *end;
 	    char *start;
-	    int len;
+	    size_t len;
 	    end = strrchr(line, '\'');
 	    if(!end) continue;
 	    start = &line[sizeof("dlname=")-1];

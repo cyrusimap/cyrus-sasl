@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.39 2002/01/10 22:13:46 rjs3 Exp $
+ * $Id: saslint.h,v 1.40 2002/02/13 20:31:52 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -134,7 +134,7 @@ struct sasl_conn {
 
   char *service;
 
-  int flags;  /* flags passed to sasl_*_new */
+  unsigned int flags;  /* flags passed to sasl_*_new */
 
   /* IP information.  A buffer of size 52 is adequate for this in its
      longest format (see sasl.h) */
@@ -161,9 +161,9 @@ struct sasl_conn {
 
   int error_code;
   char *error_buf, *errdetail_buf;
-  unsigned error_buf_len, errdetail_buf_len;
+  size_t error_buf_len, errdetail_buf_len;
   char *mechlist_buf;
-  unsigned mechlist_buf_len;
+  size_t mechlist_buf_len;
 
   char *decode_buf;
 
@@ -354,7 +354,7 @@ extern int _sasl_common_init(void);
 
 extern int _sasl_conn_init(sasl_conn_t *conn,
 			   const char *service,
-			   int flags,
+			   unsigned int flags,
 			   enum Sasl_conn_type type,
 			   int (*idle_hook)(sasl_conn_t *conn),
 			   const char *serverFQDN,
@@ -382,13 +382,14 @@ _sasl_log(sasl_conn_t *conn,
 	  ...);
 
 void _sasl_get_errorbuf(sasl_conn_t *conn, char ***bufhdl, unsigned **lenhdl);
-int _sasl_add_string(char **out, int *alloclen, int *outlen, const char *add);
+int _sasl_add_string(char **out, size_t *alloclen,
+		     size_t *outlen, const char *add);
 
 /* More Generic Utilities in common.c */
-extern int _sasl_strdup(const char *in, char **out, int *outlen);
+extern int _sasl_strdup(const char *in, char **out, size_t *outlen);
 
 /* Basically a conditional call to realloc(), if we need more */
-int _buf_alloc(char **rwbuf, unsigned *curlen, unsigned newlen);
+int _buf_alloc(char **rwbuf, size_t *curlen, size_t newlen);
 
 /* convert an iovec to a single buffer */
 int _iovec_to_buf(const struct iovec *vec,
@@ -424,14 +425,14 @@ int _sasl_server_listmech(sasl_conn_t *conn,
 			  const char *sep,
 			  const char *suffix,
 			  const char **result,
-			  unsigned *plen,
+			  size_t *plen,
 			  int *pcount);
 int _sasl_client_listmech(sasl_conn_t *conn,
 			  const char *prefix,
 			  const char *sep,
 			  const char *suffix,
 			  const char **result,
-			  unsigned *plen,
+			  size_t *plen,
 			  int *pcount);
 /* Just create a straight list of them */
 sasl_string_list_t *_sasl_client_mechs(void);

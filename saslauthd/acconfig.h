@@ -20,6 +20,7 @@
 
 /* do we want to enable the GSSAPI module */
 #undef AUTH_KRB5
+#undef KRB5_HEIMDAL
 
 /* Do we want to enable the experimental sasldb authentication module? */
 #undef AUTH_SASLDB

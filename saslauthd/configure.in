@@ -35,6 +35,9 @@ SASL_GSSAPI_CHK
 
 if test "$gssapi" != no; then
 	AC_DEFINE(AUTH_KRB5)
+	if test "$gss_impl" = "heimdal"; then
+	    AC_DEFINE(KRB5_HEIMDAL)
+	fi
 fi
 
 SASL_PLAIN_CHK

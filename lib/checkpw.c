@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.65 2003/09/03 21:46:04 rjs3 Exp $
+ * $Id: checkpw.c,v 1.66 2003/09/09 15:38:13 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -333,7 +333,7 @@ static int retry_writev(int fd, struct iovec *iov, int iovcnt)
 	written += n;
 
 	for (i = 0; i < iovcnt; i++) {
-	    if (iov[i].iov_len > (unsigned) n) {
+	    if ((int) iov[i].iov_len > n) {
 		iov[i].iov_base = (char *)iov[i].iov_base + n;
 		iov[i].iov_len -= n;
 		break;

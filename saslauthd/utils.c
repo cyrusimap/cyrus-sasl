@@ -211,7 +211,7 @@ int retry_writev(int fd, struct iovec *iov, int iovcnt) {
 		}
 
 		for (i = 0; i < iovcnt; i++) {
-			if (iov[i].iov_len > (unsigned) n) {
+			if ((int) iov[i].iov_len > n) {
 				iov[i].iov_base = (char *)iov[i].iov_base + n;
 				iov[i].iov_len -= n;
 				break;

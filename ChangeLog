@@ -1,5 +1,7 @@
 2003-09-09  Ken Murchison <ken@oceana.com>
 	* plugins/ntlm.c: use retry_read() instead of just read()
+	* lib/checkpw.c, plugins/ntlm.c, saslauthd/utils.c:
+	  squash signed/unsigned warning
 
 2003-09-08  Ken Murchison <ken@oceana.com>
 	* plugins/ntlm.c: fix byte-alignment and password handling problems

@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.15 2003/09/09 14:17:52 ken3 Exp $
+ * $Id: ntlm.c,v 1.16 2003/09/09 15:38:14 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -85,7 +85,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.15 2003/09/09 14:17:52 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.16 2003/09/09 15:38:14 ken3 Exp $";
 
 #ifndef UINT16_MAX
 #define UINT16_MAX 65535U
@@ -664,7 +664,7 @@ static int retry_writev(int fd, struct iovec *iov, int iovcnt)
 	written += n;
 
 	for (i = 0; i < iovcnt; i++) {
-	    if (iov[i].iov_len > (size_t) n) {
+	    if ((int) iov[i].iov_len > n) {
 		iov[i].iov_base = (char *) iov[i].iov_base + n;
 		iov[i].iov_len -= n;
 		break;

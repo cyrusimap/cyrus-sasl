@@ -35,7 +35,9 @@ SOFTWARE.
 # ifdef _POSIX_PATH_MAX
 #  define PATH_MAX _POSIX_PATH_MAX
 # else
-#  define PATH_MAX 1024		/* arbitrary; probably big enough */
+#  define PATH_MAX 1024		/* arbitrary; probably big enough will
+				 * probably only be 256+64 on
+				 * pre-posix machines */
 # endif
 #endif
 
@@ -86,8 +88,8 @@ int _sasl_get_mech_list(const char *entryname,
     path = PLUGINDIR;
   } else
     free_path = 1;
-
-  if (strlen(path)>=PATH_MAX-NAME_MAX) { /* no you can't buffer overrun */
+  /* xxx sendmail guys -NAME_MAX */
+  if (strlen(path)>=PATH_MAX) { /* no you can't buffer overrun */
     if (free_path)
       sasl_FREE(path);
     return SASL_FAIL;
@@ -106,10 +108,9 @@ int _sasl_get_mech_list(const char *entryname,
 
     strcpy(prefix,str);
     strcat(prefix,"/");
-    
+
     if ((dp=opendir(str)) !=NULL) /* ignore errors */    
     {
-
       while ((dir=readdir(dp)) != NULL)
       {
 	size_t length;

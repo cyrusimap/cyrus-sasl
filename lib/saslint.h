@@ -156,9 +156,17 @@ _sasl_log(sasl_conn_t *conn,
 	  const char *format,
 	  ...);
 
+/* config file declarations (config.c) */
 extern int sasl_config_init(const char *filename);
 extern const char *sasl_config_getstring(const char *key,const char *def);
 extern int sasl_config_getint(const char *key,int def);
 extern int sasl_config_getswitch(const char *key,int def);
+
+/* clear password checking declarations (checkpw.c) */
+extern int _sasl_passwd_verify_password(const char *userid,const char *password, const char **reply);
+extern int _sasl_shadow_verify_password(const char *userid,const char *password, const char **reply);
+extern int _sasl_kerberos_verify_password(const char *user,const char *passwd,char *service, 
+					  const char **reply);
+
 
 #endif /* SASLINT_H */

@@ -44,6 +44,26 @@ SOFTWARE.
 extern int gethostname(char *, int);
 #endif
 
+#ifndef PATH_MAX
+# ifdef _POSIX_PATH_MAX
+#  define PATH_MAX _POSIX_PATH_MAX
+# else
+#  define PATH_MAX 1024		/* arbitrary; probably big enough */
+# endif
+#endif
+
+/* Contains functions:
+ * 
+ * sasl_server_init
+ * sasl_server_new
+ * sasl_listmech
+ * sasl_server_start
+ * sasl_server_step
+ * sasl_checkpass
+ * sasl_userexists <= not yet implemented
+ * sasl_setpass
+ */
+
 
 static int
 external_server_new(void *glob_context __attribute__((unused)),
@@ -200,7 +220,8 @@ typedef struct mechanism
   int version;
   const sasl_server_plug_t *plug;
   struct mechanism *next;
-  void *library;
+  void *library; /* this a pointer to shared library returned by dlopen 
+		    or some similar function on other platforms */
 } mechanism_t;
 
 
@@ -216,7 +237,8 @@ typedef struct mech_list {
 typedef struct sasl_server_conn {
   sasl_conn_t base; /* parts common to server + client */
 
-  char *user_domain;
+  char *user_domain; /* domain the user authenticating is in This is
+		      * usually simply their hostname */
 
   int authenticated;
   mechanism_t *mech; /* mechanism trying to use */
@@ -238,16 +260,23 @@ static mech_list_t *mechlist; /* global var which holds the list */
 
 static sasl_global_callbacks_t global_callbacks;
 
-/* Contains functions:
+
+/* set the password for a user
+ *  conn        -- SASL connection
+ *  user        -- user name
+ *  pass        -- plaintext password, may be NULL to remove user
+ *  passlen     -- length of password, 0 = strlen(pass)
+ *  flags       -- see flags below
+ *  errstr      -- optional more detailed error
  * 
- * sasl_server_init
- * sasl_server_new
- * sasl_listmech
- * sasl_server_start
- * sasl_server_step
- * sasl_checkpass NTI
- * sasl_userexists NTI
- * sasl_setpass
+ * returns:
+ *  SASL_NOCHANGE  -- proper entry already exists
+ *  SASL_NOMECH    -- no authdb supports password setting as configured
+ *  SASL_DISABLED  -- account disabled
+ *  SASL_PWLOCK    -- password locked
+ *  SASL_FAIL      -- OS error
+ *  SASL_BADPARAM  -- password too long
+ *  SASL_OK        -- successful
  */
 
 int sasl_setpass(sasl_conn_t *conn,
@@ -366,6 +395,11 @@ static int init_mechlist(void)
   return SASL_OK;
 }
 
+/*
+ * parameters:
+ *  p - entry point
+ *  library - shared library ptr returned by dlopen
+ */
 static int add_plugin(void *p, void *library) {
   int plugcount;
   const sasl_server_plug_t *pluglist;
@@ -377,6 +411,8 @@ static int add_plugin(void *p, void *library) {
 
   entry_point = (sasl_server_plug_init_t *)p;
 
+  /* call into the shared library asking for information about it */
+  /* version is filled in with the version of the plugin */
   result = entry_point(mechlist->utils, SASL_SERVER_PLUG_VERSION, &version,
 		       &pluglist, &plugcount);
 
@@ -393,17 +429,24 @@ static int add_plugin(void *p, void *library) {
     result = SASL_FAIL;
   }
 
-  for (lupe=0;lupe< plugcount ;lupe++)
+  for (lupe=0;lupe < plugcount ;lupe++)
     {
       mech = sasl_ALLOC(sizeof(mechanism_t));
       if (! mech) return SASL_NOMEM;
 
       mech->plug=pluglist++;
       mech->version = version;
+
+      /*
+       * We want plugin library to close but we only
+       * want to do this once per plugin regardless
+       * of how many mechs are in a single plugin 
+       */
       if (lupe==0)
 	mech->library=library;
       else
 	mech->library=NULL;
+
       mech->next = mechlist->mech_list;
       mechlist->mech_list = mech;
 
@@ -441,7 +484,7 @@ server_idle(sasl_conn_t *conn)
     return 0;
 
   for (m = mechlist->mech_list;
-       m;
+       m!=NULL;
        m = m->next)
     if (m->plug->idle
 	&&  m->plug->idle(m->plug->glob_context,
@@ -456,19 +499,28 @@ static int load_config(void)
   int result;
   char *path_to_config=NULL;
   char *config_filename=NULL;
+  int len;
   const sasl_callback_t *getpath_cb=NULL;
 
   /* get the path to the plugins; for now the config file will reside there */
-    /* xxx use appname for config file name??? */
   getpath_cb=_sasl_find_getpath_callback( global_callbacks.callbacks );
   if (getpath_cb==NULL) return SASL_BADPARAM;
 
+  /* getpath_cb->proc MUST be a sasl_getpath_t; if only c had a type
+     system */
   result = ((sasl_getpath_t *)(getpath_cb->proc))(getpath_cb->context,
 						  &path_to_config);
   if (result!=SASL_OK) return result;
 
+
+  /* length = length of path + '/' + length of appname + ".conf" + 1
+     for '\0' */
+  len = strlen(path_to_config)+2+ strlen(global_callbacks.appname)+5+1;
+
+  if (len > PATH_MAX ) return SASL_FAIL;
+
   /* construct the filename for the config file */
-  config_filename = sasl_ALLOC(strlen(path_to_config)+2+strlen(global_callbacks.appname)+5+1);
+  config_filename = sasl_ALLOC(len);
   if (! config_filename) return SASL_NOMEM; 
 
   strcpy(config_filename, path_to_config);
@@ -480,9 +532,23 @@ static int load_config(void)
    * if doesn't exist we can continue using default behavior
    */
   result=sasl_config_init(config_filename);
-  
+
+  sasl_FREE(config_filename);
+
   return result;
 }
+
+/* initialize server drivers, done once per process
+ *  callbacks      -- base callbacks for all server connections
+ *  appname        -- name of calling application (for lower level logging)
+ * results:
+ *  state          -- server state
+ * returns:
+ *  SASL_OK        -- success
+ *  SASL_BADPARAM  -- error in config file
+ *  SASL_NOMEM     -- memory failure
+ *  SASL_BADVERS   -- Mechanism version mismatch
+ */
 
 int sasl_server_init(const sasl_callback_t *callbacks,
 		     const char *appname)
@@ -503,7 +569,7 @@ int sasl_server_init(const sasl_callback_t *callbacks,
 
   /* load config file if applicable */
   ret=load_config();
-  if ((ret!=SASL_OK) || (ret!=SASL_CONTINUE)) return ret;
+  if ((ret!=SASL_OK) && (ret!=SASL_CONTINUE)) return ret;
 
   /* load plugins */
   ret=init_mechlist();
@@ -520,6 +586,15 @@ int sasl_server_init(const sasl_callback_t *callbacks,
 
   return ret;
 }
+
+/*
+ * Once we have the users plaintext password we 
+ * may want to transition them. That is put entries
+ * for them in the passwd database for other
+ * stronger mechanism
+ *
+ * for example PLAIN -> CRAM-MD5
+ */
 
 static int
 _sasl_transition(sasl_conn_t * conn,
@@ -539,6 +614,22 @@ _sasl_transition(sasl_conn_t * conn,
 		      0,
 		      NULL);
 }
+
+
+/* create context for a single SASL connection
+ *  service        -- registered name of the service using SASL (e.g. "imap")
+ *  local_domain   -- Fully qualified local domain name.  May be NULL
+ *                    for default domain.  Useful for multi-homed servers.
+ *  user_domain    -- permits multiple user domains on server, NULL = default
+ *  callbacks      -- callbacks (e.g., authorization, lang, new getopt context)
+ *  secflags       -- security flags (see above)
+ * returns:
+ *  pconn          -- new connection context
+ *
+ * returns:
+ *  SASL_OK        -- success
+ *  SASL_NOMEM     -- not enough memory
+ */
 
 int sasl_server_new(const char *service,
 		    const char *local_domain,
@@ -585,17 +676,22 @@ int sasl_server_new(const char *service,
     serverconn->user_domain=NULL;
   else {
     result = _sasl_strdup(user_domain, &serverconn->user_domain, NULL);
-    if (result != SASL_OK) goto cleanup_conn;
+  }
+
+  if (result!=SASL_OK)
+  {
+    _sasl_conn_dispose(*pconn);
+    sasl_FREE(*pconn);
+    *pconn = NULL;
   }
 
   return result;
-
-cleanup_conn:
-  _sasl_conn_dispose(*pconn);
-  sasl_FREE(*pconn);
-  *pconn = NULL;
-  return result;
 }
+
+/*
+ * The rule is:
+ * IF mech strength + external strength < min ssf THEN FAIL
+ */
 
 static int mech_permitted(sasl_conn_t *conn,
 			  const sasl_server_plug_t *plug)
@@ -605,7 +701,7 @@ static int mech_permitted(sasl_conn_t *conn,
     return 0;
   if (plug == &external_server_mech) {
     /* Special case for the external mechanism */
-    if (conn->props.min_ssf < conn->external.ssf
+    if (conn->props.min_ssf > conn->external.ssf
 	|| ! conn->external.auth_id)
       return 0;
   } else {
@@ -615,6 +711,19 @@ static int mech_permitted(sasl_conn_t *conn,
   }
   return 1;
 }
+
+/* start a mechanism exchange within a connection context
+ *  mech           -- the mechanism name client requested
+ *  clientin       -- client initial response, NULL if empty
+ *  clientinlen    -- length of initial response
+ *  serverout      -- initial server challenge, NULL if done
+ *  serveroutlen   -- length of initial server challenge
+ * output:
+ *  pconn          -- the connection negotiation state on success
+ *  errstr         -- set to string to send to user on failure
+ *
+ * Same returns as sasl_server_step()
+ */
 
 int sasl_server_start(sasl_conn_t *conn,
 		      const char *mech,
@@ -678,6 +787,25 @@ int sasl_server_start(sasl_conn_t *conn,
 				       errstr);
 }
 
+
+/* perform one step of the SASL exchange
+ *  inputlen & input -- client data
+ *                      NULL on first step if no optional client step
+ *  outputlen & output -- set to the server data to transmit
+ *                        to the client in the next step
+ *  errstr           -- set to a more text error message from
+ *                    a lower level mechanism on failure
+ *
+ * returns:
+ *  SASL_OK        -- exchange is complete.
+ *  SASL_CONTINUE  -- indicates another step is necessary.
+ *  SASL_TRANS     -- entry for user exists, but not for mechanism
+ *                    and transition is possible
+ *  SASL_BADPARAM  -- service name needed
+ *  SASL_BADPROT   -- invalid input from client
+ *  ...
+ */
+
 int sasl_server_step(sasl_conn_t *conn,
 		     const char *clientin,
 		     unsigned clientinlen,
@@ -691,6 +819,8 @@ int sasl_server_step(sasl_conn_t *conn,
   if (errstr)
     *errstr = NULL;
 
+  /* xxx put in a sanity check */
+
   return s_conn->mech->plug->mech_step(conn->context,
 				       s_conn->sparams,
 				       clientin,
@@ -701,6 +831,9 @@ int sasl_server_step(sasl_conn_t *conn,
 				       errstr);
 }
 
+/* returns the length of all the mechanisms
+ * added up 
+ */
 
 static unsigned mech_names_len()
 {
@@ -714,6 +847,27 @@ static unsigned mech_names_len()
 
   return result;
 }
+
+/* This returns a list of mechanisms in a NUL-terminated string
+ *  user          -- restricts mechanisms to those available to that user
+ *                   (may be NULL)
+ *  prefix        -- appended to beginning of result
+ *  sep           -- appended between mechanisms
+ *  suffix        -- appended to end of result
+ * results:
+ *  result        -- NUL terminated allocated result, caller must free
+ *  plen          -- gets length of result (excluding NUL), may be NULL
+ *  pcount        -- gets number of mechanisms, may be NULL
+ *
+ * returns:
+ *  SASL_OK        -- success
+ *  SASL_NOMEM     -- not enough memory
+ *  SASL_NOMECH    -- no enabled mechanisms
+ */
+
+/*
+ * The default behavior is to seperate with spaces if sep==NULL
+ */
 
 int sasl_listmech(sasl_conn_t *conn,
 		  const char *user __attribute__((unused)),
@@ -794,15 +948,28 @@ int sasl_listmech(sasl_conn_t *conn,
   
 }
 
-#define CONFIG_FILENAME "plain.conf"
-#define BUFSIZE 4096
-#define VERIFYSTR "verify_method:"
+/* check if a plaintext password is valid
+ * if user is NULL, check if plaintext is enabled
+ * inputs:
+ *  user         -- user to query in current user_domain
+ *  userlen      -- length of username, 0 = strlen(user)
+ *  pass         -- plaintext password to check
+ *  passlen      -- length of password, 0 = strlen(pass)
+ * outputs:
+ *  errstr       -- set to error message for use in protocols
+ * returns 
+ *  SASL_OK      -- success
+ *  SASL_NOMECH  -- user found, but no verifier
+ *  SASL_NOUSER  -- user not found
+ */
+
+/* xxx major overhaul this */
 
 int sasl_checkpass(sasl_conn_t *conn,
 		   const char *user,
-		   unsigned userlen,
+		   unsigned userlen __attribute__((unused)),
 		   const char *pass,
-		   unsigned passlen,
+		   unsigned passlen __attribute__((unused)),
 		   const char **errstr)
 {
   int result;
@@ -810,7 +977,7 @@ int sasl_checkpass(sasl_conn_t *conn,
   int try_shadow=1;
   int try_krb=1;
 
-  char *mechs;
+  const char *mechs=NULL;
 
   mechs=sasl_config_getstring("plainmech",NULL); /* default to NULL */
   
@@ -837,7 +1004,7 @@ int sasl_checkpass(sasl_conn_t *conn,
   if (try_plain==1)
   {
     /* check against /etc/passwd */
-    result=passwd_verify_password(user, pass, errstr);
+    result=_sasl_passwd_verify_password(user, pass, errstr);
 
     if (result==SASL_OK) return SASL_OK;
   }
@@ -845,7 +1012,7 @@ int sasl_checkpass(sasl_conn_t *conn,
   if (try_shadow==1)
   {
     /* check against /etc/passwd */
-    result=shadow_verify_password(user, pass, errstr);
+    result=_sasl_shadow_verify_password(user, pass, errstr);
 
     if (result==SASL_OK) return SASL_OK;
   }
@@ -853,7 +1020,7 @@ int sasl_checkpass(sasl_conn_t *conn,
   if (try_krb==1)
   {
     /* check against krb */
-    result=kerberos_verify_password(user, pass, conn->service, errstr);
+    result=_sasl_kerberos_verify_password(user, pass, conn->service, errstr);
 
     if (result==SASL_OK) return SASL_OK;
   }

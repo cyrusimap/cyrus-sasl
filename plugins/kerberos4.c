@@ -128,7 +128,7 @@ static int privacy_encode(void *context, const char *input, unsigned inputlen,
   context_t *text;
   text=context;
 
-  *output=text->malloc(inputlen+30);
+  *output=text->malloc(inputlen+40);
   if ((*output) ==NULL) return SASL_NOMEM;
   
   len=krb_mk_priv((char *) input, *output+4,
@@ -273,7 +273,7 @@ integrity_encode(void *context,
   context_t *text;
   text=context;
 
-  *output=text->malloc(inputlen+30);
+  *output=text->malloc(inputlen+40);
   if ((*output) ==NULL) return SASL_NOMEM;
 
   len=krb_mk_safe((char *) input, (*output)+4,
@@ -564,9 +564,9 @@ static int server_continue_step (void *conn_context,
       sout[4] |= KRB_SECFLAG_ENCRYPTION;
     if (cando_sec(&sparams->props, KRB_SECFLAG_CREDENTIALS))
       sout[4] |= KRB_SECFLAG_CREDENTIALS;
-    sout[5]=0xFF;  /* max ciphertext buffer size */
-    sout[6]=0xFF;
-    sout[7]=0xFF;
+    sout[5]=0x00;  /* max ciphertext buffer size */
+    sout[6]=0xFF;  /* let's say we can support up to 64K */
+    sout[7]=0xFF;  /* there is no inherint inability with our layers to support more tho */
 
     memcpy(text->session, ad.session, 8);
     memcpy(text->pname, ad.pname, sizeof(text->pname));
@@ -877,6 +877,7 @@ static int client_continue_step (void *conn_context,
     void *getuser_context;
     sasl_interact_t *prompt;
     int prompt_for_userid = 0;
+    int servermaxbuf;
 
     if (prompt_need && *prompt_need) {
       /* If we requested prompts, make sure they're
@@ -1038,10 +1039,14 @@ static int client_continue_step (void *conn_context,
       return SASL_BADPROT;
     }
 
-    sout[5]=0x0F;  /* max ciphertext buffer size */
-    sout[6]=0xFF;
-    sout[7]=0xFF;
-    sout[8]=0x00;
+    servermaxbuf=in[5]*256*256+in[6]*256+in[7];
+    oparams->maxoutbuf=servermaxbuf;
+
+    sout[5]= (oparams->maxoutbuf) >> 16;  /* max ciphertext buffer size */
+    sout[6]= (oparams->maxoutbuf) >> 8;
+    sout[7]= (oparams->maxoutbuf);
+
+    sout[8]=0x00; /* just to be safe */
 
     /* append userid */
     len = 9;			/* 8 + trailing NULL */
@@ -1104,7 +1109,7 @@ static int client_continue_step (void *conn_context,
     }
 
     oparams->doneflag=1;
-    oparams->maxoutbuf=1024; /* no clue what this should be */
+
 
     oparams->param_version=0;
 

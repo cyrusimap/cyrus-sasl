@@ -24,5 +24,5 @@
 ################################################################
 
 noinst_PROGRAMS = sample-client sample-server
-LDADD = ../lib/libsasl.la $(LIB_SOCKET)
-INCLUDES=-I$(top_srcdir)/include
+sample_client_LDADD = ../lib/libsasl.la $(LIB_SOCKET)
+sample_client_INCLUDES=-I$(top_srcdir)/include

@@ -34,6 +34,8 @@ static const char build_ident[] = "$Build: saslpasswd " PACKAGE "-" VERSION " $"
 
 const char *progname = NULL;
 
+extern int _sasl_debug;
+
 void read_password(const char *prompt,
 		   int flag_pipe,
 		   char ** password,
@@ -105,7 +107,9 @@ main(int argc, char *argv[])
   int result;
   sasl_conn_t *conn;
   char *user_domain = NULL;
-  
+
+  _sasl_debug=1;
+
   if (! argv[0])
     progname = "saslpasswd";
   else {
@@ -184,6 +188,7 @@ main(int argc, char *argv[])
     }
   }
 
+  printf("setting pass\n");
   result = sasl_setpass(conn,
 			userid,
 			password,
@@ -191,7 +196,7 @@ main(int argc, char *argv[])
 			(flag_create ? SASL_SET_CREATE : 0)
 			| (flag_disable ? SASL_SET_DISABLE : 0),
 			&errstr);
-
+  printf("set pass\n");
 
   if (result != SASL_OK)
     exit_sasl(result, errstr);

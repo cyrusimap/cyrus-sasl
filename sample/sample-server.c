@@ -310,7 +310,7 @@ main(int argc, char *argv[])
 	default:
 	  errflag = 1;
 	  break;
-	}
+	  }
       break;
 
     case 'e':
@@ -332,7 +332,7 @@ main(int argc, char *argv[])
 	default:
 	  errflag = 1;
 	  break;
-	}
+	  } 
       break;
 
     case 'm':
@@ -364,9 +364,9 @@ main(int argc, char *argv[])
 	default:
 	  errflag = 1;
 	  break;
-	}
+	  }
 	if (value) errflag = 1;
-      }
+	}
       break;
 
     case 'i':
@@ -388,7 +388,7 @@ main(int argc, char *argv[])
 	default:
 	  errflag = 1;
 	  break;
-	}
+	  }
       break;
 
     case 'p':

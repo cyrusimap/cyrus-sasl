@@ -48,6 +48,7 @@ char *decode_table;
 
 struct sasl_rand_s {
   unsigned short int pool[3];
+  int initialized; /* since the init time might be really bad let's make this lazy */
 };
 
 #define CHAR64(c)  (((c) < 0 || (c) > 127) ? -1 : index_64[(c)])
@@ -66,6 +67,16 @@ static char index_64[128] = {
     41,42,43,44, 45,46,47,48, 49,50,51,-1, -1,-1,-1,-1
 };
 
+/* base64 encode
+ *  in      -- input data
+ *  inlen   -- input data length
+ *  out     -- output buffer (will be NUL terminated)
+ *  outmax  -- max size of output buffer
+ * result:
+ *  outlen  -- gets actual length of output buffer (optional)
+ * 
+ * Returns SASL_OK on success, SASL_BUFOVER if result won't fit
+ */
 
 int sasl_encode64(const char *_in, unsigned inlen,
 		  char *_out, unsigned outmax, unsigned *outlen)
@@ -110,6 +121,15 @@ int sasl_encode64(const char *_in, unsigned inlen,
     return SASL_OK;
 }
 
+/* base64 decode
+ *  in     -- input data
+ *  inlen  -- length of input data
+ *  out    -- output data (may be same as in, must have enough space)
+ * result:
+ *  outlen -- actual output length
+ *
+ * returns SASL_BADPROT on bad base64, SASL_OK on success
+ */
 
 int sasl_decode64(const char *in, unsigned inlen,
 		  char *out, unsigned *outlen)
@@ -153,6 +173,15 @@ int sasl_decode64(const char *in, unsigned inlen,
 
     return SASL_OK;
 }
+
+/* make a challenge string (NUL terminated)
+ *  buf      -- buffer for result
+ *  maxlen   -- max length of result
+ *  hostflag -- 0 = don't include hostname, 1 = include hostname
+ * returns final length or 0 if not enough space
+ */
+
+/* xxx has this ever been tested??? */
 
 int sasl_mkchal(sasl_conn_t *conn,
 		char *buf,
@@ -220,6 +249,20 @@ parityof(unsigned char ch)
 }
 #endif
 
+/* 
+ * To see why this is really bad see RFC 1750
+ *
+ * unfortunatly there currently is no way to make 
+ * cryptographically secure pseudo random numbers
+ * without specialized hardware etc...
+ *
+ * A note:
+ *  After some relativly small number of iterations
+ *  (30-50?) this may become really insecure
+ *  It would be a good idea to churn() every so often
+ *   Currently this is _not_ a problem
+ */
+
 static unsigned short* getranddata()
 {
   unsigned short *ret;
@@ -230,6 +273,7 @@ static unsigned short* getranddata()
   if (ret ==NULL) return NULL;
   memset(ret,0,6);
 
+  /* this will probably only work on linux */
   if ((f=fopen("/dev/random","r"))!=NULL)
   {    
     fread(ret, 1, 6, f);
@@ -238,7 +282,7 @@ static unsigned short* getranddata()
     return ret;
   }
   
-#if 0
+#if 0  /* this works but is horribly slow :) */
   if ((f=fopen("/dev/audio","r"))!=NULL)
   {
     int parity=0,lup,lup2;     
@@ -263,7 +307,9 @@ static unsigned short* getranddata()
   }
 #endif
 
-  /* if all else fails just use timer */
+  /* if all else fails just use timer 
+   * this is really bad (see 1750). any other ideas tho?
+   */
   curtime=(long) time(NULL);
 
   ret[0]=(unsigned short) (curtime >> 16);
@@ -271,23 +317,17 @@ static unsigned short* getranddata()
   ret[2]=(unsigned short) ((curtime*7) >> 5);
 
   return ret;
-
 }
 
 int sasl_randcreate(sasl_rand_t **rpool)
 {
-  unsigned short *data;
   (*rpool)=sasl_ALLOC(sizeof(sasl_rand_t));
   if ((*rpool) ==NULL) return SASL_NOMEM;
 
-  data=getranddata();
-  if (data==NULL)
-    return SASL_FAIL;
+  /* init is lazy */
+  (*rpool)->initialized=-1;
 
-  memcpy((*rpool)->pool, data, 6);
 
-  memset(data, 0, 6); /* wipe it out */
-  sasl_FREE((data));
   return SASL_OK;
 }
 
@@ -308,8 +348,24 @@ void sasl_randseed (sasl_rand_t *rpool, const char *seed, unsigned len)
 
 void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
 {
+  unsigned short *data;
   unsigned int lup;
   if (buf==NULL) return;
+
+  /* see if we need to init now */
+  if (rpool->initialized==-1)
+  {
+    data=getranddata();
+    if (data==NULL)
+      return SASL_FAIL;
+
+    memcpy(rpool->pool, data, 6);
+    
+    memset(data, 0, 6); /* wipe it out */
+    sasl_FREE((data));
+
+    rpool->initialized=1;
+  }
 
 #ifdef WIN32
   for (lup=0;lup<len;lup++)
@@ -318,6 +374,7 @@ void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
   for (lup=0;lup<len;lup++)
     buf[lup]= (char) jrand48(rpool->pool);
 #endif /* WIN32 */
+
 }
 
 void sasl_churn (sasl_rand_t *rpool, const char *data, unsigned len)

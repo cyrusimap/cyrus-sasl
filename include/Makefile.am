@@ -23,4 +23,4 @@
 #PERFORMANCE OF THIS SOFTWARE.
 ################################################################
 
-include_HEADERS=hmac-md5.h md5.h md5global.h sasl.h saslplug.h saslutil.h
+include_HEADERS = hmac-md5.h md5.h md5global.h sasl.h saslplug.h saslutil.h

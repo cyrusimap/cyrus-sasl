@@ -1,3 +1,11 @@
+1999-06-02  Timothy L Martin  <tmartin@andrew.cmu.edu>
+
+	* lib/saslutil.c (sasl_rand): made random seeding lazy
+
+1999-05-12  Timothy L Martin  <tmartin+@andrew.cmu.edu>
+
+	* lib/server.c (sasl_listmech): fixed extra seperator bug
+
 1999-03-31  Rob Earhart  <rob+@andrew.cmu.edu>
 
 	* plugins/digestmd5.c: why was this using // for comments in C code?
@@ -7,6 +15,9 @@
  	bind symbols immediately (this is preferable to dumping core when
  	symbols bound lazily fail to actually bind when needed), and to
  	keep them private (reducing the chances for plugins to collide).
+
+	XXX Rob is there any way to get this to compile on Linux???
+	
 
 	* sample/sample-server.c (main): Fixed forced-mechanism code
 

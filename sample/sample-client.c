@@ -425,7 +425,7 @@ main(int argc, char *argv[])
 	  break;
 	default:
 	  errflag = 1;
-	  break;
+	  break;	  
 	  }
       break;
 
@@ -482,7 +482,7 @@ main(int argc, char *argv[])
 	  break;
 	  }
 	if (value) errflag = 1;
-      }
+	}
       break;
 
     case 'i':
@@ -512,7 +512,10 @@ main(int argc, char *argv[])
       break;
 
     case 's':
-      service = optarg;
+      service=malloc(1000);
+      strcpy(service,optarg);
+      /*      service = optarg;*/
+      printf("service=%s\n",service);
       break;
 
     case 'n':

@@ -139,25 +139,25 @@ external_client_step(void *conn_context __attribute__((unused)),
   result = _sasl_strdup(params->utils->conn->external.auth_id,
 			&oparams->authid,
 			NULL);
-  if (result != SASL_OK)
-    goto cleanup_clientout;
+  if (result == SASL_OK)
+  {
+    oparams->doneflag = 1;
+    oparams->mech_ssf = 0;
+    oparams->maxoutbuf = 0;
+    oparams->encode_context = NULL;
+    oparams->encode = NULL;
+    oparams->getmic = NULL;
+    oparams->decode_context = NULL;
+    oparams->decode = NULL;
+    oparams->verifymic = NULL;
+    oparams->user = NULL;
+    oparams->realm = NULL;
+    oparams->param_version = 0;
 
-  oparams->doneflag = 1;
-  oparams->mech_ssf = 0;
-  oparams->maxoutbuf = 0;
-  oparams->encode_context = NULL;
-  oparams->encode = NULL;
-  oparams->getmic = NULL;
-  oparams->decode_context = NULL;
-  oparams->decode = NULL;
-  oparams->verifymic = NULL;
-  oparams->user = NULL;
-  oparams->realm = NULL;
-  oparams->param_version = 0;
+    return SASL_OK;
 
-  return SASL_OK;
+  }  /* otherwise */
 
- cleanup_clientout:
   sasl_FREE(*clientout);
   *clientout = NULL;
 
@@ -216,7 +216,7 @@ typedef struct sasl_client_conn {
 } sasl_client_conn_t;
 
 typedef struct cmech_list {
-  sasl_utils_t *utils;  /* gotten from plug_init */
+  sasl_utils_t *utils; 
 
   void *mutex;            /* mutex for this data */ 
   cmechanism_t *mech_list; /* list of mechanisms */
@@ -318,6 +318,17 @@ client_idle(sasl_conn_t *conn)
   return 0;
 }
 
+/* initialize the SASL client drivers
+ *  callbacks      -- base callbacks for all client connections
+ * returns:
+ *  SASL_OK        -- Success
+ *  SASL_NOMEM     -- Not enough memory
+ *  SASL_BADVERS   -- Mechanism version mismatch
+ *  SASL_BADPARAM  -- error in config file
+ *  SASL_NOMECH    -- No mechanisms available
+ *  ...
+ */
+
 int sasl_client_init(const sasl_callback_t *callbacks)
 {
   int ret;
@@ -369,6 +380,25 @@ static void client_dispose(sasl_conn_t *pconn)
   _sasl_conn_dispose(pconn);
 }
 
+/* initialize a client exchange based on the specified mechanism
+ *  service       -- registered name of the service using SASL (e.g. "imap")
+ *  serverFQDN    -- the fully qualified domain name of the server
+ *  prompt_supp   -- list of client interactions supported
+ *                   may also include sasl_getopt_t context & call
+ *                   NULL prompt_supp = user/pass via SASL_INTERACT only
+ *                   NULL proc = interaction supported via SASL_INTERACT
+ *  secflags      -- security flags (see above)
+ * in/out:
+ *  pconn         -- connection negotiation structure
+ *                   pointer to NULL => allocate new
+ *                   non-NULL => recycle storage and go for next available mech
+ *
+ * Returns:
+ *  SASL_OK       -- success
+ *  SASL_NOMECH   -- no mechanism meets requested properties
+ *  SASL_NOMEM    -- not enough memory
+ */
+
 int sasl_client_new(const char *service,
 		    const char *serverFQDN,
 		    const sasl_callback_t *prompt_supp,
@@ -403,11 +433,11 @@ int sasl_client_new(const char *service,
   conn->cparams->utils->conn= *pconn;
 
   result = _sasl_strdup(serverFQDN, &conn->serverFQDN, NULL);
-  if (result != SASL_OK) goto cleanup_conn;
 
-  return result;
+  if (result == SASL_OK) return SASL_OK;
 
-cleanup_conn:
+  /* result isn't SASL_OK */
+
   _sasl_conn_dispose(*pconn);
   sasl_FREE(*pconn);
   *pconn = NULL;
@@ -441,6 +471,30 @@ static int have_prompts(sasl_conn_t *conn,
   return 1; /* we have all the prompts */
 }
 
+/* select a mechanism for a connection
+ *  mechlist      -- mechanisms server has available (punctuation ignored)
+ *  secret        -- optional secret from previous session
+ * output:
+ *  prompt_need   -- on SASL_INTERACT, list of prompts needed to continue
+ *  clientout     -- the initial client response to send to the server
+ *  mech          -- set to mechanism name
+ *
+ * Returns:
+ *  SASL_OK       -- success
+ *  SASL_NOMEM    -- not enough memory
+ *  SASL_NOMECH   -- no mechanism meets requested properties
+ *  SASL_INTERACT -- user interaction needed to fill in prompt_need list
+ */
+
+/* xxx confirm this with rfc 2222
+ * SASL mechanism allowable characters are "AZaz-_"
+ * seperators can be any other characters and of any length
+ * even variable lengths between
+ *
+ * Apps should be encouraged to simply use space or comma space
+ * though
+ */
+
 int sasl_client_start(sasl_conn_t *conn,
 		      const char *list,
 		      sasl_secret_t *secret,
@@ -464,6 +518,7 @@ int sasl_client_start(sasl_conn_t *conn,
 
   /* if prompt_need != NULL we've already been here
      and just need to do the continue step again */
+
    /* do a step */
   if (prompt_need && *prompt_need!=NULL)
       return c_conn->mech->plug->mech_step(conn->context,
@@ -505,9 +560,9 @@ int sasl_client_start(sasl_conn_t *conn,
     pos++;
     name[place]=0;
 
-    VL(("Considering mech %s\n",name));
-
     if (! place) continue;
+
+    VL(("Considering mech %s\n",name));
 
     /* foreach in server list */
     for (m = cmechlist->mech_list;
@@ -570,6 +625,19 @@ int sasl_client_start(sasl_conn_t *conn,
 				    &conn->oparams);
 }
 
+/* do a single authentication step.
+ *  serverin    -- the server message received by the client, MUST have a NUL
+ *                 sentinel, not counted by serverinlen
+ * output:
+ *  prompt_need -- on SASL_INTERACT, list of prompts needed to continue
+ *  clientout   -- the client response to send to the server
+ *
+ * returns:
+ *  SASL_OK        -- success
+ *  SASL_INTERACT  -- user interaction needed to fill in prompt_need list
+ *  SASL_BADPROT   -- server protocol incorrect/cancelled
+ *  SASL_BADSERV   -- server failed mutual auth
+ */
 
 int sasl_client_step(sasl_conn_t *conn,
 		     const char *serverin,
@@ -590,6 +658,19 @@ int sasl_client_step(sasl_conn_t *conn,
 				    &conn->oparams);
 }
 
+/* Set connection secret based on passphrase
+ *  may be used in SASL_CB_PASS callback
+ * input:
+ *  user          -- username
+ *  pass          -- plaintext passphrase with NUL sentinel
+ *  passlen       -- 0 = strlen(pass)
+ * out:
+ *  prompts       -- if non-NULL, SASL_CB_PASS item filled in
+ *  keepcopy      -- set to copy of secret if non-NULL
+ * returns:
+ *  SASL_OK       -- success
+ *  SASL_NOMEM    -- failure
+ */
 
 int sasl_client_auth(sasl_conn_t *conn __attribute__((unused)),
 		     const char *user __attribute__((unused)),
@@ -599,8 +680,12 @@ int sasl_client_auth(sasl_conn_t *conn __attribute__((unused)),
 		     sasl_secret_t **keepcopy __attribute__((unused)))
 {
   /* XXX needs to be filled in */
-  return SASL_OK;
+  return SASL_FAIL;
 }
+
+/* erase & dispose of a sasl_secret_t
+ *  calls free utility last set by sasl_set_alloc
+ */
 
 void sasl_free_secret(sasl_secret_t **secret)
 {

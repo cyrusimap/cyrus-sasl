@@ -52,8 +52,8 @@ all-first: all
 #nmake doesn't have "for" construct?
 #front ! will call the command replacing $? with a value from dependency list
 all clean: $(SUBDIRS)
-	!cd $? && $(MAKE) /f NTMakefile $(MAKEFLAGS) VERBOSE=0 $@
+	!cd $? && $(MAKE) /f NTMakefile /$(MAKEFLAGS) VERBOSE=0 $@
 
 install: $(INCSUBDIRS) $(SUBDIRS)
-	!cd $? && $(MAKE) /f NTMakefile prefix=$(prefix) $@
+	!cd $? && $(MAKE) /f NTMakefile /$(MAKEFLAGS) prefix=$(prefix) $@
 

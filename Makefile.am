@@ -72,6 +72,7 @@ SUBDIRS=include sasldb plugins lib utils doc man $(PWC) $(SAM) $(JAV) $(SAD)
 EXTRA_DIST=config cmulocal win32 mac dlcompat-20010505
 
 dist-hook:
+	@find $(distdir) -exec chmod o+w {} ';'
 	@find $(distdir) -name CVS -print | xargs -t rm -rf
 
 framedir = /Library/Frameworks/SASL2.framework

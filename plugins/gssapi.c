@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.69 2002/09/19 16:28:52 ken3 Exp $
+ * $Id: gssapi.c,v 1.70 2002/09/19 18:37:10 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -87,7 +87,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.69 2002/09/19 16:28:52 ken3 Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.70 2002/09/19 18:37:10 rjs3 Exp $";
 
 #ifndef HAVE_GSS_C_NT_HOSTBASED_SERVICE
 extern gss_OID gss_nt_service_name;
@@ -840,9 +840,12 @@ gssapi_server_mech_step(void *conn_context,
 	/* build up our security properties token */
         if (params->props.maxbufsize > 0xFFFFFF) {
             /* make sure maxbufsize isn't too large */
-            *((unsigned long *)sasldata) = 0xFFFFFF;
+            /* maxbufsize = 0xFFFFFF */
+            sasldata[1] = sasldata[2] = sasldata[3] = 0xFF;
         } else {
-            *((unsigned long *)sasldata) = params->props.maxbufsize & 0xFFFFFF;
+            sasldata[1] = (params->props.maxbufsize >> 16) & 0xFF;
+            sasldata[2] = (params->props.maxbufsize >> 8) & 0xFF;
+            sasldata[3] = (params->props.maxbufsize >> 0) & 0xFF;
         }
 	sasldata[0] = 0;
 	if(text->requiressf != 0 && !params->props.maxbufsize) {
@@ -996,11 +999,12 @@ gssapi_server_mech_step(void *conn_context,
 	}	
 	
 	/* No matter what, set the rest of the oparams */
-	memcpy(&oparams->maxoutbuf,((char *) real_output_token.value) + 1,
-	       sizeof(unsigned));
-	oparams->maxoutbuf = ntohl(oparams->maxoutbuf) - 4;
+        oparams->maxoutbuf = (((char *) output_token->value)[1] << 16) |
+            (((char *) output_token->value)[2] << 8) |
+            (((char *) output_token->value)[3] << 0);
+
 	if (oparams->mech_ssf) {
-	    /* FIXME, this is probabally too big */
+	    /* xxx this is probably too big */
 	    oparams->maxoutbuf -= 50;
 	}
 	
@@ -1409,9 +1413,12 @@ static int gssapi_client_mech_step(void *conn_context,
 	    return SASL_TOOWEAK;
 	}
 	
-	oparams->maxoutbuf = (*(unsigned long *)output_token->value & 0xFFFFFF);
+        oparams->maxoutbuf = (((char *) output_token->value)[1] << 16) |
+            (((char *) output_token->value)[2] << 8) |
+            (((char *) output_token->value)[3] << 0);
+
 	if(oparams->mech_ssf) {
-	    /* FIXME: probabally too large */
+	    /* xxx probably too large */
 	    oparams->maxoutbuf -= 50;
 	}
 	
@@ -1437,12 +1444,20 @@ static int gssapi_client_mech_step(void *conn_context,
 	if (alen)
 	    memcpy((char *)input_token->value+4,oparams->user,alen);
 
-        /* make sure maxbufsize isn't too large */
+	/* build up our security properties token */
         if (params->props.maxbufsize > 0xFFFFFF) {
-            *((unsigned long *)input_token->value) = 0xFFFFFF;
+            /* make sure maxbufsize isn't too large */
+            /* maxbufsize = 0xFFFFFF */
+            ((unsigned char *)input_token->value)[1] = 0xFF;
+            ((unsigned char *)input_token->value)[2] = 0xFF;
+            ((unsigned char *)input_token->value)[3] = 0xFF;
         } else {
-            *((unsigned long *)input_token->value) =
-                params->props.maxbufsize & 0xFFFFFF;
+            ((unsigned char *)input_token->value)[1] = 
+                (params->props.maxbufsize >> 16) & 0xFF;
+            ((unsigned char *)input_token->value)[2] = 
+                (params->props.maxbufsize >> 8) & 0xFF;
+            ((unsigned char *)input_token->value)[3] = 
+                (params->props.maxbufsize >> 0) & 0xFF;
         }
 	((unsigned char *)input_token->value)[0] = mychoice;
 	

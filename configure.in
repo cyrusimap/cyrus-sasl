@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.135 2002/07/02 16:48:17 rjs3 Exp $
+dnl $Id: configure.in,v 1.136 2002/07/02 23:17:18 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -501,7 +501,7 @@ fi
 ############################################################################
 # Simon Loader tries to do auto conf
 dnl MySQL
-AC_ARG_WITH(mysql,  [  --with-mysql=path       enable authentication against a MySQL db                                        (experimental) [no] ],
+AC_ARG_WITH(mysql,  [  --with-mysql=PATH       enable authentication against a MySQL db                                        (experimental) [no] ],
   with_mysql=$withval,
   with_mysql=no)
 
@@ -538,6 +538,7 @@ case "$with_mysql" in
          LIB_MYSQL="-L${with_mysql}"
      fi
 
+     LIB_MYSQL_DIR=$LIB_MYSQL
      LIB_MYSQL="$LIB_MYSQL -lmysqlclient"
 
      if test -d ${with_mysql}/include/mysql; then
@@ -553,7 +554,7 @@ case "$with_mysql" in
            SASL_MECHS="$SASL_MECHS libmysql.la"
            SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/mysql.o"
            AC_DEFINE(STATIC_MYSQL)],
-           [AC_ERROR([MYSQL libarary mysqlclient not found])]);;
+           [AC_ERROR([MYSQL libarary mysqlclient not found])], $LIB_MYSQL_DIR);;
          
 esac
 AC_SUBST(LIB_MYSQL)

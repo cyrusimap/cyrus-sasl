@@ -1,6 +1,6 @@
 # Makefile.am for the SASL library
 # Rob Earhart
-# $Id: Makefile.am,v 1.3 1998/11/17 02:21:41 rob Exp $
+# $Id: Makefile.am,v 1.4 1998/11/17 02:29:04 rob Exp $
 #
 #
 #         Copyright 1998 by Carnegie Mellon University
@@ -37,5 +37,5 @@ test_LDADD = libsasl.la
 lib_LTLIBRARIES = libsasl.la
 
 libsasl_la_SOURCES = common.c saslutil.c server.c client.c md5.c dlopen.c
-libsasl_la_LDFLAGS = -export-dynamic -rpath $(libdir) -version-info $(sasl_version)
+libsasl_la_LDFLAGS = -export-dynamic -version-info $(sasl_version)
 libsasl_la_LIBADD = $(SASL_DB_LIB) $(SASL_DL_LIB)

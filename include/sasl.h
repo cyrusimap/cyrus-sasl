@@ -1136,6 +1136,9 @@ LIBSASL_API int sasl_encodev(sasl_conn_t *conn,
 /* decode a block of data received using security layer
  *  returning the input buffer if there is no security layer.
  *  output is only valid until next call to sasl_decode
+ *
+ *  if outputlen is 0 on return, than the value of output is undefined.
+ *  
  * returns:
  *  SASL_OK      -- success (returns input if no layer negotiated)
  *  SASL_NOTDONE -- security layer negotiation not finished

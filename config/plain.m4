@@ -1,10 +1,10 @@
 dnl Check for PLAIN (and therefore crypt)
 
 AC_DEFUN(SASL_CRYPT_CHK,[
- AC_CHECK_FUNC(crypt, cmu_have_crypt=yes,
+ AC_CHECK_FUNC(crypt, cmu_have_crypt=yes, [
   AC_CHECK_LIB(crypt, crypt,
 	       LIB_CRYPT="-lcrypt"; cmu_have_crypt=yes,
-	       cmu_have_crypt=no))
+	       cmu_have_crypt=no)])
  AC_SUBST(LIB_CRYPT)
 ])
 

@@ -76,9 +76,9 @@ dnl named.  arg.
 
         case "$with_gdbm" in
            ""|yes)
-               AC_CHECK_HEADER(gdbm.h,
+               AC_CHECK_HEADER(gdbm.h, [
 			AC_CHECK_LIB(gdbm, gdbm_open, SASL_DB_LIB="-lgdbm",
-                                           dblib="no"),
+                                           dblib="no")],
 			dblib="no")
                ;;
            *)
@@ -94,9 +94,9 @@ dnl named.  arg.
   ndbm)
 	dnl We want to attempt to use -lndbm if we can, just in case
 	dnl there's some version of it installed and overriding libc
-	AC_CHECK_HEADER(ndbm.h,
-			AC_CHECK_LIB(ndbm, dbm_open, SASL_DB_LIB="-lndbm",
-				AC_CHECK_FUNC(dbm_open,,dblib="no")),
+	AC_CHECK_HEADER(ndbm.h, [
+			AC_CHECK_LIB(ndbm, dbm_open, SASL_DB_LIB="-lndbm", [
+				AC_CHECK_FUNC(dbm_open,,dblib="no")])],
 				dblib="no")
 	;;
   auto_detect)
@@ -104,10 +104,10 @@ dnl named.  arg.
 	BERKELEY_DB_CHK()
 	if test "$dblib" = no; then
 	  dnl How about ndbm?
-	  AC_CHECK_HEADER(ndbm.h, 
+	  AC_CHECK_HEADER(ndbm.h, [
 		AC_CHECK_LIB(ndbm, dbm_open,
 			     dblib="ndbm"; SASL_DB_LIB="-lndbm",
-		   	     dblib="weird"),
+		   	     dblib="weird")],
 		   dblib="no")
 	  if test "$dblib" = "weird"; then
 	    dnl Is ndbm in the standard library?
@@ -116,9 +116,9 @@ dnl named.  arg.
 
 	  if test "$dblib" = no; then
             dnl Can we use gdbm?
-   	    AC_CHECK_HEADER(gdbm.h,
+   	    AC_CHECK_HEADER(gdbm.h, [
 		AC_CHECK_LIB(gdbm, gdbm_open, dblib="gdbm";
-					     SASL_DB_LIB="-lgdbm", dblib="no"),
+					     SASL_DB_LIB="-lgdbm", dblib="no")],
   			     dblib="no")
 	  fi
 	fi

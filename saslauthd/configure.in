@@ -79,9 +79,9 @@ if test "$with_pam" != no; then
     LDFLAGS="$LDFLAGS -L${with_pam}/lib"
   fi
   cmu_save_LIBS="$LIBS"
-  AC_CHECK_LIB(pam, pam_start,
+  AC_CHECK_LIB(pam, pam_start, [
 	  AC_CHECK_HEADER(security/pam_appl.h,,
-			  with_pam=no),
+			  with_pam=no)],
 		with_pam=no, $SASL_DL_LIB)
   LIBS="$cmu_save_LIBS"
 fi

@@ -13,11 +13,11 @@ if test "$with_des" != no; then
   fi
 
   dnl check for openssl installing -lcrypto, then make vanilla check
-  AC_CHECK_LIB(crypto, des_cbc_encrypt,
+  AC_CHECK_LIB(crypto, des_cbc_encrypt, [
       AC_CHECK_HEADER(openssl/des.h, [AC_DEFINE(WITH_SSL_DES)
                                      LIB_DES="-lcrypto";
                                      with_des=yes],
-                     with_des=no),
+                     with_des=no)],
       with_des=no, $LIB_RSAREF)
 
   if test "$with_des" = no; then
@@ -45,11 +45,11 @@ if test "$with_des" != no; then
                  LIB_RSAREF="-lRSAglue -lrsaref"; cmu_have_rsaref=yes,
                  cmu_have_rsaref=no)
 
-    AC_CHECK_LIB(crypto, des_cbc_encrypt, 
+    AC_CHECK_LIB(crypto, des_cbc_encrypt, [
 	AC_CHECK_HEADER(openssl/des.h, [AC_DEFINE(WITH_SSL_DES)
 					LIB_DES="-lcrypto";
 					with_des=yes],
-			with_des=no), 
+			with_des=no)], 
         with_des=no, $LIB_RSAREF)
   fi
 fi
@@ -94,20 +94,20 @@ AC_DEFUN(SASL_KERBEROS_V4_CHK, [
     fi
 
     if test "$with_des" != no; then
-      AC_CHECK_HEADER(krb.h,
-        AC_CHECK_LIB(com_err, com_err,
+      AC_CHECK_HEADER(krb.h, [
+        AC_CHECK_LIB(com_err, com_err, [
 	  AC_CHECK_LIB(krb, krb_mk_priv,
                      [COM_ERR="-lcom_err"; SASL_KRB_LIB="-lkrb"],
-                     krb4=no, $LIB_DES -lcom_err), 
+                     krb4=no, $LIB_DES -lcom_err)], [
     	  AC_CHECK_LIB(krb, krb_mk_priv,
                      [COM_ERR=""; SASL_KRB_LIB="-lkrb"],
-                     krb4=no, $LIB_DES)))
+                     krb4=no, $LIB_DES)])])
 
       if test "$krb4" = no; then
-        AC_CHECK_HEADER(krb.h,
+        AC_CHECK_HEADER(krb.h, [
 	  AC_CHECK_LIB(krb4, krb_mk_priv,
                      [COM_ERR=""; SASL_KRB_LIB="-lkrb4"; krb4=yes],
-                     krb4=no, $LIB_DES))
+                     krb4=no, $LIB_DES)])
         if test "$krb4" = no; then
           AC_WARN(No Kerberos V4 found)
         fi

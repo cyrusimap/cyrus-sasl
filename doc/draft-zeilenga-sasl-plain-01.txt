@@ -6,13 +6,13 @@
 
 INTERNET-DRAFT                           Editor: Kurt D. Zeilenga
 Intended Category: Standards Track            OpenLDAP Foundation
-Expires in six months                                23 June 2002
+Expires in six months                             4 November 2002
 Updates: RFC 2595
 
 
 
                            Plain SASL Mechanism
-                    <draft-zeilenga-sasl-plain-00.txt>
+                    <draft-zeilenga-sasl-plain-01.txt>
 
 
 Status of Memo
@@ -48,21 +48,19 @@ Status of Memo
 
 Abstract
 
-  Clear-text passwords are simple, interoperate with almost all existing
-  operating system authentication databases, and are useful for a smooth
-  transition to a more secure password-based authentication mechanism.
-  The drawback is that they are unacceptable for use over an unencrypted
+  This document defines a simple clear-text user/password Simple
+  Authentication and Security Layer (SASL) mechanism called the PLAIN
+  mechanism.  The PLAIN mechanism intended to be used, in combination
+  with data confidentiality services provided by a lower layer, in
 
 
 
 Zeilenga                  Plain SASL Mechanism                  [Page 1]
 
-INTERNET-DRAFT      draft-zeilenga-sasl-plain-00.txt        23 June 2002
+INTERNET-DRAFT      draft-zeilenga-sasl-plain-01.txt     4 November 2002
 
 
-  network connection.  This document defines the the SASL PLAIN
-  authentication mechanism, intended to be used with confidentiality
-  protection provided another layer (e.g. TLS).
+  protocols which lack a simple password authentication command.
 
 
 Conventions
@@ -80,15 +78,18 @@ Conventions
   The drawback is that they are unacceptable for use over an unencrypted
   network connection.
 
-  This document defines the "PLAIN" Simple Authentication and Security
+  This document defines the PLAIN Simple Authentication and Security
   Layer ([SASL]) mechanism for use in protocols with no clear-text login
   command (e.g., ACAP).
 
-  The PLAIN SASL mechanism MUST NOT be used without adequate security
-  protection as the mechanism affords no integrity nor confidentiality
-  protection itself.  The PLAIN SASL mechanism MUST NOT be advertised
-  unless a strong encryption layer (such as provided by [TLS]) is
-  active.
+  The name associated with this mechanism is "PLAIN".
+
+  The PLAIN SASL mechanism does not provide a security layer.  This
+  mechanism MUST NOT be used without adequate security protection as the
+  mechanism affords no integrity nor confidentiality protection itself.
+  The PLAIN SASL mechanism MUST NOT be advertised unless a strong
+  encryption layer, such as provided by Transport Layer Security
+  ([TLS]), is active.
 
   This document updates RFC 2595, replacing Section 6.  Changes since
   RFC 2595 are detailed in Appendix A.
@@ -104,54 +105,73 @@ Conventions
   the authorization identity empty if wishes the server to derive the
   authorization identity from the provided the authentication identity.
 
-  The authorization identity, authentication identity, password, and the
-  NUL character SHALL be transferred as [UTF-8] encoded string of
-  printable [Unicode] characters in Unicode Normalisation Form KC
-  [NFKC].
+  The authorization identity (authzid), authentication identity
+  (authcid) and password (passwd) SHALL be transferred as [UTF-8]
+  encoded strings of printable [Unicode] characters in Unicode
 
 
 
 Zeilenga                  Plain SASL Mechanism                  [Page 2]
 
-INTERNET-DRAFT      draft-zeilenga-sasl-plain-00.txt        23 June 2002
+INTERNET-DRAFT      draft-zeilenga-sasl-plain-01.txt     4 November 2002
 
+
+  Normalisation Form KC [NFKC] delimitated by the NUL (U+0000)
+  character.
 
   The following characters are considered non-printable:
       - control characters: U+0000..U+001F, U+007F..U+009F;
       - replacement character: U+FFFD; and
       - special characters and noncharacter: U+FEFF, U+FFFE, U+FFFF.
 
-  The server will verify the authentication identity and password with
-  the system authentication database and verify that the authentication
-  credentials permit the client to login as the authorization identity.
-  If both steps succeed, the user is logged in.
+  The server will verify the authentication identity (authcid) and
+  password (passwd) with the system authentication database and verify
+  that the authentication credentials permit the client to login as the
+  authorization identity (authzid).  If both steps succeed, the user is
+  logged in.
 
   The server MAY also use the password to initialize any new
   authentication database, such as one suitable for [CRAM-MD5] or
   [DIGEST-MD5].
 
-      message         = [authorize-id] NUL authenticate-id NUL password
-      authenticate-id = 1*UTF8-SAFE      ; MUST accept up to 255 octets
-      authorize-id    = 1*UTF8-SAFE      ; MUST accept up to 255 octets
-      password        = 1*UTF8-SAFE      ; MUST accept up to 255 octets
-      NUL             = %x00
-      UTF8-SAFE       = %x01-09 / %x0B-0C / %x0E-7F / UTF8-2 /
-                        UTF8-3 / UTF8-4 / UTF8-5 / UTF8-6
-      UTF8-1          = %x80-BF
-      UTF8-2          = %xC0-DF UTF8-1
-      UTF8-3          = %xE0-EF 2UTF8-1
-      UTF8-4          = %xF0-F7 3UTF8-1
-      UTF8-5          = %xF8-FB 4UTF8-1
-      UTF8-6          = %xFC-FD 5UTF8-1
+  The formal grammar for the client message using Augmented BNF [ABNF]
+  follows.
+
+      message   = [authzid] NUL authcid NUL passwd
+      authcid   = 1*SAFE ; MUST accept up to 255 octets
+      authzid   = 1*SAFE ; MUST accept up to 255 octets
+      passwd    = 1*SAFE ; MUST accept up to 255 octets
+      NUL       = %x00
+
+      SAFE      = UTF1 / UTF2 / UTF3 / UTF4 / UTF5 / UTF6 / UTF7
+                  ;; any UTF-8 encoded Unicode printable character
+
+      UTF1   = %x01-7F
+      UTF2      = %xC0-DF 1(UTF0)
+      UTF3      = %xE0-EF 2(UTF0)
+      UTF4      = %xF0-F7 3(UTF0)
+      UTF5      = %xF8-FB 4(UTF0)
+      UTF6      = %xFC-FD 5(UTF0)
+      UTF0      = %x80-BF
 
 
 4. Example
 
+
   Here is an example of how this might be used to initialize a CRAM-MD5
-  authentication database for ACAP:
+  authentication database for ACAP.  "C:" and "S:" indicate lines sent
+  by the client and server respectively.
 
       S: * ACAP (SASL "CRAM-MD5") (STARTTLS)
       C: a001 AUTHENTICATE "CRAM-MD5"
+
+
+
+Zeilenga                  Plain SASL Mechanism                  [Page 3]
+
+INTERNET-DRAFT      draft-zeilenga-sasl-plain-01.txt     4 November 2002
+
+
       S: + "<1896.697170952@postoffice.reston.mci.net>"
       C: "tim b913a602c7eda7a495b4e6e7334d3890"
       S: a001 NO (TRANSITION-NEEDED)
@@ -164,15 +184,7 @@ INTERNET-DRAFT      draft-zeilenga-sasl-plain-00.txt        23 June 2002
       C: <NUL>tim<NUL>tanstaaftanstaaf
       S: a003 OK CRAM-MD5 password initialized
 
-
-
-
-Zeilenga                  Plain SASL Mechanism                  [Page 3]
-
-INTERNET-DRAFT      draft-zeilenga-sasl-plain-00.txt        23 June 2002
-
-
-  Note: In this example, <NUL> represents a single NUL (U+0000) octet.
+  In this example, <NUL> represents a single NUL (U+0000) character.
 
 
 5. Security Considerations
@@ -196,7 +208,7 @@ INTERNET-DRAFT      draft-zeilenga-sasl-plain-00.txt        23 June 2002
   mechanisms which are likely to reveal the user's password to the
   server are disabled.  It is RECOMMENDED that this mode be the default.
 
-  The security considerations for SASL apply to the PLAIN mechanism.
+  General SASL security considerations apply to this mechanism.
 
 
 6. IANA Considerations
@@ -207,6 +219,14 @@ INTERNET-DRAFT      draft-zeilenga-sasl-plain-00.txt        23 June 2002
 
       To: iana@iana.org
       Subject: Updated Registration of SASL mechanism PLAIN
+
+
+
+
+Zeilenga                  Plain SASL Mechanism                  [Page 4]
+
+INTERNET-DRAFT      draft-zeilenga-sasl-plain-01.txt     4 November 2002
+
 
       SASL mechanism name: PLAIN
       Security considerations: See RFC XXXX.
@@ -221,68 +241,61 @@ INTERNET-DRAFT      draft-zeilenga-sasl-plain-00.txt        23 June 2002
 
 7. Acknowledgement
 
-
-
-Zeilenga                  Plain SASL Mechanism                  [Page 4]
-
-INTERNET-DRAFT      draft-zeilenga-sasl-plain-00.txt        23 June 2002
-
-
   This document is a revision of RFC 2595 by Chris Newman.
 
 
 8. Normative References
 
-  [ABNF]      Crocker, D. and P. Overell, "Augmented BNF for Syntax
-              Specifications: ABNF", RFC 2234, November 1997.
+  [ABNF]       Crocker, D. and P. Overell, "Augmented BNF for Syntax
+               Specifications: ABNF", RFC 2234, November 1997.
 
-  [KEYWORDS]  S. Bradner, "Key words for use in RFCs to Indicate
-              Requirement Levels", BCP 14 (also RFC 2119), March 1997.
+  [KEYWORDS]   S. Bradner, "Key words for use in RFCs to Indicate
+               Requirement Levels", BCP 14 (also RFC 2119), March 1997.
 
-  [NFKC]      Davis, M., M. Durst, "Unicode Standard Annex #15: Unicode
-              Normalisation Forms", An integral part of The Unicode
-              Standard, Version 3.2.0
-              (http://www.unicode.org/reports/tr15/tr15-22.html).
+  [NFKC]       Davis, M., M. Durst, "Unicode Standard Annex #15: Unicode
+               Normalisation Forms", An integral part of The Unicode
+               Standard, Version 3.2.0
+               (http://www.unicode.org/reports/tr15/tr15-22.html).
 
-  [SASL]      Myers, J., "Simple Authentication and Security Layer
-              (SASL)", RFC 2222bis (a work in progress).
+  [SASL]       Myers, J., "Simple Authentication and Security Layer
+               (SASL)", RFC 2222bis (a work in progress).
 
-  [TLS]       T. Dierks, C. Allen, "The TLS Protocol Version 1.0", RFC
-              2246, January 1999.
+  [UNICODE]    The Unicode Consortium, "The Unicode Standard, Version
+               3.2.0", defined by: The Unicode Standard, Version 3.0
+               (Reading, MA, Addison-Wesley, 2000.  ISBN 0-201-61633-5),
+               as amended by the Unicode Standard Annex #28: Unicode 3.2
+               (http://www.unicode.org/reports/tr28/tr28-3.html).
 
-  [UNICODE]   The Unicode Consortium, "The Unicode Standard, Version
-              3.2.0", defined by: The Unicode Standard, Version 3.0
-              (Reading, MA, Addison-Wesley, 2000.  ISBN 0-201-61633-5),
-              as amended by the Unicode Standard Annex #28: Unicode 3.2
-              (http://www.unicode.org/reports/tr28/tr28-3.html).
+  [UTF-8]      Yergeau, F., "UTF-8, a transformation format of ISO
+               10646", RFC 2279, January 1998.
 
-  [UTF-8]     Yergeau, F., "UTF-8, a transformation format of ISO
-              10646", RFC 2279, January 1998.
+  [TLS]        T. Dierks, C. Allen, "The TLS Protocol Version 1.0", RFC
+               2246, January 1999.
 
 
 9. Informative References
 
-  [IANA-SASL] IANA, "SIMPLE AUTHENTICATION AND SECURITY LAYER (SASL)
-              MECHANISMS", http://www.iana.org/assignments/sasl-
-              mechanisms.
-
-  [DIGEST-MD5]   P. Leach, C. Newman, "Using Digest Authentication as a
-              SASL Mechanism", RFC 2831, May 2000.
-
-  [CRAM-MD5]     J. Klensin, R. Catoe, and P. Krumviede, "IMAP/POP
-              AUTHorize Extension for Simple Challenge/Response", RFC
-              2195, September 1997.
-
-
-10. Editor's Address
-
+  [CRAM-MD5]   J. Klensin, R. Catoe, and P. Krumviede, "IMAP/POP
 
 
 
 Zeilenga                  Plain SASL Mechanism                  [Page 5]
 
-INTERNET-DRAFT      draft-zeilenga-sasl-plain-00.txt        23 June 2002
+INTERNET-DRAFT      draft-zeilenga-sasl-plain-01.txt     4 November 2002
 
+
+               AUTHorize Extension for Simple Challenge/Response", RFC
+               2195, September 1997.
+
+  [DIGEST-MD5] P. Leach, C. Newman, "Using Digest Authentication as a
+               SASL Mechanism", RFC 2831, May 2000.
+
+  [IANA-SASL]  IANA, "SIMPLE AUTHENTICATION AND SECURITY LAYER (SASL)
+               MECHANISMS", http://www.iana.org/assignments/sasl-
+               mechanisms.
+
+
+10. Editor's Address
 
   Kurt Zeilenga
   OpenLDAP Foundation
@@ -292,8 +305,15 @@ INTERNET-DRAFT      draft-zeilenga-sasl-plain-00.txt        23 June 2002
 
 Appendix A.  Changes since RFC 2595
 
-  Coming in next revision...
+  This appendix is non-normative.
 
+  This document replaces Section 6 of RFC 2595.
+
+  The specification clarifies the normalized form to be used and details
+  which characters are considered to be printable.  The ABNF grammar was
+  updated.
+
+  Additionally, a number of editorial changes were made.
 
 
 Full Copyright Statement
@@ -312,6 +332,13 @@ Full Copyright Statement
   developing Internet standards in which case the procedures for
   copyrights defined in the Internet Standards process must be followed,
   or as required to translate it into languages other than English.
+
+
+
+Zeilenga                  Plain SASL Mechanism                  [Page 6]
+
+INTERNET-DRAFT      draft-zeilenga-sasl-plain-01.txt     4 November 2002
+
 
   The limited permissions granted above are perpetual and will not be
   revoked by the Internet Society or its successors or assigns.
@@ -335,5 +362,34 @@ Full Copyright Statement
 
 
 
-Zeilenga                  Plain SASL Mechanism                  [Page 6]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga                  Plain SASL Mechanism                  [Page 7]
 

@@ -6,13 +6,13 @@
 
 INTERNET-DRAFT                           Editor: Kurt D. Zeilenga
 Intended Category: Standards Track            OpenLDAP Foundation
-Expires in six months                                23 June 2002
+Expires in six months                             4 November 2002
 Obsoletes: RFC 2245
 
 
 
                          Anonymous SASL Mechanism
-                    <draft-zeilenga-sasl-anon-00.txt>
+                    <draft-zeilenga-sasl-anon-01.txt>
 
 
 Status of Memo
@@ -57,7 +57,7 @@ Abstract
 
 Zeilenga                Anonymous SASL Mechanism                [Page 1]
 
-INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
+INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
 
 
   plaintext login commands are not permitted in new IETF protocols, a
@@ -68,29 +68,32 @@ INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
 1. Anonymous SASL mechanism
 
   This document defines an anonymous mechanism for the Simple
-  Authentication and Security Layer ([SASL]) framework.  This document
-  replaces RFC 2245.  Changes since RFC 2245 are detailed in Appendix A.
+  Authentication and Security Layer ([SASL]) framework.  The name
+  associated with this mechanism is "ANONYMOUS".
 
-  The mechanism name associated with anonymous access is "ANONYMOUS".
+  This document replaces RFC 2245.  Changes since RFC 2245 are detailed
+  in Appendix A.
 
   The mechanism consists of a single message from the client to the
   server.  The client sends optional trace information in the form of a
-  human readable string of UTF-8 [UTF8] encoded characters from the
-  Universal Character Set ([UCS]) characters.  The trace information
-  should take one of three forms:  an Internet email address, an opaque
-  string which does not contain the '@' (U+0040) character and can be
-  interpreted by the system administrator of the client's domain, or
-  nothing.  For privacy reasons, an Internet email address should only
-  be used with permission from the user.
+  string of UTF-8 [UTF8] encoded printable characters from the Universal
+  Character Set ([UCS]).  The trace information should take one of three
+  forms: an Internet email address, an opaque string which does not
+  contain the '@' (U+0040) character and can be interpreted by the
+  system administrator of the client's domain, or nothing.  For privacy
+  reasons, an Internet email address should only be used with permission
+  from the user.
 
   A server which permits anonymous access will announce support for the
   ANONYMOUS mechanism, and allow anyone to log in using that mechanism,
   usually with restricted access.
 
+  This mechanism does not provide a security layer.
+
   The formal grammar for the client message using Augmented BNF [ABNF]
   follows.
 
-      message     = [email / token]
+      message     = [ email / token ]
 
       UTF1        = %x00-3F / %x41-7F ;; less '@' (U+0040)
       UTF2        = %xC0-DF 1(UTF0)
@@ -101,21 +104,21 @@ INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
       UTF0        = %x80-BF
 
       TCHAR       = UTF1 / UTF2 / UTF3 / UTF3 / UTF4 / UTF5 / UTF6
-                    ;; any printable UTF-8 encoded UCS character
+                    ;; any UTF-8 encoded UCS printable character
                     ;; except '@' (U+0040)
 
       email       = addr-spec
-                    ;; as defined in [IMAIL], except with no free
-                    ;; insertion of linear-white-space, and the
-                    ;; local-part MUST either be entirely enclosed in
 
 
 
 Zeilenga                Anonymous SASL Mechanism                [Page 2]
 
-INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
+INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
 
 
+                    ;; as defined in [IMAIL], except with no free
+                    ;; insertion of linear-white-space, and the
+                    ;; local-part MUST either be entirely enclosed in
                     ;; quotes or entirely unquoted
 
       token       = 1*255TCHAR
@@ -123,7 +126,7 @@ INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
   The following characters are considered non-printable:
       - control characters: U+0000..U+001F, U+007F..U+009F;
       - replacement character: U+FFFD; and
-      - special characters and noncharacter: U+FEFF, U+FFFE, U+FFFF.
+      - special characters and non-character: U+FEFF, U+FFFE, U+FFFF.
 
 
 2. Example
@@ -145,7 +148,7 @@ INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
 
       S: * OK IMAP4 server ready
       C: A001 CAPABILITY
-      S: * CAPABILITY IMAP4 IMAP4rev1 AUTH=CRAM-MD5 AUTH=ANONYMOUS
+      S: * CAPABILITY IMAP4 IMAP4rev1 AUTH=DIGEST-MD5 AUTH=ANONYMOUS
       S: A001 OK done
       C: A002 AUTHENTICATE ANONYMOUS
       S: +
@@ -161,17 +164,17 @@ INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
 
   If the anonymous user has any write privileges, a denial of service
   attack is possible by filling up all available space.  This can be
-  prevented by disabling all write access by anonymous users.
-
-  If anonymous users have read and write access to the same area, the
 
 
 
 Zeilenga                Anonymous SASL Mechanism                [Page 3]
 
-INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
+INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
 
 
+  prevented by disabling all write access by anonymous users.
+
+  If anonymous users have read and write access to the same area, the
   server can be used as a communication mechanism to anonymously
   exchange information.  Servers which accept anonymous submissions
   should implement the common "drop box" model which forbids anonymous
@@ -217,15 +220,17 @@ INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
   data access machinery is exposed to external security attacks without
   the chance for explicit protective measures.  Protocols which offer
   restricted data access should not allow anonymous data access without
-  an explicit login step.
-
-
 
 
 
 Zeilenga                Anonymous SASL Mechanism                [Page 4]
 
-INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
+INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
+
+
+  an explicit login step.
+
+  General SASL security considerations apply to this mechanism.
 
 
 4. IANA Considerations
@@ -272,17 +277,17 @@ INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
               10646", RFC 2279, January 1998.
 
 
-7. Informative References
-
-  [IMAP4]     Crispin, M., "Internet Message Access Protocol - Version
-              4rev1", RFC 2060, December 1996.
-
 
 
 Zeilenga                Anonymous SASL Mechanism                [Page 5]
 
-INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
+INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
 
+
+7. Informative References
+
+  [IMAP4]     Crispin, M., "Internet Message Access Protocol - Version
+              4rev1", RFC 2060, December 1996.
 
   [IANA-SASL] IANA, "SIMPLE AUTHENTICATION AND SECURITY LAYER (SASL)
               MECHANISMS", http://www.iana.org/assignments/sasl-
@@ -299,11 +304,13 @@ INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
 
 Appendix A.  Changes since RFC 2245
 
+  This appendix is non-normative.
+
   RFC 2245 allows the client to send optional trace information in the
   form of a human readable string, but did not define the character
   encoding nor character set to be used.  This document mandates use of
-  UTF-8 encoded UCS characters.  The grammar was updated to reflect
-  this.
+  UTF-8 encoded UCS printable characters.  The grammar was updated to
+  reflect this.
 
   Additionally, a number of editorial changes were made.
 
@@ -325,6 +332,14 @@ Full Copyright Statement
   copyrights defined in the Internet Standards process must be followed,
   or as required to translate it into languages other than English.
 
+
+
+
+Zeilenga                Anonymous SASL Mechanism                [Page 6]
+
+INTERNET-DRAFT       draft-zeilenga-sasl-anon-01.txt     4 November 2002
+
+
   The limited permissions granted above are perpetual and will not be
   revoked by the Internet Society or its successors or assigns.
 
@@ -332,23 +347,8 @@ Full Copyright Statement
   "AS IS" basis and THE AUTHORS, THE INTERNET SOCIETY, AND THE INTERNET
   ENGINEERING TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED,
   INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
-
-
-
-Zeilenga                Anonymous SASL Mechanism                [Page 6]
-
-INTERNET-DRAFT       draft-zeilenga-sasl-anon-00.txt        23 June 2002
-
-
   INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
-
-
-
-
-
-
-
 
 
 

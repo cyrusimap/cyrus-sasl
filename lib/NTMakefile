@@ -3,8 +3,8 @@
 compat_sources = getaddrinfo.c
 compat_objs = getaddrinfo.obj
 
-libsasl_sources = auxprop.c canonusr.c checkpw.c client.c common.c config.c external.c md5.c saslutil.c server.c seterror.c windlopen.c plugin_common.c plugin_common.h $(compat_sources)
-libsasl_objs = auxprop.obj canonusr.obj checkpw.obj client.obj common.obj config.obj external.obj md5.obj saslutil.obj server.obj seterror.obj windlopen.obj plugin_common.obj $(compat_objs)
+libsasl_sources = auxprop.c canonusr.c checkpw.c client.c common.c config.c external.c md5.c saslutil.c server.c seterror.c windlopen.c getsubopt.c plugin_common.c plugin_common.h $(compat_sources)
+libsasl_objs = auxprop.obj canonusr.obj checkpw.obj client.obj common.obj config.obj external.obj md5.obj saslutil.obj server.obj seterror.obj windlopen.obj getsubopt.obj plugin_common.obj $(compat_objs)
 libsasl_out = libsasl.dll libsasl.exp libsasl.lib
 
 CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBSASL_EXPORTS"

@@ -480,8 +480,10 @@ main(int argc, char *argv[])
 
   if (mech) {
     printf("Forcing use of mechanism %s\n", mech);
-    data = mech;
-    len = strlen(mech);
+    data = strdup(mech);
+    if (! data)
+      osfail();
+    len = strlen(data);
     count = 1;
   } else {
     puts("Generating client mechanism list...");

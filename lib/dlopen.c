@@ -118,7 +118,7 @@ int _sasl_get_mech_list(const char *entryname,
 	  VL(("entry is = [%s]\n",tmp));
 
 	  library=NULL;
-	  if (!(library=dlopen(tmp,RTLD_LAZY)))
+	  if (!(library=dlopen(tmp,RTLD_NOW | RTLD_LOCAL)))
 	    {
 	      VL(("Unable to dlopen %s: %s\n", tmp, dlerror()));
 	      continue;

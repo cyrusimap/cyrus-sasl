@@ -323,7 +323,7 @@ typedef struct sasl_client_plug {
     unsigned features;
 
     /* required prompt ids, NULL = user/pass only */
-    const long *required_prompts;
+    const unsigned long *required_prompts;
     
     /* global state for mechanism */
     void *glob_context;

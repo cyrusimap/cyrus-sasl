@@ -40,8 +40,8 @@
  *  sasl_decode       Decode data received using security layer
  *  
  * Utility functions:
- *  sasl_encode64     Encode data to send using security layer
- *  sasl_decode64     Decode data received using security layer
+ *  sasl_encode64     Encode data to send using MIME base64 encoding
+ *  sasl_decode64     Decode data received using MIME base64 encoding
  *  sasl_erasebuffer  Erase a buffer
  *
  * Client Function Summary:

@@ -2720,7 +2720,7 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
   int result;
   sasl_server_getsecret_t *getsecret;
   void *getsecret_context;
-  long tmpversion = -1;
+  int tmpversion = -1;
 
   /* get callback so we can request the secret */
   result = utils->getcallback(utils->conn,
@@ -2782,7 +2782,7 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
 static int mechanism_fill_db(char *mech_name, sasl_server_params_t *sparams)
 {
   int result;
-  long tmpversion;
+  int tmpversion;
   sasl_server_putsecret_t *putsecret;
   void *putsecret_context;
   sasl_secret_t *sec = NULL;

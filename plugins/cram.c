@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.58.2.1 2002/07/16 18:58:56 rjs3 Exp $
+ * $Id: cram.c,v 1.58.2.2 2002/07/18 13:53:04 rjs3 Exp $
  */
 
 /* 
@@ -572,7 +572,7 @@ static int mechanism_db_filled(char *mech_name, sasl_utils_t *utils)
   int result;
   sasl_server_getsecret_t *getsecret;
   void *getsecret_context;
-  long version = -1;
+  int version = -1;
 
   /* get callback so we can request the secret */
   result = utils->getcallback(utils->conn,
@@ -633,7 +633,7 @@ static int mechanism_fill_db(char *mech_name, sasl_server_params_t *sparams)
   sasl_server_putsecret_t *putsecret;
   void *putsecret_context;
   sasl_secret_t *sec = NULL;
-  long version;
+  int version;
 
   /* don't do this again if it's already set */
   if (mydb_initialized == 1)

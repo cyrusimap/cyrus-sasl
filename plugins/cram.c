@@ -606,6 +606,7 @@ static int c_start(void *glob_context __attribute__((unused)),
     text->state=1;  
     text->authid=NULL;
     text->password=NULL;
+    text->msgid=NULL;
 
   *conn=text;
 
@@ -853,9 +854,12 @@ static int c_continue_step (void *conn_context,
     sasl_security_properties_t secprops;
     unsigned int external;
 
-    text->msgid=params->utils->malloc(1);
+    /*    text->msgid=params->utils->malloc(1);
     if (text->msgid==NULL) return SASL_NOMEM;
     text->msgidlen=0;
+
+    text->msgid[0]='\0';*/
+
     *clientout=NULL;
     *clientoutlen=0;
 
@@ -947,6 +951,9 @@ static int c_continue_step (void *conn_context,
     oparams->mech_ssf = 0;
     oparams->authid = (char *) params->utils->malloc(strlen(text->authid) + 1);
     strcpy(oparams->authid, text->authid);
+
+    oparams->user = (char *) params->utils->malloc(strlen(text->authid) + 1);
+    strcpy(oparams->user, text->authid);
 
     VL(("clientout looks like=%s %i\n",*clientout,*clientoutlen));
 

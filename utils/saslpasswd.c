@@ -45,7 +45,7 @@ static const char build_ident[] = "$Build: saslpasswd " PACKAGE "-" VERSION " $"
 const char *progname = NULL;
 
 #ifndef WIN32
-//doesn't seem to be used anywhere
+/*doesn't seem to be used anywhere*/
 extern int _sasl_debug;
 #endif /*WIN32*/
 

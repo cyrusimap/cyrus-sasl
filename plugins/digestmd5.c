@@ -1845,6 +1845,25 @@ static int server_start(void *glob_context __attribute__((unused)),
 static void
 dispose(void *conn_context, sasl_utils_t * utils)
 {
+  context_t *text=(context_t *) conn_context;
+
+  /* free the stuff in the context */
+  if (text->nonce!=NULL)
+  {
+    utils->free(text->nonce);
+  }
+
+  if (text->response_value!=NULL)
+  {
+    utils->free(text->response_value);
+  }
+
+  if (text->realm!=NULL)
+  {
+    utils->free(text->realm);
+  }
+
+  
 
   utils->free(conn_context);
 }
@@ -2372,6 +2391,9 @@ server_continue_step(void *conn_context,
     memcpy(A1, sec->data, HASHLEN);
     A1[HASHLEN] = '\0';
 
+    /* We're done with sec now. Let's get rid of it XXX should be zero'ed out */
+    sparams->utils->free(sec);
+
     VL(("A1 is %s\n", A1));
 
     serverresponse = create_response(text,
@@ -2393,7 +2415,7 @@ server_continue_step(void *conn_context,
       result = SASL_NOMEM;
       goto FreeAllMem;
     }
-    /* xxx   sasl_free_secret(&sec);*/	/* sparams->utils->free(sec);??? */
+
 
     /* if ok verified */
     if (strcmp(serverresponse, response) != 0) {
@@ -2492,22 +2514,74 @@ FreeAllMem:
     /*
      * sparams->utils->free (in_start);
      * 
-     * sparams->utils->free (username); sparams->utils->free (realm);
+     * 
      *
      * sparams->utils->free (authorization_id);
      */
 
+    if (username!=NULL)
+    {
+      sparams->utils->free (username);
+    }
+    
+    if (realm!=NULL)
+    {
+      sparams->utils->free (realm);
+    }
+
+    if (cnonce!=NULL)
+    {
+      sparams->utils->free (cnonce);
+    }
+
+    if (response!=NULL)
+    {
+      sparams->utils->free (response);
+    }
+
+    if (serverresponse!=NULL)
+    {
+      sparams->utils->free(serverresponse);
+    }
+
+    if (userid!=NULL)
+    {
+      sparams->utils->free(userid);
+    }
+    
+    if (charset!=NULL)
+    {
+      sparams->utils->free (charset);
+    }
+
+    if (digesturi!=NULL)
+    {
+      sparams->utils->free (digesturi);
+    }
+
+    if (ncvalue!=NULL)
+    {
+      sparams->utils->free (ncvalue);
+    }
+
+    if (qop!=NULL)
+    {
+      sparams->utils->free (qop);  
+    }
+
     /* sparams->utils->free (nonce); */
     /*
-     * sparams->utils->free (cnonce); sparams->utils->free (ncvalue);
-     * sparams->utils->free (qop); sparams->utils->free (digesturi);
-     * sparams->utils->free (response); sparams->utils->free (maxbufstr);
-     * sparams->utils->free (charset); sparams->utils->free (cipher);
+     * 
+     * 
+     * 
+     * 
+     * sparams->utils->free (maxbufstr);
+     * 
+     * sparams->utils->free (cipher);
      */
 
-    /* sparams->utils->free(userid); */
 
-    /* sparams->utils->free(serverresponse); */
+
 
     if (result == SASL_CONTINUE)
       text->state = 3;
@@ -2689,6 +2763,7 @@ static int c_start(void *glob_context __attribute__((unused)),
     text->realm = NULL;
     text->cipher_init = NULL;
     text->state = 1;
+    text->nonce = NULL;
 
     *conn = text;
 
@@ -3661,7 +3736,6 @@ c_continue_step(void *conn_context,
 FreeAllocatedMem:
     if (response) { params->utils->free(response); }
     if (text->password) { params->utils->free(text->password); }
-    if (text->realm) { params->utils->free(text->realm); }
     if (in_start) { params->utils->free(in_start); }
 
     if (realm) { params->utils->free(realm); }
@@ -3670,6 +3744,11 @@ FreeAllocatedMem:
     if (charset) { params->utils->free(charset); }
     if (digesturi) { params->utils->free(digesturi); }
     if (cnonce) { params->utils->free(cnonce); }
+
+    if (qop_list!=NULL)
+    {
+      params->utils->free(qop_list);
+    }
 
     VL(("All done. exiting DIGEST-MD5\n"));
 

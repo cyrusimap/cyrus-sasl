@@ -37,7 +37,7 @@ CMU_INIT_AUTOMAKE
 DIRS=""
 
 dnl With and Enable
-AC_ARG_WITH(nana, [  --with-nana             use NANA [yes]],,with_nana=yes)
+AC_ARG_WITH(nana, [  --with-nana             use NANA [no]],,with_nana=no)
 
 AC_ARG_ENABLE(sample, [  --enable-sample         compile sample code [yes]],,enable_sample=yes)
 

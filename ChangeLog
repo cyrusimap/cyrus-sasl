@@ -1,5 +1,7 @@
 1999-03-30  Rob Earhart  <rob+@andrew.cmu.edu>
 
+	* configure.in: turned off use of nana by default
+
 	* plugins/cram.c: fixed endian bug
 
 1999-03-29  Rob Earhart  <rob+@andrew.cmu.edu>

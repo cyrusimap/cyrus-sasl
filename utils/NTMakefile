@@ -7,7 +7,7 @@ saslpwd_objs = saslpasswd.obj
 sasldblistusers_objs = sasldblistusers.obj
 testsuite_objs = testsuite.obj
 
-all_objs = $(saslpwd_objs) $(sasldblistusers_objs)
+all_objs = $(saslpwd_objs) $(sasldblistusers_objs) $(testsuite_objs)
 all_out = $(sasl_apps) $(sasl_out)
 
 DB_FLAGS = /I $(DB_INCLUDE) /I "..\sasldb"

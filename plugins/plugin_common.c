@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.c,v 1.8 2002/05/13 14:39:48 ken3 Exp $
+ * $Id: plugin_common.c,v 1.9 2002/05/13 15:01:52 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -320,7 +320,7 @@ int _plug_get_simple(const sasl_utils_t *utils, unsigned int id,
 		     const char **result, sasl_interact_t **prompt_need)
 {
 
-    int ret;
+    int ret = SASL_FAIL;
     sasl_getsimple_t *simple_cb;
     void *simple_context;
     sasl_interact_t *prompt;
@@ -364,7 +364,7 @@ int _plug_get_simple(const sasl_utils_t *utils, unsigned int id,
 int _plug_get_password(const sasl_utils_t *utils, sasl_secret_t **password,
 		       unsigned int *iscopy, sasl_interact_t **prompt_need)
 {
-    int ret;
+    int ret = SASL_FAIL;
     sasl_getsecret_t *pass_cb;
     void *pass_context;
     sasl_interact_t *prompt;
@@ -424,7 +424,7 @@ int _plug_challenge_prompt(const sasl_utils_t *utils, unsigned int id,
 			   const char *challenge, const char *promptstr,
 			   const char **result, sasl_interact_t **prompt_need)
 {
-    int ret;
+    int ret = SASL_FAIL;
     sasl_chalprompt_t *chalprompt_cb;
     void *chalprompt_context;
     sasl_interact_t *prompt;
@@ -470,7 +470,7 @@ int _plug_challenge_prompt(const sasl_utils_t *utils, unsigned int id,
 int _plug_get_realm(const sasl_utils_t *utils, const char **availrealms,
 		    const char **realm, sasl_interact_t **prompt_need)
 {
-    int ret;
+    int ret = SASL_FAIL;
     sasl_getrealm_t *realm_cb;
     void *realm_context;
     sasl_interact_t *prompt;

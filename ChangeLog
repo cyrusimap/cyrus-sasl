@@ -1,3 +1,6 @@
+2003-09-08  Ken Murchison <ken@oceana.com>
+	* plugins/ntlm.c: fix byte-alignment and password handling problems
+
 2003-09-03  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/checkpw.c: Check return value of door_call
 	  (Gary Mills <mills@cc.umanitoba.ca>)

@@ -121,7 +121,6 @@ int sasl_encode(sasl_conn_t *conn, const char *input, unsigned inputlen,
   }
 }
 
-
 int sasl_decode(sasl_conn_t *conn, const char *input, unsigned inputlen,
 		char **output, unsigned *outputlen)
 {

@@ -256,6 +256,7 @@ int sasl_setpass(sasl_conn_t *conn,
 		 const char **errstr)
 {
   int result=SASL_OK, tmpresult;
+  sasl_server_conn_t *s_conn=  (sasl_server_conn_t *) conn;
   mechanism_t *m;
 
   /* XXX flag could be disable! */
@@ -274,6 +275,11 @@ int sasl_setpass(sasl_conn_t *conn,
 
   VL(("Setting password for \"%s\" to \"%*s\" (len is %d)\n",
       user, passlen, pass, passlen));
+
+  /* copy info into sparams */
+  s_conn->sparams->local_domain=s_conn->local_domain;
+  s_conn->sparams->service=conn->service;
+  s_conn->sparams->user_domain=s_conn->user_domain;
 
   for (m = mechlist->mech_list;
        m;

@@ -266,7 +266,7 @@ client_continue_step(void *conn_context,
   context_t *text;
   text=conn_context;
 
-  if (text->state == 2) {
+  if (text->state == 3) {
       *clientout = NULL;
       *clientoutlen = 0;
       VL(("Verify we're done step"));
@@ -274,7 +274,15 @@ client_continue_step(void *conn_context,
       return SASL_OK;      
   }
 
-  if (text->state != 1) {
+  if (clientout == NULL && text->state == 1) {
+      /* no initial client send */
+      text->state = 2;
+      return SASL_CONTINUE;
+  } else if (text->state == 1) {
+      text->state = 2;
+  }
+
+  if (text->state != 2) {
       return SASL_FAIL;
   }
 

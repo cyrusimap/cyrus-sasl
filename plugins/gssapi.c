@@ -1108,6 +1108,11 @@ sasl_gss_client_step (void *conn_context,
   input_token->value = NULL; 
   input_token->length = 0;
 
+  if (!clientout && text->state == SASL_GSSAPI_STATE_AUTHNEG) {
+      /* initial client send not allowed */
+      return SASL_CONTINUE;
+  }
+
   *clientout = NULL;
   *clientoutlen = 0;
 

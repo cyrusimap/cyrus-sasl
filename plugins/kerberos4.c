@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.64 2000/12/21 01:50:22 leg Exp $
+ * $Id: kerberos4.c,v 1.65 2001/02/19 19:01:54 leg Exp $
  */
 /* 
  * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -931,8 +931,10 @@ static int client_continue_step (void *conn_context,
     {
 	VL(("KERBEROS_V4 Step 1\n"));
 
-	*clientout = NULL;
-	*clientoutlen = 0;
+	if (clientout) {
+	    *clientout = NULL;
+	    *clientoutlen = 0;
+	}
 
 	text->state=1;
 

@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.54 2000/07/22 03:58:39 leg Exp $
+ * $Id: cram.c,v 1.55 2001/02/19 19:01:54 leg Exp $
  */
 
 /* 
@@ -1085,8 +1085,10 @@ static int c_continue_step (void *conn_context,
 
     text->msgid[0]='\0';*/
 
-    *clientout=NULL;
-    *clientoutlen=0;
+    if (clientout) {
+	*clientout=NULL;
+	*clientoutlen=0;
+    }
 
     /* check if sec layer strong enough */
     secprops=params->props;

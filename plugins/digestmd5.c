@@ -199,7 +199,9 @@ typedef struct context {
 
 #ifdef WITH_DES
   des_key_schedule keysched_enc;   /* key schedule for des initialization */
+  des_cblock ivec_enc;		   /* initial vector for encoding */
   des_key_schedule keysched_dec;   /* key schedule for des initialization */
+  des_cblock ivec_dec;		   /* init vec for decoding */
 
   des_key_schedule keysched_enc2;   /* key schedule for 3des initialization */
   des_key_schedule keysched_dec2;   /* key schedule for 3des initialization */
@@ -829,7 +831,7 @@ char *skip_token (char *s, int caseinsensitive)
         s[0]=='\'' || s[0]== '/' || s[0]== '[' || s[0]== ']' || s[0]== '?' ||
         s[0]=='=' || s[0]== '{' || s[0]== '}') {
       if (caseinsensitive == 1) {
-	if (!isupper(s[0]))
+	if (!isupper((unsigned char) s[0]))
 	  break;
       } else {
 	break;
@@ -1084,6 +1086,9 @@ static int init_3des(void *v,
     des_key_sched((des_cblock *) (enckey+7), text->keysched_enc2);
     des_key_sched((des_cblock *) (deckey+7), text->keysched_dec2);
 
+    memcpy(text->ivec_enc, ((char *) enckey) + 8, 8);
+    memcpy(text->ivec_dec, ((char *) deckey) + 8, 8);
+
     return SASL_OK;
 }
 
@@ -1102,16 +1107,25 @@ static int dec_des(void *v,
 		   unsigned *outputlen)
 {
   context_t *text = (context_t *) v;
+
+  des_cbc_encrypt((des_cblock *) input,
+		  (des_cblock *) output,
+		  inputlen,
+		  text->keysched_dec,
+		  &text->ivec_dec,
+		  DES_DECRYPT);
+#if 0
   unsigned int lup;
 
   for (lup=0;lup<inputlen;lup+=8)
   {
-    /* decrypt with 1st key */
-    des_ecb_encrypt((des_cblock *)(input+lup),
-		    (des_cblock *) ((output)+lup),
-		    text->keysched_dec,
-		    DES_DECRYPT);
+      /* decrypt with 1st key */
+      des_ecb_encrypt((des_cblock *)(input+lup),
+		      (des_cblock *) ((output)+lup),
+		      text->keysched_dec,
+		      DES_DECRYPT);
   }
+#endif
 
   /* now chop off the padding */
   *outputlen=inputlen- (output)[inputlen-11]-10;
@@ -1131,7 +1145,6 @@ static int enc_des(void *v,
 {
   context_t *text = (context_t *) v;
   int len;
-  int lup;
   int paddinglen;
 
   /* determine padding length */
@@ -1144,6 +1157,16 @@ static int enc_des(void *v,
 
   len=inputlen+paddinglen+10;
 
+  des_cbc_encrypt((des_cblock *) output,
+		  (des_cblock *) output,
+		  len,
+		  text->keysched_enc,
+		  &text->ivec_enc,
+		  DES_ENCRYPT);
+
+#if 0
+  int lup;
+
   for (lup=0;lup<len;lup+=8)
   {
       /* encrpyt with 1st key */
@@ -1152,6 +1175,7 @@ static int enc_des(void *v,
 		      text->keysched_enc,
 		      DES_ENCRYPT);    
   }
+#endif
 
   *outputlen=len;
 
@@ -1166,8 +1190,11 @@ static int init_des(void *v,
     context_t *text = (context_t *) v;
 
     des_key_sched((des_cblock *) enckey, text->keysched_enc);
+    memcpy(text->ivec_enc, ((char *) enckey) + 8, 8);
+
     des_key_sched((des_cblock *) deckey, text->keysched_dec);
-    
+    memcpy(text->ivec_dec, ((char *) deckey) + 8, 8);
+
     return SASL_OK;
 }
 
@@ -3360,6 +3387,12 @@ c_continue_step(void *conn_context,
   /* check params */
   if (serverinlen < 0)
       return SASL_BADPARAM;
+
+  if (!clientout && text->state == 1) {
+      /* initial client challenge not allowed */
+      text->state++;
+      return SASL_CONTINUE;
+  }
 
   *clientout = NULL;
   *clientoutlen = 0;

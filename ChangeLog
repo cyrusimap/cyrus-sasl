@@ -1,5 +1,6 @@
 2004-03-10  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/dlopen.c: HPUX 11 Fix (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+	* Add sasl_version_info() (Alexey Melnikov <Alexey.Melnikov@isode.com>)
 	* Add a bunch of NTMakefile files to EXTRA_DIST in Makefile.am's
 	* Ready for 2.1.18
 

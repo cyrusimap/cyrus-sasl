@@ -1,3 +1,11 @@
+New in 2.1.19
+-------------
+* Fixes to saslauthd to allow better integration with realms (-r flag to
+  saslauthd, %R token in LDAP module)
+* Support for forwarding of GSSAPI credentials
+* SQLite support for the SQL plugin
+* A nontrivial number of small bugfixes.
+
 New in 2.1.18
 -------------
 * saslauthd/LDAP no longer tagged "experimental"

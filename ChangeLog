@@ -1,3 +1,6 @@
+2004-07-01  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* Ready for 2.1.19
+
 2004-06-30  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/auth_rimap.c: Fix Tru64 compilation problem
 	* plugins/sql.c: Don't leak settings variable if init fails

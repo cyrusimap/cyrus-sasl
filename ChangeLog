@@ -1,3 +1,13 @@
+Sun Dec  5 00:10:11 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* pwcheck/pwcheck.c (main): now records process ID in /var/run
+
+	* configure.in (rsaref): now checks for rsaref; possibly needed to
+	detect openssl
+
+	* pwcheck/Makefile.am: finally got the damn pwcheck makefile.am
+	file right.  well, i think.
+
 Thu Dec  2 14:11:33 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* version 1.5.13 released

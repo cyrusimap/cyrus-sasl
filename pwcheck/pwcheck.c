@@ -1,5 +1,5 @@
 /* pwcheck.c -- Unix pwcheck daemon
-   $Id: pwcheck.c,v 1.3 1999/11/15 06:30:41 leg Exp $
+   $Id: pwcheck.c,v 1.4 1999/12/05 23:00:44 leg Exp $
 Copyright 1998, 1999 Carnegie Mellon University
 
                       All Rights Reserved
@@ -29,6 +29,17 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <sys/un.h>
 #include <sys/uio.h>
 #include <sys/stat.h>
+#include <paths.h>
+#include <unistd.h>
+#include <syslog.h>
+
+#if !defined(_PATH_PWCHECKPID)
+#ifdef _PATH_VARRUN
+# define _PATH_PWCHECKPID (_PATH_VARRUN "pwcheck.pid")
+#else
+# define _PATH_PWCHECKPID (NULL)
+#endif
+#endif
 
 #include <config.h>
 
@@ -52,6 +63,23 @@ main()
     int r;
     int len;
     mode_t oldumask;
+    char *pid_file = _PATH_PWCHECKPID;
+    FILE *fp = NULL;
+    pid_t pid;
+
+    /*
+     *   Record process ID - shamelessly stolen from inetd (I.V.)
+     */
+    pid = getpid();
+    if (pid_file) {
+	fp = fopen(pid_file, "w");
+    }
+    if (fp) {
+        fprintf(fp, "%ld\n", (long)pid);
+        fclose(fp);
+    } else if (pid_file) {
+        syslog(LOG_WARNING, "%s: %m", pid_file);
+    }
 
     s = socket(AF_UNIX, SOCK_STREAM, 0);
     if (s == -1) {

@@ -1,3 +1,6 @@
+2002-04-26  Ken Murchison <ken@oceana.com>
+	* lib/client.c, server.c: check 'doneflag' just before mech_step()
+
 2002-04-25  Ken Murchison <ken@oceana.com>
 	* plugins/otp.c: don't free the secret when we get data from a
 	  callback (and don't copy it)

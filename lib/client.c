@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.47 2002/04/25 16:11:26 ken3 Exp $
+ * $Id: client.c,v 1.48 2002/04/26 15:25:17 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -555,11 +555,16 @@ int sasl_client_step(sasl_conn_t *conn,
 
   if(_sasl_client_active==0) return SASL_NOTINIT;
   if(!conn) return SASL_BADPARAM;
-  if(conn->oparams.doneflag) return SASL_FAIL;
 
   /* check parameters */
   if ((serverin==NULL) && (serverinlen>0))
       PARAMERROR(conn);
+
+  /* Don't do another step if the plugin told us that we're done */
+  if (conn->oparams.doneflag) {
+      _sasl_log(conn, SASL_LOG_ERR, "attempting client step after doneflag");
+      return SASL_FAIL;
+  }
 
   if(clientout) *clientout = NULL;
   if(clientoutlen) *clientoutlen = 0;

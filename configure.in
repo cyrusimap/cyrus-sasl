@@ -202,7 +202,7 @@ if test "$with_pam" != no; then
   AC_CHECK_LIB(pam, pam_start,
 	  AC_CHECK_HEADER(security/pam_appl.h,,
 			  AC_WARN([Disabling PAM support (1)]); with_pam=no),
-		AC_WARN([Disabling PAM support (2)]); with_pam=no, -ldl)
+		AC_WARN([Disabling PAM support (2)]); with_pam=no, $SASL_DL_LIB)
   LIBS="$cmu_save_LIBS"
 fi
 

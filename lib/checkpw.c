@@ -504,7 +504,7 @@ static int parseuser(char **user, char **realm, const char *user_realm,
 	if (!r) {
 	    *realm = sasl_ALLOC(1);
 	    if (*realm) {
-		*realm[0] = '\0';
+		(*realm)[0] = '\0';
 		ret = SASL_OK;
 	    } else {
 		ret = SASL_NOMEM;
@@ -517,15 +517,14 @@ static int parseuser(char **user, char **realm, const char *user_realm,
 
 	    r++;
 	    ret = _sasl_strdup(r, realm, NULL);
+	    *--r = '\0';
 	    *user = sasl_ALLOC(r - input + 1);
 	    if (*user) {
-		for (i = 0; input[i] != '@'; i++) {
-		    *user[i] = input[i];
-		}
-		*user[i] = '\0';
+		strcpy(*user, input);
 	    } else {
 		ret = SASL_NOMEM;
 	    }
+	    *r = '@';
 	}
     }
 
@@ -616,7 +615,7 @@ int _sasl_sasldb_set_pass(sasl_conn_t *conn,
 	    ret = _sasl_getcallback(conn, SASL_CB_SERVER_GETSECRET,
 				    &getsec, &context);
 	    if (ret == SASL_OK) {
-		getsec(context, "PLAIN", userid, realm, &sec);
+		ret = getsec(context, "PLAIN", userid, realm, &sec);
 		if (ret == SASL_OK) {
 		    sasl_free_secret(&sec);
 		    ret = SASL_NOCHANGE;

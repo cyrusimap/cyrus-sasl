@@ -113,13 +113,13 @@ AC_DEFUN(SASL_KERBEROS_V4_CHK, [
                      [COM_ERR=""; SASL_KRB_LIB="-lkrb"; krb4lib="yes"],
                      krb4lib=no, $LIB_DES)])], krb4="no")
 
-    if test "$krb4" = "yes" -a "$krb4lib" = "no"; then
+      if test "$krb4" = "yes" -a "$krb4lib" = "no"; then
 	AC_CHECK_LIB(krb4, krb_mk_priv,
                      [COM_ERR=""; SASL_KRB_LIB="-lkrb4"; krb4=yes],
                      krb4=no, $LIB_DES)
-        if test "$krb4" = no; then
+      fi
+      if test "$krb4" = no; then
           AC_WARN(No Kerberos V4 found)
-        fi
       fi
     else
       AC_WARN(No DES library found for Kerberos V4 support)

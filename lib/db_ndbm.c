@@ -87,8 +87,7 @@ getsecret(void *context __attribute__((unused)),
 
   db = dbm_open(SASL_DB_PATH, O_RDONLY, S_IRUSR | S_IWUSR);
   if (! db) {
-    result = SASL_FAIL;
-    goto cleanup;
+    return SASL_FAIL;
   }
   dkey.dptr = key;
   dkey.dsize = key_len;

@@ -1,3 +1,7 @@
+2003-09-18  Ken Murchison <ken@oceana.com>
+	* lib/server.c: log a message when no password change is attempted
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+
 2003-09-17  Ken Murchison <ken@oceana.com>
 	* plugins/sql.c: misc fixes from Patrick Welche <prlw1@newn.cam.ac.uk>
 	

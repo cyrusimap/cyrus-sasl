@@ -1,7 +1,7 @@
 /* db_gdbm.c--SASL gdbm interface
  * Rob Siemborski
  * Rob Earhart
- * $Id: db_gdbm.c,v 1.2 2001/12/04 02:06:59 rjs3 Exp $
+ * $Id: db_gdbm.c,v 1.3 2002/01/21 20:00:30 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -99,7 +99,8 @@ int _sasldb_getdata(const sasl_utils_t *utils,
   }
   db = gdbm_open((char *)path, 0, GDBM_READER, S_IRUSR | S_IWUSR, NULL);
   if (! db) {
-      utils->seterror(cntxt, 0, "Could not open db");
+      utils->seterror(cntxt, 0, "Could not open %s: gdbm_errno=%d",
+		      path, gdbm_errno);
       result = SASL_FAIL;
       goto cleanup;
   }
@@ -108,8 +109,17 @@ int _sasldb_getdata(const sasl_utils_t *utils,
   gvalue = gdbm_fetch(db, gkey);
   gdbm_close(db);
   if (! gvalue.dptr) {
-      utils->seterror(cntxt, 0, "no user in db");
-      result = SASL_NOUSER;
+      if (gdbm_errno == GDBM_ITEM_NOT_FOUND) {
+          utils->seterror(conn, SASL_NOLOG,
+			  "user: %s@%s property: %s not found in %s",
+			  authid, realm, propName, path);
+	  result = SASL_NOUSER;
+      } else {
+	  utils->seterror(conn, 0,
+			  "Couldn't fetch entry from %s: gdbm_errno=%d",
+			  path, gdbm_errno);
+	  result = SASL_FAIL;
+      }
       goto cleanup;
   }
 
@@ -177,7 +187,8 @@ int _sasldb_putdata(const sasl_utils_t *utils,
       utils->log(conn, SASL_LOG_ERR,
 		 "SASL error opening password file. "
 		 "Do you have write permissions?\n");
-      utils->seterror(conn, 0, "Could not open db for write");
+      utils->seterror(conn, 0, "Could not open %s for write: gdbm_errno=%d",
+                     path, gdbm_errno);
       result = SASL_FAIL;
       goto cleanup;
   }
@@ -190,13 +201,15 @@ int _sasldb_putdata(const sasl_utils_t *utils,
     gvalue.dsize = data_len;
     if (gdbm_store(db, gkey, gvalue, GDBM_REPLACE)) {
 	utils->seterror(conn, 0,
-			"Couldn't update db");
+			"Couldn't replace entry in %s: gdbm_errno=%d",
+			path, gdbm_errno);
 	result = SASL_FAIL;
     }
   } else {
       if (gdbm_delete(db, gkey)) {
 	  utils->seterror(conn, 0,
-			  "Couldn't update db");	  
+			  "Couldn't delete entry in %s: gdbm_errno=%d",
+			  path, gdbm_errno);
 	  result = SASL_NOUSER;
       }
   }
@@ -285,7 +298,8 @@ sasldb_handle _sasldb_getkeyhandle(const sasl_utils_t *utils,
     db = gdbm_open((char *)path, 0, GDBM_READER, S_IRUSR | S_IWUSR, NULL);
 
     if(!db) {
-	utils->seterror(conn, 0, "Could not open db");
+        utils->seterror(conn, 0, "Could not open %s: gdbm_errno=%d",
+			 path, gdbm_errno);
 	return NULL;
     }
 

@@ -43,7 +43,7 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 
 static const char anonymous_id[] = "anonymous";
 
-#define ANONYMOUS_VERSION (2)
+#define ANONYMOUS_VERSION (3)
 
 #ifdef L_DEFAULT_GUARD
 # undef L_DEFAULT_GUARD
@@ -158,8 +158,11 @@ static const sasl_server_plug_t plugins[] =
     NULL,			/* mech_dispose */
     NULL,			/* mech_free */
     NULL,			/* setpass */
-    NULL,			/* user_quert */
-    NULL			/* idle */
+    NULL,			/* user_query */
+    NULL,			/* idle */
+    NULL,			/* install_credentials */
+    NULL,			/* uninstall_credentials */
+    NULL			/* free_credentials */
   }
 };
 
@@ -169,7 +172,7 @@ int sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
 			  const sasl_server_plug_t **pluglist,
 			  int *plugcount)
 {
-  if (maxversion<1)
+  if (maxversion<ANONYMOUS_VERSION)
     return SASL_BADVERS;
 
   *pluglist=plugins;

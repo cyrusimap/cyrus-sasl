@@ -1,7 +1,54 @@
+1999-02-12  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* include/sasl.h: added credentials interface.  This may change at 
+	some point; it's nice and simple, but doesn't seperate the
+	credentials from the sasl_conn_t...
+
+	* include/saslplug.h: added credential calls for server plugins,
+	incremented plugin version
+
+	* plugins/scram.c (sasl_server_plug_init): added credential ptrs, 
+	fixed version check, incremented version
+	(sasl_client_plug_init): fixed version check
+
+	* plugins/plain.c (sasl_server_plug_init): added credential ptrs, 
+	fixed version check, incremented version
+	(sasl_client_plug_init): fixed version check
+
+	* plugins/gssapi.c (sasl_server_plug_init): added credential ptrs, 
+	fixed version check, incremented version
+	(sasl_client_plug_init): fixed version check
+
+	* plugins/digestmd5.c (sasl_server_plug_init): added credential
+	ptrs, fixed version check, incremented version
+	(sasl_client_plug_init): fixed version check
+
+	* plugins/anonymous.c (sasl_server_plug_init): added credential
+	ptrs, fixed version check, incremented version
+	(sasl_client_plug_init): checked version check
+
+	* plugins/kerberos4.c (sasl_server_plug_init): added credential
+	ptrs, incremented version
+	(sasl_client_plug_init): checked version check
+
+	* lib/server.c (mech_permitted): fixed reversed ssf test
+
+	* plugins/cram.c (sasl_server_plug_init): added credential ptrs,
+	fixed version check, incremented version.
+	(sasl_client_plug_init): fixed version check
+
 1999-02-11  Rob Earhart  <rob+@andrew.cmu.edu>
 
+	* include/sasl.h (SASL_SEC_MAXIMUM): changed definition of
+	SASL_SEC_MEXIMUM (I never did like the way it was defined before), 
+	and added SASL_SEC_MAX_DEFINED, which the library will need in
+	order to properly process SASL_SEC_MAXIMUM.
+	(SASL_SEC_PASS_CREDENTIALS): added this, as well as
+	sasl_credentials_t, used by plugins which accept forwarded
+	credentials to hand them to servers.
+
 	* plugins/anonymous.c (client_plugins): added required prompts
- 	(SASL_DB_USER), commented a little.
+ 	(SASL_CB_USER), commented a little.
 	(c_continue_step): changed from getprop for username to callback
 
 	* include/saslplug.h: made required_prompts a const long ptr

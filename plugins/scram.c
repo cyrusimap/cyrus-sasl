@@ -41,7 +41,7 @@ SOFTWARE.
 # include "saslSCRAM.h"
 #endif /* WIN32 */
 
-#define SCRAM_MD5_VERSION 2;
+#define SCRAM_MD5_VERSION (3)
 
 struct scram_entry
 {
@@ -599,6 +599,9 @@ static sasl_server_plug_t plugins[] =
     &mech_free,
     &setpass,
     NULL,
+    NULL,
+    NULL,
+    NULL,
     NULL
   }
 };
@@ -610,7 +613,7 @@ int sasl_server_plug_init(sasl_utils_t *utils, int maxversion,
 {
   global_context_t *glob;
 
-  if (maxversion<1)
+  if (maxversion<SCRAM_MD5_VERSION)
     return SASL_BADVERS;
 
   glob=utils->malloc(sizeof(global_context_t));
@@ -925,7 +928,7 @@ int sasl_client_plug_init(sasl_utils_t *utils __attribute__((unused)),
 			  const sasl_client_plug_t **pluglist,
 			  int *plugcount)
 {
-  if (maxversion<1)
+  if (maxversion<SCRAM_MD5_VERSION)
     return SASL_BADVERS;
 
   *pluglist=client_plugins;  

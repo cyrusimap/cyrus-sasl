@@ -131,7 +131,7 @@ void Usage(char *arg)
   if (arg)
     fprintf(stderr, "Unknown argument: %s\n", arg);
   fprintf(stderr, "\n");
-  fprintf(stderr, "test-server [-d] [-v] [-e bits] [-s service]\n");
+  fprintf(stderr, "test-server [-d] [-v] [-e bits] [-u userid] [-s service]\n");
   fprintf(stderr, "\n");
   exit(-1);
 }
@@ -153,7 +153,8 @@ int main(int argc, char **argv)
   int   Verbose   = 0;
   int   External  = 0;
   char *Service   = TEST_SERVICE;
-
+  char *UserID    = NULL;
+  
   int arg;
 
   for (arg=1; arg<argc; arg++) {
@@ -170,6 +171,9 @@ int main(int argc, char **argv)
 	break;
       case 'e':
 	External = atoi(argv[++arg]);
+	break;
+      case 'u':
+	UserID = argv[++arg];
 	break;
       default:
         Usage(NULL);

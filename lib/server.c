@@ -574,7 +574,7 @@ static int mech_permitted(sasl_conn_t *conn,
       return 0;
   } else {
     /* Generic mechanism */
-    if (conn->props.min_ssf < plug->max_ssf)
+    if (plug->max_ssf < conn->props.min_ssf)
       return 0;
   }
   return 1;

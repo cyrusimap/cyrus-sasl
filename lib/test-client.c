@@ -282,8 +282,8 @@ EndOfDashArgs:
   /* Initialize connection properties */
   if (External) {
     sasl_external_properties_t extprops;
-    extprops->ssf = External;
-    extprops->auth_id = UserID;
+    extprops.ssf = External;
+    extprops.auth_id = UserID;
     sasl_setprop(conn, SASL_SSF_EXTERNAL, &extprops);
   }
   

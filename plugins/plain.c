@@ -47,7 +47,7 @@ SOFTWARE.
 
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
 
-#define PLAIN_VERSION 2;
+#define PLAIN_VERSION (3)
 
 typedef struct context {
   int state;
@@ -283,6 +283,9 @@ static const sasl_server_plug_t plugins[] =
     &mech_free,
     NULL,
     NULL,
+    NULL,
+    NULL,
+    NULL,
     NULL
   }
 };
@@ -293,7 +296,7 @@ int sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
 			  const sasl_server_plug_t **pluglist,
 			  int *plugcount)
 {
-  if (maxversion<1)
+  if (maxversion<PLAIN_VERSION)
     return SASL_BADVERS;
 
   *pluglist=plugins;
@@ -557,7 +560,7 @@ int sasl_client_plug_init(sasl_utils_t *utils __attribute__((unused)),
 			  const sasl_client_plug_t **pluglist,
 			  int *plugcount)
 {
-  if (maxversion<1)
+  if (maxversion<PLAIN_VERSION)
     return SASL_BADVERS;
 
   *pluglist=client_plugins;

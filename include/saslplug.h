@@ -135,6 +135,8 @@ typedef struct sasl_mech_secret {
     char buf[1];
 } sasl_mech_secret_t;
 
+typedef struct sasl_credentials sasl_credentials_t;
+
 /* output parameters from SASL API
  */
 typedef struct sasl_out_params {
@@ -168,6 +170,7 @@ typedef struct sasl_out_params {
      * are added.
      */
     int param_version;
+    sasl_credentials_t *credentials;
 } sasl_out_params_t;
 
 /******************************
@@ -463,9 +466,19 @@ typedef struct sasl_server_plug {
      int (*idle)(void *glob_context,
      		 void *conn_context,
      		 sasl_server_params_t *sparams);
+
+     /* install credentials returned earlier by the plugin. */
+     int (*install_credentials)(void *glob_context,
+				sasl_credentials_t *credentials);
+     /* uninstall credentials returned earlier by the plugin. */
+     int (*uninstall_credentials)(void *glob_context,
+				  sasl_credentials_t *credentials);
+     /* free credentials returned earlier by the plugin. */
+     int (*free_credentials)(void *glob_context,
+			     sasl_credentials_t *credentials);
 } sasl_server_plug_t;
 
-#define SASL_SERVER_PLUG_VERSION 2
+#define SASL_SERVER_PLUG_VERSION 3
 
 /* plug-in entry point:
  *  utils         -- utility callback functions

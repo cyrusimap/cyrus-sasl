@@ -205,186 +205,6 @@ typedef void sasl_mutex_dispose_t(void *mutex);
 LIBSASL_API void sasl_set_mutex(sasl_mutex_new_t *, sasl_mutex_lock_t *,
                                 sasl_mutex_unlock_t *, sasl_mutex_dispose_t *);
 
-/******************
- * Callback types *
- ******************/
-
-/* Extensible type for a client/server callbacks
- *  id      -- identifies callback type
- *  proc    -- procedure call arguments vary based on id
- *  context -- context passed to procedure
- */
-typedef struct sasl_callback {
-    /* Identifies the type of the callback function.
-     * Mechanisms must ignore callbacks with id's they don't recognize.
-     */
-    unsigned long id;
-    int (*proc)();  /* Callback function.  Types of arguments vary by 'id' */
-    void *context;
-} sasl_callback_t;
-
-/* callback ids & functions:
- */
-#define SASL_CB_LIST_END   0  /* end of list */
-
-/* option reading callback -- this allows a SASL configuration to be
- *  encapsulated in the caller's configuration system.  Some implementations
- *  may use default config file(s) if this is omitted.  Configuration items
- *  may be plugin-specific and are arbitrary strings.
- *
- * inputs:
- *  context     -- option context from callback record
- *  plugin_name -- name of plugin (NULL = general SASL option)
- *  option      -- name of option
- * output:
- *  result      -- set to result which persists until next getopt in
- *                 same thread, unchanged if option not found
- *  len         -- length of result (optional)
- * returns:
- *  SASL_OK     -- no error
- *  SASL_FAIL   -- error
- */
-typedef int sasl_getopt_t(void *context, const char *plugin_name,
-			  const char *option,
-			  const char **result, unsigned *len);
-#define SASL_CB_GETOPT       1
-
-/* Logging levels for use with the logging callback function. */
-#define SASL_LOG_ERR         1	/* error message */
-#define SASL_LOG_WARNING     2	/* warning message */
-#define SASL_LOG_INFO        3	/* normal message */
-
-/* logging callback -- this allows plugins and the middleware to
- *  log operations they perform.
- * inputs:
- *  context     -- logging context from the callback record
- *  priority    -- logging priority; see above
- *  message     -- message to log
- * returns:
- *  SASL_OK     -- no error
- *  SASL_FAIL   -- error
- */
-typedef int sasl_log_t(void *context,
-		       int priority,
-		       const char *message);
-
-#define SASL_CB_LOG	     2
-
-/* getpath callback -- this allows applications to specify the
- * colon-separated path to search for plugins (by default,
- * taken from the SASL_PATH environment variable).
- * inputs:
- *  context     -- getpath context from the callback record
- * outputs:
- *  path	-- colon seperated path (allocated on the heap; the
- *                 library will free it using the sasl_free_t *
- *                 passed to sasl_set_callback, or the standard free()
- *                 library call).
- * returns:
- *  SASL_OK     -- no error
- *  SASL_FAIL   -- error
- */
-typedef int sasl_getpath_t(void * context,
-			   char ** path);
-
-#define SASL_CB_GETPATH	     3
-
-/* client/user interaction callbacks:
- */
-/* Simple prompt -- result must persist until next call to getsimple or
- *  until connection context is disposed
- * inputs:
- *  context       -- context from callback structure
- *  id            -- callback id
- * outputs:
- *  result        -- set to NUL terminated string
- *                   NULL = user cancel
- *  len           -- length of result, ignored with SASL_CB_SECRET
- * returns SASL_OK
- */
-typedef int sasl_getsimple_t(void *context, int id,
-			     const char **result, unsigned *len);
-#define SASL_CB_USER         0x4001  /* client user identity to login as */
-#define SASL_CB_AUTHNAME     0x4002  /* client authentication name,
-			              * defaults to authid in sasl_secret_t */
-#define SASL_CB_LANGUAGE     0x4003  /* comma separated list of RFC 1766
-			              * language codes in order of preference
-				      * to be used to localize client prompts
-				      * or server error codes */
-
-/* get a sasl_secret_t
- *  psecret -- may be left NULL if sasl_client_auth() called
- * returns SASL_OK
- */
-typedef int sasl_getsecret_t(sasl_conn_t *conn, void *context, int id,
-			     sasl_secret_t **psecret);
-#define SASL_CB_PASS         0x4004  /* client passphrase-based secret */
-
-
-/* prompt for input in response to a challenge, result is copied & erased
- *  by caller.
- * input:
- *  context   -- context from callback structure
- *  id        -- callback id
- *  challenge -- server challenge
- * output:
- *  result    -- NUL terminated result, NULL = user cancel
- *  len       -- length of result
- * returns SASL_OK
- */
-typedef int sasl_chalprompt_t(void *context, int id,
-			      const char *challenge,
-			      const char *prompt, const char *defresult,
-			      const char **result, unsigned *len);
-#define SASL_CB_ECHOPROMPT   0x4005 /* challenge and client-entered result */
-#define SASL_CB_NOECHOPROMPT 0x4006 /* challenge and client-entered result */
-
-/* server callbacks:
- */
-/* callback to verify authorization
- *  requested_user -- the identity/username to authorize
- *  auth_identity  -- the identity associated with the secret
- * return:
- *  user           -- NULL = requested_user, otherwise canonicalized
- *  errstr         -- can be set to error string on failure
- * returns SASL_OK on success, SASL_BADAUTH or other SASL response on failure
- */
-typedef int sasl_authorize_t(void *context,
-			     const char *auth_identity,
-			     const char *requested_user,
-			     const char **user,
-			     const char **errstr);
-#define SASL_CB_PROXY_POLICY 0x8001
-
-/* callback to lookup a user's secret for a mechanism
- *  mechanism     -- the mechanism requesting its secret
- *  auth_identity -- the identity being looked up
- * return:
- *  secret        -- the secret associated with this user
- *                   for this mechanism
- * returns SASL_OK on success or other SASL response on failure
- */
-typedef int sasl_server_getsecret_t(void *context,
-				    const char *mechanism,
-				    const char *auth_identity,
-				    sasl_secret_t ** secret);
-#define SASL_CB_SERVER_GETSECRET 0x8002
-
-/* callback to store a user's secret for a mechanism
- *  mechanism     -- the mechanism storing its secret
- *  auth_identity -- the identity being stored
- *  secret        -- the secret associated with this user
- *                   for this mechanism.  If NULL, user's secret
- *		     for this mechanism will be erased.
- * returns SASL_OK on success or other SASL response on failure
- */
-typedef int sasl_server_putsecret_t(void *context,
-				    const char *mechanism,
-				    const char *auth_identity,
-				    const sasl_secret_t * secret);
-#define SASL_CB_SERVER_PUTSECRET 0x8003
-
-
 /*****************************
  * Security preference types *
  *****************************/
@@ -403,7 +223,7 @@ typedef unsigned sasl_ssf_t;
 
 /* secflags provided on sasl_server_new and sasl_client_new:
  */
-#define SASL_SECURITY_LAYER 0x0001 /* caller supports security layer */
+#define SASL_SECURITY_LAYER (0x0001) /* caller supports security layer */
 
 /***************************
  * Security Property Types *
@@ -414,20 +234,29 @@ typedef unsigned sasl_ssf_t;
  */
 
 /* These are the various security flags apps can specify. */
-/* NOPLAINTEXT     -- don't permit mechanisms susceptible to simple
- *                    passive attack (e.g., PLAIN, LOGIN)
- * NOACTIVE        -- protection from active (non-dictionary) attacks
- *                    during authentication exchange.  Authenticates server.
- * NODICTIONARY    -- don't permit mechanisms susceptible to passive
- *                    dictionary attack
- * FORWARD_SECRECY -- require forward secrecy between sessions
- *                    (breaking one won't help break next)
+/* NOPLAINTEXT          -- don't permit mechanisms susceptible to simple
+ *                         passive attack (e.g., PLAIN, LOGIN)
+ * NOACTIVE             -- protection from active (non-dictionary) attacks
+ *                         during authentication exchange.
+ * 			   Authenticates server.
+ * NODICTIONARY         -- don't permit mechanisms susceptible to passive
+ *                         dictionary attack
+ * FORWARD_SECRECY      -- require forward secrecy between sessions
+ *                         (breaking one won't help break next)
+ * MAXIMUM              -- require all security attributes
+ *		           known by the library at runtime
+ * PASS_CREDENTIALS     -- prefer mechanisms which pass client
+ *			   credentials (if available),
+ *			   and allow mechanisms which can pass
+ *			   credentials to do so
  */
-#define SASL_SEC_NOPLAINTEXT     0x0001
-#define SASL_SEC_NOACTIVE        0x0002
-#define SASL_SEC_NODICTIONARY    0x0004
-#define SASL_SEC_FORWARD_SECRECY 0x0008
-#define SASL_SEC_MAXIUMUM        0x00FF
+#define SASL_SEC_NOPLAINTEXT     (0x0001)
+#define SASL_SEC_NOACTIVE        (0x0002)
+#define SASL_SEC_NODICTIONARY    (0x0004)
+#define SASL_SEC_FORWARD_SECRECY (0x0008)
+#define SASL_SEC_MAX_DEFINED     (0x000F)
+#define SASL_SEC_MAXIMUM         (0x0100)
+#define SASL_SEC_PASS_CREDENTIALS (0x0200)
 
 typedef struct sasl_security_properties 
 {
@@ -443,7 +272,7 @@ typedef struct sasl_security_properties
      */
     unsigned maxbufsize; 
     
-    /* bitfield for attacks to protect against */
+    /* bitfield for security properties -- see SASL_SEC_* above */
     int security_flags;
 
     /* NULL terminated array of additional property names, values */ 
@@ -470,6 +299,185 @@ typedef struct sasl_external_properties
   /* authorization identity provided by the external mechanism */
   char *auth_id;
 } sasl_external_properties_t;
+
+/******************
+ * Callback types *
+ ******************/
+
+/* Extensible type for a client/server callbacks
+ *  id      -- identifies callback type
+ *  proc    -- procedure call arguments vary based on id
+ *  context -- context passed to procedure
+ */
+typedef struct sasl_callback {
+    /* Identifies the type of the callback function.
+     * Mechanisms must ignore callbacks with id's they don't recognize.
+     */
+    unsigned long id;
+    int (*proc)();  /* Callback function.  Types of arguments vary by 'id' */
+    void *context;
+} sasl_callback_t;
+
+/* callback ids & functions:
+ */
+#define SASL_CB_LIST_END  (0) /* end of list */
+
+/* option reading callback -- this allows a SASL configuration to be
+ *  encapsulated in the caller's configuration system.  Some implementations
+ *  may use default config file(s) if this is omitted.  Configuration items
+ *  may be plugin-specific and are arbitrary strings.
+ *
+ * inputs:
+ *  context     -- option context from callback record
+ *  plugin_name -- name of plugin (NULL = general SASL option)
+ *  option      -- name of option
+ * output:
+ *  result      -- set to result which persists until next getopt in
+ *                 same thread, unchanged if option not found
+ *  len         -- length of result (optional)
+ * returns:
+ *  SASL_OK     -- no error
+ *  SASL_FAIL   -- error
+ */
+typedef int sasl_getopt_t(void *context, const char *plugin_name,
+			  const char *option,
+			  const char **result, unsigned *len);
+#define SASL_CB_GETOPT      (1)
+
+/* Logging levels for use with the logging callback function. */
+#define SASL_LOG_ERR        (1) /* error message */
+#define SASL_LOG_WARNING    (2) /* warning message */
+#define SASL_LOG_INFO       (3) /* normal message */
+
+/* logging callback -- this allows plugins and the middleware to
+ *  log operations they perform.
+ * inputs:
+ *  context     -- logging context from the callback record
+ *  priority    -- logging priority; see above
+ *  message     -- message to log
+ * returns:
+ *  SASL_OK     -- no error
+ *  SASL_FAIL   -- error
+ */
+typedef int sasl_log_t(void *context,
+		       int priority,
+		       const char *message);
+
+#define SASL_CB_LOG	    (2)
+
+/* getpath callback -- this allows applications to specify the
+ * colon-separated path to search for plugins (by default,
+ * taken from the SASL_PATH environment variable).
+ * inputs:
+ *  context     -- getpath context from the callback record
+ * outputs:
+ *  path	-- colon seperated path (allocated on the heap; the
+ *                 library will free it using the sasl_free_t *
+ *                 passed to sasl_set_callback, or the standard free()
+ *                 library call).
+ * returns:
+ *  SASL_OK     -- no error
+ *  SASL_FAIL   -- error
+ */
+typedef int sasl_getpath_t(void * context,
+			   char ** path);
+
+#define SASL_CB_GETPATH	    (3)
+
+/* client/user interaction callbacks:
+ */
+/* Simple prompt -- result must persist until next call to getsimple or
+ *  until connection context is disposed
+ * inputs:
+ *  context       -- context from callback structure
+ *  id            -- callback id
+ * outputs:
+ *  result        -- set to NUL terminated string
+ *                   NULL = user cancel
+ *  len           -- length of result, ignored with SASL_CB_SECRET
+ * returns SASL_OK
+ */
+typedef int sasl_getsimple_t(void *context, int id,
+			     const char **result, unsigned *len);
+#define SASL_CB_USER        (0x4001) /* client user identity to login as */
+#define SASL_CB_AUTHNAME    (0x4002) /* client authentication name,
+			              * defaults to authid in sasl_secret_t */
+#define SASL_CB_LANGUAGE    (0x4003) /* comma separated list of RFC 1766
+			              * language codes in order of preference
+				      * to be used to localize client prompts
+				      * or server error codes */
+
+/* get a sasl_secret_t
+ *  psecret -- may be left NULL if sasl_client_auth() called
+ * returns SASL_OK
+ */
+typedef int sasl_getsecret_t(sasl_conn_t *conn, void *context, int id,
+			     sasl_secret_t **psecret);
+#define SASL_CB_PASS        (0x4004) /* client passphrase-based secret */
+
+
+/* prompt for input in response to a challenge, result is copied & erased
+ *  by caller.
+ * input:
+ *  context   -- context from callback structure
+ *  id        -- callback id
+ *  challenge -- server challenge
+ * output:
+ *  result    -- NUL terminated result, NULL = user cancel
+ *  len       -- length of result
+ * returns SASL_OK
+ */
+typedef int sasl_chalprompt_t(void *context, int id,
+			      const char *challenge,
+			      const char *prompt, const char *defresult,
+			      const char **result, unsigned *len);
+#define SASL_CB_ECHOPROMPT   (0x4005) /* challenge and client-entered result */
+#define SASL_CB_NOECHOPROMPT (0x4006) /* challenge and client-entered result */
+
+/* server callbacks:
+ */
+/* callback to verify authorization
+ *  requested_user -- the identity/username to authorize
+ *  auth_identity  -- the identity associated with the secret
+ * return:
+ *  user           -- NULL = requested_user, otherwise canonicalized
+ *  errstr         -- can be set to error string on failure
+ * returns SASL_OK on success, SASL_BADAUTH or other SASL response on failure
+ */
+typedef int sasl_authorize_t(void *context,
+			     const char *auth_identity,
+			     const char *requested_user,
+			     const char **user,
+			     const char **errstr);
+#define SASL_CB_PROXY_POLICY (0x8001)
+
+/* callback to lookup a user's secret for a mechanism
+ *  mechanism     -- the mechanism requesting its secret
+ *  auth_identity -- the identity being looked up
+ * return:
+ *  secret        -- the secret associated with this user
+ *                   for this mechanism
+ * returns SASL_OK on success or other SASL response on failure
+ */
+typedef int sasl_server_getsecret_t(void *context,
+				    const char *mechanism,
+				    const char *auth_identity,
+				    sasl_secret_t ** secret);
+#define SASL_CB_SERVER_GETSECRET (0x8002)
+
+/* callback to store a user's secret for a mechanism
+ *  mechanism     -- the mechanism storing its secret
+ *  auth_identity -- the identity being stored
+ *  secret        -- the secret associated with this user
+ *                   for this mechanism.  If NULL, user's secret
+ *		     for this mechanism will be erased.
+ * returns SASL_OK on success or other SASL response on failure
+ */
+typedef int sasl_server_putsecret_t(void *context,
+				    const char *mechanism,
+				    const char *auth_identity,
+				    const sasl_secret_t * secret);
+#define SASL_CB_SERVER_PUTSECRET (0x8003)
 
 
 /**********************************
@@ -855,6 +863,27 @@ LIBSASL_API int sasl_encode(sasl_conn_t *conn,
 LIBSASL_API int sasl_decode(sasl_conn_t *conn,
 			    const char *input, unsigned inputlen,
 			    char **output, unsigned *outputlen);
+
+/************************************
+ * Credentials API (used by server) *
+ ************************************/
+
+/* install credentials passed by the client
+ * Installing a set of credentials may install them on a per-process
+ * or a per-thread basis; neither behavior may be assumed.
+ * returns:
+ *  SASL_OK      -- success
+ *  SASL_FAIL    -- failure
+ *  SASL_NOTDONE -- credentials not passed
+ */
+LIBSASL_API int sasl_cred_install(sasl_conn_t *conn);
+
+/* uninstalls a connection's credentials
+ * returns:
+ *  SASL_OK      -- success
+ *  SASL_FAIL    -- failure
+ */
+LIBSASL_API int sasl_cred_uninstall(sasl_conn_t *conn);
 
 #endif /* SASL_H */
 

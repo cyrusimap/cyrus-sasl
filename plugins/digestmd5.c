@@ -77,7 +77,7 @@ static char *calculate_response(sasl_utils_t *utils,
 static int htoi(unsigned char *hexin, int *res);
 static char *convert16(unsigned char *in,int inlen,sasl_utils_t *utils);
 
-#define DIGESTMD5_VERSION 2;
+#define DIGESTMD5_VERSION (3)
 #define KEYS_FILE NULL
 
 typedef struct context {
@@ -1024,6 +1024,9 @@ const sasl_server_plug_t plugins[] =
     &mech_free,
     NULL,
     NULL,
+    NULL,
+    NULL,
+    NULL,
     NULL
   }
 };
@@ -1038,7 +1041,7 @@ int sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
   /*if (access(KEYFILE, R_OK)!=0) */
   /*  return SASL_FAIL; */
 
-  if (maxversion<1)
+  if (maxversion<DIGESTMD5_VERSION)
     return SASL_BADVERS;
 
   *pluglist=plugins;
@@ -1519,7 +1522,7 @@ int sasl_client_plug_init(sasl_utils_t *utils __attribute__((unused)),
 			  const sasl_client_plug_t **pluglist,
 			  int *plugcount)
 {
-  if (maxversion<1)
+  if (maxversion<DIGESTMD5_VERSION)
     return SASL_BADVERS;
 
   *pluglist=client_plugins;

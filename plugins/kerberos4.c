@@ -75,8 +75,7 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 extern int gethostname(char *, int);
 #endif
 
-#define KERBEROS_VERSION 2;
-#define KEYS_FILE NULL
+#define KERBEROS_VERSION (3)
 
 typedef struct context {
   int state;
@@ -145,10 +144,13 @@ static int privacy_encode(void *context, const char *input, unsigned inputlen,
 }
 
 
-static int privacy_decode(void *context, const char *input, unsigned inputlen,
-		  char **output, unsigned *outputlen)
+static int privacy_decode(void *context,
+			  const char *input,
+			  unsigned inputlen,
+			  char **output, unsigned *outputlen)
 {
-    int len, diff, tocopy;
+    int len, tocopy;
+    unsigned diff;
     MSG_DAT *data;
     context_t *text=context;
     char *extra;
@@ -196,7 +198,7 @@ static int privacy_decode(void *context, const char *input, unsigned inputlen,
     if (! text->buffer)
       return SASL_FAIL;
 
-    if (inputlen< diff) /* not enough for a decode */
+    if (inputlen < diff) /* not enough for a decode */
     {
       memcpy(text->buffer+text->cursize, input, inputlen);
       text->cursize+=inputlen;
@@ -257,8 +259,12 @@ static int privacy_decode(void *context, const char *input, unsigned inputlen,
 
 
 
-static int integrity_encode(void *context, const char *input, unsigned inputlen,
-		  char **output, unsigned *outputlen)
+static int
+integrity_encode(void *context,
+		 const char *input,
+		 unsigned inputlen,
+		 char **output,
+		 unsigned *outputlen)
 {
   int len;
   char *out;
@@ -290,11 +296,12 @@ static int integrity_encode(void *context, const char *input, unsigned inputlen,
 static int integrity_decode(void *context, const char *input, unsigned inputlen,
 		  char **output, unsigned *outputlen)
 {
-    int len, diff, tocopy;
+    int len, tocopy;
     MSG_DAT *data;
     context_t *text=context;
     char *extra;
     unsigned int extralen=0;
+    unsigned diff;
   
     if (text->needsize>0) /* 4 bytes for how long message is */
     {
@@ -389,11 +396,13 @@ static int integrity_decode(void *context, const char *input, unsigned inputlen,
 }
 
 
-static int server_start(void *glob_context, 
-		 sasl_server_params_t *sparams,
-		 const char *challenge, int challen,
-		 void **conn,
-		 const char **errstr)
+static int
+server_start(void *glob_context __attribute__((unused)),
+	     sasl_server_params_t *sparams,
+	     const char *challenge __attribute__((unused)),
+	     int challen __attribute__((unused)),
+	     void **conn,
+	     const char **errstr)
 {
   context_t *text;
 
@@ -525,12 +534,15 @@ static int server_continue_step (void *conn_context,
     memcpy(text->pname, ad.pname, sizeof(text->pname));
     memcpy(text->pinst, ad.pinst, sizeof(text->pinst));
     memcpy(text->prealm, ad.prealm, sizeof(text->prealm));
-    des_key_sched(ad.session, text->init_keysched);
+    des_key_sched(&ad.session, text->init_keysched);
 
-    des_key_sched(ad.session, text->enc_keysched); /* make keyschedule for */
-    des_key_sched(ad.session, text->dec_keysched); /* encryption and decryption */
+    des_key_sched(&ad.session, text->enc_keysched); /* make keyschedule for */
+    des_key_sched(&ad.session, text->dec_keysched); /* encryption and decryption */
     
-    des_ecb_encrypt(sout, sout, text->init_keysched, DES_ENCRYPT);
+    des_ecb_encrypt((des_cblock *)sout,
+		    (des_cblock *)sout,
+		    text->init_keysched,
+		    DES_ENCRYPT);
    
     *serverout=sparams->utils->malloc(9);
     if ((*serverout) == NULL) return SASL_NOMEM;
@@ -555,9 +567,12 @@ static int server_continue_step (void *conn_context,
 
     /* decrypt; verify checksum */
 
-    des_pcbc_encrypt((unsigned char *)in,
-		     (unsigned char *)in,
-		     clientinlen, text->init_keysched, text->session, DES_DECRYPT);
+    des_pcbc_encrypt((des_cblock *)in,
+		     (des_cblock *)in,
+		     clientinlen,
+		     text->init_keysched,
+		     &text->session,
+		     DES_DECRYPT);
 
     testnum=(in[0]*256*256*256)+(in[1]*256*256)+(in[2]*256)+in[3];
 
@@ -676,11 +691,15 @@ static const sasl_server_plug_t plugins[] =
     &mech_free,
     NULL,
     NULL,
+    NULL,
+    NULL,
+    NULL,
     NULL
   }
 };
 
-int sasl_server_plug_init(sasl_utils_t *utils, int maxversion,
+int sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
+			  int maxversion,
 			  int *out_version,
 			  const sasl_server_plug_t **pluglist,
 			  int *plugcount)
@@ -689,7 +708,7 @@ int sasl_server_plug_init(sasl_utils_t *utils, int maxversion,
   if (access(KEYFILE, R_OK)!=0)
     return SASL_FAIL;
 
-  if (maxversion<1)
+  if (maxversion<KERBEROS_VERSION)
     return SASL_BADVERS;
 
   *pluglist=plugins;
@@ -701,7 +720,7 @@ int sasl_server_plug_init(sasl_utils_t *utils, int maxversion,
 }
 
 /* put in sasl_wrongmech */
-static int c_start(void *glob_context, 
+static int c_start(void *glob_context __attribute__((unused)), 
 		 sasl_client_params_t *params,
 		 void **conn)
 {
@@ -797,15 +816,13 @@ static int c_continue_step (void *conn_context,
   {
     unsigned long testnum;
     unsigned long nchal;    
-    char sout[1024];
+    unsigned char sout[1024];
     int lup,len;
     unsigned char in[8];
     char *userid;
     int result;
-    int external;
     krb_principal principal;
     sasl_security_properties_t secprops;
-    char ipstr[4];
 
     params->utils->getprop(params->utils->conn, SASL_USERNAME,
 			   (void **)&userid);
@@ -838,23 +855,21 @@ static int c_continue_step (void *conn_context,
       return SASL_BADAUTH;
     }
     memcpy(text->session, text->credentials.session, 8);
-    des_key_sched(text->session, text->init_keysched);
+    des_key_sched(&text->session, text->init_keysched);
 
-    des_key_sched(text->session, text->enc_keysched); /* make keyschedule for */
-    des_key_sched(text->session, text->dec_keysched); /* encryption and decryption */
+    des_key_sched(&text->session, text->enc_keysched); /* make keyschedule for */
+    des_key_sched(&text->session, text->dec_keysched); /* encryption and decryption */
 
 
     /* verify data 1st 4 octets must be equal to chal+1 */
-    des_ecb_encrypt(in,in,text->init_keysched,DES_DECRYPT);
+    des_ecb_encrypt((des_cblock *)in,
+		    (des_cblock *)in,
+		    text->init_keysched,
+		    DES_DECRYPT);
 
     testnum=(unsigned long) in;
 
-
-
-
     testnum=(in[0]*256*256*256)+(in[1]*256*256)+(in[2]*256)+in[3];
-
-
 
     if (testnum!=text->challenge+1)
     {
@@ -869,16 +884,11 @@ static int c_continue_step (void *conn_context,
 
     /* get requested ssf */
     secprops=params->props;
-    external=params->external_ssf;
-    VL (("external ssf=%i\n",external));
 
-    if (secprops.min_ssf>56+external)
+    if (secprops.min_ssf>56)
       return SASL_TOOWEAK;
 
-    if (secprops.max_ssf<external)
-      return SASL_FAIL;
-
-    if (secprops.min_ssf>secprops.max_ssf)
+    if (secprops.max_ssf<56)
       return SASL_FAIL;
 
     VL (("minssf=%i maxssf=%i\n",secprops.min_ssf,secprops.max_ssf));
@@ -891,23 +901,20 @@ static int c_continue_step (void *conn_context,
       oparams->mech_ssf=56;
       text->ssf=4;
       VL (("Using encryption layer\n"));
-    } else if ((secprops.min_ssf<=1+external) && (secprops.max_ssf>=1+external)) {
+    } else if ((secprops.min_ssf<=1) && (secprops.max_ssf>=1)) {
       /* integrity */
       oparams->encode=&integrity_encode;
       oparams->decode=&integrity_decode;
       oparams->mech_ssf=1;
       text->ssf=2;
       VL (("Using integrity layer\n"));
-    } else if ((secprops.min_ssf<=external) && (secprops.max_ssf>=external)) {
+    } else {
       /* no layer */
       oparams->encode=NULL;
       oparams->decode=NULL;
       oparams->mech_ssf=0;
       text->ssf=1;
       VL (("Using no layer\n"));
-    } else {
-      /* error */
-      return SASL_TOOWEAK;
     }
 
     /* server told me what layers support. make sure trying one it supports */
@@ -927,10 +934,9 @@ static int c_continue_step (void *conn_context,
     sout[6]=0xFF;
     sout[7]=0xFF;
 
-    for (lup=0;lup<strlen(userid);lup++)
-      sout[8+lup]=userid[lup];
+    strcat((char *)sout + 8, userid);
     
-    len=9+strlen(userid)-1;
+    len=8+strlen(userid);
 
     /* append 0 based octets so is multiple of 8 */
     while(len%8)
@@ -940,10 +946,13 @@ static int c_continue_step (void *conn_context,
     }
     sout[len]=0;
     
-    des_key_sched(text->session, text->init_keysched);
-    des_pcbc_encrypt((unsigned char *)sout,
-		     (unsigned char *)sout,
-		     len, text->init_keysched, text->session, DES_ENCRYPT);
+    des_key_sched(&text->session, text->init_keysched);
+    des_pcbc_encrypt((des_cblock *)sout,
+		     (des_cblock *)sout,
+		     len,
+		     text->init_keysched,
+		     &text->session,
+		     DES_ENCRYPT);
 
     *clientout = params->utils->malloc(len);
     memcpy((char *) *clientout, sout, len);
@@ -996,11 +1005,13 @@ static const sasl_client_plug_t client_plugins[] =
   }
 };
 
-int sasl_client_plug_init(sasl_utils_t *utils, int maxversion,
-			  int *out_version, const sasl_client_plug_t **pluglist,
+int sasl_client_plug_init(sasl_utils_t *utils __attribute__((unused)),
+			  int maxversion,
+			  int *out_version,
+			  const sasl_client_plug_t **pluglist,
 			  int *plugcount)
 {
-  if (maxversion<1)
+  if (maxversion<KERBEROS_VERSION)
     return SASL_BADVERS;
 
   *pluglist=client_plugins;

@@ -43,7 +43,7 @@ SOFTWARE.
 
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
 
-#define CRAM_MD5_VERSION 2;
+#define CRAM_MD5_VERSION (3)
 
 #ifdef L_DEFAULT_GUARD
 # undef L_DEFAULT_GUARD
@@ -411,6 +411,9 @@ static const sasl_server_plug_t plugins[] =
     &mech_free,
     &setpass,
     NULL,
+    NULL,
+    NULL,
+    NULL,
     NULL
   }
 };
@@ -421,7 +424,7 @@ int sasl_server_plug_init(sasl_utils_t *utils __attribute__((unused)),
 			  const sasl_server_plug_t **pluglist,
 			  int *plugcount)
 {
-  if (maxversion<1)
+  if (maxversion<CRAM_MD5_VERSION)
     return SASL_BADVERS;
 
   *pluglist=plugins;
@@ -586,7 +589,7 @@ int sasl_client_plug_init(sasl_utils_t *utils __attribute__((unused)),
 			  const sasl_client_plug_t **pluglist,
 			  int *plugcount)
 {
-  if (maxversion<1)
+  if (maxversion<CRAM_MD5_VERSION)
     return SASL_BADVERS;
 
   *pluglist=client_plugins;

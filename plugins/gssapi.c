@@ -48,7 +48,7 @@ SOFTWARE.
  * Heimdal can be obtained from http://www.pdc.kth.se/heimdal
  */
 
-#define GSSAPI_VERSION 2
+#define GSSAPI_VERSION (3)
 
 typedef struct context {
   int state;
@@ -424,6 +424,9 @@ static const sasl_server_plug_t plugins[] =
     &sasl_gss_free,
     NULL,
     NULL,
+    NULL,
+    NULL,
+    NULL,
     NULL
   }
 };
@@ -435,7 +438,7 @@ sasl_server_plug_init(sasl_utils_t *utils, int maxversion,
 		      const sasl_server_plug_t **pluglist,
 		      int *plugcount)
 {
-  if (maxversion<1)
+  if (maxversion<GSSAPI_VERSION)
     return SASL_BADVERS;
 
   *pluglist=plugins;
@@ -713,7 +716,7 @@ sasl_client_plug_init(sasl_utils_t *utils, int maxversion,
 		      int *out_version, const sasl_client_plug_t **pluglist,
 		      int *plugcount)
 {
-  if (maxversion<1)
+  if (maxversion<GSSAPI_VERSION)
     return SASL_BADVERS;
   
   *pluglist=client_plugins;

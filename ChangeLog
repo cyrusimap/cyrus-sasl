@@ -1,3 +1,7 @@
+2003-00-02  Ken Murchison <ken@oceana.com>
+	* plugins/ntlm.c, doc/options.html: added support for NTLMv2 responses;
+	  fixed potential buffer overflow
+
 2003-09-02  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/common.c, lib/server.c, lib/NTMakefile, include/md5.h:
 	  more windows compatibility

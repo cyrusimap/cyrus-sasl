@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.11 2003/08/26 20:57:58 ken3 Exp $
+ * $Id: ntlm.c,v 1.12 2003/09/02 16:04:52 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -60,15 +60,17 @@
 
 #include <openssl/des.h>
 #include <openssl/md4.h>
+#include <openssl/hmac.h>
 
 #include <sasl.h>
+#define MD5_H  /* suppress internal MD5 */
 #include <saslplug.h>
 
 #include "plugin_common.h"
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.11 2003/08/26 20:57:58 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.12 2003/09/02 16:04:52 ken3 Exp $";
 
 #define NTLM_SIGNATURE		"NTLMSSP"
 
@@ -286,7 +288,11 @@ static void E(unsigned char *out, unsigned char *K, unsigned Klen,
     }
 }
 
-static unsigned char *P16_lm(unsigned char *P16, const char *passwd)
+static unsigned char *P16_lm(unsigned char *P16, const char *passwd,
+			     const sasl_utils_t *utils __attribute__((unused)),
+			     char **buf __attribute__((unused)),
+			     unsigned *buflen __attribute__((unused)),
+			     int *result)
 {
     char P14[14];
     unsigned char S8[] = { 0x4b, 0x47, 0x53, 0x21, 0x40, 0x23, 0x24, 0x25 };
@@ -295,22 +301,34 @@ static unsigned char *P16_lm(unsigned char *P16, const char *passwd)
     ucase(P14, sizeof(P14));
 
     E(P16, P14, sizeof(P14), S8, sizeof(S8));
+    *result = SASL_OK;
     return P16;
 }
 
-static unsigned char *P16_nt(unsigned char *P16, const char *passwd)
+static unsigned char *P16_nt(unsigned char *P16, const char *passwd,
+			     const sasl_utils_t *utils,
+			     char **buf, unsigned *buflen, int *result)
 {
-    char U_PN[1024];
-
-    to_unicode(U_PN, passwd, strlen(passwd));
-    MD4(U_PN, 2 * strlen(passwd), P16);
+    if (_plug_buf_alloc(utils, buf, buflen, 2*strlen(passwd)) != SASL_OK) {
+	SETERROR(utils, "cannot allocate P16_nt unicode buffer");
+	*result = SASL_NOMEM;
+    }
+    else {
+	to_unicode(*buf, passwd, strlen(passwd));
+	MD4(*buf, 2 * strlen(passwd), P16);
+	*result = SASL_OK;
+    }
     return P16;
 }
 
 static unsigned char *P21(unsigned char *P21, const char *passwd,
-			  unsigned char* (*P16)(unsigned char *, const char *))
+			  unsigned char * (*P16)(unsigned char *, const char *,
+						 const sasl_utils_t *,
+						 char **, unsigned *, int *),
+			  const sasl_utils_t *utils,
+			  char **buf, unsigned *buflen, int *result)
 {
-    memset(P16(P21, passwd) + 16, 0, 5);
+    memset(P16(P21, passwd, utils, buf, buflen, result) + 16, 0, 5);
     return P21;
 }
 
@@ -320,6 +338,53 @@ static unsigned char *P24(unsigned char *P24, unsigned char *P21,
 {
     E(P24, P21, NTLM_HASH_LENGTH, C8, NTLM_NONCE_LENGTH);
     return P24;
+}
+
+static unsigned char *V2(unsigned char *V2, const char *passwd,
+			 const char *authid, const char *target,
+			 const unsigned char *challenge,
+			 const unsigned char *blob, unsigned bloblen,
+			 const sasl_utils_t *utils,
+			 char **buf, unsigned *buflen, int *result)
+{
+    HMAC_CTX ctx;
+    unsigned char hash[EVP_MAX_MD_SIZE];
+    char *upper;
+    int len;
+
+    /* Allocate enough space for the unicode target */
+    len = strlen(authid) + strlen(target);
+    if (_plug_buf_alloc(utils, buf, buflen, 2 * len + 1) != SASL_OK) {
+	SETERROR(utils, "cannot allocate NTLMv2 hash");
+	*result = SASL_NOMEM;
+    }
+    else {
+	/* NTLMv2hash = HMAC-MD5(NTLMhash, unicode(ucase(authid + domain))) */
+	P16_nt(hash, passwd, utils, buf, buflen, result);
+
+	/* Use the tail end of the buffer for ucase() conversion */
+	upper = *buf + len;
+	strcpy(upper, authid);
+	strcat(upper, target);
+	ucase(upper, len);
+	to_unicode(*buf, upper, len);
+
+	HMAC(EVP_md5(), hash, MD4_DIGEST_LENGTH,
+	     *buf, 2 * len, hash, &len);
+
+	/* V2 = HMAC-MD5(NTLMv2hash, challenge + blob) + blob */
+	HMAC_Init(&ctx, hash, len, EVP_md5());
+	HMAC_Update(&ctx, challenge, NTLM_NONCE_LENGTH);
+	HMAC_Update(&ctx, blob, bloblen);
+	HMAC_Final(&ctx, V2, &len);
+	HMAC_cleanup(&ctx);
+
+	/* the blob is concatenated outside of this function */
+
+	*result = SASL_OK;
+    }
+
+    return V2;
 }
 
 /*****************************  Server Section  *****************************/
@@ -909,7 +974,8 @@ static int smb_negotiate_protocol(const sasl_utils_t *utils,
 
 static int smb_session_setup(const sasl_utils_t *utils, server_context_t *text,
 			     const char *authid, char *domain,
-			     unsigned char *lm_resp, unsigned char *nt_resp)
+			     unsigned char *lm_resp, unsigned lm_resp_len,
+			     unsigned char *nt_resp, unsigned nt_resp_len)
 {
     SMB_Header hdr;
     SMB_SessionSetup setup;
@@ -940,8 +1006,8 @@ static int smb_session_setup(const sasl_utils_t *utils, server_context_t *text,
     memset(&setup, 0, sizeof(setup));
     setup.andx_command = SMB_COM_NONE;
     setup.max_buffer_size = 0xFFFF;
-    if (lm_resp) setup.case_insensitive_passwd_len = NTLM_RESP_LENGTH;
-    if (nt_resp) setup.case_sensitive_passwd_len = NTLM_RESP_LENGTH;
+    if (lm_resp) setup.case_insensitive_passwd_len = lm_resp_len;
+    if (nt_resp) setup.case_sensitive_passwd_len = nt_resp_len;
 #if 0
     if (text->flags & NTLM_USE_UNICODE)
 	setup.capabilities = SMB_CAP_UNICODE;
@@ -1225,7 +1291,7 @@ static int ntlm_server_mech_step2(server_context_t *text,
 				  sasl_out_params_t *oparams)
 {
     ntlm_response_t *response = (ntlm_response_t *) clientin;
-    unsigned char *lm_resp_c = NULL, *nt_resp_c = NULL;
+    unsigned char *lm_resp = NULL, *nt_resp = NULL;
     char *domain = NULL, *authid = NULL;
     unsigned lm_resp_len, nt_resp_len, domain_len, authid_len;
     int result;
@@ -1236,12 +1302,12 @@ static int ntlm_server_mech_step2(server_context_t *text,
     }
 
     result = unload_buffer(sparams->utils, &response->lm_resp,
-			   (u_char **) &lm_resp_c, &lm_resp_len, 0,
+			   (u_char **) &lm_resp, &lm_resp_len, 0,
 			   (u_char *) response, clientinlen);
     if (result != SASL_OK) goto cleanup;
 
     result = unload_buffer(sparams->utils, &response->nt_resp,
-			   (u_char **) &nt_resp_c, &nt_resp_len, 0,
+			   (u_char **) &nt_resp, &nt_resp_len, 0,
 			   (u_char *) response, clientinlen);
     if (result != SASL_OK) goto cleanup;
 
@@ -1257,10 +1323,15 @@ static int ntlm_server_mech_step2(server_context_t *text,
 			   (u_char *) response, clientinlen);
     if (result != SASL_OK) goto cleanup;
 
+    sparams->utils->log(NULL, SASL_LOG_DEBUG,
+			"client user: %s", authid);
+    sparams->utils->log(NULL, SASL_LOG_DEBUG,
+			"client domain: %s", domain);
+
     /* require at least one response and an authid */
-    if ((!lm_resp_c && !nt_resp_c) ||
-	(lm_resp_c && lm_resp_len < NTLM_RESP_LENGTH) ||
-	(nt_resp_c && nt_resp_len < NTLM_RESP_LENGTH) ||
+    if ((!lm_resp && !nt_resp) ||
+	(lm_resp && lm_resp_len < NTLM_RESP_LENGTH) ||
+	(nt_resp && nt_resp_len < NTLM_RESP_LENGTH) ||
 	!authid) {
 	SETERROR(sparams->utils, "client issued incorrect/nonexistent responses");
 	result = SASL_BADPROT;
@@ -1276,7 +1347,7 @@ static int ntlm_server_mech_step2(server_context_t *text,
 				       NULL };
 	struct propval auxprop_values[2];
 	unsigned char hash[NTLM_HASH_LENGTH];
-	unsigned char lm_resp_s[NTLM_RESP_LENGTH], nt_resp_s[NTLM_RESP_LENGTH];
+	unsigned char resp[NTLM_RESP_LENGTH];
 
 	/* fetch user's password */
 	result = sparams->utils->prop_request(sparams->propctx, password_request);
@@ -1314,24 +1385,67 @@ static int ntlm_server_mech_step2(server_context_t *text,
 	password->len = pass_len;
 	strncpy(password->data, auxprop_values[0].values[0], pass_len + 1);
 
-	/* calculate our own responses */
-	P24(lm_resp_s, P21(hash, password->data, P16_lm), text->nonce);
-	P24(nt_resp_s, P21(hash, password->data, P16_nt), text->nonce);
+	/* calculate our own response(s) and compare with client's */
+	result = SASL_OK;
+	if (nt_resp && (nt_resp_len > NTLM_RESP_LENGTH)) {
+	    /* Try NTv2 response */
+	    sparams->utils->log(NULL, SASL_LOG_DEBUG,
+				"calculating NTv2 response");
+	    V2(resp, password->data, authid, domain, text->nonce,
+	       lm_resp + MD5_DIGEST_LENGTH, nt_resp_len - MD5_DIGEST_LENGTH,
+	       sparams->utils, &text->out_buf, &text->out_buf_len,
+	       &result);
+
+	    /* No need to compare the blob */
+	    if (memcmp(nt_resp, resp, MD5_DIGEST_LENGTH)) {
+		SETERROR(sparams->utils, "incorrect NTLMv2 response");
+		result = SASL_BADAUTH;
+	    }
+	}
+	else if (nt_resp) {
+	    /* Try NT response */
+	    sparams->utils->log(NULL, SASL_LOG_DEBUG,
+				"calculating NT response");
+	    P24(resp, P21(hash, password->data, P16_nt, sparams->utils,
+			  &text->out_buf, &text->out_buf_len, &result),
+		text->nonce);
+	    if (memcmp(nt_resp, resp, NTLM_RESP_LENGTH)) {
+		SETERROR(sparams->utils, "incorrect NTLM response");
+		result = SASL_BADAUTH;
+	    }
+	}
+	else if (lm_resp) {
+	    /* Try LMv2 response */
+	    sparams->utils->log(NULL, SASL_LOG_DEBUG,
+				"calculating LMv2 response");
+	    V2(resp, password->data, authid, domain, text->nonce,
+	       lm_resp + MD5_DIGEST_LENGTH, lm_resp_len - MD5_DIGEST_LENGTH,
+	       sparams->utils, &text->out_buf, &text->out_buf_len,
+	       &result);
+		
+	    /* No need to compare the blob */
+	    if (memcmp(lm_resp, resp, MD5_DIGEST_LENGTH)) {
+		/* Try LM response */
+		sparams->utils->log(NULL, SASL_LOG_DEBUG,
+				    "calculating LM response");
+		P24(resp, P21(hash, password->data, P16_lm, sparams->utils,
+			      &text->out_buf, &text->out_buf_len, &result),
+		    text->nonce);
+		if (memcmp(lm_resp, resp, NTLM_RESP_LENGTH)) {
+		    SETERROR(sparams->utils, "incorrect LMv1/v2 response");
+		    result = SASL_BADAUTH;
+		}
+	    }
+	}
 
 	_plug_free_secret(sparams->utils, &password);
 
-	/* compare client's responses with ours */
-	if ((lm_resp_c && memcmp(lm_resp_c, lm_resp_s, NTLM_RESP_LENGTH)) ||
-	    (nt_resp_c && memcmp(nt_resp_c, nt_resp_s, NTLM_RESP_LENGTH))) {
-	    SETERROR(sparams->utils, "incorrect NTLM responses");
-	    result = SASL_BADAUTH;
-	    goto cleanup;
-	}
+	if (result != SASL_OK) goto cleanup;
     }
     else {
 	/* proxy the response */
-	result = smb_session_setup(sparams->utils, text, authid,
-				   domain, lm_resp_c, nt_resp_c);
+	result = smb_session_setup(sparams->utils, text, authid, domain,
+				   lm_resp, lm_resp_len, nt_resp, nt_resp_len);
 	if (result != SASL_OK) goto cleanup;
 
 	result = sparams->canon_user(sparams->utils->conn, authid, authid_len,
@@ -1352,8 +1466,8 @@ static int ntlm_server_mech_step2(server_context_t *text,
     result = SASL_OK;
 
   cleanup:
-    if (lm_resp_c) sparams->utils->free(lm_resp_c);
-    if (nt_resp_c) sparams->utils->free(nt_resp_c);
+    if (lm_resp) sparams->utils->free(lm_resp);
+    if (nt_resp) sparams->utils->free(nt_resp);
     if (domain) sparams->utils->free(domain);
     if (authid) sparams->utils->free(authid);
 
@@ -1614,6 +1728,7 @@ static int ntlm_client_mech_step2(client_context_t *text,
     unsigned char hash[NTLM_HASH_LENGTH];
     unsigned char resp[NTLM_RESP_LENGTH], *lm_resp = NULL, *nt_resp = NULL;
     int result;
+    const char *sendv2;
 
     if (!challenge || serverinlen < sizeof(ntlm_challenge_t)) {
 	SETERROR(params->utils, "server didn't issue valid NTLM challenge");
@@ -1679,18 +1794,44 @@ static int ntlm_client_mech_step2(client_context_t *text,
     params->utils->log(NULL, SASL_LOG_DEBUG,
 		       "server domain: %s", domain);
 
-    if (flags & NTLM_AUTH_NTLM) {
+    /* should we send a NTLMv2 response? */
+    params->utils->getopt(params->utils->getopt_context,
+			  "NTLM", "ntlm_v2", &sendv2, NULL);
+    if (sendv2 &&
+	(*sendv2 == '1' || *sendv2 == 'y' ||
+	 (*sendv2 == 'o' && *sendv2 == 'n') || *sendv2 == 't')) {
+
+	/* put the cnonce in place after the LMv2 HMAC */
+	char *cnonce = resp + MD5_DIGEST_LENGTH;
+
+	params->utils->log(NULL, SASL_LOG_DEBUG,
+			   "calculating LMv2 response");
+
+	params->utils->rand(params->utils->rpool, cnonce, NTLM_NONCE_LENGTH);
+
+	V2(resp, password->data, oparams->authid, domain, challenge->nonce,
+	   cnonce, NTLM_NONCE_LENGTH, params->utils, &text->out_buf,
+	   &text->out_buf_len, &result);
+
+	lm_resp = resp;
+    }
+    else if (flags & NTLM_AUTH_NTLM) {
 	params->utils->log(NULL, SASL_LOG_DEBUG,
 			   "calculating NT response");
-	P24(resp, P21(hash, password->data, P16_nt), challenge->nonce);
+	P24(resp, P21(hash, password->data, P16_nt, params->utils,
+		      &text->out_buf, &text->out_buf_len, &result),
+	    challenge->nonce);
 	nt_resp = resp;
     }
     else {
 	params->utils->log(NULL, SASL_LOG_DEBUG,
 			   "calculating LM response");
-	P24(resp, P21(hash, password->data, P16_lm), challenge->nonce);
+	P24(resp, P21(hash, password->data, P16_lm, params->utils,
+		      &text->out_buf, &text->out_buf_len, &result),
+	    challenge->nonce);
 	lm_resp = resp;
     }
+    if (result != SASL_OK) goto cleanup;
 
     /* we don't care about wkstn or session key */
     result = create_response(params->utils, text, lm_resp, nt_resp,

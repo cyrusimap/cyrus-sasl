@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Options for Cyrus SASL</title>
-<!-- $Id: options.html,v 1.19 2003/08/25 00:43:44 ken3 Exp $ -->
+<!-- $Id: options.html,v 1.20 2003/09/02 16:04:52 ken3 Exp $ -->
 </HEAD>
 <BODY>
 <h1>Options for Cyrus SASL</h1>
@@ -52,10 +52,15 @@ otp').  Used to restrict the mechanisms to a subset of the installed
 plugins.</TD><TD>(use all available plugins)</TD>
 </TR>
 <TR>
-<TD>ntlm_server</TD><TD>NTLM</TD>
+<TD>ntlm_server</TD><TD>NTLM (server)</TD>
 <TD>Name of server (WinNT, Win2K, Samba, etc) to which authentication
 will be proxied.</TD>
 <TD>(null) - perform authentication internally</TD>
+</TR>
+<TR>
+<TD>ntlm_v2</TD><TD>NTLM (client)</TD>
+<TD>Send NTLMv2 responses to the server.</TD>
+<TD>no (send NTLMv1)</TD>
 </TR>
 <TR>
 <TD>opiekeys</TD><TD>OTP (with OPIE)</TD>

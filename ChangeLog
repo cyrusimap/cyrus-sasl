@@ -8,6 +8,8 @@
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
 	* plugins/NTMakefile: Add ability to build NTLM plugin under
 	  Win32 (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+	* utils/NTMakefile: Add ability to build testsuite
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
 
 2003-08-29  Ken Murchison <ken@oceana.com>
 	* doc/draft-murchison-sasl-login-00.txt: added

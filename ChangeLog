@@ -1,3 +1,9 @@
+2004-02-23  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/NTMakefile: Enable DO_SRP_SETPASS on windows
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+	* doc/windows.html: Updates
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+
 2004-02-20  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/server.c, include/saslplug.h: Allow "temporary failure"
 	  return values from mech_avail

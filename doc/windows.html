@@ -14,6 +14,8 @@ and two applications (saslpasswd2.exe and sasldblistusers2.exe) can be built.
 
 <ul>
 <li>Visual Studio. We have tested Visual Studio 6 and Visual Studio 7 (.NET).
+By default we are using Visual Studio 7. If you want to use Visual Studio 6,
+you need to remove /Wp64 compiler flag from win32/common.mak
 
 <li>The latest Platform SDK. We've tested November 2001.
 
@@ -121,8 +123,11 @@ You can either specify them on the command line or edit the defaults in win32\co
 I.e. "<tt>nmake /f NTMakefile NTLM=1</tt>"
 
 <p>Specify "SRP=1" parameter if you want to enable SRP plugin.
+You can also specify "DO_SRP_SETPASS=1" if you want to enable SRP setpass functionality.
 
-<p>Both NTLM and SRP plugins depend on OpenSSL. You can either specify
+<p>Specify "OTP=1" parameter if you want to enable OTP plugin.
+
+<p>NTLM, SRP and OTP plugins depend on OpenSSL. You can either specify
 <tt>OPENSSL_INCLUDE</tt> and <tt>OPENSSL_LIBPATH</tt> parameters on the command
 line or edit the defaults in win32\common.mak
 
@@ -140,6 +145,7 @@ Currently only the following plugins build:
 <li>NTLM,
 <li>GSSAPI (tested using CyberSafe),
 <li>SRP (not tested)
+<li>OTP (not tested)
 </ul>
 
 The following executables were built and tested (to some extend):

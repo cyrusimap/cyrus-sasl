@@ -1,4 +1,7 @@
 2003-07-01  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/kerberos4.c: Fix some maxoutbuf handling issues
+
+2003-07-01  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/mysql.c: Check return value of mysql_init
 	  (Ivan Kelly <ivan@ivankelly.net>)
 

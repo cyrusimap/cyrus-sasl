@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.122 2003/04/08 17:30:54 rjs3 Exp $
+ * $Id: server.c,v 1.123 2003/04/16 19:36:01 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -318,9 +318,19 @@ int sasl_server_add_plugin(const char *plugname,
     return SASL_OK;
 }
 
-static void server_done(void) {
+static int server_done(void) {
   mechanism_t *m;
   mechanism_t *prevm;
+
+  if(!_sasl_server_active)
+      return SASL_NOTINIT;
+  else
+      _sasl_server_active--;
+  
+  if(_sasl_server_active) {
+      /* Don't de-init yet! Our refcount is nonzero. */
+      return SASL_CONTINUE;
+  }
 
   if (mechlist != NULL)
   {
@@ -351,26 +361,25 @@ static void server_done(void) {
   global_callbacks.callbacks = NULL;
   global_callbacks.appname = NULL;
 
-  /* no longer active. fail on listmech's etc. */
-  _sasl_server_active = 0;
+  return SASL_OK;
 }
 
-static int
-server_idle(sasl_conn_t *conn)
+static int server_idle(sasl_conn_t *conn)
 {
-  mechanism_t *m;
-  if (! mechlist)
-    return 0;
+    mechanism_t *m;
+    if (! mechlist)
+	return 0;
+    
+    for (m = mechlist->mech_list;
+	 m!=NULL;
+	 m = m->next)
+	if (m->plug->idle
+	    &&  m->plug->idle(m->plug->glob_context,
+			      conn,
+			      conn ? ((sasl_server_conn_t *)conn)->sparams : NULL))
+	    return 1;
 
-  for (m = mechlist->mech_list;
-       m!=NULL;
-       m = m->next)
-    if (m->plug->idle
-	&&  m->plug->idle(m->plug->glob_context,
-			  conn,
-			  conn ? ((sasl_server_conn_t *)conn)->sparams : NULL))
-      return 1;
-  return 0;
+    return 0;
 }
 
 static int load_config(const sasl_callback_t *verifyfile_cb)
@@ -588,34 +597,51 @@ int sasl_server_init(const sasl_callback_t *callbacks,
 	{ NULL, NULL }
     };
 
-    /* we require the appname to be non-null */
-    if (appname==NULL) return SASL_BADPARAM;
+    /* we require the appname to be non-null and short enough to be a path */
+    if (!appname || strlen(appname) >= PATH_MAX)
+	return SASL_BADPARAM;
 
+    if (_sasl_server_active) {
+	/* We're already active, just increase our refcount */
+	/* xxx do something with the callback structure? */
+	_sasl_server_active++;
+	return SASL_OK;
+    }
+    
     ret = _sasl_common_init(&global_callbacks);
     if (ret != SASL_OK)
 	return ret;
  
-    _sasl_server_cleanup_hook = &server_done;
-
     /* verify that the callbacks look ok */
     ret = verify_server_callbacks(callbacks);
-    if (ret != SASL_OK) return ret;
+    if (ret != SASL_OK)
+	return ret;
 
     global_callbacks.callbacks = callbacks;
     global_callbacks.appname = appname;
 
+    /* If we fail now, we have to call server_done */
+    _sasl_server_active = 1;
+
     /* allocate mechlist and set it to empty */
     mechlist = sasl_ALLOC(sizeof(mech_list_t));
-    if (mechlist == NULL) return SASL_NOMEM;
+    if (mechlist == NULL) {
+	server_done();
+	return SASL_NOMEM;
+    }
 
     ret = init_mechlist();
-    if (ret != SASL_OK) return ret;
+    if (ret != SASL_OK) {
+	server_done();
+	return ret;
+    }
 
     vf = _sasl_find_verifyfile_callback(callbacks);
 
     /* load config file if applicable */
     ret = load_config(vf);
     if ((ret != SASL_OK) && (ret != SASL_CONTINUE)) {
+	server_done();
 	return ret;
     }
 
@@ -657,12 +683,12 @@ int sasl_server_init(const sasl_callback_t *callbacks,
     }
 
     if (ret == SASL_OK) {
-	/* _sasl_server_active shows if we're active or not. 
-	   server_done() sets it back to 0 */
-	_sasl_server_active = 1;
+	_sasl_server_cleanup_hook = &server_done;
 	_sasl_server_idle_hook = &server_idle;
 
 	ret = _sasl_build_mechlist();
+    } else {
+	server_done();
     }
 
     return ret;
@@ -1415,8 +1441,7 @@ int _sasl_server_listmech(sasl_conn_t *conn,
 
   *result = conn->mechlist_buf;
 
-  return SASL_OK;
-  
+  return SASL_OK;  
 }
 
 sasl_string_list_t *_sasl_server_mechs(void) 

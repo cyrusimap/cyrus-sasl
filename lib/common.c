@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.91 2003/03/19 18:25:27 rjs3 Exp $
+ * $Id: common.c,v 1.92 2003/04/16 19:36:00 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,8 +82,8 @@ static char **global_mech_list = NULL;
 
 void *free_mutex = NULL;
 
-void (*_sasl_client_cleanup_hook)(void) = NULL;
-void (*_sasl_server_cleanup_hook)(void) = NULL;
+int (*_sasl_client_cleanup_hook)(void) = NULL;
+int (*_sasl_server_cleanup_hook)(void) = NULL;
 int (*_sasl_client_idle_hook)(sasl_conn_t *conn) = NULL;
 int (*_sasl_server_idle_hook)(sasl_conn_t *conn) = NULL;
 
@@ -313,29 +313,29 @@ sasl_set_alloc(sasl_malloc_t *m,
 
 void sasl_done(void)
 {
-  if (_sasl_server_cleanup_hook)
-    _sasl_server_cleanup_hook();
-
-  if (_sasl_client_cleanup_hook)
-    _sasl_client_cleanup_hook();
-  
-  _sasl_canonuser_free();
-  _sasl_done_with_plugins();
-  
-  sasl_MUTEX_FREE(free_mutex);
-  free_mutex = NULL;
-
-  _sasl_free_utils(&sasl_global_utils);
-
-  if(global_mech_list) sasl_FREE(global_mech_list);
-  global_mech_list = NULL;
-
-  /* in case of another init/done */
-  _sasl_server_cleanup_hook = NULL;
-  _sasl_client_cleanup_hook = NULL;
-
-  _sasl_client_idle_hook = NULL;
-  _sasl_server_idle_hook = NULL;
+    if (_sasl_server_cleanup_hook && _sasl_server_cleanup_hook() == SASL_OK) {
+	_sasl_server_idle_hook = NULL;
+	_sasl_server_cleanup_hook = NULL;
+    }
+    
+    if (_sasl_client_cleanup_hook && _sasl_client_cleanup_hook() == SASL_OK) {
+	_sasl_client_idle_hook = NULL;	
+	_sasl_client_cleanup_hook = NULL;
+    }
+    
+    if(_sasl_server_cleanup_hook || _sasl_client_cleanup_hook)
+	return;
+    
+    _sasl_canonuser_free();
+    _sasl_done_with_plugins();
+    
+    sasl_MUTEX_FREE(free_mutex);
+    free_mutex = NULL;
+    
+    _sasl_free_utils(&sasl_global_utils);
+    
+    if(global_mech_list) sasl_FREE(global_mech_list);
+    global_mech_list = NULL;
 }
 
 /* fills in the base sasl_conn_t info */

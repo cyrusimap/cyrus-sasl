@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.47 2003/03/06 17:05:27 rjs3 Exp $
+ * $Id: saslint.h,v 1.48 2003/04/16 19:36:01 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -292,10 +292,14 @@ struct sasl_verify_password_s {
  */
 LIBSASL_API const sasl_utils_t *sasl_global_utils;
 
-extern void (*_sasl_client_cleanup_hook)(void);
-extern void (*_sasl_server_cleanup_hook)(void);
 extern int (*_sasl_client_idle_hook)(sasl_conn_t *conn);
 extern int (*_sasl_server_idle_hook)(sasl_conn_t *conn);
+
+/* These return SASL_OK if we've actually finished cleanup, 
+ * SASL_NOTINIT if that part of the library isn't inited, and
+ * SASL_CONTINUE if we need to call them again */
+extern int (*_sasl_client_cleanup_hook)(void);
+extern int (*_sasl_server_cleanup_hook)(void);
 
 extern sasl_allocation_utils_t _sasl_allocation_utils;
 extern sasl_mutex_utils_t _sasl_mutex_utils;

@@ -170,7 +170,9 @@ typedef struct sasl_out_params {
 
     /* security layer information */
     unsigned maxoutbuf;
-    sasl_ssf_t mech_ssf;
+    sasl_ssf_t mech_ssf;   /* Should be set non-zero if negotiation of a
+	 		    * security layer was *attempted*, even if
+			    * the negotiation failed */
     void *encode_context;
     int (*encode)(void *context, const struct iovec *invec, unsigned numiov,
 		  const char **output, unsigned *outputlen);

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.132 2003/11/03 18:25:22 ken3 Exp $
+ * $Id: server.c,v 1.133 2003/11/14 16:49:07 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1660,6 +1660,11 @@ int sasl_checkpass(sasl_conn_t *conn,
 
     /* Check the password */
     result = _sasl_checkpass(conn, user, userlen, pass, passlen);
+
+    /* Do authorization */
+    if(result == SASL_OK) {
+      result = do_authorization((sasl_server_conn_t *)conn);
+    }
 
     RETURN(conn,result);
 }

@@ -1,0 +1,102 @@
+.\" Hey Emacs! This file is -*- nroff -*- source.
+.\"
+.\" This manpage is Copyright (C) 1999 Tim Martin
+.\"
+.\" Permission is granted to make and distribute verbatim copies of this
+.\" manual provided the copyright notice and this permission notice are
+.\" preserved on all copies.
+.\"
+.\" Permission is granted to copy and distribute modified versions of this
+.\" manual under the conditions for verbatim copying, provided that the
+.\" entire resulting derived work is distributed under the terms of a
+.\" permission notice identical to this one
+.\" 
+.\" Formatted or processed versions of this manual, if unaccompanied by
+.\" the source, must acknowledge the copyright and authors of this work.
+.\"
+.\"
+.TH sasl_client_step "26 March 2000" SASL "SASL man pages"
+.SH NAME
+sasl_client_step \- Perform a step in the authentication negotiation
+
+
+.SH SYNOPSIS
+.nf
+.B #include <sasl.h>
+.sp
+.BI "int sasl_client_step(sasl_conn_t " *conn ", "
+.BI "		     const char " *serverin ", "
+.BI "		     unsigned " serverinlen ", "
+.BI "		     sasl_interact_t ** " prompt_need ", "
+.BI "		     char ** " clientout ", "
+.BI "		     unsigned * " clientoutlen ");"
+
+.fi
+.SH DESCRIPTION
+
+.B sasl_client_step()
+performs a step in the authentication negotiation. It returns SASL_OK
+if the whole negotiation is sucessful and SASL_CONTINUE if this step
+is ok but at least one more step is needed. A client should not assume
+an authentication negotiation is sucessful just because the server
+signaled success via protocol (i.e. if the server said ". OK
+Authentication succeeded" in IMAP sasl_client_step should still be
+called one more time with a serverinlen of zero.
+
+If SASL_INTERACT is returned the library needs some values to be
+filled in before it can proceed. The prompt_need structure will be
+filled in with requests. The application should fulfill these requests
+and call sasl_client_start again with identical parameters (the
+prompt_need parameter will be the same pointer as before but filled in
+by the application).
+
+.I conn
+is the SASL connection context
+.I serverin
+is the data given by the server (decoded if the protocol encodes requests sent over the wire)
+.I serverinlen
+is the length of serverin
+.I clientout
+and
+.I clientoutlen
+is created. It is the initial client response to send to the
+server. This is allocated by the library and it is the job of the
+client to send it over the network to the server and free it when it
+is no longer needed. Any protocal specific encoding (such as base64
+encoding) necessary needs to be done by the client.
+.PP
+
+.SH "RETURN VALUE"
+
+sasl_client_step returns an integer which corresponds to one of the
+following codes. SASL_CONTINUE indicates sucess and that there are
+more steps needed in the authentication. SASL_OK indicates that the
+authentication is complete. All other return codes indicate errors and
+should either be handled or the authentication session should be quit.
+
+.SH ERRORS
+.TP 0.8i
+.B SASL_OK
+Success. Authentication complete
+.TP 0.8i
+.B SASL_CONTINUE
+Success. keep going.
+.TP 0.8i
+.B SASL_INTERACT
+user interaction needed to fill in prompt_need list
+.TP 0.8i
+.B SASL_BADVERS
+Mechanism version mismatch
+.TP 0.8i
+.B SASL_BADPARAM
+error in config file
+.TP 0.8i
+.B SASL_NOMEM
+not enough memory to complete operation
+
+.SH "CONFORMING TO"
+RFC 2222
+.SH "SEE ALSO"
+.BR other sasl stuff
+.BR 
+.BR 

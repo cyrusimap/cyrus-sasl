@@ -1,0 +1,51 @@
+.\" Hey Emacs! This file is -*- nroff -*- source.
+.\"
+.\" This manpage is Copyright (C) 1999 Tim Martin
+.\"
+.\" Permission is granted to make and distribute verbatim copies of this
+.\" manual provided the copyright notice and this permission notice are
+.\" preserved on all copies.
+.\"
+.\" Permission is granted to copy and distribute modified versions of this
+.\" manual under the conditions for verbatim copying, provided that the
+.\" entire resulting derived work is distributed under the terms of a
+.\" permission notice identical to this one
+.\" 
+.\" Formatted or processed versions of this manual, if unaccompanied by
+.\" the source, must acknowledge the copyright and authors of this work.
+.\"
+.\"
+.TH sasl_errstring "26 March 2000" SASL "SASL man pages"
+.SH NAME
+sasl_errstring \- Translate a SASL return code to a human-readable form
+
+
+.SH SYNOPSIS
+.nf
+.B #include <sasl.h>
+
+.sp
+.BI "const char * sasl_errsring(int " saslerr ", "
+.BI "			        const char * " langlist ", "
+.BI "			        const char ** " outlang ");"
+
+.fi
+.SH DESCRIPTION
+
+.B sasl_usererr
+is called to convert a SASL return code (an integer) into a human
+readable string. At this time the only language available is american
+english written by programmers (aka gobldygoop). Note that a server should call sasl_usererr on a return code first if the string is going to be sent to the client.
+
+.PP
+
+.SH "RETURN VALUE"
+
+Returns the string.
+
+.SH "CONFORMING TO"
+RFC 2222
+.SH "SEE ALSO"
+.BR other sasl stuff
+.BR 
+.BR 

@@ -1,0 +1,60 @@
+.\" Hey Emacs! This file is -*- nroff -*- source.
+.\"
+.\" This manpage is Copyright (C) 1999 Tim Martin
+.\"
+.\" Permission is granted to make and distribute verbatim copies of this
+.\" manual provided the copyright notice and this permission notice are
+.\" preserved on all copies.
+.\"
+.\" Permission is granted to copy and distribute modified versions of this
+.\" manual under the conditions for verbatim copying, provided that the
+.\" entire resulting derived work is distributed under the terms of a
+.\" permission notice identical to this one
+.\" 
+.\" Formatted or processed versions of this manual, if unaccompanied by
+.\" the source, must acknowledge the copyright and authors of this work.
+.\"
+.\"
+.TH sasl_getopt_t "26 March 2000" SASL "SASL man pages"
+.SH NAME
+sasl_getopt_t \- The SASL get option callback
+
+
+.SH SYNOPSIS
+.nf
+.B #include <sasl.h>
+
+.sp
+.BI "int sasl_getopt_t(void " *context ", "
+.BI "		     const char " *plugin_name ", "
+.BI "		     const char " *option ", "
+.BI "		     const cahr ** " result ", "
+.BI "		     unsigned * " len ")";
+
+.fi
+.SH DESCRIPTION
+
+.B sasl_getopt_t
+is used to retrieve an option, often mechanism specific, from the
+application. An example of this is requested what KERBEROS_V4 srvtab
+file to use.
+.I plugin_name
+is the plugin this value if for.
+.I option
+is a string representing the option. A common option that all server
+applications should handle is \"pwcheck_method\" which represents the
+method for checking plaintext passwords. See the administrators guide
+for a full description of this option.
+
+.PP
+
+.SH "RETURN VALUE"
+
+SASL callback functions should return SASL return codes. See sasl.h for a complete list. SASL_OK indicates success.
+
+.SH "CONFORMING TO"
+RFC 2222
+.SH "SEE ALSO"
+.BR other sasl stuff
+.BR 
+.BR 

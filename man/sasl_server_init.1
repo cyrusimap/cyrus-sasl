@@ -1,0 +1,74 @@
+.\" Hey Emacs! This file is -*- nroff -*- source.
+.\"
+.\" This manpage is Copyright (C) 1999 Tim Martin
+.\"
+.\" Permission is granted to make and distribute verbatim copies of this
+.\" manual provided the copyright notice and this permission notice are
+.\" preserved on all copies.
+.\"
+.\" Permission is granted to copy and distribute modified versions of this
+.\" manual under the conditions for verbatim copying, provided that the
+.\" entire resulting derived work is distributed under the terms of a
+.\" permission notice identical to this one
+.\" 
+.\" Formatted or processed versions of this manual, if unaccompanied by
+.\" the source, must acknowledge the copyright and authors of this work.
+.\"
+.\"
+.TH sasl_server_init "26 March 2000" SASL "SASL man pages"
+.SH NAME
+sasl_server_init \- SASL server authentication initialization
+
+
+.SH SYNOPSIS
+.nf
+.B #include <sasl.h>
+.sp
+.BI "int sasl_server_init(const sasl_callback_t " *callbacks ", "
+.BI "                     const char " *appname ");"
+
+.fi
+.SH DESCRIPTION
+
+.B sasl_server_init()
+initializes SASL. It must be called before any calls to
+sasl_server_start. This call initializes all SASL mechanism drivers
+(e.g. authentication mechanisms). These are usually found in the
+/usr/lib/sasl directory but the directory may be overriden with the
+SASL_PATH enviornment variable. The
+.I callbacks
+parameter specifies the base callbacks for all client connections. See
+the sasl_callbacks man page for more information.
+.I appname
+is the name of the application. It is used for where to find the
+default configuration file.
+.PP
+
+.SH "RETURN VALUE"
+
+sasl_server_init returns an integer which corresponds to one of the
+following codes. SASL_OK is the only one that indicates success. All
+others indicate errors and should either be handled or the
+authentication session should be quit.
+
+
+.SH ERRORS
+.TP 0.8i
+.B SASL_OK
+Success
+.TP 0.8i
+.B SASL_BADVERS
+Mechanism version mismatch
+.TP 0.8i
+.B SASL_BADPARAM
+error in config file
+.TP 0.8i
+.B SASL_NOMEM
+not enough memory to complete operation
+
+.SH "CONFORMING TO"
+RFC 2222
+.SH "SEE ALSO"
+.BR other sasl stuff
+.BR 
+.BR 

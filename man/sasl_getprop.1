@@ -1,0 +1,69 @@
+.\" Hey Emacs! This file is -*- nroff -*- source.
+.\"
+.\" This manpage is Copyright (C) 1999 Tim Martin
+.\"
+.\" Permission is granted to make and distribute verbatim copies of this
+.\" manual provided the copyright notice and this permission notice are
+.\" preserved on all copies.
+.\"
+.\" Permission is granted to copy and distribute modified versions of this
+.\" manual under the conditions for verbatim copying, provided that the
+.\" entire resulting derived work is distributed under the terms of a
+.\" permission notice identical to this one
+.\" 
+.\" Formatted or processed versions of this manual, if unaccompanied by
+.\" the source, must acknowledge the copyright and authors of this work.
+.\"
+.\"
+.TH sasl_getprop "26 March 2000" SASL "SASL man pages"
+.SH NAME
+sasl_getprop \- Get a SASL property
+
+
+.SH SYNOPSIS
+.nf
+.B #include <sasl.h>
+
+.sp
+.BI "int sasl_getprop(sasl_conn_t " *conn ", "
+.BI "			 int " propnum ", " 
+.BI "			 void ** " pvalue ");"  
+
+.fi
+.SH DESCRIPTION
+
+.B sasl_getprop
+gets the value of a SASL property. For example after successful
+authentication a server may wish to know the authorization name. Or a
+client application may wish to know the strength of the negotiated
+security layer.
+
+.I conn
+is the SASL connection object.
+.I propnum
+is the identifier for the property requested and
+.I pvalue
+is filled in on success. List of properties follows:
+
+.nf
+SASL_USERNAME   -  pointer to NUL terminated user name 
+SASL_SSF        -  security layer security strength factor, if 0, call to sasl_encode, sasl_decode unnecessary
+SASL_MAXOUTBUF  -    security layer max output buf unsigned 
+SASL_REALM      -    server authentication realm used 
+SASL_GETOPTCTX  -    context for getopt callback 
+SASL_IP_LOCAL   -    local address (pvalue=sockaddr_in *) 
+SASL_IP_REMOTE  -    remote address (pvalue=sockaddr_in *) 
+.fi
+
+.PP
+
+.SH "RETURN VALUE"
+
+Returns SASL_OK on success. SASL error code on failure.
+
+.SH "CONFORMING TO"
+RFC 2222
+.SH "SEE ALSO"
+.BR other sasl stuff
+.BR 
+.BR 

@@ -42,5 +42,12 @@
 #
 ################################################################
 
-man_MANS = sasl_client.1 sasl_server.1
+man_MANS = sasl_authorize_t.1 sasl_done.1 sasl_listmech.1 sasl_callbacks.1 \
+           sasl_encode.1 sasl_log_t.1 sasl_checkpass.1 sasl_errstring.1 \
+           sasl_server_init.1 sasl_client_init.1 sasl_getopt_t.1 \
+           sasl_server_new.1 sasl_client_new.1 sasl_getpath_t.1  \
+           sasl_server_start.1 sasl_client_start.1 sasl_getprop.1 \
+           sasl_server_step.1 sasl_client_step.1  sasl_getsecret_t.1 \
+           sasl_setprop.1 sasl_decode.1 sasl_getsimple_t.1 sasl_usererr.1 
+
 EXTRA_DIST = $(man_MANS)

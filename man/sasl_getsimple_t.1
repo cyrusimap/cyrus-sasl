@@ -1,0 +1,51 @@
+.\" Hey Emacs! This file is -*- nroff -*- source.
+.\"
+.\" This manpage is Copyright (C) 1999 Tim Martin
+.\"
+.\" Permission is granted to make and distribute verbatim copies of this
+.\" manual provided the copyright notice and this permission notice are
+.\" preserved on all copies.
+.\"
+.\" Permission is granted to copy and distribute modified versions of this
+.\" manual under the conditions for verbatim copying, provided that the
+.\" entire resulting derived work is distributed under the terms of a
+.\" permission notice identical to this one
+.\" 
+.\" Formatted or processed versions of this manual, if unaccompanied by
+.\" the source, must acknowledge the copyright and authors of this work.
+.\"
+.\"
+.TH sasl_getsimple_t "26 March 2000" SASL "SASL man pages"
+.SH NAME
+sasl_getsimple_t \- The SASL callback for username/authname/realm
+
+
+.SH SYNOPSIS
+.nf
+.B #include <sasl.h>
+
+.sp
+.BI "int sasl_getsimple_t(void " *context ", "
+.BI "		          int " id ", "
+.BI "		          const cahr ** " result ", "
+.BI "		          unsigned * " len ")";
+
+.fi
+.SH DESCRIPTION
+
+.B sasl_getsimple_t
+is used to retrieve simple things from the application. In practice this is authentication name, authorization name, and realm. The
+.BI id
+parameter indicates which value is being requested. See sasl.h for a list of possible values.
+.PP
+
+.SH "RETURN VALUE"
+
+SASL callback functions should return SASL return codes. See sasl.h for a complete list. SASL_OK indicates success.
+
+.SH "CONFORMING TO"
+RFC 2222
+.SH "SEE ALSO"
+.BR other sasl stuff
+.BR 
+.BR 

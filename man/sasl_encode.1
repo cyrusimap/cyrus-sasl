@@ -1,0 +1,50 @@
+.\" Hey Emacs! This file is -*- nroff -*- source.
+.\"
+.\" This manpage is Copyright (C) 1999 Tim Martin
+.\"
+.\" Permission is granted to make and distribute verbatim copies of this
+.\" manual provided the copyright notice and this permission notice are
+.\" preserved on all copies.
+.\"
+.\" Permission is granted to copy and distribute modified versions of this
+.\" manual under the conditions for verbatim copying, provided that the
+.\" entire resulting derived work is distributed under the terms of a
+.\" permission notice identical to this one
+.\" 
+.\" Formatted or processed versions of this manual, if unaccompanied by
+.\" the source, must acknowledge the copyright and authors of this work.
+.\"
+.\"
+.TH sasl_encode "26 March 2000" SASL "SASL man pages"
+.SH NAME
+sasl_encode \- Encode data for transport to authenticated host
+
+
+.SH SYNOPSIS
+.nf
+.B #include <sasl.h>
+
+.sp
+.BI "int sasl_encode(sasl_conn_t " *conn ", "
+.BI "		     const char * " input ", " 
+.BI "	             unsigned " inputlen ", " 
+.BI "		     char ** " output ", " 
+.BI "		     unsigned * " outputlen ");"  
+
+.fi
+.SH DESCRIPTION
+
+.B sasl_encode
+encodes data to be sent to be sent to a remote host who we've had a successful authentication session with. If there is a negotiated security the data in signed/encrypted and the output should be sent without modification to the remote host. If there is no security layer the output is identical to the input.
+.PP
+
+.SH "RETURN VALUE"
+
+Returns SASL_OK on success. SASL error code on failure.
+
+.SH "CONFORMING TO"
+RFC 2222
+.SH "SEE ALSO"
+.BR sasl_decode
+.BR 
+.BR 

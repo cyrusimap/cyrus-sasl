@@ -1,0 +1,66 @@
+.\" Hey Emacs! This file is -*- nroff -*- source.
+.\"
+.\" This manpage is Copyright (C) 1999 Tim Martin
+.\"
+.\" Permission is granted to make and distribute verbatim copies of this
+.\" manual provided the copyright notice and this permission notice are
+.\" preserved on all copies.
+.\"
+.\" Permission is granted to copy and distribute modified versions of this
+.\" manual under the conditions for verbatim copying, provided that the
+.\" entire resulting derived work is distributed under the terms of a
+.\" permission notice identical to this one
+.\" 
+.\" Formatted or processed versions of this manual, if unaccompanied by
+.\" the source, must acknowledge the copyright and authors of this work.
+.\"
+.\"
+.TH sasl_callbacks "26 March 2000" SASL "SASL man pages"
+.SH NAME
+sasl_callbacks \- How to work with SASL callbacks
+
+
+.SH SYNOPSIS
+.nf
+.B #include <sasl.h>
+
+.fi
+.SH DESCRIPTION
+
+.B sasl_callbacks
+are used when the application needs some information from the
+application. Common reasons are getting for getting usernames and
+passwords. A client MUST specify what callbacks they support in the
+sasl_client/server_init() or sasl_client/server_new() calls. If an
+authentication mechanism needs a callback that the application does
+not state it supports it cannot be used. 
+
+If a callback has an
+.B id
+parameter that should be checked to make sure you are giving the appropriate value.
+
+If an application is using the client side of the library functions to handle the callbacks are not necessary. Instead the application may deal with callbacks via SASL_INTERACT's. See sasl_client_start/step() for more information.
+
+The list of callbacks follows:
+
+ sasl_getopt_t     client/server: Get an option value
+ sasl_log_t        client/server: Log message handler
+ sasl_getpath_t    client/server: Get path to search for mechanisms
+ sasl_getsimple_t  client: Get user/language list
+ sasl_getsecret_t  client: Get authentication secret
+ sasl_chalprompt_t client: Display challenge and prompt for response
+ sasl_authorize_t  server: Authorize policy callback
+ sasl_server_getsecret_t server: User secret database read
+ sasl_server_putsecret_t server: User secret database write
+.PP
+
+.SH "RETURN VALUE"
+
+SASL callback functions should return SASL return codes. See sasl.h for a complete list. SASL_OK typically indicates success.
+
+.SH "CONFORMING TO"
+RFC 2222
+.SH "SEE ALSO"
+.BR other sasl stuff
+.BR 
+.BR 

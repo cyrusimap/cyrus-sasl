@@ -1,0 +1,60 @@
+.\" Hey Emacs! This file is -*- nroff -*- source.
+.\"
+.\" This manpage is Copyright (C) 1999 Tim Martin
+.\"
+.\" Permission is granted to make and distribute verbatim copies of this
+.\" manual provided the copyright notice and this permission notice are
+.\" preserved on all copies.
+.\"
+.\" Permission is granted to copy and distribute modified versions of this
+.\" manual under the conditions for verbatim copying, provided that the
+.\" entire resulting derived work is distributed under the terms of a
+.\" permission notice identical to this one
+.\" 
+.\" Formatted or processed versions of this manual, if unaccompanied by
+.\" the source, must acknowledge the copyright and authors of this work.
+.\"
+.\"
+.TH sasl_decode "26 March 2000" SASL "SASL man pages"
+.SH NAME
+sasl_decode \- Decode data received
+
+
+.SH SYNOPSIS
+.nf
+.B #include <sasl.h>
+
+.sp
+.BI "int sasl_decode(sasl_conn_t " *conn ", "
+.BI "		     const char * " input ", " 
+.BI "                unsigned " inputlen ", " 
+.BI "		     char ** " output ", " 
+.BI "		     unsigned * " outputlen ");"  
+
+.fi
+.SH DESCRIPTION
+
+.B sasl_decode
+decodes data received. After succesful authentication this function
+should be called on all data received. It decodes the data from
+encrypted or signed form to plain data. If there was no security layer
+negotiated the output is identical to the input.
+
+.I output
+is allocated by the library and must be freed by the application. One should not to give sasl_decode more data than the negotiated maxbufsize (see sasl_getprop).
+
+Note that sasl_decode can succeed and outputlen can be zero. If this
+is the case simply wait for more data and call sasl_decode again.
+
+.PP
+
+.SH "RETURN VALUE"
+
+Returns SASL_OK on success. SASL error code on failure.
+
+.SH "CONFORMING TO"
+RFC 2222
+.SH "SEE ALSO"
+.BR sasl_encode
+.BR 
+.BR 

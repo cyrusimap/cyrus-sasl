@@ -1,0 +1,104 @@
+.\" Hey Emacs! This file is -*- nroff -*- source.
+.\"
+.\" This manpage is Copyright (C) 1999 Tim Martin
+.\"
+.\" Permission is granted to make and distribute verbatim copies of this
+.\" manual provided the copyright notice and this permission notice are
+.\" preserved on all copies.
+.\"
+.\" Permission is granted to copy and distribute modified versions of this
+.\" manual under the conditions for verbatim copying, provided that the
+.\" entire resulting derived work is distributed under the terms of a
+.\" permission notice identical to this one
+.\" 
+.\" Formatted or processed versions of this manual, if unaccompanied by
+.\" the source, must acknowledge the copyright and authors of this work.
+.\"
+.\"
+.TH sasl_client_start "26 March 2000" SASL "SASL man pages"
+.SH NAME
+sasl_client_start \- Begin an authentication negotiation
+
+
+.SH SYNOPSIS
+.nf
+.B #include <sasl.h>
+.sp
+.BI "int sasl_client_start(sasl_conn_t * " conn ", "
+.BI "		      const char * " mechlist ", "
+.BI "		      sasl_secret_t * " secret ", "
+.BI "		      sasl_interact_t ** " prompt_need ", "
+.BI "		      char ** " clientout ", "
+.BI "		      unsigned * " clientoutlen ", "
+.BI "		      const char ** " mech ");"
+
+.fi
+.SH DESCRIPTION
+
+.B sasl_client_start()
+selects a mechanism for authentication and starts the authentication
+session. The mechlist is the list of mechanisms the client might like
+to use. The mechanisms in the list are not necessarily supported by
+the client or even valid. SASL determines which of these to use based
+upon the security preferences specified earlier. The list of
+mechanisms is typically a list of mechanisms the server supports
+acquired from a capability request.
+
+If SASL_INTERACT is returned the library needs some values to be
+filled in before it can proceed. The prompt_need structure will be
+filled in with requests. The application should fulfill these requests
+and call sasl_client_start again with identical parameters (the
+prompt_need parameter will be the same pointer as before but filled in
+by the application).
+
+.I mechlist
+is a list of mechanisms the server has available. Punctuation if ignored.
+.I secret
+is the secret from a previous session. This parameter is optional. If SASL_INTERACT is returned 
+.I prompt_need
+is filled in with a list of prompts needed to continue. On sucess
+.I clientout
+and
+.I clientoutlen
+is created. It is the initial client response to send to the
+server. This is allocated by the library and it is the job of the
+client to send it over the network to the server and free it when it
+is no longer needed. Any protocal specific encoding (such as base64
+encoding) necessary needs to be done by the client. On sucess
+.I mech
+contains the name of the chosen SASL mechanism.
+
+.PP
+
+.SH "RETURN VALUE"
+
+sasl_client_start returns an integer which corresponds to one of the
+following codes. SASL_CONTINUE indicates sucess and that there are
+more steps needed in the authentication. All other return codes
+indicate errors and should either be handled or the authentication
+session should be quit.
+
+
+.SH ERRORS
+.TP 0.8i
+.B SASL_CONTINUE
+Success. keep going.
+.TP 0.8i
+.B SASL_INTERACT
+user interaction needed to fill in prompt_need list
+.TP 0.8i
+.B SASL_BADVERS
+Mechanism version mismatch
+.TP 0.8i
+.B SASL_BADPARAM
+error in config file
+.TP 0.8i
+.B SASL_NOMEM
+not enough memory to complete operation
+
+.SH "CONFORMING TO"
+RFC 2222
+.SH "SEE ALSO"
+.BR other sasl stuff
+.BR 
+.BR 

@@ -1,5 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
+ * $Id: kerberos4.c,v 1.38 1999/08/21 02:37:26 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -85,7 +86,8 @@ extern int gethostname(char *, int);
 typedef struct context {
   int state;
 
-  unsigned long challenge;         /* this is the challenge (32 bit int) used for the authentication */
+  int challenge;         /* this is the challenge (32 bit int) used 
+			    for the authentication */
 
   char *service;                   /* kerberos service */
   char instance[ANAME_SZ];
@@ -461,11 +463,8 @@ server_start(void *glob_context __attribute__((unused)),
 	     void **conn,
 	     const char **errstr)
 {
-#ifndef WIN32
-  context_t *text;
-#endif //win32
   if (errstr)
-    *errstr = NULL;
+      *errstr = NULL;
 
   return new_text(sparams, (context_t **) conn);
 }
@@ -531,10 +530,10 @@ static int server_continue_step (void *conn_context,
 
   if (text->state==0)
   {    
-    /* random 32-bit number */
-    unsigned long randocts,nchal;
+      /* random 32-bit number */
+      int randocts, nchal;
 
-    /* shouldn't we check for erroneous client input here?!? */
+      /* shouldn't we check for erroneous client input here?!? */
 
     VL(("KERBEROS_V4 Step 1\n"));
 
@@ -556,7 +555,7 @@ static int server_continue_step (void *conn_context,
 
   if (text->state==1)
   {
-    unsigned long nchal;
+    int nchal;
     unsigned char sout[8];  
     AUTH_DAT ad;
     KTEXT_ST ticket;
@@ -648,7 +647,7 @@ static int server_continue_step (void *conn_context,
   if (text->state==2)
   {
     int result;
-    unsigned long testnum;
+    int testnum;
     int lup, flag;
     unsigned char in[1024];
 
@@ -931,8 +930,8 @@ static int client_continue_step (void *conn_context,
   /* challenge #2 */
   if (text->state==2)
   {
-    unsigned long testnum;
-    unsigned long nchal;    
+    int testnum;
+    int nchal;    
     unsigned char sout[1024];
     unsigned len;
     unsigned char in[8];

@@ -27,10 +27,9 @@ SOFTWARE.
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
 #ifdef WIN32
-//# include "winconfig.h"
+/* # include "winconfig.h" */
 #include <config.h>
-//for sprintf, snprinft
-#include <stdio.h>
+#include <stdio.h>		/* for sprintf, snprinft */
 #endif /* WIN32 */
 #include <time.h>
 #include <sys/stat.h>
@@ -155,7 +154,7 @@ static void mech_free(void *global_context, sasl_utils_t *utils)
 
 static char * randomdigits(sasl_server_params_t *sparams)
 {
-  unsigned long num;
+  unsigned int num;
   char *ret;
  
   /* random 32-bit number */
@@ -172,7 +171,7 @@ static char * randomdigits(sasl_server_params_t *sparams)
 
   ret= sparams->utils->malloc(15);
   if (ret==NULL) return NULL;
-  sprintf(ret,"%lu",num);
+  sprintf(ret, "%u", num);
 
   return ret;
 }

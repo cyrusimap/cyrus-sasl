@@ -1,3 +1,6 @@
+2003-10-06  Maya Nigrosh <mnigrosh@andrew.cmu.edu>
+	* plugins/sql.c: tiny bugfix to begin pgsql transactions
+	
 2003-10-04  Ken Murchison <ken@oceana.com>
 	* plugins/sql.c: only do a txn when we have a property to fetch;
 	  _pgsql_open() cleanup/fixes; more intelligient sql_usessl parsing;

@@ -5,7 +5,7 @@
 ** Ken Murchison
 **   based on the original work of Simon Loader and Patrick Welche
 **
-** $Id: sql.c,v 1.17 2003/10/04 17:02:49 ken3 Exp $
+** $Id: sql.c,v 1.18 2003/10/06 16:32:21 mnigrosh Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -360,7 +360,7 @@ static int _pgsql_exec(void *conn, const char *cmd, char *value, size_t size,
 
 static int _pgsql_begin_txn(void *conn, const sasl_utils_t *utils)
 {
-    return _mysql_exec(conn, "BEGIN;", NULL, 0, NULL, utils);
+    return _pgsql_exec(conn, "BEGIN;", NULL, 0, NULL, utils);
 }
 
 static int _pgsql_commit_txn(void *conn, const sasl_utils_t *utils)

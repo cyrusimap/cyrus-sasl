@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.189 2004/03/09 16:54:13 rjs3 Exp $
+dnl $Id: configure.in,v 1.190 2004/03/16 19:31:59 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -607,13 +607,13 @@ case "$with_mysql" in
     notfound) AC_WARN([MySQL Library not found]); true;;
     *)
      if test -d ${with_mysql}/lib/mysql; then
-         LIB_MYSQL="-L${with_mysql}/lib/mysql -R${with_mysql}/lib/mysql"
+	CMU_ADD_LIBPATH_TO(${with_mysql}/lib/mysql, LIB_MYSQL)
      elif test -d ${with_mysql}/mysql/lib; then
-         LIB_MYSQL="-L${with_mysql}/mysql/lib -R${with_mysql}/mysql/lib"
+	CMU_ADD_LIBPATH_TO(${with_mysql}/mysql/lib, LIB_MYSQL)
      elif test -d ${with_mysql}/lib; then
-         LIB_MYSQL="-L${with_mysql}/lib -R${with_mysql}/lib"
+	CMU_ADD_LIBPATH_TO(${with_mysql}/lib, LIB_MYSQL)
      else
-         LIB_MYSQL="-L${with_mysql} -R${with_mysql}"
+	CMU_ADD_LIBPATH_TO(${with_mysql}, LIB_MYSQL)
      fi
 
      LIB_MYSQL_DIR=$LIB_MYSQL
@@ -667,13 +667,13 @@ case "$with_pgsql" in
     notfound) AC_WARN([PostgreSQL Library not found]); true;;
     *)
      if test -d ${with_pgsql}/lib/pgsql; then
-         LIB_PGSQL="-L${with_pgsql}/lib/pgsql -R${with_pgsql}/lib/pgsql"
+	CMU_ADD_LIBPATH_TO(${with_pgsql}/lib/pgsql, LIB_PGSQL)
      elif test -d ${with_pgsql}/pgsql/lib; then
-         LIB_PGSQL="-L${with_pgsql}/pgsql/lib -R${with_pgsql}/pgsql/lib"
+	CMU_ADD_LIBPATH_TO(${with_pgsql}/pgsql/lib, LIB_PGSQL)
      elif test -d ${with_pgsql}/lib; then
-         LIB_PGSQL="-L${with_pgsql}/lib -R${with_pgsql}/lib"
+	CMU_ADD_LIBPATH_TO(${with_pgsql}/lib, LIB_PGSQL)
      else
-         LIB_PGSQL="-L${with_pgsql} -R${with_pgsql}"
+	CMU_ADD_LIBPATH_TO(${with_pgsql}, LIB_PGSQL)
      fi
 
      LIB_PGSQL_DIR=$LIB_PGSQL

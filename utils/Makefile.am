@@ -84,7 +84,7 @@ libsfsasl2_la_SOURCES =
 libsfsasl2_la_LIBADD = sfsasl.lo
 libsfsasl2_la_LDFLAGS = -version-info 1:0:0 -export-dynamic -rpath $(libdir)
 
-INCLUDES=-I$(top_srcdir)/include
+INCLUDES=-I$(top_srcdir)/include @SASL_DB_INC@
 EXTRA_DIST = saslpasswd2.8 sasldblistusers2.8 sfsasl.h sfsasl.c smtptest.c testsuite.c
 
 sfsasl.lo: sfsasl.c

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.54 2002/07/30 17:06:15 rjs3 Exp $
+ * $Id: client.c,v 1.55 2002/08/28 20:26:56 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -233,8 +233,8 @@ static void client_dispose(sasl_conn_t *pconn)
 
   pconn->context = NULL;
 
-  if (c_conn->serverFQDN)
-      sasl_FREE(c_conn->serverFQDN);
+  if (c_conn->clientFQDN)
+      sasl_FREE(c_conn->clientFQDN);
 
   if (c_conn->cparams) {
       _sasl_free_utils(&(c_conn->cparams->utils));
@@ -275,6 +275,7 @@ int sasl_client_new(const char *service,
 		    sasl_conn_t **pconn)
 {
   int result;
+  char name[MAXHOSTNAMELEN];
   sasl_client_conn_t *conn;
   sasl_utils_t *utils;
 
@@ -314,11 +315,19 @@ int sasl_client_new(const char *service,
       MEMERROR(*pconn);
   
   utils->conn= *pconn;
+
+  /* Setup the non-lazy parts of cparams, the rest is done in
+   * sasl_client_start */
   conn->cparams->utils = utils;
   conn->cparams->canon_user = &_sasl_canon_user;
   conn->cparams->flags = flags;
   
-  result = _sasl_strdup(serverFQDN, &conn->serverFQDN, NULL);
+  /* get the clientFQDN (serverFQDN was set in _sasl_conn_init) */
+  memset(name, 0, sizeof(name));
+  gethostname(name, MAXHOSTNAMELEN);
+
+  result = _sasl_strdup(name, &conn->clientFQDN, NULL);
+
   if(result == SASL_OK) return SASL_OK;
 
   /* result isn't SASL_OK */
@@ -527,15 +536,15 @@ int sasl_client_start(sasl_conn_t *conn,
 	goto done;
     }
 
-    /* make cparams */
+    /* make (the rest of) cparams */
     c_conn->cparams->service = conn->service;
     c_conn->cparams->servicelen = strlen(conn->service);
     
-    c_conn->cparams->serverFQDN = c_conn->serverFQDN; 
-    c_conn->cparams->servicelen = strlen(c_conn->serverFQDN);
+    c_conn->cparams->serverFQDN = conn->serverFQDN; 
+    c_conn->cparams->slen = strlen(conn->serverFQDN);
 
-    c_conn->cparams->clientFQDN = NULL; /* XXX */
-    c_conn->cparams->clen = 0;
+    c_conn->cparams->clientFQDN = c_conn->clientFQDN; 
+    c_conn->cparams->clen = strlen(c_conn->clientFQDN);
 
     c_conn->cparams->external_ssf = conn->external.ssf;
     c_conn->cparams->props = conn->props;

@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.42 2002/06/14 14:36:14 rjs3 Exp $
+ * $Id: saslint.h,v 1.43 2002/08/28 20:26:56 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -238,7 +238,7 @@ typedef struct sasl_client_conn {
   cmechanism_t *mech;
   sasl_client_params_t *cparams;
 
-  char *serverFQDN;
+  char *clientFQDN;
 
 } sasl_client_conn_t;
 

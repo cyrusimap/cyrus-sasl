@@ -1,4 +1,4 @@
-$Id: README,v 1.30 2001/12/04 17:46:36 rjs3 Exp $
+$Id: README,v 1.31 2001/12/06 18:01:56 rjs3 Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication and authorization services.
@@ -17,6 +17,9 @@ BETA WARNING
 -------------
 THIS CODE IS BETA-QUALITY AND IS NOT INTENDED FOR PRODUCTION USE.
 IT IS NOT BACKWARDS COMPATIBLE WITH SASLv1.
+
+If you are looking to port SASLv1 applications to SASLv2, please see
+doc/appconvert.html
 
 Bugs can be searched/reported at: http://bugzilla.andrew.cmu.edu
 

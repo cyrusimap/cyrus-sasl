@@ -100,6 +100,9 @@ dlsym(dll_handle h, char *n)
 
 char *dlerror()
 {
+    if (errno != 0) {
+	return sterror(errno);
+    }
     return "Generic shared library error";
 }
 
@@ -120,7 +123,11 @@ int _sasl_get_mech_list(const char *entryname,
    * checks appropriately. */
   int result;
   char str[PATH_MAX], tmp[PATH_MAX], c, prefix[PATH_MAX];
+#if __OpenBSD__
   char adj_entryname[1024];
+#else
+#define adj_entryname entryname
+#endif
   int pos;
   char *path=NULL;
   int free_path;
@@ -139,9 +146,7 @@ int _sasl_get_mech_list(const char *entryname,
     return SASL_BADPARAM;
 
 #if __OpenBSD__
-  sprintf(adj_entryname, "_%s", entryname);
-#else
-  strcpy(adj_entryname, entryname);
+  snprintf(adj_entryname, sizeof adj_entryname, "_%s", entryname);
 #endif
 
   /* get the path to the plugins */

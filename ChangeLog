@@ -62,7 +62,6 @@ Thu Aug 19 16:15:49 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 	* plugins/kerberos4.c: when we need a 32 bit number, let's use an
 	int
 
->>>>>>> 1.91
 1999-08-19  Timothy L Martin  <tmartin+@andrew.cmu.edu>
 
 	* plugins/cram.c (c_continue_step): set oparams->user to correct

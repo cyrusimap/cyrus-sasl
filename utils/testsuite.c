@@ -82,6 +82,14 @@ char myhostname[1024+1];
 
 #define CLIENT_TO_SERVER "Hello. Here is some stuff"
 
+#ifdef SASL_NDBM
+#define REALLY_LONG_LENGTH  900
+#define REALLY_LONG_BACKOFF  50
+#else
+#define REALLY_LONG_LENGTH  32000
+#define REALLY_LONG_BACKOFF  2000
+#endif
+
 char *username = "tmartin";
 char *authname = "tmartin";
 char *password = "1234";
@@ -232,7 +240,7 @@ static struct sasl_callback emptysasl_cb[] = {
     { SASL_CB_LIST_END, NULL, NULL }
 };
 
-char really_long_string[32000];
+char really_long_string[REALLY_LONG_LENGTH];
 
 /*
  * Setup some things for test
@@ -244,10 +252,10 @@ void init(unsigned int seed)
 
     srand(seed);    
 
-    for (lup=0;lup<32000;lup++)
+    for (lup=0;lup<REALLY_LONG_LENGTH;lup++)
 	really_long_string[lup] = '0' + (rand() % 10);
 
-    really_long_string[30000+ rand() % 2000] = '\0';
+    really_long_string[REALLY_LONG_LENGTH - rand() % REALLY_LONG_BACKOFF] = '\0';
 
     result = gethostname(myhostname, sizeof(myhostname)-1);
     if (result == -1) fatal("gethostname");

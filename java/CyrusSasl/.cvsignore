@@ -3,3 +3,6 @@ Makefile
 .deps
 .libs
 *.l[ao]
+*.class
+*.stamp
+javasasl.h

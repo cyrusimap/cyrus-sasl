@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.109 2002/04/30 17:45:32 ken3 Exp $
+ * $Id: server.c,v 1.110 2002/05/05 14:13:48 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -345,10 +345,6 @@ static void server_done(void) {
 	  if (prevm->plug->mech_free) {
 	      prevm->plug->mech_free(prevm->plug->glob_context,
 				     mechlist->utils);
-	  }
-	  
-	  if (prevm->plug->glob_context!=NULL) {
-	      sasl_FREE(prevm->plug->glob_context);
 	  }
 
 	  sasl_FREE(prevm->plugname);	  	  

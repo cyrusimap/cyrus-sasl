@@ -1,3 +1,14 @@
+1999-11-28  Larry Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/db_berkeley.c (_sasl_server_check_db): sasldb_path note,
+	flaw in implementation (goes for all three dbs): if an application
+	specifies a different path given a connection than it does
+	otherwise, verifyfile isn't checked
+
+	* lib/db_ndbm.c (_sasl_server_check_db): sasldb_path added
+
+	* lib/db_gdbm.c (_sasl_server_check_db): now looks up "sasldb_path"
+
 Fri Nov 19 13:05:47 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/db_berkeley.c: patch from Greg Shapio

@@ -231,40 +231,6 @@ static int      htoi(unsigned char *hexin, int *res);
 
 static unsigned char *COLON = (unsigned char *) ":";
 
-
-/* These 2 functions are used for debugging */
-
-static void tmp_log_string(char *str)
-{
-  FILE *stream;
-
-  char name[100];
-  sprintf(name,"/tmp/foo%i",getpid());
-
-  stream=fopen(name,"a+");
-
-  fwrite(str, 1, strlen(str), stream);
-
-  fclose(stream);
-}
-
-static void tmp_log(char *foo, int len)
-{
-  FILE *stream;
-  int lup;
-  char name[100];
-  sprintf(name,"/tmp/foo%i",getpid());
-
-  stream=fopen(name,"a+");
-
-  for (lup=0;lup<len;lup++)
-    fprintf(stream,"%i. [%i] [%c]\n",lup,foo[lup],foo[lup]);
-
-
-  fclose(stream);
-}
-
-
 void
 CvtHex(
        IN HASH Bin,

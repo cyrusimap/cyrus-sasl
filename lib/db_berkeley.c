@@ -1,6 +1,6 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Tim Martin
- * $Id: db_berkeley.c,v 1.7 1999/11/19 18:05:40 leg Exp $
+ * $Id: db_berkeley.c,v 1.8 1999/11/28 07:13:23 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -314,10 +314,22 @@ sasl_server_putsecret_t *_sasl_db_putsecret = &putsecret;
 
 int _sasl_server_check_db(const sasl_callback_t *verifyfile_cb)
 {
+    const char *path = SASL_DB_PATH;
     int ret;
+    void *cntxt;
+    sasl_getopt_t *getopt;
+
+    if (_sasl_getcallback(NULL, SASL_CB_GETOPT,
+			  &getopt, &cntxt) == SASL_OK) {
+	const char *p;
+	if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK 
+	    && p != NULL && *p != 0) {
+	    path = p;
+	}
+    }
 
     ret = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(verifyfile_cb->context,
-						       SASL_DB_PATH);
+						       path);
     if (ret == SASL_OK) {
 	db_ok = 1;
     }

@@ -50,7 +50,6 @@ Cram-MD5
 ~~~~~~~~
 ) needs snprintf support
 ) correct handling of SASL_SET_CREATE
-) replace sprintf with convert16 or vice versa
 
 Database stuff
 ~~~~~~~~~~~~~~

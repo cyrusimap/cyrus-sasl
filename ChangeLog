@@ -1,5 +1,9 @@
 Sun Oct 10 13:37:08 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
+	* acconfig.h: added SASL_GDBM/SASL_NDBM (for the conversion tool)
+
+	* plugins/digestmd5.c: cleaned up some warning messages
+
 	* lib/server.c (sasl_setpass): improved error messages
 
 1999-10-09  Timothy L Martin  <tmartin+@andrew.cmu.edu>

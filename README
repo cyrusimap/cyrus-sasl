@@ -1,4 +1,4 @@
-$Id: README,v 1.16 1999/10/10 02:07:26 leg Exp $
+$Id: README,v 1.17 1999/10/11 03:55:10 leg Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication. See RFC 2222 for more
@@ -16,7 +16,9 @@ UPGRADING FROM PREVIOUS VERSIONS
 Upgrading from versions 1.5.5 or earlier:
   The secrets database has changed formats again in 1.5.9.
 
-  The tool to upgrade has not yet been written.  We'll get to it.
+  Run utils/dbconverter-1.5.9 to update your secrets database.  It,
+  once again, needs you to specify your default realm for PLAIN and
+  CRAM-MD5 secrets.
 
 Upgrading from versions 1.5.4 or earlier:
   The secrets database has changed formats in 1.5.5.
@@ -74,9 +76,7 @@ In order to get RC4 encryption under DIGEST-MD5, you'll need an
 implementation of RC4.  This might be export controlled (which is why
 it's a seperate package); if you think you have an export license,
 know that don't need one, or aren't planning to export it, it's
-available under <http://andrew2.andrew.cmu.edu/dist/>.  However, since
-this release doesn't support encryption under DIGEST-MD5 (see below),
-it doesn't matter anyway.
+available under <http://andrew2.andrew.cmu.edu/dist/>.
 
 The library uses the environment variable SASL_PATH to locate the
 directory where the mechanisms are; this should be a colon-seperated
@@ -109,12 +109,6 @@ KNOWN BUGS
 ----------
 * SCRAM-MD5 is no longer being maintained, and probably needs some
 work in order to be usable.
-
-* DIGEST-MD5 has authentication implemented, but encryption and
-integrity protection are disabled.  It is the view of the authors that
-the current DIGEST-MD5 spec is ambiguous in regards to encryption.
-The encryption implemented in the code generates RC4 in depth and thus
-should not be used.
 
 * libtool doesn't always link libraries together.  In our environment,
 we only have static Krb5 libraries; the GSSAPI plugin should link

@@ -39,6 +39,10 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  * username->secret lookups */
 #undef SASL_DB_PATH
 
+/* what db package are we using? */
+#undef SASL_GDBM
+#undef SASL_NDBM
+
 /* This is where plugins will live at runtime */
 #undef PLUGINDIR
 

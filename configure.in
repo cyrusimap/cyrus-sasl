@@ -161,13 +161,21 @@ esac
 LIBS="$cmu_save_LIBS"
 AC_MSG_CHECKING(DB library to use)
 AC_MSG_RESULT($dblib)
-if test "$dblib" = "no"; then
-  AC_MSG_WARN([Disabling SASL authentication database support])
-  SASL_DB_BACKEND="db_none.lo"
-  SASL_DB_LIB=""
-else
-  SASL_DB_BACKEND="db_${dblib}.lo"
-fi
+case "$dblib" in
+  gdbm) 
+    SASL_DB_BACKEND="db_${dblib}.lo"
+    AC_DEFINE(SASL_GDBM)
+    ;;
+  ndbm)
+    SASL_DB_BACKEND="db_${dblib}.lo"
+    AC_DEFINE(SASL_NDBM)
+    ;;
+  *)
+    AC_MSG_WARN([Disabling SASL authentication database support])
+    SASL_DB_BACKEND="db_none.lo"
+    SASL_DB_LIB=""
+    ;;
+esac
 AC_SUBST(SASL_DB_BACKEND)
 AC_SUBST(SASL_DB_LIB)
 

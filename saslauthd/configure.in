@@ -89,8 +89,7 @@ fi
 AC_ARG_WITH(ipctype, [  --with-ipctype={unix,doors}    use ipctype [unix] ],
 	with_ipctype=$withval,
 	with_ipctype="unix")
-IPCTYPE=$with_ipctype
-AC_SUBST(IPCTYPE)
+COMPAT_OBJ="$COMPAT_OBJ saslauthd-${with_ipctype}.o"
 if test "$with_ipctype" = "doors"; then
   AC_DEFINE(SASLAUTHD_THREADED)
   LIBS="$LIBS -ldoor -lpthread"
@@ -147,7 +146,6 @@ sasl_cv_getaddrinfo=no
 IPv6_CHECK_FUNC(getaddrinfo,
 		[AC_DEFINE(HAVE_GETADDRINFO)], [sasl_cv_getaddrinfo=yes])
 if test $sasl_cv_getaddrinfo = yes; then
-    COMPAT_SRC="$COMPAT_SRC getaddrinfo.c"
     COMPAT_OBJ="$COMPAT_OBJ getaddrinfo.o"
 fi
 
@@ -157,11 +155,9 @@ sasl_cv_getnameinfo=no
 IPv6_CHECK_FUNC(getnameinfo,
 		[AC_DEFINE(HAVE_GETNAMEINFO)], [sasl_cv_getnameinfo=yes])
 if test $sasl_cv_getnameinfo = yes; then
-	COMPAT_SRC="$COMPAT_SRC getnameinfo.c"
 	COMPAT_OBJ="$COMPAT_OBJ getnameinfo.o"
 fi
 
-AC_SUBST(COMPAT_SRC)
 AC_SUBST(COMPAT_OBJ)
 
 IPv6_CHECK_SS_FAMILY()

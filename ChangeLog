@@ -1,6 +1,7 @@
 2001-12-10  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* doc/plugprog.html: Update for new user canonicalization usage.
 	* man/sasl_canon_user.3: Update for new user canonicalization usage.
+	* configure.in: Actually set STATIC_GSSAPIV2 when necessary
 
 2001-12-08  Ken Murchison <ken@oceana.com>
 	* plugins/srp.c: make sure we have the HMAC before trying to use it

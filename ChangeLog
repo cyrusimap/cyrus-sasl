@@ -1,6 +1,9 @@
 2003-12-30  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/lak.c: Fix NULL pointer dereference
 	  (Simon Brady <simon.brady@otago.ac.nz>)
+	* saslauthd/lak.c, lak.h, LDAP_SASLAUTHD: Improved retry handler,
+	  Improved logging/debug messages, Fixed String checks, config
+	  option changes (Igor Brezac <igor@ipass.net>)
 
 2003-12-22  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/digestmd5.c: Fix memory leak

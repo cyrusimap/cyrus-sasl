@@ -44,8 +44,13 @@
 
 #define LAK_OK 0
 #define LAK_FAIL -1
-#define LAK_NOENT -2
-#define LAK_NOMEM -3
+#define LAK_NOMEM -2
+#define LAK_RETRY -3
+#define LAK_NOT_GROUP_MEMBER -4
+#define LAK_INVALID_PASSWORD -5
+#define LAK_USER_NOT_FOUND -6
+#define LAK_BIND_FAIL -7
+#define LAK_CONNECT_FAIL -8
 
 #define LAK_NOT_BOUND 1
 #define LAK_BOUND 2
@@ -54,7 +59,7 @@
 #define LAK_AUTH_METHOD_CUSTOM 1
 #define LAK_AUTH_METHOD_FASTBIND 2
 
-#define LAK_STRING_LEN 128
+#define LAK_BUF_LEN 128
 #define LAK_DN_LEN 512
 #define LAK_PATH_LEN 1024
 #define LAK_URL_LEN LAK_PATH_LEN
@@ -63,7 +68,7 @@ typedef struct lak_conf {
     char   path[LAK_PATH_LEN];
     char   servers[LAK_URL_LEN];
     char   bind_dn[LAK_DN_LEN];
-    char   password[LAK_STRING_LEN];
+    char   password[LAK_BUF_LEN];
     int    version;
     struct timeval timeout;
     int    size_limit;
@@ -72,25 +77,24 @@ typedef struct lak_conf {
     int    referrals;
     int    restart;
     int    scope;
-    char   default_realm[LAK_STRING_LEN];
+    char   default_realm[LAK_BUF_LEN];
     char   search_base[LAK_DN_LEN];
     char   filter[LAK_DN_LEN];
     char   group_dn[LAK_DN_LEN];
-    char   group_attr[LAK_STRING_LEN];
-    char   password_attr[LAK_STRING_LEN];
+    char   group_attr[LAK_BUF_LEN];
+    char   password_attr[LAK_BUF_LEN];
     char   auth_method;
     int    use_sasl;
-    char   sasl_authc_id[LAK_STRING_LEN];
-    char   sasl_authz_id[LAK_STRING_LEN];
-    char   sasl_password[LAK_STRING_LEN];
-    char   sasl_mech[LAK_STRING_LEN];
-    char   sasl_realm[LAK_STRING_LEN];
-    char   sasl_secprops[LAK_STRING_LEN];
+    char   id[LAK_BUF_LEN];
+    char   authz_id[LAK_BUF_LEN];
+    char   mech[LAK_BUF_LEN];
+    char   realm[LAK_BUF_LEN];
+    char   sasl_secprops[LAK_BUF_LEN];
     int    start_tls;
     int    tls_check_peer;
     char   tls_cacert_file[LAK_PATH_LEN];
     char   tls_cacert_dir[LAK_PATH_LEN];
-    char   tls_ciphers[LAK_STRING_LEN];
+    char   tls_ciphers[LAK_BUF_LEN];
     char   tls_cert[LAK_PATH_LEN];
     char   tls_key[LAK_PATH_LEN];
     int    debug;
@@ -98,11 +102,11 @@ typedef struct lak_conf {
 
 typedef struct lak_user {
     char bind_dn[LAK_DN_LEN];
-    char sasl_authc_id[LAK_STRING_LEN];
-    char sasl_authz_id[LAK_STRING_LEN];
-    char sasl_mech[LAK_STRING_LEN];
-    char sasl_realm[LAK_STRING_LEN];
-    char password[LAK_STRING_LEN];
+    char id[LAK_BUF_LEN];
+    char authz_id[LAK_BUF_LEN];
+    char mech[LAK_BUF_LEN];
+    char realm[LAK_BUF_LEN];
+    char password[LAK_BUF_LEN];
 } LAK_USER;
 
 
@@ -125,5 +129,6 @@ void lak_close(LAK *);
 int lak_authenticate(LAK *, const char *, const char *, const char *, const char *);
 int lak_retrieve(LAK *, const char *, const char *, const char *, const char **, LAK_RESULT **);
 void lak_result_free(LAK_RESULT *);
+char *lak_error(const int errno);
 
 #endif  /* _LAK_H */

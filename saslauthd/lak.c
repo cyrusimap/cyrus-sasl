@@ -87,11 +87,11 @@ static int lak_expand_tokens(const char *, const char *, const char *, const cha
 static int lak_connect(LAK *);
 static int lak_bind(LAK *, LAK_USER *);
 static void lak_unbind(LAK *);
-static int lak_search(LAK *, const char *, const char *, const char **, LDAPMessage **);
 static int lak_auth_custom(LAK *, const char *, const char *, const char *, const char *);
 static int lak_auth_bind(LAK *, const char *, const char *, const char *, const char *);
 static int lak_auth_fastbind(LAK *, const char *, const char *, const char *, const char *);
 static int lak_group_member(LAK *, const char *, const char *, const char *, const char *);
+static LAK_RESULT *lak_result_get(const LAK_RESULT *, const char *);
 static int lak_result_add(const char *, const char *, LAK_RESULT **);
 static int lak_check_password(const char *, const char *, void *);
 static int lak_check_crypt(const char *, const char *, void *);
@@ -130,6 +130,9 @@ static LAK_PASSWORD_SCHEME password_scheme[] = {
 #endif
 	{ NULL, NULL, NULL }
 };
+
+#define ISSET(x)  ((x != NULL) && (*(x) != '\0'))
+#define EMPTY(x)  ((x == NULL) || (*(x) == '\0'))
 
 static int lak_config_read(
 	LAK_CONF *conf,
@@ -183,7 +186,7 @@ static int lak_config_read(
 
 		else if (!strcasecmp(key, "ldap_bind_pw") ||
 		         !strcasecmp(key, "ldap_password"))
-			strlcpy(conf->password, p, LAK_STRING_LEN);
+			strlcpy(conf->password, p, LAK_BUF_LEN);
 
 		else if (!strcasecmp(key, "ldap_version"))
 			conf->version = lak_config_int(p);
@@ -198,14 +201,14 @@ static int lak_config_read(
 			strlcpy(conf->group_dn, p, LAK_DN_LEN);
 		
 		else if (!strcasecmp(key, "ldap_group_attr"))
-			strlcpy(conf->group_attr, p, LAK_STRING_LEN);
+			strlcpy(conf->group_attr, p, LAK_BUF_LEN);
 
 		else if (!strcasecmp(key, "ldap_password_attr"))
-			strlcpy(conf->password_attr, p, LAK_STRING_LEN);
+			strlcpy(conf->password_attr, p, LAK_BUF_LEN);
 
 		else if (!strcasecmp(key, "ldap_default_realm") ||
 		         !strcasecmp(key, "ldap_default_domain"))
-			strlcpy(conf->default_realm, p, LAK_STRING_LEN);
+			strlcpy(conf->default_realm, p, LAK_BUF_LEN);
 
 		else if (!strcasecmp(key, "ldap_auth_method")) {
 			if (!strcasecmp(p, "custom")) {
@@ -251,20 +254,24 @@ static int lak_config_read(
 		} else if (!strcasecmp(key, "ldap_use_sasl")) {
 			conf->use_sasl = lak_config_switch(p);
 
-		} else if (!strcasecmp(key, "ldap_sasl_authc_id"))
-			strlcpy(conf->sasl_authc_id, p, LAK_STRING_LEN);
+		} else if (!strcasecmp(key, "ldap_id") ||
+                   !strcasecmp(key, "ldap_sasl_authc_id"))
+			strlcpy(conf->id, p, LAK_BUF_LEN);
 
-		else if (!strcasecmp(key, "ldap_sasl_authz_id"))
-			strlcpy(conf->sasl_authz_id, p, LAK_STRING_LEN);
+		else if (!strcasecmp(key, "ldap_authz_id") ||
+                 !strcasecmp(key, "ldap_sasl_authz_id"))
+			strlcpy(conf->authz_id, p, LAK_BUF_LEN);
 
-		else if (!strcasecmp(key, "ldap_sasl_realm"))
-			strlcpy(conf->sasl_realm, p, LAK_STRING_LEN);
+		else if (!strcasecmp(key, "ldap_realm") ||
+                 !strcasecmp(key, "ldap_sasl_realm"))
+			strlcpy(conf->realm, p, LAK_BUF_LEN);
 
-		else if (!strcasecmp(key, "ldap_sasl_mech"))
-			strlcpy(conf->sasl_mech, p, LAK_STRING_LEN);
+		else if (!strcasecmp(key, "ldap_mech") ||
+                 !strcasecmp(key, "ldap_sasl_mech"))
+			strlcpy(conf->mech, p, LAK_BUF_LEN);
 
 		else if (!strcasecmp(key, "ldap_sasl_secprops"))
-			strlcpy(conf->sasl_secprops, p, LAK_STRING_LEN);
+			strlcpy(conf->sasl_secprops, p, LAK_BUF_LEN);
 
 		else if (!strcasecmp(key, "ldap_start_tls"))
 			conf->start_tls = lak_config_switch(p);
@@ -279,7 +286,7 @@ static int lak_config_read(
 			strlcpy(conf->tls_cacert_dir, p, LAK_PATH_LEN);
 
 		else if (!strcasecmp(key, "ldap_tls_ciphers"))
-			strlcpy(conf->tls_ciphers, p, LAK_STRING_LEN);
+			strlcpy(conf->tls_ciphers, p, LAK_BUF_LEN);
 
 		else if (!strcasecmp(key, "ldap_tls_cert"))
 			strlcpy(conf->tls_cert, p, LAK_PATH_LEN);
@@ -295,6 +302,10 @@ static int lak_config_read(
 	    (conf->use_sasl ||
 	     conf->start_tls))
 	    conf->version = LDAP_VERSION3;
+
+    if (conf->use_sasl &&
+        conf->auth_method == LAK_AUTH_METHOD_BIND)
+        conf->auth_method = LAK_AUTH_METHOD_FASTBIND;
 
 	fclose(infile);
 
@@ -340,11 +351,11 @@ static int lak_config(
 
 	memset(conf, 0, sizeof(LAK_CONF));
 
-	strlcpy(conf->servers, "ldap://localhost/", LAK_STRING_LEN);
+	strlcpy(conf->servers, "ldap://localhost/", LAK_BUF_LEN);
 	conf->version = LDAP_VERSION3;
 	strlcpy(conf->filter, "(uid=%u)", LAK_DN_LEN);
-	strlcpy(conf->group_attr, "uniqueMember", LAK_STRING_LEN);
-	strlcpy(conf->password_attr, "userPassword", LAK_STRING_LEN);
+	strlcpy(conf->group_attr, "uniqueMember", LAK_BUF_LEN);
+	strlcpy(conf->password_attr, "userPassword", LAK_BUF_LEN);
 	conf->auth_method = LAK_AUTH_METHOD_BIND;
 	conf->timeout.tv_sec = 5;
 	conf->timeout.tv_usec = 0;
@@ -512,7 +523,7 @@ static int lak_expand_tokens(
 	int percents, service_len, realm_len, user_len, maxparamlength;
 	
 	if (pattern == NULL) {
-		syslog(LOG_WARNING|LOG_AUTH, "filter pattern not setup");
+		syslog(LOG_ERR|LOG_AUTH, "filter pattern not setup");
 		return LAK_FAIL;
 	}
 
@@ -533,10 +544,8 @@ static int lak_expand_tokens(
 	/* percents * 3 * maxparamlength because we need to account for
          * an entirely-escaped worst-case-length parameter */
 	buf=malloc(strlen(pattern) + (percents * 3 * maxparamlength) +1);
-	if(buf == NULL) {
-		syslog(LOG_ERR|LOG_AUTH, "Cannot allocate memory");
+	if(buf == NULL)
 		return LAK_NOMEM;
-	}
 	buf[0] = '\0';
 	
 	ptr = (char *)pattern;
@@ -548,7 +557,7 @@ static int lak_expand_tokens(
 			strncat(buf, ptr, temp-ptr);
 
 		if ((temp+1) >= end) {
-			syslog(LOG_WARNING|LOG_AUTH, "Incomplete lookup substitution format");
+			syslog(LOG_DEBUG|LOG_AUTH, "Incomplete lookup substitution format");
 			break;
 		}
 
@@ -557,18 +566,17 @@ static int lak_expand_tokens(
 				strncat(buf,temp+1,1);
 				break;
 			case 'u':
-				if (username!=NULL) {
+				if (ISSET(username)) {
 					rc=lak_escape(username, strlen(username), &ebuf);
 					if (rc == LAK_OK) {
 						strcat(buf,ebuf);
 						free(ebuf);
 					}
-				} else {
-					syslog(LOG_WARNING|LOG_AUTH, "Username not available.");
-				}
+				} else
+					syslog(LOG_DEBUG|LOG_AUTH, "Username not available.");
 				break;
 			case 'U':
-				if (username!=NULL) {
+				if (ISSET(username)) {
 					
 					user = strchr(username, '@');
 					rc=lak_escape(username, (user ? user - username : strlen(username)), &ebuf);
@@ -576,9 +584,8 @@ static int lak_expand_tokens(
 						strcat(buf,ebuf);
 						free(ebuf);
 					}
-				} else {
-					syslog(LOG_WARNING|LOG_AUTH, "Username not available.");
-				}
+				} else
+					syslog(LOG_DEBUG|LOG_AUTH, "Username not available.");
 				break;
 			case '1':
 			case '2':
@@ -589,18 +596,17 @@ static int lak_expand_tokens(
 			case '7':
 			case '8':
 			case '9':
-				if (username!=NULL && (domain = strchr(username, '@')) && domain[1]!='\0') {
+				if (ISSET(username) && (domain = strchr(username, '@')) && domain[1]!='\0') {
 					rc=lak_tokenize_domains(domain+1, (int) *(temp+1)-48, &ebuf);
 					if (rc == LAK_OK) {
 						strcat(buf,ebuf);
 						free(ebuf);
 					}
-				} else {
-					syslog(LOG_WARNING|LOG_AUTH, "Domain tokens not available.");
-				}
+				} else
+					syslog(LOG_DEBUG|LOG_AUTH, "Domain tokens not available.");
 				break;
 			case 'd':
-				if (username!=NULL && (domain = strchr(username, '@')) && domain[1]!='\0') {
+				if (ISSET(username) && (domain = strchr(username, '@')) && domain[1]!='\0') {
 					rc=lak_escape(domain+1, strlen(domain+1), &ebuf);
 					if (rc == LAK_OK) {
 						strcat(buf,ebuf);
@@ -609,26 +615,24 @@ static int lak_expand_tokens(
 					break;
 				} 
 			case 'r':
-				if (realm!=NULL) {
+				if (ISSET(realm)) {
 					rc = lak_escape(realm, strlen(realm), &ebuf);
 					if (rc == LAK_OK) {
 						strcat(buf,ebuf);
 						free(ebuf);
 					}
-				} else {
-					syslog(LOG_WARNING|LOG_AUTH, "Domain/Realm not available.");
-				}
+				} else
+					syslog(LOG_DEBUG|LOG_AUTH, "Domain/Realm not available.");
 				break;
 			case 's':
-				if (service!=NULL) {
+				if (ISSET(service)) {
 					rc = lak_escape(service, strlen(service), &ebuf);
 					if (rc == LAK_OK) {
 						strcat(buf,ebuf);
 						free(ebuf);
 					}
-				} else {
-					syslog(LOG_WARNING|LOG_AUTH, "Service not available.");
-				}
+				} else
+					syslog(LOG_DEBUG|LOG_AUTH, "Service not available.");
 				break;
 			default:
 				break;
@@ -657,10 +661,8 @@ int lak_init(
 	}
 
 	lak = (LAK *)malloc(sizeof(LAK));
-	if (lak == NULL) {
-		syslog(LOG_ERR|LOG_AUTH, "Cannot allocate memory");
+	if (lak == NULL)
 		return LAK_NOMEM;
-	}
 
 	lak->status=LAK_NOT_BOUND;
 	lak->ld=NULL;
@@ -707,14 +709,14 @@ static int lak_connect(
 	int rc = 0;
 	char *p = NULL;
 
-	if (lak->conf->tls_cacert_file != NULL) {
+	if (ISSET(lak->conf->tls_cacert_file)) {
 		rc = ldap_set_option (NULL, LDAP_OPT_X_TLS_CACERTFILE, lak->conf->tls_cacert_file);
 		if (rc != LDAP_SUCCESS) {
 			syslog (LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_X_TLS_CACERTFILE (%s).", ldap_err2string (rc));
 		}
 	}
 
-	if (lak->conf->tls_cacert_dir != NULL) {
+	if (ISSET(lak->conf->tls_cacert_dir)) {
 		rc = ldap_set_option (NULL, LDAP_OPT_X_TLS_CACERTDIR, lak->conf->tls_cacert_dir);
 		if (rc != LDAP_SUCCESS) {
 			syslog (LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_X_TLS_CACERTDIR (%s).", ldap_err2string (rc));
@@ -728,7 +730,7 @@ static int lak_connect(
 		}
 	}
 
-	if (lak->conf->tls_ciphers != NULL) {
+	if (ISSET(lak->conf->tls_ciphers)) {
 		/* set cipher suite, certificate and private key: */
 		rc = ldap_set_option(NULL, LDAP_OPT_X_TLS_CIPHER_SUITE, lak->conf->tls_ciphers);
 		if (rc != LDAP_SUCCESS) {
@@ -736,14 +738,14 @@ static int lak_connect(
 		}
 	}
 
-	if (lak->conf->tls_cert != NULL) {
+	if (ISSET(lak->conf->tls_cert)) {
 		rc = ldap_set_option(NULL, LDAP_OPT_X_TLS_CERTFILE, lak->conf->tls_cert);
 		if (rc != LDAP_SUCCESS) {
 			syslog (LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_X_TLS_CERTFILE (%s).", ldap_err2string (rc));
 		}
 	}
 
-	if (lak->conf->tls_key != NULL) {
+	if (ISSET(lak->conf->tls_key)) {
 		rc = ldap_set_option(NULL, LDAP_OPT_X_TLS_KEYFILE, lak->conf->tls_key);
 		if (rc != LDAP_SUCCESS) {
 			syslog (LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_X_TLS_KEYFILE (%s).", ldap_err2string (rc));
@@ -753,7 +755,7 @@ static int lak_connect(
 	rc = ldap_initialize(&lak->ld, lak->conf->servers);
 	if (rc != LDAP_SUCCESS) {
 		syslog(LOG_ERR|LOG_AUTH, "ldap_initialize failed (%s)", lak->conf->servers);
-		return LAK_FAIL;
+		return LAK_CONNECT_FAIL;
 	}
 
 	if (lak->conf->debug) {
@@ -769,7 +771,7 @@ static int lak_connect(
 		    lak->conf->start_tls) {
 			syslog(LOG_ERR|LOG_AUTH, "Failed to set LDAP_OPT_PROTOCOL_VERSION %d, required for ldap_start_tls and ldap_use_sasl.", lak->conf->version);
 			lak_unbind(lak);
-			return LAK_FAIL;
+			return LAK_CONNECT_FAIL;
 		} else
 			syslog(LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_PROTOCOL_VERSION %d.", lak->conf->version);
 
@@ -812,30 +814,30 @@ static int lak_connect(
 		if (rc != LDAP_SUCCESS) {
 			syslog(LOG_ERR|LOG_AUTH, "start tls failed (%s).", ldap_err2string(rc));
 			lak_unbind(lak);
-			return LAK_FAIL;
+			return LAK_CONNECT_FAIL;
 		}
 	}
 	
 	if (lak->conf->use_sasl) {
 
-		if (lak->conf->sasl_mech == NULL) {
+		if (ISSET(lak->conf->mech)) {
 			ldap_get_option(lak->ld, LDAP_OPT_X_SASL_MECH, &p);
 			if (p)
-				strlcpy(lak->conf->sasl_mech, p, LAK_STRING_LEN);
+				strlcpy(lak->conf->mech, p, LAK_BUF_LEN);
 		}
 
-		if (lak->conf->sasl_realm == NULL) {
+		if (ISSET(lak->conf->realm)) {
 			ldap_get_option(lak->ld, LDAP_OPT_X_SASL_REALM, &p);
 			if (p)
-				strlcpy(lak->conf->sasl_realm, p, LAK_STRING_LEN);
+				strlcpy(lak->conf->realm, p, LAK_BUF_LEN);
 		}
 
-		if (lak->conf->sasl_secprops != NULL) {
+		if (ISSET(lak->conf->sasl_secprops)) {
 			rc = ldap_set_option(lak->ld, LDAP_OPT_X_SASL_SECPROPS, (void *) lak->conf->sasl_secprops);
 			if( rc != LDAP_OPT_SUCCESS ) {
 				syslog(LOG_ERR|LOG_AUTH, "Unable to set LDAP_OPT_X_SASL_SECPROPS.");
 				lak_unbind(lak);
-				return LAK_FAIL;
+				return LAK_CONNECT_FAIL;
 			}
 		}
 	}
@@ -846,10 +848,10 @@ static int lak_connect(
 
 static int lak_user(
 	const char *bind_dn, 
-	const char *sasl_authc_id, 
-	const char *sasl_authz_id, 
-	const char *sasl_mech, 
-	const char *sasl_realm, 
+	const char *id, 
+	const char *authz_id, 
+	const char *mech, 
+	const char *realm, 
 	const char *password, 
 	LAK_USER **ret)
 {
@@ -863,23 +865,23 @@ static int lak_user(
 
 	memset(lu, 0, sizeof(LAK_USER));
 
-	if (bind_dn)
+	if (ISSET(bind_dn))
 		strlcpy(lu->bind_dn, bind_dn, LAK_DN_LEN);
 
-	if (sasl_authc_id)
-		strlcpy(lu->sasl_authc_id, sasl_authc_id, LAK_STRING_LEN);
+	if (ISSET(id))
+		strlcpy(lu->id, id, LAK_BUF_LEN);
 
-	if (sasl_authz_id)
-		strlcpy(lu->sasl_authz_id, sasl_authz_id, LAK_STRING_LEN);
+	if (ISSET(authz_id))
+		strlcpy(lu->authz_id, authz_id, LAK_BUF_LEN);
 
-	if (sasl_mech)
-		strlcpy(lu->sasl_mech, sasl_mech, LAK_STRING_LEN);
+	if (ISSET(mech))
+		strlcpy(lu->mech, mech, LAK_BUF_LEN);
 
-	if (sasl_realm)
-		strlcpy(lu->sasl_realm, sasl_realm, LAK_STRING_LEN);
+	if (ISSET(realm))
+		strlcpy(lu->realm, realm, LAK_BUF_LEN);
 
-	if (password)
-		strlcpy(lu->password, password, LAK_STRING_LEN);
+	if (ISSET(password))
+		strlcpy(lu->password, password, LAK_BUF_LEN);
 	
 	*ret = lu;
 	return LAK_OK;
@@ -952,28 +954,28 @@ static int lak_sasl_interact(
 		p = NULL;
 		switch(in->id) {
 			case SASL_CB_AUTHNAME:
-				if (*lu->sasl_authc_id != '\0')
-					p = lu->sasl_authc_id;
+				if (ISSET(lu->id))
+					p = lu->id;
 				if (!p)
 					ldap_get_option( ld, LDAP_OPT_X_SASL_AUTHCID, &p);
 				break;
 			case SASL_CB_USER:
-				if (*lu->sasl_authz_id != '\0')
-					p = lu->sasl_authz_id;
+				if (ISSET(lu->authz_id))
+					p = lu->authz_id;
 				if (!p)
 					ldap_get_option( ld, LDAP_OPT_X_SASL_AUTHZID, &p);
 				break;
 			case SASL_CB_GETREALM:
-				if (*lu->sasl_realm != '\0')
-					p = lu->sasl_realm;
+				if (ISSET(lu->realm))
+					p = lu->realm;
 				break;          
 			case SASL_CB_PASS:
-				if (*lu->password != '\0')
+				if (ISSET(lu->password))
 					p = lu->password;
 				break;
 		}
 
-		in->result = (p && *p) ? p : "";
+		in->result = ISSET(p) ? p : "";
 		in->len = strlen(in->result);
 	}
 
@@ -993,17 +995,15 @@ static int lak_bind(
 	    (lak_user_cmp(lak->user, user) == LAK_OK))
 		return LAK_OK;
 
+	lak_user_free(lak->user);
+	lak->user = NULL;
+
 	if (lak->conf->use_sasl ||
 	    lak->conf->version == LDAP_VERSION2) 
 		lak->status = LAK_NOT_BOUND;
 
-	lak_user_free(lak->user);
-	lak->user = NULL;
-
 	if (lak->status == LAK_NOT_BOUND) {
-
 		lak_unbind(lak);
-
 		rc = lak_connect(lak);
 		if (rc != LAK_OK)
 			return rc;
@@ -1013,7 +1013,7 @@ static int lak_bind(
 		rc = ldap_sasl_interactive_bind_s(
 			lak->ld, 
 			user->bind_dn,
-			user->sasl_mech, 
+			user->mech, 
 			NULL, 
 			NULL, 
 			LDAP_SASL_QUIET, 
@@ -1025,13 +1025,18 @@ static int lak_bind(
 	switch (rc) {
 		case LDAP_SUCCESS:
 			break;
+        case LDAP_INVALID_CREDENTIALS:
+        case LDAP_INSUFFICIENT_ACCESS:
+        case LDAP_INVALID_DN_SYNTAX:
+			lak->status = LAK_NOT_BOUND;
+            return LAK_BIND_FAIL;
 		case LDAP_TIMEOUT:
 		case LDAP_SERVER_DOWN:
 		default:
 			syslog(LOG_DEBUG|LOG_AUTH,
-				   (lak->conf->use_sasl ? "ldap_sasl_bind() failed %d (%s)." : "ldap_simple_bind() failed %d (%s)."), rc, ldap_err2string(rc));
+				   (lak->conf->use_sasl ? "ldap_sasl_interactive_bind() failed %d (%s)." : "ldap_simple_bind() failed %d (%s)."), rc, ldap_err2string(rc));
 			lak->status = LAK_NOT_BOUND;
-			return LAK_FAIL;
+			return LAK_RETRY;
 	}
 
 	rc = lak_user_copy(&(lak->user), user);
@@ -1061,94 +1066,6 @@ static void lak_unbind(
 	return;
 }
 
-static int lak_search(
-	LAK *lak,
-	const char *search_base, 
-	const char *filter, 
-	const char **attrs, 
-	LDAPMessage **res)
-{
-	int rc, lrc;
-	int retry = 1;
-	LAK_USER *lu = NULL;
-
-	*res = NULL;
-
-	rc = lak_user(	
-		lak->conf->bind_dn,
-		lak->conf->sasl_authc_id,
-		lak->conf->sasl_authz_id,
-		lak->conf->sasl_mech,
-		lak->conf->sasl_realm,
-		lak->conf->password,
-		&lu);
-	if (rc != LAK_OK) {
-		syslog(LOG_ERR|LOG_AUTH, "lak_user() failed.");
-		return LAK_FAIL;
-	}
-
-retry:;
-	if (*res) {
-		ldap_msgfree(*res);
-		*res = NULL;
-	}
-
-	rc = lak_bind(lak, lu);
-	if (rc != LAK_OK) {
-        if (retry) {
-            retry--;
-            goto retry;
-        }
-		syslog(LOG_WARNING|LOG_AUTH, "lak_bind() failed");
-		goto done;
-	}
-
-	rc = LAK_FAIL;
-	lrc = ldap_search_st(lak->ld, search_base, lak->conf->scope, filter, (char **) attrs, 0, &(lak->conf->timeout), res);
-	switch (lrc) {
-		case LDAP_NO_SUCH_OBJECT:
-			syslog(LOG_DEBUG|LOG_AUTH, "Entry not found (%s).", filter);
-		case LDAP_SUCCESS:
-			break;
-		case LDAP_TIMELIMIT_EXCEEDED:
-		case LDAP_BUSY:
-		case LDAP_UNAVAILABLE:
-		case LDAP_INSUFFICIENT_ACCESS:
-			/*  We do not need to re-connect to the LDAP server 
-			    under these conditions */
-			syslog(LOG_ERR|LOG_AUTH, "ldap_search_st() failed: %s", ldap_err2string(lrc));
-			goto done;
-		case LDAP_TIMEOUT:
-		case LDAP_SERVER_DOWN:
-			if (retry) {
-				syslog(LOG_WARNING|LOG_AUTH, "ldap_search_st() failed: %s. Trying to reconnect.", ldap_err2string(lrc));
-				lak->status = LAK_NOT_BOUND;
-				retry--;
-				goto retry;
-			}
-		default:
-			syslog(LOG_ERR|LOG_AUTH, "ldap_search_st() failed: %s", ldap_err2string(lrc));
-			lak->status = LAK_NOT_BOUND;
-			goto done;
-	}
-
-	if (lrc == LDAP_SUCCESS && (ldap_count_entries(lak->ld, *res)) == 1)
-		rc = LAK_OK;
-	else
-		syslog(LOG_DEBUG|LOG_AUTH, "Entry not found or search returned more than one entry (%s).", filter);
-	
-done:
-	if (rc != LAK_OK && *res) {
-		ldap_msgfree(*res);
-		*res = NULL;
-	}
-
-	if (lu)
-		lak_user_free(lu);
-
-	return rc;
-}
-
 /* 
  * lak_retrieve - retrieve user@realm values specified by 'attrs'
  */
@@ -1166,72 +1083,126 @@ int lak_retrieve(
 	LDAPMessage *res = NULL;
 	LDAPMessage *entry = NULL;
 	BerElement *ber = NULL;
-	char *attr = NULL, **vals = NULL;
+	char *attr = NULL, **vals = NULL, *dn = NULL;
+	LAK_USER *lu = NULL;
+    const char *dn_attr = "dn";
     
-    	*ret = NULL;
+    *ret = NULL;
 
 	if (lak == NULL) {
 		syslog(LOG_ERR|LOG_AUTH, "lak_init did not run.");
 		return LAK_FAIL;
 	}
 
-	if (user == NULL || user[0] == '\0') {
+	if (EMPTY(user))
 		return LAK_FAIL;
-	}
 
-	if (realm == NULL || realm[0] == '\0')
+	if (EMPTY(realm))
 		realm = lak->conf->default_realm;
 
-	rc = lak_expand_tokens(lak->conf->filter, user, service, realm, &filter);
-	if (rc != LAK_OK) {
-		syslog(LOG_WARNING|LOG_AUTH, "lak_expand_tokens(filter) failed.");
+	rc = lak_user(	
+		lak->conf->bind_dn,
+		lak->conf->id,
+		lak->conf->authz_id,
+		lak->conf->mech,
+		lak->conf->realm,
+		lak->conf->password,
+		&lu);
+	if (rc != LAK_OK)
 		return rc;
-	}
+
+	rc = lak_bind(lak, lu);
+	if (rc != LAK_OK)
+		goto done;
+
+	rc = lak_expand_tokens(lak->conf->filter, user, service, realm, &filter);
+	if (rc != LAK_OK)
+        goto done;
 
 	rc = lak_expand_tokens(lak->conf->search_base, user, service, realm, &search_base);
-	if (rc != LAK_OK) {
-		syslog(LOG_WARNING|LOG_AUTH, "lak_expand_tokens(search_base) failed.");
-		return rc;
+	if (rc != LAK_OK)
+        goto done;
+
+	rc = ldap_search_st(lak->ld, search_base, lak->conf->scope, filter, (char **) attrs, 0, &(lak->conf->timeout), &res);
+	switch (rc) {
+		case LDAP_SUCCESS:
+		case LDAP_NO_SUCH_OBJECT:
+			break;
+		case LDAP_TIMELIMIT_EXCEEDED:
+		case LDAP_BUSY:
+		case LDAP_UNAVAILABLE:
+		case LDAP_INSUFFICIENT_ACCESS:
+			/*  We do not need to re-connect to the LDAP server 
+			    under these conditions */
+			syslog(LOG_ERR|LOG_AUTH, "ldap_search_st() failed: %s", ldap_err2string(rc));
+            rc = LAK_USER_NOT_FOUND;
+			goto done;
+		case LDAP_TIMEOUT:
+		case LDAP_SERVER_DOWN:
+		default:
+			syslog(LOG_ERR|LOG_AUTH, "ldap_search_st() failed: %s", ldap_err2string(rc));
+            rc = LAK_RETRY;
+			lak->status = LAK_NOT_BOUND;
+			goto done;
 	}
 
-	rc = lak_search(lak, search_base, filter, attrs, &res);
-	if (rc != LAK_OK) {
-		goto done;
-	}
+    i = ldap_count_entries(lak->ld, res);
+    if (i != 1) {
+        if (i == 0)
+			syslog(LOG_DEBUG|LOG_AUTH, "Entry not found (%s).", filter);
+        else
+            syslog(LOG_DEBUG|LOG_AUTH, "Duplicate entries found (%s).", filter);
+        rc = LAK_USER_NOT_FOUND;
+        goto done;
+    }
+	
+    rc = LAK_FAIL;
 
-	entry = ldap_first_entry(lak->ld, res); 
-	if (entry == NULL) {
-		syslog(LOG_WARNING|LOG_AUTH, "ldap_first_entry() failed.");
-		goto done;
-	}
+	if ((entry = ldap_first_entry(lak->ld, res)) != NULL)  {
+        for (i=0; attrs[i] != NULL; i++) {
+            
+            if (!strcmp(attrs[i], dn_attr)) {
+                dn = ldap_get_dn(lak->ld, entry);
+                if (dn == NULL)
+                    goto done;
 
-	rc = LAK_OK;
-	for (attr = ldap_first_attribute(lak->ld, entry, &ber); attr != NULL; 
-		attr = ldap_next_attribute(lak->ld, entry, ber)) {
+                rc = lak_result_add(dn_attr, dn, ret);
+                if (rc != LAK_OK) {
+                    lak_result_free(*ret);
+                    *ret = NULL;
+                    goto done;
+                }
+            }
+        }
 
-		vals = ldap_get_values(lak->ld, entry, attr);
-		if (vals == NULL) {
-			continue;
-		}
+        for (attr = ldap_first_attribute(lak->ld, entry, &ber); attr != NULL; 
+            attr = ldap_next_attribute(lak->ld, entry, ber)) {
 
-		for (i = 0; vals[i] != NULL; i++) {
-			rc = lak_result_add(attr, vals[i], ret);
-			if (rc != LAK_OK) {
-				lak_result_free(*ret);
-				*ret = NULL;
-				goto done;
-			}
-		}
+            vals = ldap_get_values(lak->ld, entry, attr);
+            if (vals == NULL)
+                continue;
 
-		ldap_value_free(vals);
-        vals = NULL;
-		ldap_memfree(attr);
-        attr = NULL;
-	}
+            for (i = 0; vals[i] != NULL; i++) {
+                rc = lak_result_add(attr, vals[i], ret);
+                if (rc != LAK_OK) {
+                    lak_result_free(*ret);
+                    *ret = NULL;
+                    goto done;
+                }
+            }
+
+            ldap_value_free(vals);
+            vals = NULL;
+            ldap_memfree(attr);
+            attr = NULL;
+        }
+    }
 
 done:;
 	if (res)
 		ldap_msgfree(res);
+	if (dn)
+		ldap_memfree(dn);
 	if (vals)
 		ldap_value_free(vals);
 	if (attr)
@@ -1242,9 +1213,8 @@ done:;
 		free(filter);
 	if (search_base)
 		free(search_base);
-
-	if (*ret == NULL)
-		return LAK_NOENT;
+	if (lu)
+		lak_user_free(lu);
 
 	return rc;
 }
@@ -1256,21 +1226,54 @@ static int lak_group_member(
 	const char *realm, 
 	const char *dn)
 {
-	char *group;
+	char *group, *mydn;
+	struct berval *dn_bv = NULL;
 	int rc;
+    LAK_RESULT *lres = NULL;
+    const char *attrs[] = { "dn", NULL };
+
+    mydn = (char *)dn;
 
 	rc = lak_expand_tokens(lak->conf->group_dn, user, service, realm, &group);
-	if (rc != LAK_OK) {
-		syslog(LOG_WARNING|LOG_AUTH, "lak_expand_tokens(group) failed.");
-		return LAK_FAIL;
-	}
+	if (rc != LAK_OK)
+		return rc;
 
-	rc = ldap_compare_s(lak->ld, group, lak->conf->group_attr, dn);
+    if (EMPTY(mydn)) {
+        if (lak->conf->use_sasl) {
+#if LDAP_VENDOR_VERSION >= 20122
+            if (ldap_whoami_s(lak->ld, &dn_bv, NULL, NULL) != LDAP_SUCCESS || !dn_bv) {
+                syslog(LOG_ERR|LOG_AUTH, "ldap_whoami_s() failed.");
+                free(group);
+                return LAK_NOT_GROUP_MEMBER;
+            }
+
+            mydn = dn_bv->bv_val;
+#else
+            syslog(LOG_ERR|LOG_AUTH, "Your OpenLDAP API does not supported ldap_whoami().");
+            free(group);
+            return LAK_NOT_GROUP_MEMBER;
+#endif
+        } else {
+            rc = lak_retrieve(lak, user, service, realm, attrs, &lres);
+            if (rc != LAK_OK) {
+                free(group);
+                return rc;
+            }
+
+            mydn = lres->value;
+        }
+    }
+
+	rc = ldap_compare_s(lak->ld, group, lak->conf->group_attr, mydn);
+
 	free(group);
-	if (rc != LDAP_COMPARE_TRUE) {
-		syslog(LOG_WARNING|LOG_AUTH, "ldap_compare_s() for group failed.");
-		rc = LAK_FAIL;
-	}
+    if (lres)
+        lak_result_free(lres);
+    if (dn_bv)
+        ber_bvfree(dn_bv);
+
+	if (rc != LDAP_COMPARE_TRUE)
+		return LAK_NOT_GROUP_MEMBER;
 
 	return LAK_OK;
 }
@@ -1282,43 +1285,20 @@ static int lak_auth_custom(
 	const char *realm,
 	const char *password) 
 {
-	LAK_RESULT *lres, *ptr;
+	LAK_RESULT *lres;
 	int rc;
-	const char *attrs[] = {"dn", lak->conf->password_attr, NULL};
+	const char *attrs[] = { lak->conf->password_attr, NULL};
 	char *dn = NULL;
 
 	rc = lak_retrieve(lak, user, service, realm, attrs, &lres);
-	if (rc != LAK_OK) {
+	if (rc != LAK_OK)
 		return rc;
-	}
 
-	rc = LAK_FAIL;
-
-	for (ptr = lres; ptr != NULL; ptr = ptr->next) {
-		
-		if (strcasecmp(ptr->attribute, lak->conf->password_attr))
-			continue;
-
-		rc = lak_check_password(ptr->value, password, NULL);
-		if (rc == LAK_OK) {
-			break;
-		}
-	}
+    rc = lak_check_password(lres->value, password, NULL);
 
 	if (rc == LAK_OK &&
-	    lak->conf->group_dn != NULL && *(lak->conf->group_dn) != '\0') {
-
-		rc = LAK_FAIL;
-
-		for (ptr = lres; ptr != NULL; ptr = ptr->next)
-			if (!strcasecmp(ptr->attribute, "dn")) {
-				rc = lak_group_member(lak, user, service, realm, dn);
-				break;
-			}
-
-		if (rc != LAK_OK)
-			syslog(LOG_WARNING|LOG_AUTH, "Group check failed.");
-	}
+	    ISSET(lak->conf->group_dn))
+        rc = lak_group_member(lak, user, service, realm, NULL);
 	
 	lak_result_free(lres);
 
@@ -1332,77 +1312,37 @@ static int lak_auth_bind(
 	const char *realm,
 	const char *password) 
 {
-	char *filter;
-	char *search_base;
+    LAK_USER *lu = NULL;
+	LAK_RESULT *dn = NULL;
 	int rc;
-	char *dn = NULL;
-	LAK_USER *lu = NULL;
-	LDAPMessage *res = NULL, *entry = NULL;
+	const char *attrs[] = {"dn", NULL};
 
-	rc = lak_expand_tokens(lak->conf->filter, user, service, realm, &filter);
-	if (rc != LAK_OK) {
-		syslog(LOG_WARNING|LOG_AUTH, "lak_expand_tokens(filter) failed.");
-		return rc;
-	}
-
-	rc = lak_expand_tokens(lak->conf->search_base, user, service, realm, &search_base);
-	if (rc != LAK_OK) {
-		syslog(LOG_WARNING|LOG_AUTH, "lak_expand_tokens(search_base) failed.");
-		return rc;
-	}
-
-	rc = lak_search(lak, search_base, filter, NULL, &res);
-	if (rc != LAK_OK) {
+	rc = lak_retrieve(lak, user, service, realm, attrs, &dn);
+	if (rc != LAK_OK)
 		goto done;
-	}
-
-	entry = ldap_first_entry(lak->ld, res); 
-	if (entry == NULL) {
-		syslog(LOG_WARNING|LOG_AUTH, "ldap_first_entry().");
-		goto done;
-	}
-
-	dn = ldap_get_dn(lak->ld, res);
-	if (dn == NULL) {
-		syslog(LOG_ERR|LOG_AUTH, "ldap_get_dn() failed.");
-		goto done;
-	}
 
 	rc = lak_user(	
-		dn,
+		dn->value,
 		NULL,
 		NULL,
-		lak->conf->sasl_mech,
-		lak->conf->sasl_realm,
+		NULL,
+		NULL,
 		password,
 		&lu);
-	if (rc != LAK_OK) {
-		syslog(LOG_ERR|LOG_AUTH, "lak_user() failed.");
+	if (rc != LAK_OK)
 		goto done;
-	}
 
 	rc = lak_bind(lak, lu);
 
 	if (rc == LAK_OK &&
-	    lak->conf->group_dn != NULL && *(lak->conf->group_dn) != '\0') {
-
-		rc = lak_group_member(lak, user, service, realm, dn);
-
-		if (rc != LAK_OK)
-			syslog(LOG_WARNING|LOG_AUTH, "Group check failed.");
-	}
+	    ISSET(lak->conf->group_dn))
+		rc = lak_group_member(lak, user, service, realm, dn->value);
 
 done:;
 	if (lu)
 		lak_user_free(lu);
-	if (res)
-		ldap_msgfree(res);
 	if (dn)
-		ldap_memfree(dn);
-	if (filter)
-		free(filter);
-	if (search_base)
-		free(search_base);
+		lak_result_free(dn);
 
 	return rc;
 }
@@ -1415,85 +1355,52 @@ static int lak_auth_fastbind(
 	const char *password) 
 {
 	int rc;
-	struct berval *retdn = NULL;
 	LAK_USER *lu = NULL;
 	char *dn = NULL;
-	char authc_id[LAK_STRING_LEN];
-	char *sasl_mech = NULL;
-	char *sasl_realm = NULL;
+	char id[LAK_BUF_LEN];
 
 	if (lak->conf->use_sasl) {
 
-		sasl_mech = lak->conf->sasl_mech;
-		sasl_realm = lak->conf->sasl_realm;
-
 		if (strchr(user, '@'))
-			strlcpy(authc_id, user, LAK_STRING_LEN);
+			strlcpy(id, user, LAK_BUF_LEN);
 		else if (realm || lak->conf->default_realm) {
-			strlcpy(authc_id, user, LAK_STRING_LEN);
-			if ((realm && realm[0] != '\0') ||
-			     lak->conf->default_realm[0] != '\0') {
-				strlcat(authc_id, "@", LAK_STRING_LEN);
-				strlcat(authc_id, (realm && realm[0] != '\0' ? 
-				                   realm : lak->conf->default_realm), LAK_STRING_LEN);
+			strlcpy(id, user, LAK_BUF_LEN);
+			if (ISSET(realm) ||
+			    ISSET(lak->conf->default_realm)) {
+				strlcat(id, "@", LAK_BUF_LEN);
+				strlcat(id, (ISSET(realm) ?
+				                   realm : lak->conf->default_realm), LAK_BUF_LEN);
 			}
 		}
 	} else {
 		rc = lak_expand_tokens(lak->conf->filter, user, service, realm, &dn);
-		if (rc != LAK_OK || dn == NULL) {
-			syslog(LOG_WARNING|LOG_AUTH, "lak_expand_tokens(filter) failed.");
+		if (rc != LAK_OK || 
+            EMPTY(dn))
 			goto done;
-		}
 	}
 			
 	rc = lak_user(	
 		dn,
-		authc_id,
+		id,
 		NULL,
-		sasl_mech,
-		sasl_realm,
+		lak->conf->mech,
+		lak->conf->realm,
 		password,
 		&lu);
-	if (rc != LAK_OK) {
-		syslog(LOG_ERR|LOG_AUTH, "lak_user() failed.");
+	if (rc != LAK_OK)
 		goto done;
-	}
 
 	rc = lak_bind(lak, lu);
 
 	if (rc == LAK_OK &&
-	    lak->conf->group_dn != NULL && *(lak->conf->group_dn) != '\0') {
-
-		if (lak->conf->use_sasl) {
-
-#if LDAP_VENDOR_VERSION >= 20122
-			rc = ldap_extended_operation_s(lak->ld, LDAP_EXOP_X_WHO_AM_I, 
-					NULL, NULL, NULL, NULL, &retdn);
-			if (rc != LDAP_SUCCESS || !retdn) {
-				syslog(LOG_WARNING|LOG_AUTH, "Group check failed: ldap_extended_operation_s(LDAP_EXOP_X_WHO_AM_I) failed.");
-				rc = LAK_FAIL;
-				goto done;
-			}
-			dn = retdn->bv_val;
-#else
-			syslog(LOG_ERR|LOG_AUTH, "Group check not supported when ldap_use_sasl: yes.");
-			goto done;
-#endif
-		}
-
-		rc = lak_group_member(lak, user, service, realm, dn);
-
-		if (rc != LAK_OK)
-			syslog(LOG_WARNING|LOG_AUTH, "Group check failed.");
-	}
+	    ISSET(lak->conf->group_dn))
+            rc = lak_group_member(lak, user, service, realm, dn);
 
 done:;
 	if (lu)
 		lak_user_free(lu);
-	if (dn && (retdn == NULL || dn != retdn->bv_val))
+	if (dn != NULL)
 		free(dn);
-	if (retdn)
-		ber_bvfree(retdn);
 
 	return rc;
 }
@@ -1506,29 +1413,96 @@ int lak_authenticate(
 	const char *password) 
 {
 	int i;
+	int rc;
+    int retry = 2;
 
 	if (lak == NULL) {
 		syslog(LOG_ERR|LOG_AUTH, "lak_init did not run.");
 		return LAK_FAIL;
 	}
 
-	if (user == NULL || user[0] == '\0')
+	if (EMPTY(user))
 		return LAK_FAIL;
 
-	if (realm == NULL || realm[0] == '\0')
+	if (EMPTY(realm))
 		realm = lak->conf->default_realm;
 
 	for (i = 0; authenticator[i].method != -1; i++) {
-
 		if (authenticator[i].method == lak->conf->auth_method) {
 			if (authenticator[i].check) {
-				return (authenticator[i].check)(lak, user, service, realm, password);
-			return LAK_FAIL;
-			}
+                for (;retry > 0; retry--) {
+                    rc = (authenticator[i].check)(lak, user, service, realm, password);
+                    switch(rc) {
+                        case LAK_OK:
+                            return LAK_OK;
+                        case LAK_RETRY:
+                            if (retry > 1) {
+                                syslog(LOG_INFO|LOG_AUTH, "Retrying authentication");
+                                break;
+                            }
+                        default:
+                            syslog(
+                                LOG_DEBUG|LOG_AUTH, 
+                                "Authentication failed for %s%s%s: %s (%d)", 
+                                user, 
+                                (ISSET(realm) ? "/" : ""), 
+                                (ISSET(realm) ? realm : ""), 
+                                lak_error(rc), 
+                                rc);
+                            return LAK_FAIL;
+                    }
+                }
+            }
+			break;
 		}
 	}
 
+    /* Should not get here */
+    syslog(LOG_DEBUG|LOG_AUTH, "Authentication method not setup properly (%d)", lak->conf->auth_method);
+
 	return LAK_FAIL;
+}
+
+char *lak_error(
+    const int errno)
+{
+
+    switch (errno) {
+        case LAK_OK:
+            return "Success";
+        case LAK_FAIL:
+            return "Generic error";
+        case LAK_NOMEM:
+            return "Out of memory";
+        case LAK_RETRY:
+            return "Retry condition (ldap server connection reset or broken)";
+        case LAK_NOT_GROUP_MEMBER:
+            return "Group member check failed";
+        case LAK_INVALID_PASSWORD:
+            return "Invalid password";
+        case LAK_USER_NOT_FOUND:
+            return "User not found";
+        case LAK_BIND_FAIL:
+            return "Bind to ldap server failed (invalid user/password or insufficient access)";
+        case LAK_CONNECT_FAIL:
+            return "Cannot connect to ldap server (configuration error)";
+        default:
+            return "Unknow error";
+    }
+}
+
+static LAK_RESULT *lak_result_get(
+    const LAK_RESULT *lres, 
+    const char *attr) 
+{
+    LAK_RESULT *ptr;
+
+
+    for (ptr = (LAK_RESULT *)lres; ptr != NULL; ptr = ptr->next)
+        if (!strcasecmp(ptr->attribute, attr))
+            return ptr;
+
+    return NULL;
 }
 
 static int lak_result_add(
@@ -1601,13 +1575,11 @@ static int lak_check_password(
 {
 	int i, hlen;
 
-	if (hash == NULL || hash[0] == '\0') {
-		return LAK_FAIL;
-	}
+	if (EMPTY(hash))
+		return LAK_INVALID_PASSWORD;
 
-	if (passwd == NULL || passwd[0] == '\0') {
-		return LAK_FAIL;
-	}
+	if (EMPTY(passwd))
+		return LAK_INVALID_PASSWORD;
 
 	for (i = 0; password_scheme[i].hash != NULL; i++) {
 
@@ -1621,7 +1593,7 @@ static int lak_check_password(
 		}
 	}
 
-	return strcmp(hash, passwd) ? LAK_FAIL : LAK_OK;
+	return strcmp(hash, passwd) ? LAK_INVALID_PASSWORD : LAK_OK;
 }
 
 #ifdef HAVE_OPENSSL
@@ -1637,9 +1609,8 @@ static int lak_base64_decode(
 	EVP_ENCODE_CTX EVP_ctx;
 
 	text = (char *)malloc(((strlen(src)+3)/4 * 3) + 1);
-	if (text == NULL) {
+	if (text == NULL)
 		return LAK_NOMEM;
-	}
 
 	EVP_DecodeInit(&EVP_ctx);
 	rc = EVP_DecodeUpdate(&EVP_ctx, text, &i, (char *)src, strlen(src));
@@ -1651,9 +1622,8 @@ static int lak_base64_decode(
 	EVP_DecodeFinal(&EVP_ctx, text, &i); 
 
 	*ret = text;
-	if (rlen != NULL) {
+	if (rlen != NULL)
 		*rlen = tlen;
-	}
 
 	return LAK_OK;
 }
@@ -1671,14 +1641,12 @@ static int lak_check_hashed(
 	char *cred;
 
 	md = EVP_get_digestbyname(hrock->mda);
-	if (!md) {
+	if (!md)
 		return LAK_FAIL;
-	}
 
 	rc = lak_base64_decode(hash, &cred, &clen);
-	if (rc != LAK_OK) {
+	if (rc != LAK_OK)
 		return rc;
-	}
 
 	EVP_DigestInit(&mdctx, md);
 	EVP_DigestUpdate(&mdctx, passwd, strlen(passwd));
@@ -1690,7 +1658,7 @@ static int lak_check_hashed(
 
 	rc = memcmp((char *)cred, (char *)digest, EVP_MD_size(md));
 	free(cred);
-	return rc ? LAK_FAIL : LAK_OK;
+	return rc ? LAK_INVALID_PASSWORD : LAK_OK;
 }
 
 #endif /* HAVE_OPENSSL */
@@ -1702,24 +1670,14 @@ static int lak_check_crypt(
 {
 	char *cred;
 
-	if (hash == NULL || hash[0] == '\0') {
-		return LAK_FAIL;
-	}
-
-	if (passwd == NULL || passwd[0] == '\0') {
-		return LAK_FAIL;
-	}
-
-	if (strlen(hash) < 2 ) {
-		return LAK_FAIL;
-	}
+	if (strlen(hash) < 2 )
+		return LAK_INVALID_PASSWORD;
 
 	cred = crypt(passwd, hash);
-	if( cred == NULL || cred[0] == '\0' ) {
-		return LAK_FAIL;
-	}
+	if (EMPTY(cred))
+		return LAK_INVALID_PASSWORD;
 
-	return strcmp(hash, cred) ? LAK_FAIL : LAK_OK;
+	return strcmp(hash, cred) ? LAK_INVALID_PASSWORD : LAK_OK;
 }
 
 #endif /* AUTH_LDAP */

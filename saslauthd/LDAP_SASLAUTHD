@@ -66,9 +66,9 @@ Run test utility:
 ./testsaslauthd -u igor -p secret
 0: OK "Success."
 
-If you get output other then Success, check the auth.* syslog facility.
-Hopefully this will give you enough information to make adjustements in the
-startup and/or configuration files.  
+If you get output other then Success, turn debug level for the auth syslog
+facility and check the syslog file.  Hopefully this will give you enough
+information to make adjustements in the startup and/or configuration files.  
 
 
 4. PARAMETERS
@@ -82,19 +82,21 @@ Do not use quotes (\"\') in the parameter values.  The defaults are specified
 within the first set of <>.  There may be a second set of <> which provide
 available values.
 
-ldap_auth_method: <bind> <bind|custom|fastbind>
+ldap_auth_method: <bind|fastbind> <bind|custom|fastbind>
 	Specify an authentication method.
 
-	The bind method uses the LDAP bind facility to verify the password.
-	This is the default.
+    The bind method uses the LDAP bind facility to verify the password.  The
+    bind method is not available when ldap_use_sasl is turned on.  In that case
+    saslauthd will use to fastbind.
+    'bind' is the default auth method. When ldap_use_sasl is turned on,
+    'fastbind' is the default.
 
-	The custom method uses userPassword attribute to verify the password.  
-	Suppored hashes: crypt, md5, smd5, sha and ssha.  Cleartext is supported 
-	as well.
+    The custom method uses userPassword attribute to verify the password.
+    Suppored hashes: crypt, md5, smd5, sha and ssha.  Cleartext is supported as
+    well.
 
-	The fastbind method and disabled SASL bind (ldap_use_sasl: no) does
-	away with the search and extra anonymous bind in auth_bind, but makes
-	two assumptions:
+    The fastbind method (when 'ldap_use_sasl: no') does away with the search
+    and an extra anonymous bind in auth_bind, but makes two assumptions:
 	  1. Expanding the ldap_filter expression gives the fully-qualified DN
 	  2. There is no cost to staying bound as a named user
 
@@ -144,7 +146,7 @@ ldap_group_dn: <none>
 	group.
 
 ldap_password: <none>
-	Specify the password for ldap_bind_dn or ldap_sasl_authc_id if
+	Specify the password for ldap_bind_dn or ldap_id if
 	ldap_use_sasl is turned on.  Do not specify this parameter for the
 	anonymous bind.
 
@@ -158,16 +160,16 @@ ldap_restart: <yes>
 	Specify whether or not LDAP I/O operations are automatically restarted
 	if they abort prematurely.
 
-ldap_sasl_authc_id: <none>
+ldap_id: <none>
 	Specify the authentication ID for SASL bind.
 
-ldap_sasl_authz_id: <none>
+ldap_authz_id: <none>
 	Specify the proxy authorization ID for SASL bind.
 
-ldap_sasl_mech: <none>
+ldap_mech: <none>
 	Specify the authentication mechanism for SASL bind.
 
-ldap_sasl_realm: <none>
+ldap_realm: <none>
 	Specify the realm of authentication ID for SASL bind.
 
 ldap_scope: <sub> <sub|one|base>
@@ -235,7 +237,7 @@ SASL bind should be used with the 'fastbind' auth_method:
 
 ldap_servers: ldaps://10.1.1.2/
 ldap_use_sasl: yes
-ldap_sasl_mech: DIGEST_MD5
+ldap_mech: DIGEST_MD5
 ldap_auth_method: fastbind
 
 At this time this is not the best performing solution because openldap (2.1.x)

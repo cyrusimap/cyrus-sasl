@@ -1091,6 +1091,8 @@ void test_checkpass(void)
     sasl_done();
 }
 
+
+
 void notes(void)
 {
     printf("NOTE:\n");

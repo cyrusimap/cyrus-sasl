@@ -1,4 +1,4 @@
-.\" $Id: saslauthd.8,v 1.1 2000/10/01 20:42:54 esys Exp $
+.\" $Id: saslauthd.8.in,v 1.1 2000/10/01 21:26:21 esys Exp $
 .\" Copyright 1997-2000 Messaging Direct Ltd. All rights reserved.
 .Dt SASLAUTHD 8
 .Os "CMU-SASL"
@@ -182,8 +182,8 @@ these ticket files can cause serious performance degradation on busy
 servers. (Kerberos
 was never intended to be used this manner, anyway.)
 .Sh FILES
-.Bl -tag -compact -width /var/saslauthd/saslauthd
-.It Pa /var/saslauthd/saslauthd
+.Bl -tag -compact
+.It Pa @MAN_PATH_SASLAUTHD_RUNDIR@/mux
 The default communications socket.
 .Sh SEE ALSO
 .Xr passwd 1 ,

@@ -1,6 +1,7 @@
 2002-09-16  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/canonusr.c: don't index begin_u with -1
 	  (Randy Kunkee <randy@randallkunkee.com>)
+	* doc/sysadmin.html: cleanup
 
 2002-09-12  Ken Murchison <ken@oceana.com>
 	* lib/common.c: NULL outbuf if we get no output from sasl_decode()

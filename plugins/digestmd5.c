@@ -40,7 +40,7 @@ SOFTWARE.
 #include <saslutil.h>
 
 /* defines */
-#define SEND_REATH_RESPONSE 1
+/* #define SEND_REATH_RESPONSE */
 
 #define NONCE_SIZE (32)		/* arbitrary */
 #define DIGEST_NOLAYER    (1)
@@ -58,7 +58,7 @@ VERSION " $";
 
 #ifdef L_DEFAULT_GUARD
 #undef L_DEFAULT_GUARD
-#define L_DEFAULT_GUARD (1)
+#define L_DEFAULT_GUARD (0)
 #endif
 
 /* external definitions */
@@ -2151,28 +2151,18 @@ server_continue_step(void *conn_context,
      * nothing more to do; authenticated set oparams information
      */
 
-
     if (digest_strdup(sparams->utils, realm, &oparams->realm, NULL) == SASL_NOMEM) {
       result = SASL_NOMEM;
       goto FreeAllMem;
     }
     if (digest_strdup(sparams->utils, username, &oparams->user, NULL) == SASL_NOMEM) {
-      sparams->utils->free(oparams->realm);
-      oparams->realm = NULL;
       result = SASL_NOMEM;
       goto FreeAllMem;
     }
     if (digest_strdup(sparams->utils, username, &oparams->authid, NULL) == SASL_NOMEM) {
-      sparams->utils->free(oparams->realm);
-      oparams->realm = NULL;
-      sparams->utils->free(oparams->user);
-      oparams->user = NULL;
       result = SASL_NOMEM;
       goto FreeAllMem;
     }
-    /*
-     * xxx    sasl_setprop(conn_context, SASL_USERNAME, oparams->user);
-     *//* Test-Server.C use this!!! */
 
     oparams->doneflag = 1;
     oparams->maxoutbuf = client_maxbuf;
@@ -2194,7 +2184,6 @@ server_continue_step(void *conn_context,
     /* initialize cipher if need be */
     if (text->cipher_init!=NULL)
       text->cipher_init(text, text->Kc, 16);
-
 
 #ifdef SEND_REATH_RESPONSE
 
@@ -2233,7 +2222,6 @@ server_continue_step(void *conn_context,
 
     result = SASL_OK;
 #endif
-
 
 FreeAllMem:
 
@@ -2305,6 +2293,11 @@ static int
   int             userlen;
   char           *realm;
   int             realmlen;
+  union {
+    char buf[sizeof(sasl_secret_t) + HASHLEN + 1];
+    long align_long;
+    double align_float;
+  } secbuf;
 
   /* make sure we have everything we need */
   if (!sparams
@@ -2328,13 +2321,9 @@ static int
 		   HA1);
 
   /* construct sec to store on disk */
-  sec = (sasl_secret_t *) malloc(sizeof(sasl_secret_t) + HASHLEN + 1);
-  if (sec == NULL)
-    return SASL_NOMEM;
+  sec = (sasl_secret_t *) &secbuf;
   sec->len = HASHLEN;
   memcpy(sec->data, HA1, HASHLEN);
-
-  /* xxx get rid of stuff from memory */
 
   if (errstr)
     *errstr = NULL;
@@ -2362,10 +2351,16 @@ static int
   VL(("userid constructed %s\n", userid));
 
   /* We're actually constructing a SCRAM secret... */
-  return putsecret(putsecret_context,
-		   "DIGEST-MD5",
-		   userid,
-		   sec);
+  result = putsecret(putsecret_context,
+		     "DIGEST-MD5",
+		     userid,
+		     sec);
+
+  memset(&secbuf, 0, sizeof(secbuf));
+
+  sparams->utils->free(userid);
+
+  return result;
 }
 
 const sasl_server_plug_t plugins[] =
@@ -2489,18 +2484,17 @@ htoi(unsigned char *hexin, int *res)
  */
 
 static sasl_interact_t *
-find_prompt(sasl_interact_t * promptlist,
+find_prompt(sasl_interact_t ** promptlist,
 	    unsigned int lookingfor)
 {
-  if (promptlist == NULL)
-    return NULL;
+  sasl_interact_t *prompt;
 
-  while (promptlist->id != SASL_CB_LIST_END) {
-    if (promptlist->id == lookingfor)
-      return promptlist;
-
-    promptlist++;
-  }
+  if (promptlist && *promptlist)
+    for (prompt = *promptlist;
+	 prompt->id != SASL_CB_LIST_END;
+	 ++prompt)
+      if (prompt->id==lookingfor)
+	return prompt;
 
   return NULL;
 }
@@ -2517,7 +2511,7 @@ get_authid(sasl_client_params_t * params,
   sasl_interact_t *prompt;
 
   /* see if we were given the authname in the prompt */
-  prompt = find_prompt(*prompt_need, SASL_CB_AUTHNAME);
+  prompt = find_prompt(prompt_need, SASL_CB_AUTHNAME);
   if (prompt != NULL) {
     /* copy it */
     *authid = params->utils->malloc(strlen(prompt->result) + 1);
@@ -2568,7 +2562,7 @@ get_password(sasl_client_params_t * params,
   sasl_interact_t *prompt;
 
   /* see if we were given the password in the prompt */
-  prompt = find_prompt(*prompt_need, SASL_CB_PASS);
+  prompt = find_prompt(prompt_need, SASL_CB_PASS);
   if (prompt != NULL) {
     /* We prompted, and got. */
 
@@ -3279,13 +3273,8 @@ FreeAllocatedMem:
 	  VL(("Ok I think we can re-auth\n"));
 	  params->utils->free(in_start);
 
-	  *clientout = params->utils->malloc(1);
-	  if (!*clientout)
-	    return SASL_NOMEM;
-
-	  **clientout = '\0';
+	  *clientout = NULL;
 	  *clientoutlen = 0;
-
 	  return SASL_OK;
 	}
       } else {

@@ -1,6 +1,10 @@
 1999-03-29  Rob Earhart  <rob+@andrew.cmu.edu>
 
+	* plugins/cram.c (setpass): aligned buffer
+
 	* plugins/digestmd5.c: no longer requiring errstr to be passed in
+	cleaned up memory leaks in setpass
+	aligned buf in setpass
 
 	* plugins/plain.c: cleaned up some code
 

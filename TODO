@@ -1,40 +1,28 @@
 C
 ~~~~~~~~~~
-) Set username after authenticate (done sometimes already)
-) Authorization in kerberos
 ) Work with our GSSAPI libs
 ) No buffers on the stack
 ) No fixed-length buffers
-) Zero sensitive data after use
+) Zero all sensitive data after use
 ) Better/FASTER random numbers (init time is pretty miserable)
 ) Test suite
-
-Java
-~~~~~~~~~~
-) Make libjavasasl link against libsasl dynamically, instead of
-  pulling in its objects at link time.
-) Things should not be saslFooBar; they should just be fooBar.
-  - They already live in package sasl
-  - Sun agrees that saslFooBar is annoying to read
-) byte[] instead of String.  Everywhere
-  - String is immutable, and might be stored forever.  byte[] can be zeroed.
-) Callbacks.
-) Utility functions for sasl_conn_t manipulation.
-) Lots more features -- should be as featureful as the C version.
 
 Documentation
 ~~~~~~~~~~
 ) Rob:
   - About SASL
-  - Trivial C server/client
 ) Karen:
   - Java documentation cleanup?
   - SASL home page
 
-Mechanisms
+Mechs to write
 ~~~~~~~~~~
 ) PASSDSS-3DES-1 (draft-newman-sasl-passdss-01.txt)
-) Digest-MD5 (draft-leach-digest-sasl-00.txt)
+) OTP
+
+Digest-MD5
+~~~~~~~~~~
+) Purify, exhaustively test, &c.
 
 ABI
 ~~~~~~~~~~

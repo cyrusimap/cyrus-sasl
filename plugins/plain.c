@@ -45,7 +45,7 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 
 #define PLAIN_VERSION (3)
 #undef L_DEFAULT_GUARD
-#define L_DEFAULT_GUARD (1)
+#define L_DEFAULT_GUARD (0)
 
 typedef struct context {
   int state;

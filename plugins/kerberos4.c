@@ -62,7 +62,7 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 
 #ifdef L_DEFAULT_GUARD
 # undef L_DEFAULT_GUARD
-# define L_DEFAULT_GUARD (1)
+# define L_DEFAULT_GUARD (0)
 #endif
 
 #ifdef sun
@@ -1048,7 +1048,7 @@ static int client_continue_step (void *conn_context,
     /* append userid */
     len = 9;			/* 8 + trailing NULL */
     if (oparams->user) {
-      strcpy(sout + 8, oparams->user);
+      strcpy((char *)sout + 8, oparams->user);
       len += strlen(oparams->user);
     }
 

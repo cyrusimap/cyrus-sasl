@@ -340,7 +340,12 @@ setpass(void *glob_context __attribute__((unused)),
   int result;
   sasl_server_putsecret_t *putsecret;
   void *putsecret_context;
-  char buf[sizeof(sasl_secret_t) + sizeof(HMAC_MD5_STATE)];
+  union {
+    char buf[sizeof(sasl_secret_t) + sizeof(HMAC_MD5_STATE)];
+    long align_long;
+    double align_double;
+  } buf;
+  
   sasl_secret_t *secret = (sasl_secret_t *)&buf;
 
   if (!sparams
@@ -373,7 +378,7 @@ setpass(void *glob_context __attribute__((unused)),
 		   user,
 		   secret);
 
-  memset(buf, 0, sizeof(buf));
+  memset(&buf, 0, sizeof(buf));
 
   return result;
 }

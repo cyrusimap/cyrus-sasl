@@ -41,6 +41,11 @@ SOFTWARE.
 #include <saslutil.h>
 #include <saslplug.h>
 
+#ifdef WIN32
+/* This must be after sasl.h */
+# include "saslgssapi.h"
+#endif /* WIN32 */
+
 #ifndef GSS_NT_SERVICE_NAME
 extern gss_OID gss_nt_service_name;
 #endif
@@ -945,7 +950,7 @@ sasl_gss_client_step (void *conn_context,
   gss_buffer_desc real_input_token, real_output_token;
   OM_uint32 maj_stat, min_stat;
   gss_buffer_desc name_token;
-  
+
   input_token = &real_input_token;
   output_token = &real_output_token;
   output_token->value = NULL;

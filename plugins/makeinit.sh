@@ -45,7 +45,7 @@ SASL_SERVER_PLUG_INIT( $mech )
 " > ${mech}_init.c
 done
 
-for mech in sasldb sql ; do
+for mech in sasldb sql ldapdb; do
 
 echo "
 #include <config.h>

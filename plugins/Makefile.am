@@ -1,7 +1,7 @@
 # Makefile.am for the SASL plugins
 # Rob Siemborski
 # Rob Earhart
-# $Id: Makefile.am,v 1.74 2004/11/24 18:05:29 ken3 Exp $
+# $Id: Makefile.am,v 1.75 2005/02/16 20:52:12 shadow Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -58,6 +58,7 @@ plain_version = 2:20:0
 ntlm_version = 2:20:0
 otp_version = 2:20:0
 sql_version = 2:20:0
+ldapdb_version = 2:18:0
 srp_version = 2:20:0
 
 INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/sasldb -I$(top_builddir)/include
@@ -78,7 +79,7 @@ sasldir = $(prefix)/lib/sasl2
 sasl_LTLIBRARIES = @SASL_MECHS@
 EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la \
 	libgssapiv2.la libdigestmd5.la liblogin.la libsrp.la libotp.la \
-	libntlm.la libpassdss.la libsasldb.la libsql.la
+	libntlm.la libpassdss.la libsasldb.la libsql.la libldapdb.la
 
 libplain_la_SOURCES = plain.c plain_init.c $(common_sources)
 libplain_la_LDFLAGS = -version-info $(plain_version)
@@ -140,6 +141,10 @@ libsasldb_la_SOURCES = sasldb.c sasldb_init.c $(common_sources)
 libsasldb_la_LDFLAGS = -version-info $(sasldb_version)
 libsasldb_la_DEPENDENCIES = $(COMPAT_OBJS)
 libsasldb_la_LIBADD = ../sasldb/libsasldb.la $(SASL_DB_LIB) $(COMPAT_OBJS)
+libldapdb_la_SOURCES = ldapdb.c ldapdb_init.c $(common_sources)
+libldapdb_la_LDFLAGS = $(LIB_LDAP) -version-info $(ldapdb_version)
+libldapdb_la_DEPENDENCIES = $(COMPAT_OBJS)
+libldapdb_la_LIBADD = $(COMPAT_OBJS)
 
 libsql_la_SOURCES = sql.c sql_init.c $(common_sources)
 libsql_la_LDFLAGS = $(LIB_MYSQL) $(LIB_PGSQL) $(LIB_SQLITE) -version-info $(sql_version)
@@ -150,7 +155,7 @@ libsql_la_LIBADD = $(COMPAT_OBJS)
 # Instructions for making the _init files
 
 init_src=anonymous_init.c crammd5_init.c digestmd5_init.c gssapiv2_init.c \
-kerberos4_init.c login_init.c plain_init.c srp_init.c otp_init.c ntlm_init.c \
+kerberos4_init.c login_init.c plain_init.c srp_init.c otp_init.c ntlm_init.c ldapdb_init.c \
 passdss_init.c sasldb_init.c sql_init.c
 
 

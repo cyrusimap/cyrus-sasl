@@ -974,38 +974,37 @@ static int dec_3des(context_t *text,
 		   char *output,
 		   unsigned *outputlen)
 {
-  int len;
-  int lup;
+    unsigned int lup;
 
-  for (lup=0;lup<inputlen;lup+=8)
-  {
-    /* decrypt with 1st key */
-    des_ecb_encrypt((des_cblock *)(input+lup),
-		    (des_cblock *) ((output)+lup),
-		    text->keysched_dec,
-		    DES_DECRYPT);
+    for (lup=0;lup<inputlen;lup+=8)
+    {
+	/* decrypt with 1st key */
+	des_ecb_encrypt((des_cblock *) (input+lup),
+			(des_cblock *) ((output)+lup),
+			text->keysched_dec,
+			DES_DECRYPT);
 
-    /* encrypt with 2nd key */
-    des_ecb_encrypt((des_cblock *) ((output)+lup),
-		    (des_cblock *) ((output)+lup),
-		    text->keysched_dec2,
-		    DES_ENCRYPT);
-
-    /* decrypt with 1st key */
-    des_ecb_encrypt((des_cblock *) ((output)+lup),
-		    (des_cblock *) ((output)+lup),
-		    text->keysched_dec,
-		    DES_DECRYPT);
-
-  }
-
-  /* now chop off the padding */
-  *outputlen=inputlen- (output)[inputlen-11]-10;
-
-  /* copy in the HMAC to digest */
-  memcpy(digest, (output)+inputlen-10, 10);
+	/* encrypt with 2nd key */
+	des_ecb_encrypt((des_cblock *) ((output)+lup),
+			(des_cblock *) ((output)+lup),
+			text->keysched_dec2,
+			DES_ENCRYPT);
+	
+	/* decrypt with 1st key */
+	des_ecb_encrypt((des_cblock *) ((output)+lup),
+			(des_cblock *) ((output)+lup),
+			text->keysched_dec,
+			DES_DECRYPT);
+	
+    }
+    
+    /* now chop off the padding */
+    *outputlen=inputlen - (output)[inputlen-11]-10;
+    
+    /* copy in the HMAC to digest */
+    memcpy(digest, (output)+inputlen-10, 10);
   
-  return SASL_OK;
+    return SASL_OK;
 }
 
 int enc_3des(struct context *text,
@@ -1054,7 +1053,8 @@ int enc_3des(struct context *text,
   return SASL_OK;
 }
 
-static int init_3des(context_t *text, sasl_utils_t *utils, 
+static int init_3des(context_t *text, 
+		     sasl_utils_t *utils __attribute__((unused)), 
 		     char enckey[16],
 		     char deckey[16])
 
@@ -1084,8 +1084,7 @@ static int dec_des(context_t *text,
 		   char *output,
 		   unsigned *outputlen)
 {
-  int len;
-  int lup;
+  unsigned int lup;
 
   for (lup=0;lup<inputlen;lup+=8)
   {
@@ -1140,12 +1139,10 @@ static int enc_des(context_t *text,
   return SASL_OK;
 }
 
-static int init_des(context_t *text, sasl_utils_t *utils, 
-		     char enckey[16],
-		     char deckey[16])
-
-
-
+static int init_des(context_t *text, 
+		    sasl_utils_t *utils __attribute__((unused)), 
+		    char enckey[16],
+		    char deckey[16])
 {
     des_key_sched((des_cblock *) enckey, text->keysched_enc);
     des_key_sched((des_cblock *) deckey, text->keysched_dec);
@@ -1157,7 +1154,8 @@ static int init_des(context_t *text, sasl_utils_t *utils,
 
 #ifdef WITH_RC4
 static int
-init_rc4(void *v, sasl_utils_t *utils,
+init_rc4(void *v, 
+	 sasl_utils_t *utils __attribute__((unused)),
 	 char enckey[16],
 	 char deckey[16])
 {
@@ -1367,10 +1365,8 @@ privacy_decode(void *context,
     unsigned int extralen=0;
     unsigned char   digest[16];
     char *param2;
-    unsigned char *macmid;
     int tmpnum;
     int lup;
-    unsigned char *tmpbuf;
 
     if (text->needsize>0) /* 4 bytes for how long message is */
     {
@@ -1432,8 +1428,8 @@ privacy_decode(void *context,
     }
 
     {
-      short ver;
-      int seqnum;
+      unsigned short ver;
+      unsigned int seqnum;
       unsigned char   checkdigest[16];
 
       *output = (char *) text->malloc(text->size-6);
@@ -1453,7 +1449,7 @@ privacy_decode(void *context,
       /* check the version number */
       memcpy(&ver, text->buffer+text->size-6, 2);
       ver=ntohs(ver);
-      if (ver!=version)
+      if (ver != version)
       {
 	VL(("Wrong Version\n"));
 	return SASL_FAIL;
@@ -1531,7 +1527,6 @@ integrity_encode(void *context,
 		 unsigned *outputlen)
 {
   unsigned char   MAC[16];
-  unsigned char   digest[16];
   unsigned char  *param2;
   unsigned int    tmpnum;
   unsigned short int tmpshort;
@@ -1594,7 +1589,6 @@ create_MAC(context_t * text,
 	   int seqnum,
 	   unsigned char MAC[16])
 {
-  unsigned char   digest[16];
   unsigned char  *param2;
   unsigned int    tmpnum;
   unsigned short int tmpshort;  
@@ -2004,8 +1998,6 @@ server_continue_step(void *conn_context,
     char           *digesturi = NULL;
     char           *response = NULL;
 
-    char           *maxbufstr = NULL;
-
      /* setting the default value (65536) */
     unsigned int    client_maxbuf = 65536;
     int             maxbuf_count = 0;	/* How many maxbuf instaces was found */
@@ -2120,7 +2112,6 @@ server_continue_step(void *conn_context,
 	      goto FreeAllMem;
             }
 	}
-	digest_strdup(sparams->utils, value, &maxbufstr, NULL);
       } else if (strcmp(name, "charset") == 0) {
 	if (strcmp(value, "utf-8") != 0) {
 	  VL(("Client doesn't support UTF-8. Server can't accept it\n"));
@@ -2342,6 +2333,7 @@ server_continue_step(void *conn_context,
 
     text->seqnum = 0;		/* for integrity/privacy */
     text->rec_seqnum = 0;	/* for integrity/privacy */
+    text->maxbuf = client_maxbuf;
     text->hmac_md5 = sparams->utils->hmac_md5;
     text->malloc = sparams->utils->malloc;
     text->free = sparams->utils->free;
@@ -2437,7 +2429,6 @@ server_continue_step(void *conn_context,
     }
 
     /* sparams->utils->free (nonce);
-     * sparams->utils->free (maxbufstr);
      * sparams->utils->free (cipher);
      */
 

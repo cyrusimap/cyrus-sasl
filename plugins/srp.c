@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.43 2002/09/18 22:08:40 rjs3 Exp $
+ * $Id: srp.c,v 1.44 2002/10/13 23:51:05 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -56,9 +56,7 @@
 #include <openssl/hmac.h>
 
 #include <sasl.h>
-#if OPENSSL_VERSION_NUMBER < 0x00907000L
 #define MD5_H  /* suppress internal MD5 */
-#endif
 #include <saslplug.h>
 
 #include "plugin_common.h"
@@ -75,7 +73,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: srp.c,v 1.43 2002/09/18 22:08:40 rjs3 Exp $";
+static const char plugin_id[] = "$Id: srp.c,v 1.44 2002/10/13 23:51:05 ken3 Exp $";
 
 /* Size of diffie-hellman secrets a and b */
 #define BITSFORab 64

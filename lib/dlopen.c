@@ -73,11 +73,13 @@ char *strchr(), *strrchr();
 
 /* gets the list of mechanisms */
 int _sasl_get_mech_list(const char *entryname,
+			const sasl_callback_t *getpath_cb,
 			int (*add_plugin)(void *,void *))
 {
   /* XXX These fixed-length buffers could be a problem;
    * this really needs to be rewritten to do overflow
    * checks appropriately. */
+  int result;
   char str[PATH_MAX],tmp[PATH_MAX],c,prefix[PATH_MAX];
   int pos;
   char *path=NULL;
@@ -85,13 +87,25 @@ int _sasl_get_mech_list(const char *entryname,
   DIR *dp;
   struct dirent *dir;
 
-  path=getenv(SASL_PATH_ENV_VAR);
+  if (! entryname
+      || ! getpath_cb
+      || getpath_cb->id != SASL_CB_GETPATH
+      || ! getpath_cb->proc
+      || ! add_plugin)
+    return SASL_BADPARAM;
 
-  if (path==NULL)
-    path=PLUGINDIR;
+  result = ((sasl_getpath_t *)(getpath_cb->proc))(getpath_cb->context,
+						  &path);
 
-  if (strlen(path)>=PATH_MAX) /* no you can't buffer overrun */
+  if (result != SASL_OK)
+    return result;
+  if (! path)
     return SASL_FAIL;
+
+  if (strlen(path)>=PATH_MAX) { /* no you can't buffer overrun */
+    sasl_FREE(path);
+    return SASL_FAIL;
+  }
 
   position=0;
   do {
@@ -158,6 +172,9 @@ int _sasl_get_mech_list(const char *entryname,
     }
 
   } while ((c!='=') && (c!=0));
+
+  sasl_FREE(path);
+
   return SASL_OK;
 }
 

@@ -495,9 +495,9 @@ _sasl_conn_getopt(void *context,
 #ifdef HAVE_VSYSLOG
 
 /* this is the default logging */
-static int sasl_syslog(void *context __attribute__((unused)),
-		       int priority,
-		       const char *message)
+static int _sasl_syslog(void *context __attribute__((unused)),
+			int priority,
+			const char *message)
 {
   int syslog_priority;
 
@@ -556,6 +556,20 @@ _sasl_getsimple(void *context,
 }
 
 static int
+_sasl_getpath(void *context __attribute__((unused)),
+	      char ** path_dest)
+{
+  char *path;
+
+  if (! path_dest)
+    return SASL_BADPARAM;
+  path = getenv(SASL_PATH_ENV_VAR);
+  if (! path)
+    path = PLUGINDIR;
+  return _sasl_strdup(path, path_dest, NULL);
+}
+
+static int
 _sasl_getcallback(sasl_conn_t * conn,
 		  unsigned long callbackid,
 		  int (**pproc)(),
@@ -601,10 +615,14 @@ _sasl_getcallback(sasl_conn_t * conn,
   switch (callbackid) {
 #ifdef HAVE_VSYSLOG
   case SASL_CB_LOG:
-    *pproc = (int (*)()) &sasl_syslog;
+    *pproc = (int (*)()) &_sasl_syslog;
     *pcontext = NULL;
     break;
 #endif /* HAVE_VSYSLOG */
+  case SASL_CB_GETPATH:
+    *pproc = (int (*)()) &_sasl_getpath;
+    *pcontext = NULL;
+    break;
   case SASL_CB_USER:
   case SASL_CB_AUTHNAME:
     *pproc = (int (*)()) &_sasl_getsimple;
@@ -882,3 +900,23 @@ int sasl_idle(sasl_conn_t *conn)
 
   return 0;
 }
+
+const sasl_callback_t *
+_sasl_find_getpath_callback(const sasl_callback_t *callbacks)
+{
+  static const sasl_callback_t default_getpath_cb = {
+    SASL_CB_GETPATH,
+    &_sasl_getpath,
+    NULL
+  };
+
+  if (callbacks)
+    while (callbacks->id != SASL_CB_LIST_END)
+      if (callbacks->id == SASL_CB_GETPATH)
+	return callbacks;
+      else
+	++callbacks;
+  
+  return &default_getpath_cb;
+}
+

@@ -36,7 +36,12 @@ SOFTWARE.
 #include "saslplug.h"
 
 extern int _sasl_get_mech_list(const char *entryname,
+			       const sasl_callback_t *getpath_callback,
 			       int (*add_plugin)(void *,void *));
+
+extern const sasl_callback_t *
+_sasl_find_getpath_callback(const sasl_callback_t *callbacks);
+
 extern int _sasl_done_with_plugin(void *plugin);
 
 extern void (*_sasl_client_cleanup_hook)(void);

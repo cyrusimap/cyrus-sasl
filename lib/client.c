@@ -207,6 +207,7 @@ int sasl_client_init(const sasl_callback_t *callbacks)
   cmechlist->mech_length=0;
 
   ret=_sasl_get_mech_list("sasl_client_plug_init",
+			  _sasl_find_getpath_callback(callbacks),
 			  &add_plugin);
 
   return ret;

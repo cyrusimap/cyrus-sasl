@@ -1,3 +1,25 @@
+1999-02-05  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* lib/saslint.h: _sasl_get_mech_list *takes* getpath callback
+	               added _sasl_find_getpath_callback prototype
+
+	* lib/dlopen.c (_sasl_get_mech_list): checking args, using getpath
+	callback to find the path
+
+	* lib/client.c (sasl_client_init): passing getpath callback to
+	_sasl_get_mech_list, using _sasl_find_getpath_callback
+
+	* lib/server.c (sasl_server_init): passing getpath callback to
+ 	_sasl_get_mech_list, using _sasl_find_getpath_callback
+
+	* lib/common.c (_sasl_getcallback): changed sasl_syslog to
+	_sasl_syslog
+	(_sasl_getcallback): added ref to _sasl_getpath
+	(_sasl_getpath): wrote
+	(_sasl_find_getpath_callback): wrote
+
+	* include/sasl.h: added sasl_getpath_t decl
+
 1999-01-26  Rob Earhart  <rob+@andrew.cmu.edu>
 
 	* configure.in: Added digest-md5 configuration

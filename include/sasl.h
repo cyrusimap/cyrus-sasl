@@ -263,6 +263,25 @@ typedef int sasl_log_t(void *context,
 
 #define SASL_CB_LOG	     2
 
+/* getpath callback -- this allows applications to specify the
+ * colon-separated path to search for plugins (by default,
+ * taken from the SASL_PATH environment variable).
+ * inputs:
+ *  context     -- getpath context from the callback record
+ * outputs:
+ *  path	-- colon seperated path (allocated on the heap; the
+ *                 library will free it using the sasl_free_t *
+ *                 passed to sasl_set_callback, or the standard free()
+ *                 library call).
+ * returns:
+ *  SASL_OK     -- no error
+ *  SASL_FAIL   -- error
+ */
+typedef int sasl_getpath_t(void * context,
+			   char ** path);
+
+#define SASL_CB_GETPATH	     3
+
 /* client/user interaction callbacks:
  */
 /* Simple prompt -- result must persist until next call to getsimple or

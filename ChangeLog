@@ -7,6 +7,10 @@
 	* plugins/kerberos4.c: fix compile errors
 	* config/kerberos_v4.m4, plugins/digestmd5.c: fix des_cbc_encrypt
 	  interoperability problem (OpenSSL)
+	* saslauthd/Makefile.am, acconfig.h, auth_ldap.c, auth_ldap.h,
+	  configure.in, lak.c, lak.h, mechanisms.c, mechanisms.h,
+	  saslauthd.conf: added experimental LDAP saslauthd module 
+	  (by Igor Brezac <igor@ipass.net>)
 
 2002-05-01  Ken Murchison <ken@oceana.com>
 	* plugins/digestmd5.c, gssapi.c, kerberos4.c, srp.c:

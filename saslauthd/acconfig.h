@@ -18,6 +18,9 @@
 /* do we have SIA for plaintext password checking? */
 #undef HAVE_SIA
 
+/* do we have ldap support */
+#undef HAVE_LDAP
+
 /* do we want to enable the GSSAPI module */
 #undef AUTH_KRB5
 #undef KRB5_HEIMDAL

@@ -31,7 +31,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: mechanisms.c,v 1.5 2002/04/25 18:31:52 leg Exp $"
+#ident "$Id: mechanisms.c,v 1.6 2002/05/03 18:59:30 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -53,6 +53,9 @@
 #include "auth_rimap.h"
 #ifdef AUTH_PAM
 # include "auth_pam.h"
+#endif
+#ifdef AUTH_LDAP
+#include "auth_ldap.h"
 #endif
 /* END PUBLIC DEPENDENCIES */
 
@@ -81,6 +84,9 @@ authmech_t mechanisms[] =
 #ifdef AUTH_SIA
     {   "sia",		0,			auth_sia },
 #endif /* AUTH_SIA */
+#ifdef AUTH_LDAP
+    {   "ldap",		0,			auth_ldap },
+#endif /* AUTH_LDAP */
     {	0,		0,			0 }
 };
 

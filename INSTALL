@@ -38,3 +38,31 @@ settings to configure the system on various platforms:
 	IRIX: env CC=cc CPPFLAGS=-I/usr/local/include LDFLAGS=-L/usr/local/lib ./configure
 
 	Linux: ./configure
+
+----------------------------------------------------------------------
+
+Installation under Win32:
+
+* From within Visual C++, open workspace "sasl\win32\libsasl\libsasl.dsw"
+* Select "Batch Build" under the Build menu to build all versions.
+
+At this time, there are no installers available.  To install by hand:
+
+* Decide on an installation directory for your plugins (IE: c:\windows\sasl)
+* Copy all generated plugins into this directory:
+  cd sasl\win32
+  copy libsasl\Release\*.dll c:\sasl-plugins
+  copy saslANONYMOUS\Release\*.dll c:\sasl-plugins
+  copy saslCRAM\Release\*.dll c:\sasl-plugins
+  copy saslKERBEROSV4\Release\*.dll c:\sasl-plugins
+  copy saslPLAIN\Release\*.dll c:\sasl-plugins
+  copy saslSCRAM\Release\*.dll c:\sasl-plugins
+* Update the registry with these locations.  Example registry settings are in the file:
+  sasl\win32\cmu-sasl.reg
+* Add this directory to your path, so that apps will be able to find the library
+  PATH=c:\sasl-plugins;%PATH%
+
+
+
+
+This has been tested under Windows 2000, using Visual Studio 6 SP1.

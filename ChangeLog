@@ -1,3 +1,8 @@
+2002-08-06  Ken Murchison <ken@oceana.com>
+	* plugins/digestmd5.c: only use the global context for storing
+	  reauth data between auth attempts, NOT during an auth (solves
+	  problem with concurrent auths failing due to changing nonce)
+
 2002-08-02  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* include/sasl.h, lib/common.c: Add SASL_AUTHUSER as a parameter
 	  to sasl_getprop

@@ -339,7 +339,7 @@ main(int argc, char *argv[])
     (void)fprintf(stderr,
 		  "%s: usage: %s -u username -p password\n"
 		  "              [-r realm] [-s servicename]\n"
-		  "              [-f socket path] [-R repeatnum]\n"
+		  "              [-f socket path] [-R repeatnum]\n",
 		  argv[0], argv[0]);
     exit(1);
   }

@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.144 2002/12/05 21:59:39 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.145 2002/12/05 22:50:42 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -102,7 +102,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.144 2002/12/05 21:59:39 rjs3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.145 2002/12/05 22:50:42 leg Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -133,22 +133,23 @@ const char *SIGNING_SERVER_CLIENT="Digest session key to server-to-client signin
 #define SP	(32)
 #define DEL	(127)
 
+struct context;
+
 /* function definitions for cipher encode/decode */
-typedef int cipher_function_t(void *,
+typedef int cipher_function_t(struct context *,
 			      const char *,
 			      unsigned,
 			      unsigned char[],
 			      char *,
 			      unsigned *);
 
-typedef int cipher_init_t(void *, char [16], char [16]);
-typedef void cipher_free_t(void *);
+typedef int cipher_init_t(struct context *, unsigned char [16], 
+                                            unsigned char [16]);
+typedef void cipher_free_t(struct context *);
 
 enum Context_type { SERVER = 0, CLIENT = 1 };
 
-#ifdef WITH_RC4
-typedef struct rc4_context_s rc4_context_t;
-#endif
+typedef struct cipher_context cipher_context_t;
 
 /* cached auth info used for fast reauth */
 typedef struct reauth_entry {
@@ -238,21 +239,8 @@ typedef struct context {
     cipher_function_t *cipher_dec;
     cipher_init_t *cipher_init;
     cipher_free_t *cipher_free;
-    
-#ifdef WITH_DES
-    des_key_schedule keysched_enc;   /* key schedule for des initialization */
-    des_cblock ivec_enc;	     /* initial vector for encoding */
-    des_key_schedule keysched_dec;   /* key schedule for des initialization */
-    des_cblock ivec_dec;	     /* init vec for decoding */
-    
-    des_key_schedule keysched_enc2;  /* key schedule for 3des initialization */
-    des_key_schedule keysched_dec2;  /* key schedule for 3des initialization */
-#endif
-    
-#ifdef WITH_RC4
-    rc4_context_t *rc4_enc_context;
-    rc4_context_t *rc4_dec_context;
-#endif /* WITH_RC4 */
+    struct cipher_context *cipher_enc_context;
+    struct cipher_context *cipher_dec_context;
 } context_t;
 
 struct digest_cipher {
@@ -666,29 +654,50 @@ static void get_pair(char **in, char **name, char **value)
 }
 
 #ifdef WITH_DES
+struct des_context_s {
+    des_key_schedule keysched;  /* key schedule for des initialization */
+    des_cblock ivec;            /* initial vector for encoding */
+    des_key_schedule keysched2; /* key schedule for 3des initialization */
+};
+
+typedef struct des_context_s des_context_t;
+
+/* slide the first 7 bytes of 'inbuf' into the high seven bits of the
+   first 8 bytes of 'keybuf'. 'inbuf' better be 8 bytes long or longer. */
+static void slidebits(unsigned char *keybuf, unsigned char *inbuf)
+{
+    keybuf[0] = inbuf[0];
+    keybuf[1] = (inbuf[0]<<7) | (inbuf[1]>>1);
+    keybuf[2] = (inbuf[1]<<6) | (inbuf[2]>>2);
+    keybuf[3] = (inbuf[2]<<5) | (inbuf[3]>>3);
+    keybuf[4] = (inbuf[3]<<4) | (inbuf[4]>>4);
+    keybuf[5] = (inbuf[4]<<3) | (inbuf[5]>>5);
+    keybuf[6] = (inbuf[5]<<2) | (inbuf[6]>>6);
+    keybuf[7] = (inbuf[6]<<1);
+}
+
 /******************************
  *
  * 3DES functions
  *
  *****************************/
 
-
-static int dec_3des(void *v,
+static int dec_3des(context_t *text,
 		    const char *input,
 		    unsigned inputlen,
 		    unsigned char digest[16],
 		    char *output,
 		    unsigned *outputlen)
 {
-    context_t *text = (context_t *) v;
+    des_context_t *c = (des_context_t *) text->cipher_dec_context;
     int padding, p;
     
     des_ede2_cbc_encrypt((void *) input,
 			 (void *) output,
 			 inputlen,
-			 text->keysched_dec,
-			 text->keysched_dec2,
-			 &text->ivec_dec,
+			 c->keysched,
+			 c->keysched2,
+			 &c->ivec,
 			 DES_DECRYPT);
     
     /* now chop off the padding */
@@ -713,14 +722,14 @@ static int dec_3des(void *v,
     return SASL_OK;
 }
 
-static int enc_3des(void *v,
+static int enc_3des(context_t *text,
 		    const char *input,
 		    unsigned inputlen,
 		    unsigned char digest[16],
 		    char *output,
 		    unsigned *outputlen)
 {
-    context_t *text = (context_t *) v;
+    des_context_t *c = (des_context_t *) text->cipher_enc_context;
     int len;
     int paddinglen;
     
@@ -737,9 +746,9 @@ static int enc_3des(void *v,
     des_ede2_cbc_encrypt((void *) output,
 			 (void *) output,
 			 len,
-			 text->keysched_enc,
-			 text->keysched_enc2,
-			 &text->ivec_enc,
+			 c->keysched,
+			 c->keysched2,
+			 &c->ivec,
 			 DES_ENCRYPT);
     
     *outputlen=len;
@@ -747,27 +756,42 @@ static int enc_3des(void *v,
     return SASL_OK;
 }
 
-static int init_3des(void *v, 
-		     char enckey[16],
-		     char deckey[16])
-    
-    
-    
+static int init_3des(context_t *text, 
+		     unsigned char enckey[16],
+		     unsigned char deckey[16])
 {
-    context_t *text = (context_t *) v;
+    des_context_t *c;
+    unsigned char keybuf[8];
+
+    /* allocate enc & dec context */
+    c = (des_context_t *) text->utils->malloc(2 * sizeof(des_context_t));
+    if (c == NULL) return SASL_NOMEM;
+
+    /* setup enc context */
+    slidebits(keybuf, enckey);
+    if (des_key_sched((des_cblock *) keybuf, c->keysched) < 0)
+	return SASL_FAIL;
+
+    slidebits(keybuf, enckey + 7);
+    if (des_key_sched((des_cblock *) keybuf, c->keysched2) < 0)
+	return SASL_FAIL;
+    memcpy(c->ivec, ((char *) enckey) + 8, 8);
+
+    text->cipher_enc_context = (cipher_context_t *) c;
+
+    /* setup dec context */
+    c++;
+    slidebits(keybuf, deckey);
+    if (des_key_sched((des_cblock *) keybuf, c->keysched) < 0)
+	return SASL_FAIL;
     
-    if(des_key_sched((des_cblock *) enckey, text->keysched_enc) < 0)
-	return SASL_FAIL;
-    if(des_key_sched((des_cblock *) deckey, text->keysched_dec) < 0)
-	return SASL_FAIL;
-    
-    if(des_key_sched((des_cblock *) (enckey+7), text->keysched_enc2) < 0)
-	return SASL_FAIL;
-    if(des_key_sched((des_cblock *) (deckey+7), text->keysched_dec2) < 0)
+    slidebits(keybuf, deckey + 7);
+    if (des_key_sched((des_cblock *) keybuf, c->keysched2) < 0)
 	return SASL_FAIL;
     
-    memcpy(text->ivec_enc, ((char *) enckey) + 8, 8);
-    memcpy(text->ivec_dec, ((char *) deckey) + 8, 8);
+    memcpy(c->ivec, ((char *) deckey) + 8, 8);
+
+    text->cipher_dec_context = (cipher_context_t *) c;
     
     return SASL_OK;
 }
@@ -779,27 +803,26 @@ static int init_3des(void *v,
  *
  *****************************/
 
-static int dec_des(void *v, 
+static int dec_des(context_t *text, 
 		   const char *input,
 		   unsigned inputlen,
 		   unsigned char digest[16],
 		   char *output,
 		   unsigned *outputlen)
 {
-    context_t *text = (context_t *) v;
-    int p,padding = 0;
+    des_context_t *c = (des_context_t *) text->cipher_dec_context;
+    int p, padding = 0;
     
-
     des_cbc_encrypt((void *) input,
 		    (void *) output,
 		    inputlen,
-		    text->keysched_dec,
-		    &text->ivec_dec,
+		    c->keysched,
+		    &c->ivec,
 		    DES_DECRYPT);
 
     /* Update the ivec (des_cbc_encrypt implementations tend to be broken in
        this way) */
-    memcpy(text->ivec_dec, input + (inputlen - 8), 8);
+    memcpy(c->ivec, input + (inputlen - 8), 8);
     
     /* now chop off the padding */
     padding = output[inputlen - 11];
@@ -823,59 +846,79 @@ static int dec_des(void *v,
     return SASL_OK;
 }
 
-static int enc_des(void *v, 
+static int enc_des(context_t *text,
 		   const char *input,
 		   unsigned inputlen,
 		   unsigned char digest[16],
 		   char *output,
 		   unsigned *outputlen)
 {
-  context_t *text = (context_t *) v;
-  int len;
-  int paddinglen;
+    des_context_t *c = (des_context_t *) text->cipher_enc_context;
+    int len;
+    int paddinglen;
   
-  /* determine padding length */
-  paddinglen= 8 - ((inputlen+10)%8);
+    /* determine padding length */
+    paddinglen = 8 - ((inputlen+10) % 8);
 
-  /* now construct the full stuff to be ciphered */
-  memcpy(output, input, inputlen);                /* text */
-  memset(output+inputlen, paddinglen, paddinglen);/* pad  */
-  memcpy(output+inputlen+paddinglen, digest, 10); /* hmac */
-
-  len=inputlen+paddinglen+10;
-
-  des_cbc_encrypt((void *) output,
-		  (void *) output,
-		  len,
-		  text->keysched_enc,
-		  &text->ivec_enc,
-		  DES_ENCRYPT);
-
-  /* Update the ivec (des_cbc_encrypt implementations tend to be broken in
-     this way) */
-  memcpy(text->ivec_enc, output + (len - 8), 8);
-
-  *outputlen=len;
-
-  return SASL_OK;
-}
-
-static int init_des(void *v,
-		    char enckey[16],
-		    char deckey[16])
-{
-    context_t *text = (context_t *) v;
+    /* now construct the full stuff to be ciphered */
+    memcpy(output, input, inputlen);                /* text */
+    memset(output+inputlen, paddinglen, paddinglen);/* pad  */
+    memcpy(output+inputlen+paddinglen, digest, 10); /* hmac */
     
-    des_key_sched((des_cblock *) enckey, text->keysched_enc);
-    memcpy(text->ivec_enc, ((char *) enckey) + 8, 8);
+    len = inputlen + paddinglen + 10;
     
-    des_key_sched((des_cblock *) deckey, text->keysched_dec);
-    memcpy(text->ivec_dec, ((char *) deckey) + 8, 8);
+    des_cbc_encrypt((void *) output,
+                    (void *) output,
+                    len,
+                    c->keysched,
+                    &c->ivec,
+                    DES_ENCRYPT);
     
-    memcpy(text->ivec_enc, ((char *) enckey) + 8, 8);
-    memcpy(text->ivec_dec, ((char *) deckey) + 8, 8);
+    /* Update the ivec (des_cbc_encrypt implementations tend to be broken in
+       this way) */
+    memcpy(c->ivec, output + (len - 8), 8);
+    
+    *outputlen = len;
     
     return SASL_OK;
+}
+
+static int init_des(context_t *text,
+		    unsigned char enckey[16],
+		    unsigned char deckey[16])
+{
+    des_context_t *c;
+    unsigned char keybuf[8];
+
+    /* allocate enc context */
+    c = (des_context_t *) text->utils->malloc(2 * sizeof(des_context_t));
+    if (c == NULL) return SASL_NOMEM;
+    
+    /* setup enc context */
+    slidebits(keybuf, enckey);
+    des_key_sched((des_cblock *) keybuf, c->keysched);
+
+    memcpy(c->ivec, ((char *) enckey) + 8, 8);
+    
+    text->cipher_enc_context = (cipher_context_t *) c;
+
+    /* setup dec context */
+    c++;
+    slidebits(keybuf, deckey);
+    des_key_sched((des_cblock *) keybuf, c->keysched);
+
+    memcpy(c->ivec, ((char *) deckey) + 8, 8);
+    
+    text->cipher_dec_context = (cipher_context_t *) c;
+
+    return SASL_OK;
+}
+
+static void free_des(context_t *text)
+{
+    /* free des contextss. only cipher_enc_context needs to be free'd,
+       since cipher_dec_context was allocated at the same time. */
+    if (text->cipher_enc_context) text->utils->free(text->cipher_enc_context);
 }
 
 #endif /* WITH_DES */
@@ -886,6 +929,8 @@ struct rc4_context_s {
     unsigned char sbox[256];
     int i, j;
 };
+
+typedef struct rc4_context_s rc4_context_t;
 
 static void rc4_init(rc4_context_t *text,
 		     const unsigned char *key,
@@ -982,51 +1027,49 @@ static void rc4_decrypt(rc4_context_t *text,
     text->j = j;
 }
 
-static void free_rc4(void *v) 
+static void free_rc4(context_t *text)
 {
-    context_t *text = (context_t *) v;
-    
-    /* allocate rc4 context structures */
-    if(text->rc4_enc_context) text->utils->free(text->rc4_enc_context);
-    if(text->rc4_dec_context) text->utils->free(text->rc4_dec_context);
+    /* free rc4 context structures */
+
+    if(text->cipher_enc_context) text->utils->free(text->cipher_enc_context);
+    if(text->cipher_dec_context) text->utils->free(text->cipher_dec_context);
 }
 
-static int init_rc4(void *v, 
-		    char enckey[16],
-		    char deckey[16])
+static int init_rc4(context_t *text, 
+		    unsigned char enckey[16],
+		    unsigned char deckey[16])
 {
-    context_t *text = (context_t *) v;
-    
     /* allocate rc4 context structures */
-    text->rc4_enc_context=
-	(rc4_context_t *) text->utils->malloc(sizeof(rc4_context_t));
-    if (text->rc4_enc_context==NULL) return SASL_NOMEM;
+    text->cipher_enc_context=
+	(cipher_context_t *) text->utils->malloc(sizeof(rc4_context_t));
+    if (text->cipher_enc_context == NULL) return SASL_NOMEM;
     
-    text->rc4_dec_context=
-	(rc4_context_t *) text->utils->malloc(sizeof(rc4_context_t));
-    if (text->rc4_dec_context==NULL) return SASL_NOMEM;
+    text->cipher_dec_context=
+	(cipher_context_t *) text->utils->malloc(sizeof(rc4_context_t));
+    if (text->cipher_dec_context == NULL) return SASL_NOMEM;
     
     /* initialize them */
-    rc4_init(text->rc4_enc_context,(const unsigned char *) enckey, 16);
-    rc4_init(text->rc4_dec_context,(const unsigned char *) deckey, 16);
+    rc4_init((rc4_context_t *) text->cipher_enc_context,
+             (const unsigned char *) enckey, 16);
+    rc4_init((rc4_context_t *) text->cipher_dec_context,
+             (const unsigned char *) deckey, 16);
     
     return SASL_OK;
 }
 
-static int dec_rc4(void *v,
+static int dec_rc4(context_t *text,
 		   const char *input,
 		   unsigned inputlen,
 		   unsigned char digest[16],
 		   char *output,
 		   unsigned *outputlen)
 {
-    context_t *text = (context_t *) v;
-    
     /* decrypt the text part */
-    rc4_decrypt(text->rc4_dec_context, input, output, inputlen-10);
+    rc4_decrypt((rc4_context_t *) text->cipher_dec_context, 
+                input, output, inputlen-10);
     
     /* decrypt the HMAC part */
-    rc4_decrypt(text->rc4_dec_context, 
+    rc4_decrypt((rc4_context_t *) text->cipher_dec_context, 
 		input+(inputlen-10), (char *) digest, 10);
     
     /* no padding so we just subtract the HMAC to get the text length */
@@ -1035,23 +1078,25 @@ static int dec_rc4(void *v,
     return SASL_OK;
 }
 
-static int enc_rc4(void *v,
+static int enc_rc4(context_t *text,
 		   const char *input,
 		   unsigned inputlen,
 		   unsigned char digest[16],
 		   char *output,
 		   unsigned *outputlen)
 {
-    context_t *text = (context_t *) v;
-    
     /* pad is zero */
     *outputlen = inputlen+10;
     
     /* encrypt the text part */
-    rc4_encrypt(text->rc4_enc_context, (const char *) input, output, inputlen);
+    rc4_encrypt((rc4_context_t *) text->cipher_enc_context,
+                input,
+                output,
+                inputlen);
     
     /* encrypt the HMAC part */
-    rc4_encrypt(text->rc4_enc_context, (const char *) digest, 
+    rc4_encrypt((rc4_context_t *) text->cipher_enc_context, 
+                (const char *) digest, 
 		(output)+inputlen, 10);
     
     return SASL_OK;
@@ -1067,8 +1112,8 @@ struct digest_cipher available_ciphers[] =
     { "rc4", 128, 16, 0x04, &enc_rc4, &dec_rc4, &init_rc4, &free_rc4 },
 #endif
 #ifdef WITH_DES
-    { "des", 55, 16, 0x08, &enc_des, &dec_des, &init_des, NULL },
-    { "3des", 112, 16, 0x10, &enc_3des, &dec_3des, &init_3des, NULL },
+    { "des", 55, 16, 0x08, &enc_des, &dec_des, &init_des, &free_des },
+    { "3des", 112, 16, 0x10, &enc_3des, &dec_3des, &init_3des, &free_des },
 #endif
     { NULL, 0, 0, 0, NULL, NULL, NULL, NULL }
 };
@@ -1191,7 +1236,7 @@ digestmd5_privacy_encode(void *context,
 			  inblob->curlen + 4, 
 			  text->Ki_send, HASHLEN, digest);
     
-    /* calculate the encrpyted part */
+    /* calculate the encrypted part */
     text->cipher_enc(text, inblob->data, inblob->curlen,
 		     digest, out, outputlen);
     out+=(*outputlen);

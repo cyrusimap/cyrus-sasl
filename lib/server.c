@@ -26,6 +26,7 @@ SOFTWARE.
 /* local functions/structs don't start with sasl
  */
 #include <config.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -259,10 +260,6 @@ int sasl_setpass(sasl_conn_t *conn,
   sasl_server_conn_t *s_conn=  (sasl_server_conn_t *) conn;
   mechanism_t *m;
 
-  /* XXX flag could be disable! */
-
-  _sasl_debug=-1;
-
   /* Zowie -- we have the user's plaintext password.
    * Let's tell all our mechanisms about it...
    */
@@ -277,16 +274,22 @@ int sasl_setpass(sasl_conn_t *conn,
       user, passlen, pass, passlen));
 
   /* copy info into sparams */
-  s_conn->sparams->local_domain=s_conn->local_domain;
+  s_conn->sparams->local_domain=conn->local_domain;
   s_conn->sparams->service=conn->service;
   s_conn->sparams->user_domain=s_conn->user_domain;
+
+  _sasl_log(conn,
+	    SASL_LOG_WARNING,
+	    NULL,
+	    0, 0,
+	    "Updating secrets for %s",
+	    user);
 
   for (m = mechlist->mech_list;
        m;
        m = m->next)
     if (m->plug->setpass)
     {
-      /* TODO: Log something if this fails */
       VL(("Setting it for mech %s\n", m->plug->mech_name));
       tmpresult=m->plug->setpass(m->plug->glob_context,
 			   ((sasl_server_conn_t *)conn)->sparams,
@@ -299,8 +302,20 @@ int sasl_setpass(sasl_conn_t *conn,
       {
 	VL(("%s returned %i\n",m->plug->mech_name, tmpresult));
 	result = SASL_FAIL;
+	_sasl_log(conn,
+		  SASL_LOG_WARNING,
+		  m->plug->mech_name,
+		  tmpresult, errno,
+		  "Failed to set secret for %s: %z",
+		  user);
       } else {
-	VL(("%s suceeded!\n",m->plug->mech_name));
+	VL(("%s succeeded!\n",m->plug->mech_name));
+	_sasl_log(conn,
+		 SASL_LOG_WARNING,
+		  m->plug->mech_name,
+		  0, 0,
+		  "Set secret for %s",
+		  user);
       }
     }
 
@@ -473,36 +488,18 @@ _sasl_transition(sasl_conn_t * conn,
 		 const char * pass,
 		 int passlen)
 {
-  int result = 0;
-  mechanism_t *m;
-
-  /* Zowie -- we have the user's plaintext password.
-   * Let's tell all our mechanisms about it...
-   */
-
-  if (! conn || ! pass)
-    return SASL_FAIL;
-
-  if (! mechlist)		/* *shouldn't* ever happen... */
-    return SASL_FAIL;
+  if (! conn)
+    return SASL_BADPARAM;
 
   if (! conn->oparams.authid)
     return SASL_NOTDONE;
 
-  for (m = mechlist->mech_list;
-       m;
-       m = m->next)
-    if (m->plug->setpass)
-      /* TODO: Log something if this fails */
-      if (m->plug->setpass(m->plug->glob_context,
-			   ((sasl_server_conn_t *)conn)->sparams,
-			   conn->oparams.authid,
-			   pass,
-			   passlen,
-			   0,
-			   NULL) == SASL_OK)
-	result = 1;
-  return result;
+  return sasl_setpass(conn,
+		      conn->oparams.authid,
+		      pass,
+		      passlen,
+		      0,
+		      NULL);
 }
 
 int sasl_server_new(const char *service,
@@ -761,7 +758,7 @@ int sasl_listmech(sasl_conn_t *conn,
     strcat(*result,suffix);
 
   if (plen!=NULL)
-    *plen=resultlen - 1;	/* one for the null */
+    *plen=strlen(*result);
 
   return SASL_OK;
   

@@ -1,4 +1,17 @@
+1999-03-26  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* lib/server.c (_sasl_transition): changed to call setpass directly
+	(sasl_setpass): added logging
+
+	* sample/sample-server.c (main): cleaned up data handling, base64
+	generation
+
+	* lib/server.c (sasl_listmech): better final len calculation
+
 1999-03-25  Rob Earhart  <rob+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c: made a lot of things const; this makes the
+	code happier.
 
 	* plugins/cram.c (c_start): fixed text init bug
 

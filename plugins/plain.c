@@ -45,7 +45,7 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 
 #define PLAIN_VERSION (3)
 #undef L_DEFAULT_GUARD
-#define L_DEFAULT_GUARD (0)
+#define L_DEFAULT_GUARD (1)
 
 typedef struct context {
   int state;
@@ -318,12 +318,10 @@ server_continue_step (void *conn_context,
 
     if (params->transition)
     {
-      VL(("Trying to transition\n"));
       params->transition(params->utils->conn,
 			 password, password_len);
-      VL(("Transitioned\n"));
     }
-
+    
     *serverout = params->utils->malloc(1);
     if (! *serverout) return SASL_NOMEM;
     (*serverout)[0] = '\0';

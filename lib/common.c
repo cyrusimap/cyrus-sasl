@@ -685,13 +685,14 @@ static int add_string(char **out, int *alloclen, int *outlen, char *add)
  * and calls the logging callback (syslog by default)
  */
 
-static int sasl_log (sasl_conn_t *conn,
-		     int priority,
-		     const char *plugin_name,
-		     int sasl_error,	/* %z */
-		     int errno,	/* %m */
-		     const char *format,
-		     ...)
+int
+_sasl_log (sasl_conn_t *conn,
+	   int priority,
+	   const char *plugin_name,
+	   int sasl_error,	/* %z */
+	   int errno,	/* %m */
+	   const char *format,
+	   ...)
 {
   char *out=(char *) sasl_ALLOC(100);
   int alloclen=100; /* current allocated length */
@@ -884,7 +885,7 @@ _sasl_alloc_utils(sasl_conn_t *conn,
   
   utils->getcallback=&_sasl_getcallback;
 
-  utils->log=&sasl_log;
+  utils->log=&_sasl_log;
 
   return utils;
 }

@@ -332,14 +332,14 @@ samp_send(const char *buffer,
   unsigned len, alloclen;
   int result;
 
-  alloclen = (((length / 3) + 1) * 4);
+  alloclen = ((length / 3) + 1) * 4 + 1;
   buf = malloc(alloclen);
   if (! buf)
     osfail();
   result = sasl_encode64(buffer, length, buf, alloclen, &len);
   if (result != SASL_OK)
     saslfail(result, "Encoding data in base64", NULL);
-  printf("C: %*s\n", len, buf);
+  printf("C: %s\n", buf);
   free(buf);
 }
 
@@ -397,7 +397,7 @@ main(int argc, char *argv[])
     case 'b':
       options = optarg;
       while (*options != '\0')
-	switch(getsubopt(&options, bit_subopts, &value)) {
+	switch(getsubopt(&options, (char * const *)bit_subopts, &value)) {
 	case OPT_MIN:
 	  if (! value)
 	    errflag = 1;
@@ -419,7 +419,7 @@ main(int argc, char *argv[])
     case 'e':
       options = optarg;
       while (*options != '\0')
-	switch(getsubopt(&options, ext_subopts, &value)) {
+	switch(getsubopt(&options, (char * const *)ext_subopts, &value)) {
 	case OPT_EXT_SSF:
 	  if (! value)
 	    errflag = 1;
@@ -445,7 +445,7 @@ main(int argc, char *argv[])
     case 'f':
       options = optarg;
       while (*options != '\0') {
-	switch(getsubopt(&options, flag_subopts, &value)) {
+	switch(getsubopt(&options, (char * const *)flag_subopts, &value)) {
 	case OPT_NOPLAIN:
 	  secprops.security_flags |= SASL_SEC_NOPLAINTEXT;
 	  break;
@@ -475,7 +475,7 @@ main(int argc, char *argv[])
     case 'i':
       options = optarg;
       while (*options != '\0')
-	switch(getsubopt(&options, ip_subopts, &value)) {
+	switch(getsubopt(&options, (char * const *)ip_subopts, &value)) {
 	case OPT_IP_LOCAL:
 	  if (! value)
 	    errflag = 1;

@@ -103,7 +103,9 @@ int sasl_encode64(const char *_in, unsigned inlen,
         *out++ = (inlen < 2) ? '=' : basis_64[(in[1] << 2) & 0x3c];
         *out++ = '=';
     }
-    *out = '\0';
+
+    if (olen < outmax)
+      *out = '\0';
     
     return SASL_OK;
 }

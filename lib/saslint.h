@@ -147,4 +147,13 @@ _sasl_getcallback(sasl_conn_t * conn,
 		  int (**pproc)(),
 		  void **pcontext);
 
+extern int
+_sasl_log(sasl_conn_t *conn,
+	  int priority,
+	  const char *plugin_name,
+	  int sasl_error,	/* %z */
+	  int errno,	/* %m */
+	  const char *format,
+	  ...);
+
 #endif /* SASLINT_H */

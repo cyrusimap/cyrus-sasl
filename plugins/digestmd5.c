@@ -24,13 +24,7 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif				/* HAVE_CONFIG_H */
-#ifdef WIN32
-#include "winconfig.h"
-#endif				/* WIN32 */
-
 #include <des.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -1972,17 +1966,17 @@ static int
       || !errstr)
     return SASL_BADPARAM;
 
-  if (!sparams->user_domain) {
+  if (!sparams->local_domain) {
     VL(("Digest-MD5 requires a domain\n"));
     return SASL_NOTDONE;
   }
-  realm = sparams->user_domain;
+  realm = sparams->local_domain;
   realmlen = strlen(realm);
   userlen = strlen(user);
 
   DigestCalcSecret(sparams->utils,
 		   (unsigned char *) user,
-		   (unsigned char *) sparams->user_domain,
+		   (unsigned char *) sparams->local_domain,
 		   pass,
 		   passlen,
 		   TRUE,	/* use UTF-8 */
@@ -2016,7 +2010,7 @@ static int
   memcpy(userid, user, userlen);
   userid[userlen] = (char) ':';
 
-  memcpy(userid + userlen + 1, sparams->user_domain, realmlen);
+  memcpy(userid + userlen + 1, sparams->local_domain, realmlen);
   userid[userlen + realmlen + 1] = '\0';
 
 

@@ -332,7 +332,9 @@ static int server_continue_step (void *conn_context,
 				    (HMAC_MD5_STATE *) &sec->data);
     free_secret(sparams->utils, &sec);
 
-    sparams->utils->MD5Update(&ctx.ictx, text->msgid, text->msgidlen);
+    sparams->utils->MD5Update(&ctx.ictx,
+			      (const unsigned char *)text->msgid,
+			      text->msgidlen);
 
     sparams->utils->hmac_md5_final(digest, &ctx);
 
@@ -426,7 +428,7 @@ setpass(void *glob_context __attribute__((unused)),
     return result;
 
   sparams->utils->hmac_md5_precalc((HMAC_MD5_STATE *)&secret->data,
-				   pass,
+				   (const unsigned char *)pass,
 				   passlen);
   
   secret->len = sizeof(HMAC_MD5_STATE);

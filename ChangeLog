@@ -1,3 +1,6 @@
+2002-01-04  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* lib/common.c: Allow sasl_setprop for SASL_DEFUSERREALM
+
 2002-01-04  Ken Murchison <ken@oceana.com>
 	* plugins/srp.c: don't send M2 if using a confidentiality layer
 	* plugins/srp.c: more constraint checks

@@ -682,6 +682,7 @@ LIBSASL_API int sasl_getprop(sasl_conn_t *conn, int propnum,
                                  * unnecessary */
 #define SASL_MAXOUTBUF    2     /* security layer max output buf unsigned */  
 #define SASL_DEFUSERREALM 3	/* default realm passed to server_new */
+				/* or set with setprop */
 #define SASL_GETOPTCTX    4	/* context for getopt callback */
 #define SASL_CALLBACK     7	/* current callback function list */
 #define SASL_IPLOCALPORT  8	/* iplocalport string passed to server_new */

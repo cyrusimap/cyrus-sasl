@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.68 2001/12/13 17:07:57 rjs3 Exp $
+ * $Id: common.c,v 1.69 2002/01/04 22:49:29 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -605,6 +605,28 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
 	  sasl_FREE(conn->external.auth_id);
 
       conn->external.auth_id = str;
+
+      break;
+
+  case SASL_DEFUSERREALM:
+      if(conn->type != SASL_CONN_SERVER) {
+	sasl_seterror(conn, 0, "Tried to set realm on non-server connection");
+	result = SASL_BADPROT;
+	break;
+      }
+
+      if(value && strlen(value)) {
+	  result = _sasl_strdup(value, &str, NULL);
+	  if(result != SASL_OK) MEMERROR(conn);
+      } else {
+	  PARAMERROR(conn);
+      }
+
+      if(((sasl_server_conn_t *)conn)->user_realm)
+      	  sasl_FREE(((sasl_server_conn_t *)conn)->user_realm);
+
+      ((sasl_server_conn_t *)conn)->user_realm = str;
+      ((sasl_server_conn_t *)conn)->sparams->user_realm = str;
 
       break;
 

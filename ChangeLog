@@ -1,3 +1,8 @@
+2002-05-13  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/checkpw.c: use "*cmusaslsecretPLAIN" in auxprop_verify_password
+	  (Howard Chu, <hyc@highlandsun.com>), also only make a single
+	  canon_user call.
+
 2002-05-13  Ken Murchison <ken@oceana.com>
 	* plugins/plugin_common.c: NULL the results of the _plug_get_*()
 	  functions before we get started

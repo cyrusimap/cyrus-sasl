@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.54 2002/05/08 20:48:33 rjs3 Exp $
+ * $Id: checkpw.c,v 1.55 2002/05/13 15:32:41 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -143,7 +143,7 @@ static int auxprop_verify_password(sasl_conn_t *conn,
     int result = SASL_OK;
     sasl_server_conn_t *sconn = (sasl_server_conn_t *)conn;
     const char *password_request[] = { SASL_AUX_PASSWORD,
-				       "cmusaslsecretPLAIN",
+				       "*cmusaslsecretPLAIN",
 				       NULL };
     struct propval auxprop_values[3];
     
@@ -161,13 +161,10 @@ static int auxprop_verify_password(sasl_conn_t *conn,
     if(result != SASL_OK) return result;
 
     result = _sasl_canon_user(conn, userstr, 0,
-			      SASL_CU_AUTHID, &(conn->oparams));
+			      SASL_CU_AUTHID | SASL_CU_AUTHZID,
+			      &(conn->oparams));
     if(result != SASL_OK) return result;
     
-    result = _sasl_canon_user(conn, userstr, 0,
-			      SASL_CU_AUTHZID, &(conn->oparams));
-    if(result != SASL_OK) return result;
-
     result = prop_getnames(sconn->sparams->propctx, password_request,
 			   auxprop_values);
     if(result < 0)

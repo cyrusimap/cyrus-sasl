@@ -7,7 +7,7 @@
 ** Simon Loader -- original mysql plugin
 ** Patrick Welche -- original pgsql plugin
 **
-** $Id: sql.c,v 1.26 2004/05/27 16:02:59 rjs3 Exp $
+** $Id: sql.c,v 1.27 2004/06/30 19:31:11 rjs3 Exp $
 **
 */
 
@@ -1086,6 +1086,7 @@ int sql_auxprop_plug_init(const sasl_utils_t *utils,
 
     if (!sql_exists(settings->sql_select)) {
 	utils->log(NULL, SASL_LOG_ERR, "sql_select option missing");
+	utils->free(settings);	
 	return SASL_NOMECH;
     }
 

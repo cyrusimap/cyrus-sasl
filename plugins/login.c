@@ -2,7 +2,7 @@
  * Rob Siemborski (SASLv2 Conversion)
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.20 2002/04/30 17:45:32 ken3 Exp $
+ * $Id: login.c,v 1.21 2002/05/01 17:19:13 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -59,7 +59,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: login.c,v 1.20 2002/04/30 17:45:32 ken3 Exp $";
+static const char plugin_id[] = "$Id: login.c,v 1.21 2002/05/01 17:19:13 ken3 Exp $";
 
 /*****************************  Server Section  *****************************/
 
@@ -252,20 +252,20 @@ static void login_server_mech_dispose(void *conn_context,
 static sasl_server_plug_t login_server_plugins[] = 
 {
     {
-	"LOGIN",
-	0,
-	SASL_SEC_NOANONYMOUS,
-	SASL_FEAT_SERVER_FIRST,
-	NULL,
-	&login_server_mech_new,
-	&login_server_mech_step,
-	&login_server_mech_dispose,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL
+	"LOGIN",			/* mech_name */
+	0,				/* max_ssf */
+	SASL_SEC_NOANONYMOUS,		/* security_flags */
+	SASL_FEAT_SERVER_FIRST,		/* features */
+	NULL,				/* glob_context */
+	&login_server_mech_new,		/* mech_new */
+	&login_server_mech_step,	/* mech_step */
+	&login_server_mech_dispose,	/* mech_dispose */
+	NULL,				/* mech_free */
+	NULL,				/* setpass */
+	NULL,				/* user_query */
+	NULL,				/* idle */
+	NULL,				/* mech_avail */
+	NULL				/* spare */
     }
 };
 

@@ -1,7 +1,7 @@
 /* CRAM-MD5 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: cram.c,v 1.71 2002/04/30 17:45:32 ken3 Exp $
+ * $Id: cram.c,v 1.72 2002/05/01 17:19:12 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -70,7 +70,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: cram.c,v 1.71 2002/04/30 17:45:32 ken3 Exp $";
+static const char plugin_id[] = "$Id: cram.c,v 1.72 2002/05/01 17:19:12 ken3 Exp $";
 
 /* convert a string of 8bit chars to it's representation in hex
  * using lowercase letters
@@ -413,20 +413,21 @@ static void crammd5_server_mech_dispose(void *conn_context,
 static sasl_server_plug_t crammd5_server_plugins[] = 
 {
     {
-	"CRAM-MD5",
-	0,
-	SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
-	SASL_FEAT_SERVER_FIRST,
-	NULL,
-	&crammd5_server_mech_new,
-	&crammd5_server_mech_step,
-	&crammd5_server_mech_dispose,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL
+	"CRAM-MD5",			/* mech_name */
+	0,				/* max_ssf */
+	SASL_SEC_NOPLAINTEXT
+	| SASL_SEC_NOANONYMOUS,		/* security_flags */
+	SASL_FEAT_SERVER_FIRST,		/* features */
+	NULL,				/* glob_context */
+	&crammd5_server_mech_new,	/* mech_new */
+	&crammd5_server_mech_step,	/* mech_step */
+	&crammd5_server_mech_dispose,	/* mech_dispose */
+	NULL,				/* mech_free */
+	NULL,				/* setpass */
+	NULL,				/* user_query */
+	NULL,				/* idle */
+	NULL,				/* mech avail */
+	NULL				/* spare */
     }
 };
 

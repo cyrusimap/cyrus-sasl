@@ -14,6 +14,8 @@
 	* doc/sysadmin.html: updated to reference testsaslauthd
 	* saslauthd/saslauthd.c: allow -n 0 (for fork-per-connection)
 	* saslauthd/saslauthd.mdoc: documentation of -n 0
+	* plugins/cram.c (crammd5_client_mech_step): fix client-first
+	  handling
 
 2002-01-19  Ken Murchison <ken@oceana.com>
 	* plugins/otp.c: set serverout to NULL where we have nothing to

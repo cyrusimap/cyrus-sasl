@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.190 2004/03/16 19:31:59 rjs3 Exp $
+dnl $Id: configure.in,v 1.191 2004/03/16 19:49:42 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -628,10 +628,14 @@ case "$with_mysql" in
      else
          CPPFLAGS="${CPPFLAGS} -I${with_mysql}"
      fi
+
+       save_LIBS=$LIBS
+       LIBS="$LIBS $LIB_MYSQL_DIR"
        AC_CHECK_LIB(mysqlclient, mysql_select_db,
 	   AC_DEFINE(HAVE_MYSQL, [], [Do we have mysql support?]),
            [AC_WARN([MySQL library mysqlclient does not work])
-	    with_mysql=no], $LIB_MYSQL_DIR);;
+	    with_mysql=no])
+       LIBS=$save_LIBS;;
          
 esac
 AC_SUBST(LIB_MYSQL)
@@ -688,10 +692,15 @@ case "$with_pgsql" in
      else
          CPPFLAGS="${CPPFLAGS} -I${with_pgsql}"
      fi
+
+
+       save_LIBS=$LIBS
+       LIBS="$LIBS $LIB_PGSQL_DIR"
        AC_CHECK_LIB(pq, PQsetdbLogin, AC_DEFINE(HAVE_PGSQL,[],
 	   [Do we have Postgres support?]),
            [AC_WARN([PostgreSQL Library pq does not work])
-	    with_pgsql=no], $LIB_PGSQL_DIR);;
+	    with_pgsql=no])
+       LIBS=$save_LIBS;;
          
 esac
 AC_SUBST(LIB_PGSQL)

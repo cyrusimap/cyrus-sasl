@@ -1,4 +1,13 @@
+2000-07-20  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/gssapi.c: remove some dead code
+
+	* lib/checkpw.c: ensure that PAM only sees non-empty usernames and
+	passwords.
+
 2000-07-17  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* pwcheck/pwcheck.c: include <config.h> first thing!
 
 	* version 1.5.23 ready for beta release
 

@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.196 2004/07/15 18:01:57 rjs3 Exp $
+dnl $Id: configure.in,v 1.197 2004/10/20 00:00:18 shadow Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -67,9 +67,9 @@ ACLOCAL="$ACLOCAL -I \$(top_srcdir)/config"
 
 DIRS=""
 
-AC_ARG_ENABLE(cmulocal, [  --enable-cmulocal       enable local mods for CMU [no]],,enable_cmulocal=no)
+AC_ARG_ENABLE(cmulocal, [  --enable-cmulocal       enable local mods for CMU [[no]]],,enable_cmulocal=no)
 
-AC_ARG_ENABLE(sample, [  --enable-sample         compile sample code [yes]],,enable_sample=yes)
+AC_ARG_ENABLE(sample, [  --enable-sample         compile sample code [[yes]]],,enable_sample=yes)
 
 AC_PROG_CC
 AC_PROG_CPP
@@ -106,7 +106,7 @@ else
 	SASL_STATIC_LIBS=
 fi
 
-AC_ARG_ENABLE(staticdlopen, [  --enable-staticdlopen   try dynamic plugins when we are a static libsasl [no] ],
+AC_ARG_ENABLE(staticdlopen, [  --enable-staticdlopen   try dynamic plugins when we are a static libsasl [[no]] ],
                 enable_staticdlopen=$enableval,
                 enable_staticdlopen=no)
 
@@ -127,7 +127,7 @@ if test "$with_purify" = yes; then
   AC_CHECK_PROGS(PURIFY, purify)
 fi
 
-AC_ARG_ENABLE(java, [  --enable-java           compile Java support [no]],
+AC_ARG_ENABLE(java, [  --enable-java           compile Java support [[no]]],
 	enable_java=$enableval, enable_java=no)
 if test "$enable_java" = yes; then
   AC_PATH_PROG(JAVAC, javac, no)
@@ -192,7 +192,7 @@ AC_SUBST(SASL_DL_LIB)
 
 dnl /dev/random ?
 
-AC_ARG_WITH(devrandom, [  --with-devrandom=PATH   set the path to /dev/random [/dev/random] ],
+AC_ARG_WITH(devrandom, [  --with-devrandom=PATH   set the path to /dev/random [[/dev/random]] ],
   devrandom=$withval,
   devrandom=/dev/random)
 AC_MSG_CHECKING(/dev/random to use)
@@ -239,7 +239,7 @@ fi
 dnl See if we can provide a default logging function...
 AC_CHECK_FUNCS(syslog)
 
-AC_ARG_WITH(pam, [  --with-pam=DIR          use PAM (rooted in DIR) [yes] ],
+AC_ARG_WITH(pam, [  --with-pam=DIR          use PAM (rooted in DIR) [[yes]] ],
 	with_pam=$withval,
 	with_pam=yes)
 if test "$with_pam" != no; then
@@ -301,7 +301,7 @@ AM_CONDITIONAL(PWCHECK, test "$with_pwcheck" != no)
 AC_MSG_CHECKING(if I should include pwcheck)
 AC_MSG_RESULT($with_pwcheck)
 
-AC_ARG_WITH(ipctype, [  --with-ipctype={unix,doors}    use ipctype [unix] ],
+AC_ARG_WITH(ipctype, [  --with-ipctype={unix,doors}    use ipctype [[unix]] ],
        with_ipctype=$withval,
        with_ipctype="unix")
 IPCTYPE=$with_ipctype
@@ -323,7 +323,7 @@ AC_MSG_CHECKING(if I should include the alwaystrue verifier)
 AC_MSG_RESULT($enable_alwaystrue)
 
 dnl sasl_checkapop support
-AC_ARG_ENABLE(checkapop, [  --enable-checkapop      enable use of sasl_checkapop [yes] ],
+AC_ARG_ENABLE(checkapop, [  --enable-checkapop      enable use of sasl_checkapop [[yes]] ],
   checkapop=$enableval,
   checkapop=yes)
 
@@ -336,7 +336,7 @@ else
 fi
 
 dnl CRAM-MD5
-AC_ARG_ENABLE(cram, [  --enable-cram           enable CRAM-MD5 authentication [yes] ],
+AC_ARG_ENABLE(cram, [  --enable-cram           enable CRAM-MD5 authentication [[yes]] ],
   cram=$enableval,
   cram=yes)
 
@@ -359,7 +359,7 @@ AC_MSG_RESULT($with_openssl)
 SASL_DES_CHK
 
 dnl DIGEST-MD5
-AC_ARG_ENABLE(digest, [  --enable-digest         enable DIGEST-MD5 authentication [yes] ],
+AC_ARG_ENABLE(digest, [  --enable-digest         enable DIGEST-MD5 authentication [[yes]] ],
   digest=$enableval,
   digest=yes)
 
@@ -387,7 +387,7 @@ else
 fi
 
 dnl OTP
-AC_ARG_ENABLE(otp, [  --enable-otp            enable OTP authentication [yes] ],
+AC_ARG_ENABLE(otp, [  --enable-otp            enable OTP authentication [[yes]] ],
   otp=$enableval,
   otp=yes)
 
@@ -443,7 +443,7 @@ else
 fi
 
 dnl SRP
-AC_ARG_ENABLE(srp, [  --enable-srp            enable SRP authentication [no] ],
+AC_ARG_ENABLE(srp, [  --enable-srp            enable SRP authentication [[no]] ],
   srp=$enableval,
   srp=no)
 
@@ -464,7 +464,7 @@ if test "$srp" != no; then
   fi
 
 dnl srp_setpass support
-  AC_ARG_ENABLE(srp_setpass, [  --enable-srp-setpass    enable setting SRP secrets with saslpasswd [no]],
+  AC_ARG_ENABLE(srp_setpass, [  --enable-srp-setpass    enable setting SRP secrets with saslpasswd [[no]]],
       srp_setpass=$enableval,
       srp_setpass=no)
 
@@ -505,7 +505,7 @@ dnl PLAIN
 SASL_PLAIN_CHK
 
 dnl ANONYMOUS
-AC_ARG_ENABLE(anon, [  --enable-anon           enable ANONYMOUS authentication [yes] ],
+AC_ARG_ENABLE(anon, [  --enable-anon           enable ANONYMOUS authentication [[yes]] ],
   anon=$enableval,
   anon=yes)
 
@@ -522,7 +522,7 @@ else
 fi
 
 dnl LOGIN
-AC_ARG_ENABLE(login, [  --enable-login          enable unsupported LOGIN authentication [no] ],
+AC_ARG_ENABLE(login, [  --enable-login          enable unsupported LOGIN authentication [[no]] ],
   login=$enableval,
   login=no)
 
@@ -539,7 +539,7 @@ else
 fi
 
 dnl NTLM
-AC_ARG_ENABLE(ntlm, [  --enable-ntlm           enable unsupported NTLM authentication [no] ],
+AC_ARG_ENABLE(ntlm, [  --enable-ntlm           enable unsupported NTLM authentication [[no]] ],
   ntlm=$enableval,
   ntlm=no)
 
@@ -566,7 +566,7 @@ fi
 
 # make the option show up so people don't whine that it is only in the
 # saslauthd configure script --help
-AC_ARG_WITH(ldap,   [  --with-ldap=DIR         use LDAP (in DIR) for saslauthd [no] ],,)
+AC_ARG_WITH(ldap,   [  --with-ldap=DIR         use LDAP (in DIR) for saslauthd [[no]] ],,)
 
 
 dnl SQL
@@ -787,14 +787,14 @@ AC_SUBST(SASL_STATIC_OBJS)
 AC_SUBST(SASL_STATIC_LIBS)
 
 AC_ARG_WITH(plugindir, [  --with-plugindir=DIR    set the directory where plugins will
-                          be found [/usr/lib/sasl2] ],
+                          be found [[/usr/lib/sasl2]] ],
   plugindir=$withval,
   plugindir=/usr/lib/sasl2)
 AC_DEFINE_UNQUOTED(PLUGINDIR, "$plugindir", [Runtime plugin location])
 AC_SUBST(plugindir)
 
 dnl look for rc4 libraries. we accept the CMU one or one from openSSL
-AC_ARG_WITH(rc4, [  --with-rc4              use internal rc4 routines [yes] ],
+AC_ARG_WITH(rc4, [  --with-rc4              use internal rc4 routines [[yes]] ],
 	with_rc4=$withval,
 	with_rc4=yes)
 
@@ -812,7 +812,7 @@ AM_CONDITIONAL(MACOSX, test "$building_for_macosx" = yes)
 
 dnl dmalloc tests
 AC_MSG_CHECKING(for dmalloc library)
-AC_ARG_WITH(dmalloc, [  --with-dmalloc=DIR      with DMALLOC support (for test applications) [no] ],
+AC_ARG_WITH(dmalloc, [  --with-dmalloc=DIR      with DMALLOC support (for test applications) [[no]] ],
 	with_dmalloc=$withval,
 	with_dmalloc=no)
 
@@ -842,7 +842,7 @@ AC_SUBST(DMALLOC_LIBS)
 
 dnl sfio tests
 AC_MSG_CHECKING(for sfio library)
-AC_ARG_WITH(sfio, [  --with-sfio=DIR         with SFIO support (for smtptest/libsfsasl) [no] ],
+AC_ARG_WITH(sfio, [  --with-sfio=DIR         with SFIO support (for smtptest/libsfsasl) [[no]] ],
 	with_sfio=$withval,
 	with_sfio=no)
 

@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.37 2004/06/30 19:05:13 rjs3 Exp $
+ * $Id: testsuite.c,v 1.38 2004/06/30 19:40:27 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -603,10 +603,6 @@ void test_init(void)
     sasl_done();
     if(mem_stat() != SASL_OK) fatal("memory error after long appname test");
 
-    /* try passing NULL name */
-    result = sasl_server_init(emptysasl_cb, NULL);
-    if (result == SASL_OK) fatal("Allowed null name to sasl_server_init");
-
     /* this calls sasl_done when it wasn't inited */
     sasl_done();
     if(mem_stat() != SASL_OK) fatal("memory error after null appname test");
@@ -625,12 +621,13 @@ void test_init(void)
     sasl_done();
     if(mem_stat() != SASL_OK) fatal("memory error after client test");
 
+#if defined(DO_DLOPEN) && (defined(PIC) || (!defined(PIC) && defined(TRY_DLOPEN_WHEN_STATIC)))
     /* try giving it an invalid path for where the plugins are */
     result = sasl_server_init(withbadpathsasl_cb, NULL);
-
     if (result==SASL_OK) fatal("Allowed invalid path");
     sasl_done();
     if(mem_stat() != SASL_OK) fatal("memory error after bad path test");
+#endif
 
     /* and the client - xxx is this necessary?*/
 #if 0

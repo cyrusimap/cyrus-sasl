@@ -50,6 +50,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <ctype.h>
 
 /* either WITH_CMU_RC4 or WITH_SSL_RC4 is defined Let's make WITH_RC4
    our general "there is rc4 support" and use CMU/SSL for the specific
@@ -2389,7 +2390,7 @@ server_continue_step(void *conn_context,
     }
 
     /* if no realm specified use empty string realm */
-    realm = digest_strdup(sparams->utils, "", &realm, NULL);
+    digest_strdup(sparams->utils, "", &realm, NULL);
 
     /* We use the user's DIGEST secret */
     result = getsecret(getsecret_context, "DIGEST-MD5", username,

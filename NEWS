@@ -1,3 +1,10 @@
+New in 1.5.22
+-------------
+* fixed some DIGEST-MD5 buglets
+* fixed serious bug that a client could avoid the authorization callback
+* added pwcheck method "sia" for Digital Unix
+* now should try libdb-3 before libdb.
+
 New in 1.5.21
 -------------
 * build process fixes

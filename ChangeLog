@@ -1,5 +1,7 @@
 2000-07-10  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
+	* version 1.5.22 ready for beta release
+
 	* lib/server.c: serious bug fixed!  do authorization if
 	sasl_server_start() returns SASL_OK.
 	

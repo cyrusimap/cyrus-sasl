@@ -45,16 +45,16 @@
 
 # Library version info - here at the top, for sanity
 # CURRENT:REVISION:AGE
-plain_version = 1:13:0
-anonymous_version = 1:14:0
-kerberos4_version = 1:14:0
-crammd5_version = 1:14:0
+plain_version = 1:14:0
+anonymous_version = 1:15:0
+kerberos4_version = 1:15:0
+crammd5_version = 1:15:0
 scrammd5_version = 1:7:0
 gssapiv2_version = 1:13:0
-digestmd5_version = 0:15:0
-login_version = 0:4:0
+digestmd5_version = 0:16:0
+login_version = 0:5:0
 srp_version = 0:1:0
-x509_version = 0:0:0
+# x509_version = 0:0:0
 
 INCLUDES=-I$(top_srcdir)/include
 
@@ -64,7 +64,7 @@ plugindir = @plugindir@
 
 sasldir = $(prefix)/lib/sasl
 sasl_LTLIBRARIES = @SASL_MECHS@
-EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la libscrammd5.la libgssapiv2.la libdigestmd5.la liblogin.la libsrp.la libx509.la
+EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la libscrammd5.la libgssapiv2.la libdigestmd5.la liblogin.la libsrp.la
 
 libplain_la_SOURCES = plain.c
 libplain_la_LDFLAGS = -version-info $(plain_version)
@@ -99,6 +99,6 @@ libsrp_la_SOURCES = srp.c
 libsrp_la_LDFLAGS = -version-info $(srp_version)
 libsrp_la_LIBADD = $(SRP_LIBS)
 
-libx509_la_SOURCES = x509.c
-libx509_la_LDFLAGS = -version-info $(x509_version)
-libx509_la_LIBADD = $(X509_LIBS)
+# libx509_la_SOURCES = x509.c
+# libx509_la_LDFLAGS = -version-info $(x509_version)
+# libx509_la_LIBADD = $(X509_LIBS)

@@ -1,8 +1,8 @@
 /*
  * Mar  8, 2000 by Hajimu UMEMOTO <ume@mahoroba.org>
- * $Id: getaddrinfo.c,v 1.2 2001/12/04 02:05:26 rjs3 Exp $
+ * $Id: getaddrinfo.c,v 1.3 2002/06/13 17:00:47 rjs3 Exp $
  *
- * This module is besed on ssh-1.2.27-IPv6-1.5 written by
+ * This module is based on ssh-1.2.27-IPv6-1.5 written by
  * KIKUCHI Takahiro <kick@kyoto.wide.ad.jp>
  */
 /* 

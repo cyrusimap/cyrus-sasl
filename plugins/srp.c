@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.39 2002/05/01 17:19:13 ken3 Exp $
+ * $Id: srp.c,v 1.40 2002/05/02 22:05:12 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -75,7 +75,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: srp.c,v 1.39 2002/05/01 17:19:13 ken3 Exp $";
+static const char plugin_id[] = "$Id: srp.c,v 1.40 2002/05/02 22:05:12 ken3 Exp $";
 
 /* Size of diffie-hellman secrets a and b */
 #define BITSFORab 64
@@ -1658,8 +1658,8 @@ static int SetOptions(srp_options_t *opts,
 /*
  * Dispose of a SRP context (could be server or client)
  */ 
-static void srp_both_mech_dispose(void *conn_context,
-				  const sasl_utils_t *utils)
+static void srp_common_mech_dispose(void *conn_context,
+				    const sasl_utils_t *utils)
 {
     context_t *text = (context_t *) conn_context;
     
@@ -1700,8 +1700,8 @@ static void srp_both_mech_dispose(void *conn_context,
 }
 
 static void
-srp_both_mech_free(void *global_context __attribute__((unused)),
-		   const sasl_utils_t *utils __attribute__((unused)))
+srp_common_mech_free(void *global_context __attribute__((unused)),
+		     const sasl_utils_t *utils __attribute__((unused)))
 {
     EVP_cleanup();
 }
@@ -2722,8 +2722,8 @@ static sasl_server_plug_t srp_server_plugins[] =
 	NULL,				/* glob_context */
 	&srp_server_mech_new,		/* mech_new */
 	&srp_server_mech_step,		/* mech_step */
-	&srp_both_mech_dispose,		/* mech_dispose */
-	&srp_both_mech_free,		/* mech_free */
+	&srp_common_mech_dispose,	/* mech_dispose */
+	&srp_common_mech_free,		/* mech_free */
 #if DO_SRP_SETPASS
 	&srp_setpass,			/* setpass */
 #else
@@ -3576,8 +3576,8 @@ static sasl_client_plug_t srp_client_plugins[] =
 	NULL,				/* glob_context */
 	&srp_client_mech_new,		/* mech_new */
 	&srp_client_mech_step,		/* mech_step */
-	&srp_both_mech_dispose,		/* mech_dispose */
-	&srp_both_mech_free,		/* mech_free */
+	&srp_common_mech_dispose,	/* mech_dispose */
+	&srp_common_mech_free,		/* mech_free */
 	NULL,				/* idle */
 	NULL,				/* spare */
 	NULL				/* spare */

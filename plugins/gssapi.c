@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.65 2002/05/02 21:48:52 ken3 Exp $
+ * $Id: gssapi.c,v 1.66 2002/05/02 22:05:41 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -87,7 +87,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.65 2002/05/02 21:48:52 ken3 Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.66 2002/05/02 22:05:41 ken3 Exp $";
 
 #ifndef HAVE_GSS_C_NT_HOSTBASED_SERVICE
 extern gss_OID gss_nt_service_name;
@@ -550,8 +550,8 @@ static void sasl_gss_free_context_contents(context_t *text)
     }
 }
 
-static void gssapi_both_mech_dispose(void *conn_context,
-				     const sasl_utils_t *utils)
+static void gssapi_common_mech_dispose(void *conn_context,
+				       const sasl_utils_t *utils)
 {
     sasl_gss_free_context_contents((context_t *)(conn_context));
     utils->free(conn_context);
@@ -1030,7 +1030,7 @@ static sasl_server_plug_t gssapi_server_plugins[] =
 	NULL,				/* glob_context */
 	&gssapi_server_mech_new,	/* mech_new */
 	&gssapi_server_mech_step,	/* mech_step */
-	&gssapi_both_mech_dispose,	/* mech_dispose */
+	&gssapi_common_mech_dispose,	/* mech_dispose */
 	NULL,				/* mech_free */
 	NULL,				/* setpass */
 	NULL,				/* user_query */
@@ -1506,7 +1506,7 @@ static sasl_client_plug_t gssapi_client_plugins[] =
 	NULL,				/* glob_context */
 	&gssapi_client_mech_new,	/* mech_new */
 	&gssapi_client_mech_step,	/* mech_step */
-	&gssapi_both_mech_dispose,	/* mech_dispose */
+	&gssapi_common_mech_dispose,	/* mech_dispose */
 	NULL,				/* mech_free */
 	NULL,				/* idle */
 	NULL,				/* spare */

@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.120 2002/05/02 21:54:58 ken3 Exp $
+ * $Id: digestmd5.c,v 1.121 2002/05/02 22:05:11 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -103,7 +103,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.120 2002/05/02 21:54:58 ken3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.121 2002/05/02 22:05:11 ken3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -1590,9 +1590,9 @@ static int digestmd5_integrity_decode(void *context,
 }
 
 static void
-digestmd5_both_mech_dispose(void *conn_context, const sasl_utils_t * utils)
+digestmd5_common_mech_dispose(void *conn_context, const sasl_utils_t * utils)
 {
-    context_t *text=(context_t *) conn_context;
+    context_t *text = (context_t *) conn_context;
     
     if (!text || !utils) return;
     
@@ -2547,7 +2547,7 @@ static sasl_server_plug_t digestmd5_server_plugins[] =
 	NULL,				/* glob_context */
 	&digestmd5_server_mech_new,	/* mech_new */
 	&digestmd5_server_mech_step,	/* mech_step */
-	&digestmd5_both_mech_dispose,	/* mech_dispose */
+	&digestmd5_common_mech_dispose,	/* mech_dispose */
 	NULL,				/* mech_free */
 	NULL,				/* setpass */
 	NULL,				/* user_query */
@@ -3504,7 +3504,7 @@ static sasl_client_plug_t digestmd5_client_plugins[] =
 	NULL,				/* glob_context */
 	&digestmd5_client_mech_new,	/* mech_new */
 	&digestmd5_client_mech_step,	/* mech_step */
-	&digestmd5_both_mech_dispose,	/* mech_dispose */
+	&digestmd5_common_mech_dispose,	/* mech_dispose */
 	NULL,				/* mech_free */
 	NULL,				/* idle */
 	NULL,				/* spare1 */

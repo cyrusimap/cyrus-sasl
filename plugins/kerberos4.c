@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.84 2002/05/02 21:48:53 ken3 Exp $
+ * $Id: kerberos4.c,v 1.85 2002/05/02 22:05:12 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -107,7 +107,7 @@ extern int gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: kerberos4.c,v 1.84 2002/05/02 21:48:53 ken3 Exp $";
+static const char plugin_id[] = "$Id: kerberos4.c,v 1.85 2002/05/02 22:05:12 ken3 Exp $";
 
 #ifndef KEYFILE
 #define KEYFILE "/etc/srvtab";
@@ -416,8 +416,8 @@ static int new_text(const sasl_utils_t *utils, context_t **text)
     return SASL_OK;
 }
 
-static void kerberosv4_both_mech_dispose(void *conn_context,
-					 const sasl_utils_t *utils)
+static void kerberosv4_common_mech_dispose(void *conn_context,
+					   const sasl_utils_t *utils)
 {
     context_t *text = (context_t *)conn_context;
     
@@ -438,8 +438,8 @@ static void kerberosv4_both_mech_dispose(void *conn_context,
 }
 
 static void
-kerberosv4_both_mech_free(void *glob_context __attribute__((unused)),
-			  const sasl_utils_t *utils)
+kerberosv4_common_mech_free(void *glob_context __attribute__((unused)),
+			    const sasl_utils_t *utils)
 {
     if (krb_mutex) {
 	utils->mutex_free(krb_mutex);
@@ -874,8 +874,8 @@ static sasl_server_plug_t kerberosv4_server_plugins[] =
 	NULL,				/* glob_context */
 	&kerberosv4_server_mech_new,	/* mech_new */
 	&kerberosv4_server_mech_step,	/* mech_step */
-	&kerberosv4_both_mech_dispose,	/* mech_dispose */
-	&kerberosv4_both_mech_free,	/* mech_free */
+	&kerberosv4_common_mech_dispose,/* mech_dispose */
+	&kerberosv4_common_mech_free,	/* mech_free */
 	NULL,				/* setpass */
 	NULL,				/* user_query */
 	NULL,				/* idle */
@@ -1357,8 +1357,8 @@ static sasl_client_plug_t kerberosv4_client_plugins[] =
 	NULL,				/* glob_context */
 	&kerberosv4_client_mech_new,	/* mech_new */
 	&kerberosv4_client_mech_step,	/* mech_step */
-	&kerberosv4_both_mech_dispose,	/* mech_dispose */
-	&kerberosv4_both_mech_free,	/* mech_free */
+	&kerberosv4_common_mech_dispose,/* mech_dispose */
+	&kerberosv4_common_mech_free,	/* mech_free */
 	NULL,				/* idle */
 	NULL,				/* spare */
 	NULL				/* spare */

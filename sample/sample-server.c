@@ -1,6 +1,6 @@
 /* sample-server.c -- sample SASL server
  * Rob Earhart
- * $Id: sample-server.c,v 1.27 2003/03/19 16:53:18 rjs3 Exp $
+ * $Id: sample-server.c,v 1.28 2003/08/29 17:06:23 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -283,7 +283,7 @@ main(int argc, char *argv[])
   int serverlast = 0;
   sasl_ssf_t *ssf;
 
-  progname = strrchr(argv[0], '/');
+  progname = strrchr(argv[0], HIER_DELIMITER);
   if (progname)
     progname++;
   else

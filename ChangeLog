@@ -6,6 +6,8 @@
 2003-08-29  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/gssapi.c: properly compute GSSAPI MAXOUTBUF
 	  (Paul Turgyan <pturgyan@umich.edu>)
+	* Further Win32 cleanup + HIER_DELIMITER usage
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
 
 2003-08-28  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* include/md5.h, lib/md5.c: Misc cleanup

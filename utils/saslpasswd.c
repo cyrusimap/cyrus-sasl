@@ -53,7 +53,6 @@
 
 #include <stdio.h>
 #include <io.h>
-typedef int ssize_t;
 
 #define STDIN_FILENO stdin
 #include <saslutil.h>
@@ -282,7 +281,7 @@ main(int argc, char *argv[])
   if (! argv[0])
     progname = "saslpasswd";
   else {
-    progname = strrchr(argv[0], '/');
+    progname = strrchr(argv[0], HIER_DELIMITER);
     if (progname)
       progname++;
     else

@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.34 2003/04/15 17:25:26 rjs3 Exp $
+ * $Id: testsuite.c,v 1.35 2003/08/29 17:06:24 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -75,13 +75,19 @@
 #include <time.h>
 #include <string.h>
 #include <ctype.h>
+#ifndef WIN32
 #include <netinet/in.h>
 #include <netdb.h>
 #include <sys/socket.h>
-#include <sys/file.h>
-#include <netinet/in.h>
-#include <netdb.h>
 #include <arpa/inet.h>
+#include <sys/file.h>
+#endif
+
+#ifdef WIN32
+__declspec(dllimport) char *optarg;
+__declspec(dllimport) int optind;
+__declspec(dllimport) int getsubopt(char **optionp, char * const *tokens, char **valuep);
+#endif
 
 char myhostname[1024+1];
 #define MAX_STEPS 7 /* maximum steps any mechanism takes */
@@ -2882,6 +2888,17 @@ int main(int argc, char **argv)
     int do_all = 0;
     int skip_do_correct = 0;
     unsigned int seed = time(NULL);
+#ifdef WIN32
+  /* initialize winsock */
+    int result;
+    WSADATA wsaData;
+
+    result = WSAStartup( MAKEWORD(2, 0), &wsaData );
+    if ( result != 0) {
+	fatal("Windows sockets initialization failure");
+    }
+#endif
+
     while ((c = getopt(argc, argv, "Ms:g:r:han")) != EOF)
 	switch (c) {
 	case 'M':

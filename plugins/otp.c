@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.9 2002/01/30 20:11:40 ken3 Exp $
+ * $Id: otp.c,v 1.10 2002/02/04 16:48:11 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1919,6 +1919,14 @@ static int otp_setpass(void *glob_context __attribute__((unused)),
     char *user = NULL;
     char *realm = NULL;
     sasl_secret_t *sec;
+
+    /* Do we have database support? */
+    /* Note that we can use a NULL sasl_conn_t because our
+     * sasl_utils_t is "blessed" with the global callbacks */
+    if(_sasl_check_db(sparams->utils, NULL) != SASL_OK) {
+	SETERROR(sparams->utils, "OTP: No database support");
+	return SASL_NOMECH;
+    }
 
     r = parseuser(sparams->utils, &user, &realm, sparams->user_realm,
 		       sparams->serverFQDN, userstr);

@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.137 2002/07/30 17:06:19 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.138 2002/08/06 17:13:18 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -103,7 +103,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.137 2002/07/30 17:06:19 rjs3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.138 2002/08/06 17:13:18 ken3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -151,6 +151,7 @@ enum Context_type { SERVER = 0, CLIENT = 1 };
 typedef struct rc4_context_s rc4_context_t;
 #endif
 
+/* context that stores info used for fast reauth */
 typedef struct global_context {
     /* common stuff */
     char *authid;
@@ -1635,9 +1636,9 @@ clear_global_context(global_context_t *glob_context, const sasl_utils_t *utils)
     time_t timeout;
 
     if (glob_context->authid) utils->free(glob_context->authid);
+    if (glob_context->realm) utils->free(glob_context->realm);
     if (glob_context->nonce) utils->free(glob_context->nonce);
     if (glob_context->cnonce) utils->free(glob_context->cnonce);
-    if (glob_context->realm) utils->free(glob_context->realm);
 
     if (glob_context->serverFQDN) utils->free(glob_context->serverFQDN);
 
@@ -1661,6 +1662,13 @@ digestmd5_common_mech_free(void *glob_context, const sasl_utils_t *utils)
 
 typedef struct server_context {
     context_t common;
+
+    char *authid;
+    char *realm;
+    unsigned char *nonce;
+    unsigned int nonce_count;
+    unsigned char *cnonce;
+    time_t timestamp;
 
     int stale;				/* last nonce is stale */
     sasl_ssf_t limitssf, requiressf;	/* application defined bounds */
@@ -2038,10 +2046,12 @@ digestmd5_server_mech_step1(server_context_t *stext,
 	return SASL_FAIL;
     }
 
-    text->global->timestamp = time(0);
-    text->global->nonce = nonce;
-    text->global->nonce_count = 1;
-   _plug_strdup(sparams->utils, realm, &text->global->realm, NULL);
+    stext->authid = NULL;
+    _plug_strdup(sparams->utils, realm, &stext->realm, NULL);
+    stext->nonce = nonce;
+    stext->nonce_count = 1;
+    stext->cnonce = NULL;
+    stext->timestamp = time(0);
     
     *serveroutlen = strlen(text->out_buf);
     *serverout = text->out_buf;
@@ -2123,8 +2133,7 @@ digestmd5_server_mech_step2(server_context_t *stext,
 	 */
 	
 	if (strcasecmp(name, "username") == 0) {
-	    if (text->global->authid &&
-		(strcmp(value, text->global->authid) != 0)) {
+	    if (stext->authid && (strcmp(value, stext->authid) != 0)) {
 		SETERROR(sparams->utils,
 			 "username changed: authentication aborted");
 		result = SASL_FAIL;
@@ -2135,8 +2144,7 @@ digestmd5_server_mech_step2(server_context_t *stext,
 	} else if (strcasecmp(name, "authzid") == 0) {
 	    _plug_strdup(sparams->utils, value, &authorization_id, NULL);
 	} else if (strcasecmp(name, "cnonce") == 0) {
-	    if (text->global->cnonce &&
-		(strcmp(value, text->global->cnonce) != 0)) {
+	    if (stext->cnonce && (strcmp(value, stext->cnonce) != 0)) {
 		SETERROR(sparams->utils,
 			 "cnonce changed: authentication aborted");
 		result = SASL_FAIL;
@@ -2151,7 +2159,7 @@ digestmd5_server_mech_step2(server_context_t *stext,
 		result = SASL_BADAUTH;
 		goto FreeAllMem;
 	    }
-	    else if (noncecount != text->global->nonce_count) {
+	    else if (noncecount != stext->nonce_count) {
 		SETERROR(sparams->utils,
 			 "incorrect nonce-count: authentication aborted");
 		result = SASL_BADAUTH;
@@ -2163,8 +2171,7 @@ digestmd5_server_mech_step2(server_context_t *stext,
 			 "duplicate realm: authentication aborted");
 		result = SASL_FAIL;
 		goto FreeAllMem;
-	    } else if (text->global->realm &&
-		       (strcmp(value, text->global->realm) != 0)) {
+	    } else if (stext->realm && (strcmp(value, stext->realm) != 0)) {
 		SETERROR(sparams->utils,
 			 "realm changed: authentication aborted");
 		result = SASL_FAIL;
@@ -2173,7 +2180,7 @@ digestmd5_server_mech_step2(server_context_t *stext,
 	    
 	    _plug_strdup(sparams->utils, value, &realm, NULL);
 	} else if (strcasecmp(name, "nonce") == 0) {
-	    if (strcmp(value, (char *) text->global->nonce) != 0) {
+	    if (strcmp(value, (char *) stext->nonce) != 0) {
 		/*
 		 * Nonce changed: Abort authentication!!!
 		 */
@@ -2382,7 +2389,7 @@ digestmd5_server_mech_step2(server_context_t *stext,
 	    HASH HA1;
 	    
 	    DigestCalcSecret(sparams->utils, username,
-			     text->global->realm, sec->data, sec->len, HA1);
+			     stext->realm, sec->data, sec->len, HA1);
 	    
 	    /*
 	     * A1 = { H( { username-value, ":", realm-value, ":", passwd } ),
@@ -2406,8 +2413,8 @@ digestmd5_server_mech_step2(server_context_t *stext,
     
     serverresponse = create_response(text,
 				     sparams->utils,
-				     text->global->nonce,
-				     text->global->nonce_count,
+				     stext->nonce,
+				     stext->nonce_count,
 				     cnonce,
 				     qop,
 				     digesturi,
@@ -2432,7 +2439,7 @@ digestmd5_server_mech_step2(server_context_t *stext,
     
     /* see if our nonce expired */
     if (text->global->timeout &&
-	time(0) - text->global->timestamp > text->global->timeout) {
+	time(0) - stext->timestamp > text->global->timeout) {
 	SETERROR(sparams->utils, "server nonce expired");
 	stext->stale = 1;
 	result = SASL_BADAUTH;
@@ -2513,20 +2520,13 @@ digestmd5_server_mech_step2(server_context_t *stext,
 	    goto FreeAllMem;
 	}
 
-	/* increment the nonce count */
-	text->global->nonce_count++;
-
 	/* setup for a potential reauth */
+	text->global->authid = username; username = NULL;
+	text->global->realm = stext->realm; stext->realm = NULL;
+	text->global->nonce = stext->nonce; stext->nonce = NULL;
+	text->global->nonce_count = ++stext->nonce_count;
+	text->global->cnonce = cnonce; cnonce = NULL;
 	text->global->timestamp = time(0);
-
-	if (!text->global->authid) {
-	    text->global->authid = username;
-	    username = NULL;
-	}
-	if (!text->global->cnonce) {
-	    text->global->cnonce = cnonce;
-	    cnonce = NULL;
-	}
 	
 	*serveroutlen = strlen(text->out_buf);
 	*serverout = text->out_buf;
@@ -2601,6 +2601,13 @@ digestmd5_server_mech_step(void *conn_context,
 	/* should we attempt reauth? */
 	if (clientin && text->global->timeout &&
 	    text->global->nonce && text->global->cnonce) {
+	    stext->authid = text->global->authid;
+	    stext->realm = text->global->realm;
+	    stext->nonce = text->global->nonce;
+	    stext->nonce_count = text->global->nonce_count;
+	    stext->cnonce = text->global->cnonce;
+	    stext->timestamp = text->global->timestamp;
+
 	    if (digestmd5_server_mech_step2(stext, sparams,
 					    clientin, clientinlen,
 					    serverout, serveroutlen,

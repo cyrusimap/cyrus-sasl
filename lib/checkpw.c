@@ -215,6 +215,7 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
     char cell[REALM_SZ];
     char hostname[MAXHOSTNAMELEN+1];
     char phost[MAXHOSTNAMELEN+1];
+    char oldtkfile[MAXPATHLEN];
     KTEXT_ST authent;
     char instance[INST_SZ];
     AUTH_DAT kdata;
@@ -238,6 +239,8 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
 
     if (krb_get_lrealm(realm, 1)) return SASL_FAIL;
 
+    /* after this point, we need to "goto fini" on failure */
+    strcpy(oldtkfile, tkt_string());
     sprintf(tfname, "/tmp/tkt_%d", getpid());
     krb_set_tkt_string(tfname);
 
@@ -260,9 +263,9 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
     memset(key, 0, sizeof(key));
 
     if (result != 0) {
-	dest_tkt();
 	if (reply) *reply = krb_err_txt[result];
-	return SASL_FAIL;
+	result = SASL_FAIL;
+	goto fini;
     }
 
     /* Check validity of returned ticket */
@@ -273,9 +276,9 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
 
     if (result != 0) {
 	memset(&authent, 0, sizeof(authent));
-	dest_tkt();
 	if (reply) *reply = krb_err_txt[result];
-	return SASL_FAIL;
+	result = SASL_FAIL;
+	goto fini;
     }
     strcpy(instance, "*");
 
@@ -295,7 +298,11 @@ int _sasl_kerberos_verify_password(sasl_conn_t *conn,
     }
     else result = SASL_OK;
 
+ fini:
+    /* destroy any tickets we managed to acquire here */
     dest_tkt();
+    /* restore the old ticket file */
+    krb_set_tkt_string(oldtkfile);
     return result;
 }
 

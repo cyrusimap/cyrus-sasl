@@ -1,3 +1,9 @@
+2003-04-16  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/saslauthd-main.c: Don't set the auth mech until
+	  all options have been processed. (Peter Stamfest <peter@stamfest.at>)
+	* lib/client.c, lib/common.c, lib/saslint.h, lib/server.c: Do
+	  reference counting of the number of times sasl has been inited/doned.
+
 2003-04-15  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* config/ltmain.sh: fix some portability problems in the use of expr
 	  (Oliver Eikemeier <eikemeier@fillmore-labs.com>)

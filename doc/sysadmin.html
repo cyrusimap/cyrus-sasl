@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.24 2002/01/05 05:09:33 ken3 Exp $ -->
+<!-- $Id: sysadmin.html,v 1.25 2002/01/21 17:03:31 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -127,7 +127,11 @@ flexible in this regard:
 <dt><i>saslauthd</i><dd> contacts the saslauthd daemon to to check
   passwords using a variety of mechanisms.  You can compile support
   for saslauthd using the --with-saslauthd configure option.  More
-  information can be found in saslauthd(8)<p> 
+  information can be found in saslauthd(8).  Once you configure
+  saslauthd, there is a testsaslauthd program that can be built
+  with <tt>make testsaslauthd</tt> in the saslauthd directory, that
+  can check to ensure that the saslauthd daemon is installed and
+  running properly.<p> 
 
 <dt><i>write your own</i><dd> Last, but not least, the most flexible
   method of authentication for PLAIN is to write your own.  If you do

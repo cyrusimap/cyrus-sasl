@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.185 2004/01/23 19:54:12 rjs3 Exp $
+dnl $Id: configure.in,v 1.186 2004/02/06 17:23:48 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -1019,7 +1019,7 @@ struct iovec {
 #  include <sys/param.h>
 # endif
 #else /* WIN32 */
-# include <winsock.h>
+# include <winsock2.h>
 #endif /* WIN32 */
 #include <string.h>
 

@@ -1,5 +1,9 @@
 2004-02-06  Rob Siemborski <rjs3@andrew.cmu.edu>
-	* utils/NTMakefile: fix "clean" target
+	* lib/NTMakefile, utils/NTMakefile: fix "clean" target
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+	* General winsock.h -> winsock2.h conversion
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+	* plugins/plugin_common.h: add extern "C" wrapper
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
 
 2004-01-23  Rob Siemborski <rjs3@andrew.cmu.edu>

@@ -234,7 +234,7 @@ AH_BOTTOM([
 # include <netdb.h>   
 # include <sys/param.h>
 #else /* WIN32 */
-# include <winsock.h>
+# include <winsock2.h>
 #endif /* WIN32 */ 
 #include <string.h>
 

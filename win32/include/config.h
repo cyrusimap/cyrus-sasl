@@ -45,7 +45,11 @@
 #define CONFIG_H
 
 #include <stddef.h>
-#include <windows.h>
+
+/* winsock2 includes windows.h.
+   Note that we can't include both winsock.h and winsock2.h as
+   they conflict */
+#include <winsock2.h>
 
 /* Our package */
 #define PACKAGE "cyrus-sasl"
@@ -88,12 +92,12 @@ typedef int		    intptr_t;
 #define STATIC_DIGESTMD5 1
 #define STATIC_GSSAPIV2 1
 /* #undef STATIC_KERBEROS4 */
-/* #undef STATIC_LOGIN */
+#define STATIC_LOGIN 1
 /* #undef STATIC_MYSQL */
 /* #undef STATIC_OTP */
 #define STATIC_PLAIN 1
 #define STATIC_SASLDB 1
-/* #undef STATIC_SRP */
+#define STATIC_SRP 1
 
 /* ------------------------------------------------------------ */
 
@@ -129,7 +133,7 @@ typedef int		    intptr_t;
 typedef int socklen_t;
 #endif /* HAVE_SOCKLEN_T */
 
-#ifndef HAVE_STRUCT_SOCKADDR_STORAGE
+#if !defined(HAVE_STRUCT_SOCKADDR_STORAGE) && !defined(_SS_MAXSIZE)
 #define	_SS_MAXSIZE	128	/* Implementation specific max size */
 #define	_SS_PADSIZE	(_SS_MAXSIZE - sizeof (struct sockaddr))
 

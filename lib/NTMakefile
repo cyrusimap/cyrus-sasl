@@ -48,6 +48,8 @@ CLEAN :
 	-@erase "*.idb"
 	-@erase "*.pdb"
 	-@erase $(all_out)
+	-@erase plugin_common.h
+	-@erase plugin_common.c
 	-@erase $(exclude_list)
 
 .c.obj::

@@ -1,7 +1,7 @@
 
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.h,v 1.18 2003/09/14 13:38:28 ken3 Exp $
+ * $Id: plugin_common.h,v 1.19 2004/02/06 17:23:51 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -50,7 +50,7 @@
 
 #ifndef macintosh
 #ifdef WIN32
-# include <winsock.h>
+# include <winsock2.h>
 #else
 # include <sys/socket.h>
 # include <netinet/in.h>
@@ -134,6 +134,10 @@ typedef struct buffer_info
 } buffer_info_t;
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int _plug_ipfromstring(const sasl_utils_t *utils, const char *addr,
 		       struct sockaddr *out, socklen_t outlen);
 int _plug_iovec_to_buf(const sasl_utils_t *utils, const struct iovec *vec,
@@ -207,5 +211,9 @@ char * _plug_get_error_message (const sasl_utils_t *utils,
 #endif
 				);
 void _plug_snprintf_os_info (char * osbuf, int osbuf_len);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _PLUGIN_COMMON_H_ */

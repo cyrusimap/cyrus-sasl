@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.96 2003/07/23 00:57:47 ken3 Exp $
+ * $Id: kerberos4.c,v 1.97 2004/02/06 17:23:51 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -57,7 +57,7 @@
 #endif /* WITH_DES */
 
 #ifdef WIN32
-# include <winsock.h>
+# include <winsock2.h>
 #elif defined(macintosh)
 #include <kcglue_krb.h>
 #else
@@ -115,7 +115,7 @@ extern int gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: kerberos4.c,v 1.96 2003/07/23 00:57:47 ken3 Exp $";
+static const char plugin_id[] = "$Id: kerberos4.c,v 1.97 2004/02/06 17:23:51 rjs3 Exp $";
 
 #ifndef KEYFILE
 #define KEYFILE "/etc/srvtab";

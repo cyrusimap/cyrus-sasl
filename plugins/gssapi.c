@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.83 2003/12/15 20:04:12 rjs3 Exp $
+ * $Id: gssapi.c,v 1.84 2004/02/06 17:23:51 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -52,7 +52,7 @@
 #endif
 
 #ifdef WIN32
-#  include <winsock.h>
+#  include <winsock2.h>
 
 #  ifndef R_OK
 #    define R_OK 04
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.83 2003/12/15 20:04:12 rjs3 Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.84 2004/02/06 17:23:51 rjs3 Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 

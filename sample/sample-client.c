@@ -1,6 +1,6 @@
 /* sample-client.c -- sample SASL client
  * Rob Earhart
- * $Id: sample-client.c,v 1.29 2003/09/10 16:30:57 rjs3 Exp $
+ * $Id: sample-client.c,v 1.30 2004/02/06 17:23:52 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -47,7 +47,7 @@
 #include <string.h>
 #include <stdlib.h>
 #ifdef WIN32
-# include <winsock.h>
+# include <winsock2.h>
 __declspec(dllimport) char *optarg;
 __declspec(dllimport) int optind;
 __declspec(dllimport) int getsubopt(char **optionp, const char * const *tokens, char **valuep);

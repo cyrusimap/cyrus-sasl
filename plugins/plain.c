@@ -1,6 +1,6 @@
 /* Plain SASL plugin
  * Tim Martin 
- * $Id: plain.c,v 1.43 2001/02/19 19:01:54 leg Exp $
+ * $Id: plain.c,v 1.44 2001/06/20 10:38:39 n3liw Exp $
  */
 
 /* 
@@ -45,6 +45,7 @@
 
 #include <config.h>
 #include <stdio.h>
+#include <string.h> 
 #include <sasl.h>
 #include <saslplug.h>
 
@@ -52,6 +53,10 @@
 /* This must be after sasl.h */
 # include "saslPLAIN.h"
 #endif /* WIN32 */
+
+#ifdef macintosh 
+#include <sasl_plain_plugin_decl.h> 
+#endif 
 
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
 

@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.49 2000/02/23 01:16:14 tmartin Exp $
+ * $Id: kerberos4.c,v 1.50 2000/02/23 02:47:07 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -559,7 +559,6 @@ static int server_continue_step (void *conn_context,
     AUTH_DAT ad;
     KTEXT_ST ticket;
     int lup;
-    struct sockaddr_in *addr;
 
     VL(("KERBEROS_V4 Step 2\n"));
 

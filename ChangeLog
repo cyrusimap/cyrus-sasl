@@ -1,3 +1,8 @@
+2003-09-10  Maya Nigrosh <mnigrosh@andrew.cmu.edu>
+	* plugins/sql.c: created generic sql store function, added 
+	  transaction handling to sql statements
+	* doc/options.html: put pretty new options in the documentation
+	
 2003-09-10  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/gssapi.c, win32/config.mak, sample/: Win32 Fixes
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)

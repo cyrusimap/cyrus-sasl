@@ -42,14 +42,26 @@
 #
 ################################################################
 
-SUBDIRS=include lib plugins utils doc man @DIRS@
+if PWCHECK
+PWC = pwcheck
+else
+PWC = 
+endif
+if SAMPLE
+SAM = sample
+else
+SAM =
+endif
+if JAVA
+JAV = java
+else
+JAV =
+endif
+
+SUBDIRS=include lib plugins utils doc man $(PWC) $(SAM) $(JAV)
+EXTRA_DIST=config cmulocal win32 testing.txt
 
 dist-hook:
-	@for dir in config cmulocal sample win32 java pwcheck; do \
-	  if test ! -d $(distdir)/$$dir; then			\
-	    (set -x; cp -r -p $(top_srcdir)/$$dir $(distdir));	\
-	  fi;							\
-	done
 	@find $(distdir) -name CVS -print | xargs -t rm -rf
 
 install-exec-local:
@@ -70,5 +82,3 @@ install-exec-local:
 	  echo "* the library should use."; \
 	  echo "********************************************************"; \
 	fi
-
-EXTRA_DIST = testing.txt

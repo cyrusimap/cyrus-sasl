@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.89 2000/04/27 12:46:21 leg Exp $
+dnl $Id: configure.in,v 1.90 2000/04/28 17:44:01 leg Exp $
 dnl
 dnl Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -58,8 +58,6 @@ AC_ARG_ENABLE(cmulocal, [  --enable-cmulocal       enable local mods for CMU [no
 
 AC_ARG_ENABLE(sample, [  --enable-sample         compile sample code [yes]],,enable_sample=yes)
 
-AC_ARG_ENABLE(java, [  --enable-java           compile Java support [no]],,enable_java=no)
-
 AC_PROG_CC
 AC_PROG_CPP
 AC_PROG_INSTALL
@@ -88,6 +86,8 @@ if test "$with_purify" = yes; then
   AC_CHECK_PROGS(PURIFY, purify)
 fi
 
+AC_ARG_ENABLE(java, [  --enable-java           compile Java support [no]],
+	enable_java=yes, enable_java=no)
 if test "$enable_java" = yes; then
   AC_PATH_PROG(JAVAC, javac, no)
   AC_PATH_PROGS(JAVAH, javah kaffeh, no)
@@ -97,10 +97,9 @@ if test "$enable_java" = yes; then
     enable_java=no
   fi
 fi
+AM_CONDITIONAL(JAVA, test "$enable_java" = yes)
 
 if test "$enable_java" = yes; then
-  DIRS="$DIRS java"
-
   AC_MSG_CHECKING([JNI cpp flags])
   if test `echo $JAVAH | sed 's,.*/,,'` = "kaffeh"; then
     JAVA_INCLUDES=-I`echo $JAVAH | sed -e 's,/bin.*,/include/kaffe,'`
@@ -116,10 +115,10 @@ if test "$enable_java" = yes; then
       JAVA_INCLUDES="${JAVA_INCLUDES} -I$dir"
     done
   fi
-  JAVAROOT="."
+  JAVAROOT=".."
   AC_SUBST(JAVAROOT)
 
-  JAVA_INCLUDES = "${JAVA_INCLUDES} -I$javapath/include"
+  JAVA_INCLUDES="${JAVA_INCLUDES} -I$javapath/include"
 
   AC_SUBST(JAVA_INCLUDES)
   AC_MSG_RESULT(JAVA_INCLUDES)
@@ -127,9 +126,7 @@ if test "$enable_java" = yes; then
   JAVAH=`echo "$JAVAH" | sed 's,.*/,,'`
 fi
 
-if test "$enable_sample" = yes; then
-  DIRS="$DIRS sample"
-fi
+AM_CONDITIONAL(SAMPLE, test "$enable_sample" = yes)
 
 dnl Figure out what database path we're using
 AC_ARG_WITH(dbpath, [  --with-dbpath=PATH      set the DB path to use [/etc/sasldb] ],
@@ -286,10 +283,10 @@ if test "$with_pwcheck" != no; then
    fi
    AC_DEFINE(HAVE_PWCHECK)
    AC_DEFINE_UNQUOTED(PWCHECKDIR, "$with_pwcheck")
-   DIRS="$DIRS pwcheck"
    AC_CHECK_FUNC(getspnam,PWCHECKMETH="getspnam",PWCHECKMETH="getpwnam")
    AC_SUBST(PWCHECKMETH)
 fi
+AM_CONDITIONAL(PWCHECK, test "$with_pwcheck" != no)
 
 dnl CRAM-MD5
 AC_ARG_ENABLE(cram, [  --enable-cram           enable CRAM-MD5 authentication [yes] ],
@@ -678,4 +675,4 @@ fi
 
 AC_SUBST(DIRS)
 
-AC_OUTPUT(Makefile include/Makefile lib/Makefile plugins/Makefile utils/Makefile doc/Makefile sample/Makefile java/Makefile man/Makefile)
+AC_OUTPUT(Makefile include/Makefile lib/Makefile plugins/Makefile utils/Makefile doc/Makefile sample/Makefile java/Makefile java/CyrusSasl/Makefile pwcheck/Makefile man/Makefile)

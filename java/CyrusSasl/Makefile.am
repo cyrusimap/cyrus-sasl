@@ -23,5 +23,42 @@
 #PERFORMANCE OF THIS SOFTWARE.
 ################################################################
 
-SUBDIRS = CyrusSasl
-EXTRA_DIST = Test doc javax
+javasasl_version = 1:0:0
+
+javasasldir = $(prefix)/lib/java/classes/sasl
+javahtmldir = $(prefix)/html/sasl
+
+INCLUDES=$(JAVA_INCLUDES) -I$(top_srcdir)/include
+
+javasasl_JAVA = Sasl.java GenericClient.java \
+		ClientFactory.java \
+	        GenericCommon.java SaslClient.java \
+	        SaslClientFactory.java SaslException.java \
+	        SaslInputStream.java SaslOutputStream.java\
+		SaslUtils.java ServerFactory.java \
+                SaslServerFactory.java SaslServer.java \
+                GenericServer.java
+
+CLASSES = $(javasasl_JAVA:.java=.class)
+
+lib_LTLIBRARIES = libjavasasl.la
+libjavasasl_la_SOURCES = javasasl.c
+libjavasasl_la_LDFLAGS = -export_dynamic -lsasl -version-info $(javasasl_version) $(wildcard ../lib/*.lo)
+BUILT_SOURCES = javasasl.h $(CLASSES)
+
+javasasl.c: javasasl.h
+
+javasasl.h: $(CLASSES)
+	$(CLASSPATH_ENV) $(JAVAH) -o $@ -jni $(patsubst %.class,CyrusSasl.%,$^)
+
+# force build of class files
+$(CLASSES): classjavasasl.stamp
+
+install-data-local:
+# xxx broken
+#	$(mkinstalldirs) $(javahtmldir)
+#	$(CLASSPATH_ENV) $(JAVADOC) -d $(javahtmldir) sasl
+#	-if test ! -h $(javahtmldir)/images; \
+#	then \
+#	  $(LN_S) $(JAVA_BASE)/docs/api/images $(javahtmldir)/images; \
+#	fi

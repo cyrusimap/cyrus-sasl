@@ -188,8 +188,8 @@ class jimtest
 		     System.in.read(arr,0,len);
 
 		     if (arr[len-1]=='\n') {
-			 arr[len-1]='\r';
-			 arr[len]='\n';
+			 arr[len-1]= (byte) '\r';
+			 arr[len]= (byte) '\n';
 		     }
 		     
 		     /* write out to stream */		     

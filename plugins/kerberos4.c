@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.57 2000/03/09 04:53:15 tmartin Exp $
+ * $Id: kerberos4.c,v 1.58 2000/03/29 04:44:13 leg Exp $
  */
 /* 
  * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -675,7 +675,7 @@ static int server_continue_step (void *conn_context,
   {
     int result;
     int testnum;
-    int lup, flag;
+    int flag;
     unsigned char *in;
 
     /* we need to make a copy because des does in place decrpytion */

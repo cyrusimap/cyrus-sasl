@@ -71,7 +71,8 @@ for a full description of this option.
 .PP
 Memory management of options supplied by the getopt callback should be
 done by the application, however, any requested option must remain available
-until sasl_done is called.
+until the callback is no longer valid.  That is, when sasl_dispose is called for a
+the connection it is associated with, or sasl_done is called for global callbacks.
 .PP
 .SH "RETURN VALUE"
 

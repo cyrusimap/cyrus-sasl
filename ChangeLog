@@ -1,3 +1,7 @@
+2003-10-30  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/lak.c: OpenLDAP 2.0 Compatability Fix
+	  (Igor Brezac <igor@ypass.net>)
+
 2003-10-20  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* Win64 warning squashing (Alexey Melnikov <Alexey.Melnikov@isode.com>)
 	* GSSAPI cleanups and fixes (Alexey Melnikov <Alexey.Melnikov@isode.com>)

@@ -27,7 +27,7 @@ SASL_SERVER_PLUG_INIT( $mech )
 " > ${mech}_init.c
 done
 
-for mech in sasldb; do
+for mech in sasldb mysql ; do
 
 echo "
 #include <string.h>

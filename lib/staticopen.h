@@ -1,6 +1,6 @@
 /* staticopen.h
  * Rob Siemborski
- * $Id: staticopen.h,v 1.2 2001/12/04 02:05:27 rjs3 Exp $
+ * $Id: staticopen.h,v 1.3 2002/06/25 17:07:07 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -116,4 +116,7 @@ extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( otp );
 #endif
 #ifdef STATIC_SASLDB
 extern SPECIFIC_AUXPROP_PLUG_INIT_PROTO( sasldb );
+#endif
+#ifdef STATIC_MYSQL
+extern SPECIFIC_AUXPROP_PLUG_INIT_PROTO( mysql );
 #endif

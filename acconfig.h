@@ -68,10 +68,11 @@
 #undef STATIC_GSSAPIV2
 #undef STATIC_KERBEROS4
 #undef STATIC_LOGIN
+#undef STATIC_MYSQL
 #undef STATIC_OTP
 #undef STATIC_PLAIN
-#undef STATIC_SRP
 #undef STATIC_SASLDB
+#undef STATIC_SRP
 
 /* This is where plugins will live at runtime */
 #undef PLUGINDIR

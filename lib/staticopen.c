@@ -1,7 +1,7 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Siemborski
  * Rob Earhart
- * $Id: staticopen.c,v 1.2 2001/12/04 02:05:27 rjs3 Exp $
+ * $Id: staticopen.c,v 1.3 2002/06/25 17:07:07 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -177,6 +177,10 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
 	if(type == AUXPROP) {
 	    result = (*add_plugin)("SASLDB",
 				   SPECIFIC_AUXPROP_PLUG_INIT( sasldb ));
+#ifdef STATIC_MYSQL
+	    result = (*add_plugin)("mysql",
+				   SPECIFIC_AUXPROP_PLUG_INIT( mysql ));
+#endif
 	}
 #endif
 

@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.132 2002/06/13 16:01:42 rjs3 Exp $
+dnl $Id: configure.in,v 1.133 2002/06/25 17:07:01 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -497,6 +497,64 @@ else
   AC_MSG_RESULT(disabled)
 fi
 
+
+############################################################################
+# Simon Loader tries to do auto conf
+dnl MySQL
+AC_ARG_WITH(mysql,  [  --with-mysql=path       enable authentication from MySQL database [no] ],
+  with_mysql=$withval,
+  with_mysql=no)
+
+# fine location of library 
+# prsumesing if one given then correct
+if test "${with_mysql}" = "yes"; then
+  for mysqlloc in lib/mysql lib mysql/lib
+  do
+    if test -f ${prefix}/${mysqlloc}/libmysqlclient.a; then
+      with_mysql="${prefix}"
+      break
+    elif test -f /usr/local/${mysqlloc}/libmysqlclient.a; then
+      with_mysql="/usr/local"
+      break
+    elif test -f /usr/${mysqlloc}/libmysqlclient.a; then
+      with_mysql="/usr"
+      break
+    fi
+  done
+fi
+
+case "$with_mysql" in
+    no) true;;
+    *)
+     if test -d ${with_mysql}/lib/mysql; then
+         LDFLAGS="$LDFLAGS -L${with_mysql}/lib/mysql"
+     elif test -d ${with_mysql}/mysql/lib; then
+         LDFLAGS="$LDFLAGS -L${with_mysql}/mysql/lib"
+     elif test -d ${with_mysql}/lib; then
+         LDFLAGS="$LDFLAGS -L${with_mysql}/lib"
+     else
+         LDFLAGS="$LDFLAGS -L${with_mysql}"
+     fi
+     if test -d ${with_mysql}/include/mysql; then
+         CPPFLAGS="${CPPFLAGS} -I${with_mysql}/include/mysql"
+     elif test -d ${with_mysql}/mysql/include; then
+         CPPFLAGS="${CPPFLAGS} -I${with_mysql}/mysql/include"
+     elif test -d ${with_mysql}/include; then
+         CPPFLAGS="${CPPFLAGS} -I${with_mysql}/include"
+     else
+         CPPFLAGS="${CPPFLAGS} -I${with_mysql}"
+     fi
+       AC_CHECK_LIB(mysqlclient, mysql_select_db,[
+           SASL_MECHS="$SASL_MECHS libmysql.la"
+           SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/mysql.o"
+           AC_DEFINE(STATIC_MYSQL)],
+           [AC_ERROR([MYSQL libarary mysqlclient not found])]);;
+         
+esac
+AC_SUBST(LIB_MYSQL)
+
+# simon finishes trying to do autoconf
+###############################################################################
 
 # and add in the plugin_common file (it's shared)
 SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/plugin_common.o"

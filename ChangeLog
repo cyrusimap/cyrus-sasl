@@ -1,3 +1,7 @@
+2002-05-22  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+	* lib/checkpw.c: close door file descriptor in
+	  saslauthd_verify_password
+
 2002-05-21  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/auth_krb5.c: fix a file descriptor leak due to not
 	  calling krb5_cc_destroy on failure

@@ -1,6 +1,6 @@
 /*
  * Mar  8, 2000 by Hajimu UMEMOTO <ume@mahoroba.org>
- * $Id: getaddrinfo.c,v 1.5 2002/09/05 19:21:14 rjs3 Exp $
+ * $Id: getaddrinfo.c,v 1.6 2002/11/21 20:21:24 leg Exp $
  *
  * This module is based on ssh-1.2.27-IPv6-1.5 written by
  * KIKUCHI Takahiro <kick@kyoto.wide.ad.jp>
@@ -59,10 +59,35 @@
  */
 
 #include "config.h"
-#ifndef macintosh
-#include <arpa/inet.h>
-#endif
+#ifndef WIN32
+#include <sys/param.h>
+# ifndef macintosh
+#  include <arpa/inet.h>
+# endif /* macintosh */
+#endif /* WIN32 */
 #include <ctype.h>
+
+#ifdef WIN32
+/* : Windows socket library is missing inet_aton, emulate it with
+   : inet_addr. inet_aton return 0 if the address is uncorrect, a non zero
+   : value otherwise */
+int
+inet_aton (const char *cp, struct in_addr *inp)
+{
+    if (cp == NULL || inp == NULL) {
+	return (0);
+    }
+
+    /* : handle special case */
+    if (strcmp (cp, "255.255.255.255") == 0) {
+	inp->s_addr = (unsigned int) 0xFFFFFFFF;
+	return (1);
+    }
+
+    inp->s_addr = inet_addr (cp);
+    return (1);
+}
+#endif /* WIN32 */
 
 static struct addrinfo *
 malloc_ai(int port, unsigned long addr, int socktype, int proto)
@@ -151,7 +176,7 @@ getaddrinfo(const char *hostname, const char *servname,
     }
     if (servname) {
 	if (isdigit((int)*servname))
-	    port = htons(atoi(servname));
+	    port = htons((short) atoi(servname));
 	else {
 	    struct servent *se;
 	    char *pe_proto;

@@ -73,4 +73,9 @@ LIBSASL_API void sasl_churn(sasl_rand_t *rpool, const char *data,
  */
 LIBSASL_API void sasl_erasebuffer(char *pass, unsigned len);
 
+#ifdef WIN32
+LIBSASL_API int getopt(int argc, char **argv, char *optstring);
+LIBSASL_API char * getpass(const char *prompt);
+#endif /* WIN32 */
+
 #endif /* SASLUTIL_H */

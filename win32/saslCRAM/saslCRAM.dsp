@@ -98,6 +98,14 @@ SOURCE=..\..\plugins\cram.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\lib\getaddrinfo.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\plugins\plugin_common.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\saslCRAM.cpp
 # End Source File
 # Begin Source File

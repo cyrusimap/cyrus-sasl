@@ -94,6 +94,14 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=..\..\lib\auxprop.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\lib\canonusr.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\lib\checkpw.c
 # End Source File
 # Begin Source File
@@ -110,7 +118,15 @@ SOURCE=..\..\lib\config.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\lib\db_testw32.c
+SOURCE=..\..\lib\external.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\lib\getaddrinfo.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\lib\getnameinfo.c
 # End Source File
 # Begin Source File
 
@@ -126,11 +142,19 @@ SOURCE=..\..\lib\md5.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\plugins\plugin_common.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\lib\saslutil.c
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\lib\server.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\lib\seterror.c
 # End Source File
 # Begin Source File
 
@@ -163,7 +187,11 @@ SOURCE=..\..\include\md5.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\include\md5global.h
+SOURCE=..\include\md5global.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\plugins\plugin_common.h
 # End Source File
 # Begin Source File
 

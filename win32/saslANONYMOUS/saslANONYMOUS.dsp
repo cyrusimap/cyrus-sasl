@@ -98,6 +98,14 @@ SOURCE=..\..\plugins\anonymous.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\lib\getaddrinfo.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\plugins\plugin_common.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\saslANONYMOUS.cpp
 # End Source File
 # Begin Source File

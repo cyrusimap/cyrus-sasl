@@ -15,18 +15,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "makemd5"=..\makemd5\makemd5.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
 Project: "sample_client"=..\sample_client\sample_client.dsp - Package Owner=<4>
 
 Package=<5>
@@ -35,6 +23,9 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name libsasl
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -47,6 +38,9 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name libsasl
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -135,18 +129,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "saslSCRAM"=..\saslSCRAM\saslSCRAM.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
 Project: "saslpwd"=..\utils\saslpwd\saslpwd.dsp - Package Owner=<4>
 
 Package=<5>
@@ -155,6 +137,9 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name libsasl
+    End Project Dependency
 }}}
 
 ###############################################################################

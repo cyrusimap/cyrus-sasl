@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.117 2002/10/02 15:50:09 ken3 Exp $
+ * $Id: server.c,v 1.118 2002/11/21 20:21:25 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -69,14 +69,6 @@ extern int gethostname(char *, int);
 #endif
 
 #define DEFAULT_CHECKPASS_MECH "auxprop"
-
-#ifndef PATH_MAX
-# ifdef _POSIX_PATH_MAX
-#  define PATH_MAX _POSIX_PATH_MAX
-# else
-#  define PATH_MAX 1024		/* arbitrary; probably big enough */
-# endif
-#endif
 
 /* Contains functions:
  * 
@@ -400,7 +392,7 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
   if (result!=SASL_OK) goto done;
   if (path_to_config == NULL) path_to_config = "";
 
-  if ((c = strchr(path_to_config, ':'))) {
+  if ((c = strchr(path_to_config, PATHS_DELIMITER))) {
       *c = '\0';
   }
 

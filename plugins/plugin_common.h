@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.h,v 1.12 2002/09/19 16:28:53 ken3 Exp $
+ * $Id: plugin_common.h,v 1.13 2002/11/21 20:21:26 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -62,9 +62,15 @@
 #include <saslutil.h>
 #include <saslplug.h>
 
+#ifdef WIN32
+#define PLUG_API __declspec(dllexport)
+#else
+#define PLUG_API extern
+#endif
+
 #define SASL_CLIENT_PLUG_INIT( x ) \
 extern sasl_client_plug_init_t x##_client_plug_init; \
-int sasl_client_plug_init(const sasl_utils_t *utils, \
+PLUG_API int sasl_client_plug_init(const sasl_utils_t *utils, \
                          int maxversion, int *out_version, \
 			 sasl_client_plug_t **pluglist, \
                          int *plugcount) { \
@@ -74,7 +80,7 @@ int sasl_client_plug_init(const sasl_utils_t *utils, \
 
 #define SASL_SERVER_PLUG_INIT( x ) \
 extern sasl_server_plug_init_t x##_server_plug_init; \
-int sasl_server_plug_init(const sasl_utils_t *utils, \
+PLUG_API int sasl_server_plug_init(const sasl_utils_t *utils, \
                          int maxversion, int *out_version, \
 			 sasl_server_plug_t **pluglist, \
                          int *plugcount) { \
@@ -84,7 +90,7 @@ int sasl_server_plug_init(const sasl_utils_t *utils, \
 
 #define SASL_AUXPROP_PLUG_INIT( x ) \
 extern sasl_auxprop_init_t x##_auxprop_plug_init; \
-int sasl_auxprop_plug_init(const sasl_utils_t *utils, \
+PLUG_API int sasl_auxprop_plug_init(const sasl_utils_t *utils, \
                            int maxversion, int *out_version, \
                            sasl_auxprop_plug_t **plug, \
                            const char *plugname) {\

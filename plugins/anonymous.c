@@ -1,7 +1,7 @@
 /* Anonymous SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: anonymous.c,v 1.47 2002/09/19 16:28:52 ken3 Exp $
+ * $Id: anonymous.c,v 1.48 2002/11/21 20:21:26 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -58,14 +58,9 @@
 #include <sasl_anonymous_plugin_decl.h> 
 #endif 
 
-#ifdef WIN32
-/* This must be after sasl.h, saslutil.h */
-# include "saslANONYMOUS.h"
-#endif
-
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: anonymous.c,v 1.47 2002/09/19 16:28:52 ken3 Exp $";
+static const char plugin_id[] = "$Id: anonymous.c,v 1.48 2002/11/21 20:21:26 leg Exp $";
 
 static const char anonymous_id[] = "anonymous";
 

@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.44 2002/09/05 19:21:14 rjs3 Exp $
+ * $Id: saslint.h,v 1.45 2002/11/21 20:21:24 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -83,13 +83,24 @@
     RETURN(conn, (val)) }
 
 #ifndef PATH_MAX
-# ifdef _POSIX_PATH_MAX
-#  define PATH_MAX _POSIX_PATH_MAX
+# ifdef WIN32
+#  define PATH_MAX MAX_PATH
 # else
-#  define PATH_MAX 1024         /* arbitrary; probably big enough will
-                                 * probably only be 256+64 on
-                                 * pre-posix machines */
-# endif
+#  ifdef _POSIX_PATH_MAX
+#   define PATH_MAX _POSIX_PATH_MAX
+#  else
+#   define PATH_MAX 1024         /* arbitrary; probably big enough will
+                                  * probably only be 256+64 on
+                                  * pre-posix machines */
+#  endif /* _POSIX_PATH_MAX */
+# endif /* WIN32 */
+#endif
+
+/* : Define directory delimiter in SASL_PATH variable */
+#ifdef WIN32
+#define PATHS_DELIMITER	';'
+#else
+#define PATHS_DELIMITER	':'
 #endif
 
 /* Datatype Definitions */
@@ -279,7 +290,7 @@ struct sasl_verify_password_s {
 /*
  * common.c
  */
-extern const sasl_utils_t *sasl_global_utils;
+LIBSASL_API const sasl_utils_t *sasl_global_utils;
 
 extern void (*_sasl_client_cleanup_hook)(void);
 extern void (*_sasl_server_cleanup_hook)(void);

@@ -135,7 +135,9 @@ struct stat *stat_buf)
 	            /* extract path list element */
 		    p = element;
 		    q = pathbuf;
-		    while(*p && *p != ':' && q < pathbuf_end) *q++ = *p++;
+		    while(*p && *p != PATHS_DELIMITER && q < pathbuf_end) {
+                        *q++ = *p++;
+                    }
 		    if(q == pathbuf){  /* empty element */
 		        if(*p){
 		            element = p+1;

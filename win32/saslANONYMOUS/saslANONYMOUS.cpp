@@ -1,7 +1,13 @@
-// saslANONYMOUS.cpp : Defines the entry point for the DLL application.
-//
+#include <config.h>
 
 #include "stdafx.h"
+
+#include <sasl.h>
+#include <saslplug.h>
+#include <saslutil.h>
+
+#include "..\..\plugins\plugin_common.h"
+
 
 BOOL APIENTRY DllMain( HANDLE hModule, 
                        DWORD  ul_reason_for_call, 
@@ -19,3 +25,5 @@ BOOL APIENTRY DllMain( HANDLE hModule,
     return TRUE;
 }
 
+SASL_CLIENT_PLUG_INIT( anonymous )
+SASL_SERVER_PLUG_INIT( anonymous )

@@ -53,7 +53,9 @@
 #define VERSION "2.1.8"
 
 /* Registry key that contains the locations of the plugins */
-#define SASL_KEY "SOFTWARE\\Carnegie Mellon\\Project Cyrus\\SASL Library\\Available Plugins"
+#define SASL_ROOT_KEY "SOFTWARE\\Carnegie Mellon\\Project Cyrus\\SASL Library"
+#define SASL_KEY_V1 SASL_ROOT_KEY "\\Available Plugins"
+#define SASL_PATH_SUBKEY "SearchPath"
 
 /* We only want minimal server functionality.  Cripple the server functionality when necessary to get
  * things to compile.
@@ -65,6 +67,28 @@
 /* DB Type */
 #undef SASL_DB_TYPE
 
+/* : This should probably be replaced with a call to a function
+   : that gets the proper value from Registry */
+#define SASL_DB_PATH "c:\\CMU\\sasldb2"
+
+/* what db package are we using? */
+/* #undef SASL_GDBM */
+/* #undef SASL_NDBM */
+#define SASL_BERKELEYDB 1
+
+/* which mechs can we link staticly? */
+#define STATIC_ANONYMOUS 1
+#define STATIC_CRAMMD5 1
+#define STATIC_DIGESTMD5 1
+#define STATIC_GSSAPIV2 1
+/* #undef STATIC_KERBEROS4 */
+/* #undef STATIC_LOGIN */
+/* #undef STATIC_MYSQL */
+/* #undef STATIC_OTP */
+#define STATIC_PLAIN 1
+#define STATIC_SASLDB 1
+/* #undef STATIC_SRP */
+
 /* ------------------------------------------------------------ */
 
 /* Things that are fetched via autoconf under Unix
@@ -72,7 +96,7 @@
 #define HAVE_MEMCPY 1
 
 #define SASL_PATH_ENV_VAR "SASL_PATH"
-#define PLUGINDIR "\\sasl-plugins"
+#define PLUGINDIR "C:\\SASL-PLUGINS"
 
 /* Windows calls these functions something else
  */
@@ -92,6 +116,40 @@
 #define VL(foo)  printf foo;
 #define VLP(foo,bar)
 
+/* we're not gcc */
 #define __attribute__(foo)
+
+/* : Same as in tpipv6.h */
+#ifndef HAVE_SOCKLEN_T
+typedef int socklen_t;
+#endif /* HAVE_SOCKLEN_T */
+
+#ifndef HAVE_STRUCT_SOCKADDR_STORAGE
+#define	_SS_MAXSIZE	128	/* Implementation specific max size */
+#define	_SS_PADSIZE	(_SS_MAXSIZE - sizeof (struct sockaddr))
+
+struct sockaddr_storage {
+	struct	sockaddr ss_sa;
+	char		__ss_pad2[_SS_PADSIZE];
+};
+# define ss_family ss_sa.sa_family
+#endif /* !HAVE_STRUCT_SOCKADDR_STORAGE */
+
+#ifndef AF_INET6
+/* Define it to something that should never appear */
+#define	AF_INET6	AF_MAX
+#endif
+
+#ifndef HAVE_GETADDRINFO
+#define	getaddrinfo	sasl_getaddrinfo
+#define	freeaddrinfo	sasl_freeaddrinfo
+#define	getnameinfo	sasl_getnameinfo
+#define	gai_strerror	sasl_gai_strerror
+#include "gai.h"
+#endif
+
+#ifndef	NI_WITHSCOPEID
+#define	NI_WITHSCOPEID	0
+#endif
 
 #endif /* CONFIG_H */

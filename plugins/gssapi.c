@@ -1099,7 +1099,7 @@ sasl_gss_client_step (void *conn_context,
 
 	if (maj_stat == GSS_S_COMPLETE)
 	  {
-	    DEBUG((stderr,"GSS_S_COMPLETE"));
+	    DEBUG((stderr,"GSS_S_COMPLETE\n"));
 	    text->state = SASL_GSSAPI_STATE_SSFCAP; /* Switch to ssf negotiation */
 	  }
 	

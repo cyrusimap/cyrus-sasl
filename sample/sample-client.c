@@ -753,13 +753,16 @@ main(int argc, char *argv[])
 			      &data, &len);
     if (result != SASL_OK && result != SASL_CONTINUE)
       saslfail(result, "Performing SASL negotiation", NULL);
+
+    puts("Sending response...");      
     if (data) {
-      puts("Sending response...");
       samp_send(data, len);
 #ifndef WIN32
       /* This free causes win32 to fail */
       free(data);
 #endif /* WIN32 */
+    } else {
+      samp_send("",0);
     }
   }
   puts("Negotiation complete");

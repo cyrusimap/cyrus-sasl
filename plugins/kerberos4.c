@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.46 1999/12/02 05:21:03 tmartin Exp $
+ * $Id: kerberos4.c,v 1.47 2000/01/21 20:57:52 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -560,6 +560,11 @@ static int server_continue_step (void *conn_context,
     int lup;
     struct sockaddr_in *addr;
 
+    FILE *stream;
+    stream = fopen("/tmp/krbsrv","a+");
+    fprintf(stream, "HERE step 2!!\n");
+    fclose(stream);
+
     VL(("KERBEROS_V4 Step 2\n"));
 
     /* received authenticator */
@@ -588,6 +593,11 @@ static int server_continue_step (void *conn_context,
     result = sparams->utils->getprop(sparams->utils->conn,
 				     SASL_IP_REMOTE, (void **)&addr);
     if (result != SASL_OK) {
+
+	stream = fopen("/tmp/krbsrv","a+");
+	fprintf(stream, "HERE SASL_IP_REMOTE failed\n");
+	fclose(stream);
+
 	VL(("getprop SASL_IP_REMOTE failed\n"));
 	return SASL_BADAUTH;
     }
@@ -598,6 +608,12 @@ static int server_continue_step (void *conn_context,
 #endif
 
     if (result) { /* if fails mechanism fails */
+	stream = fopen("/tmp/krbsrv","a+");
+	fprintf(stream, "krb_rd_req failed service=%s instance=%s error code=%i\n",
+	    sparams->service, text->instance,result);
+	fclose(stream);
+
+
 	VL(("krb_rd_req failed service=%s instance=%s error code=%i\n",
 	    sparams->service, text->instance,result));
 	return SASL_BADAUTH;
@@ -655,6 +671,11 @@ static int server_continue_step (void *conn_context,
     int testnum;
     int lup, flag;
     unsigned char in[1024];
+	FILE *stream;
+
+    stream = fopen("/tmp/krbsrv","a+");
+    fprintf(stream, "step 3!!\n");
+    fclose(stream);
 
     for (lup=0;lup<clientinlen;lup++)
       in[lup]=clientin[lup];
@@ -672,11 +693,23 @@ static int server_continue_step (void *conn_context,
 
     testnum=(in[0]*256*256*256)+(in[1]*256*256)+(in[2]*256)+in[3];
 
+    stream = fopen("/tmp/krbsrv","a+");
+    fprintf(stream, "step 3.1!!\n");
+    fclose(stream);
 
     if (testnum!=text->challenge)
     {
+
+	stream = fopen("/tmp/krbsrv","a+");
+	fprintf(stream, "BAD NUM!!\n");
+	fclose(stream);
+
       return SASL_BADAUTH;
     }
+
+    stream = fopen("/tmp/krbsrv","a+");
+    fprintf(stream, "step 3.2!!\n");
+    fclose(stream);
 
     if (! cando_sec(&sparams->props, in[4] & KRB_SECFLAGS))
       return SASL_BADPROT;
@@ -713,6 +746,10 @@ static int server_continue_step (void *conn_context,
 				     (void **)&(text->ip_remote));
 
     if (result!=SASL_OK) return result;
+
+    stream = fopen("/tmp/krbsrv","a+");
+    fprintf(stream, "step 3.3!!\n");
+    fclose(stream);
 
     text->malloc=sparams->utils->malloc;        
     text->free=sparams->utils->free;
@@ -773,6 +810,10 @@ static int server_continue_step (void *conn_context,
 
     text->size=-1;
     text->needsize=4;
+
+    stream = fopen("/tmp/krbsrv","a+");
+    fprintf(stream, "success!!\n");
+    fclose(stream);
 
     return SASL_OK;
   }
@@ -877,6 +918,7 @@ static int client_continue_step (void *conn_context,
     int result;
     KTEXT_ST ticket;
     char *service=(char *)params->service;
+    FILE *stream;
 
     VL(("KERBEROS_V4 Step 2\n"));
 
@@ -919,6 +961,12 @@ static int client_continue_step (void *conn_context,
     if ((result=krb_mk_req(&ticket, service, text->instance,
 			   text->realm,text->challenge)))
     {
+	stream = fopen("/tmp/krb","a+");
+	fprintf(stream, "krb_mk_req failed service=%s instance=%s realm=%s krb error=%i\n",
+	     service,text->instance,text->realm,result);
+	fclose(stream);
+
+
       VL(("krb_mk_req failed service=%s instance=%s realm=%s krb error=%i\n",
 	     service,text->instance,text->realm,result));
       return SASL_FAIL;

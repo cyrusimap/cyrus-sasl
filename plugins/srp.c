@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.18 2002/01/09 22:12:01 ken3 Exp $
+ * $Id: srp.c,v 1.19 2002/01/10 16:17:52 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1500,9 +1500,8 @@ ParseOptionString(char *str, srp_options_t *opts, int isserver)
 
 	int bit = FindBit(str+strlen(OPTION_INTEGRITY), integrity_options);
 
-	if (bit == 0) return SASL_OK;
-
-	if (isserver && (bit & opts->integrity)) {
+	if (isserver && (!bit || opts->integrity)) {
+	    opts->integrity = -1;
 	    return SASL_FAIL;
 	}
 
@@ -1513,9 +1512,9 @@ ParseOptionString(char *str, srp_options_t *opts, int isserver)
 
 	int bit = FindBit(str+strlen(OPTION_CONFIDENTIALITY),
 			  confidentiality_options);
-	if (bit == 0) return SASL_OK;
 
-	if (isserver && (bit & opts->confidentiality)) {
+	if (isserver && (!bit || opts->confidentiality)) {
+	    opts->confidentiality = -1;
 	    return SASL_FAIL;
 	}
 
@@ -2495,6 +2494,15 @@ server_step2(context_t *text,
     if (r) {
       params->utils->seterror(params->utils->conn, 0, 
 	"Error parsing user's options");
+
+      if (client_opts.confidentiality) {
+	  /* Mark that we attempted confidentiality layer negotiation */
+	  oparams->mech_ssf = 2;
+      }
+      else if (client_opts.integrity || client_opts.replay_detection) {
+	  /* Mark that we attempted integrity layer negotiation */
+	  oparams->mech_ssf = 1;
+      }
       return r;
     }
 

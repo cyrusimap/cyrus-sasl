@@ -130,14 +130,14 @@ int cache_init(void) {
 	memset(base, 0, bytes);
 
 	memcpy(base, cache_magic, 64);
-	table_stats = base + 64;
+	table_stats = (void *)((char *)base + 64);
 	table_stats->table_size = table_size;
 	table_stats->max_buckets_per = CACHE_MAX_BUCKETS_PER;
 	table_stats->sizeof_bucket = sizeof(struct bucket);
 	table_stats->timeout = table_timeout;
 	table_stats->bytes = bytes;
 
-	(char *)table = (char *)table_stats + 128;
+	table = (void *)((char *)table_stats + 128);
 
 	/**************************************************************
 	 * Last, initialize the hash table locking.

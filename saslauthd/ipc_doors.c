@@ -47,7 +47,6 @@
 #include "saslauthd-main.h"
 
 #ifdef USE_DOORS_IPC
-#warning compiling in doors ipc
 /****************************************/
 
 

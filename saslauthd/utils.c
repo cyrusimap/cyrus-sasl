@@ -113,7 +113,7 @@ ssize_t tx_rec(int filefd, void *prebuff, size_t bytesrequested) {
                         return(bytesrequested - bytesleft);
 
                 bytesleft -= bytesio;
-                buff += bytesio;
+                buff = (void *)((char *)buff + bytesio);
 
         }
 
@@ -150,7 +150,7 @@ ssize_t rx_rec(int filefd, void *prebuff, size_t bytesrequested) {
                         return(bytesrequested - bytesleft);
 
                 bytesleft -= bytesio;
-                buff += bytesio;
+                buff = (void *)((char *)buff + bytesio);
 
         }
 

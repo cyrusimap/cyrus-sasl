@@ -96,7 +96,7 @@ struct lock_ctl {
 
 
 /* If debugging uncomment this for always verbose  */
-//#define CACHE_DEFAULT_FLAGS		CACHE_VERBOSE
+/* #define CACHE_DEFAULT_FLAGS		CACHE_VERBOSE */
 
 
 

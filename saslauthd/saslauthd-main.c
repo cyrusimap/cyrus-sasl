@@ -326,7 +326,7 @@ int main(int argc, char **argv) {
 	/*********************************************************
 	 * Enable general cleanup.
 	 **********************************************************/
-	atexit((void *)server_exit);
+	atexit(server_exit);
 
 	/*********************************************************
 	 * If required, enable the process model.
@@ -501,7 +501,7 @@ void signal_setup() {
 	/**************************************************************
 	 * Handler for SIGCHLD
 	 **************************************************************/
-	act_sigchld.sa_handler = (void *)handle_sigchld;
+	act_sigchld.sa_handler = handle_sigchld;
 	sigemptyset(&act_sigchld.sa_mask);
 
 	if (sigaction(SIGCHLD, &act_sigchld, NULL) != 0) {
@@ -553,7 +553,7 @@ void signal_setup() {
 	/**************************************************************
 	 * Handler for SIGTERM
 	 **************************************************************/
-	act_sigterm.sa_handler = (void *)server_exit;
+	act_sigterm.sa_handler = server_exit;
 	sigemptyset(&act_sigterm.sa_mask);
 
 	if (sigaction(SIGTERM, &act_sigterm, NULL) != 0) {
@@ -566,7 +566,7 @@ void signal_setup() {
 	/**************************************************************
 	 * Handler for SIGINT
 	 **************************************************************/
-	act_sigint.sa_handler = (void *)server_exit;
+	act_sigint.sa_handler = server_exit;
 	sigemptyset(&act_sigint.sa_mask);
 
 	if (sigaction(SIGINT, &act_sigint, NULL) != 0) {

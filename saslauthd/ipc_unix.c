@@ -46,7 +46,6 @@
 #include "saslauthd-main.h"
 
 #ifdef USE_UNIX_IPC
-#warning compiling in unix ipc
 /****************************************/
 
 /****************************************

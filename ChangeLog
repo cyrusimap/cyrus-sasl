@@ -13,6 +13,7 @@
 	* lib/common.c, lib/client.c, lib/server.c, lib/saslint.h:
 	  Allowed client-side sasl_listmech calls.
 	* include/sasl.h: Minor cosmetic fix to comments
+	* doc/programming.html: Interaction memory management clarifications
 	* lib/common.c: Fix several crash problems in getprop
 	  (Courtesy Marshall T. Rose <mrose@dbc.mtview.ca.us>)
 

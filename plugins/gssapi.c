@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.91 2004/07/15 18:02:03 rjs3 Exp $
+ * $Id: gssapi.c,v 1.92 2004/07/21 14:39:06 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.91 2004/07/15 18:02:03 rjs3 Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.92 2004/07/21 14:39:06 rjs3 Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -804,14 +804,6 @@ gssapi_server_mech_step(void *conn_context,
 	GSS_UNLOCK_MUTEX(params->utils);
 	
 	if (GSS_ERROR(maj_stat)) {
-	    if (name_without_realm.value)
-		params->utils->free(name_without_realm.value);
-	    
-	    if (name_token.value) {
-		GSS_LOCK_MUTEX(params->utils);
-		gss_release_buffer(&min_stat, &name_token);
-		GSS_UNLOCK_MUTEX(params->utils);
-	    }
 	    if (without) {
 		GSS_LOCK_MUTEX(params->utils);
 		gss_release_name(&min_stat, &without);
@@ -829,8 +821,13 @@ gssapi_server_mech_step(void *conn_context,
 	if (strchr((char *) name_token.value, (int) '@') != NULL) {
 	    /* NOTE: libc malloc, as it is freed below by a gssapi internal
 	     *       function! */
-	    name_without_realm.value = malloc(strlen(name_token.value)+1);
+	    name_without_realm.value = params->utils->malloc(strlen(name_token.value)+1);
 	    if (name_without_realm.value == NULL) {
+		if (name_token.value) {
+	    	    GSS_LOCK_MUTEX(params->utils);
+		    gss_release_buffer(&min_stat, &name_token);
+	    	    GSS_UNLOCK_MUTEX(params->utils);
+		}
 		MEMERROR(text->utils);
 		return SASL_NOMEM;
 	    }
@@ -860,11 +857,6 @@ gssapi_server_mech_step(void *conn_context,
 		if (name_token.value) {
 	    	    GSS_LOCK_MUTEX(params->utils);
 		    gss_release_buffer(&min_stat, &name_token);
-	    	    GSS_UNLOCK_MUTEX(params->utils);
-		}
-		if (without) {
-	    	    GSS_LOCK_MUTEX(params->utils);
-		    gss_release_name(&min_stat, &without);
 	    	    GSS_UNLOCK_MUTEX(params->utils);
 		}
 		SETERROR(text->utils, "GSSAPI Failure");

@@ -4,6 +4,8 @@
 	* configure.in: Correct use of AC_LIBOBJ, quote macro names
 	  defined by AC_DEFUN
 	  (Maciej W. Rozycki <macro@ds2.pg.gda.pl>)
+	* plugins/srp.c: Fix typos
+	  (Maciej W. Rozycki <macro@ds2.pg.gda.pl>)
 	* saslauthd/configure.in: Correct use of AC_LIBOBJ
 	  (Maciej W. Rozycki <macro@ds2.pg.gda.pl>)
 

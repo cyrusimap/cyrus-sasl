@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.54 2003/12/17 20:51:59 rjs3 Exp $
+ * $Id: srp.c,v 1.55 2004/01/12 19:20:00 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -100,7 +100,7 @@ typedef unsigned short uint32;
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: srp.c,v 1.54 2003/12/17 20:51:59 rjs3 Exp $";
+static const char plugin_id[] = "$Id: srp.c,v 1.55 2004/01/12 19:20:00 rjs3 Exp $";
 
 /* Size limit of cipher block size */
 #define SRP_MAXBLOCKSIZE 16
@@ -2269,7 +2269,7 @@ static int srp_setpass(void *glob_context __attribute__((unused)),
 				     "Error making buffer for secret");
 	    goto end;
 	}
-	buffer = text->out_buf
+	buffer = text->out_buf;
 	
 	/* Put 'buffer' into sasl_secret_t.
 	 * This will be base64 encoded, so make sure its big enough.
@@ -2360,7 +2360,7 @@ static sasl_server_plug_t srp_server_plugins[] =
 	&srp_server_mech_step,		/* mech_step */
 	&srp_common_mech_dispose,	/* mech_dispose */
 	&srp_common_mech_free,		/* mech_free */
-#if DO_SRP_SETPASS
+#ifdef DO_SRP_SETPASS
 	&srp_setpass,			/* setpass */
 #else
 	NULL,

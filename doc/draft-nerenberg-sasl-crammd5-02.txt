@@ -2,9 +2,9 @@
 
 Network Working Group                                         J. Klensin
 Internet Draft: The CRAM-MD5 SASL Mechanism                 P. Krumviede
-Document: draft-nerenberg-sasl-crammd5-01.txt                   R. Catoe
+Document: draft-nerenberg-sasl-crammd5-02.txt                   R. Catoe
                                                       L. Nerenberg (Ed.)
-                                                            January 2002
+                                                               June 2002
 
 
 
@@ -57,9 +57,9 @@ Status of this memo
 
 
 
-Klensin, et al     draft-nerenberg-sasl-crammd5-01.txt          [Page 1]
+Klensin, et al     draft-nerenberg-sasl-crammd5-02.txt          [Page 1]
 
-Internet Draft           CRAM-MD5 SASL Mechanism            January 2002
+Internet Draft           CRAM-MD5 SASL Mechanism               June 2002
 
 
      The data encoded in the challenge contains a presumptively arbi-
@@ -119,9 +119,9 @@ Internet Draft           CRAM-MD5 SASL Mechanism            January 2002
 
 
 
-Klensin, et al     draft-nerenberg-sasl-crammd5-01.txt          [Page 2]
+Klensin, et al     draft-nerenberg-sasl-crammd5-02.txt          [Page 2]
 
-Internet Draft           CRAM-MD5 SASL Mechanism            January 2002
+Internet Draft           CRAM-MD5 SASL Mechanism               June 2002
 
 
           S: * OK IMAP4rev1 Server
@@ -181,9 +181,9 @@ Internet Draft           CRAM-MD5 SASL Mechanism            January 2002
 
 
 
-Klensin, et al     draft-nerenberg-sasl-crammd5-01.txt          [Page 3]
+Klensin, et al     draft-nerenberg-sasl-crammd5-02.txt          [Page 3]
 
-Internet Draft           CRAM-MD5 SASL Mechanism            January 2002
+Internet Draft           CRAM-MD5 SASL Mechanism               June 2002
 
 
      [KEYWORDS]
@@ -243,9 +243,9 @@ Internet Draft           CRAM-MD5 SASL Mechanism            January 2002
 
 
 
-Klensin, et al     draft-nerenberg-sasl-crammd5-01.txt          [Page 4]
+Klensin, et al     draft-nerenberg-sasl-crammd5-02.txt          [Page 4]
 
-Internet Draft           CRAM-MD5 SASL Mechanism            January 2002
+Internet Draft           CRAM-MD5 SASL Mechanism               June 2002
 
 
      precomputation of intermediate results make it possible to avoid
@@ -305,9 +305,9 @@ Internet Draft           CRAM-MD5 SASL Mechanism            January 2002
 
 
 
-Klensin, et al     draft-nerenberg-sasl-crammd5-01.txt          [Page 5]
+Klensin, et al     draft-nerenberg-sasl-crammd5-02.txt          [Page 5]
 
-Internet Draft           CRAM-MD5 SASL Mechanism            January 2002
+Internet Draft           CRAM-MD5 SASL Mechanism               June 2002
 
 
 6.  Authors' Addresses
@@ -367,5 +367,5 @@ Internet Draft           CRAM-MD5 SASL Mechanism            January 2002
 
 
 
-Klensin, et al     draft-nerenberg-sasl-crammd5-01.txt          [Page 6]
+Klensin, et al     draft-nerenberg-sasl-crammd5-02.txt          [Page 6]
 

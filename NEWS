@@ -1,3 +1,12 @@
+New in 2.0.5-BETA
+-----------------
+* THIS IS A BETA-QUALITY RELEASE THAT IS NOT INTENDED FOR PRODUCTION USE.
+  IT *WILL BREAK* ANY APPLICATION EXPECTING THE SASLv1 API.
+* Improved performance of security layers in KERBEROS_V4, GSSAPI, and DIGEST.
+* This release includes an OTP plugin that requires libopie.
+* SRP plugin now in alpha stage.
+* Includes many significant bugfixes throughout the library.
+
 New in 2.0.4-BETA
 -----------------
 * THIS IS A BETA-QUALITY RELEASE THAT IS ONLY INTENDED FOR USE BY

@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.143 2002/12/03 19:29:57 ken3 Exp $
+ * $Id: digestmd5.c,v 1.144 2002/12/05 21:59:39 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -98,9 +98,11 @@ extern int      gethostname(char *, int);
 #define FALSE (0)
 #endif
 
+#define DEFAULT_BUFSIZE 0xFFFF
+
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.143 2002/12/03 19:29:57 ken3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.144 2002/12/05 21:59:39 rjs3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -222,11 +224,14 @@ typedef struct context {
     char *buffer;
     char sizebuf[4];
     int cursize;
-    int size;
-    int needsize;
+
+    /* Layer info */
+    unsigned int size; /* Absolute size of buffer */
+    unsigned int needsize; /* How much of the size of the buffer is left */
     
     /* Server MaxBuf for Client or Client MaxBuf For Server */
-    unsigned int maxbuf;
+    /* INCOMING */
+    unsigned int in_maxbuf;
     
     /* if privacy mode is used use these functions for encode and decode */
     cipher_function_t *cipher_enc;
@@ -1224,7 +1229,7 @@ digestmd5_privacy_decode_once(void *context,
 			      unsigned *outputlen)
 {
     context_t *text = (context_t *) context;
-    int tocopy;
+    unsigned int tocopy;
     unsigned diff;
     int result;
     unsigned char digest[16];
@@ -1249,21 +1254,23 @@ digestmd5_privacy_decode_once(void *context,
 	    *inputlen-=tocopy;
 	    
 	    if (text->needsize==0) /* got all of size */
-		{
-		    memcpy(&(text->size), text->sizebuf, 4);
-		    text->cursize=0;
-		    text->size=ntohl(text->size);
-		    
-		    if ((text->size>0xFFFF) || (text->size < 0)) {
-			return SASL_FAIL; /* too big probably error */
-		    }
-		    
-		    if(!text->buffer)
-			text->buffer=text->utils->malloc(text->size+5);
-		    else
-			text->buffer=text->utils->realloc(text->buffer,text->size+5);	    
-		    if (text->buffer == NULL) return SASL_NOMEM;
+	    {
+		memcpy(&(text->size), text->sizebuf, 4);
+		text->cursize=0;
+		text->size=ntohl(text->size);
+		
+		if (text->size > text->in_maxbuf) {
+		    return SASL_FAIL; /* too big probably error */
 		}
+		
+		if(!text->buffer)
+		    text->buffer=text->utils->malloc(text->size+5);
+		else
+		    text->buffer=text->utils->realloc(text->buffer,
+						      text->size+5);	    
+		if (text->buffer == NULL) return SASL_NOMEM;
+	    }
+
 	    *outputlen=0;
 	    *output=NULL;
 	    if (*inputlen==0) /* have to wait until next time for data */
@@ -1279,18 +1286,18 @@ digestmd5_privacy_decode_once(void *context,
 	return SASL_FAIL;
     
     if (*inputlen < diff) /* not enough for a decode */
-	{
-	    memcpy(text->buffer+text->cursize, *input, *inputlen);
-	    text->cursize+=*inputlen;
-	    *inputlen=0;
-	    *outputlen=0;
-	    *output=NULL;
-	    return SASL_OK;
-	} else {
-	    memcpy(text->buffer+text->cursize, *input, diff);
-	    *input+=diff;      
-	    *inputlen-=diff;
-	}
+    {
+	memcpy(text->buffer+text->cursize, *input, *inputlen);
+	text->cursize+=*inputlen;
+	*inputlen=0;
+	*outputlen=0;
+	*output=NULL;
+	return SASL_OK;
+    } else {
+	memcpy(text->buffer+text->cursize, *input, diff);
+	*input+=diff;      
+	*inputlen-=diff;
+    }
     
     {
 	unsigned short ver;
@@ -1324,10 +1331,10 @@ digestmd5_privacy_decode_once(void *context,
 	memcpy(&ver, text->buffer+text->size-6, 2);
 	ver=ntohs(ver);
 	if (ver != version)
-	    {
-		text->utils->seterror(text->utils->conn, 0, "Wrong Version");
-		return SASL_FAIL;
-	    }
+	{
+	    text->utils->seterror(text->utils->conn, 0, "Wrong Version");
+	    return SASL_FAIL;
+	}
 	
 	/* check the CMAC */
 	
@@ -1368,7 +1375,6 @@ digestmd5_privacy_decode_once(void *context,
 	text->rec_seqnum++; /* now increment it */
     }
     
-    text->size=-1;
     text->needsize=4;
     
     return SASL_OK;
@@ -1410,7 +1416,8 @@ digestmd5_integrity_encode(void *context,
     }
     
     if (numiov > 1) {
-	ret = _plug_iovec_to_buf(text->utils, invec, numiov, &text->enc_in_buf);
+	ret = _plug_iovec_to_buf(text->utils, invec, numiov,
+				 &text->enc_in_buf);
 	if (ret != SASL_OK) return ret;
 	inblob = text->enc_in_buf;
     } else {
@@ -1513,10 +1520,10 @@ check_integrity(context_t * text,
     
     /* make sure the MAC is right */
     if (strncmp((char *) MAC, buf + bufsize - 16, 16) != 0)
-	{
-	    text->utils->seterror(text->utils->conn, 0, "MAC doesn't match");
-	    return SASL_FAIL;
-	}
+    {
+	text->utils->seterror(text->utils->conn, 0, "MAC doesn't match");
+	return SASL_FAIL;
+    }
     
     text->rec_seqnum++;
     
@@ -1543,7 +1550,7 @@ digestmd5_integrity_decode_once(void *context,
 				unsigned *outputlen)
 {
     context_t      *text = (context_t *) context;
-    int             tocopy;
+    unsigned int    tocopy;
     unsigned        diff;
     int             result;
     
@@ -1570,9 +1577,8 @@ digestmd5_integrity_decode_once(void *context,
 	    text->cursize = 0;
 	    text->size = ntohl(text->size);
 	    
-	    if ((text->size > 0xFFFF) || (text->size < 0))
+	    if (text->size > text->in_maxbuf)
 		return SASL_FAIL;	/* too big probably error */
-	    
 	    
 	    if(!text->buffer)
 		text->buffer=text->utils->malloc(text->size+5);
@@ -1610,8 +1616,8 @@ digestmd5_integrity_decode_once(void *context,
 			     output, outputlen);
     if (result != SASL_OK)
 	return result;
-    
-    text->size = -1;
+
+    /* Reset State */
     text->needsize = 4;
     
     return SASL_OK;
@@ -2535,11 +2541,11 @@ digestmd5_server_mech_step2(server_context_t *stext,
     
     text->seqnum = 0;		/* for integrity/privacy */
     text->rec_seqnum = 0;	/* for integrity/privacy */
-    text->maxbuf = client_maxbuf;
+    text->in_maxbuf =
+       sparams->props.maxbufsize ? sparams->props.maxbufsize : DEFAULT_BUFSIZE;
     text->utils = sparams->utils;
     
     /* used by layers */
-    text->size = -1;
     text->needsize = 4;
     text->buffer = NULL;
     
@@ -3164,10 +3170,10 @@ make_client_response(context_t *text,
     text->rec_seqnum = 0;	/* for integrity/privacy */
     text->utils = params->utils;
     
-    text->maxbuf = ctext->server_maxbuf;
-    
+    text->in_maxbuf =
+	params->props.maxbufsize ? params->props.maxbufsize : DEFAULT_BUFSIZE;
+
     /* used by layers */
-    text->size = -1;
     text->needsize = 4;
     text->buffer = NULL;
     

@@ -1,3 +1,7 @@
+2004-04-16  Ken Murchison <ken@oceana.com>
+	* plugins/ntlm.c: Mac OS X fix
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+
 2004-04-14  Ken Murchison <ken@oceana.com>
 	* plugins/plain.c: don't include authzid in response unless
 	  specified by client

@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.25 2004/04/15 13:45:19 ken3 Exp $
+ * $Id: ntlm.c,v 1.26 2004/04/16 14:27:54 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -64,6 +64,11 @@
 # include <sys/utsname.h>
 # include <netdb.h>
 
+#ifndef SYS_NMLN
+  struct utsname dummy;
+# define SYS_NMLN sizeof(dummy.sysname)
+#endif
+
 # define closesocket(sock)   close(sock)
   typedef int SOCKET;
 #endif /* WIN32 */
@@ -94,7 +99,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.25 2004/04/15 13:45:19 ken3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.26 2004/04/16 14:27:54 ken3 Exp $";
 
 #ifdef WIN32
 static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);

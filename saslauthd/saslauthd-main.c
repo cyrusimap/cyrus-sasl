@@ -958,7 +958,7 @@ void show_usage() {
     fprintf(stderr, "  -v             Display version information and available mechs\n");
     fprintf(stderr, "  -V             Enable verbose logging\n");
     fprintf(stderr, "                 authentication mechanisms and exit.\n");
-    fprintf(stderr, "  -h             Dispaly this message.\n\n");
+    fprintf(stderr, "  -h             Display this message.\n\n");
 
     show_version();
     exit(0);

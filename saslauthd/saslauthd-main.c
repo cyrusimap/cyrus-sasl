@@ -236,6 +236,7 @@ int main(int argc, char **argv) {
 
     	if (auth_mech_name == NULL) {
 		logger(L_ERR, L_FUNC, "no authentication mechanism specified");
+		show_usage();
 		exit(1);
 	}
 
@@ -680,7 +681,7 @@ void detach_tty() {
 	 * From this point on, stop printing errors out to stderr.
 	 **********************************************************/
 	flags &= ~LOG_USE_STDERR;
-	
+
 	close(STDIN_FILENO);
 	close(STDOUT_FILENO);
 	close(STDERR_FILENO);
@@ -688,10 +689,10 @@ void detach_tty() {
 	dup2(null_fd, STDIN_FILENO);
 	dup2(null_fd, STDOUT_FILENO);
 	dup2(null_fd, STDERR_FILENO);
-	
+
 	if (null_fd > 2)
 	    close(null_fd);
-	
+		
 	/*********************************************************
 	 * Locks don't persist across forks. Relock the pid file
 	 * to keep folks from having duplicate copies running...
@@ -949,12 +950,12 @@ void show_usage() {
     fprintf(stderr, "                 mechanism.\n");
     fprintf(stderr, "  -l             Disable accept() locking. Increases performance, but\n");
     fprintf(stderr, "                 may not be compatible with some operating systems.\n");
-    fprintf(stderr, "  -m <path>      Alternate path for the sslauthd working directory,\n");
+    fprintf(stderr, "  -m <path>      Alternate path for the saslauthd working directory,\n");
     fprintf(stderr, "                 must be absolute.\n"); 
     fprintf(stderr, "  -n <procs>     Number of worker processes to create.\n");
     fprintf(stderr, "  -s <kilobytes> Size of the credential cache (in kilobytes)\n");
     fprintf(stderr, "  -t <seconds>   Timeout for items in the credential cache (in seconds)\n");
-    fprintf(stderr, "  -v             Display version information and available\n");
+    fprintf(stderr, "  -v             Display version information and available mechs\n");
     fprintf(stderr, "  -V             Enable verbose logging\n");
     fprintf(stderr, "                 authentication mechanisms and exit.\n");
     fprintf(stderr, "  -h             Dispaly this message.\n\n");

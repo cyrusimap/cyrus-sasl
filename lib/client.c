@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.50 2002/05/05 14:10:55 ken3 Exp $
+ * $Id: client.c,v 1.51 2002/06/14 14:36:14 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -625,7 +625,7 @@ int _sasl_client_listmech(sasl_conn_t *conn,
 			  const char *sep,
 			  const char *suffix,
 			  const char **result,
-			  size_t *plen,
+			  unsigned *plen,
 			  int *pcount)
 {
     cmechanism_t *m=NULL;

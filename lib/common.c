@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.79 2002/05/17 19:41:46 rjs3 Exp $
+ * $Id: common.c,v 1.80 2002/06/14 14:36:14 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -846,7 +846,7 @@ static int _sasl_global_getopt(void *context,
 			       const char *plugin_name,
 			       const char *option,
 			       const char ** result,
-			       size_t *len)
+			       unsigned *len)
 {
   const sasl_global_callbacks_t * global_callbacks;
   const sasl_callback_t *callback;
@@ -1503,7 +1503,7 @@ int _buf_alloc(char **rwbuf, size_t *curlen, size_t newlen)
 
 /* for the mac os x cfm glue: this lets the calling function
    get pointers to the error buffer without having to touch the sasl_conn_t struct */
-void _sasl_get_errorbuf(sasl_conn_t *conn, char ***bufhdl, unsigned **lenhdl)
+void _sasl_get_errorbuf(sasl_conn_t *conn, char ***bufhdl, size_t **lenhdl)
 {
 	*bufhdl = &conn->error_buf;
 	*lenhdl = &conn->error_buf_len;

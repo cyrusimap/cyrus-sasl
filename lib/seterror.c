@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * split from common.c by Rolf Braun
- * $Id: seterror.c,v 1.3 2002/06/12 16:03:21 rjs3 Exp $
+ * $Id: seterror.c,v 1.4 2002/06/14 14:36:15 rjs3 Exp $
  */
 
 /* 
@@ -165,8 +165,8 @@ void sasl_seterror(sasl_conn_t *conn,
 	  {
 	  case 's': /* need to handle this */
 	    cval = va_arg(ap, char *); /* get the next arg */
-	    result = _sasl_add_string(error_buf, (int *)error_buf_len,
-				&outlen, cval);
+	    result = _sasl_add_string(error_buf, error_buf_len,
+				      &outlen, cval);
 	      
 	    if (result != SASL_OK) /* add the string */
 	      return;
@@ -175,8 +175,7 @@ void sasl_seterror(sasl_conn_t *conn,
 	    break;
 
 	  case '%': /* double % output the '%' character */
-	    result = _buf_alloc(error_buf,error_buf_len,
-				outlen+1);
+	    result = _buf_alloc(error_buf, error_buf_len, outlen+1);
 	    if (result != SASL_OK)
 	      return;
 	    (*error_buf)[outlen]='%';
@@ -185,18 +184,18 @@ void sasl_seterror(sasl_conn_t *conn,
 	    break;
 
 	  case 'm': /* insert the errno string */
-	    result = _sasl_add_string(error_buf, (int *)error_buf_len,
-				(int *)&outlen, strerror(va_arg(ap, int)));
+	    result = _sasl_add_string(error_buf, error_buf_len,
+				      &outlen,
+				      strerror(va_arg(ap, int)));
 	    if (result != SASL_OK)
 	      return;
 	    done=1;
 	    break;
 
 	  case 'z': /* insert the sasl error string */
-	    result = _sasl_add_string(error_buf, (int *)error_buf_len,
-				(int *)&outlen,
-				(char *)sasl_errstring(_sasl_seterror_usererr(
-				    va_arg(ap, int)),NULL,NULL));
+	    result = _sasl_add_string(error_buf, error_buf_len,	&outlen,
+			 (char *)sasl_errstring(_sasl_seterror_usererr(
+					        va_arg(ap, int)),NULL,NULL));
 	    if (result != SASL_OK)
 	      return;
 	    done=1;
@@ -209,7 +208,7 @@ void sasl_seterror(sasl_conn_t *conn,
 	    tempbuf[1]='\0';
 	    
 	    /* now add the character */
-	    result = _sasl_add_string(error_buf, (int *)error_buf_len,
+	    result = _sasl_add_string(error_buf, error_buf_len,
 				(int *)&outlen, tempbuf);
 	    if (result != SASL_OK)
 	      return;
@@ -224,8 +223,8 @@ void sasl_seterror(sasl_conn_t *conn,
 
 	    snprintf(tempbuf,20,frmt,ival); /* have snprintf do the work */
 	    /* now add the string */
-	    result = _sasl_add_string(error_buf, (int *)error_buf_len,
-				&outlen, tempbuf);
+	    result = _sasl_add_string(error_buf, error_buf_len,
+				      &outlen, tempbuf);
 	    if (result != SASL_OK)
 	      return;
 	    done=1;

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.111 2002/06/10 15:58:34 rjs3 Exp $
+ * $Id: server.c,v 1.112 2002/06/14 14:36:14 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1324,7 +1324,7 @@ int _sasl_server_listmech(sasl_conn_t *conn,
 			  const char *sep,
 			  const char *suffix,
 			  const char **result,
-			  size_t *plen,
+			  unsigned *plen,
 			  int *pcount)
 {
   int lup;

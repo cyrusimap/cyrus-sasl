@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.41 2002/04/30 17:45:32 ken3 Exp $
+ * $Id: saslint.h,v 1.42 2002/06/14 14:36:14 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -113,8 +113,8 @@ typedef struct sasl_string_list
 typedef struct buffer_info
 { 
     char *data;
-    unsigned curlen;
-    unsigned reallen;
+    size_t curlen;
+    size_t reallen;
 } buffer_info_t;
 
 typedef struct add_plugin_list 
@@ -381,7 +381,7 @@ _sasl_log(sasl_conn_t *conn,
 	  const char *fmt,
 	  ...);
 
-void _sasl_get_errorbuf(sasl_conn_t *conn, char ***bufhdl, unsigned **lenhdl);
+void _sasl_get_errorbuf(sasl_conn_t *conn, char ***bufhdl, size_t **lenhdl);
 int _sasl_add_string(char **out, size_t *alloclen,
 		     size_t *outlen, const char *add);
 
@@ -423,14 +423,14 @@ int _sasl_server_listmech(sasl_conn_t *conn,
 			  const char *sep,
 			  const char *suffix,
 			  const char **result,
-			  size_t *plen,
+			  unsigned *plen,
 			  int *pcount);
 int _sasl_client_listmech(sasl_conn_t *conn,
 			  const char *prefix,
 			  const char *sep,
 			  const char *suffix,
 			  const char **result,
-			  size_t *plen,
+			  unsigned *plen,
 			  int *pcount);
 /* Just create a straight list of them */
 sasl_string_list_t *_sasl_client_mechs(void);

@@ -25,6 +25,16 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ******************************************************************/
 
 #ifdef WIN32
+/*
+**  Disable warning messages for differences in parameter lists.
+**  The Microsoft compiler spits out a warning message if a
+**  function pointer is assigned to another function pointer,
+**  but the formal parameter lists of the functions do not agree.
+**  The assignments are compiled without modification though,
+**  so it's safe to disable this warning message.
+*/
+#pragma warning( disable : 4113 )
+
 #include <config.h>
 #include "sasl.h"
 #include "saslint.h"
@@ -101,8 +111,6 @@ putsecret(void *context __attribute__((unused)),
 	  const sasl_secret_t * secret)
 {
   int result = SASL_OK;
-  char *key;
-  size_t key_len;
   FILE *db;
   char filename[100];
 
@@ -142,5 +150,10 @@ int _sasl_server_check_db(const sasl_callback_t *verifyfile_cb)
 {
     return SASL_OK;
 }
+
+/*
+**  Restore the generation of code-generation warning message 4113.
+*/
+#pragma warning( default : 4113 )
 
 #endif /*win32*/

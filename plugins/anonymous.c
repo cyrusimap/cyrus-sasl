@@ -30,9 +30,7 @@ SOFTWARE.
 #ifdef WIN32
 /* This must be after sasl.h, saslutil.h */
 # include "saslANONYMOUS.h"
-#else /* WIN32 */
-#include <netinet/in.h>
-#endif /* WIN32 */
+#endif
 
 static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $";
 
@@ -109,7 +107,7 @@ server_continue_step (void *conn_context __attribute__((unused)),
     sparams->utils->log(sparams->utils->conn,
 			SASL_LOG_INFO,
 			"ANONYMOUS", 0, 0,
-			"login: \"%s\" from [%i.%i.%i.%i]",
+			"login: \"%s\" from [%d.%d.%d.%d]",
 			clientdata,
 			ipnum >> 24 & 0xFF,
 			ipnum >> 16 & 0xFF,

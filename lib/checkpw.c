@@ -41,12 +41,12 @@ SOFTWARE.
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/param.h>
+#include <sys/un.h>
 #else
 #include <string.h>
 #endif
 
 #include <sys/types.h>
-#include <sys/un.h>
 #include <ctype.h>
 
 #ifndef SASL_MINIMAL_SERVER

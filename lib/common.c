@@ -444,18 +444,20 @@ _sasl_global_getopt(void *context,
 
   global_callbacks = (const sasl_global_callbacks_t *) context;
 
-  if (global_callbacks && global_callbacks->callbacks)
-    for (callback = global_callbacks->callbacks;
-	 callback->id != SASL_CB_LIST_END;
-	 callback++)
-      if (callback->id == SASL_CB_GETOPT
-	  && (((sasl_getopt_t *)(callback->proc))(callback->context,
-						  plugin_name,
-						  option,
-						  result,
-						  len)
-	      == SASL_OK))
-	return SASL_OK;
+  if (global_callbacks && global_callbacks->callbacks) {
+      for (callback = global_callbacks->callbacks;
+	   callback->id != SASL_CB_LIST_END;
+	   callback++) {
+	  if (callback->id == SASL_CB_GETOPT
+	      && (((sasl_getopt_t *)(callback->proc))(callback->context,
+						      plugin_name,
+						      option,
+						      result,
+						      len)
+		  == SASL_OK))
+	      return SASL_OK;
+      }
+  }
 
   /* look it up in our configuration file */
   *result = sasl_config_getstring(option, NULL);
@@ -658,7 +660,7 @@ _sasl_getcallback(sasl_conn_t * conn,
 	  *pproc = &_sasl_global_getopt;
 	  *pcontext = NULL;
       }
-    return SASL_OK;
+      return SASL_OK;
   }
 
   /* If it's not always provided by the library, see if there's

@@ -229,7 +229,7 @@ JNIEXPORT jint JNICALL Java_CyrusSasl_ServerFactory_jni_1sasl_1server_1new
 JNIEXPORT jint JNICALL JNICALL Java_CyrusSasl_ClientFactory_jni_1sasl_1client_1new
   (JNIEnv *env,
    jobject obj __attribute__((unused)),
-   jstring jservice, jstring jserver, jint jsecflags)
+   jstring jservice, jstring jserver, jint jsecflags, jboolean successdata)
 {
   sasl_conn_t *conn;
 
@@ -238,7 +238,8 @@ JNIEXPORT jint JNICALL JNICALL Java_CyrusSasl_ClientFactory_jni_1sasl_1client_1n
   int result;
 
   result=sasl_client_new(service, serverFQDN, NULL, NULL, NULL,
-			 jsecflags, &conn);
+			 jsecflags | (successdata ? SASL_SUCCESS_DATA : 0), 
+                         &conn);
 
   if (result!=SASL_OK)
     throwexception(env,result);
@@ -409,8 +410,7 @@ static int fillin_interactions(JNIEnv *env, jobject obj,
 
 /* client start */
 
-JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericClient_jni_1sasl_1client_1start
-  (JNIEnv *env, jobject obj, jint ptr, jstring jstr)
+JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericClient_jni_1sasl_1client_1start(JNIEnv *env, jobject obj, jint ptr, jstring jstr)
 {    
   sasl_conn_t *conn=(sasl_conn_t *) ptr;
   const char *mechlist = (*env)->GetStringUTFChars(env, jstr, 0);
@@ -431,11 +431,13 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericClient_jni_1sasl_1client_1sta
 
       result=sasl_client_start(conn, mechlist,
 			       &client_interact,
-			       &out, &outlen,
+			       &out, 
+                               &outlen,
 			       &mechusing);
 
-      if (result==SASL_INTERACT)
-	  result=fillin_interactions(env,obj,client_interact);
+      if (result==SASL_INTERACT) {
+	  int res2 = fillin_interactions(env,obj,client_interact);
+      }
 
   } while (result==SASL_INTERACT);
 
@@ -453,7 +455,7 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericClient_jni_1sasl_1client_1sta
   /* set up for java callback */
   cls = (*env)->GetObjectClass(env, obj);
   mid = (*env)->GetMethodID(env, cls, "callback_setmechanism",
-			    "(Ljava/lang/String;)V");
+			    "(Ljava/lang/String;I)V");
   if (mid == 0) {
       throwexception(env,SASL_FAIL);
     return NULL;
@@ -474,12 +476,12 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericClient_jni_1sasl_1client_1sta
       throwexception(env, SASL_NOMEM);
       return NULL;
   }
-
+  
   memcpy(tmp, out, outlen);
   
   arr=(*env)->NewByteArray(env,outlen);
   (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *)tmp);
-  
+
   return arr;
 }
 
@@ -822,7 +824,7 @@ JNIEXPORT void JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1set_1server
 
   VL(("Set IP_REMOTE: %s: %d\n",out, result));
 
-  /* if not set throw and exception */
+  /* if not set throw an exception */
   if (result!=SASL_OK)
     throwexception(env,result); 
 }

@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.52 2002/04/18 18:19:31 rjs3 Exp $
+ * $Id: gssapi.c,v 1.53 2002/04/22 16:30:02 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -858,9 +858,8 @@ gssapi_server_mech_step(void *conn_context,
 
 	if (name_token.value)
 	    params->utils->free(name_without_realm.value);
-	if (name_without_realm.value) {
+	if (name_without_realm.value)
 	    gss_release_buffer(&min_stat, &name_token);
-	}
 	
 	/* we have to decide what sort of encryption/integrity/etc.,
 	   we support */
@@ -1586,13 +1585,18 @@ gssapi_client_mech_step(void *conn_context,
 	
 	gss_release_buffer(&min_stat, output_token);
 
-	if (oparams->user)
-		alen = strlen(oparams->user);
+	/* oparams->user is always set, due to canon_user requirements.
+	 * Make sure the client actually requested it though, by checking
+	 * if our context was set.
+	 */
+	if (text->u.user && text->u.user[0])
+	    alen = strlen(oparams->user);
 	else
-		alen = 0;
+	    alen = 0;
 
 	input_token->length = 4 + alen;
-	input_token->value = (char *)params->utils->malloc( (input_token->length + 1)* sizeof(char));
+	input_token->value =
+	    (char *)params->utils->malloc((input_token->length + 1)*sizeof(char));
 	if (input_token->value == NULL)
 	  {
 	    sasl_gss_free_context_contents(text);

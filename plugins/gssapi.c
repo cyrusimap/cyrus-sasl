@@ -246,7 +246,7 @@ sasl_gss_decode(void *context, const char *input, unsigned inputlen,
   
     if (inputlen != 0) { /* we received more then just one packet */
 	char *extra = NULL;
-	int extralen;
+	unsigned extralen;
 
 	sasl_gss_decode(text, input, inputlen, &extra, &extralen);
 	if (extra != NULL) {

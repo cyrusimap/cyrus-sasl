@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.43 1999/08/09 15:59:01 leg Exp $
+ * $Id: server.c,v 1.44 1999/08/09 16:00:40 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -959,23 +959,31 @@ int sasl_listmech(sasl_conn_t *conn,
   int lup;
   mechanism_t *listptr;  
   int resultlen;
+  int flag;
+  char *mysep;
 
   if (! conn || ! result)
     return SASL_FAIL;
 
-  if (plen!=NULL)
-    *plen=0;
-  if (pcount!=NULL)
-    *pcount=0;
+  if (plen != NULL)
+      *plen = 0;
+  if (pcount != NULL)
+      *pcount = 0;
+
+  if (sep) {
+      mysep = sep;
+  } else {
+      mysep = " ";
+  }
 
   if (! mechlist)
     return SASL_FAIL;
 
-  if (mechlist->mech_length<=0)
+  if (mechlist->mech_length <= 0)
     return SASL_NOMECH;
 
   resultlen = (prefix ? strlen(prefix) : 0)
-            + (sep ? strlen(sep) : 1) * (mechlist->mech_length - 1)
+            + (strlen(mysep) * (mechlist->mech_length - 1))
 	    + mech_names_len()
             + (suffix ? strlen(suffix) : 0)
 	    + 1;
@@ -987,40 +995,35 @@ int sasl_listmech(sasl_conn_t *conn,
   else
     **result = '\0';
 
-  listptr=mechlist->mech_list;  
+  listptr = mechlist->mech_list;  
    
+  flag = 0;
   /* make list */
-  for (lup=0;lup<mechlist->mech_length;lup++)
-  {
-    /* if user has rights add to list */
-    /* XXX This should be done with a callback function */
-    if (mech_permitted(conn, listptr->plug))
-    {
-      if (pcount!=NULL)
-	(*pcount)++;
+  for (lup = 0; lup < mechlist->mech_length; lup++) {
+      /* currently, we don't use the "user" parameter for anything */
+      if (mech_permitted(conn, listptr->plug)) {
+	  if (pcount != NULL)
+	      (*pcount)++;
 
-      /* print seperator */      
-      if (lup>0)
-      {
-	if (sep)
-	  strcat(*result,sep);
-	else
-	  strcat(*result," "); /* if seperator is NULL give it space */
+	  /* print seperator */
+	  if (flag) {
+	      strcat(*result, mysep);
+	  } else {
+	      flag = 1;
+	  }
+
+	  /* now print the mechanism name */
+	  strcat(*result, listptr->plug->mech_name);
       }
 
-      /* now print the mechanism name */
-      strcat(*result,listptr->plug->mech_name);
-
-    }
-
-    listptr=listptr->next;
+      listptr = listptr->next;
   }
 
   if (suffix)
-    strcat(*result,suffix);
+      strcat(*result,suffix);
 
   if (plen!=NULL)
-    *plen=strlen(*result);
+      *plen=strlen(*result);
 
   return SASL_OK;
   

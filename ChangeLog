@@ -13,6 +13,20 @@
 	(_sasl_sasldb_verify_password): created; checks the sasl database
 	with "PLAIN"
 
+Mon Aug  2 20:57:42 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/server.c (sasl_listmech): fixed bug---would print out
+	seperator to begin even if the mechanisms didn't pass mech_permitted
+
+Sat Jul 31 13:12:51 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* utils/Makefile.am (EXTRA_DIST): EXTRA_DIST should include sfsasl.h
+
+Fri Jul 30 20:04:39 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/db_ndbm.c (_sasl_server_check_db): added test for DBM_SUFFIX
+	and fixed some really stupid typos
+
 Wed Jul 21 23:35:15 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/server.c (load_config): small fixes (cosmetic & free'ing

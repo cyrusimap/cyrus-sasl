@@ -174,26 +174,38 @@ putsecret(void *context __attribute__((unused)),
 sasl_server_getsecret_t *_sasl_db_getsecret = &getsecret;
 sasl_server_putsecret_t *_sasl_db_putsecret = &putsecret;
 
+#ifdef DBM_SUFFIX
+#define SUFLEN (strlen(DBM_SUFFIX) + 1)
+#else
+#define SUFLEN 5
+#endif
+
 int _sasl_server_check_db(const sasl_callback_t *verifyfile_cb)
 {
     int ret = SASL_OK;
-    char *db = sasl_ALLOC(strlen(SASL_DB_PATH) + 5);
+    char *db = sasl_ALLOC(strlen(SASL_DB_PATH) + SUFLEN);
 
     if (db == NULL) {
 	ret = SASL_NOMEM;
     }
+#ifdef DBM_SUFFIX
     if (ret == SASL_OK) {
-	sprintf(db, "%s.pag", SASL_DB_PATH);
+	sprintf(db, "%s%s", SASL_DB_PATH, DBM_SUFFIX);
 	ret = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(
-	    verifyfile_cb->context,
-	    SASL_DB_PATH);
+	    verifyfile_cb->context, db);
+    }
+#else
+    if (ret == SASL_OK) {
+	sprintf(db, "%s.dir", SASL_DB_PATH);
+	ret = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(
+	    verifyfile_cb->context, db);
     }
     if (ret == SASL_OK) {
 	sprintf(db, "%s.pag", SASL_DB_PATH);
 	ret = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(
-	    verifyfile_cb->context,
-	    SASL_DB_PATH);
+	    verifyfile_cb->context, db);
     }
+#endif
     if (db) {
 	sasl_FREE(db);
     }

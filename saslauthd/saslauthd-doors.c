@@ -78,7 +78,7 @@
  * END HISTORY */
 
 #ifdef __GNUC__
-#ident "$Id: saslauthd.c,v 1.12 2002/03/25 19:21:08 leg Exp $"
+#ident "$Id: saslauthd-doors.c,v 1.1 2002/04/25 14:46:05 leg Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -96,10 +96,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
-#include <sys/un.h>
 #include <sys/wait.h>
 #include <fcntl.h>
-#include <sys/uio.h>
+#include <doors.h>
 
 #include "mechanisms.h"
 #include "globals.h"
@@ -117,8 +116,6 @@ char	*r_service;		/* Remote service for rimap driver	 */
 int	g_argc;			/* Copy of argc for sia_* routines	 */
 char	**g_argv;		/* Copy of argv for sia_* routines       */
 #endif /* AUTH_SIA */
-int     retry_read(int fd, void *buf, unsigned nbyte);
-int     retry_writev(int fd, struct iovec *iov, int iovcnt);
 /* path_mux needs to be accessable to server_exit() */
 char	*path_mux;		/* path to AF_UNIX socket */
 int     master_pid;             /* pid of the initial process */
@@ -126,6 +123,8 @@ extern char *optarg;		/* getopt() */
 
 /* forward declarations */
 void		do_request(int, int);
+void            door_request(void *cookie, char *argp, size_t arg_size,
+			     door_desc_t *dp, uint_t n_desc);
 RETSIGTYPE 	server_exit(int);
 RETSIGTYPE 	sigchld_ignore(int);
 void		show_version(void);
@@ -151,31 +150,13 @@ main(
   int argc,				/* I: number of cmdline arguments */
   char *argv[]				/* I: array of cmdline arguments */
   /* END PARAMETERS */
-  ) {
-
+  ) 
+{
     /* VARIABLES */
     int c;				/* general purpose character holder */
     int	count;				/* loop counter */
-    int	s;				/* fd handle on the domain socket.
-					   scratch usage while losing
-					   controlling tty */
-    int conn;				/* per-connection socket fd */
-    int rc;				/* generic return code holder  */
-    int lfd,alfd=0;      		/* master lock file descriptor */
-    char *lockfile;			/* master lock file name       */
-    char *acceptlockfile;
-    struct flock lockinfo;		/* fcntl locking on lockfile   */
-    struct flock alockinfo;
     char *cwd;				/* current working directory path */
-    pid_t pid;				/* fork() control */
-    struct sockaddr_un server, client;	/* domain socket control */
-    SALEN_TYPE len;			/* sockaddr_un address lengths */
-    int i;
-    int num_threads = 5;                /* number of "threads" to run */
-#ifdef SO_REUSEADDR
-    int one = 1;			/* sockopt control variable */
-#endif /* SO_REUSEADDR */
-    /* END VARIABLES */
+    int dfd; /* door file descriptor */
 
 #if defined(AUTH_SIA)
     /*
@@ -231,14 +212,6 @@ main(
 		exit(1);
 	    }
 	    path_mux = optarg;
-	    break;
-
-  	  case 'n':
-	    num_threads = atoi(optarg);
-	    if(num_threads < 0) {
-		fprintf(stderr, "invalid number of threads");
-		exit(1);
-	    }
 	    break;
 
 	  case 'P':			/* proxy authentication mechanism */
@@ -396,15 +369,6 @@ main(
     strcpy(lockfile, path_mux);
     strcat(lockfile, LOCK_SUFFIX);
 
-    acceptlockfile = malloc(strlen(path_mux) + sizeof(ACCEPT_LOCK_SUFFIX));
-    if (lockfile == NULL) {
-	syslog(LOG_ERR, "malloc(acceptlockfile) failed");
-	exit(1);
-    }
-    
-    strcpy(acceptlockfile, path_mux);
-    strcat(acceptlockfile, ACCEPT_LOCK_SUFFIX);
-    
     lfd = open(lockfile, O_WRONLY|O_CREAT, LOCK_FILE_MODE);
     if (lfd < 0) {
 	syslog(LOG_ERR, "FATAL: %s: %m", lockfile);
@@ -454,42 +418,6 @@ main(
     /* unlink any stray turds from a previous run */
     (void)unlink(path_mux);
     
-    s = socket(AF_UNIX, SOCK_STREAM, 0);
-
-    if (s == -1) {
-	syslog(LOG_ERR, "FATAL: socket :%m");
-	exit(1);
-    }
-
-    memset(&server, 0, sizeof(server));
-    server.sun_family = AF_UNIX;
-    strcpy(server.sun_path, path_mux);
-#ifdef SO_REUSEADDR
-    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (void *)&one, sizeof(one));
-#endif
-    
-    /*
-     * Some UNIXen honour the mode bits on a domain socket, others don't.
-     * Since this isn't predictable we create the socket mode 777 and
-     * use the permissions on the socket's directory to control access.
-     */
-    umask(0);
-    rc = bind(s, (struct sockaddr *)&server, sizeof(server));
-    if (rc == -1) {
-	syslog(LOG_ERR, "FATAL: %s: %m", path_mux);
-	closelog();
-	/* unlink(path_mux); */
-	exit(1);
-    }
-    
-    if (chmod(path_mux, S_IRWXU|S_IRWXG|S_IRWXO) == -1) {
-	syslog(LOG_ERR, "FATAL: chmod(%s): %m", path_mux);
-	closelog();
-	exit(1);
-    }
-    fchmod(s, S_IRWXU|S_IRWXG|S_IRWXO);
-    umask(077);				/* restore a secure umask */
-
     /* perform any auth mechanism specific initializations */
     if (authmech->initialize != NULL) {
 	if (authmech->initialize() != 0) {
@@ -510,112 +438,16 @@ main(
 	}
     }
 
-    if (listen(s, 5) == -1) {
-	syslog(LOG_ERR, "FATAL: listen: %m");
+    dfd = door_create(&door_request, NULL, 0);
+    close(open(path_mux, O_CREAT, O_RDWR, 0644));
+    if (fattach(dfd, path_mux) < 0) {
+	syslog(LOG_ERR, "FATAL: fattach %s failed", path_mux);
 	closelog();
 	exit(1);
-    };
-    
-    syslog(LOG_INFO, "daemon started, listening on %s", path_mux);
-
-    len = sizeof(client);
-
-    signal(SIGCHLD, sigchld_ignore);
-
-    /* fork off the threads */
-    if(!debug) {
-	for(i=1; i<num_threads; i++) {
-	    int pid = fork();
-	    if(pid < 0) {
-		syslog(LOG_ERR, "FATAL: fork(): %m");
-		fprintf(stderr, "saslauthd FATAL: could not fork()\n");
-		exit(1);
-	    } else if (pid == 0) {
-		/* Children shouldn't procreate */
-		break;
-	    }
-	}
     }
 
-    /* Only when not in forking or debug mode */
-    if(!debug && num_threads > 0) {
-	alfd = open(acceptlockfile, O_WRONLY|O_CREAT, LOCK_FILE_MODE);
-
-	if(alfd < 0) {
-	    syslog(LOG_ERR, "FATAL: open(acceptlockfile): %m");
-	    fprintf(stderr, "could not open acceptlockfile\n");
-	    exit(1);
-	}
-
-	/* setup the alockinfo structure */
-	alockinfo.l_start = 0;
-	alockinfo.l_len = 0;
-	alockinfo.l_whence = SEEK_SET;
-    }
-	
-
-    while (1) {
-	/* The idea here is we only want one process to be waiting on
-	 * an accept() at a time, so that only one wakes up at a time */
-
-	/* Only when not in forking or debug mode */
-	if(!debug && num_threads > 0) {
-	    alockinfo.l_type = F_WRLCK;
-	    while (  (rc = fcntl(alfd, F_SETLKW, &alockinfo)) < 0
-		   && errno == EINTR)
-		/* noop */;
-	    if (rc < 0) {
-		syslog(LOG_ERR,
-		       "fcntl: F_SETLKW: error getting accept lock: %m");
-		exit(1);
-	    }
-	}
-	
-	conn = accept(s, (struct sockaddr *)&client, &len);
-
-	/* Only when not in forking or debug mode */
-	if(!debug && num_threads > 0) {
-	    alockinfo.l_type = F_UNLCK;
-	    while (  (rc = fcntl(alfd, F_SETLKW, &alockinfo)) < 0
-		   && errno == EINTR)
-		/* noop */;
-	    if (rc < 0) {
-		syslog(LOG_ERR,
-		       "fcntl: F_SETLKW: error releasing accept lock: %m");
-		exit(1);
-	    }
-	}
-
-	if (conn == -1) {
-	    if (errno != EINTR) {
-		/*
-		 * We get EINTR whenever a child process terminates.
-		 * That's not an error.
-		 */
-		syslog(LOG_ERR, "accept: %m");
-	    }
-	    continue;
-	} 
-
-	if(!debug && num_threads == 0) {
-	    /* for forking mode only */
-	    pid = fork();
-	    if (pid == 0) {        /* child */
-		close(s);
-		do_request(conn, conn); /* process the request */
-		close(conn);
-		closelog();
-		exit(0);
-	    } else if (pid > 0) {  /* parent */
-		close(conn);
-	    } else if (pid == -1) {
-		syslog(LOG_ERR, "accept fork: %m");
-		close(conn);
-	    }
-	} else {
-	    do_request(conn, conn);
-	    close(conn);
-	}
+    for (;;) {
+	pause();
     }
 
     /*NOTREACHED*/
@@ -638,13 +470,8 @@ main(
  * END SYNOPSIS */
 
 void
-do_request
-(
-  /* PARAMETERS */
-  int in,				/* I: input file descriptor  */
-  int out				/* I: output file descriptor */
-  /* END PARAMETERS */
-  )
+door_request(void *cookie, char *data, size_t datasize, 
+	     door_desc_t *dp, size_t ndesc)
 {
     /* VARIABLES */
     char *reply;			/* authentication response message.
@@ -652,14 +479,13 @@ do_request
 					   is free()d at the end. If you assign
 					   this internally, make sure to
 					   strdup() the string you assign. */
-    struct iovec iov[2];		/* for sending response */
     unsigned short count;		/* input/output data byte count */
-    int rc;				/* general purpose return code */
     char login[MAX_REQ_LEN + 1];	/* account name to authenticate */
     char password[MAX_REQ_LEN + 1];	/* password for authentication */
     char service[MAX_REQ_LEN + 1];	/* service name for authentication */
     char realm[MAX_REQ_LEN + 1];	/* user realm for authentication */
     int error_condition;		/* 1: error occured, can't continue */
+    char *dataend = data + datasize;
 /* END VARIABLES */
 
     /* initialization */
@@ -671,55 +497,44 @@ do_request
      * service name and user realm as counted length strings.
      * We read() each string, then dispatch the data.
      */
-    rc = (retry_read(in, &count, sizeof(count)) < (int)
-	  sizeof(count));
-    if (!rc) {
-	count = ntohs(count);
-	if (count > MAX_REQ_LEN)
-	    rc = error_condition = 1;
-	else {
-	    rc = (retry_read(in, login, count) < (int) count);
-	    login[count] = '\0';
-	}
+    count = ntohs(*(unsigned short *)data);
+    data += sizeof(unsigned short);
+    if (data + count >= dataend || count > MAX_REQ_LEN) {
+	goto sizeerror;
     }
+    memcpy(login, data, count);
+    login[count] = '\0';
+    data += count;
 
-    if (!rc)
-	rc = (retry_read(in, &count, sizeof(count)) < (int) sizeof(count));
-    if (!rc) {
-	count = ntohs(count);
-	if (count > MAX_REQ_LEN)
-	    rc = error_condition = 1;
-	else {
-	    rc = (retry_read(in, password, count) < (int) count);
-	    password[count] = '\0';
-	}
+    count = ntohs(*(unsigned short *)data);
+    data += sizeof(unsigned short);
+    if (data + count >= dataend || count > MAX_REQ_LEN) {
+	goto sizeerror;
     }
+    memcpy(password, data, count);
+    password[count] = '\0';
+    data += count;
 
-    if (!rc)
-	rc = (retry_read(in, &count, sizeof(count)) < (int) sizeof(count));
-    if (!rc) {
-	count = ntohs(count);
-	if (count > MAX_REQ_LEN)
-	    rc = error_condition = 1;
-	else {
-	    rc = (retry_read(in, service, count) < (int) count);
-	    service[count] = '\0';
-	}
+    count = ntohs(*(unsigned short *)data);
+    data += sizeof(unsigned short);
+    if (data + count >= dataend || count > MAX_REQ_LEN) {
+	goto sizeerror;
     }
+    memcpy(service, data, count);
+    service[count] = '\0';
+    data += count;
 
-    if (!rc)
-	rc = (retry_read(in, &count, sizeof(count)) < (int) sizeof(count));
-    if (!rc) {
-	count = ntohs(count);
-	if (count > MAX_REQ_LEN)
-	    rc = error_condition = 1;
-	else {
-	    rc = (retry_read(in, realm, count) < (int) count);
-	    realm[count] = '\0';
-	}
+    count = ntohs(*(unsigned short *)data);
+    data += sizeof(unsigned short);
+    if (data + count >= dataend || count > MAX_REQ_LEN) {
+	goto sizeerror;
     }
+    memcpy(realm, data, count);
+    realm[count] = '\0';
+    data += count;
 
     if (error_condition) {
+    sizeerror:
 	/*
 	 * One of parameter lengths is too long.
 	 * This is probably someone trying to exploit a buffer overflow ...
@@ -731,10 +546,8 @@ do_request
 					/* this failed, in the hope that they*/
 					/* will keep banging on the door long*/
 					/* enough for someone to take action.*/
-    }
-    else if (rc) {
-	syslog(LOG_ERR, "do_request read failed: %m");
-	return;
+
+	errorcondition = 1;
     }
 	    
     if ((*login == '\0') || (*password == '\0')) {
@@ -774,142 +587,14 @@ do_request
 	}
     }
 
-    /* write the response out the socket */
-    count = htons(strlen(reply));
-
-    iov[0].iov_base = (void *) &count;
-    iov[0].iov_len = sizeof(count);
-    iov[1].iov_base = (void *) reply;
-    iov[1].iov_len = strlen(reply);
-
-    rc = retry_writev(out, iov, 2);
-
-    if (debug)
-	printf("Just Wrote: %d:%s\n",ntohs(count),reply);
-
-    if (rc == -1)
-	syslog(LOG_ERR, "do_request write failed: %m");
+    door_return(reply, strlen(reply), NULL, 0);
 
     free(reply);
     return;
 }
 
 /* END FUNCTION: do_request */
-
-/* FUNCTION: retry_read */
 
-/* SYNOPSIS
- * Keep calling the read() system call with 'fd', 'buf', and 'nbyte'
- * until all the data is read in or an error occurs.
- * END SYNOPSIS */
-int retry_read(int fd, void *buf, unsigned nbyte)
-{
-    int n;
-    int nread = 0;
-
-    if (nbyte == 0) return 0;
-
-    for (;;) {
-	n = read(fd, buf, nbyte);
-	if (n == 0) {
-	    /* end of file */
-	    return -1;
-	}
-	if (n == -1) {
-	    if (errno == EINTR) continue;
-	    return -1;
-	}
-
-	nread += n;
-
-	if (n >= (int) nbyte) return nread;
-
-	buf += n;
-	nbyte -= n;
-    }
-}
-
-/* END FUNCTION: retry_read */
-
-/* FUNCTION: retry_writev */
-
-/* SYNOPSIS
- * Keep calling the writev() system call with 'fd', 'iov', and 'iovcnt'
- * until all the data is written out or an error occurs.
- * END SYNOPSIS */
-
-int				/* R: bytes written, or -1 on error */
-retry_writev (
-  /* PARAMETERS */
-  int fd,				/* I: fd to write on */
-  struct iovec *iov,			/* U: iovec array base
-					 *    modified as data written */
-  int iovcnt				/* I: number of iovec entries */
-  /* END PARAMETERS */
-  )
-{
-    /* VARIABLES */
-    int n;				/* return value from writev() */
-    int i;				/* loop counter */
-    int written;			/* bytes written so far */
-    static int iov_max;			/* max number of iovec entries */
-    /* END VARIABLES */
-
-    /* initialization */
-#ifdef MAXIOV
-    iov_max = MAXIOV;
-#else /* ! MAXIOV */
-# ifdef IOV_MAX
-    iov_max = IOV_MAX;
-# else /* ! IOV_MAX */
-    iov_max = 8192;
-# endif /* ! IOV_MAX */
-#endif /* ! MAXIOV */
-    written = 0;
-    
-    for (;;) {
-
-	while (iovcnt && iov[0].iov_len == 0) {
-	    iov++;
-	    iovcnt--;
-	}
-
-	if (!iovcnt) {
-	    return written;
-	}
-
-	n = writev(fd, iov, iovcnt > iov_max ? iov_max : iovcnt);
-	if (n == -1) {
-	    if (errno == EINVAL && iov_max > 10) {
-		iov_max /= 2;
-		continue;
-	    }
-	    if (errno == EINTR) {
-		continue;
-	    }
-	    return -1;
-	} else {
-	    written += n;
-	}
-
-	for (i = 0; i < iovcnt; i++) {
-	    if (iov[i].iov_len > (unsigned) n) {
-		iov[i].iov_base = (char *)iov[i].iov_base + n;
-		iov[i].iov_len -= n;
-		break;
-	    }
-	    n -= iov[i].iov_len;
-	    iov[i].iov_len = 0;
-	}
-
-	if (i == iovcnt) {
-	    return written;
-	}
-    }
-    /* NOTREACHED */
-}
-
-/* END FUNCTION: retry_writev */
 
 /* FUNCTION: show_version */
 

@@ -86,6 +86,12 @@ if test "$with_pam" != no; then
   LIBS="$cmu_save_LIBS"
 fi
 
+AC_ARG_WITH(ipctype, [  --with-ipctype={unix,doors}    use ipctype [unix] ],
+	with_ipctype=$withval,
+	with_ipctype="unix")
+IPCTYPE=$with_ipctype
+AC_SUBST(IPCTYPE)
+
 AC_MSG_CHECKING(for PAM support)
 AC_MSG_RESULT($with_pam)
 LIB_PAM=""

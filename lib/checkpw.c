@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.68 2003/12/15 21:39:20 rjs3 Exp $
+ * $Id: checkpw.c,v 1.69 2003/12/19 01:47:37 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -552,6 +552,7 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 
     if (door_call(s, &arg) < 0) {
       /* Parameters are undefined */
+      close(s);
       sasl_seterror(conn, 0, "door call to saslauthd server failed: %m", errno);
       goto fail;
     }
@@ -559,6 +560,7 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
     if (arg.data_ptr != response || arg.data_size >= sizeof(response)) {
 	/* oh damn, we got back a really long response */
 	munmap(arg.rbuf, arg.rsize);
+	close(s);
 	sasl_seterror(conn, 0, "saslauthd sent an overly long response");
 	goto fail;
     }
@@ -581,6 +583,7 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
     {
 	int r = connect(s, (struct sockaddr *) &srvaddr, sizeof(srvaddr));
 	if (r == -1) {
+	    close(s);
 	    sasl_seterror(conn, 0, "cannot connect to saslauthd server: %m", errno);
 	    goto fail;
 	}
@@ -593,6 +596,7 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 	iov[0].iov_base = query;
 
 	if (retry_writev(s, iov, 1) == -1) {
+	    close(s);
             sasl_seterror(conn, 0, "write failed");
 	    goto fail;
   	}

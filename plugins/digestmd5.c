@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.153 2003/03/30 22:17:06 leg Exp $
+ * $Id: digestmd5.c,v 1.154 2003/07/18 20:32:22 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -102,7 +102,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.153 2003/03/30 22:17:06 leg Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.154 2003/07/18 20:32:22 rjs3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -3169,7 +3169,7 @@ make_client_response(context_t *text,
 			     &text->out_buf, &text->out_buf_len, &resplen,
 			     "cipher", 
 			     (unsigned char *) ctext->cipher->name,
-			     TRUE) != SASL_OK) {
+			     FALSE) != SASL_OK) {
 	    result = SASL_FAIL;
 	    goto FreeAllocatedMem;
 	}

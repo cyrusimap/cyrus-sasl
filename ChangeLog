@@ -1,3 +1,7 @@
+2003-07-18  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/digestmd5.c: Client side of digest md5 doesn't
+	  have quotes around its cypher= directive (Bug 2113).
+
 2003-07-17  Ken Murchison <ken@oceana.com>
 	* include/sasl.h, include/saslplug.h,
 	* lib/auxprop.c, lib/common.c, lib/server.c, plugins/sasldb.c:

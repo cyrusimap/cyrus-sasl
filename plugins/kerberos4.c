@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.63 2000/10/03 05:44:35 leg Exp $
+ * $Id: kerberos4.c,v 1.64 2000/12/21 01:50:22 leg Exp $
  */
 /* 
  * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -896,6 +896,22 @@ static int client_start(void *glob_context __attribute__((unused)),
   return new_text(params->utils, (context_t **) conn);
 }
 
+static void free_prompts(sasl_client_params_t *params,
+			 sasl_interact_t *prompts)
+{
+    sasl_interact_t *ptr=prompts;
+    if (ptr==NULL) return;
+  
+    do {
+	if (ptr->result!=NULL) params->utils->free(ptr->result);
+      
+	ptr++;
+    } while (ptr->id != SASL_CB_LIST_END);
+  
+    params->utils->free(prompts);
+    prompts = NULL;
+}
+
 static int client_continue_step (void *conn_context,
 				 sasl_client_params_t *params,
 				 const char *serverin,
@@ -1024,7 +1040,7 @@ static int client_continue_step (void *conn_context,
 			break;
 		    }
 
-	    params->utils->free(*prompt_need);
+	    free_prompts(params, *prompt_need);
 	    *prompt_need = NULL;
 	}
 

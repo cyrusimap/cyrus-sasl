@@ -1,6 +1,6 @@
 # Top-level Makefile.am for SASL
 # Rob Earhart
-# $Id: Makefile.am,v 1.5 1998/11/25 06:47:54 rob Exp $
+# $Id: Makefile.am,v 1.6 1998/11/30 14:22:19 rob Exp $
 #
 ################################################################
 #        Copyright 1998 by Carnegie Mellon University
@@ -16,9 +16,9 @@
 #software without specific, written prior permission.
 #
 #CARNEGIE MELLON UNIVERSITY DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
-#SOFTWARE, INCLUDING #ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, 
-#IN NO EVENT SHALL CARNEGIE MELLON UNIVERSITY BE LIABLE FOR ANY SPECIAL, 
-#INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+#SOFTWARE, INCLUDING #ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS,
+#IN NO EVENT SHALL CARNEGIE MELLON UNIVERSITY BE LIABLE FOR ANY SPECIAL,
+#INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
 #LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
 #OR OTHER TORTIOUS ACTION, #ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 #PERFORMANCE OF THIS SOFTWARE.
@@ -29,3 +29,17 @@ SUBDIRS=include lib plugins @DIRS@
 dist-hook:
 	cp -r -p $(srcdir)/config $(srcdir)/win32 $(distdir)
 	find $(distdir) -name CVS -print | xargs rm -rf
+
+install-exec-local:
+	@if test "$(plugindir)" != "$(prefix)/lib/sasl"; then \
+	  echo "********************************************************"; \
+	  echo "* WARNING:";			\
+	  echo "* Plugins are being installed into $(prefix)/lib/sasl,"; \
+	  echo "* but the library will look for them in $(plugindir)."; \
+	  echo "* You need to make sure that the plugins will eventually"; \
+	  echo "* be in $(plugindir) -- the easiest way is to make a"; \
+	  echo "* symbolic link from $(plugindir) to $(prefix)/lib/sasl,"; \
+	  echo "* but this may not be appropriate for your site, so this"; \
+	  echo "* installation procedure won't do it for you."; \
+	  echo "********************************************************"; \
+	fi

@@ -1,6 +1,6 @@
 /* common.c - Functions that are common to server and clinet
  * Tim Martin
- * $Id: common.c,v 1.8 1998/11/20 16:21:59 ryan Exp $
+ * $Id: common.c,v 1.9 1998/11/30 14:22:19 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -557,6 +557,38 @@ _sasl_log(void *context __attribute__((unused)),
 #endif				/* HAVE_VSYSLOG */
 
 static int
+_sasl_getsimple(void *context,
+		int id,
+		const char ** result,
+		unsigned * len)
+{
+  const char *userid;
+  sasl_conn_t *conn;
+
+  if (! context || ! result || ! len)
+    return SASL_BADPARAM;
+
+  conn = (sasl_conn_t *)context;
+
+  switch(id) {
+  case SASL_CB_USER:
+    *result = "";
+    *len = 0;
+    return SASL_OK;
+  case SASL_CB_AUTHNAME:
+    userid = getenv("USER");
+    if (userid != NULL) {
+      *result = userid;
+      *len = strlen(userid);
+      return SASL_OK;
+    }
+    return SASL_FAIL;
+  default:
+    return SASL_BADPARAM;
+  }
+}
+
+static int
 _sasl_getcallback(sasl_conn_t * conn,
 		  unsigned long callbackid,
 		  int (**pproc)(),
@@ -606,6 +638,11 @@ _sasl_getcallback(sasl_conn_t * conn,
     *pcontext = NULL;
     break;
 #endif /* HAVE_VSYSLOG */
+  case SASL_CB_USER:
+  case SASL_CB_AUTHNAME:
+    *pproc = (int (*)()) &_sasl_getsimple;
+    *pcontext = conn;
+    break;
   case SASL_CB_SERVER_GETSECRET:
     *pproc = _sasl_server_getsecret_hook;
     *pcontext = NULL;

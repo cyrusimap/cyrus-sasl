@@ -1,3 +1,7 @@
+1998-11-30  Rob Earhart  <rob@ANDREW.CMU.EDU>
+
+	* Makefile.am: added plugin path warning
+
 1998-11-29  Rob Earhart  <rob+@andrew.cmu.edu>
 
 	* plugins/plain.c: now attempts to look up userid and authid as

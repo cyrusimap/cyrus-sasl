@@ -1,6 +1,6 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Tim Martin
- * $Id: db_berkeley.c,v 1.4 1999/11/16 20:32:48 leg Exp $
+ * $Id: db_berkeley.c,v 1.5 1999/11/18 01:54:24 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -62,7 +62,7 @@ static int berkeleydb_open(sasl_conn_t *conn, DB **mbdb)
     }
     ret = db_open(path, DB_HASH, DB_CREATE, 0664, NULL, &dbinfo, mbdb);
     if (ret != 0) {
-	_sasl_log (NULL, 0, NULL,
+	_sasl_log (NULL, SASL_LOG_ERR, NULL,
 		   SASL_FAIL,	/* %z */ 0,	/* %m */
 		   "unable to open Berkeley db %s: %s",
 		   path, strerror(ret));
@@ -85,7 +85,7 @@ static void berkeleydb_close(DB *mbdb)
     ret = mbdb->close(mbdb, 0);
     if (ret!=0) {
 	VL(("Error closing mailbox"));
-	_sasl_log (NULL, 0, NULL,
+	_sasl_log (NULL, SASL_LOG_ERR, NULL,
 		   SASL_FAIL, /* %z */ 0, /* %m */
 		   "error closing sasldb: %s",
 		   strerror(ret));
@@ -179,7 +179,7 @@ getsecret(void *context,
     break;
   default:
     VL(("Other failure\n"));
-    _sasl_log (NULL, 0, NULL,
+    _sasl_log (NULL, SASL_LOG_ERR, NULL,
 	       SASL_FAIL,	/* %z */ 0,	/* %m */
 	       "error fetching from sasldb: %s",
 	       strerror(result));
@@ -257,7 +257,7 @@ putsecret(void *context,
 
     if (result != 0)
     {
-      _sasl_log (NULL, 0, NULL,
+      _sasl_log (NULL, SASL_LOG_ERR, NULL,
 		 SASL_FAIL, /* %z */ 0,	/* %m */
 		 "error updating sasldb: %s", strerror(result));
       VL(("DBERROR: error updating database for %s: %s",
@@ -274,7 +274,7 @@ putsecret(void *context,
 
     if (result != 0)
     {
-      _sasl_log (NULL, 0, NULL,
+      _sasl_log (NULL, SASL_LOG_ERR, NULL,
 		 SASL_FAIL, /* %z */ 0,	/* %m */
 		 "error deleting entry from sasldb: %s", strerror(result));
       VL(("DBERROR: error deleting entry for database for %s: %s",

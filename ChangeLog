@@ -1,3 +1,8 @@
+2002-02-04  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* utils/saslpasswd.c: Added -n option (Ken Murchison)
+	* lib/dlopen.c: Removed confusing entry point message.
+	* Ready for 2.1.1
+
 2002-02-01  Ken Murchison <ken@oceana.com>
 	* plugins/srp.c: fixed srp_setpass()
 

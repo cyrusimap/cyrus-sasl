@@ -312,6 +312,7 @@ int
 main(int argc, char *argv[])
 {
   int flag_pipe = 0, flag_create = 0, flag_disable = 0, flag_error = 0;
+  int flag_nouserpass = 0;
   int c;
   char *userid, *password, *verify;
   unsigned passlen, verifylen;
@@ -335,7 +336,7 @@ main(int argc, char *argv[])
       progname = argv[0];
   }
 
-  while ((c = getopt(argc, argv, "pcdf:u:a:h?")) != EOF)
+  while ((c = getopt(argc, argv, "pcdnf:u:a:h?")) != EOF)
     switch (c) {
     case 'p':
       flag_pipe = 1;
@@ -352,6 +353,9 @@ main(int argc, char *argv[])
       else
 	flag_disable = 1;
       break;
+    case 'n':
+	flag_nouserpass = 1;
+	break;
     case 'u':
       user_domain = optarg;
       break;
@@ -379,6 +383,8 @@ main(int argc, char *argv[])
 		  "\t-p\tpipe mode -- no prompt, password read on stdin\n"
 		  "\t-c\tcreate -- ask mechs to create the account\n"
 		  "\t-d\tdisable -- ask mechs to disable/delete the account\n"
+		  "\t-n\tno userPassword -- don't set plaintext userPassword property\n"
+		  "\t  \t                   (only set mechanism-specific secrets)\n"
 		  "\t-f sasldb\tuse given file as sasldb\n"
 		  "\t-a appname\tuse appname as application name\n"
 		  "\t-u DOM\tuse DOM for user domain\n",
@@ -423,12 +429,15 @@ main(int argc, char *argv[])
       }
   }
 
-  if((result = _sasl_check_db(sasl_global_utils,conn)) == SASL_OK) {
-    result = _sasl_sasldb_set_pass(conn, myhostname, userid, password, passlen,
-				   user_domain,
-				   (flag_create ? SASL_SET_CREATE : 0)
-				   | (flag_disable ? SASL_SET_DISABLE : 0));
+  if(!flag_nouserpass) {
+      if((result = _sasl_check_db(sasl_global_utils,conn)) == SASL_OK) {
+	  result = _sasl_sasldb_set_pass(conn, myhostname, userid, password,
+					 passlen, user_domain,
+					 (flag_create ? SASL_SET_CREATE : 0)
+					 | (flag_disable ? SASL_SET_DISABLE : 0));
+      }
   }
+  
 
   if(result != SASL_OK && !flag_disable)
       exit_sasl(result, NULL);

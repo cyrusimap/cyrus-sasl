@@ -49,6 +49,7 @@ saslpasswd \- set a user's sasl password
 .RB [ -p ]
 .RB [ -d ]
 .RB [ -c ]
+.RB [ -n ]
 .RB [ -f\ file ]
 .RB [ -u\ domain ]
 .RB [ -a\ appname ]
@@ -75,6 +76,9 @@ is mutually exclusive with the
 Deletes the entry for the user.  This is mutually exclusive with the
 .B -c
 (create user) flag.
+.B -n
+Don't set the plaintext \fIuserPassword\fR property for the user.  Only
+mechanism-specific secrets will be set (e.g. OTP, SRP)
 .TP
 .B -u domain
 use

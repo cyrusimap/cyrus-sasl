@@ -246,6 +246,7 @@ static int kerberos_verify_password(sasl_conn_t *conn,
     char instance[INST_SZ];
     AUTH_DAT kdata;
     char *srvtab = "";
+    char *user_inst = "";
     sasl_getopt_t *getopt;
     void *context;
 
@@ -258,8 +259,10 @@ static int kerberos_verify_password(sasl_conn_t *conn,
     if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context) 
 	== SASL_OK) {
 	getopt(context, NULL, "srvtab", (const char **) &srvtab, NULL);
+	getopt(context, NULL, "plain_inst", (const char **) &user_inst, NULL);
 
 	if (!srvtab) srvtab = "";
+	if (!user_inst) user_inst = "";
     }
 
 
@@ -273,7 +276,7 @@ static int kerberos_verify_password(sasl_conn_t *conn,
     /* First try Kerberos string-to-key */
     des_string_to_key((char *) passwd, &key);
     
-    result = krb_get_in_tkt((char *)user, "", realm,
+    result = krb_get_in_tkt((char *)user, user_inst, realm,
 			    "krbtgt", realm, 1, use_key, NULL, &key);
 
     if (result == INTK_BADPW) {
@@ -283,7 +286,7 @@ static int kerberos_verify_password(sasl_conn_t *conn,
 	lcase(cell);
 	krb_afs_string_to_key(passwd, key, cell);
     
-	result = krb_get_in_tkt((char *)user, "", realm,
+	result = krb_get_in_tkt((char *)user, user_inst, realm,
 				"krbtgt", realm, 1, use_key, NULL, &key);
     }
 

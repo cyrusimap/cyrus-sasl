@@ -637,7 +637,9 @@ static int lak_get_session(LAK_SESSION **psession, const char *configFile)
 
 	rc = lak_configure(&session->conf, configFile);
 	if (rc != LAK_OK) {
-		syslog(LOG_ERR|LOG_AUTH, "%s: Configure failed - check configuration file %s.", myname, session->conf->path);
+		syslog(LOG_ERR|LOG_AUTH,
+		       "%s: Configure failed - check configuration file %s.",
+	               myname, configFile);
 		lak_release_config(&session->conf);
 		free(session);
 		return rc;

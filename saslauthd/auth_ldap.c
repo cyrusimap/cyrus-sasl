@@ -31,7 +31,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_ldap.c,v 1.9 2002/05/17 16:53:37 rjs3 Exp $"
+#ident "$Id: auth_ldap.c,v 1.10 2002/05/17 18:40:29 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -89,7 +89,6 @@ auth_ldap_init (
   /* END PARAMETERS */
   )
 {
-
     /* VARIABLES */
     struct addrinfo hints;
     int err;
@@ -99,6 +98,8 @@ auth_ldap_init (
     if (mech_option != NULL) {
 	SASLAUTHD_CONF_FILE = mech_option;
     }
+
+    return 0;
 }
 
 #else /* !AUTH_LDAP */

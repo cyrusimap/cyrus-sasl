@@ -1,6 +1,8 @@
 2004-05-21  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* configure.in, lib/Makefile.am: Better handling of -ldoor library
 	  addition (only add it to base library, don't add -lpthread)
+	* saslauthd/auth_krb5.c: zero out the krb5_data structure
+	  before use
 
 2004-05-20  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* include/sasl.h, lib/common.c, lib/saslint.h, lib/server.c:

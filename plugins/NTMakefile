@@ -138,44 +138,44 @@ db_berkeley.c: ..\sasldb\db_berkeley.c
 
 #Add /pdb: option?
 
-saslANONYMOUS.dll: $(saslANONYMOUS_objs)
-	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"saslANONYMOUS.dll" /implib:"saslANONYMOUS.lib" $(saslANONYMOUS_objs)
+saslANONYMOUS.dll: $(saslANONYMOUS_objs) saslANONYMOUS.res
+	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"saslANONYMOUS.dll" /implib:"saslANONYMOUS.lib" $(saslANONYMOUS_objs) saslANONYMOUS.res
 <<
 
-saslPLAIN.dll: $(saslPLAIN_objs)
-	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"saslPLAIN.dll" /implib:"saslPLAIN.lib" $(saslPLAIN_objs)
+saslPLAIN.dll: $(saslPLAIN_objs) saslPLAIN.res
+	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"saslPLAIN.dll" /implib:"saslPLAIN.lib" $(saslPLAIN_objs) saslPLAIN.res
 <<
 
-saslCRAMMD5.dll: $(saslCRAMMD5_objs)
-	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"saslCRAMMD5.dll" /implib:"saslCRAMMD5.lib" $(saslCRAMMD5_objs)
+saslCRAMMD5.dll: $(saslCRAMMD5_objs) saslCRAMMD5.res
+	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"saslCRAMMD5.dll" /implib:"saslCRAMMD5.lib" $(saslCRAMMD5_objs) saslCRAMMD5.res
 <<
 
-saslDIGESTMD5.dll: $(saslDIGESTMD5_objs)
-	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"saslDIGESTMD5.dll" /implib:"saslDIGESTMD5.lib" $(saslDIGESTMD5_objs)
+saslDIGESTMD5.dll: $(saslDIGESTMD5_objs) saslDIGESTMD5.res
+	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"saslDIGESTMD5.dll" /implib:"saslDIGESTMD5.lib" $(saslDIGESTMD5_objs) saslDIGESTMD5.res
 <<
 
-saslLOGIN.dll: $(saslLOGIN_objs)
-	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"saslLOGIN.dll" /implib:"saslLOGIN.lib" $(saslLOGIN_objs)
+saslLOGIN.dll: $(saslLOGIN_objs) saslLOGIN.res
+	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"saslLOGIN.dll" /implib:"saslLOGIN.lib" $(saslLOGIN_objs) saslLOGIN.res
 <<
 
-saslNTLM.dll: $(saslNTLM_objs)
-	$(LINK32DLL) @<< $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslNTLM.dll" /implib:"saslNTLM.lib" $(saslNTLM_objs)
+saslNTLM.dll: $(saslNTLM_objs) saslNTLM.res
+	$(LINK32DLL) @<< $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslNTLM.dll" /implib:"saslNTLM.lib" $(saslNTLM_objs) saslNTLM.res
 <<
 
-saslGSSAPI.dll: $(saslGSSAPI_objs)
-	$(LINK32DLL) @<< $(GSS_LIBS) $(LINK32DLL_FLAGS) /out:"saslGSSAPI.dll" /implib:"saslGSSAPI.lib" $(saslGSSAPI_objs)
+saslGSSAPI.dll: $(saslGSSAPI_objs) saslGSSAPI.res
+	$(LINK32DLL) @<< $(GSS_LIBS) $(LINK32DLL_FLAGS) /out:"saslGSSAPI.dll" /implib:"saslGSSAPI.lib" $(saslGSSAPI_objs) saslGSSAPI.res
 <<
 
-saslSRP.dll: $(saslSRP_objs)
-	$(LINK32DLL) @<< $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslSRP.dll" /implib:"saslSRP.lib" $(saslSRP_objs)
+saslSRP.dll: $(saslSRP_objs) saslSRP.res
+	$(LINK32DLL) @<< $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslSRP.dll" /implib:"saslSRP.lib" $(saslSRP_objs) saslSRP.res
 <<
 
-saslOTP.dll: $(saslOTP_objs)
-	$(LINK32DLL) @<< $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslOTP.dll" /implib:"saslOTP.lib" $(saslOTP_objs)
+saslOTP.dll: $(saslOTP_objs) saslOTP.res
+	$(LINK32DLL) @<< $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslOTP.dll" /implib:"saslOTP.lib" $(saslOTP_objs) saslOTP.res
 <<
 
-saslSASLDB.dll: $(saslSASLDB_objs)
-	$(LINK32DLL) @<< $(DB_LIBS) $(LINK32DLL_FLAGS) /out:"saslSASLDB.dll" /implib:"saslSASLDB.lib" $(saslSASLDB_objs)
+saslSASLDB.dll: $(saslSASLDB_objs) saslSASLDB.res
+	$(LINK32DLL) @<< $(DB_LIBS) $(LINK32DLL_FLAGS) /out:"saslSASLDB.dll" /implib:"saslSASLDB.lib" $(saslSASLDB_objs) saslSASLDB.res
 <<
 
 CLEAN :
@@ -186,6 +186,8 @@ CLEAN :
 	-@erase allockey.c
 	-@erase db_berkeley.c
 	-@erase getnameinfo.c
+	-@erase "*.rc"
+	-@erase "*.res"
 	-@erase $(all_out)
 
 .c.obj::
@@ -201,4 +203,45 @@ CLEAN :
 .cxx.obj::
    $(CPP) @<<
    $(CPP_PROJ) $< 
+<<
+
+.rc.res:
+	rc $<
+
+saslANONYMOUS.rc saslPLAIN.rc saslCRAMMD5.rc saslDIGESTMD5.rc saslLOGIN.rc saslNTLM.rc saslGSSAPI.rc saslSRP.rc saslOTP.rc saslSASLDB.rc:
+	copy <<temp.rc $@
+#include "afxres.h"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION $(SASL_VERSION_MAJOR),$(SASL_VERSION_MINOR),$(SASL_VERSION_STEP),0
+ PRODUCTVERSION $(SASL_VERSION_MAJOR),$(SASL_VERSION_MINOR),$(SASL_VERSION_STEP),0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "Carnegie Mellon University\0"
+            VALUE "FileDescription", "CMU SASL $(@B) plugin\0"
+            VALUE "FileVersion", "$(SASL_VERSION_MAJOR).$(SASL_VERSION_MINOR).$(SASL_VERSION_STEP).0\0"
+            VALUE "InternalName", "$(@B)\0"
+            VALUE "LegalCopyright", "Copyright (c) Carnegie Mellon University 2004\0"
+            VALUE "OriginalFilename", "$(@B).dll\0"
+            VALUE "ProductName", "Carnegie Mellon University SASL\0"
+            VALUE "ProductVersion", "$(SASL_VERSION_MAJOR).$(SASL_VERSION_MINOR).$(SASL_VERSION_STEP)-0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
 <<

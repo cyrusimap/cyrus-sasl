@@ -43,8 +43,6 @@ SOFTWARE.
 #endif /* errno */
 #endif /* WIN32 */
 
-int _sasl_debug = 0;
-
 static const char build_ident[] = "$Build: libsasl " PACKAGE "-" VERSION " $";
 
 void (*_sasl_client_cleanup_hook)(void) = NULL;
@@ -444,9 +442,6 @@ _sasl_global_getopt(void *context,
   const sasl_global_callbacks_t * global_callbacks;
   const sasl_callback_t *callback;
 
-  if (! context)
-    return SASL_FAIL;
-
   global_callbacks = (const sasl_global_callbacks_t *) context;
 
   if (global_callbacks && global_callbacks->callbacks)
@@ -656,8 +651,13 @@ _sasl_getcallback(sasl_conn_t * conn,
     /* Nothing ever gets to provide this */
     return SASL_FAIL;
   case SASL_CB_GETOPT:
-    *pproc = &_sasl_conn_getopt;
-    *pcontext = conn;
+      if (conn) {
+	  *pproc = &_sasl_conn_getopt;
+	  *pcontext = conn;
+      } else {
+	  *pproc = &_sasl_global_getopt;
+	  *pcontext = NULL;
+      }
     return SASL_OK;
   }
 

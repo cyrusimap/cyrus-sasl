@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.49 2002/04/30 17:45:31 ken3 Exp $
+ * $Id: client.c,v 1.50 2002/05/05 14:10:55 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -505,7 +505,7 @@ int sasl_client_start(sasl_conn_t *conn,
     c_conn->mech = bestm;
 
     /* init that plugin */
-    result = c_conn->mech->plug->mech_new(NULL,
+    result = c_conn->mech->plug->mech_new(c_conn->mech->plug->glob_context,
 					  c_conn->cparams,
 					  &(conn->context));
     if(result != SASL_OK) goto done;

@@ -23,7 +23,7 @@ dnl named.  arg.
 	SASL_DB_LIB="${BDB_LIBADD}"
 	;;
   gdbm)
-	AC_ARG_WITH(with-gdbm,[  --with-gdbm=PATH        use gdbm from PATH],
+	AC_ARG_WITH(gdbm,[  --with-gdbm=PATH        use gdbm from PATH],
                     with_gdbm="${withval}")
 
         case "$with_gdbm" in

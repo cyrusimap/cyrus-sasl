@@ -6,6 +6,7 @@
 	  store buffers in the params structure
 	* plugins/gssapi.c: Fix server side maxoutbuf calculation
 	  (Sam Hartman <hartmans@mit.edu>)
+	* plugins/gssapi.c: Use gss_wrap_size_limit on client side too
 	* Ready for 2.1.19
 
 2004-07-01  Rob Siemborski <rjs3@andrew.cmu.edu>

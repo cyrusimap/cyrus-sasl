@@ -41,6 +41,8 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <config.h>
+
 /* kerberos_v5 password checking currently disabled since there are
  * weird interactions with our libraries.  it might work for other
  * people, but we'd rather move it to saslauthd.
@@ -49,7 +51,6 @@
 
 /* checkpw stuff */
 
-#include <config.h>
 #include <sasl.h>
 #include <saslint.h>
 #include <saslutil.h>

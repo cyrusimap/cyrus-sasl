@@ -1,3 +1,12 @@
+New in 2.1.17
+-------------
+* Allow selection of GSSAPI implementation explicitly (--with-gss_impl)
+* Other GSSAPI detection improvements
+* Now correctly do authorizaton callback in sasl_checkpass()
+* Disable KERBEROS_V4 by default
+* Continued Win32/Win64 Improvements
+* Minor Other bugfixes
+
 New in 2.1.16-BETA
 ------------------
 * Significantly improved Win32 support

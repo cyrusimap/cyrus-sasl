@@ -1,3 +1,6 @@
+2003-11-28  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* Ready for 2.1.17
+
 2003-11-19  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* config/kerberos_v4.m4: Disable KERBEROS_V4 support by default
 

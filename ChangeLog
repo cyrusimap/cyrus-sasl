@@ -1,3 +1,9 @@
+2000-07-05  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/checkpw.c: added pwcheck method "sia" for the Digital Unix
+	"Security Integration Architecture".  contributed by Chris Adams
+	<cmadams@hiwaay.net>. 
+
 2000-06-09  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
 	* plugins/digestmd5.c (server_continue_step): take out lowercasing

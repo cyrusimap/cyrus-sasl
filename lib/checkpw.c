@@ -369,6 +369,45 @@ static int shadow_verify_password(sasl_conn_t *conn __attribute__((unused)),
 }
 #endif /* HAVE_GETSPNAM */
 
+#ifdef HAVE_SIA
+#include <sia.h>
+#include <siad.h>
+#include <arpa/inet.h>
+
+static int sia_verify_password(sasl_conn_t *conn,
+				  const char *userid,
+				  const char *password,
+				  const char *service __attribute__((unused)),
+				  const char *user_realm 
+				               __attribute__((unused)), 
+				  const char **reply)
+{
+  char *host;
+  struct sockaddr_in *addr;
+  int argc = 1;
+  char *argv[2], *argv0 = "SASL";
+  argv[0] = argv0;
+  argv[1] = NULL;
+
+  if (!userid || !password) {
+      return SASL_BADPARAM;
+  }
+  if (reply) { *reply = NULL; }
+
+  /* Get the remote host */
+  if (sasl_getprop(conn, SASL_IP_REMOTE, (void **) &addr) != SASL_OK)
+      host = NULL;
+  else
+      host = inet_ntoa(*addr);
+
+  /* Try to validate */
+  if (sia_validate_user(NULL, argc, argv, host, userid, NULL, 0, NULL,
+      password) != SIASUCCESS)
+      return SASL_BADAUTH;
+  return SASL_OK;
+}
+#endif /* HAVE_SIA */
+
 #ifdef HAVE_GETPWNAM
 static int passwd_verify_password(sasl_conn_t *conn __attribute__((unused)),
 				  const char *userid,
@@ -865,6 +904,9 @@ struct sasl_verify_password_s _sasl_verify_password[] = {
 #endif
 #ifdef HAVE_GETSPNAM
     { "shadow", &shadow_verify_password },
+#endif
+#ifdef HAVE_SIA
+    { "sia", &sia_verify_password },
 #endif
 #ifdef HAVE_GETPWNAM
     { "passwd", &passwd_verify_password },

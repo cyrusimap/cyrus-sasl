@@ -78,6 +78,9 @@
 /* Do we have kerberos for plaintext password checking? */
 #undef HAVE_KRB
 
+/* do we have SIA for plaintext password checking? */
+#undef HAVE_SIA
+
 /* do we have PAM for plaintext password checking? */
 #undef HAVE_PAM
 

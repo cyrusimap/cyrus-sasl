@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.15 2000/05/02 20:34:46 leg Exp $ -->
+<!-- $Id: sysadmin.html,v 1.16 2000/07/05 17:02:49 leg Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -129,6 +129,11 @@ flexible in this regard:
 
   <p>Another possible approach to check shadow passwords is the
   <i>pwcheck</i> daemon.<p>
+
+<dt><i>sia</i><dd> Security Integration Architecture is the secure
+  method of authenticating users on Digital Unix.  It should be used
+  especially if C2 level security is enabled.  This type must be
+  explicitly enabled at compile time.<p>
 
 <dt><i>kerberos_v4</i><dd> Kerberos v4, if found by the configuration
   script at compile time, can be enabled for plaintext password

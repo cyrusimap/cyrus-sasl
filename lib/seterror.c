@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * split from common.c by Rolf Braun
- * $Id: seterror.c,v 1.4 2002/06/14 14:36:15 rjs3 Exp $
+ * $Id: seterror.c,v 1.5 2002/06/14 15:40:59 rjs3 Exp $
  */
 
 /* 
@@ -209,7 +209,7 @@ void sasl_seterror(sasl_conn_t *conn,
 	    
 	    /* now add the character */
 	    result = _sasl_add_string(error_buf, error_buf_len,
-				(int *)&outlen, tempbuf);
+				      &outlen, tempbuf);
 	    if (result != SASL_OK)
 	      return;
 	    done=1;

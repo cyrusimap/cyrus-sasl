@@ -321,15 +321,32 @@ AC_ARG_ENABLE(krb4, [  --enable-krb4           enable KERBEROS_V4 authentication
 
 if test "$krb4" != no; then
   dnl In order to compile kerberos4, we need libkrb and libdes.
+
+  dnl if we were ambitious, we'd look more aggressively for the
+  dnl krb4 install
   if test -d ${krb4}; then
-     CPPFLAGS="$CPPFLAGS -I$krb4/include"
+     AC_CACHE_CHECK(for Kerberos includes, cyrus_krbinclude, [
+       for krbhloc in include/kerberosIV include
+       do
+         if test -f ${krb4}/${krbhloc}/krb.h ; then
+           cyrus_krbinclude=${krb4}/${krbhloc}
+           break
+         fi
+       done
+       ])
+
+     if test -n "${cyrus_krbinclude}"; then
+       CPPFLAGS="$CPPFLAGS -I${cyrus_krbinclude}"
+     fi
      LDFLAGS="$LDFLAGS -L$krb4/lib"
   fi
 
   if test "$des" != no; then
-    AC_CHECK_LIB(krb, krb_mk_priv,:,
-                 AC_WARN(No Kerberos V4 found); krb4=no,
-		 -ldes)
+    AC_CHECK_HEADER(krb.h,
+      AC_CHECK_LIB(krb, krb_mk_priv,:,
+                   AC_WARN(No Kerberos V4 found); krb4=no,
+		   -ldes),
+      AC_WARN(No Kerberos V4 found); krb4=no)
   fi
 fi
 

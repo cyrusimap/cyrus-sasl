@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.31 2002/07/24 17:25:36 rjs3 Exp $ -->
+<!-- $Id: sysadmin.html,v 1.32 2002/07/24 18:17:13 leg Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -114,8 +114,8 @@ flexible in this regard:
 <DL>
 <dt><i>auxprop</i><dd> checks passwords agains the <tt>userPassword</tt>
   attribute
-  supplied by an auxilliary property plugin.  For example, SASL ships
-  with a sasldb auxilliary property plugin, that can be used to 
+  supplied by an auxiliary property plugin.  For example, SASL ships
+  with a sasldb auxiliary property plugin, that can be used to 
   authenticate against the passwords stored in <tt>/etc/sasldb2</tt>.
   Since other mechanisms also use this method of checking their
   passwords, using this method will allow SASL to provide a uniform password
@@ -286,52 +286,7 @@ configuration file, <tt>/etc/imapd.conf</tt>, by prepending all SASL
 options with "<tt>sasl_</tt>": the SASL option "pwcheck_method" is set
 by changing "sasl_pwcheck_method" in <tt>/etc/imapd.conf</tt>.
 
-  
-<h4>Mysql auxprop options</h4><br>
-<br>
-  mysql_user: (username to login as)<br>
-  mysql_passwd: (password to use)<br>
-  mysql_hostnames: (comma separated host list)<br>
-  mysql_database: (database to connect to)<br>
-  mysql_statement: (select statement to use)<br>
-  mysql_verbose:  (if it exists will print select statement to syslog)<br>
-
 <p>
-   The select statement used in the option mysql_statement is parsed
- for 3 place holders %u %r and %p they are replaced with username
- realm and property required respectively.
-<p>
-<br>
-  e.g
-		<pre>
-    mysql_statement: select %p from user_table where username = '%u' and realm = '%r'
-	</pre>
-   would produce a statement like this :-
-<br>
-<pre>
-     select userPassword from user_table where username = 'simon' and realm = 'madoka.surf.org.uk'
-</pre>
-<br>
-<font color=red>DO NOT PUT "' quotes around the statement but do around the argumnets %r whatever</font>
-<br>
-<p>Presuming username is simon, the sasl application is trying to
- authenticate a realm is not used therefore is the name of the server.
-
-<p>
-   %u is the username the user logged in as<br>
-   %p is the property requested this could technically be anything
-     but sasl authentication will try userPassword and
-     cmusaslsecretMECHNAME (where MECHNAME is the name of a mechanism).
-<br>
-   %r is the realm which could be the kerbros realm, the FQDN of the 
-     computer the sasl app is on or what ever is after the @ on a username.
-		(read the realm documentation)
-<br>
-<br>
-<p>All substitutions do not have to be used this is the test
-   select that I used "select password from auth where username = '%u'"
-<br>
-
 Check your application's documentation for more information.
 
 <h2>Compiling and installing the library</h2>
@@ -394,9 +349,12 @@ sasldb is completely incompatible.
 <dt><b>Q:</b> I'm having performance problems on each authentication, there is
 a noticeable slowdown when sasl initilizes, what can I do?
 <dd>
-<p><b>A:</b>SASL reads from /dev/random as part of its initilization, you
-can define DEV_RANDOM to be /dev/urandom instead in config.h, which offers
-less secure random numbers but is less likely to block.
+<p><b>A:</b>SASL reads from /dev/random as part of its initilization,
+you can define DEV_RANDOM to be /dev/urandom instead in config.h,
+which offers less secure random numbers but is less likely to
+block. Except for the OTP and SRP mechanisms, the shipped mechanisms
+use random numbers only to generate nonces, so this is safe if you
+aren't using those mechanisms.
 
 <p>
 <dt><b>Q:</b> I've converted the sasldb database to the new format. 

@@ -1,3 +1,11 @@
+2000-03-11  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* utils/sasldblistusers.c: eliminate malloc/free.  mechnames are
+	always short.
+
+	* lib/checkpw.c (parseuser): default to serverFQDN if the user
+	didn't specify a realm
+	
 2000-03-11  Larry Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/cram.c (mechanism_db_filled): htonl/long again
@@ -8,9 +16,9 @@
 
 2000-03-09  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
-	* sample/sample-client.c: add unistd.h for getopt (BSD).
+	* sample/sample-client.c: add <unistd.h> for FreeBSD.
 
-	* utils/sasldblistusers.c (listusers): tested more with gdbm/ndbm
+	* utils/sasldblistusers.c (listusers): tested more with gdbm/ndbm.
 
 	* plugins/digestmd5.c (c_continue_step): extra step for end.
 	

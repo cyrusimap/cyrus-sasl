@@ -1,4 +1,4 @@
-$Id: README,v 1.22 2000/02/24 01:36:21 leg Exp $
+$Id: README,v 1.23 2000/03/11 22:49:54 leg Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication. See RFC 2222 for more
@@ -87,7 +87,7 @@ implementation of RC4.  This might be export controlled (which is why
 it's a seperate package); if you think you have an export license,
 know that don't need one, or aren't planning to export it, it's
 available under <http://andrew2.andrew.cmu.edu/dist/>.  SASL can also
-use the OpenSSL version of RC4
+use the OpenSSL version of RC4, available from <http://www.openssl.org/>.
 
 The library uses the environment variable SASL_PATH to locate the
 directory where the mechanisms are; this should be a colon-seperated
@@ -105,7 +105,7 @@ Currently configurable parameters:
 - srvtab (for KERBEROS_V4): [/etc/srvtab] path
 	where to find the srvtab
 
-- pwcheck_method: [PAM] one of {PAM, kerberos_v4, passwd, shadow, sasldb}
+- pwcheck_method: [sasldb] one of {PAM, kerberos_v4, passwd, shadow, sasldb}
 	how to check plaintext passwords.
 
 - auto_transition: [false]

@@ -1,6 +1,5 @@
 New in 1.5.17
 -------------
-
 * give application authentication name and realm more uniformly
 * sasldblistusers utility to list users in sasldb
 * memory leaks eliminated; boundary cases tested

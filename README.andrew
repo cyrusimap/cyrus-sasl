@@ -20,12 +20,10 @@ To release:
 - add user visible changes to NEWS
 
 - tag the CVS repository with sasl-Major_Minor_Revision
-
-- tarball (make dist check)
-- test on non-andrew machine
+- to make tarball: make distcheck
 
 - copy to /afs/andrew/system/archive/cmu/anonftp/pub/cyrus-mail
-- make .sig file (pgp -sb foo)
+- sign the distribution (pgp -sb foo.tar.gz)
 
 - update asg.web.cmu.edu
 - announce to:

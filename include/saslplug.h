@@ -186,7 +186,7 @@ typedef struct sasl_client_params {
     const char *service;	  /* service name */
     const char *pass;		  /* plaintext passphrase, if used */
     const char *serverFQDN;	  /* server fully qualified domain name */
-    const char *local_domain;	  /* client's local domain name */
+    const char *clientFQDN;	  /* client's local domain name */
     sasl_utils_t *utils;	  /* SASL API utility routines */
     sasl_mech_secret_t *secret;	  /* mech-specific decrypted secret */
 
@@ -324,8 +324,8 @@ typedef struct sasl_server_params {
     const char *service;	/* NULL = default service for user_exists
 				   and setpass */
     const char *appname;	/* name of calling application */
-    const char *local_domain;	/* local domain name */
-    const char *user_domain;	/* set of users who are active */
+    const char *serverFQDN;	/* local domain name */
+    const char *user_realm;	/* set of users who are active */
     sasl_utils_t *utils;	/* SASL API utility routines */
 
     /* application's security requirements */

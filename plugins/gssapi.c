@@ -82,6 +82,8 @@ typedef struct context {
     gss_name_t   server_name;
     gss_cred_id_t server_creds;
     sasl_ssf_t ssf; /* security layer type */
+    sasl_ssf_t limitssf, requiressf; /* application defined bounds, for the
+					server */
 
     sasl_malloc_t *malloc;	/* encode and decode need these */
     sasl_realloc_t *realloc;       
@@ -535,7 +537,6 @@ sasl_gss_server_step (void *conn_context,
       {
 	unsigned char sasldata[4];
 	gss_buffer_desc name_token;
-	int limitssf, requiressf;
 	
 	DEBUG((stderr,"sasl_gss_server_step: SSFCAP\n"));
 
@@ -562,24 +563,24 @@ sasl_gss_server_step (void *conn_context,
 	/* we have to decide what sort of encryption/integrity/etc.,
 	   we support */
 	if (params->props.max_ssf < params->external_ssf) {
-	    limitssf = 0;
+	    text->limitssf = 0;
 	} else {
-	    limitssf = params->props.max_ssf - params->external_ssf;
+	    text->limitssf = params->props.max_ssf - params->external_ssf;
 	}
 	if (params->props.min_ssf < params->external_ssf) {
-	    requiressf = 0;
+	    text->requiressf = 0;
 	} else {
-	    requiressf = params->props.min_ssf - params->external_ssf;
+	    text->requiressf = params->props.min_ssf - params->external_ssf;
 	}
 
 	sasldata[0] = 0;
-	if (requiressf == 0) {
+	if (text->requiressf == 0) {
 	    sasldata[0] |= 1; /* authentication */
 	}
-	if (requiressf <= 1 && limitssf >= 1) {
+	if (text->requiressf <= 1 && text->limitssf >= 1) {
 	    sasldata[0] |= 2;
 	}
-	if (requiressf <= 56 && limitssf >= 56) {
+	if (text->requiressf <= 56 && text->limitssf >= 56) {
 	    sasldata[0] |= 4;
 	}
 
@@ -642,27 +643,28 @@ sasl_gss_server_step (void *conn_context,
 	}
 	
 	text->ssf = (int)(((char *)(output_token->value))[0]);
-	if (text->ssf==1)  /* no encryption */
-	  {
-	    oparams->encode=NULL;
-	    oparams->decode=NULL;
-	    oparams->mech_ssf=0;
-	    text->ssf=1;
-	  } else if (text->ssf==2) { /* integrity */
+	if (text->ssf == 1 && text->requiressf == 0) { /* no encryption */
+	    oparams->encode = NULL;
+	    oparams->decode = NULL;
+	    oparams->mech_ssf = 0;
+	    text->ssf = 1;
+	} else if (text->ssf == 2 && text->requiressf <= 1 &&
+		   text->limitssf >= 1) { /* integrity */
 	    oparams->encode=&sasl_gss_integrity_encode;
 	    oparams->decode=&sasl_gss_decode;
 	    oparams->mech_ssf=1;
-	    text->ssf=2;
-	  } else if (text->ssf==4) { /* privacy */
-	    oparams->encode=&sasl_gss_privacy_encode;
-	    oparams->decode=&sasl_gss_decode;
-	    oparams->mech_ssf=56;
-	    text->ssf=4;
-	  } else {
+	    text->ssf = 2;
+	} else if (text->ssf == 4 && text->requiressf <= 56 &&
+		   text->limitssf >= 56) { /* privacy */
+	    oparams->encode = &sasl_gss_privacy_encode;
+	    oparams->decode = &sasl_gss_decode;
+	    oparams->mech_ssf = 56;
+	    text->ssf = 4;
+	} else {
 	    /* not a supported encryption layer */
 	    sasl_gss_free_context_contents(text);
 	    return SASL_FAIL;
-	  }
+	}
 	DEBUG ((stderr,"Got %d bytes from client\n",output_token->length));
 	if (output_token->length > 4) {
 	    char *user = (char *)params->utils->malloc(

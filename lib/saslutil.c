@@ -45,6 +45,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 #ifdef HAVE_GETTIMEOFDAY
 #include <sys/time.h>
@@ -370,7 +371,7 @@ void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
     /* init if necessary */
     randinit(rpool);
     
-#ifdef WIN32
+#if ((defined(WIN32)||defined(macintosh))
     for (lup=0;lup<len;lup++)
 	buf[lup] = (char) (rand() >> 8);
 #else /* WIN32 */

@@ -214,12 +214,12 @@ AC_ARG_ENABLE(digest, [  --enable-digest         enable DIGEST-MD5 authenticatio
 
 if test "$digest" != no; then
   dnl In order to compile digest, we need libdes.
-  if test -d ${digest}; then
+  if test -d $digest; then
     CPPFLAGS="$CPPFLAGS -I$digest/include"
     LDFLAGS="$LDFLAGS -L$digest/lib"
   fi
   AC_CHECK_LIB(des, des_pcbc_encrypt,:,
-	       AC_WARN(Disabling DIGEST-MD5); digest=no))
+	       AC_WARN(Disabling DIGEST-MD5); digest=no)
 fi
 
 AC_MSG_CHECKING(DIGEST-MD5)
@@ -362,6 +362,30 @@ AC_ARG_WITH(plugindir, [  --with-plugindir=DIR    set the directory where plugin
 AC_DEFINE_UNQUOTED(PLUGINDIR, "$plugindir")
 AC_SUBST(plugindir)
 
+AC_ARG_WITH(rc4, [  --with-rc4=DIR  use rc4 (look in DIR) [yes] ],
+	with_rc4=$withval,
+	with_rc4=yes)
+if test "$with_rc4" != no; then
+  if test -d $with_rc4; then
+    CPPFLAGS="$CPPFLAGS -I${with_rc4}/include"
+    LDFLAGS="$LDFLAGS -I${with_rc4}/lib"
+  fi
+  cmu_save_LIBS="$LIBS"
+  AC_CHECK_LIB(rc4, rc4_init,
+	  AC_CHECK_HEADER(rc4.h,,
+		          AC_WARN([Disabling rc4 support]); with_rc4=no),
+	       AC_WARN([Disabling rc4 support]); with_rc4=no)
+  LIBS="$cmu_save_LIBS"
+fi
+
+AC_MSG_CHECKING(rc4 support)
+AC_MSG_RESULT($with_rc4)
+LIB_RC4=""
+if test "$with_rc4" != no; then
+  LIB_RC4="-lrc4";
+fi
+AC_SUBST(LIB_RC4)
+
 AC_HEADER_DIRENT
 AC_HEADER_STDC
 AC_CHECK_FUNCS(strchr memcpy getspnam)
@@ -378,10 +402,6 @@ AC_SUBST(SASL_UTIL_LIBS_EXTRA)
 AC_SUBST(SASL_UTIL_HEADERS_EXTRA)
 
 AC_CHECK_FUNCS(getdomainname getpassphrase)
-
-if test -f plugins/rc4.c
-  AC_DEFINE(CMU_HAVE_RC4)
-fi
 
 AC_SUBST(DIRS)
 

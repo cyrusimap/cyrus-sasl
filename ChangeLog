@@ -1,6 +1,6 @@
 1999-03-30  Rob Earhart  <rob+@andrew.cmu.edu>
 
-	* configure.in: added digest des check
+	* configure.in: added digest des check, rc4 check
 
 	* plugins/digestmd5.c: diked out rc4 code
 

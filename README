@@ -11,6 +11,10 @@ SCRAM-MD5 (deprecated)
 GSSAPI (MIT Kerberos 5 or Heimdal Kerberos 5)
 DIGEST-MD5 (beta)
 
+In order to get rc4 encryption under digest-md5, you'll need to grab
+rc4.c from our web site, toss it into the plugins directory, and run
+configure.  
+
 The library uses the enviornment variable SASL_PATH to locate the
 directory where the mechanisms are; this should be a colon-seperated
 list of directories containing plugins.

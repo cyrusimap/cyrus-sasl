@@ -33,6 +33,9 @@ SOFTWARE.
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#ifdef WITH_RC4
+#include <rc4.h>
+#endif /* WITH_RC4 */
 
 #ifdef WIN32
 # include <winsock.h>
@@ -162,10 +165,9 @@ typedef struct context {
   des_key_schedule keysched_enc2;   /* key schedule for 3des initialization */
   des_key_schedule keysched_dec2;   /* key schedule for 3des initialization */
 
-  unsigned char *sbox; /* for rc4 */
-  int i;
-  int j;
-
+#ifdef WITH_RC4
+  rc4_context_t rc4_context;
+#endif /* WITH_RC4 */
 }               context_t;
 
 #define IN
@@ -191,12 +193,7 @@ static int      htoi(unsigned char *hexin, int *res);
 #define DIGESTMD5_VERSION (3)
 #define KEYS_FILE NULL
 
-#ifdef CMU_HAVE_RC4
-#include "rc4.c"
-#endif /* CMU_HAVE_RC4 */
-
 static unsigned char *COLON = (unsigned char *) ":";
-
 
 void
 CvtHex(
@@ -1063,6 +1060,44 @@ static int init_des(context_t *text, char *key, int keylen)
   return SASL_OK;
 }
 
+#ifdef WITH_RC4
+static int
+init_rc4(context_t *text,
+	 char *key,
+	 int keylen)
+{
+  rc4_init(&text->rc4_context, key, keylen);
+  return SASL_OK;
+}
+
+static int
+dec_rc4(context_t *text,
+	const char *input,
+	unsigned inputlen,
+	char **output,
+	unsigned *outputlen)
+{
+  *output = (char *) text->malloc(len);
+  if (*output == NULL) return SASL_NOMEM;
+  *outputlen = inputlen;
+  rc4_decrypt(&text->rc4_context, input, *output, inputlen);
+  return SASL_OK;
+}
+
+static int
+enc_rc4(context_t *text,
+	const char *input,
+	unsigned inputlen,
+	char **output,
+	unsigned *outputlen)
+{
+  *outputlen = inputlen;
+  rc4_encrypt(&text->rc4_context, input, *output, inputlen);
+  return SASL_OK;
+}
+
+#endif /* WITH_RC4 */
+
 static unsigned int version = 1;
 
 static int
@@ -1573,7 +1608,7 @@ server_continue_step(void *conn_context,
     char           *realm;
     unsigned char  *nonce;
     char           *qop = "auth,auth-int,auth-conf";
-#ifdef CMU_HAVE_RC4
+#ifdef WITH_RC4
     char           *cipheropts="3des,des,rc4";
 #else
     char           *cipheropts="3des,des";
@@ -1856,13 +1891,13 @@ server_continue_step(void *conn_context,
 	text->cipher_dec=(cipher_function_t *) &dec_3des;
 	text->cipher_init=(cipher_init_t *) &init_3des;
 	oparams->mech_ssf = 112;
-#ifdef CMU_HAVE_RC4
+#ifdef WITH_RC4
       } else if (strcmp(cipher,"rc4")==0) {
 	text->cipher_enc=(cipher_function_t *) &enc_rc4;
 	text->cipher_dec=(cipher_function_t *) &dec_rc4;
 	text->cipher_init=(cipher_init_t *) &init_rc4;
 	oparams->mech_ssf = 64;
-#endif /* CMU_HAVE_RC4 */
+#endif /* WITH_RC4 */
       } else {
 	VL(("Invalid or no cipher chosen\n"));
 	result = SASL_FAIL;
@@ -2777,11 +2812,11 @@ c_continue_step(void *conn_context,
 	    VL(("Server supports 3DES\n"));
 	    ciphers |= CIPHER_3DES;
 
-#ifdef CMU_HAVE_RC4
+#ifdef WITH_RC4
 	  } else if (strcmp(prev_xxx, "rc4") == 0) {
 	    VL(("Server supports rc-4\n"));
 	    ciphers |= CIPHER_RC4;
-#endif /* CMU_HAVE_RC4 */
+#endif /* WITH_RC4 */
 	  } else {
 
 	    VL(("Not understood layer: %s\n",prev_xxx));
@@ -2884,7 +2919,7 @@ c_continue_step(void *conn_context,
 	text->cipher_dec=(cipher_function_t *) &dec_3des;
 	text->cipher_init=(cipher_init_t *) &init_3des;
 	oparams->mech_ssf = 112; 
-#ifdef CMU_HAVE_RC4
+#ifdef WITH_RC4
       } else if ((secprops.max_ssf>=64)  && ((ciphers & CIPHER_RC4) == CIPHER_RC4)) { /* rc4 */
 	VL(("Trying to use rc4"));
 	cipher = "rc4";
@@ -2892,7 +2927,7 @@ c_continue_step(void *conn_context,
 	text->cipher_dec=(cipher_function_t *) &dec_rc4;
 	text->cipher_init=(cipher_init_t *) &init_rc4;
 	oparams->mech_ssf = 64;
-#endif /* CMU_HAVE_RC4 */
+#endif /* WITH_RC4 */
       } else if ((secprops.max_ssf>=56)  && ((ciphers & CIPHER_DES) == CIPHER_DES)) { /* des */
 	VL(("Trying to use des"));
 	cipher = "des";

@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.72 2002/01/09 22:04:02 rjs3 Exp $
+ * $Id: common.c,v 1.73 2002/01/09 23:40:33 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1573,6 +1573,125 @@ int _sasl_ipfromstring(const char *addr,
     return SASL_OK;
 }
 
+static unsigned mech_names_len(sasl_string_list_t *mechlist, int extra)
+{
+  sasl_string_list_t *listptr;
+  unsigned result = 0;
+
+  for (listptr = mechlist;
+       listptr;
+       listptr = listptr->next)
+    result += strlen(listptr->d) + extra;
+
+  return result;
+}
+
+/* FIXME: This leaks its result.  It sucks, but shouldn't need to be called
+ * often. */
+static int _sasl_listmech_both(const char *prefix, const char *sep,
+			       const char *suffix, const char **result,
+			       unsigned *plen, unsigned *pcount) 
+{
+    char *glob_mechlist_buf = NULL;
+    unsigned glob_mechlist_buf_len = 0;
+    const char *mysep;
+    int flag;
+
+    sasl_string_list_t *clist, *slist, *olist = NULL;
+    sasl_string_list_t *p, *q, **last, *p_next;
+    size_t resultlen;
+    int ret;
+
+    clist = _sasl_client_mechs();
+    slist = _sasl_server_mechs();
+
+    if(!clist) {
+	olist = slist;
+    } else {
+	int flag;
+	
+	/* append slist to clist, and set olist to clist */
+	for(p = slist; p; p = p_next) {
+	    flag = 0;
+	    p_next = p->next;
+
+	    last = &clist;
+	    for(q = clist; q; q = q->next) {
+		if(!strcmp(q->d, p->d)) {
+		    /* They match, set the flag */
+		    flag = 1;
+		    break;
+		}
+		last = &(q->next);
+	    }
+
+	    if(!flag) {
+		(*last)->next = p;
+		p->next = NULL;
+	    } else {
+		sasl_FREE(p);
+	    }
+	}
+
+	olist = clist;
+    }
+
+    if(!olist) {
+	return SASL_NOMECH;
+    }
+    
+    if (sep) {
+	mysep = sep;
+    } else {
+	mysep = " ";
+    }
+
+    resultlen = (prefix ? strlen(prefix) : 0)
+	+ mech_names_len(olist, strlen(mysep))
+	+ (suffix ? strlen(suffix) : 0)
+	+ 1;
+    ret = _buf_alloc(&glob_mechlist_buf,
+		     &glob_mechlist_buf_len, resultlen);
+    if(ret != SASL_OK) return ret;
+
+    if(pcount != NULL) *pcount = 0;
+
+    if (prefix)
+	strcpy (glob_mechlist_buf,prefix);
+    else
+	*(glob_mechlist_buf) = '\0';
+
+    flag = 0;
+    /* make list */
+    for (p = olist; p; p = p_next) {
+	p_next = p->next;
+
+	if (pcount != NULL)
+	    (*pcount)++;
+	
+	/* print seperator */
+	if (flag) {
+	    strcat(glob_mechlist_buf, mysep);
+	} else {
+	    flag = 1;
+	}
+
+	/* now print the mechanism name */
+	strcat(glob_mechlist_buf, p->d);
+    	sasl_FREE(p);
+    }
+
+    if (suffix)
+      strcat(glob_mechlist_buf,suffix);
+
+    if (plen!=NULL)
+	*plen=strlen(glob_mechlist_buf);
+    
+    *result = glob_mechlist_buf;    
+
+    return SASL_OK;
+}
+
 int sasl_listmech(sasl_conn_t *conn,
 		  const char *user,
 		  const char *prefix,
@@ -1583,7 +1702,8 @@ int sasl_listmech(sasl_conn_t *conn,
 		  int *pcount)
 {
     if(!conn) {
-	PARAMERROR(conn);
+	RETURN(conn, _sasl_listmech_both(prefix, sep, suffix,
+					 result, plen, pcount));
     } else if(conn->type == SASL_CONN_SERVER) {
 	RETURN(conn, _sasl_server_listmech(conn, user, prefix, sep, suffix,
 					   result, plen, pcount));

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.93 2002/01/09 22:04:03 rjs3 Exp $
+ * $Id: server.c,v 1.94 2002/01/09 23:40:33 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1310,24 +1310,7 @@ static unsigned mech_names_len()
 }
 
 /* This returns a list of mechanisms in a NUL-terminated string
- *  user          -- restricts mechanisms to those available to that user
- *                   (may be NULL)
- *  prefix        -- appended to beginning of result
- *  sep           -- appended between mechanisms
- *  suffix        -- appended to end of result
- * results:
- *  result        -- NUL terminated allocated result, only good until
- *                   next call to sasl_listmech
- *  plen          -- gets length of result (excluding NUL), may be NULL
- *  pcount        -- gets number of mechanisms, may be NULL
  *
- * returns:
- *  SASL_OK        -- success
- *  SASL_NOMEM     -- not enough memory
- *  SASL_NOMECH    -- no enabled mechanisms
- */
-
-/*
  * The default behavior is to seperate with spaces if sep==NULL
  */
 int _sasl_server_listmech(sasl_conn_t *conn,
@@ -1416,6 +1399,40 @@ int _sasl_server_listmech(sasl_conn_t *conn,
 
   return SASL_OK;
   
+}
+
+sasl_string_list_t *_sasl_server_mechs(void) 
+{
+  mechanism_t *listptr;
+  sasl_string_list_t *retval = NULL, *next=NULL;
+
+  if(!_sasl_server_active) return NULL;
+
+  /* make list */
+  for (listptr = mechlist->mech_list; listptr; listptr = listptr->next) {
+      next = sasl_ALLOC(sizeof(sasl_string_list_t));
+
+      if(!next && !retval) return NULL;
+      else if(!next) {
+	  next = retval->next;
+	  do {
+	      sasl_FREE(retval);
+	      retval = next;
+	      next = retval->next;
+	  } while(next);
+	  return NULL;
+      }
+      
+      next->d = listptr->plug->mech_name;
+
+      if(!retval) retval = next;
+      else {
+	  next->next = retval;
+	  retval = next;
+      }
+  }
+
+  return retval;
 }
 
 #define EOSTR(s,n) (((s)[n] == '\0') || ((s)[n] == ' ') || ((s)[n] == '\t'))

@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.37 2002/01/09 22:04:02 rjs3 Exp $
+ * $Id: saslint.h,v 1.38 2002/01/09 23:40:33 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -103,6 +103,12 @@ typedef struct _sasl_external_properties
     sasl_ssf_t ssf;
     char *auth_id;
 } _sasl_external_properties_t;
+
+typedef struct sasl_string_list
+{
+    const char *d;
+    struct sasl_string_list *next;
+} sasl_string_list_t;
 
 typedef struct buffer_info
 { 
@@ -426,6 +432,9 @@ int _sasl_client_listmech(sasl_conn_t *conn,
 			  const char **result,
 			  unsigned *plen,
 			  int *pcount);
+/* Just create a straight list of them */
+sasl_string_list_t *_sasl_client_mechs(void);
+sasl_string_list_t *_sasl_server_mechs(void);
 
 /*
  * config file declarations (config.c)

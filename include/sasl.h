@@ -891,13 +891,13 @@ LIBSASL_API int sasl_server_new(const char *service,
  *                   should list all available plugins, unconstrained by
  *                   any requirements.
  *  user          -- restricts mechanisms to those available to that user
- *                   (may be NULL)
+ *                   (may be NULL, not used for client or 'all' case)
  *  prefix        -- appended to beginning of result
  *  sep           -- appended between mechanisms
  *  suffix        -- appended to end of result
  * results:
  *  result        -- NUL terminated result which persists until next
- *                   call to sasl_listmech
+ *                   call to sasl_listmech for this sasl_conn_t
  *  plen          -- gets length of result (excluding NUL), may be NULL
  *  pcount        -- gets number of mechanisms, may be NULL
  *

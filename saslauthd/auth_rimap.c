@@ -53,7 +53,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_rimap.c,v 1.1 2000/10/01 20:42:53 esys Exp $"
+#ident "$Id: auth_rimap.c,v 1.2 2000/10/01 22:23:09 esys Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -268,6 +268,10 @@ auth_rimap_init (
      * delay authentication requests while we hang around trying
      * to do a connect that cannot succeed.)
      */
+
+#ifndef INADDR_NONE
+# define INADDR_NONE -1
+#endif /* ! INADDR_NONE */
 
     if ((raddr.s_addr = inet_addr(r_host)) != INADDR_NONE) {
 	/* It converted. Treat it as a dotted quad. */

@@ -1243,9 +1243,20 @@ sasl_gss_client_step (void *conn_context,
 	    return SASL_BADPARAM;
 	}
 
-	/* need bits of layer */
-	allowed = secprops.max_ssf - external;
-	need = secprops.min_ssf - external;
+	/* need bits of layer -- sasl_ssf_t is unsigned so be careful */
+	if (secprops.max_ssf >= external) {
+	    allowed = secprops.max_ssf - external;
+	} else {
+	    allowed = 0;
+	}
+	if (secprops.min_ssf >= external) {
+	    need = secprops.min_ssf - external;
+	} else {
+	    /* good to go */
+	    need = 0;
+	}
+
+	/* bit mask of server support */
 	serverhas = ((char *)output_token->value)[0];
 
 	/* if client didn't set use strongest layer available */

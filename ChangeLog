@@ -1,3 +1,7 @@
+2001-12-12  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* pwcheck/Makefile.am: Added include of ../lib
+	  (from Hajimu UMEMOTO <ume@mahoroba.org>)
+
 2001-12-11  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* sasldb/db_ndbm.c: fix call to dbm_nextkey, from
 	  Scot W. Hetzel <scot@genroco.com>

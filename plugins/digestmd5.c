@@ -3283,7 +3283,7 @@ c_continue_step(void *conn_context,
     char           *qop = NULL;
     char           *qop_list = NULL;
     int             protection = 0;
-    char           *cipher = NULL;
+    char           *usecipher = NULL;
     int             ciphers=0;
     unsigned int    n = 0;
     char           *response = NULL;
@@ -3576,6 +3576,7 @@ c_continue_step(void *conn_context,
 
 	    qop = "auth-conf";
 	    n = bestcipher->n;
+	    usecipher = bestcipher->name;
 	    text->cipher_enc = bestcipher->cipher_enc;
 	    text->cipher_dec = bestcipher->cipher_dec;
 	    text->cipher_init = bestcipher->cipher_init;
@@ -3699,9 +3700,9 @@ c_continue_step(void *conn_context,
       result = SASL_FAIL;
       goto FreeAllocatedMem;
     }
-    if (cipher!=NULL)
+    if (usecipher!=NULL)
       if (add_to_challenge(params->utils, &client_response, "cipher", 
-			   (unsigned char *) cipher, TRUE) != SASL_OK) {
+			   (unsigned char *) usecipher, TRUE) != SASL_OK) {
 	result = SASL_FAIL;
 	goto FreeAllocatedMem;
       }

@@ -309,7 +309,7 @@ int listusers(const char *path, listcb_t *cb)
 
 #else 
 
-int listusers(listcb_t *cb)
+int listusers(const char *path, listcb_t *cb)
 {
     fprintf(stderr,"Unsupported DB format");
     exit(1);

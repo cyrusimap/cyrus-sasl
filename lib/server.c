@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.54 1999/10/10 17:38:45 leg Exp $
+ * $Id: server.c,v 1.55 1999/11/10 21:52:36 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -1131,7 +1131,8 @@ int sasl_checkpass(sasl_conn_t *conn,
     }
 
     result = _sasl_checkpass(conn, mech, conn->service, user, pass);
-    *errstr = NULL;
+    if ( errstr !=NULL)
+      *errstr = NULL;
 
     if (result == SASL_OK) {
 	result = _sasl_strdup(user, &(conn->oparams.authid), NULL);

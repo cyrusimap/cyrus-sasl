@@ -23,6 +23,15 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
+#ifdef SASL_NDBM
+#define DB_EXISTS
+#endif
+#ifdef SASL_GDBM
+#define DB_EXISTS
+#endif
+
+#ifdef DB_EXISTS
+
 #include <config.h>
 
 #ifdef SASL_NDBM
@@ -209,3 +218,14 @@ int main(int argc, char **argv)
 
     return dbm_convert(argv[a], argv[a+1]);
 }
+
+
+#else
+
+int main()
+{
+    printf("Must have gdbm or ndbm for the program\n");
+    exit(1);
+}
+
+#endif

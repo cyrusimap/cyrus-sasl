@@ -1,3 +1,23 @@
+1999-11-10  Timothy L Martin  <tmartin@andrew.cmu.edu>
+
+	* lib/checkpw.c (parseuser): Added patches from Claus
+
+1999-11-06  Timothy L Martin  <tmartin@andrew.cmu.edu>
+
+	* configure.in (SASL_DB_LIB): added support for berkeley db. Hopefully this doesn't fuck anything up
+
+	* utils/saslpasswd.c (main): eliminated stupid printf's
+
+	* lib/checkpw.c (_sasl_sasldb_set_pass): fixed silly larry error
+
+	* lib/server.c (sasl_checkpass): failing if passed in null
+
+	* lib/checkpw.c (_sasl_sasldb_set_pass): if getting secret failed was faulting
+
+1999-11-02  Timothy L Martin  <tmartin+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c: bug fixes from chris. mostly minor silly stuff
+
 Thu Oct 28 13:58:43 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* configure.in: applied patch from Joe Hohertz

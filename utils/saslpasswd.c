@@ -244,7 +244,6 @@ main(int argc, char *argv[])
     }
   }
 
-  printf("setting pass\n");
   result = sasl_setpass(conn,
 			userid,
 			password,
@@ -252,7 +251,6 @@ main(int argc, char *argv[])
 			(flag_create ? SASL_SET_CREATE : 0)
 			| (flag_disable ? SASL_SET_DISABLE : 0),
 			&errstr);
-  printf("set pass\n");
 
   if (result != SASL_OK)
     exit_sasl(result, errstr);

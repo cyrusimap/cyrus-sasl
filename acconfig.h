@@ -42,6 +42,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 /* what db package are we using? */
 #undef SASL_GDBM
 #undef SASL_NDBM
+#undef SASL_BERKELEYDB
 
 /* This is where plugins will live at runtime */
 #undef PLUGINDIR

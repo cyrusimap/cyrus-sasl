@@ -54,7 +54,6 @@ Cram-MD5
 
 Database stuff
 ~~~~~~~~~~~~~~
-) Berkeley DB?
 ) Flat text file?
 ) transactions?
 ) version the database?

@@ -46,6 +46,7 @@ SOFTWARE.
 #endif
 
 #include <sys/types.h>
+#include <sys/un.h>
 #include <ctype.h>
 
 #ifndef SASL_MINIMAL_SERVER
@@ -724,6 +725,8 @@ static int retry_writev(int fd, struct iovec *iov, int iovcnt)
     }
 }
 
+
+
 /* pwcheck daemon-authenticated login */
 int _sasl_pwcheck_verify_password(sasl_conn_t *conn,
 				  const char *userid, const char *passwd,
@@ -734,14 +737,15 @@ int _sasl_pwcheck_verify_password(sasl_conn_t *conn,
     int r;
     struct iovec iov[10];
     static char response[1024];
-    int start, n;
-    char *pwpath[1024];
+    unsigned int start;
+    int n;
+    char pwpath[1024];
     sasl_getopt_t *getopt;
     void *context;
 
     if (reply) { *reply = NULL; }
 
-    strcpy(pwpath, PWCHECKDIR);
+    strcpy(pwpath, "PWCHECKDIR");
     strcat(pwpath, "/pwcheck");
 
     s = socket(AF_UNIX, SOCK_STREAM, 0);

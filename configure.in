@@ -120,9 +120,15 @@ AC_ARG_WITH(dblib, [  --with-dblib=DBLIB      set the DB library to use [ndbm] ]
   dblib=auto_detect)
 SASL_DB_LIB=""
 case "$dblib" in
+
+  berkeley)
+	AC_CHECK_HEADER(db.h,
+			AC_CHECK_LIB(db, db_open,SASL_DB_LIB="-ldb"; dblib="berkeley",dblib="no"),
+			dblib="no")	
+	;;
   gdbm)
 	AC_CHECK_HEADER(gdbm.h,
-			AC_CHECK_LIB(gdbm, gdbm_open,SASL_DB_LIB="-lgdbm",dblib=no),
+			AC_CHECK_LIB(gdbm, gdbm_open,SASL_DB_LIB="-lgdbm",dblib="no"),
 			dblib="no")
 	;;
   ndbm)
@@ -134,23 +140,31 @@ case "$dblib" in
 				dblib="no")
 	;;
   auto_detect)
-	dnl How about ndbm?
-	AC_CHECK_HEADER(ndbm.h, 
-			AC_CHECK_LIB(ndbm, dbm_open,
-				     dblib="ndbm"; SASL_DB_LIB="-lndbm",
-			   	     dblib="weird"),
+	dnl How about berkeley db?
+	AC_CHECK_HEADER(db.h,
+			AC_CHECK_LIB(db, db_open,SASL_DB_LIB="-ldb"; dblib="berkeley",dblib="no"),
 			dblib="no")
-	if test "$dblib" = "weird"; then
-		dnl Is ndbm in the standard library?
-		AC_CHECK_FUNC(dbm_open, dblib="ndbm", dblib="no")
-	fi
+
+
 	if test "$dblib" = no; then
-		dnl Can we use gdbm?
-		AC_CHECK_HEADER(gdbm.h,
-				AC_CHECK_LIB(gdbm, gdbm_open, dblib="gdbm";
-					     SASL_DB_LIB="-lgdbm", dblib="no"),
+		dnl How about ndbm?
+		AC_CHECK_HEADER(ndbm.h, 
+				AC_CHECK_LIB(ndbm, dbm_open,
+					     dblib="ndbm"; SASL_DB_LIB="-lndbm",
+				   	     dblib="weird"),
 				dblib="no")
+		if test "$dblib" = "weird"; then
+			dnl Is ndbm in the standard library?
+			AC_CHECK_FUNC(dbm_open, dblib="ndbm", dblib="no")
 		fi
+		if test "$dblib" = no; then
+			dnl Can we use gdbm?
+			AC_CHECK_HEADER(gdbm.h,
+					AC_CHECK_LIB(gdbm, gdbm_open, dblib="gdbm";
+						     SASL_DB_LIB="-lgdbm", dblib="no"),
+					dblib="no")
+		fi
+	fi
 	;;
   *)
 	AC_MSG_WARN([Bad DB library implementation specified;])
@@ -159,8 +173,12 @@ case "$dblib" in
 	;;
 esac
 LIBS="$cmu_save_LIBS"
+
 AC_MSG_CHECKING(DB library to use)
 AC_MSG_RESULT($dblib)
+
+
+
 case "$dblib" in
   gdbm) 
     SASL_DB_BACKEND="db_${dblib}.lo"
@@ -169,6 +187,11 @@ case "$dblib" in
   ndbm)
     SASL_DB_BACKEND="db_${dblib}.lo"
     AC_DEFINE(SASL_NDBM)
+    ;;
+  berkeley)
+    SASL_DB_BACKEND="db_${dblib}.lo"
+    AC_DEFINE(SASL_BERKELEYDB)
+    SASL_DB_LIB="-ldb"
     ;;
   *)
     AC_MSG_WARN([Disabling SASL authentication database support])

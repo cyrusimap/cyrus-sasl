@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Upgrading from Cyrus SASLv1 to Cyrus SASLv2</title>
-<!-- $Id: upgrading.html,v 1.9 2002/07/24 18:16:26 leg Exp $ -->
+<!-- $Id: upgrading.html,v 1.10 2002/07/24 19:12:38 ken3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Upgrading from Cyrus SASLv1 to Cyrus SASLv2</H1>
@@ -29,7 +29,8 @@ with Cyrus SASL v2:
       set to <tt>sasldb</tt></li>
       </ol>
 
-<li> If you used <tt>passwd</tt> or <tt>shadow</tt> as your
+<li> If you used <tt>passwd</tt>, <tt>shadow</tt>, <tt>pam</tt>,
+<tt>kerberos_v4</tt> or <tt>sia</tt> as your 
 <tt>pwcheck_method</tt> in libsasl v1, you'll need to convert to using
 <tt>saslauthd</tt>. Configure libsasl v2 with
 <tt>--with-saslauthd</tt> and arrange to start <tt>saslauthd</tt> on

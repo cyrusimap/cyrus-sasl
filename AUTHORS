@@ -1,0 +1,11 @@
+Tim Martin <tmartin@andrew.cmu.edu> wrote, debugged, and tested
+most of the code.
+
+Rob Earhart <earhart@cmu.edu> wrote the build/installation procedure,
+wrote and tested some of the code, and provided general guidance and
+coding advice.
+
+Leif Johansson <leifj@matematik.su.se> wrote the GSSAPI plugin.
+
+Chris Newman <chris.newman@innosoft.com> wrote the initial version of
+the SASL API documented in sasl.h, saslutil.h, and saslplug.h.

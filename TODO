@@ -1,0 +1,16 @@
+) set username after authenticate
+
+) PASSDSS-3DES-1 (draft-newman-sasl-passdss-01.txt)
+
+) Consider IRIX ABI issues for plugins
+	- /usr/lib32/sasl?
+	- /usr/lib/sasl/{ABI}?
+
+) Standardize the plugin ABI
+
+) test for dlclose being broken in configure
+
+) Digest-MD5 (draft-leach-digest-sasl-00.txt)
+
+) Make libjavasasl link against libsasl dynamically, instead of
+  pulling in its objects at link time.

@@ -1,0 +1,13 @@
+New in 1.2b1
+----------------------------------------
+* Lots of bug fixes
+* GSSAPI
+* Cleaner getopt interface
+* Cleaner plugin callback lookup interface
+* Global inits now take callback list, not just a sasl_getopt_t
+* Preliminary Java support
+* Authentication database hook
+* Default AuthDB routines moved from mechanisms to library
+* Logging hook
+* Default syslog-based logging hook in library
+* Plaintext transition to CRAM/SCRAM

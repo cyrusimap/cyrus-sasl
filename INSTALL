@@ -1,0 +1,27 @@
+To install, run "./configure", then "make".
+
+Note that the library looks for plugins in /usr/lib/sasl, but installs
+them into ${prefix}/lib/sasl, where ${prefix} is usually something
+like /usr/local.  This is intentional - we want the plugins installed
+with the rest of the package (wherever things get installed at your
+site), but we want the library to *always* be able to find its plugins
+under /usr/lib/sasl, no matter where you install things, so that the
+SASL plugin ABI on all platforms is roughly the same.
+
+You'll probably need the GNU make program, available as of this
+writing at <url:ftp://ftp.gnu.org/pub/gnu/make-3.77.tar.gz>.
+
+libsasl can use gdbm or ndbm to implement its user/password lookup.
+Most systems come with ndbm these days; as of this writing, gdbm's
+available as <url:ftp://ftp.gnu.org/pub/gnu/gdbm-1.7.3.tar.gz>.
+
+For Kerberos support, you'll need the kerberos libraries.  At CMU, the
+version we use comes from <url:http://www.pdc.kth.se/kth-krb/>.
+
+For GSSAPI support you will need either MIT Kerberos 5 or the Heimdal
+implementation <url:http://www.pdc.kth.se/heimdal>.
+
+This has been tested under IRIX 6.2, Linux 2.0, and Solaris 2.5.1.
+It should work under any platform where dynamic objects can be linked
+against other dynamic objects, and where the dynamic library file
+extension is ".so".

@@ -1,0 +1,316 @@
+dnl configure.in for the SASL library
+dnl Rob Earhart
+dnl $Id: configure.in,v 1.1 1998/11/16 20:06:36 rob Exp $
+dnl
+dnl
+dnl         Copyright 1998 by Carnegie Mellon University
+dnl
+dnl                       All Rights Reserved
+dnl
+dnl Permission to use, copy, modify, and distribute this software and its
+dnl documentation for any purpose and without fee is hereby granted,
+dnl provided that the above copyright notice appear in all copies and that
+dnl both that copyright notice and this permission notice appear in
+dnl supporting documentation, and that the name of CMU not be
+dnl used in advertising or publicity pertaining to distribution of the
+dnl software without specific, written prior permission.
+dnl
+dnl CMU DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
+dnl ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
+dnl CMU BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
+dnl ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+dnl WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+dnl ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+dnl SOFTWARE.
+dnl
+AC_REVISION($Id: configure.in,v 1.1 1998/11/16 20:06:36 rob Exp $)
+AC_INIT(lib/saslint.h)
+AC_CONFIG_AUX_DIR(config)
+AM_CONFIG_HEADER(config.h)
+
+AC_CANONICAL_HOST
+AM_INIT_AUTOMAKE(cyrus-sasl, v1.1b)
+
+dnl With and Enable
+AC_ARG_WITH(nana, [  --with-nana             use NANA [yes]],,with_nana=yes)
+
+AC_ARG_ENABLE(java, [  --enable-java           compile Java support [yes]],,enable_java=yes)
+
+AC_PROG_CC
+AC_PROG_CPP
+AC_PROG_INSTALL
+
+if test "$enable_java" = yes; then
+  AC_PATH_PROG(JAVAC, javac, no)
+  AC_CHECK_PROGS(JAVAH, javah, no)
+  AC_CHECK_PROGS(JAVADOC, javadoc, :)
+  if test "$JAVAC" = "no" -o "$JAVAH" = "no"; then
+    AC_WARN([Disabling Java support])
+    enable_java=no
+  fi
+fi
+
+AM_DISABLE_STATIC
+
+dnl Libtool tries to compile an empty file to see whether it can build
+dnl shared libraries, and treats *any* warning as a problem.
+dnl Solaris's cc complains about the empty file.  So we hack the CFLAGS
+dnl to make cc not complain.
+
+if test "$ac_cv_prog_gcc" = no; then
+  case "$host_os" in
+    solaris2*)
+      save_cflags="${CFLAGS}"
+      CFLAGS="-erroff=E_EMPTY_TRANSLATION_UNIT ${CFLAGS}"
+      ;;
+  esac
+fi
+
+AM_PROG_LIBTOOL
+
+if test "$ac_cv_prog_gcc" = no; then
+  case "$host_os" in
+    solaris2*)
+      CFLAGS="${save_cflags}"
+  esac
+fi
+
+if test "$ac_cv_prog_gcc" = yes; then
+  CFLAGS="-pedantic -ansi -fbuiltin -Wall -W ${CFLAGS}"
+fi
+
+AC_ARG_WITH(purecov,[  --with-purecov          link with purecov])
+if test "$with_purecov" = yes; then
+  AC_CHECK_PROGS(PURECOV, purecov)
+fi
+AC_ARG_WITH(purify,[  --with-purify           link with purify])
+if test "$with_purify" = yes; then
+  AC_CHECK_PROGS(PURIFY, purify)
+fi
+
+if test "$with_nana" = yes -a "$ac_cv_prog_gcc" = yes; then
+  AC_CHECK_LIB(nana, nana_error)
+fi
+
+if test "$enable_java" = yes; then
+  AC_MSG_CHECKING([for Java include files])
+  base=`echo "$JAVAC" | sed 's,/bin.*,/lib/java/include,'`
+  JAVA_INCLUDES=''
+  for dir in `find $base -follow -type d -print | grep -v green_threads`; do
+    JAVA_INCLUDES="${JAVA_INCLUDES} -I$dir"
+  done
+  AC_SUBST(JAVA_INCLUDES)
+  AC_MSG_RESULT($JAVA_INCLUDES)
+  JAVAC=`echo "$JAVAC" | sed 's,.*/,,'`
+  DIRS="sasl"
+  AC_SUBST(DIRS)
+fi
+
+
+dnl Figure out what database path we're using
+AC_ARG_WITH(dbpath, [  --with-dbpath=PATH      set the DB path to use [/etc/sasldb] ],
+  dbpath=$withval,
+  dbpath=/etc/sasldb)
+AC_MSG_CHECKING(DB path to use)
+AC_MSG_RESULT($dbpath)
+AC_DEFINE_UNQUOTED(SASL_DB_PATH, "$dbpath")
+
+dnl Figure out what database type we're using
+AC_ARG_WITH(dblib, [  --with-dblib=DBLIB      set the DB library to use [gdbm] ],
+  dblib=$withval,
+  dblib=auto_detect)
+case "$dblib" in
+  gdbm)
+	AC_CHECK_HEADER(gdbm.h,
+			AC_CHECK_LIB(gdbm, gdbm_open,,dblib=no),
+			dblib=no)
+	;;
+  ndbm)
+	dnl We want to attempt to use -lndbm if we can, just in case
+	dnl there's some version of it installed and overriding libc
+	AC_CHECK_HEADER(ndbm.h,
+			AC_CHECK_LIB(ndbm, dbm_open,,
+				AC_CHECK_FUNC(dbm_open,,dblib=no)),
+			dblib=no)
+	;;
+  auto_detect)
+	dnl Can we use gdbm?
+	AC_CHECK_HEADER(gdbm.h,
+			AC_CHECK_LIB(gdbm, gdbm_open,dblib=gdbm,dblib=no),
+			dblib=no)
+	if test "$dblib" = no; then
+		dnl How about ndbm?
+		AC_CHECK_HEADER(ndbm.h,
+				AC_CHECK_LIB(ndbm, dbm_open,
+					     dblib=ndbm,
+					AC_CHECK_FUNC(dbm_open,
+						      dblib=ndbm, dblib=no)),
+				dblib=no)
+	fi
+	;;
+  *)
+	AC_MSG_WARN([Bad DB library implementation specified;])
+	AC_MSG_WARN([Use either "gdbm" or "ndbm"])
+	dblib=no
+	;;
+esac
+AC_MSG_CHECKING(DB library to use)
+AC_MSG_RESULT($dblib)
+if test "$dblib" = "no"; then
+  AC_MSG_WARN([Disabling SASL authentication database support])
+else
+  AC_DEFINE_UNQUOTED(SASL_DB_TYPE, $dblib)
+fi
+
+
+dnl CRAM-MD5
+AC_ARG_ENABLE(cram, [  --enable-cram           enable CRAM-MD5 authentication [yes] ],
+  cram=$enableval,
+  cram=yes)
+
+AC_MSG_CHECKING(CRAM-MD5)
+if test "${cram}" != "no"; then
+  AC_MSG_RESULT(enabled)
+  SASL_MECHS="${SASL_MECHS} libcrammd5.la"
+else
+  AC_MSG_RESULT(disabled)
+fi
+
+
+dnl SCRAM-MD5
+AC_ARG_ENABLE(scram, [  --enable-scram          enable SCRAM-MD5 authentication [yes] ],
+  scram=$enableval,
+  scram=yes)
+
+AC_MSG_CHECKING(SCRAM-MD5)
+if test "${scram}" != "no"; then
+  AC_MSG_RESULT(enabled)
+  SASL_MECHS="${SASL_MECHS} libscrammd5.la"
+else
+  AC_MSG_RESULT(disabled)
+fi
+
+
+dnl KERBEROS_V4
+AC_ARG_ENABLE(krb4, [  --enable-krb4           enable KERBEROS_V4 authentication [yes] ],
+  krb4=$enableval,
+  krb4=yes)
+
+if test "${krb4}" != "no"; then
+  dnl In order to compile kerberos4, we need libkrb and libdes.
+  AC_CHECK_LIB(des, des_pcbc_encrypt,
+	AC_CHECK_LIB(krb, krb_mk_priv,:,
+		     AC_WARN(Disabling KERBEROS_V4); krb4="no",
+		     -ldes)
+  , AC_WARN(Disabling KERBEROS_V4); krb4="no")
+fi
+
+KERBEROS_LIBS=""
+AC_MSG_CHECKING(KERBEROS_V4)
+if test "${krb4}" != "no"; then
+  AC_MSG_RESULT(enabled)
+  AC_CHECK_LIB(nsl, inet_ntoa, KERBEROS_LIBS="${KERBEROS_LIBS} -lnsl")
+  AC_CHECK_LIB(socket, socket, KERBEROS_LIBS="${KERBEROS_LIBS} -lsocket")
+  SASL_MECHS="${SASL_MECHS} libkerberos4.la"
+else
+  AC_MSG_RESULT(disabled)
+fi
+AC_SUBST(KERBEROS_LIBS)
+
+
+dnl GSSAPI
+AC_ARG_ENABLE(gssapi, [  --enable-gssapi	  enable GSSAPI authentication [yes] ],
+  gssapi=$enableval,
+  gssapi=yes)
+
+if test "${gssapi}" != "no"; then
+  dnl We need to find out which gssapi implementation we are
+  dnl using. Supported alternatives are: MIT Kerberos 5 and
+  dnl Heimdal Kerberos 5 (http://www.pdc.kth.se/heimdal)
+  dnl
+  dnl The choice is reflected in GSSAPIBASE_LIBS
+  gss_impl="mit";
+  AC_CHECK_LIB(resolv,res_search)
+  if test -d ${gssapi}; then 
+     CPPFLAGS="$CPPFLAGS -I${gssapi}/include"
+     LDFLAGS="$LDFLAGS -L${gssapi}/lib"
+  fi
+  AC_CHECK_LIB(roken,base64_decode,gss_impl="heimdal")
+
+  if test -d ${gssapi}; then
+     GSSAPIBASE_LIBS="-L${gssapi}"
+  fi
+
+  if test "${gss_impl}" = "mit"; then
+     GSSAPIBASE_LIBS="${GSSAPIBASE_LIBS}/lib -lgssapi_krb5 -lkrb5 -lcrypto -lcom_err"
+  elif test "${gss_impl}" = "heimdal"; then
+     GSSAPIBASE_LIBS="${GSSAPIBASE_LIBS}/lib -lgssapi -lkrb5 -ldes -lasn1 -lroken -lcom_err"
+  else
+     gssapi="no"
+     AC_WARN(Disabling GSSAPI)
+  fi
+
+fi
+
+GSSAPI_LIBS=""
+AC_MSG_CHECKING(GSSAPI)
+if test "${gssapi}" != "no"; then
+  AC_MSG_RESULT(with implementation ${gss_impl})
+  AC_CHECK_LIB(nsl, inet_ntoa, GSSAPI_LIBS="${GSSAPI_LIBS} -lnsl")
+  AC_CHECK_LIB(socket, socket, GSSAPI_LIBS="${GSSAPI_LIBS} -lsocket")
+  AC_CHECK_LIB(ndbm,dbm_open,GSSAPIBASE_LIBS="${GSSAPIBASE_LIBS} -lndbm")
+  AC_CHECK_LIB(resolv,res_search,GSSAPIBASE_LIBS="${GSSAPIBASE_LIBS} -lresolv")
+  SASL_MECHS="${SASL_MECHS} libgssapiv2.la"
+else
+  AC_MSG_RESULT(disabled)
+fi
+AC_SUBST(GSSAPI_LIBS)
+AC_SUBST(GSSAPIBASE_LIBS)
+
+dnl ANONYMOUS
+AC_ARG_ENABLE(anon, [  --enable-anon           enable ANONYMOUS authentication [yes] ],
+  anon=$enableval,
+  anon=yes)
+
+AC_MSG_CHECKING(ANONYMOUS)
+if test "${anon}" != "no"; then
+  AC_MSG_RESULT(enabled)
+  SASL_MECHS="${SASL_MECHS} libanonymous.la"
+else
+  AC_MSG_RESULT(disabled)
+fi
+
+
+dnl PLAIN
+AC_ARG_ENABLE(plain, [  --enable-plain          enable PLAIN authentication [yes] ],
+  plain=$enableval,
+  plain=yes)
+
+AC_MSG_CHECKING(PLAIN)
+if test "${plain}" != "no"; then
+  AC_MSG_RESULT(enabled)
+  SASL_MECHS="${SASL_MECHS} libplain.la"
+else
+  AC_MSG_RESULT(disabled)
+fi
+
+AC_SUBST(SASL_MECHS)
+
+CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
+
+AC_ARG_WITH(plugindir, [  --with-plugindir=DIR    set the directory where plugins will
+                          be found [/usr/lib/sasl] ],
+  plugindir=$withval,
+  plugindir=/usr/lib/sasl)
+AC_DEFINE_UNQUOTED(PLUGINDIR, "$plugindir")
+AC_SUBST(plugindir)
+
+AC_HEADER_DIRENT
+AC_HEADER_STDC
+AC_CHECK_HEADERS(getopt.h)
+AC_C_CONST
+AC_C_INLINE
+
+AC_CHECK_FUNCS(getdomainname)
+
+AC_OUTPUT(Makefile include/Makefile lib/Makefile plugins/Makefile sasl/Makefile)

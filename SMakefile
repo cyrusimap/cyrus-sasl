@@ -1,0 +1,13 @@
+if test ! -x configure; then
+  echo aclocal
+  aclocal
+  echo autoheader
+  autoheader
+  echo automake
+  automake
+  echo autoconf
+  autoconf
+fi
+
+MAKE=gmake
+LNCOMMAND="${SRCDIR}/configure --prefix=/usr/local --disable-gssapi"

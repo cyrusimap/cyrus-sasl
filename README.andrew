@@ -1,0 +1,7 @@
+To wash, "smake -gnu wash install".
+
+Use the vendor cc if possible on platforms which have purify (it has
+problems dealing with code produced by gcc 2.8.1).
+
+	On IRIX, setenv CC cc and setenv CFLAGS -O2 - no -sopt for now
+	On Solaris, setenv CC cc and setenv CFLAGS -fast

@@ -579,7 +579,7 @@ int sasl_client_start(sasl_conn_t *conn,
 	    name[place]=list[pos];
 	    pos++;
 	    place++;
-	    if (SASL_MECHNAMEMAX <= place) {
+	    if (SASL_MECHNAMEMAX < place) {
 		place--;
 		while(pos<list_len && (isalnum((unsigned char)list[pos])
 				       || list[pos] == '_'

@@ -3,7 +3,7 @@
 ** SQL Auxprop plugin
 **   based on the original work of Simon Loader and Patrick Welche
 **
-** $Id: sql.c,v 1.5 2003/09/12 13:50:35 rjs3 Exp $
+** $Id: sql.c,v 1.6 2003/09/12 13:53:11 rjs3 Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -205,21 +205,17 @@ static void *_pgsql_open(char *host, char *port,
 
     /* check if other terms exist */
     if(port!=NULL && port != "")
-      {
 	sprintf(conninfo, "%s port='%s'", conninfo, port);
-      }
+
     if(pgsql_exists(user))
-      {
 	sprintf(conninfo, "%s user='%s'", conninfo, user);
-      }
+
     if(pgsql_exists(password))
-      {
 	sprintf(conninfo, "%s password='%s'",conninfo,  password);
-      }
+
     if(pgsql_exists(database))
-      {
 	sprintf(conninfo, "%s dbname='%s'", conninfo,  database);
-      }
+
     /*are we using ssl?*/
     /*sprintf(conninfo, "%s requiressl='%d'", conninfo, usessl);*/
 
@@ -227,9 +223,8 @@ static void *_pgsql_open(char *host, char *port,
     free(conninfo);
 
     if((PQstatus(conn)==CONNECTION_OK))
-      {
 	return conn;
-      }
+
     return NULL;
 }
 

@@ -1,3 +1,7 @@
+2003-07-17  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/config.c: Remove sasl_config_getint and sasl_config_getswitch
+	  because they are unused and confusing
+
 2003-07-15  Ken Murchison <ken@oceana.com>
 	* plugins/sql.c, doc/options.html: added sql_usessl option
 

@@ -1,6 +1,6 @@
 /* PASSDSS-3DES-1 SASL plugin
  * Ken Murchison
- * $Id: passdss.c,v 1.2 2004/11/24 19:30:14 ken3 Exp $
+ * $Id: passdss.c,v 1.3 2004/11/27 16:17:43 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2004 Carnegie Mellon University.  All rights reserved.
@@ -80,7 +80,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: passdss.c,v 1.2 2004/11/24 19:30:14 ken3 Exp $";
+static const char plugin_id[] = "$Id: passdss.c,v 1.3 2004/11/27 16:17:43 ken3 Exp $";
 
 const char g[] = "2";
 const char N[] = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE65381FFFFFFFFFFFFFFFF";
@@ -929,6 +929,12 @@ passdss_server_mech_step1(context_t *text,
 
     /* Sign the hash */
     sig = DSA_do_sign(hash, hashlen, dsa);
+    if (!sig) {
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   "Error calculating DSS signature\n");
+	result = SASL_FAIL;
+	goto cleanup;
+    }
 
     /* Item (8) */
     result = MakeBuffer(text->utils, &text->out_buf, *serveroutlen,
@@ -1433,9 +1439,11 @@ passdss_client_mech_step2(context_t *text,
 
     /* Verify signature on the hash */
     result = DSA_do_verify(hash, hashlen, sig, dsa);
-    if (!result) {
-	params->utils->log(NULL, SASL_LOG_ERR, "Incorrect DSS signature\n");
-	result = SASL_BADPROT;
+    if (result != 1) {
+	params->utils->log(NULL, SASL_LOG_ERR,
+			   (result == 0) ? "Incorrect DSS signature\n" :
+			   "Error verifying DSS signature\n");
+	result = (result == 0) ? SASL_BADPROT : SASL_FAIL;
 	goto cleanup;
     }
 

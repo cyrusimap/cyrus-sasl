@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.147 2003/02/12 19:58:05 leg Exp $
+ * $Id: digestmd5.c,v 1.148 2003/02/12 20:04:27 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -103,7 +103,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.147 2003/02/12 19:58:05 leg Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.148 2003/02/12 20:04:27 leg Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -2261,11 +2261,27 @@ digestmd5_server_mech_step2(server_context_t *stext,
 	} else if (strcasecmp(name, "qop") == 0) {
 	    _plug_strdup(sparams->utils, value, &qop, NULL);
 	} else if (strcasecmp(name, "digest-uri") == 0) {
-	    /* XXX: verify digest-uri format */
+            size_t service_len;
+
 	    /*
 	     * digest-uri-value  = serv-type "/" host [ "/" serv-name ]
 	     */
 	    _plug_strdup(sparams->utils, value, &digesturi, NULL);
+
+	    /* verify digest-uri format */
+
+            /* make sure it's the service that we're expecting */
+            service_len = strlen(sparams->service);
+            if (!strncasecmp(digesturi, sparams->service, service_len) ||
+                digesturi[service_len] != '/') {
+                result = SASL_BADAUTH;
+                SETERROR(sparams->utils, 
+                         "bad digest-uri: doesn't match service");
+                goto FreeAllMem;
+            }
+
+            /* xxx we don't verify the hostname component */
+            
 	} else if (strcasecmp(name, "response") == 0) {
 	    _plug_strdup(sparams->utils, value, &response, NULL);
 	} else if (strcasecmp(name, "cipher") == 0) {

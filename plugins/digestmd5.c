@@ -943,20 +943,21 @@ void get_pair(char **in, char **name, char **value)
     return;
   }
   if (endpair[0] != ',') {
-    *endpair++ = '\0'; 
+      if (endpair[0]!='\0') {
+	  *endpair++ = '\0'; 
+      }
   }
     
   endpair = skip_lws(endpair);
-  
+
+  /* syntax check: MUST be '\0' or ',' */  
   if (endpair[0] == ',') {
       endpair[0] = '\0';
       endpair++; /* skipping <,> */
-  }
-/* xxx syntax check: MUST be '\0' or ',' */
-  /*  else if (endpair[0] != '\0') { 
+  } else if (endpair[0] != '\0') { 
     *name = NULL;
     return;
-    }  */
+  }
 
   *in = endpair;
 }
@@ -2237,9 +2238,10 @@ server_continue_step(void *conn_context,
 	      if (errstr) *errstr = "realm changed: authentication aborted";
 	      result = SASL_FAIL;
 	      goto FreeAllMem;
-	  } else {
-	      digest_strdup(sparams->utils, value, &realm, NULL);
 	  }
+	  
+	  digest_strdup(sparams->utils, value, &realm, NULL);
+	  
       } else if (strcasecmp(name, "nonce") == 0) {
 	  if (strcmp(value, (char *) text->nonce) != 0) {
 	      /*
@@ -2385,6 +2387,9 @@ server_continue_step(void *conn_context,
 	result = SASL_FAIL;
 	goto FreeAllMem;
     }
+
+    /* if no realm specified use empty string realm */
+    realm = digest_strdup(sparams->utils, "", &realm, NULL);
 
     /* We use the user's DIGEST secret */
     result = getsecret(getsecret_context, "DIGEST-MD5", username,

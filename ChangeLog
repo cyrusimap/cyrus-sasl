@@ -1,3 +1,18 @@
+2000-06-09  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c (server_continue_step): take out lowercasing
+
+2000-06-07  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c (get_pair): handle nasty stuff
+	(digest_strdup_lower): lowercase 'qop' when put into
+	challenge. this is not speicified in draft but "will be"
+	(server_continue_step): allow empty realm
+
+2000-05-10  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c (c_continue_step): added more errstr's on errors
+
 2000-05-22  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* utils/saslpasswd.c: appname patch from Wolfgang Walter

@@ -3,7 +3,7 @@
 ** mysql Auxprop plugin
 **   by Simon Loader
 **
-** $Id: mysql.c,v 1.2 2002/06/25 18:45:51 rjs3 Exp $
+** $Id: mysql.c,v 1.3 2002/06/25 19:49:52 rjs3 Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -178,6 +178,7 @@ static char *mysql_create_statement(sasl_server_params_t *sparams,
 */
 void mysql_get_settings(const sasl_utils_t *utils,void *glob_context) {
     struct mysql_settings *settings;
+    int r;
     char *verbose_test;
     
     settings = (struct mysql_settings *)glob_context;
@@ -195,30 +196,30 @@ void mysql_get_settings(const sasl_utils_t *utils,void *glob_context) {
 	    settings->mysql_verbose = 0;
 	}
 	
-	utils->getopt(utils->getopt_context,"MYSQL","mysql_user",
-		      (const char **)&settings->mysql_user,NULL);
-	if ( !settings->mysql_user ) {
+	r = utils->getopt(utils->getopt_context,"MYSQL","mysql_user",
+			  (const char **)&settings->mysql_user,NULL);
+	if ( r || !settings->mysql_user ) {
 	    /* set it to a blank string */
 	    _plug_strdup(utils,"",&settings->mysql_user,NULL);
 	}
-  	utils->getopt(utils->getopt_context,"MYSQL", "mysql_passwd",
-		      (const char **) &settings->mysql_passwd, NULL);
-  	if ( !settings->mysql_passwd ) {
+  	r = utils->getopt(utils->getopt_context,"MYSQL", "mysql_passwd",
+			  (const char **) &settings->mysql_passwd, NULL);
+  	if ( r || !settings->mysql_passwd ) {
 	    _plug_strdup(utils,"",&settings->mysql_passwd,NULL);
   	}
-	utils->getopt(utils->getopt_context,"MYSQL", "mysql_hostnames",
-		      (const char **) &settings->mysql_hostnames, NULL);
-	if ( !settings->mysql_hostnames ) {
+	r = utils->getopt(utils->getopt_context,"MYSQL", "mysql_hostnames",
+			  (const char **) &settings->mysql_hostnames, NULL);
+	if ( r || !settings->mysql_hostnames ) {
 	    _plug_strdup(utils,"",&settings->mysql_hostnames,NULL);
 	}
-	utils->getopt(utils->getopt_context,"MYSQL", "mysql_database",
-		      (const char **) &settings->mysql_database, NULL);
-	if ( !settings->mysql_database ) {
+	r = utils->getopt(utils->getopt_context,"MYSQL", "mysql_database",
+			  (const char **) &settings->mysql_database, NULL);
+	if ( r || !settings->mysql_database ) {
 	    _plug_strdup(utils,"localhost",&settings->mysql_database,NULL);
 	}
-	utils->getopt(utils->getopt_context,"MYSQL", "mysql_statement",
+	r = utils->getopt(utils->getopt_context,"MYSQL", "mysql_statement",
 		      (const char **) &settings->mysql_statement, NULL);
-	if ( settings->mysql_statement == NULL ) {
+	if ( r || !settings->mysql_statement ) {
 	    _plug_strdup(utils,"",&settings->mysql_statement,NULL);
 	}
 	settings->have_settings = 1;
@@ -428,14 +429,21 @@ static void mysql_auxprop_free(void *glob_context, const sasl_utils_t *utils) {
 
     settings = (struct mysql_settings *)glob_context;
 
+    if(!settings) return;
+
     if(settings->mysql_verbose)
 	utils->log(NULL, SASL_LOG_DEBUG, "mysql freeing meme\n");
 
-    utils->free(settings->mysql_user);
-    utils->free(settings->mysql_passwd);
-    utils->free(settings->mysql_hostnames);
-    utils->free(settings->mysql_database);
-    utils->free(settings->mysql_statement);
+    if(settings->mysql_user)
+	utils->free(settings->mysql_user);
+    if(settings->mysql_passwd)
+	utils->free(settings->mysql_passwd);
+    if(settings->mysql_hostnames)
+	utils->free(settings->mysql_hostnames);
+    if(settings->mysql_database)
+	utils->free(settings->mysql_database);
+    if(settings->mysql_statement)
+	utils->free(settings->mysql_statement);
     utils->free(settings);
 }
 
@@ -480,7 +488,8 @@ int mysql_auxprop_plug_init(const sasl_utils_t *utils,
     }
 
     mysql_auxprop_plugin.glob_context = settings;
-    settings->have_settings = 0;
+
+    memset(settings, 0, sizeof(struct mysql_settings));
     
     return SASL_OK;
 }

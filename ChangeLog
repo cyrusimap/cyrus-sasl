@@ -1,6 +1,7 @@
 2002-06-10  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* sasldb/Makefile.am: fix handling of allockey (only include it once)
 	* plugins/kerberos4.c: fix a reference count leak
+	* Ready for 2.1.4
 
 2002-05-28  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/LDAP_SASLAUTHD, saslauthd/saslauthd.mdoc:
@@ -12,7 +13,7 @@
 	  saslauthd_verify_password
 
 2002-05-21  Rob Siemborski <rjs3@andrew.cmu.edu>
-	* saslauthd/auth_krb5.c: fix a file descriptor leak due to not
+	* saslauthd/auth_krb5.c: fix a leak due to not
 	  calling krb5_cc_destroy on failure
 
 2002-05-17  Rob Siemborski <rjs3@andrew.cmu.edu>

@@ -1,3 +1,11 @@
+Thu Nov 18 17:53:03 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/db_berkeley.c (getsecret): applied a patch from Gregory
+	Shapio <gshapiro@sendmail.org> to make sure the database is closed
+
+	* pwcheck/Makefile.in: applied patch from Joe Hohertz
+	<jhohertz@golden.net>
+
 Wed Nov 17 16:41:09 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/server.c (mechanism_permitted): cleaned up the plaintext

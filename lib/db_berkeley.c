@@ -1,6 +1,6 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Tim Martin
- * $Id: db_berkeley.c,v 1.5 1999/11/18 01:54:24 leg Exp $
+ * $Id: db_berkeley.c,v 1.6 1999/11/19 02:04:23 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -140,7 +140,7 @@ getsecret(void *context,
   char *key;
   size_t key_len;
   DBT dbkey, data;
-  DB *mbdb;
+  DB *mbdb = NULL;
 
   /* check parameters */
   if (! mechanism || ! auth_identity || ! secret || ! realm || ! db_ok)
@@ -148,15 +148,15 @@ getsecret(void *context,
 
   VL(("getting secret for %s\n",key));
 
-  /* open the db */
-  result=berkeleydb_open((sasl_conn_t *) context, &mbdb);
-  if (result!=SASL_OK) return result;
-
   /* allocate a key */
   result = alloc_key(mechanism, auth_identity, realm,
 		     &key, &key_len);
   if (result != SASL_OK)
     return result;
+
+  /* open the db */
+  result = berkeleydb_open((sasl_conn_t *) context, &mbdb);
+  if (result != SASL_OK) goto cleanup;
 
   /* zero out and create the key to search for */
   memset(&dbkey, 0, sizeof(dbkey));
@@ -201,6 +201,9 @@ getsecret(void *context,
   (*secret)->data[(*secret)->len] = '\0'; /* sanity */
 
  cleanup:
+
+  if (mbdb != NULL) berkeleydb_close(mbdb);
+
   sasl_FREE(key);
 
   return result;
@@ -223,21 +226,21 @@ putsecret(void *context,
   char *key;
   size_t key_len;
   DBT dbkey;
-  DB *mbdb;
+  DB *mbdb = NULL;
 
   if (! mechanism || ! auth_identity || ! realm)
       return SASL_FAIL;
 
   VL(("Entering putsecret for %s\n",mechanism));
 
-  /* open the db */
-  result=berkeleydb_open((sasl_conn_t *) context, &mbdb);
-  if (result!=SASL_OK) return result;
-
   result = alloc_key(mechanism, auth_identity, realm,
 		     &key, &key_len);
   if (result != SASL_OK)
     return result;
+
+  /* open the db */
+  result=berkeleydb_open((sasl_conn_t *) context, &mbdb);
+  if (result!=SASL_OK) goto cleanup;
 
   /* create the db key */
   memset(&dbkey, 0, sizeof(dbkey));
@@ -287,7 +290,7 @@ putsecret(void *context,
 
  cleanup:
 
-  berkeleydb_close(mbdb);
+  if (mbdb != NULL) berkeleydb_close(mbdb);
 
   sasl_FREE(key);
 

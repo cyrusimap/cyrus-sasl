@@ -377,6 +377,11 @@ static int sasl_pam_conv(int num_msg, const struct pam_message **msg,
     int i;
     int ret;
 
+    if (pd == NULL) {
+	/* solaris bug? */
+	return PAM_CONV_ERR;
+    }
+
     reply = (struct pam_response *) sasl_ALLOC(sizeof(struct pam_response) * 
 					       num_msg);
     if (reply == NULL)

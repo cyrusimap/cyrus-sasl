@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.110 2002/05/05 14:13:48 ken3 Exp $
+ * $Id: server.c,v 1.111 2002/06/10 15:58:34 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -335,7 +335,7 @@ static void server_done(void) {
 
   if (mechlist != NULL)
   {
-      m=mechlist->mech_list; /* m point to begging of the list */
+      m=mechlist->mech_list; /* m point to beginning of the list */
 
       while (m!=NULL)
       {

@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.27 2002/01/31 18:43:55 ken3 Exp $
+ * $Id: srp.c,v 1.28 2002/02/01 21:32:59 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1957,7 +1957,7 @@ static int CreateClientOpts(sasl_client_params_t *params,
     return SASL_OK;
 }
 
-/* Set the options (called my client and server)
+/* Set the options (called by client and server)
  *
  * Set up variables/hashes/that sorta thing so layers
  * will operate properly
@@ -2261,7 +2261,7 @@ static int ServerCalculateK(context_t *text, BIGNUM *v,
 
 static int ParseUserSecret(const sasl_utils_t *utils,
 			   char *secret, size_t seclen,
-			   BIGNUM *v, char **salt, int *saltlen)
+			   char **mda, BIGNUM *v, char **salt, int *saltlen)
 {
     int r;
     char *data;
@@ -2269,6 +2269,7 @@ static int ParseUserSecret(const sasl_utils_t *utils,
 
     /* The secret data is stored as suggested in RFC 2945:
      *
+     *  mda  - utf8
      *  v    - mpi
      *  salt - os 
      */
@@ -2276,6 +2277,13 @@ static int ParseUserSecret(const sasl_utils_t *utils,
     if (r) {
       utils->seterror(utils->conn, 0, 
 		      "Error UnBuffering secret data");
+      return r;
+    }
+
+    r = GetUTF8(utils, data, datalen, mda, &data, &datalen);
+    if (r) {
+      utils->seterror(utils->conn, 0, 
+		      "Error parsing out 'mda'");
       return r;
     }
 
@@ -2408,16 +2416,38 @@ static int server_step1(context_t *text,
     }
 
     if (auxprop_values[1].name && auxprop_values[1].values) {
+	char *mda = NULL;
+
 	/* We have a precomputed verifier */
 	r = ParseUserSecret(params->utils,
 			    (char*) auxprop_values[1].values[0],
 			    auxprop_values[1].valsize,
-			    &text->v, &text->salt, &text->saltlen);
+			    &mda, &text->v, &text->salt, &text->saltlen);
 	
 	if (r) {
 	    /* ParseUserSecret sets error, if any */
+	    if (mda) params->utils->free(mda);
 	    goto fail;
 	}
+
+	/* find mda */
+	server_mda = digest_options;
+	while (server_mda->name) {
+	    if (!strcasecmp(server_mda->name, mda))
+		break;
+
+	    server_mda++;
+	}
+
+	if (!server_mda->name) {
+	    params->utils->seterror(params->utils->conn, 0,
+				    "unknown SRP mda '%s'", mda);
+	    params->utils->free(mda);
+	    r = SASL_FAIL;
+	    goto fail;
+	}
+	params->utils->free(mda);
+
     } else if (auxprop_values[0].name && auxprop_values[0].values) {
 	/* We only have the password -- calculate the verifier */
 	int len = strlen(auxprop_values[0].values[0]);
@@ -2574,16 +2604,6 @@ static int server_step2(context_t *text,
       return SASL_FAIL;
     }
 
-    /* Calculate K (and B) */
-    r = ServerCalculateK(text, &text->v,
-			 &text->N, &text->g, &text->B, &text->A,
-			 &text->K, &text->Klen);
-    if (r) {
-      params->utils->seterror(params->utils->conn, 0, 
-	"Error calculating K");
-      return r;
-    }
-
     /* parse client options */
     r = ParseOptions(params->utils, text->client_options, &client_opts, 1);
     if (r) {
@@ -2606,6 +2626,16 @@ static int server_step2(context_t *text,
       params->utils->seterror(params->utils->conn, 0, 
 	"Error setting options");
       return r;   
+    }
+
+    /* Calculate K (and B) */
+    r = ServerCalculateK(text, &text->v,
+			 &text->N, &text->g, &text->B, &text->A,
+			 &text->K, &text->Klen);
+    if (r) {
+      params->utils->seterror(params->utils->conn, 0, 
+	"Error calculating K");
+      return r;
     }
 
     /* Send out:
@@ -2822,11 +2852,13 @@ static int srp_server_mech_step(void *conn_context,
 
 
 #ifdef DO_SRP_SETPASS
-static int srp_setpass(context_t *text,
+static int srp_setpass(void *glob_context __attribute__((unused)),
 		       sasl_server_params_t *sparams,
 		       const char *userstr,
 		       const char *pass,
-		       unsigned passlen,
+		       unsigned passlen __attribute__((unused)),
+		       const char *oldpass __attribute__((unused)),
+		       unsigned oldpasslen __attribute__((unused)),
 		       unsigned flags)
 {
     int r;
@@ -2842,9 +2874,6 @@ static int srp_setpass(context_t *text,
 	return SASL_FAIL;
     }
 
-    text.utils = sparams->utils;
-    text.md = EVP_get_digestbyname(server_mda->evp_name);
-
     r = parseuser(sparams->utils, &user, &realm, sparams->user_realm,
 		       sparams->serverFQDN, userstr);
     if (r) {
@@ -2856,11 +2885,14 @@ static int srp_setpass(context_t *text,
     if ((flags & SASL_SET_DISABLE) || pass == NULL) {
 	sec = NULL;
     } else {
+	context_t *text;
 	BIGNUM N;
 	BIGNUM g;
 	BIGNUM v;
 	char *salt;
 	int saltlen;
+	char *utf8mda = NULL;
+	int utf8mdalen;
 	char *mpiv = NULL;
 	int mpivlen;    
 	char *osSalt = NULL;
@@ -2868,51 +2900,71 @@ static int srp_setpass(context_t *text,
 	const char *buffer = NULL;
 	int bufferlen;
 
+	text = sparams->utils->malloc(sizeof(context_t));
+	if (text==NULL) {
+	    MEMERROR(sparams->utils);
+	    return SASL_NOMEM;
+	}
+
+	memset(text, 0, sizeof(context_t));
+
+	text->utils = sparams->utils;
+	text->md = EVP_get_digestbyname(server_mda->evp_name);
+
 	r = generate_N_and_g(&N, &g);
 	if (r) {
-	    text->utils->seterror(text->utils->conn, 0, 
-				  "Error calculating N and g");
-	    return r;
+	    sparams->utils->seterror(sparams->utils->conn, 0, 
+				     "Error calculating N and g");
+	    goto end;
 	}
 
 	r = CalculateV(text, &N, &g, user, pass, passlen, &v, &salt, &saltlen);
 	if (r) {
-	    text->utils->seterror(text->utils->conn, 0, 
-				  "Error calculating v");
-	    return r;
+	    sparams->utils->seterror(sparams->utils->conn, 0, 
+				     "Error calculating v");
+	    goto end;
 	}
 
 	/* The secret data is stored as suggested in RFC 2945:
 	 *
+	 *  mda  - utf8
 	 *  v    - mpi
 	 *  salt - os 
 	 */
 
-	r = MakeMPI(text->utils, &v, &mpiv, &mpivlen);
+	r = MakeUTF8(sparams->utils, (char*) server_mda->name,
+		     &utf8mda, &utf8mdalen);
 	if (r) {
-	    text->utils->seterror(text->utils->conn, 0, 
-				  "Error turning 'N' into 'mpi' string");
+	    sparams->utils->seterror(sparams->utils->conn, 0, 
+				     "Error turning 'mda' into 'utf8' string");
+	    goto end;
+	}
+    
+	r = MakeMPI(sparams->utils, &v, &mpiv, &mpivlen);
+	if (r) {
+	    sparams->utils->seterror(sparams->utils->conn, 0, 
+				     "Error turning 'v' into 'mpi' string");
 	    goto end;
 	}
 
-	r = MakeOS(text->utils, salt, saltlen, &osSalt, &osSaltlen);
+	r = MakeOS(sparams->utils, salt, saltlen, &osSalt, &osSaltlen);
 	if (r) {
-	    text->utils->seterror(text->utils->conn, 0, 
-				  "Error turning salt into 'os' string");
+	    sparams->utils->seterror(sparams->utils->conn, 0, 
+				     "Error turning salt into 'os' string");
 	    goto end;
 	}
 
-	r = MakeBuffer(text, mpiv, mpivlen, osSalt, osSaltlen,
-		       NULL, 0, NULL, 0, &buffer, &bufferlen);
+	r = MakeBuffer(text, utf8mda, utf8mdalen, mpiv, mpivlen,
+		       osSalt, osSaltlen, NULL, 0, &buffer, &bufferlen);
 
 	if (r) {
-	    text->utils->seterror(text->utils->conn, 0, 
-				  "Error putting all the data together in step 2");
+	    sparams->utils->seterror(sparams->utils->conn, 0, 
+				     "Error making buffer for secret");
 	    goto end;
 	}
     
 	/* Put 'buffer' into sasl_secret_t */
-	sec = text->utils->malloc(sizeof(sasl_secret_t)+bufferlen+1);
+	sec = sparams->utils->malloc(sizeof(sasl_secret_t)+bufferlen+1);
 	if (!sec) {
 	    r = SASL_NOMEM;
 	    goto end;
@@ -2922,12 +2974,13 @@ static int srp_setpass(context_t *text,
 
 	/* Clean everything up */
  end:
-	if (mpiv)   text->utils->free(mpiv);
-	if (osSalt) text->utils->free(osSalt);
-	if (buffer) text->utils->free((void *) buffer);
+	if (mpiv)   sparams->utils->free(mpiv);
+	if (osSalt) sparams->utils->free(osSalt);
+	if (buffer) sparams->utils->free((void *) buffer);
 	BN_clear_free(&N);
 	BN_clear_free(&g);
 	BN_clear_free(&v);
+	sparams->utils->free(text);
 
 	if (r) return r;
     }

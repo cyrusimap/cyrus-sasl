@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.111 2002/04/25 00:17:14 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.112 2002/04/25 21:18:56 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -3719,7 +3719,6 @@ digestmd5_client_mech_step(void *conn_context,
     }
 
     /* set oparams */
-    oparams->doneflag = 1;
     oparams->maxoutbuf = server_maxbuf;
     if(oparams->mech_ssf > 1) {
 	/* MAC block (privacy) */
@@ -3822,6 +3821,8 @@ FreeAllocatedMem:
 	    *clientout = NULL;
 	    *clientoutlen = 0;
 	    
+	    oparams->doneflag = 1;
+
 	    text->state = 4;
 	    return SASL_OK;
 	}

@@ -1,7 +1,7 @@
 /* staticopen.h
  * Rob Siemborski
  * Howard Chu
- * $Id: staticopen.h,v 1.6 2003/02/13 19:55:55 rjs3 Exp $
+ * $Id: staticopen.h,v 1.7 2004/01/20 19:48:58 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -119,8 +119,8 @@ extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( srp );
 #ifdef STATIC_SASLDB
 extern SPECIFIC_AUXPROP_PLUG_INIT_PROTO( sasldb );
 #endif
-#ifdef STATIC_MYSQL
-extern SPECIFIC_AUXPROP_PLUG_INIT_PROTO( mysql );
+#ifdef STATIC_SQL
+extern SPECIFIC_AUXPROP_PLUG_INIT_PROTO( sql );
 #endif
 
 _sasl_plug_rec _sasl_static_plugins[] = {
@@ -167,8 +167,8 @@ _sasl_plug_rec _sasl_static_plugins[] = {
 #ifdef STATIC_SASLDB
 	SPECIFIC_AUXPROP_PLUG_INIT( sasldb, "SASLDB" ),
 #endif
-#ifdef STATIC_MYSQL
-	SPECIFIC_AUXPROP_PLUG_INIT( mysql, "MYSQL" ),
+#ifdef STATIC_SQL
+	SPECIFIC_AUXPROP_PLUG_INIT( sql, "SQL" ),
 #endif
 	{ UNKNOWN, NULL, NULL }
 };

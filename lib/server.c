@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.82 2000/08/17 22:14:25 leg Exp $
+ * $Id: server.c,v 1.83 2000/12/18 06:05:55 leg Exp $
  */
 
 /* 
@@ -1089,7 +1089,7 @@ int sasl_server_start(sasl_conn_t *conn,
 	void *library = NULL;
 	const sasl_server_plug_t *pluglist;
 	int version, plugcount;
-	int l;
+	int l = 0;
 
 	/* need to load this plugin */
 	result = _sasl_get_plugin(m->u.f, "sasl_server_plug_init",
@@ -1100,7 +1100,6 @@ int sasl_server_start(sasl_conn_t *conn,
 				 &version, &pluglist, &plugcount);
 	}
 	if (result == SASL_OK) {
-
 	    /* find the correct mechanism in this plugin */
 	    for (l = 0; l < plugcount; l++) {
 		if (!strcasecmp(pluglist[l].mech_name, 

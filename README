@@ -1,4 +1,4 @@
-$Id: README,v 1.23 2000/03/11 22:49:54 leg Exp $
+$Id: README,v 1.24 2000/03/14 23:20:35 tmartin Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication. See RFC 2222 for more
@@ -75,6 +75,11 @@ The sample directory contains two programs which provide a reference
 for using the library, as well as making it easy to test a mechanism
 on the command line.  See "docs/programming.html" for more
 information.
+
+This library is believed to be thread safe IF:
+-you supply mutex functions (see sasl_set_mutex())
+-you make no SASL calls until sasl_client/server_init() completes
+-no SASL calls are made after sasl_done() is begun
 
 INSTALLATION
 ------------

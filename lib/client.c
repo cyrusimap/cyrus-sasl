@@ -372,12 +372,15 @@ int sasl_client_init(const sasl_callback_t *callbacks)
   cmechlist->mech_length=0;
 
   add_plugin((void *) &external_client_init, NULL);
-  
-  ret=_sasl_get_mech_list("sasl_client_plug_init",
-			  _sasl_find_getpath_callback(callbacks),
-			  _sasl_find_verifyfile_callback(callbacks),
-			  &add_plugin);
 
+  ret = _sasl_common_init();
+
+  if (ret == SASL_OK)
+      ret=_sasl_get_mech_list("sasl_client_plug_init",
+			      _sasl_find_getpath_callback(callbacks),
+			      _sasl_find_verifyfile_callback(callbacks),
+			      &add_plugin);
+  
   return ret;
 }
 
@@ -437,7 +440,7 @@ int sasl_client_new(const char *service,
 			   &client_idle, NULL,
 			   prompt_supp, &global_callbacks);
   if (result != SASL_OK) return result;
-
+  
   conn = (sasl_client_conn_t *)*pconn;
 
   conn->mech = NULL;
@@ -528,6 +531,7 @@ int sasl_client_start(sasl_conn_t *conn,
     size_t pos=0,place;
     size_t list_len;
     sasl_ssf_t bestssf = 0, minssf = 0;
+    int result;
 
     /* verify parameters */
     if (list == NULL)
@@ -535,6 +539,8 @@ int sasl_client_start(sasl_conn_t *conn,
 	return SASL_BADPARAM;
     }
 
+    result = sasl_MUTEX_LOCK(conn->mutex);
+    if (result != SASL_OK) return result;
 
     VL(("in sasl_client_start\n"));
 
@@ -543,13 +549,16 @@ int sasl_client_start(sasl_conn_t *conn,
 
     /* do a step */
     if (prompt_need && *prompt_need != NULL) {
-	return c_conn->mech->plug->mech_step(conn->context,
-					     c_conn->cparams,
-					     NULL,
-					     0,
-					     prompt_need,
-					     clientout, (int *) clientoutlen,
-					     &conn->oparams);
+	result = c_conn->mech->plug->mech_step(conn->context,
+					       c_conn->cparams,
+					       NULL,
+					       0,
+					       prompt_need,
+					       clientout, (int *) clientoutlen,
+					       &conn->oparams);
+
+	sasl_MUTEX_UNLOCK(conn->mutex);
+	return result;
     }
 
     /* set secret */
@@ -635,7 +644,8 @@ int sasl_client_start(sasl_conn_t *conn,
 
     if (bestm == NULL) {
 	VL(("No worthy mechs found\n"));
-	return SASL_NOMECH;
+	result = SASL_NOMECH;
+	goto done;
     }
 
     /* make cparams */
@@ -651,13 +661,16 @@ int sasl_client_start(sasl_conn_t *conn,
 				 &(conn->context));
 
     /* do a step */
-    return c_conn->mech->plug->mech_step(conn->context,
+    result = c_conn->mech->plug->mech_step(conn->context,
 					 c_conn->cparams,
 					 NULL,
 					 0,
 					 prompt_need,
 					 clientout, (int *) clientoutlen,
-					 &conn->oparams);
+					 &conn->oparams);    
+ done:
+    sasl_MUTEX_UNLOCK(conn->mutex);
+    return result;
 }
 
 /* do a single authentication step.
@@ -682,19 +695,25 @@ int sasl_client_step(sasl_conn_t *conn,
 		     unsigned *clientoutlen)
 {
   sasl_client_conn_t *c_conn= (sasl_client_conn_t *) conn;
+  int result;
 
   /* check parameters */
   if ((serverin==NULL) && (serverinlen>0))
     return SASL_BADPARAM;
 
+  result = sasl_MUTEX_LOCK(conn->mutex);
+  if (result != SASL_OK) return result;  
+    
   /* do a step */
-   return c_conn->mech->plug->mech_step(conn->context,
-				    c_conn->cparams,
-				    serverin,
-				    serverinlen,
-				    prompt_need,
-				    clientout, (int *)clientoutlen,
-				    &conn->oparams);
+  result = c_conn->mech->plug->mech_step(conn->context,
+					 c_conn->cparams,
+					 serverin,
+					 serverinlen,
+					 prompt_need,
+					 clientout, (int *)clientoutlen,
+					 &conn->oparams);
+  sasl_MUTEX_UNLOCK(conn->mutex);
+  return result;
 }
 
 /* Set connection secret based on passphrase

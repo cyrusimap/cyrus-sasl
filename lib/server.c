@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.73 2000/03/07 05:19:56 tmartin Exp $
+ * $Id: server.c,v 1.74 2000/03/14 23:20:36 tmartin Exp $
  */
 
 /* 
@@ -296,11 +296,11 @@ int sasl_setpass(sasl_conn_t *conn,
     sasl_getopt_t *getopt;
     void *context;
     const char *plainmech;
-
+     
     /* check params */
     if (!conn)
 	return SASL_BADPARAM;
-    
+     
     if (!mechlist) {
 	return SASL_FAIL;
     }
@@ -678,6 +678,8 @@ int sasl_server_init(const sasl_callback_t *callbacks,
 			  _sasl_find_verifyfile_callback(callbacks),
 			  &add_plugin);
 
+  if (ret == SASL_OK)
+      ret = _sasl_common_init();
   
   if (ret == SASL_OK)
   {
@@ -902,6 +904,9 @@ int sasl_server_start(sasl_conn_t *conn,
   if (errstr)
     *errstr = NULL;
 
+  result = sasl_MUTEX_LOCK(conn->mutex);
+  if (result != SASL_OK) return result;
+
   while (m!=NULL)
   {
     if ( strcasecmp(mech,m->plug->mech_name)==0)
@@ -911,12 +916,16 @@ int sasl_server_start(sasl_conn_t *conn,
     m=m->next;
   }
   
-  if (m==NULL)
-    return SASL_NOMECH;
+  if (m==NULL) {
+    result = SASL_NOMECH;
+    goto done;
+  }
 
   /* Make sure that we're willing to use this mech */
-  if (! mech_permitted(conn, m))
-    return SASL_NOMECH;
+  if (! mech_permitted(conn, m)) {
+    result = SASL_NOMECH;
+    goto done;
+  }
 
   s_conn->mech=m;
 
@@ -933,17 +942,20 @@ int sasl_server_start(sasl_conn_t *conn,
 					0,
 					&(conn->context),
 					errstr);
-  if (result != SASL_OK)
-    return result;
 
-  return s_conn->mech->plug->mech_step(conn->context,
-				       s_conn->sparams,
-				       clientin,
-				       clientinlen,
-				       serverout,
-				       (int *) serveroutlen,
-				       &conn->oparams,
-				       errstr);
+  if (result == SASL_OK)
+      result = s_conn->mech->plug->mech_step(conn->context,
+					     s_conn->sparams,
+					     clientin,
+					     clientinlen,
+					     serverout,
+					     (int *) serveroutlen,
+					     &conn->oparams,
+					     errstr);
+ done:
+  sasl_MUTEX_UNLOCK(conn->mutex);
+  
+  return result;
 }
 
 
@@ -982,6 +994,9 @@ int sasl_server_step(sasl_conn_t *conn,
     if (errstr)
 	*errstr = NULL;
 
+    ret = sasl_MUTEX_LOCK(conn->mutex);
+    if (ret != SASL_OK) return ret;
+
     ret = s_conn->mech->plug->mech_step(conn->context,
 					s_conn->sparams,
 					clientin,
@@ -1012,6 +1027,8 @@ int sasl_server_step(sasl_conn_t *conn,
 	    s_conn->base.oparams.user = (char *) canonuser;
 	}
     }
+
+    sasl_MUTEX_UNLOCK(conn->mutex);
 
     return ret;
 }

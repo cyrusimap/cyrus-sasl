@@ -66,6 +66,8 @@
 
 static const char build_ident[] = "$Build: libsasl " PACKAGE "-" VERSION " $";
 
+void *dispose_mutex = NULL;
+
 void (*_sasl_client_cleanup_hook)(void) = NULL;
 void (*_sasl_server_cleanup_hook)(void) = NULL;
 int (*_sasl_client_idle_hook)(sasl_conn_t *conn) = NULL;
@@ -132,42 +134,66 @@ int _sasl_strdup(const char *in, char **out, int *outlen)
 int sasl_encode(sasl_conn_t *conn, const char *input, unsigned inputlen,
 		char **output, unsigned *outputlen)
 {
-  if (! conn || ! input || ! output || ! outputlen)
-    return SASL_FAIL;
-  if (conn->oparams.encode==NULL)
-  {
-    /* just copy the string, no encryption */
-    *output = sasl_ALLOC(inputlen+1);
-    if (! *output) return SASL_NOMEM;
-    memcpy(*output, input, inputlen);
-    *outputlen = inputlen;
-    (*output)[inputlen] = '\0'; /* sanity for stupid clients */
-    return SASL_OK;
-  } else {
-    return conn->oparams.encode(conn->context, input,
-				inputlen, output, outputlen);
-  }
+    int result;
+    if (! conn || ! input || ! output || ! outputlen)
+	return SASL_FAIL;
+
+  
+
+    if (conn->oparams.encode==NULL)
+    {
+	/* just copy the string, no encryption */
+	*output = sasl_ALLOC(inputlen+1);
+	if (! *output) return SASL_NOMEM;
+	memcpy(*output, input, inputlen);
+	*outputlen = inputlen;
+	(*output)[inputlen] = '\0'; /* sanity for stupid clients */
+	return SASL_OK;
+    } else {
+
+	/* can not allow two encodes concurrently because things like
+	   rc4 require serializability */
+	result = sasl_MUTEX_LOCK(conn->mutex);
+	if (result != SASL_OK) return result;
+
+	result = conn->oparams.encode(conn->context, input,
+				      inputlen, output, outputlen);
+
+	sasl_MUTEX_UNLOCK(conn->mutex);
+
+	return result;
+    }
 }
 
 int sasl_decode(sasl_conn_t *conn, const char *input, unsigned inputlen,
 		char **output, unsigned *outputlen)
 {
-  if (! conn || ! input || ! output || ! outputlen)
-    return SASL_FAIL;
-  if (conn->oparams.decode==NULL)
-  {
-    /* just copy the string, no encryption */
-    *output = sasl_ALLOC(inputlen + 1);
-    if (! *output) return SASL_NOMEM;
-    memcpy(*output, input, inputlen);
-    *outputlen = inputlen;
-    (*output)[inputlen] = '\0'; /* sanity for stupid clients */
-    return SASL_OK;
+    int result;
+    if (! conn || ! input || ! output || ! outputlen)
+	return SASL_FAIL;
+    if (conn->oparams.decode==NULL)
+    {
+	/* just copy the string, no encryption */
+	*output = sasl_ALLOC(inputlen + 1);
+	if (! *output) return SASL_NOMEM;
+	memcpy(*output, input, inputlen);
+	*outputlen = inputlen;
+	(*output)[inputlen] = '\0'; /* sanity for stupid clients */
+	return SASL_OK;
+	
+    } else {
+	/* can not allow two encodes concurrently because things like
+	   rc4 require serializability */
+	result = sasl_MUTEX_LOCK(conn->mutex);
+	if (result != SASL_OK) return result;
 
-  } else {
-    return conn->oparams.decode(conn->context, input, inputlen,
-				output, outputlen);
-  }
+	result = conn->oparams.decode(conn->context, input, inputlen,
+				      output, outputlen);
+
+	sasl_MUTEX_UNLOCK(conn->mutex);
+
+	return result;
+    }
 }
 
 
@@ -190,6 +216,8 @@ void sasl_done(void)
 
   if (_sasl_client_cleanup_hook)
     _sasl_client_cleanup_hook();
+
+  sasl_MUTEX_DISPOSE(dispose_mutex);
 
   /* in case of another init/done */
   _sasl_server_cleanup_hook = NULL;
@@ -252,17 +280,39 @@ cleanup_mutex:
   return result;
 }
 
+int _sasl_common_init(void)
+{
+    dispose_mutex = sasl_MUTEX_NEW();    
+    if (!dispose_mutex) return SASL_FAIL;
+
+    return SASL_OK;
+}
+
 /* dispose connection state, sets it to NULL
  *  checks for pointer to NULL
  */
 void sasl_dispose(sasl_conn_t **pconn)
 {
+  int result;
+
   if (! pconn) return;
   if (! *pconn) return;
+
+
+  /* serialize disposes. this is necessary because we can't
+     dispose of conn->mutex if someone else is locked on it
+     xxx there probably is a better way to do this */
+  result = sasl_MUTEX_LOCK(dispose_mutex);
+  if (result!=SASL_OK) return;
+
+  /* *pconn might have become NULL by now */
+  if (! (*pconn)) return;
 
   (*pconn)->destroy_conn(*pconn);
   sasl_FREE(*pconn);
   *pconn=NULL;
+
+  sasl_MUTEX_UNLOCK(dispose_mutex);
 }
 
 void _sasl_conn_dispose(sasl_conn_t *conn) {

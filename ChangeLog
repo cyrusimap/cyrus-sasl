@@ -1,5 +1,8 @@
 1999-03-29  Rob Earhart  <rob+@andrew.cmu.edu>
 
+	* plugins/digestmd5.c: removed tmp ptrs; des routines are
+	returning voids
+
 	* README: updated
 
 	* plugins/cram.c (setpass): aligned buffer

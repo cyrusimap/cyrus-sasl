@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.17 2002/01/09 21:59:48 ken3 Exp $
+ * $Id: srp.c,v 1.18 2002/01/09 22:12:01 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -338,7 +338,6 @@ layer_encode(void *context,
     
       HMAC_Final(&hmac_ctx, hashdata+1, &hashlen);
       hashdata[0] = hashlen++ & 0xFF; /* set octet count */
-/*      hashlen++;*/
   }
 
   /* 4 for length + input size + hashlen for integrity (could be zero) */

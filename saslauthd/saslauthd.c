@@ -78,7 +78,7 @@
  * END HISTORY */
 
 #ifdef __GNUC__
-#ident "$Id: saslauthd.c,v 1.5 2001/12/04 02:06:55 rjs3 Exp $"
+#ident "$Id: saslauthd.c,v 1.6 2001/12/17 23:09:17 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -92,6 +92,7 @@
 #endif /* _AIX */
 #include <syslog.h>
 #include <signal.h>
+#include <sys/file.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
@@ -120,7 +121,7 @@ int     retry_read(int fd, void *buf, unsigned nbyte);
 int     retry_writev(int fd, struct iovec *iov, int iovcnt);
 /* path_mux needs to be accessable to server_exit() */
 char	*path_mux;		/* path to AF_UNIX socket */
-
+int     master_pid;             /* pid of the initial process */
 extern char *optarg;		/* getopt() */
 
 /* forward declarations */
@@ -132,6 +133,7 @@ void		show_version(void);
 
 #define LOCK_FILE_MODE	(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH)
 #define LOCK_SUFFIX ".pid"
+#define ACCEPT_LOCK_SUFFIX ".accept"
 #define MAX_REQ_LEN 256		/* login/pw/service/realm input buffer size */
 
 #ifdef _AIX
@@ -159,13 +161,17 @@ main(
 					   controlling tty */
     int conn;				/* per-connection socket fd */
     int rc;				/* generic return code holder  */
-    int lfd;				/* master lock file descriptor */
+    int lfd,alfd;      			/* master lock file descriptor */
     char *lockfile;			/* master lock file name       */
+    char *acceptlockfile;
     struct flock lockinfo;		/* fcntl locking on lockfile   */
+    struct flock alockinfo;
     char *cwd;				/* current working directory path */
     pid_t pid;				/* fork() control */
     struct sockaddr_un server, client;	/* domain socket control */
     SALEN_TYPE len;			/* sockaddr_un address lengths */
+    int i;
+    int num_threads = 5;                /* number of "threads" to run */
 #ifdef SO_REUSEADDR
     int one = 1;			/* sockopt control variable */
 #endif /* SO_REUSEADDR */
@@ -191,7 +197,7 @@ main(
     syslog(LOG_INFO, "START: saslauthd %s", VERSION);
 
     /* parse the command line arguments */
-    while ((c = getopt(argc, argv, "a:dF:H:m:P:Tv")) != -1)
+    while ((c = getopt(argc, argv, "a:dF:H:m:n:P:Tv")) != -1)
 	switch (c) {
 
 	  case 'a':			/* authentication mechanism */
@@ -227,8 +233,17 @@ main(
 	    path_mux = optarg;
 	    break;
 
+  	  case 'n':
+	    num_threads = atoi(optarg);
+	    if(num_threads < 1) {
+		fprintf(stderr, "saslauthd needs to have atleast 1 thread!");
+		exit(1);
+	    }
+	    break;
+
 	  case 'P':			/* proxy authentication mechanism */
-	    for (proxymech = mechanisms; proxymech->name != NULL; proxymech++) {
+	    for (proxymech = mechanisms; proxymech->name != NULL; proxymech++)
+	    {
 		if (!strcasecmp(proxymech->name, optarg))
 		    break;
 	    }
@@ -369,6 +384,9 @@ main(
 	}
     } /* end if(!debug) */
 
+    master_pid = getpid();
+    syslog(LOG_INFO, "master PID is: %d", master_pid);
+
     lockfile = malloc(strlen(path_mux) + sizeof(LOCK_SUFFIX));
     if (lockfile == NULL) {
 	syslog(LOG_ERR, "malloc(lockfile) failed");
@@ -377,6 +395,15 @@ main(
     
     strcpy(lockfile, path_mux);
     strcat(lockfile, LOCK_SUFFIX);
+
+    acceptlockfile = malloc(strlen(path_mux) + sizeof(ACCEPT_LOCK_SUFFIX));
+    if (lockfile == NULL) {
+	syslog(LOG_ERR, "malloc(acceptlockfile) failed");
+	exit(1);
+    }
+    
+    strcpy(acceptlockfile, path_mux);
+    strcat(acceptlockfile, ACCEPT_LOCK_SUFFIX);
     
     lfd = open(lockfile, O_WRONLY|O_CREAT, LOCK_FILE_MODE);
     if (lfd < 0) {
@@ -494,10 +521,46 @@ main(
     len = sizeof(client);
 
     signal(SIGCHLD, sigchld_ignore);
-    
-    while (1) {
 
+    /* fork off the threads */
+    if(!debug) {
+	for(i=1; i<num_threads; i++) {
+	    int pid = fork();
+	    if(pid < 0) {
+		syslog(LOG_ERR, "FATAL: fork(): %m");
+		fprintf(stderr, "saslauthd FATAL: could not fork()\n");
+		exit(1);
+	    } else if (pid == 0) {
+		/* Children shouldn't procreate */
+		break;
+	    }
+	}
+    }
+    
+    alfd = open(acceptlockfile, O_WRONLY|O_CREAT, LOCK_FILE_MODE);
+
+    if(alfd < 0) {
+	syslog(LOG_ERR, "FATAL: open(acceptlockfile): %m");
+	fprintf(stderr, "could not open acceptlockfile\n");
+	exit(1);
+    }
+	
+    /* setup the alockinfo structure */
+    alockinfo.l_start = 0;
+    alockinfo.l_len = 0;
+    alockinfo.l_whence = SEEK_SET;
+
+    while (1) {
+	/* The idea here is we only want one process to be waiting on
+	 * an accept() at a time, so that only one wakes up at a time */
+	alockinfo.l_type = F_WRLCK;
+	rc = fcntl(alfd, F_SETLK, &alockinfo);
+    
 	conn = accept(s, (struct sockaddr *)&client, &len);
+
+	alockinfo.l_type = F_UNLCK;
+	rc = fcntl(alfd, F_SETLK, &alockinfo);
+	
 	if (conn == -1) {
 	    if (errno != EINTR) {
 		/*
@@ -509,29 +572,12 @@ main(
 	    continue;
 	} 
 
-	if (!debug) {
-	    pid = fork();
-	    if (pid == 0) {			/* child */
-		close(s);
-		do_request(conn, conn);	/* process the request */
-		close(conn);
-		closelog();
-		exit(0);
-	    }
-	    if (pid > 0) {			/* parent */
-		close(conn);
-	    }
-	    if (pid == -1) {
-		syslog(LOG_ERR, "accept fork: %m");
-		close(conn);
-	    }
-	} else {
-	    do_request(conn, conn);
-	    close(conn);
-	}
+	do_request(conn, conn);
+	close(conn);
     }
 
     /*NOTREACHED*/
+    close(alfd);
     exit(0);
 }
 
@@ -861,7 +907,12 @@ server_exit(
   /* END PARAMETERS */
   )
 {
-    syslog(LOG_NOTICE, "Caught signal %d. Cleaning up and terminating.", sig);
+    if(getpid() == master_pid) {
+	syslog(LOG_NOTICE,
+	       "Caught signal %d. Cleaning up and terminating.", sig);
+	kill(-master_pid, sig);
+    }
+
     exit(0);
     /* NOTREACHED */
 }

@@ -40,7 +40,7 @@ case `uname` in
 esac
 
 MAKE=gmake
-LNCOMMAND="${SRCDIR}/configure --with-staticsasl --prefix=/usr/local --enable-cmulocal --with-sfio=/usr/local --enable-java ${LNEXTRA} --with-saslauthd=/var/run --enable-login"
+LNCOMMAND="${SRCDIR}/configure --with-staticsasl --prefix=/usr/local --enable-cmulocal --with-sfio=/usr/local --enable-java ${LNEXTRA} --with-saslauthd=/var/run/saslauthd --enable-login"
 CPPFLAGS=-I/usr/local/include/gssapi
 INSTCOMMAND="rm -rf ${DESTDIR}/*; ${MAKE} DESTDIR=${DESTDIR} install; echo 'usr/local /' > ${DESTDIR}/depot.conf"
 

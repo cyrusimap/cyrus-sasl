@@ -45,8 +45,6 @@
 #endif
 
 #ifdef HAVE_OPENSSL
-#include <openssl/md5.h>
-#include <openssl/sha.h>
 #include <openssl/evp.h>
 #endif
 
@@ -56,7 +54,8 @@
 
 struct password_scheme {
 	char *hash;
-	int (*check) (const char *cred, const char *passwd);
+	int (*check) (const char *cred, const char *passwd, void *rock);
+	void *rock;
 };
 
 static int lak_config_read(LAK_CONF *, const char *);
@@ -72,24 +71,31 @@ static int lak_search(LAK *, const char *, const char **, LDAPMessage **);
 static int lak_auth_custom(LAK *, const char *, const char *, const char *);
 static int lak_auth_bind(LAK *, const char *, const char *, const char *);
 static int lak_result_add(LAK *lak, const char *, const char *, LAK_RESULT **);
-static int lak_check_password(const char *, const char *);
-static int lak_check_crypt(const char *, const char *);
+static int lak_check_password(const char *, const char *, void *);
+static int lak_check_crypt(const char *, const char *, void *);
 #ifdef HAVE_OPENSSL
 static int lak_base64_decode(const char *, char **, int *);
-static int lak_check_md5(const char *, const char *);
-static int lak_check_smd5(const char *, const char *);
-static int lak_check_sha1(const char *, const char *);
-static int lak_check_ssha1(const char *, const char *);
+static int lak_check_hashed(const char *, const char *, void *);
 #endif
 
+static struct hash_rock {
+	const char *mda;
+	int salted;
+} hash_rock[] = {
+	{ "md5", 0 },
+	{ "md5", 1 },
+	{ "sha1", 0 },
+	{ "sha1", 1 }
+};
+
 static const struct password_scheme password_scheme[] = {
-	{ "{CRYPT}", lak_check_crypt },
-	{ "{UNIX}", lak_check_crypt },
+	{ "{CRYPT}", lak_check_crypt, NULL },
+	{ "{UNIX}", lak_check_crypt, NULL },
 #ifdef HAVE_OPENSSL
-	{ "{MD5}", lak_check_md5 },
-	{ "{SMD5}", lak_check_smd5 },
-	{ "{SHA}", lak_check_sha1 },
-	{ "{SSHA}", lak_check_ssha1 },
+	{ "{MD5}", lak_check_hashed, &hash_rock[0] },
+	{ "{SMD5}", lak_check_hashed, &hash_rock[1] },
+	{ "{SHA}", lak_check_hashed, &hash_rock[2] },
+	{ "{SSHA}", lak_check_hashed, &hash_rock[3] },
 #endif
 	{ NULL, NULL }
 };
@@ -507,6 +513,10 @@ int lak_init(const char *configfile, LAK **ret)
 		return rc;
 	}
 
+#ifdef HAVE_OPENSSL
+	OpenSSL_add_all_digests();
+#endif
+
 	*ret=lak;
 	return LAK_OK;
 }
@@ -525,6 +535,10 @@ void lak_close(LAK *lak) {
 	lak_config_free(lak->conf);
 
 	free(lak);
+
+#ifdef HAVE_OPENSSL
+	EVP_cleanup();
+#endif
 
 	return;
 }
@@ -837,7 +851,7 @@ static int lak_auth_custom(LAK *lak, const char *user, const char *realm, const 
 
 	for (ptr = lres; ptr != NULL; ptr = ptr->next) {
 		
-		rc = lak_check_password(ptr->value, password);
+		rc = lak_check_password(ptr->value, password, NULL);
 		if (rc == LAK_OK) {
 			break;
 		}
@@ -980,16 +994,16 @@ void lak_result_free(LAK_RESULT *res)
 	return;
 }
 
-static int lak_check_password(const char *hash, const char *passwd) 
+static int lak_check_password(const char *hash, const char *passwd, void *rock) 
 {
 	int i, hlen;
 	int rc;
 
-	if (hash == NULL || hash == '\0') {
+	if (hash == NULL || hash[0] == '\0') {
 		return LAK_FAIL;
 	}
 
-	if (passwd == NULL || passwd == '\0') {
+	if (passwd == NULL || passwd[0] == '\0') {
 		return LAK_FAIL;
 	}
 
@@ -998,7 +1012,8 @@ static int lak_check_password(const char *hash, const char *passwd)
 		hlen = strlen(password_scheme[i].hash);
 		if (!strncasecmp(password_scheme[i].hash, hash, hlen)) {
 			if (password_scheme[i].check) {
-				rc = (password_scheme[i].check)(hash+hlen, passwd);
+				rc = (password_scheme[i].check)(hash+hlen, passwd,
+								password_scheme[i].rock);
 			}
 			return rc;
 		}
@@ -1037,95 +1052,41 @@ static int lak_base64_decode(const char *src, char **ret, int *rlen) {
 	return LAK_OK;
 }
 
-static int lak_check_md5(const char *hash, const char *passwd)
-{
-	int rc;
-	MD5_CTX MD5_ctx;
-	unsigned char MD5digest[MD5_DIGEST_LENGTH];
-	char *cred;
-
-	rc = lak_base64_decode(hash, &cred, NULL);
-	if (rc != LAK_OK) {
-		return rc;
-	}
-
-	MD5_Init(&MD5_ctx);
-	MD5_Update(&MD5_ctx, passwd, strlen(passwd));
-	MD5_Final(MD5digest, &MD5_ctx);
-
-	rc = memcmp((char *)cred, (char *)MD5digest, sizeof(MD5digest));
-	free(cred);
-	return rc ? LAK_FAIL : LAK_OK;
-}
-
-static int lak_check_smd5(const char *hash, const char *passwd)
+static int lak_check_hashed(const char *hash, const char *passwd, void *rock)
 {
 	int rc, clen;
-	MD5_CTX MD5_ctx;
-	unsigned char MD5digest[MD5_DIGEST_LENGTH];
+	struct hash_rock *hrock = (struct hash_rock *) rock;
+	EVP_MD_CTX mdctx;
+	const EVP_MD *md;
+	unsigned char digest[EVP_MAX_MD_SIZE];
 	char *cred;
+
+	md = EVP_get_digestbyname(hrock->mda);
+	if (!md) {
+		return LAK_FAIL;
+	}
 
 	rc = lak_base64_decode(hash, &cred, &clen);
 	if (rc != LAK_OK) {
 		return rc;
 	}
 
-	MD5_Init(&MD5_ctx);
-	MD5_Update(&MD5_ctx, passwd, strlen(passwd));
-	MD5_Update(&MD5_ctx, &cred[sizeof(MD5digest)], clen - sizeof(MD5digest));
-	MD5_Final(MD5digest, &MD5_ctx);
+	EVP_DigestInit(&mdctx, md);
+	EVP_DigestUpdate(&mdctx, passwd, strlen(passwd));
+	if (hrock->salted) {
+		EVP_DigestUpdate(&mdctx, &cred[EVP_MD_size(md)],
+				 clen - EVP_MD_size(md));
+	}
+	EVP_DigestFinal(&mdctx, digest, NULL);
 
-	rc = memcmp((char *)cred, (char *)MD5digest, sizeof(MD5digest));
+	rc = memcmp((char *)cred, (char *)digest, EVP_MD_size(md));
 	free(cred);
 	return rc ? LAK_FAIL : LAK_OK;
 }
-
-static int lak_check_sha1(const char *hash, const char *passwd)
-{
-	int rc;
-	SHA_CTX SHA1_ctx;
-	unsigned char SHA1digest[SHA_DIGEST_LENGTH];
-	char *cred;
-
-	rc = lak_base64_decode(hash, &cred, NULL);
-	if (rc != LAK_OK) {
-		return rc;
-	}
-
-	SHA1_Init(&SHA1_ctx);
-	SHA1_Update(&SHA1_ctx, passwd, strlen(passwd));
-	SHA1_Final(SHA1digest, &SHA1_ctx);
-
-	rc = memcmp((char *)cred, (char *)SHA1digest, sizeof(SHA1digest));
-	free(cred);
-	return rc ? LAK_FAIL : LAK_OK;
-} 
-
-static int lak_check_ssha1(const char *hash, const char *passwd)
-{
-	int rc, clen;
-	SHA_CTX SHA1_ctx;
-	unsigned char SHA1digest[SHA_DIGEST_LENGTH];
-	char *cred;
-
-	rc = lak_base64_decode(hash, &cred, &clen);
-	if (rc != LAK_OK) {
-		return rc;
-	}
-
-	SHA1_Init(&SHA1_ctx);
-	SHA1_Update(&SHA1_ctx, passwd, strlen(passwd));
-	SHA1_Update(&SHA1_ctx, &cred[sizeof(SHA1digest)], clen - sizeof(SHA1digest));
-	SHA1_Final(SHA1digest, &SHA1_ctx);
-
-	rc = memcmp((char *)cred, (char *)SHA1digest, sizeof(SHA1digest));
-	free(cred);
-	return rc ? LAK_FAIL : LAK_OK;
-} 
 
 #endif /* HAVE_OPENSSL */
 
-static int lak_check_crypt(const char *hash, const char *passwd) 
+static int lak_check_crypt(const char *hash, const char *passwd, void *rock) 
 {
 	char *cred;
 

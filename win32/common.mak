@@ -41,3 +41,13 @@ OPENSSL_INCLUDE="D:\openssl\engine-0.9.6g-md3\include"
 OPENSSL_LIBPATH="D:\openssl\engine-0.9.6g-md3\lib"
 !MESSAGE Defaulting OpenSSL library path to $(OPENSSL_LIBPATH).
 !ENDIF
+
+!IF "$(GSSAPI_INCLUDE)" == ""
+GSSAPI_INCLUDE="C:\Program Files\CyberSafe\Developer Pack\ApplicationSecuritySDK\include"
+!MESSAGE Defaulting GSSAPI Include path to $(GSSAPI_INCLUDE).
+!ENDIF
+
+!IF "$(GSSAPI_LIBPATH)" == ""
+GSSAPI_LIBPATH="C:\Program Files\CyberSafe\Developer Pack\ApplicationSecuritySDK\lib"
+!MESSAGE Defaulting GSSAPI library path to $(GSSAPI_LIBPATH).
+!ENDIF

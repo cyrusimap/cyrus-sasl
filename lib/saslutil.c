@@ -27,14 +27,14 @@ SOFTWARE.
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
-#include <sasl.h>
-#include <saslutil.h>
 #include "saslint.h"
+#include <saslutil.h>
 
 /*  Contains:
  *
- * sasl_encode64
  * sasl_decode64 
+ * sasl_encode64
+ * sasl_mkchal
  * sasl_utf8verify
  * sasl_randcreate
  * sasl_randfree
@@ -150,6 +150,39 @@ int sasl_decode64(const char *in, unsigned inlen,
     *outlen=len;
 
     return SASL_OK;
+}
+
+int sasl_mkchal(sasl_conn_t *conn,
+		char *buf,
+		unsigned maxlen,
+		int hostflag)
+{
+  sasl_rand_t *pool = NULL;
+  unsigned long randnum;
+  time_t now;
+  unsigned len;
+
+  len = 4			/* <.>\0 */
+    + (2 * 20);			/* 2 numbers, 20 => max size of 64bit
+				 * ulong in base 10 */
+  if (hostflag && conn->local_domain)
+    len += strlen(conn->local_domain) + 1 /* for the @ */;
+
+  if (maxlen < len)
+    return 0;
+
+  sasl_randcreate(&pool);
+  sasl_rand(pool, (char *)&randnum, sizeof(randnum));
+  sasl_randfree(&pool);
+
+  time(&now);
+
+  if (hostflag && conn->local_domain)
+    sprintf(buf, "<%ld.%ld@%s>", randnum, now, conn->local_domain);
+  else
+    sprintf(buf, "<%ld.%ld>", randnum, now);
+
+  return strlen(buf);
 }
 
   /* borrowed from larry. probably works :)

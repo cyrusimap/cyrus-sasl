@@ -170,6 +170,7 @@ int _sasl_conn_init(sasl_conn_t *conn,
 		    const char *service,
 		    int secflags,
 		    int (*idle_hook)(sasl_conn_t *conn),
+		    const char *local_domain,
 		    const sasl_callback_t *callbacks,
 		    const sasl_global_callbacks_t *global_callbacks) {
   int result = SASL_OK;
@@ -196,6 +197,30 @@ int _sasl_conn_init(sasl_conn_t *conn,
   conn->idle_hook = idle_hook;
   conn->callbacks = callbacks;
   conn->global_callbacks = global_callbacks;
+
+  if (local_domain==NULL) {
+    char name[MAXHOSTNAMELEN];
+    memset(name, 0, sizeof(name));
+    gethostname(name, MAXHOSTNAMELEN);
+#ifdef HAVE_GETDOMAINNAME
+    {
+      char *dot = strchr(name, '.');
+      if (! dot) {
+	size_t namelen = strlen(name);
+	name[namelen] = '.';
+	getdomainname(name + namelen + 1, MAXHOSTNAMELEN - namelen - 1);
+      }
+    }
+#endif /* HAVE_GETDOMAINNAME */
+    result = _sasl_strdup(name, &conn->local_domain, NULL);
+    if (result != SASL_OK)
+      goto cleanup_mutex;
+  } else {
+    result = _sasl_strdup(local_domain, &conn->local_domain, NULL);
+    if (result != SASL_OK)
+      goto cleanup_mutex;
+  }
+
   return result;
 
 cleanup_mutex:
@@ -233,6 +258,9 @@ void _sasl_conn_dispose(sasl_conn_t *conn) {
     sasl_FREE(conn->oparams.realm);
 
   sasl_MUTEX_DISPOSE(conn->mutex);
+
+  if (conn->local_domain)
+    sasl_FREE(conn->local_domain);
 }
 
 
@@ -819,6 +847,9 @@ _sasl_alloc_utils(sasl_conn_t *conn,
     return NULL;
 
   utils->conn = conn;
+
+  sasl_randcreate(&utils->rpool);
+
   if (conn) {
     utils->getopt = &_sasl_conn_getopt;
     utils->getopt_context = conn;
@@ -826,24 +857,35 @@ _sasl_alloc_utils(sasl_conn_t *conn,
     utils->getopt = &_sasl_global_getopt;
     utils->getopt_context = global_callbacks;
   }
+
+  utils->getprop=&sasl_getprop;
+
   utils->malloc=_sasl_allocation_utils.malloc;
   utils->calloc=_sasl_allocation_utils.calloc;
   utils->realloc=_sasl_allocation_utils.realloc;
   utils->free=_sasl_allocation_utils.free;
+
+  utils->mutex_new = _sasl_mutex_utils.new;
+  utils->mutex_lock = _sasl_mutex_utils.lock;
+  utils->mutex_unlock = _sasl_mutex_utils.unlock;
+  utils->mutex_dispose = _sasl_mutex_utils.dispose;
   
   utils->MD5Init  = &MD5Init;
   utils->MD5Update= &MD5Update;
   utils->MD5Final = &MD5Final;
   utils->hmac_md5 = &hmac_md5;
-
-  utils->getprop=&sasl_getprop;
-  utils->getcallback=&_sasl_getcallback;
+  utils->hmac_md5_init = &hmac_md5_init;
+  utils->hmac_md5_final = &hmac_md5_final;
+  utils->hmac_md5_precalc = &hmac_md5_precalc;
+  utils->hmac_md5_import = &hmac_md5_import;
+  utils->mkchal = &sasl_mkchal;
+  utils->utf8verify = &sasl_utf8verify;
   utils->rand=&sasl_rand;
+  utils->churn=&sasl_churn;
+  
+  utils->getcallback=&_sasl_getcallback;
 
   utils->log=&sasl_log;
-
-  sasl_randcreate(&utils->rpool);
-  /* there are more to fill in */
 
   return utils;
 }

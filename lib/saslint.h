@@ -26,12 +26,7 @@ SOFTWARE.
 #ifndef SASLINT_H
 #define SASLINT_H
 
-#ifdef WIN32
-#include "winconfig.h"
-#include <windows.h>
-#else /* WIN32 */
-#include <netinet/in.h>
-#endif /* WIN32 */
+#include <config.h>
 #include "sasl.h"
 #include "saslplug.h"
 
@@ -85,13 +80,16 @@ struct sasl_conn {
   int (*idle_hook)(sasl_conn_t *conn);
   const sasl_callback_t *callbacks;
   const sasl_global_callbacks_t *global_callbacks; /* global callbacks
-						    * for this connection */
+						    * for this
+						    * connection */
+  char *local_domain;
 };
 
 extern int _sasl_conn_init(sasl_conn_t *conn,
 			   const char *service,
 			   int secflags,
 			   int (*idle_hook)(sasl_conn_t *conn),
+			   const char *local_domain,
 			   const sasl_callback_t *callbacks,
 			   const sasl_global_callbacks_t * global_callbacks);
 

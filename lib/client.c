@@ -385,7 +385,8 @@ int sasl_client_new(const char *service,
 
   (*pconn)->destroy_conn = &client_dispose;
   result = _sasl_conn_init(*pconn, service, secflags,
-			   &client_idle, prompt_supp, &global_callbacks);
+			   &client_idle, NULL,
+			   prompt_supp, &global_callbacks);
   if (result != SASL_OK) return result;
 
   conn = (sasl_client_conn_t *)*pconn;

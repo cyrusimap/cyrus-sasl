@@ -42,15 +42,8 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 
 #ifdef L_DEFAULT_GUARD
 # undef L_DEFAULT_GUARD
-# define L_DEFAULT_GUARD (0)
+# define L_DEFAULT_GUARD (1)
 #endif
-
-struct scram_entry
-{
-  unsigned char salt[8];
-  unsigned char verifier[16];
-  unsigned char serverkey[16];
-};
 
 typedef struct context {
 
@@ -90,18 +83,13 @@ static int start(void *glob_context __attribute__((unused)),
 static void free_secret(sasl_utils_t *utils,
 			sasl_secret_t **secret)
 {
-  size_t lup;
-
   VL(("Freeing secret\n"));
 
   if (secret==NULL) return;
   if (*secret==NULL) return;
 
   /* overwrite the memory */
-  for (lup=0;lup<(*secret)->len;lup++)
-    (*secret)->data[lup]='X';
-
-  (*secret)->len=0;
+  memset(&(*secret)->data, 0, (*secret)->len);
 
   utils->free(*secret);
 
@@ -146,43 +134,6 @@ static void mech_free(void *global_context, sasl_utils_t *utils)
 {
 
   utils->free(global_context);  
-}
-
-static char * randomdigits(sasl_server_params_t *sparams)
-{
-  unsigned long num;
-  char *ret;
- 
-  /* random 32-bit number */
-  unsigned char temp[5];
-
-
-  sparams->utils->rand(sparams->utils->rpool,(char *) temp,4);
-
-
-  num=(temp[0] *256*256*256) +
-      (temp[1] *256*256) +
-      (temp[2] * 256) +
-      (temp[3] );
-
-  ret= sparams->utils->malloc(15);
-  if (ret==NULL) return NULL;
-  sprintf(ret,"%lu",num);
-
-  return ret;
-}
-
-static char *gettime(sasl_server_params_t *sparams)
-{
-  char *ret;
-  time_t t;
-
-  t=time(NULL);
-  ret= sparams->utils->malloc(15);
-  if (ret==NULL) return NULL;
-  sprintf(ret,"%lu",t);
-  
-  return ret;
 }
 
 /* convert a string of 8bit chars to it's representation in hex
@@ -262,31 +213,30 @@ static int server_continue_step (void *conn_context,
 
   if (text->state==1)
   {    
-    char *time, *randdigits;
-    /* arbitrary string of random digits 
-     * time stamp
-     * primary host
-     */
+    unsigned len;
+
     VL(("CRAM-MD5 step 1\n"));
 
-    /* get time and a random number for the nonce */
-    time=gettime(sparams);
-    randdigits=randomdigits(sparams);
-    if ((time==NULL) || (randdigits==NULL)) return SASL_NOMEM;
-
-    /* allocate some space for the nonce */
-    *serverout=sparams->utils->malloc(1024);
-    if (*serverout==NULL) return SASL_NOMEM;
-
-    /* create the nonce */
-    sprintf((char *)*serverout,"<%s.%s@%s>",randdigits,time,
-	    sparams->local_domain);
-
-    /* free stuff */
-    sparams->utils->free(time);    
-    sparams->utils->free(randdigits);    
+    *serveroutlen = 0;
+    len = 128;			/* I happen to know that 128 is
+				 * likely to work on the first try...  */
+    *serverout = sparams->utils->malloc(*serveroutlen);
+    if (! *serverout)
+      return SASL_NOMEM;
     
-    *serveroutlen=strlen(*serverout);
+    do {
+      *serveroutlen = sparams->utils->mkchal(sparams->utils->conn,
+					     *serverout,
+					     len,
+					     1);
+      if (! *serveroutlen) {
+	len *= 2;
+	*serverout = sparams->utils->realloc(*serverout, len);
+	if (! *serverout)
+	  return SASL_NOMEM;
+      }
+    } while (! *serveroutlen);
+
     text->msgidlen=*serveroutlen;
 
     /* save nonce so we can check against it later */
@@ -303,7 +253,6 @@ static int server_continue_step (void *conn_context,
   if (text->state==2)
   {
     /* verify digest */
-    char *in16=NULL;
     char *userid=NULL;
     sasl_secret_t *sec=NULL;
     int lup,pos;
@@ -311,6 +260,10 @@ static int server_continue_step (void *conn_context,
     int result;
     sasl_server_getsecret_t *getsecret;
     void *getsecret_context;
+    HMAC_MD5_CTX ctx;
+    unsigned char digest[HMAC_MD5_SIZE];
+    int lupe;
+    unsigned char *p;
 
     VL(("CRAM-MD5 Step 2\n"));
     VL(("Clientin: %s\n",clientin));
@@ -352,8 +305,6 @@ static int server_continue_step (void *conn_context,
       return SASL_FAIL;
     }
 
-
-    /* We use the user's SCRAM secret */
     /* Request secret */
     result = getsecret(getsecret_context, "CRAM-MD5", userid, &sec);
     if (result != SASL_OK)
@@ -369,35 +320,46 @@ static int server_continue_step (void *conn_context,
       VL(("Received NULL sec from getsecret\n"));
       return SASL_FAIL;
     }
-    
-    VL(("password=[%s]\n",sec->data));
 
-    /* create thing with password to check against */
-    in16=make_hashed(sec,text->msgid ,text->msgidlen , sparams);
-    if (in16==NULL)
-    {
-      VL(("make_hashed failed\n"));
+    if (sec->len != sizeof(HMAC_MD5_STATE)) {
+      VL(("Received incorrectly sized secret\n"));
+      free_secret(sparams->utils, &sec);
       return SASL_FAIL;
     }
-    /* XXX this needs to be safer */
 
-    /* free sec */
-    free_secret(sparams->utils,&sec);
+    /* load md5 context to check */
+    sparams->utils->hmac_md5_import(&ctx,
+				    (HMAC_MD5_STATE *) &sec->data);
+    free_secret(sparams->utils, &sec);
 
-    VL(("[%s] vs [%s]\n",in16,clientin+pos+1));
+    sparams->utils->MD5Update(&ctx.ictx, text->msgid, text->msgidlen);
 
-    /* if same then verified */
-    if (strcmp(in16,clientin+pos+1)!=0)
-    {
-      /* free string and wipe out sensetive data */
-      free_string(sparams->utils,&in16);
+    sparams->utils->hmac_md5_final(digest, &ctx);
 
-      VL(("bad auth here\n"));
-      return SASL_BADAUTH;
+    memset(&ctx, 0, sizeof(ctx));
+
+    /* and do the check */
+    for (lupe = 0, p = (unsigned char *) clientin + pos + 1;
+	 lupe < HMAC_MD5_SIZE;
+	 ++lupe, p += 2) {
+      if (!p[0] || !p[1]) {
+	VL(("length check failed\n"));
+	return SASL_FAIL;
+      }
+      if (((p[0] < '0' || '9' < p[0]) && (p[0] < 'a' || 'f' < p[0]))
+	  || ((p[1] < '0' || '9' < p[1]) && (p[1] < 'a' || 'f' < p[1]))) {
+	VL(("validity check failed\n"));
+	return SASL_FAIL;
+      }
+      if ((((('0' <= p[0] && p[0] <= '9') ? p[0] - '0' : p[0] - 'a' + 10) * 16)
+	   + (('0' <= p[1] && p[1] <= '9') ? p[1] - '0' : p[1] - 'a' + 10))
+	  != digest[lupe]) {
+	VL(("comparison check failed\n"));
+	return SASL_FAIL;
+      }
     }
 
-    /* free string and wipe out sensetive data */
-    free_string(sparams->utils,&in16);
+    memset(digest, 0, sizeof(digest));
 
     /* nothing more to do; authenticated 
      * set oparams information
@@ -407,7 +369,7 @@ static int server_continue_step (void *conn_context,
     oparams->user=userid; /* set username */
     oparams->authid=userid;
 
-    oparams->mech_ssf=1;
+    oparams->mech_ssf=0;
 
     oparams->maxoutbuf=1024; /* no clue what this should be */
   
@@ -441,18 +403,17 @@ setpass(void *glob_context __attribute__((unused)),
   int result;
   sasl_server_putsecret_t *putsecret;
   void *putsecret_context;
-  char buf[sizeof(sasl_secret_t) + sizeof(struct scram_entry)];
+  char buf[sizeof(sasl_secret_t) + sizeof(HMAC_MD5_STATE)];
   sasl_secret_t *secret = (sasl_secret_t *)&buf;
-  struct scram_entry *ent = (struct scram_entry *)&secret->data;
-  MD5_CTX ver;
-  unsigned char pad[64];
-  size_t lupe;
-  /* this saves cleartext password */
-  sasl_secret_t *sec=(sasl_secret_t *) malloc(sizeof(sasl_secret_t)+passlen);
-  
-  sec->len=passlen;
-  strcpy(sec->data,pass);
 
+  if (!sparams
+      || !sparams->utils
+      || !sparams->utils->conn
+      || !sparams->utils->getcallback
+      || !sparams->utils->hmac_md5_precalc
+      || !user
+      || !pass)
+    return SASL_BADPARAM;
 
   if (errstr)
     *errstr = NULL;
@@ -464,46 +425,19 @@ setpass(void *glob_context __attribute__((unused)),
   if (result != SASL_OK)
     return result;
 
-  /* Get some salt... */
-  sparams->utils->rand(sparams->utils->rpool,
-		       (char *)&ent->salt,
-		       sizeof(ent->salt));
-
-  /* Create the pads... */
-  memset(pad, 0, sizeof(pad));
-  memcpy(pad, pass, passlen < sizeof(pad) ? passlen : sizeof(pad));
+  sparams->utils->hmac_md5_precalc((HMAC_MD5_STATE *)&secret->data,
+				   pass,
+				   passlen);
   
-  for (lupe = 0; lupe < sizeof(pad); lupe++) {
-    pad[lupe] ^= 0x36;
-  }
+  secret->len = sizeof(HMAC_MD5_STATE);
 
-  sparams->utils->MD5Init(&ver);
-  sparams->utils->MD5Update(&ver, pad, sizeof(pad));
-  
-  memcpy(&ent->verifier, ver.state, sizeof(ent->verifier));
-
-  memset(pad, 0, sizeof(pad));
-  memcpy(pad, pass, passlen < sizeof(pad) ? passlen : sizeof(pad));
-  
-  for (lupe = 0; lupe < sizeof(pad); lupe++) {
-    pad[lupe] ^= 0x5c;
-  }
-
-  sparams->utils->MD5Init(&ver);
-  sparams->utils->MD5Update(&ver, pad, sizeof(pad));
-  
-  memcpy(&ent->serverkey, ver.state, sizeof(ent->serverkey));
-
-  secret->len = sizeof(struct scram_entry);
-
-  /* We're actually constructing a SCRAM secret... */
   result=putsecret(putsecret_context,
 		   "CRAM-MD5",
 		   user,
-		   sec);
+		   secret);
 
-  /* clean up sensitive info */
-  /* wish we could call free secret here */
+  memset(buf, 0, sizeof(buf));
+
   return result;
 }
 
@@ -555,11 +489,12 @@ static int c_start(void *glob_context __attribute__((unused)),
    if there is then ignore it i guess */
 
   /* holds state are in */
-    text= params->utils->malloc(sizeof(context_t));
-    if (text==NULL) return SASL_NOMEM;
-    text->state=1;  
-    text->authid=NULL;
-    text->password=NULL;
+  text= params->utils->malloc(sizeof(context_t));
+  if (text==NULL) return SASL_NOMEM;
+  memset(text, 0, sizeof(context_t));
+  text->state=1;  
+  text->authid=NULL;
+  text->password=NULL;
 
   *conn=text;
 
@@ -786,12 +721,12 @@ static int c_continue_step (void *conn_context,
   context_t *text;
   text=conn_context;
 
-  oparams->mech_ssf=1;
+  oparams->mech_ssf=0;
   oparams->maxoutbuf=1024; /* no clue what this should be */
   oparams->encode=NULL;
   oparams->decode=NULL;
-  oparams->user="anonymous"; /* set username */
-  oparams->authid="anonymous";
+  oparams->user=NULL; /* set username */
+  oparams->authid=NULL;
   oparams->realm=NULL;
   oparams->param_version=0;
 
@@ -904,19 +839,13 @@ static int c_continue_step (void *conn_context,
   return SASL_FAIL; /* should never get here */
 }
 
-static const long client_required_prompts[] = {
-  SASL_CB_AUTHNAME,
-  SASL_CB_PASS,
-  SASL_CB_LIST_END
-};
-
 static const sasl_client_plug_t client_plugins[] = 
 {
   {
     "CRAM-MD5",
     0,
     0,
-    client_required_prompts,
+    NULL,
     NULL,
     &c_start,
     &c_continue_step,

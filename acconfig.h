@@ -127,4 +127,6 @@ char *strchr(), *strrchr();
 # endif /* ! HAVE_MEMCPY */
 #endif /* ! STDC_HEADERS */
 
+#include <netinet/in.h>
+
 #endif /* CONFIG_H */

@@ -1,5 +1,31 @@
 1999-03-25  Rob Earhart  <rob+@andrew.cmu.edu>
 
+	* plugins/cram.c (c_start): fixed text init bug
+
+	* lib/server.c (sasl_server_new): moved local_domain code to common,
+	removed local_domain from sasl_server_conn, no longer disposing
+	local_domain in server on cleanup
+
+	* lib/common.c: (_sasl_conn_init): took local_domain code from server
+	(_sasl_conn_dispose) added code to free local_domain
+
+	* lib/saslint.h: added local_domain to sasl_conn_t and _sasl_conn_init
+
+	* lib/client.c (sasl_client_new): calling _sasl_conn_init with
+ 	NULL local domain
+
+	* lib/saslutil.c: wrote sasl_mkchal
+
+	* plugins/cram.c (server_continue_step): Fixed nonce generation
+
+	* lib/common.c (_sasl_alloc_utils): added hmac routines, mutex
+	routines, rand stuff...
+
+	* lib/md5.c: Wrote hmac routines
+
+	* plugins/cram.c (setpass): Massive surgery to clean this up
+	removed required prompts -- they're the default prompts
+
 	* testing.txt: updated testing documentation
 
 	* plugins/plain.c (verify_password): added shadow password file support

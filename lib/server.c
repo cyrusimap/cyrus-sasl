@@ -214,7 +214,6 @@ typedef struct mech_list {
 typedef struct sasl_server_conn {
   sasl_conn_t base; /* parts common to server + client */
 
-  char *local_domain;
   char *user_domain;
 
   int authenticated;
@@ -322,9 +321,6 @@ static void server_dispose(sasl_conn_t *pconn)
       && s_conn->mech->plug->mech_dispose)
     s_conn->mech->plug->mech_dispose(pconn->context,
 				     s_conn->sparams->utils);
-
-  if (s_conn->local_domain)
-    sasl_FREE(s_conn->local_domain);
 
   if (s_conn->user_domain)
     sasl_FREE(s_conn->user_domain);
@@ -521,7 +517,9 @@ int sasl_server_new(const char *service,
 
   (*pconn)->destroy_conn = &server_dispose;
   result = _sasl_conn_init(*pconn, service, secflags,
-			   &server_idle, callbacks, &global_callbacks);
+			   &server_idle,
+			   local_domain,
+			   callbacks, &global_callbacks);
   if (result != SASL_OK) return result;
 
   serverconn = (sasl_server_conn_t *)*pconn;
@@ -541,41 +539,15 @@ int sasl_server_new(const char *service,
 
   serverconn->sparams->props = serverconn->base.props;
 
-  if (local_domain==NULL) {
-    char name[MAXHOSTNAMELEN];
-    memset(name, 0, sizeof(name));
-    gethostname(name, MAXHOSTNAMELEN);
-#ifdef HAVE_GETDOMAINNAME
-    {
-      char *dot = strchr(name, '.');
-      if (! dot) {
-	size_t namelen = strlen(name);
-	name[namelen] = '.';
-	getdomainname(name + namelen + 1, MAXHOSTNAMELEN - namelen - 1);
-      }
-    }
-#endif /* HAVE_GETDOMAINNAME */
-    result = _sasl_strdup(name, &serverconn->local_domain, NULL);
-    if (result != SASL_OK) goto cleanup_conn;
-  } else {
-    result = _sasl_strdup(local_domain, &serverconn->local_domain, NULL);
-    if (result != SASL_OK) goto cleanup_conn;
-  }
-
-
   /* set some variables */
-
   if (user_domain==NULL)
     serverconn->user_domain=NULL;
   else {
     result = _sasl_strdup(user_domain, &serverconn->user_domain, NULL);
-    if (result != SASL_OK) goto cleanup_localdomain;
+    if (result != SASL_OK) goto cleanup_conn;
   }
 
   return result;
-
-cleanup_localdomain:
-  sasl_FREE(serverconn->local_domain);
 
 cleanup_conn:
   _sasl_conn_dispose(*pconn);
@@ -641,7 +613,7 @@ int sasl_server_start(sasl_conn_t *conn,
   s_conn->mech=m;
 
   /* call the security layer given by mech */
-  s_conn->sparams->local_domain=s_conn->local_domain;
+  s_conn->sparams->local_domain=conn->local_domain;
   s_conn->sparams->service=conn->service;
   s_conn->sparams->user_domain=s_conn->user_domain;
 

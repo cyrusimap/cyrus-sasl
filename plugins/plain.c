@@ -309,11 +309,12 @@ server_continue_step (void *conn_context,
     strcpy(mem, authen);
     oparams->authid = mem;
 
-    if (params->local_domain)
-    mem = params->utils->malloc(strlen(params->local_domain) + 1);
-    if (! mem) return SASL_NOMEM;
-    strcpy(mem, params->local_domain);
-    oparams->realm = mem;
+    if (params->local_domain) {
+      mem = params->utils->malloc(strlen(params->local_domain) + 1);
+      if (! mem) return SASL_NOMEM;
+      strcpy(mem, params->local_domain);
+      oparams->realm = mem;
+    } else oparams->realm = NULL;
 
     if (params->transition)
     {
@@ -810,7 +811,7 @@ static int client_continue_step (void *conn_context,
     }
 
     /* set oparams */
-    oparams->mech_ssf=1;
+    oparams->mech_ssf=0;
     oparams->maxoutbuf=0;
     oparams->encode=NULL;
     oparams->decode=NULL;

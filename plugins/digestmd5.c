@@ -52,11 +52,6 @@
 #include <fcntl.h>
 #include <ctype.h>
 
-/* either WITH_CMU_RC4 or WITH_SSL_RC4 is defined Let's make WITH_RC4
-   our general "there is rc4 support" and use CMU/SSL for the specific
-   library routines. ditto for DES.
-*/
-
 /* DES support */
 #ifdef WITH_DES
 # ifdef WITH_SSL_DES
@@ -65,15 +60,6 @@
 #  include <des.h>
 # endif
 #endif /* WITH_DES */
-
-/* RC4 support */
-#ifdef WITH_CMU_RC4
-# define WITH_RC4
-# include <rc4.h>
-#elif WITH_SSL_RC4
-# define WITH_RC4
-# include <openssl/rc4.h>
-#endif /* WITH_SSL_RC4 */
 
 #ifdef WIN32
 # include <winsock.h>
@@ -141,7 +127,7 @@ const char *SIGNING_SERVER_CLIENT="Digest session key to server-to-client signin
 #define SP	(32)
 #define DEL	(127)
 
-/* #define VL(x) printf x*/
+#define SETERRSTR(s) { if (errstr) *errstr = s; }
 
 /* function definitions for cipher encode/decode */
 typedef int cipher_function_t(void *,
@@ -156,6 +142,10 @@ typedef int cipher_init_t(void *, sasl_utils_t *,
 
 /* global: if we've already set a pass entry */
 static int mydb_initialized = 0;
+
+#ifdef WITH_RC4
+typedef struct rc4_context_s rc4_context_t;
+#endif
 
 /* context that stores info */
 typedef struct context {
@@ -215,16 +205,10 @@ typedef struct context {
   des_key_schedule keysched_dec2;   /* key schedule for 3des initialization */
 #endif
 
-#ifdef WITH_CMU_RC4
+#ifdef WITH_RC4
   rc4_context_t *rc4_enc_context;
   rc4_context_t *rc4_dec_context;
-#endif /* WITH_CMU_RC4 */
-
-#ifdef WITH_SSL_RC4
-  RC4_KEY *rc4_enc_context;
-  RC4_KEY *rc4_dec_context;  
-#endif /* WITH_SSL_RC4 */
-
+#endif /* WITH_RC4 */
 } context_t;
 
 struct digest_cipher {
@@ -1187,27 +1171,133 @@ static int init_des(void *v,
 
 #endif /* WITH_DES */
 
-#ifdef WITH_CMU_RC4
+#ifdef WITH_RC4
+/* quick generic implementation of RC4 */
+struct rc4_context_s {
+  unsigned char sbox[256];
+  int i, j;
+};
+
+static void
+rc4_init(rc4_context_t *text,
+         const unsigned char *key,
+         unsigned keylen)
+{
+    int i, j;
+  
+    /* fill in linearly s0=0 s1=1... */
+    for (i=0;i<256;i++)
+	text->sbox[i]=i;
+    
+    j=0;
+    for (i = 0; i < 256; i++) {
+	unsigned char tmp;
+	/* j = (j + Si + Ki) mod 256 */
+	j = (j + text->sbox[i] + key[i % keylen]) % 256;
+
+	/* swap Si and Sj */
+	tmp = text->sbox[i];
+	text->sbox[i] = text->sbox[j];
+	text->sbox[j] = tmp;
+    }
+
+    /* counters initialized to 0 */
+    text->i = 0;
+    text->j = 0;
+}
+
+static void
+rc4_encrypt(rc4_context_t *text,
+	    const char *input,
+	    char *output,
+	    unsigned len)
+{
+    int tmp;
+    int i = text->i;
+    int j = text->j;
+    int t;
+    int K;
+    const char *input_end = input + len;
+    
+    while (input < input_end) {
+	i = (i + 1) % 256;
+
+	j = (j + text->sbox[i]) % 256;
+
+	/* swap Si and Sj */
+	tmp = text->sbox[i];
+	text->sbox[i] = text->sbox[j];
+	text->sbox[j] = tmp;
+	
+	t = (text->sbox[i] + text->sbox[j]) % 256;
+	
+	K = text->sbox[t];
+	
+	/* byte K is Xor'ed with plaintext */
+	*output++ = *input++ ^ K;
+  }
+
+  text->i = i;
+  text->j = j;
+}
+
+static void
+rc4_decrypt(rc4_context_t *text,
+            const char *input,
+            char *output,
+            unsigned len)
+{
+    int tmp;
+    int i = text->i;
+    int j = text->j;
+    int t;
+    int K;
+    const char *input_end = input + len;
+    
+    while (input < input_end) {
+	i = (i + 1) % 256;
+	
+	j = (j + text->sbox[i]) % 256;
+	
+	/* swap Si and Sj */
+	tmp = text->sbox[i];
+	text->sbox[i] = text->sbox[j];
+	text->sbox[j] = tmp;
+	
+	t = (text->sbox[i] + text->sbox[j]) % 256;
+	
+	K = text->sbox[t];
+	
+	/* byte K is Xor'ed with plaintext */
+	*output++ = *input++ ^ K;
+    }
+
+    text->i = i;
+    text->j = j;
+}
+
 static int
 init_rc4(void *v, 
 	 sasl_utils_t *utils __attribute__((unused)),
 	 char enckey[16],
 	 char deckey[16])
 {
-  context_t *text = (context_t *) v;
+    context_t *text = (context_t *) v;
 
-  /* allocate rc4 context structures */
-  text->rc4_enc_context=(rc4_context_t *) text->malloc(sizeof(rc4_context_t));
-  if (text->rc4_enc_context==NULL) return SASL_NOMEM;
+    /* allocate rc4 context structures */
+    text->rc4_enc_context=
+	(rc4_context_t *) text->malloc(sizeof(rc4_context_t));
+    if (text->rc4_enc_context==NULL) return SASL_NOMEM;
 
-  text->rc4_dec_context=(rc4_context_t *) text->malloc(sizeof(rc4_context_t));
-  if (text->rc4_dec_context==NULL) return SASL_NOMEM;
+    text->rc4_dec_context=
+	(rc4_context_t *) text->malloc(sizeof(rc4_context_t));
+    if (text->rc4_dec_context==NULL) return SASL_NOMEM;
 
-  /* initialize them */
-  rc4_init(text->rc4_enc_context,(const unsigned char *) enckey, 16);
-  rc4_init(text->rc4_dec_context,(const unsigned char *) deckey, 16);
+    /* initialize them */
+    rc4_init(text->rc4_enc_context,(const unsigned char *) enckey, 16);
+    rc4_init(text->rc4_dec_context,(const unsigned char *) deckey, 16);
 
-  return SASL_OK;
+    return SASL_OK;
 }
 
 static int
@@ -1220,85 +1310,15 @@ dec_rc4(void *v,
 {
     context_t *text = (context_t *) v;
 
-  /* decrypt the text part */
-  rc4_decrypt(text->rc4_dec_context, input, output, inputlen-10);
-
-  /* decrypt the HMAC part */
-  rc4_decrypt(text->rc4_dec_context, input+(inputlen-10), (char *) digest, 10);
-
-  /* no padding so we just subtract the HMAC to get the text length */
-  *outputlen=inputlen-10;
-
-  return SASL_OK;
-}
-
-static int
-enc_rc4(void *v,
-	const char *input,
-	unsigned inputlen,
-	unsigned char digest[16],
-	char *output,
-	unsigned *outputlen)
-{
-  context_t *text = (context_t *) v;
-
-  /* pad is zero */
-  *outputlen = inputlen+10;
-
-  /* encrypt the text part */
-  rc4_encrypt(text->rc4_enc_context, (const char *) input, output, inputlen);
-
-  /* encrypt the HMAC part */
-  rc4_encrypt(text->rc4_enc_context, (const char *) digest, (output)+inputlen, 10);
-
-  return SASL_OK;
-}
-
-#endif /* WITH_CMU_RC4 */
-
-#ifdef WITH_SSL_RC4
-
-static int
-init_rc4(void *v, 
-	 sasl_utils_t *utils __attribute__((unused)),
-	 char enckey[16],
-	 char deckey[16])
-{
-  context_t *text = (context_t *) v;
-
-  /* allocate rc4 context structures */
-  text->rc4_enc_context= (RC4_KEY *) text->malloc(sizeof(RC4_KEY));
-  if (text->rc4_enc_context==NULL) return SASL_NOMEM;
-
-  text->rc4_dec_context= (RC4_KEY *) text->malloc(sizeof(RC4_KEY));
-  if (text->rc4_dec_context==NULL) return SASL_NOMEM;
-
-  /* initialize them */
-  RC4_set_key(text->rc4_enc_context,16, (unsigned char *) enckey);
-  RC4_set_key(text->rc4_dec_context,16, (unsigned char *) deckey);
-
-  return SASL_OK;
-}
-
-static int
-dec_rc4(void *v, 
-	const char *input,
-	unsigned inputlen,
-	unsigned char digest[16],
-	char *output,
-	unsigned *outputlen)
-{
-    context_t *text = (context_t *) v;
-
     /* decrypt the text part */
-    RC4(text->rc4_dec_context, inputlen-10, (unsigned char *) input, output);
+    rc4_decrypt(text->rc4_dec_context, input, output, inputlen-10);
 
     /* decrypt the HMAC part */
-    RC4(text->rc4_dec_context, 10, (unsigned char *) input+(inputlen-10), 
-	(char *) digest);
+    rc4_decrypt(text->rc4_dec_context, 
+		input+(inputlen-10), (char *) digest, 10);
 
     /* no padding so we just subtract the HMAC to get the text length */
-    *outputlen=inputlen-10;
+    *outputlen = inputlen - 10;
 
     return SASL_OK;
 }
@@ -1317,16 +1337,16 @@ enc_rc4(void *v,
     *outputlen = inputlen+10;
 
     /* encrypt the text part */
-    RC4(text->rc4_enc_context, inputlen, (unsigned char *) input, output);
+    rc4_encrypt(text->rc4_enc_context, (const char *) input, output, inputlen);
 
     /* encrypt the HMAC part */
-    RC4(text->rc4_enc_context, 10, (unsigned char *) digest, 
-	(output)+inputlen);
+    rc4_encrypt(text->rc4_enc_context, (const char *) digest, 
+		(output)+inputlen, 10);
 
     return SASL_OK;
 }
 
-#endif /* WITH_SSL_RC4 */
+#endif /* WITH_RC4 */
 
 struct digest_cipher available_ciphers[] =
 {
@@ -2041,19 +2061,19 @@ server_continue_step(void *conn_context,
     /* add to challenge; if we chose not to specify a realm, we won't
      * end one to the client */
     if (realm && add_to_challenge(sparams->utils, &challenge, "realm", (unsigned char *) realm, TRUE) != SASL_OK) {
-      VL(("add_to_challenge failed\n"));
-      return SASL_FAIL;
+	SETERRSTR("internal error: add_to_challenge failed");
+	return SASL_FAIL;
     }
     /* get nonce XXX have to clean up after self if fail */
     nonce = create_nonce(sparams->utils);
     if (nonce == NULL) {
-      VL(("failed creating a nonce\n"));
-      return SASL_FAIL;
+	SETERRSTR("internal erorr: failed creating a nonce");
+	return SASL_FAIL;
     }
     /* add to challenge */
     if (add_to_challenge(sparams->utils, &challenge, "nonce", nonce, TRUE) != SASL_OK) {
-      VL(("add_to_challenge 2 failed\n"));
-      return SASL_FAIL;
+	SETERRSTR("internal error: add_to_challenge 2 failed");
+	return SASL_FAIL;
     }
     /*
      * qop-options A quoted string of one or more tokens indicating the
@@ -2064,9 +2084,10 @@ server_continue_step(void *conn_context,
      */
 
     /* add qop to challenge */
-    if (add_to_challenge(sparams->utils, &challenge, "qop", (unsigned char *) qop, TRUE) != SASL_OK) {
-      VL(("add_to_challenge 3 failed\n"));
-      return SASL_FAIL;
+    if (add_to_challenge(sparams->utils, &challenge, "qop", 
+			 (unsigned char *) qop, TRUE) != SASL_OK) {
+	SETERRSTR("internal error: add_to_challenge 3 failed");
+	return SASL_FAIL;
     }
 
 
@@ -2076,10 +2097,11 @@ server_continue_step(void *conn_context,
     /* add cipher-opts to challenge; only add if there are some */
     if (strcmp(cipheropts,"")!=0)
     {
-      if (add_to_challenge(sparams->utils, &challenge, "cipher", (unsigned char *) cipheropts, 
+      if (add_to_challenge(sparams->utils, &challenge, 
+			   "cipher", (unsigned char *) cipheropts, 
 			   TRUE) != SASL_OK) {
-	VL(("add_to_challenge 3 failed\n"));
-	return SASL_FAIL;
+	  SETERRSTR("internal error: add_to_challenge 4 failed");
+	  return SASL_FAIL;
       }
     }
 
@@ -2093,9 +2115,10 @@ server_continue_step(void *conn_context,
      * authentication exchange.
      */
 
-    if (add_to_challenge(sparams->utils, &challenge, "charset", (unsigned char *) charset, FALSE) != SASL_OK) {
-      VL(("add_to_challenge 4 failed\n"));
-      return SASL_FAIL;
+    if (add_to_challenge(sparams->utils, &challenge, "charset", 
+			 (unsigned char *) charset, FALSE) != SASL_OK) {
+	SETERRSTR("internal error: add_to_challenge 5 failed");
+	return SASL_FAIL;
     }
 
 
@@ -2111,8 +2134,10 @@ server_continue_step(void *conn_context,
      */
    
     if (add_to_challenge(sparams->utils, &challenge,"algorithm",
-			 (unsigned char *) "md5-sess", FALSE)!=SASL_OK)
-      return SASL_FAIL;
+			 (unsigned char *) "md5-sess", FALSE)!=SASL_OK) {
+	SETERRSTR("internal error: add_to_challenge 6 failed");
+	return SASL_FAIL;
+    }
 
     *serverout = challenge;
     *serveroutlen = strlen(*serverout);
@@ -2121,6 +2146,7 @@ server_continue_step(void *conn_context,
      * The size of a digest-challenge MUST be less than 2048 bytes!!!
      */
     if (*serveroutlen > 2048) {
+	SETERRSTR("internal error: challenge larger than 2048 bytes");
 	return SASL_FAIL;
     }
 
@@ -2224,7 +2250,7 @@ server_continue_step(void *conn_context,
       } else if (strcasecmp(name, "nc") == 0) {
 
 	if (htoi((unsigned char *) value, &noncecount) != SASL_OK) {
-	    if (errstr) *errstr = "Error converting hex to int";
+	    SETERRSTR("error converting hex to int");
 	    result = SASL_BADAUTH;
 	    goto FreeAllMem;
 	}
@@ -2232,11 +2258,11 @@ server_continue_step(void *conn_context,
 
       } else if (strcasecmp(name, "realm") == 0) {
 	  if (realm) {
-	      if (errstr) *errstr = "duplicate realm: authentication aborted";
+	      SETERRSTR("duplicate realm: authentication aborted");
 	      result = SASL_FAIL;
 	      goto FreeAllMem;
 	  } else if (text->realm && (strcmp(value, text->realm) != 0)) {
-	      if (errstr) *errstr = "realm changed: authentication aborted";
+	      SETERRSTR("realm changed: authentication aborted");
 	      result = SASL_FAIL;
 	      goto FreeAllMem;
 	  }
@@ -2248,7 +2274,7 @@ server_continue_step(void *conn_context,
 	      /*
 	       * Nonce changed: Abort authentication!!!
 	       */
-	      if (errstr) *errstr = "nonce changed: authentication aborted";
+	      SETERRSTR("nonce changed: authentication aborted");
 	      result = SASL_BADAUTH;
 	      goto FreeAllMem;
 	  }
@@ -2268,22 +2294,22 @@ server_continue_step(void *conn_context,
 	maxbuf_count++;
 	if (maxbuf_count != 1) {
 	  result = SASL_BADAUTH;
-	  if (errstr) *errstr = "duplicate maxbuf: authentication aborted";
+	  SETERRSTR("duplicate maxbuf: authentication aborted");
 	  goto FreeAllMem;
 	} else if (sscanf(value, "%u", &client_maxbuf) != 1) {
 	  result = SASL_BADAUTH;
-	  if (errstr) *errstr = "invalid maxbuf parameter";
+	  SETERRSTR("invalid maxbuf parameter");
 	  goto FreeAllMem;
 	} else {
             if (client_maxbuf <= 16) {
 	      result = SASL_BADAUTH;
-	      if (errstr) *errstr = "maxbuf parameter too small";
+	      SETERRSTR("maxbuf parameter too small");
 	      goto FreeAllMem;
             }
 	}
       } else if (strcasecmp(name, "charset") == 0) {
 	if (strcasecmp(value, "utf-8") != 0) {
-	    if (errstr) *errstr = "client doesn't support UTF-8";
+	    SETERRSTR("client doesn't support UTF-8");
 	    result = SASL_FAIL;
 	    goto FreeAllMem;
 	}
@@ -2329,7 +2355,7 @@ server_continue_step(void *conn_context,
 	    sparams->utils->log(sparams->utils->conn, SASL_LOG_WARNING,
 			    "DIGEST_MD5", SASL_FAIL, 0,
 		    "protocol violation: client requested invalid cipher");
-	    if (errstr) *errstr = "client requested invalid cipher";
+	    SETERRSTR("client requested invalid cipher");
 	    result = SASL_FAIL;
 	    goto FreeAllMem;
 	}
@@ -2351,7 +2377,7 @@ server_continue_step(void *conn_context,
 	sparams->utils->log(sparams->utils->conn, SASL_LOG_WARNING,
 			    "DIGEST_MD5", SASL_FAIL, 0,
                           "protocol violation: client requested invalid qop");
-	if (errstr) *errstr = "client requested invalid qop";
+	SETERRSTR("client requested invalid qop");
 	result = SASL_FAIL;
 	goto FreeAllMem;
     }
@@ -2375,7 +2401,7 @@ server_continue_step(void *conn_context,
 	(cnonce == NULL) ||
 	(digesturi == NULL) ||
 	(response == NULL)) {
-	if (errstr) *errstr = "required parameters missing";
+	SETERRSTR("required parameters missing");
 	result = SASL_BADAUTH;
 	goto FreeAllMem;
     }
@@ -2385,6 +2411,7 @@ server_continue_step(void *conn_context,
 					 (int (**) ()) &getsecret, /* ??? */
 					 &getsecret_context);
     if ((result != SASL_OK) || (!getsecret)) {
+	SETERRSTR("internal error: couldn't get 'getsecret' callback");
 	result = SASL_FAIL;
 	goto FreeAllMem;
     }
@@ -2398,12 +2425,13 @@ server_continue_step(void *conn_context,
     result = getsecret(getsecret_context, "DIGEST-MD5", username,
 		       realm, &sec);
     if (result != SASL_OK) {
-      VL(("Unable to getsecret for %s\n", username));
-      goto FreeAllMem;
+	SETERRSTR("unable to get user's secret");
+	goto FreeAllMem;
     }
     if (!sec) {
-      result = SASL_FAIL;
-      goto FreeAllMem;
+	SETERRSTR("unable to get user's secret");
+	result = SASL_FAIL;
+	goto FreeAllMem;
     }
     /*
      * Verifying response obtained from client
@@ -2417,9 +2445,9 @@ server_continue_step(void *conn_context,
      * Verifying that we really store A1 in our authentication database
      */
     if (sec->len != HASHLEN) {
-      VL(("stored secret of wrong length\n"));
-      result = SASL_FAIL;
-      goto FreeAllMem;
+	SETERRSTR("internal error: stored secret of wrong length");
+	result = SASL_FAIL;
+	goto FreeAllMem;
     }
     /*
      * A1       = { H( { username-value, ":", realm-value, ":", passwd } ),
@@ -2431,8 +2459,6 @@ server_continue_step(void *conn_context,
     /* We're done with sec now. Let's get rid of it XXX should be
        zero'ed out */
     sparams->utils->free(sec);
-
-    VL(("A1 is %s\n", A1));
 
     serverresponse = create_response(text,
 				     sparams->utils,
@@ -2447,14 +2473,14 @@ server_continue_step(void *conn_context,
 
 
     if (serverresponse == NULL) {
-      result = SASL_NOMEM;
-      goto FreeAllMem;
+	SETERRSTR("internal error: unable to create response");
+	result = SASL_NOMEM;
+	goto FreeAllMem;
     }
-
 
     /* if ok verified */
     if (strcmp(serverresponse, response) != 0) {
-	if (errstr) *errstr = "Client 'response' doesn't match what we generated";
+	SETERRSTR("client response doesn't match what we generated");
 	result = SASL_BADAUTH;
 	
 	VL(("Client Sent: %s\n", response));
@@ -2543,9 +2569,9 @@ server_continue_step(void *conn_context,
     if (add_to_challenge(sparams->utils, &response_auth, "rspauth", 
 			 (unsigned char *) text->response_value, FALSE) 
 	    != SASL_OK) {
-      VL(("add_to_challenge failed\n"));
-      result = SASL_FAIL;
-      goto FreeAllMem;
+	SETERRSTR("add_to_challenge failed");
+	result = SASL_FAIL;
+	goto FreeAllMem;
     }
     *serverout = response_auth;
     *serveroutlen = strlen(response_auth);
@@ -2606,7 +2632,7 @@ server_continue_step(void *conn_context,
      * Send additional information for reauthentication
      */
     if (clientinlen != 0) {
-	if (errstr) *errstr =  "no more data expected from client";
+	SETERRSTR("no more data expected from client");
 	return SASL_FAIL;
     }
     *serverout = NULL;

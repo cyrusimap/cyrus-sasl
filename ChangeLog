@@ -1,3 +1,7 @@
+2002-05-06  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* include/saslplug.h: add name member for canon_user plugins
+	* lib/canonusr.c: use name member
+
 2002-05-06  Ken Murchison <ken@oceana.com>
 	* plugins/digestmd5.c: added client-side reauth
 

@@ -1,6 +1,6 @@
 /* canonusr.c - user canonicalization support
  * Rob Siemborski
- * $Id: canonusr.c,v 1.7 2002/04/17 20:46:15 rjs3 Exp $
+ * $Id: canonusr.c,v 1.8 2002/05/06 15:57:42 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -133,7 +133,10 @@ int _sasl_canon_user(sasl_conn_t *conn,
     }
     
     for(ptr = canonuser_head; ptr; ptr = ptr->next) {
-	if(!strcmp(plugin_name, ptr->name)) break;
+	/* A match is if we match the internal name of the plugin, or if
+	 * we match the filename (old-style) */
+	if((ptr->plug->name && !strcmp(plugin_name, ptr->plug->name))
+	   || !strcmp(plugin_name, ptr->name)) break;
     }
 
     /* We clearly don't have this one! */
@@ -342,7 +345,7 @@ static sasl_canonuser_plug_t canonuser_internal_plugin = {
         0, /* features */
 	0, /* spare */
 	NULL, /* glob_context */
-	"INTERNAL", /* spare */
+	"INTERNAL", /* name */
 	NULL, /* canon_user_free */
 	_cu_internal_server,
 	_cu_internal_client,

@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.127 2002/05/06 14:28:59 ken3 Exp $
+ * $Id: digestmd5.c,v 1.128 2002/05/06 15:57:43 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -103,7 +103,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.127 2002/05/06 14:28:59 ken3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.128 2002/05/06 15:57:43 rjs3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -255,7 +255,7 @@ struct digest_cipher {
     cipher_free_t *cipher_free;
 };
 
-static unsigned char *COLON = (unsigned char *) ":";
+static const unsigned char *COLON = ":";
 
 static void CvtHex(HASH Bin, HASHHEX Hex)
 {

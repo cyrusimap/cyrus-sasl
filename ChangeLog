@@ -1,3 +1,6 @@
+2004-05-07  Ken Murchison <ken@oceana.com>
+	* contrib/stripplus_canonuser.patch: added
+
 2004-04-27  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/auth_shadow.c: Make thread-safe
 	  (Steve Barber <steveb@cme.nist.gov>)

@@ -1,3 +1,11 @@
+2000-04-27  Larry Greenfield  <leg+@andrew.cmu.edu>
+
+	* utils/sasldblistusers.c: patch from Leena Heino <liinu@uta.fi>
+	to support Berkeley DB 2.6.
+
+	* configure.in: des/rc4 were adding -I to the LDFLAGS line.  now
+	they add -L.
+
 2000-04-26  Larry Greenfield  <leg+@andrew.cmu.edu>
 
 	* utils/sasldblistusers.c: look for 2 NULs, not 3.  continue on
@@ -14,10 +22,12 @@
 
 	* sasl: releasing 1.5.19
 
-	* plugins/digestmd5.c (c_continue_step): free input string on SASL_INTERACT
+	* plugins/digestmd5.c (c_continue_step): free input string on
+	SASL_INTERACT
 	(c_continue_step): free nonce string on SASL_INTERACT
 
-	* plugins/gssapi.c (sasl_gss_server_step): fixed errors in <gombasg@inf.elte.hu>'s patch
+	* plugins/gssapi.c (sasl_gss_server_step): fixed errors in
+	<gombasg@inf.elte.hu>'s patch
 
 	* plugins/digestmd5.c (c_continue_step): free memory on failure
 	(c_continue_step): free userid when setting to null
@@ -28,7 +38,8 @@
 
 	* plugins/kerberos4.c (server_continue_step): deal with short input
 
-	* plugins/anonymous.c (server_continue_step): off by one error in strncpy
+	* plugins/anonymous.c (server_continue_step): off by one error in
+	strncpy
 
 2000-04-12  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
@@ -55,13 +66,14 @@
 
 	* plugins/srp.c: started writing.
 
-	* plugins/kerberos4.c (server_continue_step): additions cases where errstr is filled in
+	* plugins/kerberos4.c (server_continue_step): additional cases
+	where errstr is filled in
 
 2000-04-02  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
 	* Makefile.am: added testing.txt to distribution
 	
-	* utils/sasllistdbusers.c: added clauses sasldblistusers.c patch
+	* utils/sasllistdbusers.c: added Claus's sasldblistusers.c patch
 
 2000-03-29  Timothy Martin  <tmartin+@andrew.cmu.edu>
 

@@ -1,3 +1,9 @@
+2002-04-22  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* include/gai.h: Fix for compatibility with older glibc versions
+	  (Howard Chu, <hyc@highlandsun.com>)
+	* plugins/gssapi.c: Don't always send authzid on client side
+	  (Howard Chu, <hyc@highlandsun.com>)
+
 2002-04-18  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/auth_sasldb.c: Use "use_realm" instead of "realm"
 	  for lookup of secret. (Jonas Oberg <jonas@gnu.org>)

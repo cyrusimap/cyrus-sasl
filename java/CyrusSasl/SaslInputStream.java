@@ -5,6 +5,7 @@ import java.io.*;
 public class SaslInputStream extends InputStream
 {
     static final boolean DoEncrypt = true;
+    static final boolean DoDebug = false;
     private static int BUFFERSIZE = 16384;
 
     // if bufferend < bufferstart, we've wrapped around
@@ -19,7 +20,9 @@ public class SaslInputStream extends InputStream
     
     public SaslInputStream(InputStream in, GenericCommon conn)
     {
-	System.err.println("DEBUG constructing SaslInputStream");
+	if (DoDebug) {
+	    System.err.println("DEBUG constructing SaslInputStream");
+	}
 	this.in = in;
 	this.conn = conn;
     }
@@ -61,8 +64,10 @@ public class SaslInputStream extends InputStream
     private void readsome() throws IOException
     {
 	int len=in.available();
-	
-	System.err.println("DEBUG in readsome(), avail " + len);
+
+	if (DoDebug) {
+	    System.err.println("DEBUG in readsome(), avail " + len);
+	}
 
 	if (len > BUFFERSIZE || len == 0)
 	    len = BUFFERSIZE;
@@ -104,13 +109,17 @@ public class SaslInputStream extends InputStream
     {
 	int ret;
 	
-	System.err.println("DEBUG in read(), size " + size);
+	if (DoDebug) {
+	    System.err.println("DEBUG in read(), size " + size);
+	}
 	if (size == 0) {
 	    readsome();
 	}
 	
 	if (size == 0) {
-	    System.err.println("DEBUG read() returning -1");
+	    if (DoDebug) {
+		System.err.println("DEBUG read() returning -1");
+	    }
 	    return -1;
 	}
 	
@@ -118,7 +127,9 @@ public class SaslInputStream extends InputStream
 	bufferstart = (bufferstart + 1) % BUFFERSIZE;
 	size--;
 
-	System.err.println("DEBUG read() returning " + ret);
+	if (DoDebug) {
+	    System.err.println("DEBUG read() returning " + ret);
+	}
 	return ret;
     }
 
@@ -131,7 +142,9 @@ public class SaslInputStream extends InputStream
 				 int off,
 				 int len) throws IOException 
     {
-	System.err.println("DEBUG in read(b, off, len), size " + size);
+	if (DoDebug) {
+	    System.err.println("DEBUG in read(b, off, len), size " + size);
+	}
 	if (off < 0 || len < 0) {
 	    throw new IndexOutOfBoundsException();
 	}
@@ -143,7 +156,9 @@ public class SaslInputStream extends InputStream
 	if (size == 0) {
 	    readsome();
 	    if (size == 0) {
-		System.err.println("DEBUG read(b, off, len) returning -1");
+		if (DoDebug) {
+		    System.err.println("DEBUG read(b, off, len) returning -1");
+		}
 		return -1;
 	    }
 	}
@@ -157,7 +172,9 @@ public class SaslInputStream extends InputStream
 	    size--;
 	}
 
-	System.err.println("DEBG read() returning " + (l - off));
+	if (DoDebug) {
+	    System.err.println("DEBUG read() returning " + (l - off));
+	}
 	return l - off;
     }
     

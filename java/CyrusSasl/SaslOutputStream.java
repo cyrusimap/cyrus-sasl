@@ -5,6 +5,7 @@ import java.io.*;
 public class SaslOutputStream extends OutputStream
 {
     static final boolean DoEncrypt = true;
+    static final boolean DoDebug = false;
 
     private static int MAXBUFFERSIZE=1000;
     private GenericCommon conn;
@@ -15,14 +16,19 @@ public class SaslOutputStream extends OutputStream
 
     public SaslOutputStream(OutputStream out, GenericCommon conn)
     {
-	System.err.println("DEBUG constructing SaslOutputStream");
+	if (DoDebug) {
+	    System.err.println("DEBUG constructing SaslOutputStream");
+	}
 	this.conn=conn;
 	this.out=out;
     }
 
     private void write_if_size() throws IOException
     {
-	System.err.println("DEBUG write_if_size(): buffersize " + buffersize);
+	if (DoDebug) {
+	    System.err.println("DEBUG write_if_size(): buffersize " + 
+			       buffersize);
+	}
 	if ( buffersize >=MAXBUFFERSIZE)
 	    flush();
     }
@@ -43,7 +49,9 @@ public class SaslOutputStream extends OutputStream
 				   int off,
 				   int len) throws IOException
     {
-	System.err.println("DEBUG writing() len " + len);
+	if (DoDebug) {
+	    System.err.println("DEBUG writing() len " + len);
+	}
 	if (len+buffersize < MAXBUFFERSIZE) {
 	    for (int lup=0;lup<len;lup++) {   
 		buffer[buffersize+lup]=b[lup+off];
@@ -65,12 +73,16 @@ public class SaslOutputStream extends OutputStream
 	    out.flush();
 	}
 
-	System.err.println("DEBUG writing(): done");
+	if (DoDebug) {
+	    System.err.println("DEBUG writing(): done");
+	}
     }
 
     public synchronized void flush() throws IOException
     {
-	System.err.println("DEBUG flushing(): buffersize " + buffersize);
+	if (DoDebug) {
+	    System.err.println("DEBUG flushing(): buffersize " + buffersize);
+	}
 	if (buffersize==0) return;
 
 	if (DoEncrypt && conn != null) {
@@ -82,7 +94,9 @@ public class SaslOutputStream extends OutputStream
 	}
 	out.flush();
 	buffersize=0;
-	System.err.println("DEBUG flushing(): done");
+	if (DoDebug) {
+	    System.err.println("DEBUG flushing(): done");
+	}
     }
 
     public synchronized void close() throws IOException

@@ -1,3 +1,8 @@
+New in 1.5.14
+-------------
+* Unsupported LOGIN plugin added, by Rainer Schoepf <schoepf@uni-mainz.de>.
+  Please don't enable it unless you know you need it.
+
 New in 1.5.13
 -------------
 * Sanity check to make sure there's at least something in sasldb

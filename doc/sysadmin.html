@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.9 1999/12/24 00:22:36 leg Exp $ -->
+<!-- $Id: sysadmin.html,v 1.10 2000/01/02 04:34:53 leg Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -14,10 +14,11 @@ uses the Cyrus SASL library.
 SASL, the Simple Authentication and Security Layer, is a generic
 mechanism for protocols to accomplish authentication.  Since protocols
 (such as SMTP or IMAP) use SASL, it is a natural place for code
-sharing between applications.  Some notable applications that use SASL
-include <a href="http://www.sendmail.org">Sendmail</a> (versions
-8.10.0 and higher) and <a href="http://web.asg.cmu.edu/cyrus">Cyrus
-imapd</a> (versions 1.6.0 and higher).
+sharing between applications.  Some notable applications that use the
+Cyrus SASL library include <a
+href="http://www.sendmail.org">Sendmail</a> (versions 8.10.0 and
+higher) and <a href="http://web.asg.cmu.edu/cyrus">Cyrus imapd</a>
+(versions 1.6.0 and higher).
 
 <p> Applications use the SASL library to tell it how to accomplish the
 SASL protocol exchange, and what the results were.
@@ -95,7 +96,8 @@ choose to use and the exact implementation of that mechanism.  This
 section describes the way these mechanisms act in the Cyrus SASL
 implementation.
 
-<h3>The PLAIN mechanism and <tt>sasl_checkpass()</tt> call</h3>
+<h3>The PLAIN mechanism, <tt>sasl_checkpass()</tt>, and plaintext
+passwords</h3>
 
 The PLAIN mechanism is not a secure method of authentication by
 itself.  It is intended for connections that are being encrypted by
@@ -146,7 +148,7 @@ flexible in this regard:
   "PAM".  It uses PAM with the service name (for example, Sendmail
   uses "smtp" and Cyrus imapd uses "imap").<p>
 
-  The PAM authentication for SASL <i>only</i> affects the plaintext
+  <p>The PAM authentication for SASL <i>only</i> affects the plaintext
   authentication it does.  It has no effect on the other mechanisms,
   so it is incorrect to try to use PAM to enforce additional
   restrictions beyond correct password on an application that uses
@@ -170,6 +172,13 @@ flexible in this regard:
   method to <tt>lib/checkpw.c</tt>.  Be sure to add a prototype in
   <tt>lib/saslint.h</tt>!<p>
 </ul>
+
+<p>The LOGIN mechanism (not to be confused with IMAP4's LOGIN command)
+is an undocumented, unsupported mechanism.  It's included in the Cyrus
+SASL distribution for the sake of SMTP servers that might want to
+interoperate with old clients.  Do not enable this mechanism unless
+you know you're going to need it.  When enabled, it verifies passwords
+the same way the PLAIN mechanism does.
 
 <h3>Shared secrets mechanisms</h3>
 

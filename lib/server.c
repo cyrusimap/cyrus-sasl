@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.61 1999/12/02 19:12:06 leg Exp $
+ * $Id: server.c,v 1.62 1999/12/21 23:23:19 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -399,14 +399,14 @@ static void server_dispose(sasl_conn_t *pconn)
 
 static int init_mechlist(void)
 {
-  /* set util functions - need to do rest*/
-  mechlist->utils=_sasl_alloc_utils(NULL, &global_callbacks);
-  mechlist->utils->checkpass = &_sasl_checkpass;
-  
-  if (mechlist->utils==NULL)
-    return SASL_NOMEM;
+    /* set util functions - need to do rest*/
+    mechlist->utils = _sasl_alloc_utils(NULL, &global_callbacks);
+    if (mechlist->utils == NULL)
+	return SASL_NOMEM;
 
-  return SASL_OK;
+    mechlist->utils->checkpass = &_sasl_checkpass;
+
+    return SASL_OK;
 }
 
 /*

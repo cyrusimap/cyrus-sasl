@@ -448,7 +448,7 @@ static int lak_tokenize_domains(
 
 	*result = NULL;
 
-	if (d == NULL || (n < 1 && n > 9))
+	if (d == NULL || n < 1 || n > 9)
 		return LAK_FAIL;
 
 	s = strdup(d);

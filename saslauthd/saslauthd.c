@@ -78,7 +78,7 @@
  * END HISTORY */
 
 #ifdef __GNUC__
-#ident "$Id: saslauthd.c,v 1.10 2002/01/21 21:18:34 rjs3 Exp $"
+#ident "$Id: saslauthd.c,v 1.11 2002/01/21 21:19:09 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -161,7 +161,7 @@ main(
 					   controlling tty */
     int conn;				/* per-connection socket fd */
     int rc;				/* generic return code holder  */
-    int lfd,alfd;      			/* master lock file descriptor */
+    int lfd,alfd=0;      		/* master lock file descriptor */
     char *lockfile;			/* master lock file name       */
     char *acceptlockfile;
     struct flock lockinfo;		/* fcntl locking on lockfile   */

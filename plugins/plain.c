@@ -1,7 +1,7 @@
 /* Plain SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: plain.c,v 1.56 2002/05/13 15:43:17 ken3 Exp $
+ * $Id: plain.c,v 1.57 2002/06/17 16:24:35 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -62,7 +62,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: plain.c,v 1.56 2002/05/13 15:43:17 ken3 Exp $";
+static const char plugin_id[] = "$Id: plain.c,v 1.57 2002/06/17 16:24:35 rjs3 Exp $";
 
 /*****************************  Server Section  *****************************/
 
@@ -81,19 +81,6 @@ static int plain_server_mech_new(void *glob_context __attribute__((unused)),
     *conn_context = NULL;
     
     return SASL_OK;
-}
-
-/* fills in password; remember to free password and wipe it out correctly */
-static int verify_password(sasl_server_params_t *params, 
-			   const char *user, const char *pass)
-{
-    int result;
-    
-    /* if it's null, checkpass will default */
-    result = params->utils->checkpass(params->utils->conn,
-				      user, 0, pass, 0);
-    
-    return result;
 }
 
 static int plain_server_mech_step(void *conn_context __attribute__((unused)),
@@ -161,9 +148,20 @@ static int plain_server_mech_step(void *conn_context __attribute__((unused)),
     
     strncpy(passcopy, password, password_len);
     passcopy[password_len] = '\0';
+   
+    /* Canonicalize userid first, so that password verification is only
+     * against the canonical id */
+    if (!author || !*author)
+	author = authen;
     
-    /* verify password - return sasl_ok on success*/    
-    result = verify_password(params, authen, passcopy);
+    result = params->canon_user(params->utils->conn,
+				authen, 0, SASL_CU_AUTHID, oparams);
+    if (result != SASL_OK) return result;
+    
+    /* verify password - return sasl_ok on success*/
+    result = params->utils->checkpass(params->utils->conn,
+				      oparams->authid, oparams->alen,
+				      passcopy, password_len);
     
     _plug_free_string(params->utils, &passcopy);
     
@@ -172,18 +170,15 @@ static int plain_server_mech_step(void *conn_context __attribute__((unused)),
 				"Password verification failed");
 	return result;
     }
-    
-    if (!author || !*author)
-	author = authen;
-    
-    result = params->canon_user(params->utils->conn,
-				authen, 0, SASL_CU_AUTHID, oparams);
-    if (result != SASL_OK) return result;
-    
+
+    /* Canonicalize and store the authorization ID */
+    /* We need to do this after calling verify_user just in case verify_user
+     * needed to get auxprops itself */
     result = params->canon_user(params->utils->conn,
 				author, 0, SASL_CU_AUTHZID, oparams);
     if (result != SASL_OK) return result;
-    
+
+    /* Transition? */
     if (params->transition) {
 	params->transition(params->utils->conn, password, password_len);
     }

@@ -41,6 +41,9 @@
 	  added KERBEROS_V4 notation,
 	  added link to rfc2831bis draft
 
+2002-04-08  Ken Murchison <ken@oceana.com>
+	* lib/server.c, doc/options.html: allow multiple pwcheck_methods
+
 2002-04-03  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* saslauthd/configure.in: properly define AUTH_KRB5
 	* saslauthd/auth_krb5.c: changes for MIT KRB5

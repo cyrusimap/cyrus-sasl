@@ -1,3 +1,7 @@
+2000-03-09  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* version 1.5.17 BETA ready for release
+
 2000-03-08  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
 	* plugins/plain.c: ditto

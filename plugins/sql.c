@@ -5,7 +5,7 @@
 ** Ken Murchison
 **   based on the original work of Simon Loader and Patrick Welche
 **
-** $Id: sql.c,v 1.19 2003/10/06 16:55:00 ken3 Exp $
+** $Id: sql.c,v 1.20 2003/10/06 17:02:42 ken3 Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -764,7 +764,7 @@ static void sql_auxprop_lookup(void *glob_context,
 			    "sql plugin create statement from %s %s %s\n",
 			    realname, escap_userid, escap_realm);
 	
-	/* create a statment that we will use */
+	/* create a statement that we will use */
 	query = sql_create_statement(settings->sql_select,
 				     realname,escap_userid,
 				     escap_realm, NULL,

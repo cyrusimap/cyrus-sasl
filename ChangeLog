@@ -1,3 +1,6 @@
+2002-04-30  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/gssapi.c: Minor cleanup of struct hack in context structure
+
 2002-04-30  Ken Murchison <ken@oceana.com>
 	* plugins/plugin_common.[ch], anonymous.c, cram.c, login.c, otp.c,
 	  plain.c, sasldb.c, srp.c,

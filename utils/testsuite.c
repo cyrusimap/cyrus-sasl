@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.17 2002/01/09 23:39:35 rjs3 Exp $
+ * $Id: testsuite.c,v 1.18 2002/01/10 22:12:08 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -547,7 +547,8 @@ void test_listmech(void)
     int result;
     const char *str = NULL;
     unsigned int plen;
-    unsigned lup, pcount;
+    unsigned lup, flag, pcount;
+    const char **list;
 
     /* test without initializing library */
     result = sasl_listmech(NULL, /* conn */
@@ -581,21 +582,17 @@ void test_listmech(void)
 	fatal("sasl_client_new() failure");
 
     /* try both sides */
-    result = sasl_listmech(NULL,
-			   NULL,
-			   " [",
-			   ",",
-			   "]",
-			   &str,
-			   NULL,
-			   NULL);
-    if(result == SASL_OK) {
-	printf("Overall mechlist:\n%s\n", str);
-    } else {
-	fatal("overall sasl_listmech failed");
+    list = sasl_global_listmech();
+    if(!list) fatal("sasl_global_listmech failure");
+
+    printf(" [");
+    flag = 0;
+    for(lup = 0; list[lup]; lup++) {
+	if(flag) printf(",");
+	else flag++;
+	printf("%s",list[lup]);
     }
-    /* FIXME */
-    test_free((char *)str);
+    printf("]\n");
 
     /* try client side */
     result = sasl_listmech(cconn,

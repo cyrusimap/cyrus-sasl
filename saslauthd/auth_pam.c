@@ -98,8 +98,6 @@ saslauthd_pam_conv (
     if (my_resp == NULL)
 	return PAM_CONV_ERR;
 
-    memset(my_resp, 0, sizeof(struct pam_response) * num_msg);
-
     for (i = 0; i < num_msg; i++)
 	switch (msg[i]->msg_style) {
 	/*

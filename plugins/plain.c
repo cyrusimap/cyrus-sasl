@@ -782,8 +782,7 @@ static int client_continue_step (void *conn_context,
       return SASL_INTERACT;
     }
     
-    /* Ok I think we got everything now... */
-    if (!authid || !password)
+    if (!text->authid || !text->password)
       return SASL_BADPARAM;
 
     VL (("Got username, authid, and password\n"));

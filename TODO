@@ -6,8 +6,8 @@ Library
 ) Add db support to pwcheck_method
 ) use file callback on secrets db? (annoying!)
 ) Does shadow password stuff work? (maybe pwcheck?)
-) configure stuff: static libs, snprintf, etc.
-) Use libltdl?
+) configure stuff: static libs, etc.
+) Use libltdl---probably much better portability
 
 Documentation
 ~~~~~~~~~~~~~
@@ -30,11 +30,9 @@ Digest-MD5
 Kerberos_V4
 ~~~~~~~~~~~
 ) Needs to check timestamps for replay attacks
-) Don't use layers if IP addresses haven't been specified
 
 Plain
 ~~~~~
-) Why doesn't it proxy correctly
 
 Cram-MD5
 ~~~~~~~~

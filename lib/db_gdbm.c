@@ -129,7 +129,7 @@ putsecret(void *context __attribute__((unused)),
   datum gkey;
 
   if (! mechanism || ! auth_identity)
-    return SASL_FAIL;
+      return SASL_FAIL;
 
   result = alloc_key(mechanism,
 		     auth_identity,

@@ -709,7 +709,7 @@ LIBSASL_API int sasl_server_init(const sasl_callback_t *callbacks,
 /* create context for a single SASL connection
  *  service        -- registered name of the service using SASL (e.g. "imap")
  *  serverFQDN     -- Fully qualified server domain name.  NULL means use
- *                    gethostbyname().  Useful for multi-homed servers.
+ *                    gethostname().  Useful for multi-homed servers.
  *  user_realm     -- permits multiple user domains on server, NULL = default
  *  callbacks      -- callbacks (e.g., authorization, lang, new getopt context)
  *  secflags       -- security flags (see above)

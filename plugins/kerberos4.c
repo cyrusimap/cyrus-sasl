@@ -228,33 +228,34 @@ static int privacy_decode(void *context,
     len= krb_rd_priv((char *) text->buffer,text->size,  text->init_keysched, 
 		     text->session, text->ip_remote, text->ip_local, data);
 
-    if (len!=0) {
-	return SASL_FAIL-(len*100);
+    if (len != 0) {
+	return SASL_FAIL - (len * 100);
     }
 
-    *output=text->malloc(data->app_length+1);
+    *output = text->malloc(data->app_length + 1);
     if ((*output) == NULL) {
 	return SASL_NOMEM;
     }
     
-    *outputlen=data->app_length;
+    *outputlen = data->app_length;
     memcpy(*output, data->app_data, data->app_length);
     (*output)[*outputlen] = '\0';
 
     text->free(data);
-    text->size=-1;
-    text->needsize=4;
+    text->size = -1;
+    text->needsize = 4;
 
     /* if received more than the end of a packet */
     if (inputlen!=0) {
-	extra=NULL;
+	extra = NULL;
 	privacy_decode(text, input, inputlen,
 		       &extra, &extralen);
-	if (extra!=NULL) {
+	if (extra != NULL) {
 	    /* if received 2 packets merge them together */
-	    *output = text->realloc( *output, *outputlen+extralen);
-	    memcpy(*output+*outputlen, extra, extralen); 
-	    *outputlen+=extralen;	
+	    *output = text->realloc(*output, *outputlen+extralen);
+	    memcpy(*output + *outputlen, extra, extralen); 
+	    *outputlen += extralen;
+	    free(extra);
 	}
     }
     
@@ -393,7 +394,8 @@ static int integrity_decode(void *context, const char *input, unsigned inputlen,
       {
 	*output = text->realloc(*output, *outputlen+extralen);
 	memcpy(*output+*outputlen, extra, extralen); 
-	*outputlen+=extralen;	
+	*outputlen+=extralen;
+	free(extra);
       }
     }
      
@@ -1096,14 +1098,14 @@ static int client_continue_step (void *conn_context,
 
     *clientoutlen=len;
 
-    /*nothing more to do; should be authenticated */
+    /* nothing more to do; should be authenticated */
     result = params->utils->getprop(params->utils->conn,
                           SASL_IP_LOCAL, (void **)&(text->ip_local));
-    if (result!=SASL_OK) return result;
+    if (result != SASL_OK) return result;
 
     result = params->utils->getprop(params->utils->conn,
                           SASL_IP_REMOTE, (void **)&(text->ip_remote));
-    if (result!=SASL_OK) return result;
+    if (result != SASL_OK) return result;
 
     oparams->authid =
       params->utils->malloc(strlen(text->credentials.pname)

@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.53 2002/04/22 16:30:02 rjs3 Exp $
+ * $Id: gssapi.c,v 1.54 2002/04/22 16:40:36 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -857,9 +857,10 @@ gssapi_server_mech_step(void *conn_context,
 	}
 
 	if (name_token.value)
-	    params->utils->free(name_without_realm.value);
-	if (name_without_realm.value)
 	    gss_release_buffer(&min_stat, &name_token);
+	if (name_without_realm.value)
+	    params->utils->free(name_without_realm.value);
+
 	
 	/* we have to decide what sort of encryption/integrity/etc.,
 	   we support */

@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.151 2003/03/06 17:03:34 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.152 2003/03/06 17:53:24 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -102,7 +102,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.151 2003/03/06 17:03:34 rjs3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.152 2003/03/06 17:53:24 rjs3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -2274,7 +2274,6 @@ digestmd5_server_mech_step2(server_context_t *stext,
             if (strncasecmp(digesturi, sparams->service, service_len) ||
                 digesturi[service_len] != '/') {
                 result = SASL_BADAUTH;
-		printf("doh: %s vs %s", digesturi, sparams->service);
                 SETERROR(sparams->utils, 
                          "bad digest-uri: doesn't match service");
                 goto FreeAllMem;

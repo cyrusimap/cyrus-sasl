@@ -12,3 +12,4 @@ config.status
 *.l[ao]
 saslauthd
 saslauthd.8
+testsaslauthd

@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.83 2002/09/12 20:24:30 ken3 Exp $
+ * $Id: common.c,v 1.84 2002/09/18 22:07:54 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -688,10 +688,21 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
       break;
 
   case SASL_SEC_PROPS:
-      memcpy(&(conn->props),(sasl_security_properties_t *)value,
-	     sizeof(sasl_security_properties_t));
-      break;
+  {
+      sasl_security_properties_t *props = (sasl_security_properties_t *)value;
 
+      if(props->maxbufsize == 0 && props->min_ssf != 0) {
+	  sasl_seterror(conn, 0,
+			"Attempt to disable security layers (maxoutbuf == 0) with min_ssf > 0");
+	  RETURN(conn, SASL_TOOWEAK);
+      }
+
+      memcpy(&(conn->props), props,
+	     sizeof(sasl_security_properties_t));
+
+      break;
+  }
+      
   case SASL_IPREMOTEPORT:
   {
       const char *ipremoteport = (const char *)value;

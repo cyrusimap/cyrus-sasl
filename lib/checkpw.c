@@ -218,8 +218,8 @@ static int kerberos_verify_password(sasl_conn_t *conn,
     int result;
     des_cblock key;
     char tfname[40];
-    char realm[REALM_SZ];
-    char cell[REALM_SZ];
+    char realm[REALM_SZ+1];
+    char cell[REALM_SZ+1];
     char hostname[MAXHOSTNAMELEN+1];
     char phost[MAXHOSTNAMELEN+1];
     char oldtkfile[MAXPATHLEN];
@@ -247,8 +247,8 @@ static int kerberos_verify_password(sasl_conn_t *conn,
     if (krb_get_lrealm(realm, 1)) return SASL_FAIL;
 
     /* after this point, we need to "goto fini" on failure */
-    strcpy(oldtkfile, tkt_string());
-    sprintf(tfname, "/tmp/tkt_%d", getpid());
+    strcpy(oldtkfile, tkt_string()); /* krb gaurantees only MAXPATHLEN-1 length */
+    snprintf(tfname,sizeof(tfname), "/tmp/tkt_%d", getpid());
     krb_set_tkt_string(tfname);
 
     /* First try Kerberos string-to-key */
@@ -259,6 +259,7 @@ static int kerberos_verify_password(sasl_conn_t *conn,
 
     if (result == INTK_BADPW) {
 	/* Now try andrew string-to-key */
+	realm[REALM_SZ] = '\0';
 	strcpy(cell, realm);
 	lcase(cell);
 	krb_afs_string_to_key(passwd, key, cell);
@@ -277,7 +278,7 @@ static int kerberos_verify_password(sasl_conn_t *conn,
 
     /* Check validity of returned ticket */
     gethostname(hostname, sizeof(hostname));
-    strcpy(phost, krb_get_phost(hostname));
+    strncpy(phost, krb_get_phost(hostname), sizeof(phost));
 
     result = krb_mk_req(&authent, (char *) service, phost, realm, 0);
 
@@ -550,7 +551,7 @@ static int parseuser(char **user, char **realm, const char *user_realm,
 	    *--r = '\0';
 	    *user = sasl_ALLOC(r - input + 1);
 	    if (*user) {
-		strcpy(*user, input);
+		strncpy(*user, input, r - input +1);
 	    } else {
 		ret = SASL_NOMEM;
 	    }
@@ -795,6 +796,8 @@ static int pwcheck_verify_password(sasl_conn_t *conn,
 
     if (reply) { *reply = NULL; }
 
+    if (strlen(PWCHECKDIR)+8+1 > sizeof(pwpath)) return SASL_FAIL;
+
     strcpy(pwpath, PWCHECKDIR);
     strcat(pwpath, "/pwcheck");
 
@@ -803,7 +806,7 @@ static int pwcheck_verify_password(sasl_conn_t *conn,
 
     memset((char *)&srvaddr, 0, sizeof(srvaddr));
     srvaddr.sun_family = AF_UNIX;
-    strcpy(srvaddr.sun_path, pwpath);
+    strncpy(srvaddr.sun_path, pwpath, sizeof(srvaddr.sun_path));
     r = connect(s, (struct sockaddr *)&srvaddr, sizeof(srvaddr));
     if (r == -1) {
 	if (reply) { *reply = "cannot connect to pwcheck server"; }

@@ -2702,6 +2702,8 @@ static int mechanism_fill_db(char *mech_name, sasl_server_params_t *sparams)
 		     "",
 		     sec);
 
+  sparams->utils->free(sec);
+
   if (result == SASL_OK)
   {
       mydb_initialized = 1;
@@ -3333,10 +3335,7 @@ c_continue_step(void *conn_context,
 	get_pair(&in, &name, &value);
 
 	/* if parse error */
-	if (name == NULL) {
-	    result = SASL_FAIL;
-	    goto FreeAllocatedMem;
-	}
+	if (name == NULL) return SASL_FAIL;
 
 	VL(("received pair: %s - %s\n", name, value));
 

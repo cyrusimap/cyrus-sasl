@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.48 2000/02/29 22:49:40 tmartin Exp $
+ * $Id: cram.c,v 1.49 2000/03/07 04:24:44 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -89,6 +89,7 @@ static int start(void *glob_context __attribute__((unused)),
   /* not used on server side */
   text->authid=NULL;
   text->password=NULL;
+  text->msgid = NULL;
   
   *conn=text;
 
@@ -425,7 +426,7 @@ static int server_continue_step (void *conn_context,
     while ((pos>0) && (clientin[pos]!=' ')) {
 	pos--;
     }
-    if (pos==0) {
+    if (pos<=0) {
 	if (errstr) *errstr = "need authentication name";
 	return SASL_BADPROT;
     }
@@ -499,7 +500,6 @@ static int server_continue_step (void *conn_context,
      *  - we know digest_str is null terminated but clientin might not be
      */
     if (strncmp(digest_str,clientin+pos+1,strlen(digest_str))!=0) {
-	sparams->utils->free(userid);
 	if (errstr) {
 	    *errstr = "incorrect digest response";
 	}	
@@ -1059,8 +1059,8 @@ static int c_continue_step (void *conn_context,
   oparams->maxoutbuf=0; /* no clue what this should be */
   oparams->encode=NULL;
   oparams->decode=NULL;
-  oparams->user="anonymous"; /* set username */
-  oparams->authid="anonymous";
+  oparams->user=NULL;
+  oparams->authid=NULL;
   oparams->realm=NULL;
   oparams->param_version=0;
 

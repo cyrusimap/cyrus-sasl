@@ -26,6 +26,7 @@ SOFTWARE.
 /*
  * TODO:
  *  put in alloc() routines that fail occasionally.
+ *  verify ssf's
  */
 
 #include <config.h>
@@ -493,6 +494,7 @@ void interaction (int id, const char *prompt,
 
     *tlen = strlen(result);
     *tresult = (char *) malloc(*tlen+1);
+
     memset(*tresult, 0, *tlen+1);
     memcpy((char *) *tresult, result, *tlen);
 }
@@ -569,6 +571,7 @@ void corrupt(corrupt_type_t type, char *in, int inlen, char **out, int *outlen)
 	    *outlen = inlen;
 	    break;
 	case ONLY_ONE_BYTE:
+	    free(in);
 	    *out = (char *) malloc(1);
 	    (*out)[0] = (char) (rand() % 256);
 	    *outlen = 1;
@@ -581,6 +584,8 @@ void corrupt(corrupt_type_t type, char *in, int inlen, char **out, int *outlen)
 	    
 	    for (lup=inlen;lup<*outlen;lup++)
 		(*out)[lup] = (char) (rand() %256);
+
+	    free(in);
 	    break;
 
 	case SHORTEN:
@@ -589,6 +594,7 @@ void corrupt(corrupt_type_t type, char *in, int inlen, char **out, int *outlen)
 		*outlen = (rand() % inlen);
 		*out = (char *) malloc(*outlen);
 		memcpy(*out, in, *outlen);
+		free(in);
 	    } else {
 		*outlen = inlen;
 		*out = in;
@@ -599,6 +605,7 @@ void corrupt(corrupt_type_t type, char *in, int inlen, char **out, int *outlen)
 	    *out = (char *) malloc(*outlen);
 	    for (lup=0;lup<*outlen;lup++)
 		(*out)[lup] = (char) (rand() % 256);
+	    free(in);
 	    break;
 	case REALLYBIG:
 	    *outlen = rand() % 50000;
@@ -607,6 +614,7 @@ void corrupt(corrupt_type_t type, char *in, int inlen, char **out, int *outlen)
 	    for (lup=0;lup<*outlen;lup++)
 		(*out)[lup] = (char) (rand() % 256);
 	    
+	    free(in);
 	    break;
 	case NEGATIVE_LENGTH:
 
@@ -699,6 +707,7 @@ void sendbadsecond(char *mech, void *rock)
 	    printf("WARNING: We did a corruption but it still worked\n");
 	else {
 	    if (tofree) free(tofree);
+	    if (out!=tofree) free(out);
 	    goto done;
 	}
     } else {
@@ -735,6 +744,7 @@ void sendbadsecond(char *mech, void *rock)
 		printf("WARNING: We did a corruption but it still worked\n");
 	    else {
 		if (tofree) free(tofree);
+		if (out!=tofree) free(out);
 		goto done;
 	    }
 	} else {
@@ -768,6 +778,7 @@ void sendbadsecond(char *mech, void *rock)
 		printf("WARNING: We did a corruption but it still worked\n");
 	    else {
 		if (tofree) free(tofree);
+		if (out!=tofree) free(out);
 		goto done;
 	    }
 	} else {
@@ -781,8 +792,9 @@ void sendbadsecond(char *mech, void *rock)
 	if (tofree) free(tofree);
 	mystep++;
 
-    } 
-			       
+    }
+
+    if (out) free(out);
     printf("%s --> %s\n",mech,sasl_errstring(result,NULL,NULL));
 
     /* client to server */
@@ -794,15 +806,17 @@ void sendbadsecond(char *mech, void *rock)
     {
 	corrupt(send->type, out, outlen, &out, &outlen);
 	mayfail = 1;
-    }
+    } 
     tofree = out;
+    dec = NULL;
     result = sasl_decode(saslconn, out, outlen, &dec, &declen);
     if (mayfail == 1)
     {
 	if (result >= 0)
 	    printf("WARNING: We did a corruption but it still worked\n");
 	else {
-	    if (tofree) free(tofree);
+	    if (out) free(out);
+	    if (dec) free(dec);
 	    goto done;
 	}
     } else {
@@ -813,7 +827,7 @@ void sendbadsecond(char *mech, void *rock)
 	    fatal("sasl_decode() failure");
 	}
     }
-    if (tofree) free(tofree);
+    if (out) free(out);
     if (dec) free(dec);
     mystep++;
 
@@ -831,7 +845,7 @@ void sendbadsecond(char *mech, void *rock)
 
 void foreach_mechanism(foreach_t *func, void *rock)
 {
-    char *str, *start;
+    char *str, *start, *tofree;
     sasl_conn_t *saslconn;
     int result;
 
@@ -853,6 +867,7 @@ void foreach_mechanism(foreach_t *func, void *rock)
 			   &str,
 			   NULL,
 			   NULL);
+    tofree = str;
     sasl_dispose(&saslconn);
     sasl_done();
 
@@ -873,7 +888,7 @@ void foreach_mechanism(foreach_t *func, void *rock)
 
 	start = str;
     }
-    
+    free(tofree);
 }
 
 void test_serverstart(void)
@@ -934,7 +949,7 @@ void test_serverstart(void)
     printf("trying to do correctly\n");
     foreach_mechanism((foreach_t *) &sendbadsecond,&tosend);
 
-    for (lup=0;lup<0;lup++)
+    for (lup=0;lup<50;lup++)
     {
 	tosend.type = rand() % CORRUPT_SIZE;
 	tosend.step = lup % MAX_STEPS;
@@ -993,9 +1008,14 @@ void create_ids(void)
 		     SASL_SET_CREATE, NULL)!=SASL_OK)
 	fatal("Didn't allow really long password");
 
-    if (sasl_setpass(saslconn,"frank" ,password, strlen(password), 
-		     SASL_SET_DISABLE, NULL)!=SASL_NOUSER)
-	fatal("Disabling non-existant didn't return SASL_NOUSER");
+    result = sasl_setpass(saslconn,"frank" ,password, strlen(password), 
+		     SASL_SET_DISABLE, NULL);
+
+    if ((result!=SASL_NOUSER) && (result!=SASL_OK))
+	{
+	    printf("error = %d\n",result);
+	    fatal("Disabling non-existant didn't return SASL_NOUSER");
+	}
     
 
     /* Now set the user again (we use for rest of program) */
@@ -1085,7 +1105,7 @@ int main()
 
     test_listmech();
     printf("Tests of sasl_listmech()... ok\n");
-
+    
 
     test_serverstart();
     printf("Tests of sasl_server_start()... ok\n");

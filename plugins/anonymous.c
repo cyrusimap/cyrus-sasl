@@ -326,6 +326,9 @@ client_continue_step(void *conn_context __attribute__((unused)),
   oparams->realm=NULL;
   oparams->param_version=0;
 
+  /* free memory */
+  if (user) params->utils->free(user);
+
   return SASL_OK;
 }
 

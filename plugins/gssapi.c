@@ -468,7 +468,10 @@ sasl_gss_server_step (void *conn_context,
 	      sasl_gss_free_context_contents(text);
 	      return SASL_FAIL;
 	  }
-	  
+
+	  if ( text->server_creds != GSS_C_NO_CREDENTIAL)
+	      maj_stat = gss_release_cred(&min_stat, &text->server_creds);	  
+
 	  maj_stat = gss_acquire_cred(&min_stat, 
 				      text->server_name,
 				      GSS_C_INDEFINITE, 
@@ -590,6 +593,7 @@ sasl_gss_server_step (void *conn_context,
 					text->client_name,
 					without,
 					&equal);
+    
 	    if (GSS_ERROR(maj_stat)) {
 		sasl_gss_set_error(text, errstr, "gss_display_name",
 				   maj_stat, min_stat);
@@ -599,16 +603,28 @@ sasl_gss_server_step (void *conn_context,
 		return SASL_BADAUTH;
 	    }
 
+	    gss_release_name(&min_stat,&without);
+
 	} else {
 	    equal = 0;
 	}
 
 	if (equal == 1) /* xxx True doesn't seem to exist in gssapi.h */
 	{
-	    oparams->authid = (char *)name_without_realm.value;
+	    oparams->authid = (char *) params->utils->malloc(strlen(name_without_realm.value)+1);
+	    if (oparams->authid == NULL) return SASL_NOMEM;
+	    strcpy(oparams->authid, name_without_realm.value);
+
+	    if (name_token.value)
+		params->utils->free(name_token.value);
+
 	} else {
 	    oparams->authid = (char *)name_token.value;	    
+	    if (name_without_realm.value)
+		params->utils->free(name_without_realm.value);
 	}
+
+	gss_release_buffer(&min_stat, &name_without_realm);
 	
 	/* we have to decide what sort of encryption/integrity/etc.,
 	   we support */
@@ -740,11 +756,16 @@ sasl_gss_server_step (void *conn_context,
 	params->utils->free(output_token->value);
 	
 	text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
-	
+
+	*serverout = NULL;
+	*serveroutlen = 0;	
+
 	return SASL_OK;
 	break;
       }
     case SASL_GSSAPI_STATE_AUTHENTICATED:
+	*serverout = NULL;
+	*serveroutlen = 0;
       return SASL_OK;
       break;
 
@@ -1040,8 +1061,10 @@ sasl_gss_client_step (void *conn_context,
     {
     case SASL_GSSAPI_STATE_AUTHNEG:
       {
-	/* try to get the userid */
-	if (oparams->user==NULL)
+	  VL(("sasl_gss_client_step: AUTHNEG\n"));
+      
+	  /* try to get the userid */
+	  if (oparams->user==NULL)
 	  {
 	    int auth_result = SASL_OK;
 	    VL (("Trying to get userid\n"));
@@ -1049,7 +1072,9 @@ sasl_gss_client_step (void *conn_context,
 				   &oparams->user,
 				   prompt_need);
 	    
-	    VL (("Userid: %s\n",oparams->user));
+	    if (oparams->user) {
+		VL (("Userid: %s\n",oparams->user));
+	    }
 
 	    if ((auth_result!=SASL_OK) && (auth_result!=SASL_INTERACT))
 	      {
@@ -1114,7 +1139,7 @@ sasl_gss_client_step (void *conn_context,
            maj_stat = gss_delete_sec_context (&min_stat,&text->gss_ctx,GSS_C_NO_BUFFER);
            text->gss_ctx = GSS_C_NO_CONTEXT;
          }
-	
+
 	maj_stat =
 	  gss_init_sec_context(&min_stat,
 			       GSS_C_NO_CREDENTIAL,
@@ -1158,6 +1183,8 @@ sasl_gss_client_step (void *conn_context,
 	unsigned int alen, external = params->external_ssf;
 	sasl_ssf_t need, allowed;
 	char serverhas, mychoice;
+
+	VL(("sasl_gss_client_step: SSFCAP\n"));
 
 	real_input_token.value = (void *) serverin;
 	real_input_token.length = serverinlen;
@@ -1265,6 +1292,7 @@ sasl_gss_client_step (void *conn_context,
 	break;
       }
     case SASL_GSSAPI_STATE_AUTHENTICATED:
+      VL(("sasl_gss_client_step: AUTHENTICATED\n"));
       return SASL_OK;
       break;
 
@@ -1274,6 +1302,7 @@ sasl_gss_client_step (void *conn_context,
     }
 
   /* we should never get here!!! */
+  return SASL_FAIL;
 }
 
 static const sasl_client_plug_t client_plugins[] = 

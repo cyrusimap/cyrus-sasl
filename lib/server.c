@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.71 2000/02/29 22:49:39 tmartin Exp $
+ * $Id: server.c,v 1.72 2000/03/07 04:24:43 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -67,6 +67,9 @@ extern int gethostname(char *, int);
  * sasl_userexists <= not yet implemented
  * sasl_setpass
  */
+
+/* if we've initialized the server sucessfully */
+static int _sasl_server_active = 0;
 
 static int _sasl_checkpass(sasl_conn_t *conn,
 			   const char *mech, const char *service, 
@@ -239,7 +242,7 @@ typedef struct sasl_server_conn {
     sasl_server_params_t *sparams;
 } sasl_server_conn_t;
 
-static mech_list_t *mechlist; /* global var which holds the list */
+static mech_list_t *mechlist = NULL; /* global var which holds the list */
 
 static sasl_global_callbacks_t global_callbacks;
 
@@ -303,7 +306,7 @@ int sasl_setpass(sasl_conn_t *conn,
     tmpresult = _sasl_sasldb_set_pass(conn, user, pass, passlen, 
 				      s_conn->user_realm, flags, errstr);
     if (tmpresult != SASL_OK && tmpresult != SASL_NOCHANGE) {
-	result = SASL_FAIL;
+	result = tmpresult;
 	_sasl_log(conn, SASL_LOG_ERR, "PLAIN", tmpresult,
 #ifndef WIN32
 		  errno,
@@ -470,21 +473,29 @@ static int add_plugin(void *p, void *library) {
 static void server_done(void) {
   mechanism_t *m;
   mechanism_t *prevm;
-  m=mechlist->mech_list; /* m point to begging of the list */
 
-  while (m!=NULL)
+  if (mechlist != NULL)
   {
-    prevm=m;
-    m=m->next;
+      m=mechlist->mech_list; /* m point to begging of the list */
+
+      while (m!=NULL)
+      {
+	  prevm=m;
+	  m=m->next;
     
-    if (prevm->plug->glob_context!=NULL)
-      sasl_FREE(prevm->plug->glob_context);
-    if (prevm->library!=NULL)
-      _sasl_done_with_plugin(prevm->library);
-    sasl_FREE(prevm);    
+	  if (prevm->plug->glob_context!=NULL)
+	      sasl_FREE(prevm->plug->glob_context);
+	  if (prevm->library!=NULL)
+	      _sasl_done_with_plugin(prevm->library);
+	  sasl_FREE(prevm);    
+      }
+      _sasl_free_utils(&mechlist->utils);
+      sasl_FREE(mechlist);
+      mechlist = NULL;
   }
-  _sasl_free_utils(&mechlist->utils);
-  sasl_FREE(mechlist);
+
+  /* no longer active. fail on listmech's etc. */
+  _sasl_server_active = 0;
 }
 
 static int
@@ -521,7 +532,7 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
      system */
   result = ((sasl_getpath_t *)(getpath_cb->proc))(getpath_cb->context,
 						  &path_to_config);
-  if (result!=SASL_OK) return result;
+  if (result!=SASL_OK) goto done;
   if (path_to_config == NULL) path_to_config = "";
 
   if ((c = strchr(path_to_config, ':'))) {
@@ -532,11 +543,17 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
      for '\0' */
   len = strlen(path_to_config)+2+ strlen(global_callbacks.appname)+5+1;
 
-  if (len > PATH_MAX ) return SASL_FAIL;
+  if (len > PATH_MAX ) {
+      result = SASL_FAIL;
+      goto done;
+  }
 
   /* construct the filename for the config file */
   config_filename = sasl_ALLOC(len);
-  if (! config_filename) return SASL_NOMEM; 
+  if (! config_filename) {
+      result = SASL_NOMEM;
+      goto done;
+  }
 
   snprintf(config_filename, len, "%s/%s.conf", path_to_config, 
 	   global_callbacks.appname);
@@ -553,8 +570,9 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
   if (result==SASL_OK)
     result=sasl_config_init(config_filename);
 
-  sasl_FREE(config_filename);
-  if (*path_to_config) { /* was path_to_config allocated? */
+ done:
+  if (config_filename) sasl_FREE(config_filename);
+  if ((path_to_config) && (*path_to_config)) { /* was path_to_config allocated? */
       sasl_FREE(path_to_config);
   }
 
@@ -603,6 +621,8 @@ int sasl_server_init(const sasl_callback_t *callbacks,
   _sasl_server_getsecret_hook = _sasl_db_getsecret;
   _sasl_server_putsecret_hook = _sasl_db_putsecret;
 
+  _sasl_server_cleanup_hook = &server_done;
+
   /* verify that the callbacks look ok */
   ret = verify_server_callbacks(callbacks);
   if (ret!=SASL_OK) return ret;
@@ -610,8 +630,14 @@ int sasl_server_init(const sasl_callback_t *callbacks,
   global_callbacks.callbacks = callbacks;
   global_callbacks.appname = appname;
 
+  /* allocate mechlist and set it to empty */
   mechlist=sasl_ALLOC(sizeof(mech_list_t));
   if (mechlist==NULL) return SASL_NOMEM;
+  mechlist->mech_list=NULL;
+  mechlist->mech_length=0;
+  ret=init_mechlist();
+  if (ret!=SASL_OK)
+    return ret;
 
   vf = _sasl_find_verifyfile_callback(callbacks);
 
@@ -619,7 +645,6 @@ int sasl_server_init(const sasl_callback_t *callbacks,
   ret = load_config(vf);
   if ((ret!=SASL_OK) && (ret!=SASL_CONTINUE))
   {
-      /* xxx free memory? */
       return ret;
   }
 
@@ -627,12 +652,6 @@ int sasl_server_init(const sasl_callback_t *callbacks,
   ret = _sasl_server_check_db(vf);
 
   /* load plugins */
-  ret=init_mechlist();
-  if (ret!=SASL_OK)
-    return ret;
-  mechlist->mech_list=NULL;
-  mechlist->mech_length=0;
-
   add_plugin((void *)&external_server_init, NULL);
 
   ret=_sasl_get_mech_list("sasl_server_plug_init",
@@ -643,8 +662,8 @@ int sasl_server_init(const sasl_callback_t *callbacks,
   
   if (ret == SASL_OK)
   {
-      /* cleanup_hook shows if we're active or not. sasl_done() sets it back to null */
-      _sasl_server_cleanup_hook = &server_done;
+      /* _sasl_server_active shows if we're active or not. sasl_done() sets it back to 0 */
+      _sasl_server_active = 1;
       _sasl_server_idle_hook = &server_idle;
   }
 
@@ -1032,7 +1051,7 @@ int sasl_listmech(sasl_conn_t *conn,
   const char *mysep;
 
   /* if there hasn't been a sasl_sever_init() fail */
-  if (_sasl_server_cleanup_hook==NULL) return SASL_FAIL;
+  if (_sasl_server_active==0) return SASL_FAIL;
 
   if (! conn || ! result)
     return SASL_FAIL;
@@ -1164,7 +1183,7 @@ int sasl_checkpass(sasl_conn_t *conn,
     void *context;
 
     /* check params */
-    if (_sasl_server_cleanup_hook==NULL) return SASL_FAIL;
+    if (_sasl_server_active==0) return SASL_FAIL;
     if ((conn == NULL) || (user == NULL) || (pass == NULL)) return SASL_BADPARAM;
 
     if (user == NULL) return SASL_NOUSER;

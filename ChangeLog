@@ -1,7 +1,37 @@
+2000-03-06  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* lib/checkpw.c: claus patches for security slightly modified
+
+	* lib/server.c (sasl_server_init): moved around some stuff and
+ 	initialized some stuff to NULL to make it not leak
+	(load_config): don't leak memory on failures
+
+	* plugins/cram.c (server_continue_step): if given zero length deal with it
+	(start): initialize msgid so server doesn't screw up trying to free it
+	(c_continue_step): NULL oparams by default
+
+	* plugins/plain.c (client_continue_step): ditto
+
+	* plugins/digestmd5.c (c_continue_step): ditto
+
+	* plugins/cram.c (server_continue_step): freeing memory when wasn't supposed to
+	(c_continue_step): initialize clientout to null just to be careful
+
+2000-03-05  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c (mechanism_fill_db): free secret
+
+	* plugins/gssapi.c (sasl_gss_server_step): fill in out params on sucess step
+
 2000-03-03  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/login.c: when creating context, set password to
 	NULL. (Claus Assmann <ca+sasl@sendmail.org>)
+
+2000-03-01  Timothy Martin  <tmartin+@andrew.cmu.edu>
+
+	* lib/server.c (sasl_setpass): can return SASL_NOUSER on PLAIN failure
+
 
 2000-02-29  Timothy Martin  <tmartin+@andrew.cmu.edu>
 

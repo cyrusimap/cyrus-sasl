@@ -852,22 +852,31 @@
     box asking for authentication name and password together instead
     of one at a time.
 
-    <pre>
+    <p><b>Memory management:</b> Any data passed by the application to
+    the library will be copied by the library.  The application is
+    responsible for freeing any memory allocated in the callbacks, if
+    any.  Interactions have the same memory management requirements as
+    callbacks.
 
-    For a detailed description of what each of the callback types are
-    see the sasl.h file.
-    
-    Here are some brief explanations:
-    SASL_CB_AUTHNAME - the name of the user authenticating
-    SASL_CB_USER - the name of the user acting for. 
-    (for example postman delivering mail for tmartin might have an AUTHNAME of postman and
-     a USER of tmartin)
-    SASL_CB_PASS - password for AUTHNAME
-    SASL_CB_GETREALM - Realm of the server
+    <p><b>Apparent random exception:</b> The secret returned from
+    SASL_CB_PASS should be allocated with <tt>malloc()</tt> and will
+    be freed by the library.
+
+    <p>For a detailed description of what each of the callback types are
+    see the sasl.h file. Here are some brief explanations:
+    <ul>
+    <li> SASL_CB_AUTHNAME - the name of the user authenticating
+    <li> SASL_CB_USER - the name of the user acting for. 
+    (for example postman delivering mail for tmartin might have an
+    AUTHNAME of postman and a USER of tmartin)
+    <li> SASL_CB_PASS - password for AUTHNAME
+    <li> SASL_CB_GETREALM - Realm of the server
+    </ul>
     
     An example of a way to handle callbacks:
 
     
+    <pre>
     /* callbacks we support. This is a global variable at the 
        top of the program */
     static sasl_callback_t callbacks[] = {

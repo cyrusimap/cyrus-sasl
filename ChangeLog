@@ -1,3 +1,15 @@
+2000-07-17  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/digestmd5.c: get_authid() and get_userid() should copy
+	the result of the callbacks, not just use as is.
+
+2000-07-13  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/common.c: _sasl_proxy_policy wasn't dealing with a NULL or
+	"" requested_user by defaulting it to the auth_identity.
+
+	* plugins/digestmd5.c: fix realm always being set to ""
+
 2000-07-12  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* utils/sasldblistusers.c (listusers): 

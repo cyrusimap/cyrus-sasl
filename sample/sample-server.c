@@ -108,14 +108,9 @@ free_conn(void)
 }
 
 static int
-#ifndef WIN32
-log(void *context __attribute__((unused)),
-#else
-//win32 has a name conflict with the logarithm-calculating log function
-sasl_win32_log(void *context __attribute__((unused)),
-#endif //WIN32
-    int priority,
-    const char *message) 
+sasl_my_log(void *context __attribute__((unused)),
+	    int priority,
+	    const char *message) 
 {
   const char *label;
 
@@ -161,11 +156,7 @@ getpath(void *context __attribute__((unused)),
 
 static sasl_callback_t callbacks[] = {
   {
-#ifndef WIN32
-    SASL_CB_LOG, &log, NULL
-#else
-    SASL_CB_LOG, &sasl_win32_log, NULL
-#endif //WIN32
+    SASL_CB_LOG, &sasl_my_log, NULL
   }, {
     SASL_CB_GETPATH, &getpath, NULL
   }, {
@@ -235,9 +226,9 @@ set_ip(char *ipaddr, int prop)
 #ifndef WIN32
   sin.sin_port = htons(atoi(sep));
 #else
-//win32 has an integral size mismatch in argument, needs cast
+  /* win32 has an integral size mismatch in argument, needs cast */
   sin.sin_port = htons((short)atoi(sep));
-#endif //WIN32
+#endif /* WIN32 */
   if (! sin.sin_port)
     fail("Unable to parse port in IP addr");
   result = sasl_setprop(conn, prop, &sin);
@@ -520,7 +511,7 @@ main(int argc, char *argv[])
   samp_send(data, len);
 #ifndef WIN32
   free(data);
-#endif //WIN32
+#endif /* WIN32 */
   puts("Waiting for client mechanism...");
   len = samp_recv();
   if (mech && strcasecmp(mech, buf))

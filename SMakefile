@@ -20,5 +20,6 @@ esac
 
 MAKE=gmake
 LNCOMMAND="${SRCDIR}/configure --prefix=/usr/local --disable-java"
+CPPFLAGS=-I/usr/local/include/gssapi
 
-export CC CFLAGS
+export CC CFLAGS CPPFLAGS

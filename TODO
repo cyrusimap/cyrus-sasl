@@ -30,6 +30,7 @@ Digest-MD5
 Kerberos_V4
 ~~~~~~~~~~~
 ) Needs to check timestamps for replay attacks
+) client never sets realm
 
 Plain
 ~~~~~

@@ -102,14 +102,9 @@ free_conn(void)
 }
 
 static int
-#ifndef WIN32
-log(void *context __attribute__((unused)),
-#else
-//win32 has a name conflict with the logarithm-calculating log function
-sasl_win32_log(void *context __attribute__((unused)),
-#endif //WIN32
-    int priority,
-    const char *message) 
+sasl_my_log(void *context __attribute__((unused)),
+	    int priority,
+	    const char *message) 
 {
   const char *label;
 
@@ -340,7 +335,7 @@ set_ip(char *ipaddr, int prop)
   sin.sin_port = htons(atoi(sep));
 #else
   sin.sin_port = htons((short)atoi(sep));
-#endif //WIN32
+#endif /* WIN32 */
   if (! sin.sin_port)
     fail("Unable to parse port in IP addr");
   result = sasl_setprop(conn, prop, &sin);
@@ -585,11 +580,7 @@ main(int argc, char *argv[])
 
   /* log */
   callback->id = SASL_CB_LOG;
-#ifndef WIN32
-  callback->proc = &log;
-#else
-  callback->proc = &sasl_win32_log;
-#endif //WIN32
+  callback->proc = &sasl_my_log;
   callback->context = NULL;
   ++callback;
   
@@ -708,9 +699,9 @@ main(int argc, char *argv[])
     memcpy(buf + strlen(buf) + 1, data, len);
     len += strlen(buf) + 1;
 #ifndef WIN32
-	//This free causes win32 to fail
+    /* This free causes win32 to fail */
     free(data);
-#endif //WIN32
+#endif /* WIN32 */
     data = NULL;
   } else {
     len = strlen(buf);
@@ -730,9 +721,9 @@ main(int argc, char *argv[])
       puts("Sending response...");
       samp_send(data, len);
 #ifndef WIN32
-	//This free causes win32 to fail
+      /* This free causes win32 to fail */
       free(data);
-#endif //WIN32
+#endif /* WIN32 */
     }
   }
   puts("Negotiation complete");

@@ -1,3 +1,15 @@
+Fri Jul 23 14:47:33 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* sample/sample-client.c (sasl_my_log): ditto, changed to avoid
+	"log" conflict
+
+	* sample/sample-server.c (sasl_my_log): changed "log" to
+	sasl_my_log to avoid name conflict with math library.
+
+	* plugins/gssapi.c: updated to bugfixes by Sam Hartman
+	<hartmans@fundsxpress.com> and then by Leif Johansson
+	<leifj@matematik.su.se>.
+
 1999-07-20  Larry Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/anonymous.c (server_start): removed the need for

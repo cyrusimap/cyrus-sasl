@@ -26,6 +26,11 @@ if test "$with_des" != no; then
   fi
 
   if test "$with_des" = no; then
+     AC_CHECK_LIB(des425, des_cbc_encrypt, [LIB_DES="-ldes425";
+                                       with_des=yes], with_des=no)
+  fi
+
+  if test "$with_des" = no; then
      AC_CHECK_LIB(des524, des_cbc_encrypt, [LIB_DES="-ldes524";
                                        with_des=yes], with_des=no)
   fi

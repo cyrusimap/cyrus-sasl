@@ -14,6 +14,7 @@
 	  to activate AUTH_KRB5. (Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>)
 	* plugins/mysql.c: Use mysql_real_connect() instead of mysql_connect()
 	  (Petri Riihikallio <Petri.Riihikallio@Metis.fi>)
+	* saslauthd/: Misc ANSI C cleanups (Jeremy Rumpf <jrumpf@heavyload.net>)
 
 2003-05-13  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* config/sasldb.m4, utils/Makefile.am: fix installation of man

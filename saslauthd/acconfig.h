@@ -18,6 +18,9 @@
 /* do we have SIA for plaintext password checking? */
 #undef HAVE_SIA
 
+/* do we want to enable the GSSAPI module */
+#undef AUTH_KRB5
+
 /* Do we want to enable the experimental sasldb authentication module? */
 #undef AUTH_SASLDB
 

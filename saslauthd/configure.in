@@ -32,6 +32,11 @@ CMU_SOCKETS
 dnl mechanism-related checking
 SASL_KERBEROS_V4_CHK
 SASL_GSSAPI_CHK
+
+if test "$gssapi" != no; then
+	AC_DEFINE(AUTH_KRB5)
+fi
+
 SASL_PLAIN_CHK
 
 AC_ARG_ENABLE(sia, [  --enable-sia            enable SIA authentication [no] ],

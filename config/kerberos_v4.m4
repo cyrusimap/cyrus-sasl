@@ -97,17 +97,16 @@ AC_DEFUN(SASL_KERBEROS_V4_CHK, [
       AC_CHECK_HEADER(krb.h, [
         AC_CHECK_LIB(com_err, com_err, [
 	  AC_CHECK_LIB(krb, krb_mk_priv,
-                     [COM_ERR="-lcom_err"; SASL_KRB_LIB="-lkrb"],
-                     krb4=no, $LIB_DES -lcom_err)], [
+                     [COM_ERR="-lcom_err"; SASL_KRB_LIB="-lkrb"; krb4lib="yes"],
+                     krb4lib=no, $LIB_DES -lcom_err)], [
     	  AC_CHECK_LIB(krb, krb_mk_priv,
-                     [COM_ERR=""; SASL_KRB_LIB="-lkrb"],
-                     krb4=no, $LIB_DES)])])
+                     [COM_ERR=""; SASL_KRB_LIB="-lkrb"; krb4lib="yes"],
+                     krb4lib=no, $LIB_DES)])])
 
-      if test "$krb4" = no; then
-        AC_CHECK_HEADER(krb.h, [
-	  AC_CHECK_LIB(krb4, krb_mk_priv,
+    if test "$krb4" = "yes" -a "$krb4lib" = "no"; then
+	AC_CHECK_LIB(krb4, krb_mk_priv,
                      [COM_ERR=""; SASL_KRB_LIB="-lkrb4"; krb4=yes],
-                     krb4=no, $LIB_DES)])
+                     krb4=no, $LIB_DES)
         if test "$krb4" = no; then
           AC_WARN(No Kerberos V4 found)
         fi

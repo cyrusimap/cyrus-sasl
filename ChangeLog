@@ -1,3 +1,8 @@
+2002-09-23  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* config/kerberos_v4.m4: Don't compile with kerberos unless we
+	  have both the libs and the headers (Carlos Velasco
+	  <carlosv@newipnet.com>)
+
 2002-09-19  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/gssapi.c: endinaness corrections
 	* sasldb/db_berkeley.c, utils/dbconverter-2.c: Berkley DB 4.1

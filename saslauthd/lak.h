@@ -46,39 +46,63 @@
 #define LAK_FAIL -1
 #define LAK_NOENT -2
 
-typedef struct lak {
+#define LAK_AUTH_METHOD_BIND 0
+#define LAK_AUTH_METHOD_CUSTOM 1
+
+typedef struct lak_conf {
+    char   *path;
     char   *servers;
     char   *bind_dn;
     char   *bind_pw;
+    int     version;
     struct  timeval timeout;
     int     sizelimit;
     int     timelimit;
     int     deref;
     int     referrals;
+    int     restart;
     long    cache_expiry;
     long    cache_size;
     int     scope;
     char   *search_base;
     char   *filter;
+    char   *lookup_attrib;
+    char    auth_method;
     int     debug;
     int     verbose;
+    int     ssl;
+    int     start_tls;
+    int     tls_checkpeer;
+    char   *tls_cacertfile;
+    char   *tls_cacertdir;
+    char   *tls_ciphers;
+    char   *tls_cert;
+    char   *tls_key;
+} LAK_CONF;
+
+typedef struct lak_user {
+    char    *name;
+    char    *realm;
+    char    *dn;
+    char     bound_as_user;
+} LAK_USER;
+
+typedef struct lak_session {
+    LDAP     *ld;
+    char      bound;
+    LAK_CONF *conf;
+    LAK_USER *user;
+} LAK_SESSION;
+
+typedef struct lak {
+    char       *attribute;
+    char       *value;
+    size_t      len;
+    struct lak *next;
 } LAK;
 
-typedef struct lak_conn {
-    char    bound;
-    LDAP   *ld;
-} LAK_CONN;
-
-typedef struct lak_result {
-    char              *attribute;
-    char              *value;
-    size_t             len;
-    struct lak_result *next;
-} LAK_RESULT;
-
-int lak_lookup(LAK *, char *, char *, char **, LAK_RESULT **);
-int lak_authenticate(LAK *, char *, char *, char *);
-void lak_close(LAK *, LAK_CONN *);
-void lak_free(LAK_RESULT *);
+int lak_authenticate(const char *, const char *, const char *, const char *);
+int lak_lookup_attrib(const char *, const char *, const char *, LAK **);
+void lak_free_result(LAK *);
 
 #endif  /* _LAK_H */

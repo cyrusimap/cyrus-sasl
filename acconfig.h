@@ -109,6 +109,9 @@
 /* what flavor of GSSAPI are we using? */
 #undef HAVE_GSS_C_NT_HOSTBASED_SERVICE
 
+/* does GSSAPI provide GSS_C_NT_USER_NAME? */
+#undef HAVE_GSS_C_NT_USER_NAME
+
 /* do we have gssapi.h or gssapi/gssapi.h? */
 #undef HAVE_GSSAPI_H
 

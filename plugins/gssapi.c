@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.74 2003/05/30 23:17:48 rjs3 Exp $
+ * $Id: gssapi.c,v 1.75 2003/07/02 13:13:42 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -87,7 +87,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.74 2003/05/30 23:17:48 rjs3 Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.75 2003/07/02 13:13:42 rjs3 Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -772,7 +772,13 @@ gssapi_server_mech_step(void *conn_context,
 	    
 	    maj_stat = gss_import_name (&min_stat,
 					&name_without_realm,
+	    /* Solaris 8/9 gss_import_name doesn't accept GSS_C_NULL_OID here,
+	       so use GSS_C_NT_USER_NAME instead if available.  */
+#ifdef HAVE_GSS_C_NT_USER_NAME
 					GSS_C_NT_USER_NAME,
+#else
+					GSS_C_NULL_OID,
+#endif
 					&without);
 	    
 	    if (GSS_ERROR(maj_stat)) {

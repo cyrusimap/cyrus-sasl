@@ -1,7 +1,9 @@
 2002-04-25  Ken Murchison <ken@oceana.com>
 	* plugins/otp.c: don't free the secret when we get data from a
 	  callback (and don't copy it)
-	
+	* plugins/gssapi.c, plain.c: make sure to set 'doneflag' when done
+	* lib/client.c, server.c: don't call mech_step() if 'doneflag' is set
+
 2002-04-24  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* plugins/cram.c, digestmd5.c, login.c, plain.c, srp.c: don't
 	  free the secret when we get data from a callback (and don't copy it)

@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.55 2002/04/22 20:12:22 rjs3 Exp $
+ * $Id: gssapi.c,v 1.56 2002/04/25 16:11:26 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1043,6 +1043,8 @@ gssapi_server_mech_step(void *conn_context,
 	
 	text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
 
+	oparams->doneflag = 1;
+
 	*serverout = NULL;
 	*serveroutlen = 0;	
 
@@ -1649,6 +1651,8 @@ gssapi_client_mech_step(void *conn_context,
         }
 	
 	text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
+
+	oparams->doneflag = 1;
 
 	return SASL_OK;
       }

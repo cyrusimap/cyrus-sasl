@@ -1,7 +1,7 @@
 /* Plain SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: plain.c,v 1.50 2002/04/25 00:17:15 rjs3 Exp $
+ * $Id: plain.c,v 1.51 2002/04/25 16:11:27 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -685,6 +685,8 @@ static int plain_client_mech_step(void *conn_context,
     oparams->decode=NULL;
 
     oparams->param_version = 0;
+
+    oparams->doneflag = 1;
 
     text->state = 2;
 

@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.153 2002/12/06 16:23:37 rjs3 Exp $
+dnl $Id: configure.in,v 1.154 2002/12/29 19:11:59 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -196,6 +196,9 @@ fi
 
 AM_CONDITIONAL(SAMPLE, test "$enable_sample" = yes)
 
+dnl call before we do the berkeley DB checks
+CMU_SOCKETS
+
 dnl we extracted this to config/sasldb.m4
 SASL_DB_PATH_CHECK()
 SASL_DB_CHECK()
@@ -240,8 +243,6 @@ fi
 
 dnl See if we can provide a default logging function...
 AC_CHECK_FUNCS(syslog)
-
-CMU_SOCKETS
 
 AC_ARG_WITH(pam, [  --with-pam=DIR          use PAM (rooted in DIR) [yes] ],
 	with_pam=$withval,

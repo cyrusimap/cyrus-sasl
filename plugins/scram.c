@@ -45,8 +45,12 @@
 
 #include <config.h>
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include <time.h>
+#ifndef macintosh
 #include <sys/stat.h>
+#endif
 #include <fcntl.h>
 #include <sasl.h>
 #include <saslplug.h>
@@ -56,6 +60,10 @@
 /* This must be after sasl.h, saslutil.h */
 # include "saslSCRAM.h"
 #endif /* WIN32 */
+
+#ifdef macintosh
+#include <sasl_scram_plugin_decl.h>
+#endif
 
 #define SCRAM_MD5_VERSION (3)
 
@@ -255,7 +263,7 @@ static int load_things(sasl_utils_t *utils, context_t *text, const char *user)
     if (! getsecret)
       return SASL_FAIL;
 
-    result = getsecret(getsecret_context, "SCRAM-MD5", user, &sec);
+    result = getsecret(getsecret_context, "SCRAM-MD5", user, "", &sec);
     if (result != SASL_OK)
       return result;
 
@@ -600,6 +608,7 @@ setpass(void *glob_context __attribute__((unused)),
   return putsecret(putsecret_context,
 		   "SCRAM-MD5",
 		   user,
+		   "",
 		   secret);
 }
 

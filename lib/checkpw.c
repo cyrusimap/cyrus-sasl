@@ -41,6 +41,11 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/* kerberos_v5 password checking currently disabled since there are
+ * weird interactions with our libraries.  it might work for other
+ * people, but we'd rather move it to saslauthd.
+ */
+#undef HAVE_GSSAPI_H
 
 /* checkpw stuff */
 

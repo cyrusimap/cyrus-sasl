@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.53 2003/12/07 00:34:09 ken3 Exp $
+ * $Id: srp.c,v 1.54 2003/12/17 20:51:59 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -67,7 +67,9 @@
 #include <limits.h>
 #include <stdarg.h>
 
+#ifndef UINT32_MAX
 #define UINT32_MAX 4294967295U
+#endif
 
 #if UINT_MAX == UINT32_MAX
 typedef unsigned int uint32;
@@ -98,7 +100,7 @@ typedef unsigned short uint32;
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: srp.c,v 1.53 2003/12/07 00:34:09 ken3 Exp $";
+static const char plugin_id[] = "$Id: srp.c,v 1.54 2003/12/17 20:51:59 rjs3 Exp $";
 
 /* Size limit of cipher block size */
 #define SRP_MAXBLOCKSIZE 16

@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.56 2004/06/16 17:03:35 ken3 Exp $
+ * $Id: srp.c,v 1.57 2004/06/23 18:43:37 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -100,7 +100,7 @@ typedef unsigned short uint32;
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: srp.c,v 1.56 2004/06/16 17:03:35 ken3 Exp $";
+static const char plugin_id[] = "$Id: srp.c,v 1.57 2004/06/23 18:43:37 rjs3 Exp $";
 
 /* Size limit of cipher block size */
 #define SRP_MAXBLOCKSIZE 16
@@ -2197,6 +2197,7 @@ static int srp_setpass(void *glob_context __attribute__((unused)),
 {
     int r;
     char *user = NULL;
+    char *user_only = NULL;
     char *realm = NULL;
     sasl_secret_t *sec = NULL;
     struct propctx *propctx = NULL;
@@ -2210,14 +2211,22 @@ static int srp_setpass(void *glob_context __attribute__((unused)),
 	return SASL_NOMECH;
     }
     
-    r = _plug_parseuser(sparams->utils, &user, &realm, sparams->user_realm,
+    /* NB: Ideally we need to canonicalize userstr here */
+    r = _plug_parseuser(sparams->utils, &user_only, &realm, sparams->user_realm,
 			sparams->serverFQDN, userstr);
+
     if (r) {
 	sparams->utils->seterror(sparams->utils->conn, 0, 
 				 "Error parsing user");
 	return r;
     }
-    
+
+    r = _plug_make_fulluser(sparams->utils, &user, user_only, realm);
+
+    if (r) {
+	goto end;
+    }
+
     if ((flags & SASL_SET_DISABLE) || pass == NULL) {
 	sec = NULL;
     } else {
@@ -2247,7 +2256,8 @@ static int srp_setpass(void *glob_context __attribute__((unused)),
 				     "Error calculating N and g");
 	    goto end;
 	}
-	
+
+	/* user is a full username here */
 	r = CalculateV(text, &N, &g, user, pass, passlen, &v, &salt, &saltlen);
 	if (r) {
 	    sparams->utils->seterror(sparams->utils->conn, 0, 
@@ -2321,6 +2331,7 @@ static int srp_setpass(void *glob_context __attribute__((unused)),
   cleanup:
     
     if (user) 	_plug_free_string(sparams->utils, &user);
+    if (user_only) 	_plug_free_string(sparams->utils, &user_only);
     if (realm) 	_plug_free_string(sparams->utils, &realm);
     if (sec)    _plug_free_secret(sparams->utils, &sec);
     

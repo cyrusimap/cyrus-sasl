@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.35 2004/06/23 16:09:24 rjs3 Exp $
+ * $Id: otp.c,v 1.36 2004/06/23 18:43:37 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -68,7 +68,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: otp.c,v 1.35 2004/06/23 16:09:24 rjs3 Exp $";
+static const char plugin_id[] = "$Id: otp.c,v 1.36 2004/06/23 18:43:37 rjs3 Exp $";
 
 #define OTP_SEQUENCE_MAX	9999
 #define OTP_SEQUENCE_DEFAULT	499
@@ -1272,6 +1272,7 @@ static int otp_setpass(void *glob_context __attribute__((unused)),
 {
     int r;
     char *user = NULL;
+    char *user_only = NULL;
     char *realm = NULL;
     sasl_secret_t *sec;
     struct propctx *propctx = NULL;
@@ -1285,14 +1286,19 @@ static int otp_setpass(void *glob_context __attribute__((unused)),
 	return SASL_NOMECH;
     }
     
-    r = _plug_parseuser(sparams->utils, &user, &realm, sparams->user_realm,
+    r = _plug_parseuser(sparams->utils, &user_only, &realm, sparams->user_realm,
 			sparams->serverFQDN, userstr);
     if (r) {
 	sparams->utils->seterror(sparams->utils->conn, 0, 
 				 "OTP: Error parsing user");
 	return r;
     }
-    
+
+    r = _plug_make_fulluser(sparams->utils, &user, user_only, realm);
+    if (r) {
+       goto cleanup;
+    }
+
     if ((flags & SASL_SET_DISABLE) || pass == NULL) {
 	sec = NULL;
     } else {
@@ -1368,6 +1374,7 @@ static int otp_setpass(void *glob_context __attribute__((unused)),
   cleanup:
     
     if (user) 	_plug_free_string(sparams->utils, &user);
+    if (user_only)     _plug_free_string(sparams->utils, &user_only);
     if (realm) 	_plug_free_string(sparams->utils, &realm);
     if (sec)    _plug_free_secret(sparams->utils, &sec);
     

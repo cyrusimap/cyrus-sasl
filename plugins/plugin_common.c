@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.c,v 1.19 2004/02/20 23:54:53 rjs3 Exp $
+ * $Id: plugin_common.c,v 1.20 2004/06/23 18:43:37 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -755,6 +755,29 @@ int _plug_parseuser(const sasl_utils_t *utils,
     }
 
     return ret;
+}
+
+int _plug_make_fulluser(const sasl_utils_t *utils,
+			char **fulluser,
+			const char * useronly,
+			const char *realm)
+{
+    if(!fulluser || !useronly || !realm) {
+	PARAMERROR( utils );
+	return (SASL_BADPARAM);
+    }
+
+    *fulluser = utils->malloc (strlen(useronly) + strlen(realm) + 2);
+    if (*fulluser == NULL) {
+	MEMERROR( utils );
+	return (SASL_NOMEM);
+    }
+
+    strcpy (*fulluser, useronly);
+    strcat (*fulluser, "@");
+    strcat (*fulluser, realm);
+
+    return (SASL_OK);
 }
 
 char * _plug_get_error_message (const sasl_utils_t *utils,

@@ -5,6 +5,9 @@
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
 	* lib/auxprop.c: Use getopt callback from connection context when
 	  storing auxprops (Alexey Melnikov <Alexey.Melnikov@isode.com>)
+	* plugins/otp.c, plugins/srp.c, plugins/plugin_common.c: Use correct
+	  form of userid (user@realm) when running setpass methods
+	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)
 	* saslauthd/configure.in: Handle LTLIBOBJS
 
 2004-06-18  Rob Siemborski <rjs3@andrew.cmu.edu>

@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.87 2002/12/05 14:00:38 rjs3 Exp $
+ * $Id: common.c,v 1.88 2002/12/09 18:38:23 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -327,7 +327,7 @@ void sasl_done(void)
 
   _sasl_free_utils(&sasl_global_utils);
 
-  sasl_FREE(global_mech_list);
+  if(global_mech_list) sasl_FREE(global_mech_list);
   global_mech_list = NULL;
 
   /* in case of another init/done */

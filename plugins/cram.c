@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.55 2001/02/19 19:01:54 leg Exp $
+ * $Id: cram.c,v 1.56 2001/06/19 22:56:38 rjs3 Exp $
  */
 
 /* 
@@ -309,14 +309,12 @@ static char *convert16(unsigned char *in, int inlen, sasl_utils_t *utils)
 }
 
 static char *make_hashed(sasl_secret_t *sec, char *nonce, int noncelen, 
-			 void *inparams)
+			 sasl_utils_t *utils)
 {
   char secret[65];
   unsigned char digest[24];  
   int lup;
   char *in16;
-
-  sasl_server_params_t *params=(sasl_server_params_t *) inparams;
 
   if (sec==NULL) return NULL;
 
@@ -336,11 +334,11 @@ static char *make_hashed(sasl_secret_t *sec, char *nonce, int noncelen,
   VL(("nonce=[%s] %i\n",nonce, noncelen));
 
   /* do the hmac md5 hash output 128 bits */
-  params->utils->hmac_md5((unsigned char *) nonce,noncelen,
-			  (unsigned char *) secret,64,digest);
+  utils->hmac_md5((unsigned char *) nonce,noncelen,
+		  (unsigned char *) secret,64,digest);
 
   /* convert that to hex form */
-  in16=convert16(digest,16,params->utils);
+  in16=convert16(digest,16,utils);
   if (in16==NULL) return NULL;
 
   return in16;
@@ -1155,7 +1153,8 @@ static int c_continue_step (void *conn_context,
      * digest (keyed md5 where key is passwd)
      */
 
-    in16=make_hashed(text->password,(char *) serverin, serverinlen, params);
+    in16=make_hashed(text->password,(char *) serverin, serverinlen,
+		     params->utils);
 
     if (in16==NULL) return SASL_FAIL;
 

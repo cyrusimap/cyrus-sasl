@@ -2,6 +2,8 @@
 	* saslauthd/lak.c: fix problem where saslauthd stops LDAP
 	  authentications when ldap_auth_method is bind.
 	  (Igor Brezac <igor@ypass.net>)
+	* doc/sysadmin.html, doc/options.html, saslauthd/saslauthd.mdoc:
+	  documentation updates re: saslauthd mux path
 
 2002-10-23  Ken Murchison <ken@oceana.com>
 	* lib/external.c: added SASL_SEC_NOANONYMOUS to client side

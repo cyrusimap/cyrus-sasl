@@ -1,4 +1,6 @@
 2004-07-06  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* lib/server.c, lib/saslint.h, lib/common.c: don't directly
+	  store buffers in the params structure
 	* plugins/gssapi.c: Fix server side maxoutbuf calculation
 	  (Sam Hartman <hartmans@mit.edu>)
 	* Ready for 2.1.19

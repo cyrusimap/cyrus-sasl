@@ -255,48 +255,6 @@ static struct sasl_callback goodsasl_cb[] = {
     { SASL_CB_LIST_END, NULL, NULL }
 };
 
-/* returns the realm we should pretend to be in */
-static int parseuser(char **user, char **realm, const char *user_realm, 
-		     const char *serverFQDN, const char *input)
-{
-    char *r;
-
-    assert(user && realm && serverFQDN);
-
-    *realm = *user = NULL;
-
-    if (!user_realm) {
-	*realm = strdup(serverFQDN);
-	*user = strdup(input);
-    } else if (user_realm[0]) {
-	*realm = strdup(user_realm);
-	*user = strdup(input);
-    } else {
-	/* otherwise, we gotta get it from the user */
-	r = strchr(input, '@');
-	if (!r) {
-	    /* hmmm, the user didn't specify a realm */
-	    /* we'll default to the serverFQDN */
-	    *realm = strdup(serverFQDN);
-	    *user = strdup(input);
-	} else {
-	    r++;
-	    *realm = strdup(r);
-	    *--r = '\0';
-	    *user = malloc(r - input + 1);
-	    if (*user) {
-		strncpy(*user, input, r - input +1);
-	    } else {
-		return SASL_NOMEM;
-	    }
-	    *r = '@';
-	}
-    }
-
-    if(! *user && ! *realm ) return SASL_FAIL;
-    else return SASL_OK;
-}
-
 int
 main(int argc, char *argv[])
 {
@@ -310,7 +268,7 @@ main(int argc, char *argv[])
   sasl_conn_t *conn;
   char *user_domain = NULL;
   char *appname = "saslpasswd";
-  char *sasl_implementation;
+  const char *sasl_implementation;
   int libsasl_version;
   int libsasl_major;
   int libsasl_minor;

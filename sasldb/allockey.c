@@ -1,7 +1,7 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Rob Siemborski
  * Tim Martin
- * $Id: allockey.c,v 1.6 2003/10/03 20:30:12 rjs3 Exp $
+ * $Id: allockey.c,v 1.7 2003/10/09 14:09:29 ken3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -194,8 +194,7 @@ int _sasldb_putsecret(const sasl_utils_t *utils,
 int __sasldb_internal_list (const char *authid,
 			    const char *realm,
 			    const char *property,
-			    void *rock
-)
+			    void *rock __attribute__((unused)))
 {
     printf("%s@%s: %s\n", authid, realm, property);
 
@@ -206,8 +205,7 @@ int __sasldb_internal_list (const char *authid,
 int _sasldb_listusers (const sasl_utils_t *utils,
 		       sasl_conn_t *context,
 		       sasldb_list_callback_t callback,
-		       void *callback_rock
-)
+		       void *callback_rock)
 {
     int result;
     char key_buf[32768];

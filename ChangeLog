@@ -1,5 +1,7 @@
 1999-02-05  Rob Earhart  <rob+@andrew.cmu.edu>
 
+	* lib/windlopen.c (_sasl_get_mech_list): added getpath_cb
+
 	* lib/saslint.h: _sasl_get_mech_list *takes* getpath callback
 	               added _sasl_find_getpath_callback prototype
 

@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.20 2002/02/21 21:28:14 rjs3 Exp $
+ * $Id: testsuite.c,v 1.21 2002/04/26 17:59:22 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2541,9 +2541,10 @@ void create_ids(void)
     
     result = sasl_checkpass(saslconn, username, strlen(username),
 			    password, strlen(password));
-    if (result != SASL_OK)
+    if (result != SASL_OK) {
+	fprintf(stderr, "%s\n", sasl_errdetail(saslconn));
 	fatal("Unable to verify password we just set");
-
+    }
     result = sasl_user_exists(saslconn, "imap", NULL, username);
     if(result != SASL_OK)
 	fatal("sasl_user_exists did not find user");

@@ -1153,6 +1153,7 @@ LIBSASL_API struct propctx *sasl_auxprop_getctx(sasl_conn_t *conn);
  *
  * errors
  *  SASL_OK       -- success
+ *  SASL_NOMECH   -- can not store some/all properties
  *  SASL_BADPARAM -- bad conn/ctx/user parameter
  *  SASL_NOMEM    -- out of memory
  *  SASL_FAIL     -- failed to store

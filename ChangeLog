@@ -1,3 +1,6 @@
+2002-02-22  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* lib/checkpw.c: made retry_read static
+
 2002-02-21  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* lib/checkpw.c (auxprop_verify_password) report SASL_NOUSER instead
 	  of SASL_FAIL.

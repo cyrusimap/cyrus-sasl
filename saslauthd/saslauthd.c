@@ -62,17 +62,16 @@
  * saslauthd is a re-implementation of the pwcheck utility included
  * with the CMU Cyrus IMAP server circa 1997. This implementation
  * was written by Lyndon Nerenberg of Messaging Direct Inc. (which
- * at that time was the Esys Corporation) with additional input from
- * Farren Layton and Curtis King (who wrote the PAM module), and was
- * included in the company's IMAP message store product (Simeon Message
- * Service) as the smsauthd utility.
+ * at that time was the Esys Corporation) and was included in the
+ * company's IMAP message store product (Simeon Message Service) as
+ * the smsauthd utility.
  *
  * This implementation was contributed to CMU by Messaging Direct Ltd.
  * in September 2000.
  * END HISTORY */
 
 #ifdef __GNUC__
-#ident "$Id: saslauthd.c,v 1.1 2000/10/01 20:42:54 esys Exp $"
+#ident "$Id: saslauthd.c,v 1.2 2000/10/01 21:02:42 esys Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */

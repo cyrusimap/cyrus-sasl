@@ -24,3 +24,10 @@
 ################################################################
 
 include_HEADERS = hmac-md5.h md5.h md5global.h sasl.h saslplug.h saslutil.h
+
+noinst_PROGRAMS = makemd5
+
+makemd5_SOURCES = makemd5.c
+
+md5global.h: makemd5
+	./makemd5 md5global.h

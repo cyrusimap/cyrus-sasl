@@ -6,7 +6,6 @@
 
 #ifndef MD5GLOBAL_H
 #include "md5global.h"
-#define MD5GLOBAL_H 1
 #endif
 #ifndef MD5_H
 #include "md5.h"

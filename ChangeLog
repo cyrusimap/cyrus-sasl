@@ -1,3 +1,9 @@
+2003-03-31  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/ipc_unix.c, saslauthd/saslauthd-main.c,
+	  saslauthd/saslauthd-main.h: use the pidfile locking from
+	  the Cyrus IMAPd master process (implemented for saslauthd by
+	  Igor Brezac <igor@ipass.net>)
+
 2003-03-28  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/: Unify the source files so that the IPC methods
 	  are broken out into a separate API.  Cacheing of authentication

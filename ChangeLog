@@ -1,3 +1,8 @@
+Thu Aug 26 12:23:26 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/server.c (_sasl_checkpass): pwcheck_method is no longer case
+	sensitive.
+
 Tue Aug 24 18:30:57 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/checkpw.c (_sasl_pwcheck_verify_password): added

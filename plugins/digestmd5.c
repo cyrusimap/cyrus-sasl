@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.101 2002/01/09 19:14:16 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.102 2002/01/09 19:16:00 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2556,7 +2556,7 @@ digestmd5_server_mech_step(void *conn_context,
 
     /* used by layers */
     text->size = -1;
-x    text->needsize = 4;
+    text->needsize = 4;
     text->buffer = NULL;
 
     { /* xxx if layers */

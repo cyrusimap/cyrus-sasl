@@ -224,7 +224,7 @@ int listusers(const char *path, listcb_t *cb)
 
     /* make cursor */
 #if DB_VERSION_MAJOR < 3
-#if DB_VERSION_MINOR < 7
+#if DB_VERSION_MINOR < 6
     result = mbdb->cursor(mbdb, NULL,&cursor); 
 #else
     result = mbdb->cursor(mbdb, NULL,&cursor, 0); 
@@ -256,7 +256,7 @@ int listusers(const char *path, listcb_t *cb)
 	int numnulls = 0;
 	int lup;
 
-	/* make sure there are exactly 3 null's */
+	/* make sure there are exactly 2 null's */
 	for (lup=0;lup<key.size;lup++)
 	    if (((char *)key.data)[lup]=='\0')
 		numnulls++;

@@ -3,7 +3,7 @@
 ** mysql Auxprop plugin
 **   by Simon Loader
 **
-** $Id: mysql.c,v 1.8 2002/09/11 14:21:00 rjs3 Exp $
+** $Id: mysql.c,v 1.9 2003/05/14 18:46:02 rjs3 Exp $
 **
 **  Auxiliary property plugin for Sasl 2.1.x
 **
@@ -325,8 +325,11 @@ static void mysql_auxprop_lookup(void *glob_context,
 	    sparams->utils->log(NULL, SASL_LOG_WARN,
 				"mysql plugin try and connect to %s\n",
 				cur_host);
-	sock = mysql_connect(&mysql,cur_host,settings->mysql_user,
-			     settings->mysql_passwd);
+
+	sock = mysql_real_connect(&mysql,cur_host,
+				  settings->mysql_user,
+			          settings->mysql_passwd,
+				  NULL, 0, NULL, 0);
 	if (sock) break;
 	
 	cur_host = db_host;

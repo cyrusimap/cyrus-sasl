@@ -4,7 +4,7 @@
    This file provides routines to allow CFM (os 9 linkage) Carbon applications
    to use the native Mach-O SASL libraries on Mac OS X, using CFBundle to
    load the backend libraries and automatically allocated assembly callbacks
-   $Id: cfmglue.c,v 1.3 2003/02/13 19:56:02 rjs3 Exp $
+   $Id: cfmglue.c,v 1.4 2003/06/12 00:33:05 rbraun Exp $
 */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -541,6 +541,8 @@ void sasl_done(void)
 	CFRelease(saslcfmglob.bundleURL);
 	saslcfmglob.myBundle = NULL;
 	saslcfmglob.bundleURL = NULL;
+
+        _cfmsasl_initted = 0;
 }
 
 int sasl_client_new (const char *service,

@@ -1,6 +1,6 @@
 /* Plain SASL plugin
  * Tim Martin 
- * $Id: plain.c,v 1.41 2000/03/09 04:53:15 tmartin Exp $
+ * $Id: plain.c,v 1.42 2001/02/19 18:42:54 leg Exp $
  */
 
 /* 
@@ -629,6 +629,9 @@ static int client_continue_step (void *conn_context,
 
   VL(("Plain step #%d\n",text->state));
 
+  if (!clientout && text->state == 1) {
+      text->state = 2;
+  }
   *clientout = NULL;
   *clientoutlen = 0;
 
@@ -756,7 +759,7 @@ static int client_continue_step (void *conn_context,
 
     oparams->param_version = 0;
 
-    text->state=3;
+    text->state = 3;
 
     return SASL_CONTINUE;
   }

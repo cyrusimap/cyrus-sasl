@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb4.c,v 1.5 2001/12/18 02:34:32 rjs3 Exp $"
+#ident "$Id: auth_krb4.c,v 1.6 2002/01/14 15:52:42 rjs3 Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -199,6 +199,7 @@ auth_krb4 (
     if (rc) {
 	syslog(LOG_ERR, "auth_krb4: krb_get_lrealm: %s",
 	       krb_get_err_text(rc));
+	free(tf_name);
 	return strdup("NO saslauthd internal error");
     }
 #ifdef NOTYET   
@@ -207,9 +208,11 @@ auth_krb4 (
 			   KRB_TICKET_GRANTING_TICKET,
 			   realm, 1, password);
     if (rc == 0) {
+	free(tf_name);
 	return strdup("OK");
     }
     if (rc == INTK_BADPW) {
+	free(tf_name);
 	return strdup("NO");			/* Bad username or password */
     }
 #endif    
@@ -219,6 +222,7 @@ auth_krb4 (
 			   KRB_TICKET_GRANTING_TICKET,
 			   realm, 1, password);
     unlink(tf_name);
+    free(tf_name);
     if (rc == 0) {
 	return strdup("OK");
     }

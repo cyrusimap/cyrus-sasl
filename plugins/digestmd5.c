@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.112 2002/04/25 21:18:56 ken3 Exp $
+ * $Id: digestmd5.c,v 1.113 2002/04/26 16:45:47 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -198,8 +198,8 @@ typedef struct context {
     /* Server MaxBuf for Client or Client MaxBuf For Server */
     unsigned int    maxbuf;
 
-    unsigned char  *authid; /* authentication id */
-    unsigned char  *userid; /* authorization_id */
+    unsigned char  *authid; /* authentication id (client) */
+    unsigned char  *userid; /* authorization_id (client) */
     sasl_secret_t  *password;
     sasl_secret_t  *password_free; /* for freeing only */
 
@@ -1928,7 +1928,6 @@ digestmd5_both_mech_dispose(void *conn_context, const sasl_utils_t * utils)
   if (text->response_value) utils->free(text->response_value);
 
   if (text->realm) utils->free(text->realm);
-  if (text->userid) utils->free(text->userid);
 
   if (text->password_free) {
       _plug_free_secret(utils, &text->password_free);
@@ -2783,30 +2782,22 @@ find_prompt(sasl_interact_t ** promptlist,
   return NULL;
 }
 
-static int
-get_authid(sasl_client_params_t * params,
-	   char **authid,
-	   sasl_interact_t ** prompt_need)
+static int get_authid(sasl_client_params_t * params,
+		      char **authid,
+		      sasl_interact_t ** prompt_need)
 {
 
   int             result;
   sasl_getsimple_t *getauth_cb;
   void           *getauth_context;
   sasl_interact_t *prompt;
-  const char *ptr;
-
+ 
   /* see if we were given the authname in the prompt */
   prompt = find_prompt(prompt_need, SASL_CB_AUTHNAME);
   if (prompt != NULL) {
-      if (!prompt->result) {
+      if (!prompt->result)
 	  return SASL_BADPARAM;
-      }
-
-      /* copy it */
-      *authid=params->utils->malloc(prompt->len+1);
-      if ((*authid)==NULL) return SASL_NOMEM;
-
-      strncpy(*authid, prompt->result, prompt->len+1);      
+      *authid = prompt->result;
       return SASL_OK;
   }
   /* Try to get the callback... */
@@ -2816,26 +2807,18 @@ get_authid(sasl_client_params_t * params,
 				      &getauth_context);
   switch (result) {
   case SASL_INTERACT:
-    return SASL_INTERACT;
+      return SASL_INTERACT;
   case SASL_OK:
-    if (!getauth_cb)
-      return SASL_FAIL;
-    result = getauth_cb(getauth_context,
-			SASL_CB_AUTHNAME,
-			&ptr,
-			NULL);
-    if (result != SASL_OK)
-      return result;
-    if (!ptr) return SASL_BADPARAM;
-
-    *authid = params->utils->malloc(strlen(ptr)+1);
-    if ((*authid)==NULL) return SASL_NOMEM;
-    strcpy(*authid, ptr);
-
-    break;
+      if (!getauth_cb)
+	  return SASL_FAIL;
+      result = getauth_cb(getauth_context,
+			  SASL_CB_AUTHNAME,
+			  authid,
+			  NULL);
+      break;
   default:
-    /* sucess */
-    break;
+      /* success */
+      break;
   }
 
   return result;
@@ -2856,23 +2839,16 @@ get_userid(sasl_client_params_t *params,
   sasl_getsimple_t *getuser_cb;
   void *getuser_context;
   sasl_interact_t *prompt;
-  const char *ptr;
 
   /* see if we were given the userid in the prompt */
   prompt=find_prompt(prompt_need,SASL_CB_USER);
   if (prompt!=NULL) {
-      if (!prompt->result) {
+      if (!prompt->result)
 	  return SASL_BADPARAM;
-      }
-
-      /* copy it */
-      *userid=params->utils->malloc(prompt->len+1);
-      if ((*userid)==NULL) return SASL_NOMEM;
-
-      strncpy(*userid, prompt->result, prompt->len+1);
+      *userid = prompt->result;
       return SASL_OK;
-    }
-
+  }
+  
   /* Try to get the callback... */
   result = params->utils->getcallback(params->utils->conn,
 				      SASL_CB_USER,
@@ -2886,16 +2862,8 @@ get_userid(sasl_client_params_t *params,
       return SASL_FAIL;
     result = getuser_cb(getuser_context,
 			SASL_CB_USER,
-			&ptr,
+			userid,
 			NULL);
-    if (result != SASL_OK)
-      return result;
-    if (!ptr) return SASL_BADPARAM;
-
-    *userid=params->utils->malloc(strlen(ptr)+1);
-    if ((*userid)==NULL) return SASL_NOMEM;
-    strcpy(*userid, ptr);
-
     break;
   default:
     /* sucess */
@@ -3376,28 +3344,26 @@ digestmd5_client_mech_step(void *conn_context,
     /* try to get the authid */
     if (text->authid == NULL) {
       auth_result = get_authid(params,
-			       (char **) &text->authid,
+			       &text->authid,
 			       prompt_need);
 
       if ((auth_result != SASL_OK) && (auth_result != SASL_INTERACT))
       {
-	result = auth_result;
-	goto FreeAllocatedMem;
+	  result = auth_result;
+	  goto FreeAllocatedMem;
       }
     }
 
     /* try to get the userid */
     if (text->userid == NULL) {
       user_result = get_userid(params,
-			       (char **) &text->userid,
+			       &text->userid,
 			       prompt_need);
 
       /* Steal it from the authid */
-      if ((user_result != SASL_OK) && (user_result != SASL_INTERACT)
-	  && text->authid)
-      {
-	  result = _plug_strdup(params->utils, text->authid,
-				(char **) &text->userid, NULL);
+      if (user_result != SASL_OK
+	  && user_result != SASL_INTERACT && text->authid) {
+	  text->userid = text->authid;
       }
     }
 
@@ -3589,11 +3555,12 @@ digestmd5_client_mech_step(void *conn_context,
      * strcat (digesturi, "/"); strcat (digesturi, params->serverFQDN);
      */
 
-    if ((text->authid!=NULL) && !strcmp((const char *) text->authid,(const char *) text->userid)) {
-	if (text->userid) {
-	    params->utils->free(text->userid);
-	    text->userid = NULL;
-	}
+    /* If authid and authzid are the same, don't bother with authzid */
+    if (text->userid
+	&& text->authid
+	&& !strcmp((const char *)text->authid,
+		   (const char *)text->userid)) {
+	text->userid = NULL;
     }
 
     /* response */

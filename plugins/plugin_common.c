@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.c,v 1.10 2002/09/03 15:11:58 rjs3 Exp $
+ * $Id: plugin_common.c,v 1.11 2002/09/06 16:03:05 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -89,7 +89,7 @@ static void sockaddr_unmapped(
     if (sa->sa_family != AF_INET6)
 	return;
     sin6 = (struct sockaddr_in6 *)sa;
-    if (!IN6_IS_ADDR_V4MAPPED(&sin6->sin6_addr))
+    if (!IN6_IS_ADDR_V4MAPPED((&sin6->sin6_addr)))
 	return;
     sin4 = (struct sockaddr_in *)sa;
     addr = *(uint32_t *)&sin6->sin6_addr.s6_addr[12];

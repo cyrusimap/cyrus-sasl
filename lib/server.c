@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.41 1999/07/30 19:00:19 leg Exp $
+ * $Id: server.c,v 1.42 1999/07/30 23:42:52 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -526,11 +526,8 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
   config_filename = sasl_ALLOC(len);
   if (! config_filename) return SASL_NOMEM; 
 
-  strcpy(config_filename, path_to_config);
-  strcat(config_filename,"/");
-  strcat(config_filename, global_callbacks.appname);
-  strcat(config_filename, ".conf");
-
+  snprintf(config_filename, len, "%s/%s.conf", path_to_config, 
+	   global_callbacks.appname);
 
   /* Ask the application if it's safe to use this file */
   result = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(verifyfile_cb->context,
@@ -545,7 +542,9 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
     result=sasl_config_init(config_filename);
 
   sasl_FREE(config_filename);
-  sasl_FREE(path_to_config);
+  if (*path_to_config) { /* was path_to_config allocated? */
+      sasl_FREE(path_to_config);
+  }
 
   return result;
 }

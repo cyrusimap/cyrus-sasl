@@ -1,3 +1,8 @@
+Wed Jul 21 23:35:15 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/server.c (load_config): small fixes (cosmetic & free'ing
+	path_to_config)
+
 Fri Jul 30 13:33:05 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
         * Version 1.5.3 released

@@ -1,7 +1,7 @@
 /* Anonymous SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: anonymous.c,v 1.41 2002/02/05 23:37:34 rjs3 Exp $
+ * $Id: anonymous.c,v 1.42 2002/02/20 17:19:39 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -360,7 +360,8 @@ anonymous_client_mech_step(void *conn_context,
 
   strcpy(text->out_buf, user);
   text->out_buf[userlen] = '@';
-  strcpy(text->out_buf + userlen + 1, hostname);
+  /* use memcpy() instead of strcpy() so we don't add the NUL */
+  memcpy(text->out_buf + userlen + 1, hostname, strlen(hostname));
 
   oparams->doneflag = 1;
   oparams->mech_ssf=0;

@@ -1,0 +1,90 @@
+!INCLUDE ..\win32\common.mak
+
+sasl_apps=saslpasswd2.exe sasldblistusers2.exe
+sasl_out=saslpasswd2.pdb sasldblistusers2.pdb
+
+saslpwd_objs = saslpasswd.obj
+sasldblistusers_objs = sasldblistusers.obj
+
+all_objs = $(saslpwd_objs) $(sasldblistusers_objs)
+all_out = $(sasl_apps) $(sasl_out)
+
+!IF "$(OS)" == "Windows_NT"
+NULL=
+!ELSE 
+NULL=nul
+!ENDIF 
+
+DB_FLAGS = /I $(DB_INCLUDE) /I "..\sasldb"
+CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" $(DB_FLAGS) /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL"
+
+SYS_LIBS=ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib
+DB_LIBS=/libpath:$(DB_LIBPATH) $(DB_LIB)
+SASL_LIB=/libpath:"..\lib" libsasl.lib
+SASL_DB_LIB=/libpath:"..\plugins" saslSASLDB.lib
+
+!IF  "$(CFG)" == "Release"
+
+CPP=cl.exe
+
+!IF "$(STATIC)" == "yes"
+CODEGEN=/MT
+!ELSE
+CODEGEN=/MD
+!ENDIF 
+!MESSAGE Codegeneration defaulting to $(CODEGEN).
+
+CPP_PROJ=/nologo $(CODEGEN) /W3 /GX /O2  /D "NDEBUG" $(CPPFLAGS) /FD /c 
+
+LINK32=link.exe
+LINK32_FLAGS=$(SYS_LIBS) $(SASL_LIB) /nologo /subsystem:console /incremental:no /machine:I386
+
+!ELSEIF  "$(CFG)" == "Debug"
+
+CPP=cl.exe
+
+!IF "$(STATIC)" == "yes"
+CODEGEN=/MTd
+!ELSE
+CODEGEN=/MDd
+!ENDIF 
+
+CPP_PROJ=/nologo $(CODEGEN) /W3 /Gm /GX /ZI /Od /D "_DEBUG" $(CPPFLAGS) /FD /GZ /c 
+
+LINK32=link.exe
+LINK32_FLAGS=$(SYS_LIBS) $(SASL_LIB) /nologo /subsystem:console /incremental:yes /debug /machine:I386 /pdbtype:sept 
+
+!ENDIF
+
+all : all-recursive
+
+all-recursive : $(sasl_apps)
+
+saslpasswd2.exe: $(saslpwd_objs)
+	$(LINK32) @<< $(LINK32_FLAGS) /pdb:"saslpasswd2.pdb" /out:"saslpasswd2.exe" $(saslpwd_objs)
+<<
+
+sasldblistusers2.exe: $(sasldblistusers_objs)
+	$(LINK32) @<< $(LINK32_FLAGS) $(SASL_DB_LIB) /pdb:"sasldblistusers2.pdb" /out:"sasldblistusers2.exe" $(sasldblistusers_objs)
+<<
+
+CLEAN :
+	-@erase $(all_objs)
+	-@erase "*.idb"
+	-@erase "*.pch"
+	-@erase $(all_out)
+
+.c.obj::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+.cpp.obj::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+.cxx.obj::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<

@@ -1,5 +1,5 @@
 /* sasldblistusers.c -- list users in sasldb
- * $Id: sasldblistusers.c,v 1.18 2003/02/13 19:56:17 rjs3 Exp $
+ * $Id: sasldblistusers.c,v 1.19 2003/08/18 15:47:31 rjs3 Exp $
  * Rob Siemborski
  * Tim Martin
  */
@@ -52,7 +52,7 @@
 #include "../sasldb/sasldb.h"
 
 /* Cheating to make the utils work out right */
-extern const sasl_utils_t *sasl_global_utils;
+LIBSASL_VAR const sasl_utils_t *sasl_global_utils;
 
 /*
  * List all users in database

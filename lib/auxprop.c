@@ -1,6 +1,6 @@
 /* auxprop.c - auxilliary property support
  * Rob Siemborski
- * $Id: auxprop.c,v 1.11 2003/07/17 19:04:20 ken3 Exp $
+ * $Id: auxprop.c,v 1.12 2003/08/18 15:47:17 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -248,7 +248,7 @@ int prop_request(struct propctx *ctx, const char **names)
     /* Do we need to add ANY? */
     if(!new_values) return SASL_OK;
 
-    /* We always want atleast on extra to mark the end of the array */
+    /* We always want at least one extra to mark the end of the array */
     total_values = new_values + ctx->used_values + 1;
 
     /* Do we need to increase the size of our propval table? */

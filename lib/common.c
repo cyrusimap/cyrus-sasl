@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.93 2003/07/17 19:04:20 ken3 Exp $
+ * $Id: common.c,v 1.94 2003/08/18 15:47:17 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -74,7 +74,7 @@ static int _sasl_getpath(void *context __attribute__((unused)), const char **pat
 
 static const char build_ident[] = "$Build: libsasl " PACKAGE "-" VERSION " $";
 
-/* It turns out to be conveinent to have a shared sasl_utils_t */
+/* It turns out to be convenient to have a shared sasl_utils_t */
 LIBSASL_VAR const sasl_utils_t *sasl_global_utils = NULL;
 
 /* Should be a null-terminated array that lists the available mechanisms */

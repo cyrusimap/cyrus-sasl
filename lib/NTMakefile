@@ -1,7 +1,4 @@
-!IF "$(CFG)" == ""
-CFG=Release
-!MESSAGE No configuration specified. Defaulting to $(CFG).
-!ENDIF 
+!INCLUDE ..\win32\common.mak
 
 compat_sources = getaddrinfo.c
 compat_objs = getaddrinfo.obj
@@ -39,7 +36,9 @@ LINK32_FLAGS=ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.
 
 !ENDIF
 
-ALL : libsasl.dll
+all : all-recursive
+
+all-recursive : libsasl.dll
 
 libsasl.dll: $(libsasl_objs)
 	$(LINK32) @<< $(LINK32_FLAGS) /out:"libsasl.dll" /implib:"libsasl.lib" $(libsasl_objs)
@@ -53,8 +52,8 @@ plugin_common.h: ..\plugins\plugin_common.h
 
 CLEAN :
 	-@erase $(all_objs)
-	-@erase "vc60.idb"
-	-@erase "vc60.pdb"
+	-@erase "*.idb"
+	-@erase "*.pdb"
 	-@erase $(all_out)
 
 .c.obj::

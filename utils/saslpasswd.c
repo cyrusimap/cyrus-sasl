@@ -68,11 +68,7 @@ __declspec(dllimport) int getsubopt(char **optionp, char * const *tokens, char *
 #include "../sasldb/sasldb.h"
 
 /* Cheating to make the utils work out right */
-#ifndef WIN32
-extern const sasl_utils_t *sasl_global_utils;
-#else
-__declspec(dllimport) const sasl_utils_t *sasl_global_utils;
-#endif
+LIBSASL_VAR const sasl_utils_t *sasl_global_utils;
 
 char myhostname[1025];
 

@@ -1,7 +1,7 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Rob Siemborski
  * Tim Martin
- * $Id: db_berkeley.c,v 1.6 2003/02/13 19:56:14 rjs3 Exp $
+ * $Id: db_berkeley.c,v 1.7 2003/08/18 15:47:29 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -358,14 +358,14 @@ typedef struct berkeleydb_handle
 {
     DB *mbdb;
     DBC *cursor;
-} handle_t;
+} berkleyhandle_t;
 
 sasldb_handle _sasldb_getkeyhandle(const sasl_utils_t *utils,
 				   sasl_conn_t *conn) 
 {
     int ret;
     DB *mbdb;
-    handle_t *handle;
+    berkleyhandle_t *handle;
     
     if(!utils || !conn) return NULL;
 
@@ -380,7 +380,7 @@ sasldb_handle _sasldb_getkeyhandle(const sasl_utils_t *utils,
 	return NULL;
     }
 
-    handle = utils->malloc(sizeof(handle_t));
+    handle = utils->malloc(sizeof(berkleyhandle_t));
     if(!handle) {
 	(void)mbdb->close(mbdb, 0);
 	utils->seterror(conn, 0, "Memory error in _sasldb_gethandle");
@@ -399,7 +399,7 @@ int _sasldb_getnextkey(const sasl_utils_t *utils __attribute__((unused)),
 {
     DB *mbdb;
     int result;
-    handle_t *dbh = (handle_t *)handle;
+    berkleyhandle_t *dbh = (berkleyhandle_t *)handle;
     DBT key, data;
 
     if(!utils || !handle || !out || !max_out)
@@ -451,7 +451,7 @@ int _sasldb_getnextkey(const sasl_utils_t *utils __attribute__((unused)),
 int _sasldb_releasekeyhandle(const sasl_utils_t *utils,
 			     sasldb_handle handle) 
 {
-    handle_t *dbh = (handle_t *)handle;
+    berkleyhandle_t *dbh = (berkleyhandle_t *)handle;
     int ret = 0;
     
     if(!utils || !dbh) return SASL_BADPARAM;

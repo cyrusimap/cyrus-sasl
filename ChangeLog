@@ -1,3 +1,7 @@
+2003-08-18  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* Improvements in Win32 build system from Alexey Melnikov
+	  <Alexey.Melnikov@isode.com>
+
 2003-08-14  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* doc/*: Massive documentation updates.
 

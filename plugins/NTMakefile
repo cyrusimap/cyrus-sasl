@@ -1,13 +1,11 @@
-!IF "$(CFG)" == ""
-CFG=Release
-!MESSAGE No configuration specified. Defaulting to $(CFG).
-!ENDIF 
+!INCLUDE ..\win32\common.mak
 
 PLUGINS=saslANONYMOUS.dll \
 	saslPLAIN.dll \
 	saslCRAMMD5.dll \
 	saslDIGESTMD5.dll \
-	saslLOGIN.dll
+	saslLOGIN.dll \
+	saslSASLDB.dll
 
 compat_sources = getaddrinfo.c
 compat_objs = getaddrinfo.obj
@@ -35,10 +33,16 @@ saslLOGIN_sources = login.c login_init.c $(common_sources)
 saslLOGIN_objs = login.obj login_init.obj $(common_objs)
 saslLOGIN_out = saslLOGIN.dll saslLOGIN.exp saslLOGIN.lib
 
-CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL"
+# Auxprop Plugin
+libsasldb_sources = allockey.c db_berkeley.c
+libsasldb_objs = allockey.obj db_berkeley.obj
 
-all_objs = $(saslANONYMOUS_objs) $(saslPLAIN_objs) $(saslCRAMMD5_objs) $(saslDIGESTMD5_objs) $(saslLOGIN_objs)
-all_out = $(saslANONYMOUS_out) $(saslPLAIN_out) $(saslCRAMMD5_out) $(saslDIGESTMD5_out) $(saslLOGIN_out)
+saslSASLDB_sources = sasldb.c sasldb_init.c $(libsasldb_sources) $(common_sources)
+saslSASLDB_objs = sasldb.obj sasldb_init.obj $(libsasldb_objs) $(common_objs)
+saslSASLDB_out = saslSASLDB.dll saslSASLDB.exp saslSASLDB.lib
+
+all_objs = $(saslANONYMOUS_objs) $(saslPLAIN_objs) $(saslCRAMMD5_objs) $(saslDIGESTMD5_objs) $(saslLOGIN_objs) $(saslSASLDB_objs)
+all_out = $(saslANONYMOUS_out) $(saslPLAIN_out) $(saslCRAMMD5_out) $(saslDIGESTMD5_out) $(saslLOGIN_out) $(saslSASLDB_out)
 
 !IF "$(OS)" == "Windows_NT"
 NULL=
@@ -46,28 +50,58 @@ NULL=
 NULL=nul
 !ENDIF 
 
+# LIBSASL_EXPORTS is required to export additional DB routines from sasldb
+DB_FLAGS = /I $(DB_INCLUDE) /I "..\sasldb" /D "LIBSASL_EXPORTS"
+CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" $(DB_FLAGS) /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL"
+
+SYS_LIBS=ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib
+DB_LIBS=/libpath:$(DB_LIBPATH) $(DB_LIB)
+
 !IF  "$(CFG)" == "Release"
 
 CPP=cl.exe
-CPP_PROJ=/nologo /MT /W3 /GX /O2  /D "NDEBUG" $(CPPFLAGS) /FD /c 
+
+!IF "$(STATIC)" == "yes"
+CODEGEN=/MT
+!ELSE
+CODEGEN=/MD
+!ENDIF 
+!MESSAGE Codegeneration defaulting to $(CODEGEN).
+
+CPP_PROJ=/nologo $(CODEGEN) /W3 /GX /O2  /D "NDEBUG" $(CPPFLAGS) /FD /c 
 
 LINK32=link.exe
-LINK32_FLAGS=ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /incremental:no /machine:I386
+LINK32_FLAGS=$(SYS_LIBS) /nologo /dll /incremental:no /machine:I386
 
 !ELSEIF  "$(CFG)" == "Debug"
 
 CPP=cl.exe
-CPP_PROJ=/nologo /MTd /W3 /Gm /GX /ZI /Od /D "_DEBUG" $(CPPFLAGS) /FD /GZ /c 
+
+!IF "$(STATIC)" == "yes"
+CODEGEN=/MTd
+!ELSE
+CODEGEN=/MDd
+!ENDIF 
+
+CPP_PROJ=/nologo $(CODEGEN) /W3 /Gm /GX /ZI /Od /D "_DEBUG" $(CPPFLAGS) /FD /GZ /c 
 
 LINK32=link.exe
-LINK32_FLAGS=ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /incremental:yes /pdb:"$(OUTDIR)\saslANONYMOUS.pdb" /debug /machine:I386 /out:"$(OUTDIR)\saslANONYMOUS.dll" /implib:"$(OUTDIR)\saslANONYMOUS.lib" /pdbtype:sept 
+LINK32_FLAGS=$(SYS_LIBS) /nologo /dll /incremental:yes /debug /machine:I386 /pdbtype:sept 
 
 !ENDIF
 
-ALL : $(PLUGINS)
+all : all-recursive
+
+all-recursive : $(PLUGINS)
 
 getaddrinfo.c: ..\lib\getaddrinfo.c
 	copy ..\lib\getaddrinfo.c .
+
+allockey.c: ..\sasldb\allockey.c
+	copy ..\sasldb\allockey.c .
+
+db_berkeley.c: ..\sasldb\db_berkeley.c
+	copy ..\sasldb\db_berkeley.c .
 
 saslANONYMOUS.dll: $(saslANONYMOUS_objs)
 	$(LINK32) @<< $(LINK32_FLAGS) /out:"saslANONYMOUS.dll" /implib:"saslANONYMOUS.lib" $(saslANONYMOUS_objs)
@@ -89,10 +123,17 @@ saslLOGIN.dll: $(saslLOGIN_objs)
 	$(LINK32) @<< $(LINK32_FLAGS) /out:"saslLOGIN.dll" /implib:"saslLOGIN.lib" $(saslLOGIN_objs)
 <<
 
+saslSASLDB.dll: $(saslSASLDB_objs)
+	$(LINK32) @<< $(DB_LIBS) $(LINK32_FLAGS) /out:"saslSASLDB.dll" /implib:"saslSASLDB.lib" $(saslSASLDB_objs)
+<<
+
 CLEAN :
 	-@erase $(all_objs)
-	-@erase "vc60.idb"
-	-@erase "vc60.pdb"
+	-@erase "*.idb"
+	-@erase "*.pdb"
+	-@erase getaddrinfo.c
+	-@erase allockey.c
+	-@erase db_berkeley.c
 	-@erase $(all_out)
 
 .c.obj::

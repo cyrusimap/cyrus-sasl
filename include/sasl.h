@@ -692,9 +692,9 @@ LIBSASL_API int sasl_server_init(const sasl_callback_t *callbacks,
 
 /* create context for a single SASL connection
  *  service        -- registered name of the service using SASL (e.g. "imap")
- *  local_domain   -- Fully qualified local domain name.  May be NULL
- *                    for default domain.  Useful for multi-homed servers.
- *  user_domain    -- permits multiple user domains on server, NULL = default
+ *  serverFQDN     -- Fully qualified server domain name.  NULL means use
+ *                    gethostbyname().  Useful for multi-homed servers.
+ *  user_realm     -- permits multiple user domains on server, NULL = default
  *  callbacks      -- callbacks (e.g., authorization, lang, new getopt context)
  *  secflags       -- security flags (see above)
  * returns:
@@ -705,8 +705,8 @@ LIBSASL_API int sasl_server_init(const sasl_callback_t *callbacks,
  *  SASL_NOMEM     -- not enough memory
  */
 LIBSASL_API int sasl_server_new(const char *service,
-		    const char *local_domain,
-		    const char *user_domain,
+		    const char *serverFQDN,
+		    const char *user_realm,
 		    const sasl_callback_t *callbacks,
 		    int secflags,
 		    sasl_conn_t **pconn);
@@ -783,7 +783,7 @@ LIBSASL_API int sasl_server_step(sasl_conn_t *conn,
 /* check if a plaintext password is valid
  * if user is NULL, check if plaintext is enabled
  * inputs:
- *  user         -- user to query in current user_domain
+ *  user         -- user to query in current user_realm
  *  userlen      -- length of username, 0 = strlen(user)
  *  pass         -- plaintext password to check
  *  passlen      -- length of password, 0 = strlen(pass)
@@ -803,7 +803,7 @@ LIBSASL_API int sasl_checkpass(sasl_conn_t *conn,
 
 /* check if a user exists on server
  *  service       -- registered name of the service using SASL (e.g. "imap")
- *  user_domain   -- permits multiple user domains on server, NULL = default
+ *  user_realm    -- permits multiple user domains on server, NULL = default
  *  user          -- NUL terminated user name
  *
  * returns:
@@ -813,7 +813,7 @@ LIBSASL_API int sasl_checkpass(sasl_conn_t *conn,
  *  SASL_NOMECH   -- user found, but no usable mechanism
  */
 LIBSASL_API int sasl_user_exists(const char *service,
-		     const char *user_domain,
+		     const char *user_realm,
 		     const char *user);
 
 /* set the password for a user

@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.26 2002/01/30 20:11:40 ken3 Exp $ -->
+<!-- $Id: sysadmin.html,v 1.27 2002/02/27 17:32:01 rjs3 Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -112,17 +112,14 @@ authentication and password are verified.  The Cyrus SASL library is
 flexible in this regard:
 
 <DL>
-<dt><i>sasldb</i><dd> This stores passwords in the SASL secrets
-  database, the same database that stores the secrets for shared
-  secret methods.  Its principal advantages are that passwords used by
-  the shared secrets mechanisms will be in sync with the plaintext
-  password mechanisms and that this is the only plaintext
-  authentication method that supports multiple realms on a single
-  server.  However, system built-in routines will not use sasldb.
-  <p>(<tt>sasldb</tt> is the default method.)<p>
-
-<dt><i>pwcheck</i><dd> checks passwords with the use of a separate,
-  helper daemon. <b>needs to be documented.</b><p>
+<dt><i>auxprop</i><dd> checks passwords agains the <tt>userPassword</tt>
+  attribute
+  supplied by an auxilliary property plugin.  For example, SASL ships
+  with a sasldb auxilliary property plugin, that can be used to 
+  authenticate against the passwords stored in <tt>/etc/sasldb2</tt>.
+  Since other mechanisms also use this method of checking their
+  passwords, using this method will allow SASL to provide a uniform password
+  database to a large number of mechanisms.
 
 <dt><i>saslauthd</i><dd> contacts the saslauthd daemon to to check
   passwords using a variety of mechanisms.  You can compile support
@@ -132,6 +129,10 @@ flexible in this regard:
   with <tt>make testsaslauthd</tt> in the saslauthd directory, that
   can check to ensure that the saslauthd daemon is installed and
   running properly.<p> 
+
+<dt><i>pwcheck</i><dd> checks passwords with the use of a separate,
+  helper daemon.  This feature is for backwards-compatibility only,
+  and new installations should use saslauthd.<p>
 
 <dt><i>write your own</i><dd> Last, but not least, the most flexible
   method of authentication for PLAIN is to write your own.  If you do

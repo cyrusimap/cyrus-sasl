@@ -1,3 +1,6 @@
+2002-10-25  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/lak.c: minor cleanups
+
 2002-10-24  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* saslauthd/lak.c: fix problem where saslauthd stops LDAP
 	  authentications when ldap_auth_method is bind.

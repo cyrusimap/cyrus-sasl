@@ -1,5 +1,5 @@
 /* pwcheck.c -- Unix pwcheck daemon
-   $Id: pwcheck.c,v 1.6 2000/05/22 20:46:37 leg Exp $
+   $Id: pwcheck.c,v 1.7 2000/07/18 01:05:37 leg Exp $
 Copyright 1998, 1999 Carnegie Mellon University
 
                       All Rights Reserved
@@ -22,7 +22,11 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
 OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ******************************************************************/
 
+#include <config.h>
+
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <stdio.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -44,8 +48,6 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 # define _PATH_PWCHECKPID (NULL)
 #endif
 #endif
-
-#include "config.h"
 
 void newclient(int);
 int retry_write(int, const char *, unsigned int);

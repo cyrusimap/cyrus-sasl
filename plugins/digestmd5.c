@@ -33,7 +33,16 @@ SOFTWARE.
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <netinet/in.h>
+
+#ifdef WIN32
+# include <winsock.h>
+#else
+//# include <sys/param.h>
+//# include <sys/socket.h>
+# include <netinet/in.h>
+//# include <arpa/inet.h>
+//# include <netdb.h>
+#endif /* WIN32 */
 
 #include <sasl.h>
 #include <saslplug.h>

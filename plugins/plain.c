@@ -24,6 +24,7 @@ SOFTWARE.
 ******************************************************************/
 
 #include <config.h>
+#include <stdio.h>
 #ifndef SASL_MINIMAL_SERVER
 #include <pwd.h>
 #endif /* SASL_MINIMAL_SERVER */

@@ -1,3 +1,8 @@
+Thu Jul 15 14:29:35 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/common.c (_sasl_getcallback): oops, forgot a return
+	statement.  Thanks Claus!
+
 Sat Jul 10 19:58:50 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/server.c (_sasl_transition): now looks at the connection

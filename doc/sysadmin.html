@@ -1,13 +1,13 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.3 1999/08/13 21:11:09 leg Exp $ -->
+<!-- $Id: sysadmin.html,v 1.4 1999/08/20 21:12:29 tmartin Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
 
-This document covers configuring SASL for system administrators.  It
-is aimed at system administrators who are installing Cyrus SASL to
-support a server that uses it for authentication.
+This document covers configuring SASL for system administrators,
+specifically those administrators who are installing a server that
+uses the Cyrus SASL library.
 
 <h2>What SASL is</h2>
 
@@ -31,9 +31,8 @@ it.
 
 <h3>Authentication and authorization identifiers</h3>
 
-Another important concept to become familiar with is the difference
-between an "authorization identifier" and an "authentication
-identifer".
+An important concept to become familiar with is the difference between
+an "authorization identifier" and an "authentication identifer".
 
 <DL compact>
 <DT>userid (user id, authorization id)<dd> The userid is the
@@ -42,14 +41,17 @@ system, the user "<tt>bovik</tt>" (the account of Harry Q. Bovik) is
 allowed to write to "<tt>/home/bovik</tt>" and it's subdirectories but
 not to "<tt>/etc</tt>".
 
-<DT>authid (authentication id)<dd> The authentication identifier is the
-identifier that is being checked.  "bovik"'s password might be "qqqq",
-and the system with authenticate anyone who knows "qqqq" as "bovik".
-However, it's possible to authenticate as one user but <b>act as</b>
-another user.  For instance, Harry might be away on vacation and
-assign one of his graduate students, Jane, to read his mail.  He might
-then allow Jane to act as him merely by supplying her password and her
-id as authentication but requesting authorization as "bovik".
+<DT>authid (authentication id)<dd> The authentication identifier is
+the identifier that is being checked.  "bovik"'s password might be
+"qqqq", and the system will authenticate anyone who knows "qqqq" as
+"bovik".  However, it's possible to authenticate as one user but
+<b>act as</b> another user.  For instance, Harry might be away on
+vacation and assign one of his graduate students, Jane, to read his
+mail.  He might then allow Jane to act as him merely by supplying her
+password and her id as authentication but requesting authorization as
+"bovik". So Jane might log in with an authentication identifier of
+"jane" and an authorization id of "bovik" and her own (Jane's)
+password.
 </DL>
 
 <p>Applications can set their own proxy policies; by default, the SASL
@@ -69,11 +71,11 @@ default to this.
 
 <p> If a site wishes to share passwords between multiple machines, it
 might choose it's authentication realm as a domain name, such as
-"CMU.EDU".  On the other hand, if a site wants security if one server
-is compromised, it might decide that every server should be in it's
-own realm.  Certain mechanisms force the user (on the client) to
-manually configure what realm they're in, making it harder for users
-to authenticate.
+"CMU.EDU".  On the other hand, in order to prevent the entire site's
+security from being compromised when one machine is compromised, each
+server could have it's own realm. Certain mechanisms force the user
+(client side) to manually configure what realm they're in, making it
+harder for users to authenticate.
 
 <p>A single site might support multiple different realms.  This can
 confuse applications that weren't written in anticipation of this;
@@ -108,24 +110,6 @@ an allowable triple.
 <p>The principal concern for system administrators is how the
 authentication and password are verified.  The Cyrus SASL library is
 flexible in this regard:
-
-<ul>
-<li> Traditional Unix systems have a database of authentication and
-  password pairs encoded in <tt>/etc/passwd</tt>.
-
-<li> A somewhat more secure alternative is storing the information in
-  <tt>/etc/shadow</tt>, a restricted file only readable by a special class of
-  users.
-
-<li> Some larger sites use Kerberos, a centralized password database.
-  The Cyrus SASL library can authenticate users directly through
-  Kerberos v4.
-
-<li> PAM, the pluggable authentication module, can also be used to
-  authenticate plaintext passwords.
-</ul>
-
-Each of these methods pose their own problems:
 
 <DL>
 <dt><i>passwd</i><dd> <tt>/etc/passwd</tt> is supported innately in

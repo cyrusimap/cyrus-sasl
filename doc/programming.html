@@ -1,16 +1,684 @@
-<HTML><HEAD>
-<title>Programming with SASL</title>
-<!-- $Id: programming.html,v 1.2 1999/08/09 16:38:01 leg Exp $ -->
-</HEAD>
-<BODY>
-<H1>Programming with SASL</H1>
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+  <head>
+    <title>SASL Programmers Guide</title>
+  </head>
 
-Eventually, I hope to expand this into workable documentation for
-using the SASL library with various programs. For guidance in using
-the library, take a look at the <tt>sample/</tt> directory, and the
-Cyrus IMAP server distribution (versions 1.6.0 or later).
+  <body>
+    <h1>SASL Programmers Guide</h1>
 
-<h2>Example applications</h2>
+    <h3>NOTE: This is a work in progress. Any contributions would be <i>very</i> appreciated</h3>
+
+    <ul>Contents
+
+      <li><a href="#intro">Boring Intro Stuff</a>
+	<ul>
+	    
+	  <li><a href="#about_this_guide">About this guide</a>
+
+	  <li><a href="#what_is_sasl">What is SASL?</a>
+	</ul>
+      <li><a href="#background">Background</a>
+	<ul>
+
+	  <li><a href="#world_before">How did the world work before SASL?</a>
+
+	  <li><a href="#sasl_rescue">SASL to the rescue!</a>
+	</ul>
+      <li>Briefly
+	<ul>
+
+	  <li>What is the Cyrus SASL library good for?
+
+	  <li> What does the Cyrus SASL library do?
+
+	  <li> What doesn't the Cyrus SASL library do?
+	</ul>
+      <li>Client-only Section
+	<ul>
+
+	  <li>A typical interaction from the client's perspective
+
+	  <li>How does this look in code?
+
+	  <li>sasl_client_init
+
+	  <li>sasl_client_new
+
+	  <li>sasl_client_start
+
+	  <li>sasl_client_step
+
+	</ul>
+
+      <li>Server-only Section
+	<ul>
+
+	  <li>A typical interaction from the server's perspective
+
+	  <li>How does this look in code?
+
+	  <li>sasl_server_init
+	    
+	  <li>sasl_server_new
+	    
+	  <li>sasl_server_start
+
+	  <li>sasl_server_step
+	    
+	  <li>sasl_listmech
+
+	  <li>sasl_checkpass
+
+	</ul>
+
+      <li>Common Section
+	<ul>
+	  <li>Callbacks and Interactions
+	    
+	  <li>sasl_encode
+
+	  <li>sasl_decode
+	    
+
+	  </ul>
+
+
+      <li>Example applications that come with the Cyrus SASL library
+	<ul>
+	</ul>
+
+
+    </ul>
+
+
+
+    
+    <a name="intro"><h2>Boring Intro Stuff</h2></a>
+    
+    <a name="about_this_guide"><h3>About this Guide</h3></a>
+
+    <p>This guide gives a tutorial on the use of the Cyrus SASL library
+    for a client or server application. It compiles with versions up
+    to and including 1.5.5. The following pages should only be
+    considered a guide, not the final word on programming with the
+    Cyrus SASL library. Consult the sasl.h file in the distribution in
+    the case of ambiguities.
+
+    <a name="what_is_sasl"><h3>What is SASL?</h3></a>
+
+    <p>SASL stands for Simple Authentication Security Layer and is
+    explained in <a href="http://ftp.ietf.org/rfc/rfc2222.txt">RFC
+    2222</a>. That document is very difficult to understand however
+    and it should be unnecessary to consult it.
+
+
+    <a name="background"><h2>Background</h2></a>
+
+    <a name="world_before"><h3>How did the world work before SASL?</h3></a>
+
+    <p>Before SASL, when a new protocol was written which required
+    authentication (users proving who they are to an entity), the
+    protocol had to allow explicitly for each individual
+    authentication mechanism. There had to be a distinct way to say "I
+    want to log in with Kerberos V4". There had to be another distinct
+    way to say "I want to log in with CRAM-MD5". There had to be yet a
+    different way to say "I want to log in anonymously," and so
+    on. This was non-ideal for both the protocol and application
+    writers.
+
+    <p>Additionally, many programmers were not very familiar with
+    security, so the protocol did support many mechanisms, or worse,
+    they were supported incorrectly. Moreover, when a new
+    authentication method was invented the protocol needed to be
+    modified to support that mechanism.
+
+    <p>This system also was not ideal for application writer. She had
+    to have a special case for each mechanism she wished her
+    application to support. Also, the mechanisms were difficult to
+    implement. Even with a good library, an understanding of how the
+    mechanism worked was still necessary. Finally if an application
+    used more than one protocol (for example a mail client might use
+    IMAP, POP, and SMTP) then "Kerberos V4 for IMAP", "Kerberos V4 for
+    POP", "Kerberos V4 for SMTP", "CRAM MD5 for IMAP", "CRAM-MD5 for
+    POP", etc... would need to be written. This could quickly create a
+    huge number of different mechanism-protocol pairs to implement.
+
+    <a name="sasl_rescue"><h3>SASL to the rescue!</h3></a>
+
+    <p>SASL hopefully solves all these problems. In practice it makes
+    many of them easier to deal with.
+
+    <p>Protocol designers simply have to support SASL (in particular
+    RFC 2222). Consequently, any mechanism that supports SASL (just
+    about anything you would want to use does now) is supported by the
+    protocol. If a new authentication mechanism is invented the
+    protocol automatically supports it without any modifications.
+
+    <p>Application writers, instead of having to support every mechanism
+    for every protocol, only need to support SASL for every
+    protocol. Application writers do not need to understand the
+    authentication mechanisms at all: the SASL library handles all
+    that. Also with the Cyrus SASL library if a new mechanism is
+    invented you do not have rewrite your application at all. You may
+    not even have to restart your application if it is a long running
+    process. This is because the Cyrus SASL library loads each mechanism
+    from a shared library. Simply copying a shared library into a
+    directory will magically make your application support a new
+    mechanism.
+
+    <a name="briefly"><h2>Briefly</h2></a>
+
+    <a name="what_good_for"><h3>What is the Cyrus SASL library good for?</h3></a>
+
+    <p>The Cyrus SASL library is good for applications that wish to
+    use protocols that support SASL authentication. An non-exhaustive
+    list of these are: IMAP, SMTP, ACAP, and LDAP. Also if you are
+    making a proprietary system and wish to support authentication it
+    is a good way of supporting many different authentication types.
+	
+
+    <a name="what_do"><h3>What does the Cyrus SASL library do?</h3></a>
+
+    <p>From a client point of view, the Cyrus SASL library, given a list of
+    mechanisms the server supports it will decide the best mechanism
+    to use and tell you what to send to the server at each step of the
+    authentication. From a server perspective, it handles
+    authentication requests from clients.
+
+    <a name="what_doesnt"><h3>What doesn't the Cyrus SASL library do?</h3></a>
+    
+   <p>The Cyrus SASL library is neither network nor protocol aware. It
+   is up to the application to send the data over the wire as well as
+   to send the data in the protocol specific manner. With IMAP this
+   means putting it in the form: <tt>+ [base64'ed data]\r\n</tt>. LDAP
+   just sends data in binary via bind requests. The Cyrus SASL library
+   has utility base64 encode and decode routines to help with this.
+    
+<h2>Client-only Section</h2>
+    
+    <h3>A typical interaction from the client's perspective</h3>
+    
+    <ol>
+    <li>A client makes a few calls (explained later) to initialize SASL. 
+    <li>Every time the client application makes a new connection it should make a new context that is kept for the life of the connection.
+    <li>Ask the server for the list of supported mechanisms
+    <li>Feed this list to the library
+    <li>Start the authentication with the mechanism the library chose
+    
+    <li>The server will return some bytes
+    <li>Give these to the library
+    <li>The library returns some bytes to the application
+    <li>Application sends these bytes over the network
+	
+    <li>repeat the last 4 steps until the server tells you that the authentication is completed
+    </ol>
+
+    <h3>How does this look in code</h3>
+    <pre>
+	    int result;
+
+	    /* attempt to start sasl 
+	     * See the section on Callbacks and Interactions for an 
+	     * explanation of the variable callbacks
+	     */ 
+
+	    result=sasl_client_init(callbacks);
+            
+            /* check to see if that worked */
+            if (result!=SASL_OK) [failure]
+
+            
+            [for each new connection]
+            sasl_conn_t *conn; /* The SASL context kept for the life of the connection */
+ 
+
+            /* client new connection */
+            result=sasl_client_new("imap",     /* The service we are using */
+			           serverFQDN, /* The fully qualified domain name
+                                                  of the server we're connecting to */
+			           NULL,
+			           0,
+			           &conn);     /* allocated on success */
+
+            /* check to see if that worked */
+            if (result!=SASL_OK) [failure]
+
+            
+            [get list of mechanisms supported by the server. format them as a single
+             string separated by spaces]
+            
+            sasl_interact_t *client_interact=NULL;
+            char *out;
+            unsigned outlen;
+
+
+            do {
+
+              result=sasl_client_start(conn,      /* the same context from above */ 
+                                       mechlist,  /* the list of mechanisms from the server */
+		  		       NULL, 
+                                       &client_interact, /* filled in if an interaction is needed */
+			  	       &out,      /* filled in on success */
+                                       &outlen,   /* filled in on success */
+				       &mechusing);
+
+              if (result==SASL_INTERACT)
+              {
+                 [deal with the interactions]
+              }
+
+
+           } while (result==SASL_INTERACT); /* the mechanism may ask us to fill in things
+                                               many times. result is SASL_OK on success */
+
+           if (result!=SASL_OK) [failure]
+
+           [send over the network a request to start authentication with mechanism mechusing
+            depending on the protocol the string out should also be sent.
+
+            For IMAP this might look like:
+             A01 AUTHENTICATE KERBEROS_V4\r\n
+           ]
+
+           [read from the network]
+
+           [check what it is: success (authentication complete), failure, data to continue
+            the authentication]
+
+           while ([there it's data])
+           {
+              [convert the server response to a string. This may include Base64 decoding it]
+
+              do {
+                result=sasl_client_step(conn,  /* our context */
+				      in,    /* the data from the server */
+				      inlen, /* it's length */
+				      &client_interact,  /* this should be unallocated and NULL */
+				      &out,  /* filled in on success */
+				      &outlen); /* filled in on success */
+
+                if (result==SASL_INTERACT)
+                {
+                   [deal with the interactions]
+                }
+
+
+              } while (result==SASL_INTERACT);
+
+              if (result!=SASL_OK) [failure]
+              
+
+              [format out with length outlen in the protocol specific manner 
+               and send it over the network]
+
+           }
+
+
+           [the life of the connection
+
+            keep the context around. Call sasl_encode() and sasl_decode() for
+            sending and reading from the network. This may encrypt/decrypt the traffic
+            if a layer was negotiated.
+            ]
+           
+
+
+            [when we're done with the connection]
+
+            sasl_dispose(&conn);
+
+
+            [when we're done with SASL forever]
+            sasl_done();
+ 
+
+	    </pre>
+	    
+
+    <h3>sasl_client_init</h3>
+    
+    <h3>sasl_client_new</h3>
+
+    <h3>sasl_client_start</h3>
+
+    <h3>sasl_client_step</h3>
+
+    <h3>Callbacks and Interactions</h3>
+
+    When you start the application and call sasl_client_init() you
+    must specify for what data you support callbacks and/or
+    interactions. These are for the library getting information needed
+    for authentication from the application. This is needed for things
+    like authentication name and password. If you do not declare
+    supporting a callback you will not be able to use mechanisms that
+    need that data. A callback is for when you have the information
+    before you start the authentication. The SASL library calls a
+    function you specify and your function fills in the requested
+    information. For example if you had the userid of the user already
+    for some reason. An interaction is usually for things you support
+    but will need to ask the user for
+    (e.g. password). sasl_client_start() or sasl_client_step() will
+    return SASL_INTERACT. This will be a list of sasl_interact_t's
+    which contain a human readable string you can prompt the user
+    with, a possible computer readable string, and a default
+    result. The nice thing about interactions is you get them all at
+    once so if you had a GUI application you could bring up a dialog
+    box asking for authentication name and password together instead
+    of one at a time.
+
+    <pre>
+
+    For a detailed description of what each of the callback types are see the sasl.h file.
+    
+    Here are some brief explanations:
+    SASL_CB_AUTHNAME - the name of the user authenticating
+    SASL_CB_USER - the name of the user acting for. 
+    (for example postman delivering mail for tmartin might have an AUTHNAME of postman and
+     a USER of tmartin)
+    SASL_CB_PASS - password for AUTHNAME
+    SASL_CB_GETREALM - Realm of the server
+    
+    An example of a way to handle callbacks:
+
+    
+    /* callbacks we support. This is a global variable at the 
+       top of the program */
+    static sasl_callback_t callbacks[] = {
+    {
+      SASL_CB_GETREALM, NULL, NULL  /* we'll just use an interaction if this comes up */
+    }, {
+      SASL_CB_USER, NULL, NULL      /* we'll just use an interaction if this comes up */
+    }, {
+      SASL_CB_AUTHNAME, &getauthname_func, NULL /* A mechanism should call getauthname_func
+                                                   if it needs the authentication name */
+    }, { 
+      SASL_CB_PASS, &getsecret_func, NULL      /* Call getsecret_func if need secret */
+    }, {
+      SASL_CB_LIST_END, NULL, NULL
+    }
+    };
+
+
+    static int getsecret_func(sasl_conn_t *conn,
+	  void *context __attribute__((unused)),
+	  int id,
+	  sasl_secret_t **psecret)
+    {
+       [ask the user for their secret]
+
+       [allocate psecret and insert the secret]
+
+      return SASL_OK;
+    }
+
+    static int getauthname_func(void *context,
+                                int id,
+                                const char **result,
+                                unsigned *len)
+    {
+       if (id!=SASL_CB_AUTHNAME) return SASL_FAIL;
+
+       [fill in result and len]
+
+       return SASL_OK;
+     }
+
+    
+    in the main program somewhere
+    
+    sasl_client_init(callbacks);
+
+    </pre>
+
+<h2>Server-only Section</h2>
+
+    <h3>A typical interaction from the server's perspective</h3>
+
+    The server makes a few Cyrus SASL calls for initialization. When
+    it gets a new connection it should make a new context for that
+    connection immediatly. The client may then request a list of
+    mechanisms the server suppports. The client also may request to
+    authenticate at some point. The client will specify the mechanism
+    it wishes to use. The server should negotiate this authentication
+    and keep around the context afterwards for encoding and decoding
+    the layers.
+    
+    <h3>How does this look in code?</h3>
+
+    Initialization (done once). The application name is used for
+    reading configuration information.
+
+    <tt><pre>    
+    int result;
+
+    /* Initialize SASL */
+    result=sasl_server_init(callbacks,      /* Callbacks supported */
+                            "TestServer");  /* Name of the application */
+
+
+    </pre></tt>
+
+    This should be called for each new connection. It probably should
+    be called right when the socket is accepted. The service name is
+    used for PAM authentication if applicable.
+
+    <pre><tt>
+    sasl_conn_t *conn;
+    int result;
+
+    /* Make a new context for this connection */
+    result=sasl_server_new("smtp", 
+		           NULL, /* My fully Qualified Domain Name; NULL tells SASL
+                                    to figure it out itself */
+                           NULL, /* The User Realm used for password lookups; NULL
+                                    means default to server fully qualified domain name
+                                    Note: This does not affect Kerberos */
+		           NULL, /* Callbacks supported only for this connection */
+	                   SASL_SECURITY_LAYER, /* I support encryption layers; 
+                                                   otherwise pass 0 */
+			   &conn);
+
+    </pre></tt>
+
+
+    When a client requests the list of mechanisms supported by the server. This particular call might produce the string: <i>"{PLAIN, KERBEROS_V4, CRAM-MD5, DIGEST-MD5}"</i>
+
+    <pre><tt>
+    result=sasl_listmech(conn,  /* The context for this connection */
+			 NULL,  /* not supported */
+			 "{",   /* What to prepend the string with */
+			 ", ",  /* What to seperate mechanisms with */
+			 "}",   /* What to append to the string */
+			 &result_string, /* The produced string. Allocated by library */
+                         &string_length, /* length of the string */
+                         &number_of_mechanisms); /* Number of mechanisms in the string */
+	
+    </pre></tt>
+
+
+    When a client requests to authenticate:
+
+    <tt><pre>
+    int result;
+    const char *errstr;
+    char *out;
+    unsigned outlen;
+
+    result=sasl_server_start(conn, /* context */
+                             mechanism_client_chose,
+                             clientin,    /* the optional string the client gave us */
+                             clientinlen, /* and it's length */
+                             &out, /* allocated by library on success. Might not be NULL 
+                                      terminated */
+                             &outlen, 
+                             &errstr); /* error string filled in on failure */
+    if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
+    {
+      failure. Send client the protocol specific message that says authentication failed
+    }
+
+
+    if (result==SASL_OK)
+    {
+      client authentication suceeded. Send client the protocol specific message 
+      to say that authentication is complete.
+    }
+
+
+    </pre></tt>
+
+
+    When a response is returned by the client. <i>clientin</i> is the
+    data from the client decoded from protocol specific format to a
+    string of bytes of length <i>clientinlen</i>. This step may occur
+    zero or more times. An application should be able to deal with it
+    occuring an arbitrary number of times.
+
+    <tt><pre>
+    int result;
+   
+    result=sasl_server_step(conn,
+                            clientin,      /* what the client gave */
+                            clientinlen,   /* it's length */
+                            &out,          /* allocated by library on success. 
+                                              Might not be NULL terminated */
+                            &outlen,
+                            &errstr);      /* error string sometimes filled in on failure */
+
+    if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
+    {
+      failure. Send client the protocol specific message that says authentication failed
+    }
+
+    if (result==SASL_OK)
+    {
+      client authentication suceeded. Send client the protocol specific message 
+      to say that authentication is complete.
+    }
+
+    send data 'out' with length 'outlen' over the network in protocol specific format    
+
+    </pre></tt>
+
+    <h3>sasl_server_init</h3>
+
+    int sasl_server_init(const sasl_callback_t *callbacks,
+                         const char *appname);
+
+    <ul>Parameters:
+
+    <li>callbacks - A list of callbacks supported by the application
+    (see Interaction and Callbacks section)
+
+    <li>appname - A string of the name of the application. Note that
+    this string is what is used for configuration options and PAM
+    authentication.
+    
+    </ul>
+	
+    sasl_server_init() initializes the session. This should be the
+    first function called. In this function the shared library
+    authentication mechanisms are loaded.
+    
+    
+    <h3>sasl_server_new</h3>
+
+    int sasl_server_new(const char *service,
+			const char *serverFQDN,
+			const char *user_realm,
+			const sasl_callback_t *callbacks,
+			int secflags,
+			sasl_conn_t **pconn);
+
+    <ul>Parameters:
+    
+    <li>service - The name of the service you are supporting. This
+    might be "acap" or "smtp". This is used by Kerberos mechanisms and
+    possibly other mechanisms. It is also used for PAM authentication.
+    
+    <li>serverFQDN - This is the fully qualified domain name of the server (i.e. your hostname)
+
+    <li>user_realm - The realm the connected client is in.
+
+    <li>callbacks - Additional callbacks that you wish only to apply to this connection.
+
+    <li>secflags - security flags. 
+
+    <li>pconn - Context. Filled in on success. SASL_SECURITY_LAYER if your
+    application supports security layers. 0 otherwise.
+    </ul>
+	
+    <h3>sasl_server_start</h3>
+    <pre>
+     int sasl_server_start(sasl_conn_t *conn,
+			  const char *mech,
+			  const char *clientin,
+			  unsigned clientinlen,
+			  char **serverout,
+			  unsigned *serveroutlen,
+			  const char **errstr);
+    </pre>
+
+    
+
+    <h3>sasl_server_step</h3>
+    
+    <h3>sasl_listmech</h3>
+    <pre>
+    int sasl_listmech(sasl_conn_t *conn,
+		      const char *user,
+		      const char *prefix,
+		      const char *sep,
+		      const char *suffix,
+		      char **result,
+		      unsigned *plen,
+		      unsigned *pcount);
+    </pre>
+    
+    <ul>Paramaters:
+      <li>conn - The context for this connection
+      <li>user - Currently not implemented
+      <li>prefix - The string to prepend
+      <li>sep - The string to seperate mechanisms with
+      <li>suffix - The string to end with
+      <li>result - Resultant string
+      <li>plen - Number of characters in the result string
+      <li>pcount - Number of mechanisms listed in the result string
+    </ul>
+
+    This function is used to create a string with a list of SASL
+    mechanisms supported by the server. This string is often needed
+    for a capability statement.
+
+    <h3>sasl_checkpass</h3>
+
+    <pre>
+    int sasl_checkpass(sasl_conn_t *conn,
+                       const char *user,
+                       unsigned userlen,
+		       const char *pass,
+		       unsigned passlen,
+		       const char **errstr);
+    </pre>
+
+    <ul>Parameters:
+      <li>conn - The context for this connection
+      <li>user - The user trying to check the password for
+      <li>userlen - The user length
+      <li>pass - The password
+      <li>passlen - The password length
+      <li>errstr - Possibly filled in on failure
+    </ul>
+
+    This checks a plaintext password <i>pass</i> for user <i>user</i>
+    Some protocols have legacy systems for plaintext authentication
+    where this might be used. Note that this has no relationship to
+    the PLAIN mechanism but it does check the password the same way in
+    the Cyrus SASL library.
+	
+
+<h2>Example applications that come with the Cyrus SASL library</h2>
 
 <h3><tt>sample-client</tt> and <tt>sample-server</tt></h3>
 
@@ -41,7 +709,7 @@ be of interest to many applications.
 <tt>imtest</tt> is an application included with Cyrus imapd.  It is a very
 simple IMAP client, but should be of interest to people who are
 writing applications.  It also uses the prot layer, but it is easy to
-incorporate similiar support without using the prot layer.
+incorporate similar support without using the prot layer.
 
 <h2>Random things</h2>
 
@@ -87,3 +755,12 @@ unused.  It is likely that we will use this for fast reauthentication.
 While the implementation & plugins correctly implement the idle calls,
 none of them currently do anything.
 
+
+    <hr>
+    <address><a href="mailto:tmartin+@andrew.cmu.edu">Timothy L Martin</a></address>
+<!-- Created: Wed Aug 18 13:05:55 EDT 1999 -->
+<!-- hhmts start -->
+Last modified: Fri Aug 20 17:11:29 EDT 1999
+<!-- hhmts end -->
+  </body>
+</html>

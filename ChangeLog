@@ -1,5 +1,7 @@
 2000-03-28  Timothy Martin  <tmartin+@andrew.cmu.edu>
 
+	* java/: wrote server side of javasasl
+
 	* lib/server.c/client.c: take out pointless mutexes some fool put in
 
 2000-03-26  Timothy Martin  <tmartin+@andrew.cmu.edu>

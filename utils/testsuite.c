@@ -41,6 +41,14 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * To create a krb5 srvtab file given a krb4 srvtab
+ *
+ * ~/> ktutil
+ * ktutil:  rst /etc/srvtab
+ * ktutil:  wst /etc/krb5.keytab
+ * ktutil:  q
+ */
 
 /*
  * TODO:
@@ -129,8 +137,6 @@ void *my_mutex_new(void)
 
     ret->val = 0;
 
-    printf("mutex %d created\n",ret->num);
-    
     return ret;
 }
 
@@ -142,8 +148,6 @@ int my_mutex_lock(my_mutex_t *m)
     }
 
     m->val = 1;
-    printf("mutex %d locked\n",m->num);
-
     return SASL_OK;
 }
 
@@ -155,16 +159,15 @@ int my_mutex_unlock(my_mutex_t *m)
     }
 
     m->val = 0;
-    printf("mutex %d unlocked\n",m->num);
 
     return SASL_OK;
 }
 
 int my_mutex_dispose(my_mutex_t *m)
 {
-    printf("mutex %d disposed\n",m->num);
+    char a[5];
 
-    free(m);
+    /*    free(m); */
 
     return SASL_OK;
 }
@@ -300,9 +303,9 @@ void test_listmech(void)
     sasl_conn_t *saslconn;
     int result;
     char *str = NULL;
-    int plen;
+    unsigned int plen;
     int lup;
-    int pcount;
+    unsigned int pcount;
 
     /* test without initializing library */
     result = sasl_listmech(NULL, /* conn */
@@ -491,7 +494,7 @@ void test_64(void)
 {
     char orig[4096];
     char enc[8192];
-    int encsize;
+    unsigned encsize;
     int lup;
 
     /* make random crap and see if enc->dec produces same as original */
@@ -622,7 +625,7 @@ void set_properties(sasl_conn_t *conn, char *serverFQDN, int port)
  * This corrupts the string for us
  */
 
-void corrupt(corrupt_type_t type, char *in, int inlen, char **out, int *outlen)
+void corrupt(corrupt_type_t type, char *in, int inlen, char **out, unsigned *outlen)
 {
     int lup;
 
@@ -719,8 +722,8 @@ void sendbadsecond(char *mech, void *rock)
     int result;
     sasl_conn_t *saslconn;
     sasl_conn_t *clientconn;
-    char *out, *dec = NULL;
-    unsigned outlen, declen;
+    char *out, *dec = NULL, *out2;
+    unsigned outlen, declen, outlen2;
     sasl_interact_t *client_interact=NULL;
     const char *mechusing;
     char *service = "rcmd";
@@ -819,7 +822,7 @@ void sendbadsecond(char *mech, void *rock)
 	    result = sasl_client_step(clientconn,
 				      out, outlen,
 				      &client_interact,
-				      &out, &outlen);
+				      &out2, &outlen2);
 	    
 	    if (result == SASL_INTERACT) fillin_correctly(client_interact);
 	} while (result == SASL_INTERACT);
@@ -842,6 +845,8 @@ void sendbadsecond(char *mech, void *rock)
 	    }
 	}
 	if (tofree) free(tofree);
+	out=out2;
+	outlen=outlen2;
 	mystep++;
 
 	if (mystep == send->step)

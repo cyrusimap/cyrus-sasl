@@ -51,7 +51,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-
 /* either WITH_CMU_RC4 or WITH_SSL_RC4 is defined Let's make WITH_RC4
    our general "there is rc4 support" and use CMU/SSL for the specific
    library routines. ditto for DES.
@@ -3465,6 +3464,8 @@ c_continue_step(void *conn_context,
 	    }
 	} else if (strcmp(name,"algorithm")==0) {
 
+	    VL (("Seeing algorithm now!\n"));
+
 	  if (strcmp(value, "md5-sess") != 0)
 	  {
 	    VL(("'algorithm' isn't 'md5-sess'\n"));
@@ -3475,7 +3476,7 @@ c_continue_step(void *conn_context,
 	  algorithm_count++;
 	  if (algorithm_count > 1)
 	  {
-	    VL(("Must see 'algoirthm' only once\n"));
+	    VL(("Must see 'algorithm' only once\n"));
 	    result = SASL_FAIL;
 	    goto FreeAllocatedMem;
 	  }
@@ -3978,10 +3979,10 @@ const sasl_client_plug_t client_plugins[] =
 };
 
 int             sasl_client_plug_init(sasl_utils_t * utils __attribute__((unused)),
-				                      int maxversion,
-				                      int *out_version,
-		                       const sasl_client_plug_t ** pluglist,
-				                      int *plugcount) {
+				      int maxversion,
+				      int *out_version,
+				      const sasl_client_plug_t ** pluglist,
+				      int *plugcount) {
   if (maxversion < DIGEST_MD5_VERSION)
     return SASL_BADVERS;
 

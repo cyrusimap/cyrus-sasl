@@ -1,3 +1,8 @@
+Sat Dec 11 14:27:52 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/dlopen.c: applied patch from Claus Assmann
+	<ca+sasl@sendmail.org> to handle (some versions of) HP-UX.
+
 Thu Dec  9 17:34:30 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/checkpw.c (sasl_pam_conv): if solaris PAM is buggy, don't

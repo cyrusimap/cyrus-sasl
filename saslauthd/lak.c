@@ -655,10 +655,9 @@ static int lak_bind(LAK *lak, char flag, const char *bind_dn, const char *passwo
 {
 	int rc;
 
-	if (lak->bind_status == LAK_BIND_ANONYMOUS) {
-		if (flag == LAK_BIND_ANONYMOUS) {
-			return LAK_OK;
-		}
+	if (lak->bind_status == LAK_BIND_ANONYMOUS &&
+	    flag == LAK_BIND_ANONYMOUS) {
+	    return LAK_OK;
 	}
 
 	if (lak->bind_status == LAK_NOT_BOUND) {
@@ -694,11 +693,13 @@ static int lak_bind(LAK *lak, char flag, const char *bind_dn, const char *passwo
 
 	rc = ldap_simple_bind_s(lak->ld, bind_dn, password);
 	if (rc != LDAP_SUCCESS) {
-		if (flag == LAK_BIND_ANONYMOUS) {
-			syslog(LOG_WARNING|LOG_AUTH, "ldap_simple_bind(as %s) failed (%s)", bind_dn, ldap_err2string(rc));
-			lak->bind_status = LAK_NOT_BOUND;
-		}
-		return LAK_FAIL;
+	    syslog(LOG_WARNING|LOG_AUTH,
+		   "ldap_simple_bind(%s%s) failed (%s)",
+		   (flag == LAK_BIND_ANONYMOUS) ? "" : "as ",
+		   (flag == LAK_BIND_ANONYMOUS) ? "anonymous bind" : bind_dn,
+		   ldap_err2string(rc));
+	    lak->bind_status = LAK_NOT_BOUND;
+	    return LAK_FAIL;
 	}
 
 	lak->bind_status = flag;

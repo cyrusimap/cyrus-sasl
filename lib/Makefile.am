@@ -1,6 +1,6 @@
 # Makefile.am for the SASL library
 # Rob Earhart
-# $Id: Makefile.am,v 1.67 2003/01/31 19:50:50 rjs3 Exp $
+# $Id: Makefile.am,v 1.68 2003/02/01 21:41:22 leg Exp $
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,7 @@ sasl_version = 2:11:0
 
 INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/plugins
 
-EXTRA_DIST = windlopen.c staticopen.h
+EXTRA_DIST = windlopen.c staticopen.h NTMakefile
 EXTRA_LIBRARIES = libsasl2.a
 noinst_LIBRARIES = @SASL_STATIC_LIBS@
 libsasl2_a_SOURCES=

@@ -85,68 +85,68 @@ log(void *context __attribute__((unused)),
     int priority,
     const char *message) 
 {
-  const char *label;
-  jstring jlabel, jmessage;
-  jclass cls;
-  jmethodID mid;
+    const char *label;
+    jstring jlabel, jmessage;
+    jclass cls;
+    jmethodID mid;
 
-  if (! message)
-    return SASL_BADPARAM;
+    if (! message)
+        return SASL_BADPARAM;
 
-  switch (priority) {
-  case SASL_LOG_ERR:
-    label = "Error";
-    break;
-  case SASL_LOG_WARN:
-    label = "Warning";
-    break;
-  case SASL_LOG_NOTE:
-    label = "Note";
-    break;
-  case SASL_LOG_FAIL:
-    label = "Fail";
-    break;
-  case SASL_LOG_PASS:
-    label = "Pass";
-    break;
-  case SASL_LOG_TRACE:
-    label = "Trace";
-    break;
-  case SASL_LOG_DEBUG:
-    label = "Debug";
-    break;
-  default:
-    return SASL_BADPARAM;
-  }
+    switch (priority) {
+    case SASL_LOG_ERR:
+        label = "Error";
+        break;
+    case SASL_LOG_WARN:
+        label = "Warning";
+        break;
+    case SASL_LOG_NOTE:
+        label = "Note";
+        break;
+    case SASL_LOG_FAIL:
+        label = "Fail";
+        break;
+    case SASL_LOG_PASS:
+        label = "Pass";
+        break;
+    case SASL_LOG_TRACE:
+        label = "Trace";
+        break;
+    case SASL_LOG_DEBUG:
+        label = "Debug";
+        break;
+    default:
+        return SASL_BADPARAM;
+    }
 
-  VL(("I have message %s\n",message));
-  VL(("Trying to call log callback\n"));
-  cls = (*globalenv)->GetObjectClass(globalenv, globalobj);
-  mid = (*globalenv)->GetMethodID(globalenv, cls, "callback_log",
-				  "(Ljava/lang/String;Ljava/lang/String;)V");
-  if (mid == 0) {
-    return SASL_FAIL;
-  }
+    VL(("I have message %s\n",message));
+    VL(("Trying to call log callback\n"));
+    cls = (*globalenv)->GetObjectClass(globalenv, globalobj);
+    mid = (*globalenv)->GetMethodID(globalenv, cls, "callback_log",
+                                    "(Ljava/lang/String;Ljava/lang/String;)V");
+    if (mid == 0) {
+        return SASL_FAIL;
+    }
 
-  /* make label into a java string */
-  jlabel= (*globalenv)->NewStringUTF(globalenv,label);
+    /* make label into a java string */
+    jlabel= (*globalenv)->NewStringUTF(globalenv,label);
 
-  /* make message into a java string */
-  jmessage= (*globalenv)->NewStringUTF(globalenv,message);
+    /* make message into a java string */
+    jmessage= (*globalenv)->NewStringUTF(globalenv,message);
 
-  /* call java */
-  (*globalenv)->CallVoidMethod(globalenv, globalobj, mid, 
-			       jlabel, jmessage);
+    /* call java */
+    (*globalenv)->CallVoidMethod(globalenv, globalobj, mid, 
+                                 jlabel, jmessage);
 
-  /* Now we are done with jlabel */
-  (*globalenv)->ReleaseStringUTFChars(globalenv, jlabel, label);
+    /* Now we are done with jlabel */
+    (*globalenv)->ReleaseStringUTFChars(globalenv, jlabel, label);
 
-  /* Now we are done with jmessage */
-  (*globalenv)->ReleaseStringUTFChars(globalenv, jmessage, message);
+    /* Now we are done with jmessage */
+    (*globalenv)->ReleaseStringUTFChars(globalenv, jmessage, message);
 
-  VL(("done with log callback"));
+    VL(("done with log callback"));
 
-  return SASL_OK;
+    return SASL_OK;
 }
 
 static sasl_callback_t callbacks[] = {
@@ -426,77 +426,80 @@ static int fillin_interactions(JNIEnv *env, jobject obj,
 
 JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericClient_jni_1sasl_1client_1start(JNIEnv *env, jobject obj, jint ptr, jstring jstr)
 {    
-  sasl_conn_t *conn=(sasl_conn_t *) ptr;
-  const char *mechlist = (*env)->GetStringUTFChars(env, jstr, 0);
-  const char *out;
-  unsigned int outlen=0;
-  const char *mechusing;
-  int result;
-  sasl_interact_t *client_interact=NULL;
-  char *tmp;
-  jbyteArray arr;
-  jstring jmechusing;
-  jclass cls;
-  jmethodID mid;
+    sasl_conn_t *conn=(sasl_conn_t *) ptr;
+    const char *mechlist = (*env)->GetStringUTFChars(env, jstr, 0);
+    const char *out;
+    unsigned int outlen=0;
+    const char *mechusing;
+    int result;
+    sasl_interact_t *client_interact=NULL;
+    char *tmp;
+    jbyteArray arr;
+    jstring jmechusing;
+    jclass cls;
+    jmethodID mid;
 
-  VL(("sasl_start"));
+    VL(("sasl_start"));
  
-  do {
+    do {
 
-      result=sasl_client_start(conn, mechlist,
-			       &client_interact,
-			       &out, 
-                               &outlen,
-			       &mechusing);
+        result=sasl_client_start(conn, mechlist,
+                                 &client_interact,
+#if 0
+                                 hasinitial ? &out : NULL, 
+                                 hasinitial ? &outlen : NULL,
+#endif
+                                 &out, 
+                                 &outlen,
+                                 &mechusing);
 
-      if (result==SASL_INTERACT) {
-	  int res2 = fillin_interactions(env,obj,client_interact);
-      }
+        if (result==SASL_INTERACT) {
+            int res2 = fillin_interactions(env,obj,client_interact);
+        }
 
-  } while (result==SASL_INTERACT);
+    } while (result==SASL_INTERACT);
 
-  /* ok release mechlist */
-  (*env)->ReleaseStringUTFChars(env, jstr, mechlist);  
+    /* ok release mechlist */
+    (*env)->ReleaseStringUTFChars(env, jstr, mechlist);  
 
-  if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
-  {
-    throwexception(env,result);
-    return NULL;
-  }
+    if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
+    {
+        throwexception(env,result);
+        return NULL;
+    }
 
-  /* tell the java layer what mechanism we're using */
+    /* tell the java layer what mechanism we're using */
 
-  /* set up for java callback */
-  cls = (*env)->GetObjectClass(env, obj);
-  mid = (*env)->GetMethodID(env, cls, "callback_setmechanism",
-			    "(Ljava/lang/String;I)V");
-  if (mid == 0) {
-      throwexception(env,SASL_FAIL);
-    return NULL;
-  }
+    /* set up for java callback */
+    cls = (*env)->GetObjectClass(env, obj);
+    mid = (*env)->GetMethodID(env, cls, "callback_setmechanism",
+                              "(Ljava/lang/String;I)V");
+    if (mid == 0) {
+        throwexception(env,SASL_FAIL);
+        return NULL;
+    }
 
-  VL(("mechusing=%s\n",mechusing));
+    VL(("mechusing=%s\n",mechusing));
 
-  /* make into mech */
-  jmechusing= (*env)->NewStringUTF(env,mechusing);
+    /* make into mech */
+    jmechusing= (*env)->NewStringUTF(env,mechusing);
 
-  /* do the callback */
-  (*env)->CallVoidMethod(env, obj, mid,jmechusing);
+    /* do the callback */
+    (*env)->CallVoidMethod(env, obj, mid,jmechusing);
 
-  /* Because SASLv2 does not allow for persistance, we'll copy
-   * it here */
-  tmp = malloc(outlen);
-  if(!tmp) {
-      throwexception(env, SASL_NOMEM);
-      return NULL;
-  }
+    /* Because SASLv2 does not allow for persistance, we'll copy
+     * it here */
+    tmp = malloc(outlen);
+    if(!tmp) {
+        throwexception(env, SASL_NOMEM);
+        return NULL;
+    }
+    memcpy(tmp, out, outlen);
   
-  memcpy(tmp, out, outlen);
-  
-  arr=(*env)->NewByteArray(env,outlen);
-  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *)tmp);
+    arr = (*env)->NewByteArray(env,outlen);
+    (*env)->SetByteArrayRegion(env, arr, 0, outlen, (char *)tmp);
 
-  return arr;
+    return arr;
 }
 
 /* server step */
@@ -507,49 +510,49 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericServer_jni_1sasl_1server_1ste
    jobject obj __attribute__((unused)),
    jint ptr, jbyteArray jarr, jint jlen)
 {
-  sasl_conn_t *conn=(sasl_conn_t *) ptr;
-  int result;
-  const char *out;
-  unsigned int outlen;
-  jbyteArray arr;
-  char *in = NULL;
-  char *tmp;
+    sasl_conn_t *conn=(sasl_conn_t *) ptr;
+    int result;
+    const char *out;
+    unsigned int outlen;
+    jbyteArray arr;
+    char *in = NULL;
+    char *tmp;
   
-  if (jlen > 0)
-      in = (*env)->GetByteArrayElements(env, jarr, 0);
+    if (jlen > 0)
+        in = (*env)->GetByteArrayElements(env, jarr, 0);
 
-  result=sasl_server_step(conn, (const char *) in, jlen,
-			  &out, &outlen);
+    result=sasl_server_step(conn, (const char *) in, jlen,
+                            &out, &outlen);
 
-  if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
-  {
-      VL (("Throwing exception! %d\n",result));
-      /* throw exception */
-      throwexception(env,result);
-      return NULL;
-  }
+    if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
+    {
+        VL (("Throwing exception! %d\n",result));
+        /* throw exception */
+        throwexception(env,result);
+        return NULL;
+    }
 
-  if (result == SASL_OK) {
-      setcomplete(env,obj);
-  }
+    if (result == SASL_OK) {
+        setcomplete(env,obj);
+    }
 
-  if (jlen > 0)
-      (*env)->ReleaseByteArrayElements(env, jarr,in ,0);
+    if (jlen > 0)
+        (*env)->ReleaseByteArrayElements(env, jarr,in ,0);
 
-  /* Because SASLv2 does not allow for persistance, we'll copy
-   * it here */
-  tmp = malloc(outlen);
-  if(!tmp) {
-      throwexception(env, SASL_NOMEM);
-      return NULL;
-  }
+    /* Because SASLv2 does not allow for persistance, we'll copy
+     * it here */
+    tmp = malloc(outlen);
+    if(!tmp) {
+        throwexception(env, SASL_NOMEM);
+        return NULL;
+    }
 
-  memcpy(tmp, out, outlen);
+    memcpy(tmp, out, outlen);
   
-  arr=(*env)->NewByteArray(env,outlen);
-  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *)tmp);
+    arr=(*env)->NewByteArray(env,outlen);
+    (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *)tmp);
 
-  return arr;
+    return arr;
 }
 
 
@@ -583,38 +586,64 @@ static int setcomplete(JNIEnv *env, jobject obj)
 JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericClient_jni_1sasl_1client_1step
     (JNIEnv *env, jobject obj, jint ptr, jbyteArray jarr, jint jlen)
 {    
-  sasl_conn_t *conn=(sasl_conn_t *) ptr;
-  /*  const char *in = (*env)->GetStringUTFChars(env, jstr, 0);*/
-  int result;
-  sasl_interact_t *client_interact=NULL;
-  const char *out;
-  unsigned int outlen;
-  jbyteArray arr;
-  char *in;
-  char *tmp;
+    sasl_conn_t *conn=(sasl_conn_t *) ptr;
+    /*  const char *in = (*env)->GetStringUTFChars(env, jstr, 0);*/
+    int result;
+    sasl_interact_t *client_interact=NULL;
+    const char *out;
+    unsigned int outlen;
+    jbyteArray arr;
+    char *in;
+    char *tmp;
   
-  VL(("in client step\n"));
+    VL(("in client step\n"));
 
-  if (jarr) {
-      in = (*env)->GetByteArrayElements(env, jarr, 0);
-      in[jlen]=0;
-  } else {
-      assert(jlen == 0);
-       in = NULL;
-  }
+    if (jarr) {
+        in = (*env)->GetByteArrayElements(env, jarr, 0);
+        in[jlen]=0;
+    } else {
+        assert(jlen == 0);
+        in = NULL;
+    }
 
-  VL(("in client step 2\n"));
+    VL(("in client step 2\n"));
+    
+    globalenv=env;
+    globalobj=obj;
 
-  globalenv=env;
-  globalobj=obj;
+    do {
+        result=sasl_client_step(conn, (const char *) in, jlen,
+                                &client_interact,
+                                &out, &outlen);
 
-  do {
-      result=sasl_client_step(conn, (const char *) in, jlen,
-			      &client_interact,
-			      &out, &outlen);
+        if (result==SASL_INTERACT)
+            result= fillin_interactions(env,obj,client_interact);
 
+    } while (result==SASL_INTERACT);
+
+    if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
+    {
+        /* throw exception */
+        VL (("Throwing exception %d\n",result));
+        throwexception(env,result);
+        return NULL;
+    }
+
+<<<<<<< javasasl.c
+    if (result == SASL_OK) {
+        VL (("Setting complete\n"));
+        setcomplete(env, obj);
+    }
+=======
       VL(("in client step 3\n"));
+>>>>>>> 1.8
 
+<<<<<<< javasasl.c
+    if (jarr) {
+        VL(("about to releasebytearrayelements"));
+        (*env)->ReleaseByteArrayElements(env, jarr,in ,0);
+    }
+=======
       if (result==SASL_INTERACT) {
 	  result = fillin_interactions(env,obj,client_interact);
       }
@@ -636,24 +665,25 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericClient_jni_1sasl_1client_1ste
       VL(("about to releasebytearrayelements\n"));
       (*env)->ReleaseByteArrayElements(env, jarr,in ,0);
   }
+>>>>>>> 1.8
       
-  /* Because SASLv2 does not allow for persistance, we'll copy
-   * it here */
-  tmp = malloc(outlen);
-  if(!tmp) {
-      throwexception(env, SASL_NOMEM);
-      return NULL;
-  }
+    /* Because SASLv2 does not allow for persistance, we'll copy
+     * it here */
+    tmp = malloc(outlen);
+    if(!tmp) {
+        throwexception(env, SASL_NOMEM);
+        return NULL;
+    }
 
-  VL(("in client step 4\n"));
+    VL(("in client step 4\n"));
 
-  memcpy(tmp, out, outlen);
+    memcpy(tmp, out, outlen);
   
-  arr=(*env)->NewByteArray(env,outlen);
-  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *)tmp);
+    arr=(*env)->NewByteArray(env,outlen);
+    (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *)tmp);
 
-  VL(("returning arr\n"));
-  return arr;
+    VL(("returning arr\n"));
+    return arr;
 }
 
 
@@ -662,13 +692,13 @@ JNIEXPORT void JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1set_1prop_1string
    jobject obj __attribute__((unused)),
    jint ptr, jint propnum, jstring val)
 {
-  sasl_conn_t *conn=(sasl_conn_t *) ptr;
-  const char *value = (*env)->GetStringUTFChars(env, val, 0);
+    sasl_conn_t *conn=(sasl_conn_t *) ptr;
+    const char *value = (*env)->GetStringUTFChars(env, val, 0);
 
-  int result=sasl_setprop(conn, propnum, value);
+    int result=sasl_setprop(conn, propnum, value);
 
-  if (result!=SASL_OK)
-    throwexception(env,result);
+    if (result!=SASL_OK)
+        throwexception(env,result);
 }
 
 
@@ -678,32 +708,32 @@ JNIEXPORT void JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1set_1prop_1int
    jint ptr, jint propnum, jint jval)
 {
 
-  sasl_conn_t *conn=(sasl_conn_t *) ptr;
-  int value=jval;
-  int result;
+    sasl_conn_t *conn=(sasl_conn_t *) ptr;
+    int value=jval;
+    int result;
 
-  VL(("sasl conn = %d\n",conn));
-  VL (("propnum = %d\n",propnum));
+    VL(("sasl conn = %x\n",conn));
+    VL (("propnum = %x\n",propnum));
 
-  result=sasl_setprop(conn, propnum, &value);  
+    result=sasl_setprop(conn, propnum, &value);  
 
-  VL (("setprop returned %d\n",result));
+    VL (("setprop returned %d\n",result));
 
-  if (result!=SASL_OK)
-    throwexception(env,result);
+    if (result!=SASL_OK)
+        throwexception(env,result);
 }
 JNIEXPORT void JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1set_1prop_1bytes
   (JNIEnv *env,
    jobject obj __attribute__((unused)),
    jint ptr, jint propnum, jbyteArray jarr)
 {
-  char *value = (*env)->GetByteArrayElements(env, jarr, 0);
-  sasl_conn_t *conn=(sasl_conn_t *) ptr;
-  int result;
+    char *value = (*env)->GetByteArrayElements(env, jarr, 0);
+    sasl_conn_t *conn=(sasl_conn_t *) ptr;
+    int result;
 
-  result=sasl_setprop(conn, propnum, value);
-  if (result!=SASL_OK)
-    throwexception(env,result);
+    result=sasl_setprop(conn, propnum, value);
+    if (result!=SASL_OK)
+        throwexception(env,result);
 
 }
 
@@ -714,32 +744,32 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1encode
    jint ptr, 
    jbyteArray jarr, jint jlen)
 {
-  sasl_conn_t *conn=(sasl_conn_t *) ptr;
-  char *in = (*env)->GetByteArrayElements(env, jarr, 0);
-  const char *out;
-  unsigned int outlen;
-  char *tmp;
-  int result;
-  jbyteArray arr;
+    sasl_conn_t *conn=(sasl_conn_t *) ptr;
+    char *in = (*env)->GetByteArrayElements(env, jarr, 0);
+    const char *out;
+    unsigned int outlen;
+    char *tmp;
+    int result;
+    jbyteArray arr;
 
-  result=sasl_encode(conn,(const char *) in, jlen, &out, &outlen);
-  if (result!=SASL_OK)
-    throwexception(env,result);
+    result=sasl_encode(conn,(const char *) in, jlen, &out, &outlen);
+    if (result!=SASL_OK)
+        throwexception(env,result);
 
-  /* Because SASLv2 does not allow for persistance, we'll copy
-   * it here */
-  tmp = malloc(outlen);
-  if(!tmp) {
-      throwexception(env, SASL_NOMEM);
-      return NULL;
-  }
+    /* Because SASLv2 does not allow for persistance, we'll copy
+     * it here */
+    tmp = malloc(outlen);
+    if(!tmp) {
+        throwexception(env, SASL_NOMEM);
+        return NULL;
+    }
 
-  memcpy(tmp, out, outlen);
+    memcpy(tmp, out, outlen);
   
-  arr=(*env)->NewByteArray(env,outlen);
-  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *)tmp);
+    arr=(*env)->NewByteArray(env,outlen);
+    (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *)tmp);
 
-  return arr;
+    return arr;
 }
 
 /* decode */
@@ -749,36 +779,36 @@ JNIEXPORT jbyteArray JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1decode
    jint ptr, jbyteArray jarr, jint jlen)
 {
 
-  sasl_conn_t *conn=(sasl_conn_t *) ptr;
-  char *in = (*env)->GetByteArrayElements(env, jarr, 0);
-  const char *out;
-  unsigned int outlen=9;
-  char *tmp;
-  int inlen=jlen;
-  int result;
-  jbyteArray arr;
+    sasl_conn_t *conn=(sasl_conn_t *) ptr;
+    char *in = (*env)->GetByteArrayElements(env, jarr, 0);
+    const char *out;
+    unsigned int outlen=9;
+    char *tmp;
+    int inlen=jlen;
+    int result;
+    jbyteArray arr;
 
-  result=sasl_decode(conn, (const char *) in, inlen, &out, &outlen);
-  if (result!=SASL_OK)
-    throwexception(env,result);
+    result = sasl_decode(conn, (const char *) in, inlen, &out, &outlen);
+    if (result != SASL_OK) {
+        throwexception(env, result);
+    }
 
+    /* Because SASLv2 does not allow for persistance, we'll copy
+     * it here */
+    tmp = malloc(outlen);
+    if(!tmp) {
+        throwexception(env, SASL_NOMEM);
+        return NULL;
+    }
 
-  /* Because SASLv2 does not allow for persistance, we'll copy
-   * it here */
-  tmp = malloc(outlen);
-  if(!tmp) {
-      throwexception(env, SASL_NOMEM);
-      return NULL;
-  }
-
-  memcpy(tmp, out, outlen);
+    memcpy(tmp, out, outlen);
   
-  arr=(*env)->NewByteArray(env,outlen);
-  (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *)tmp);
+    arr=(*env)->NewByteArray(env,outlen);
+    (*env)->SetByteArrayRegion(env,arr, 0, outlen, (char *)tmp);
 
-  (*env)->ReleaseByteArrayElements(env, jarr, in,0);
+    (*env)->ReleaseByteArrayElements(env, jarr, in, 0);
 
-  return arr;
+    return arr;
 
 }
 
@@ -875,18 +905,18 @@ JNIEXPORT void JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1set_1client
 
 static sasl_security_properties_t *make_secprops(int min,int max)
 {
-  sasl_security_properties_t *ret=(sasl_security_properties_t *)
-    malloc(sizeof(sasl_security_properties_t));
+    sasl_security_properties_t *ret=(sasl_security_properties_t *)
+        malloc(sizeof(sasl_security_properties_t));
 
-  ret->maxbufsize=1024;
-  ret->min_ssf=min;
-  ret->max_ssf=max;
+    ret->maxbufsize=1024;
+    ret->min_ssf=min;
+    ret->max_ssf=max;
 
-  ret->security_flags=0;
-  ret->property_names=NULL;
-  ret->property_values=NULL;
+    ret->security_flags=0;
+    ret->property_names=NULL;
+    ret->property_values=NULL;
 
-  return ret;
+    return ret;
 }
 
 
@@ -895,19 +925,19 @@ JNIEXPORT void JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1setSecurity
    jobject obj __attribute__((unused)),
    jint ptr, jint minssf, jint maxssf)
 {
-  int result=SASL_FAIL;
-  sasl_conn_t *conn=(sasl_conn_t *) ptr;
-  sasl_security_properties_t *secprops=NULL;
+    int result=SASL_FAIL;
+    sasl_conn_t *conn=(sasl_conn_t *) ptr;
+    sasl_security_properties_t *secprops=NULL;
   
-  /* set sec props */
-  secprops=make_secprops(minssf,maxssf);
+    /* set sec props */
+    secprops=make_secprops(minssf,maxssf);
 
-  if (secprops!=NULL)
-    result=sasl_setprop(conn, SASL_SEC_PROPS, secprops);  
+    if (secprops!=NULL)
+        result=sasl_setprop(conn, SASL_SEC_PROPS, secprops);  
 
-  /* if not set throw and exception */
-  if (result!=SASL_OK)
-    throwexception(env,result);
+    /* if not set throw and exception */
+    if (result!=SASL_OK)
+        throwexception(env,result);
 }
 
 JNIEXPORT jint JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1getSecurity
@@ -923,6 +953,8 @@ JNIEXPORT jint JNICALL Java_CyrusSasl_GenericCommon_jni_1sasl_1getSecurity
     if (r != SASL_OK) {
 	throwexception(env, r);
     }
+
+    VL(("returning ssf=%d\n", *ssfp));
 
     return *ssfp;
 }

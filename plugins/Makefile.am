@@ -1,7 +1,7 @@
 # Makefile.am for the SASL plugins
 # Rob Siemborski
 # Rob Earhart
-# $Id: Makefile.am,v 1.59 2003/01/31 19:50:52 rjs3 Exp $
+# $Id: Makefile.am,v 1.60 2003/02/01 21:41:22 leg Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -64,7 +64,7 @@ LDFLAGS = @LDFLAGS@ -module -export-dynamic -rpath $(plugindir)
 
 COMPAT_OBJS = @LTGETADDRINFOOBJS@ @LTGETNAMEINFOOBJS@ @LTSNPRINTFOBJS@
 
-EXTRA_DIST = makeinit.sh
+EXTRA_DIST = makeinit.sh NTMakefile
 noinst_SCRIPTS = makeinit.sh
 
 LIB_MYSQL = @LIB_MYSQL@

@@ -20,12 +20,21 @@ public class GenericClient extends GenericCommon implements SaslClient
 
 	/* set properties */
 	super.setcommonproperties(props);
+
+	if (false) {
+	    if (hasInitialResponse()) {
+		initial_response=jni_sasl_client_start(cptr, mechlist, true);
+	    } else {
+		initial_response=jni_sasl_client_start(cptr, mechlist, false);
+	    }
+	}
 	
 	initial_response = jni_sasl_client_start(cptr, mechlist);
     }
 
     private native byte[] jni_sasl_client_start(int ptr,
-						String mechlist);
+						String mechlist,
+						boolean initialresponse);
 
     /**
      * Perform a step. start() must have been preformed succesfully
@@ -51,10 +60,15 @@ public class GenericClient extends GenericCommon implements SaslClient
 	    return null;
 	}
 
-	if (challenge==null) {
-	    out=jni_sasl_client_step(ptr, null, 0);
+	if (initial_response != null && challenge == null) {
+	    // first call: return the initial response
+	    out = initial_response;
+	    initial_response = null;
+	} else if (challenge == null) {
+	    // server didn't send us anything
+	    out = jni_sasl_client_step(ptr, null, 0);
 	} else {
-	    out=jni_sasl_client_step(ptr, challenge, challenge.length);
+	    out = jni_sasl_client_step(ptr, challenge, challenge.length);
 	}
 	
 	return out;
@@ -81,6 +95,12 @@ public class GenericClient extends GenericCommon implements SaslClient
     public String getMechanismName()
     {
 	return mechanism;
+    }
+
+    /* called from C layer */
+    private void callback_setmechanism(String mech)
+    {
+	mechanism=mech;
     }
 
     /* called from C layer */
@@ -170,28 +190,39 @@ public class GenericClient extends GenericCommon implements SaslClient
 	return realm;
     }
 
+    /**
+     * @deprecated Please use <CODE>wrap()</CODE> and <CODE>unwrap()</CODE>
+     */
     public InputStream getInputStream(InputStream source) throws IOException
     {
 	if (getSecurity() > 0) {
-	    return new SaslInputStream(source,this);
+	    return new SaslInputStream(source, this);
 	} else {
 	    // no security layer, no indirection needed
 	    return source;
 	}
     }
 
+    /**
+     * @deprecated Please use <CODE>wrap()</CODE> and <CODE>unwrap()</CODE>
+     */
     public OutputStream getOutputStream(OutputStream dest) throws IOException
     {
 	if (getSecurity() > 0) {
-	    return new SaslOutputStream(dest,this);
+	    return new SaslOutputStream(dest, this);
 	} else {
 	    // no security layer, no indirection needed
 	    return dest;
 	}
     }
 
+    /**
+     * @deprecated Please use <CODE>evaluateChallenge(null)</CODE>
+     */
     public byte[] createInitialResponse(){
-	/* xxx this is deprecated */
-	return initial_response;
+	byte[] ir = initial_response;
+	initial_response = null;
+
+	return ir;
     }
 }

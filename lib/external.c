@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: external.c,v 1.11 2002/04/30 17:45:32 ken3 Exp $
+ * $Id: external.c,v 1.12 2002/06/12 16:03:21 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -57,7 +57,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: external.c,v 1.11 2002/04/30 17:45:32 ken3 Exp $";
+static const char plugin_id[] = "$Id: external.c,v 1.12 2002/06/12 16:03:21 rjs3 Exp $";
 
 /*****************************  Server Section  *****************************/
 
@@ -198,7 +198,7 @@ int external_server_plug_init(const sasl_utils_t *utils,
 typedef struct client_context 
 {
     char *out_buf;
-    unsigned out_buf_len;
+    size_t out_buf_len;
 } client_context_t;
 
 static int external_client_mech_new(void *glob_context __attribute__((unused)),

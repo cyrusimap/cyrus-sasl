@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * split from common.c by Rolf Braun
- * $Id: seterror.c,v 1.2 2001/12/04 02:05:27 rjs3 Exp $
+ * $Id: seterror.c,v 1.3 2002/06/12 16:03:21 rjs3 Exp $
  */
 
 /* 
@@ -104,7 +104,7 @@ void sasl_seterror(sasl_conn_t *conn,
 		   unsigned flags,
 		   const char *fmt, ...) 
 {
-  int outlen=0; /* current length of output buffer */
+  size_t outlen=0; /* current length of output buffer */
   int pos=0; /* current position in format string */
   int formatlen;
   int result;
@@ -114,7 +114,7 @@ void sasl_seterror(sasl_conn_t *conn,
   char *cval;
   va_list ap; /* varargs thing */
   char **error_buf;
-  unsigned *error_buf_len;
+  size_t *error_buf_len;
 
   if(!conn) {
 #ifndef SASL_OSX_CFMGLUE

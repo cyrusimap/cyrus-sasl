@@ -1,3 +1,10 @@
+2001-08-08  Rob Siemborski <rjs3+@andrew.cmu.edu>
+
+	* saslauthd/Makefile.am: Also link PLAIN_LIBS
+	* saslauthd/saslauthd.mdoc: updated re: pam
+	* saslauthd/saslauthd.8: regenerated
+	  (the above are from Ken Murchison <ken@oceana.com>)
+
 2001-08-03  Rob Siemborski <rjs3+@andrew.cmu.edu>
 
 	* utils/sasldblistusers.c: Corrected conditional compilation

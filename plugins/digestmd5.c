@@ -34,12 +34,31 @@ SOFTWARE.
 #include <sys/stat.h>
 #include <fcntl.h>
 
+
+/* either WITH_CMU_RC4 or WITH_SSL_RC4 is defined Let's make WITH_RC4
+   our general "there is rc4 support" and use CMU/SSL for the specific
+   library routines
+*/
+
+#ifdef WITH_CMU_RC4
+#define WITH_RC4
+#endif /* WITH_CMU_RC4 */
+
+#ifdef WITH_SSL_RC4
+#define WITH_RC4
+#endif /* WITH_SSL_RC4 */
+
+
+
 #ifdef WITH_DES
 #include <des.h>
 #endif /* WITH_DES */
-#ifdef WITH_RC4
+#ifdef WITH_CMU_RC4
 #include <rc4.h>
-#endif /* WITH_RC4 */
+#endif /* WITH_CMU_RC4 */
+#ifdef WITH_SSL_RC4
+#include <openssl/rc4.h>
+#endif /* WITH_SSL_RC4 */
 
 #ifdef WIN32
 # include <winsock.h>
@@ -188,10 +207,15 @@ typedef struct context {
   des_key_schedule keysched_dec2;   /* key schedule for 3des initialization */
 #endif
 
-#ifdef WITH_RC4
+#ifdef WITH_CMU_RC4
   rc4_context_t *rc4_enc_context;
   rc4_context_t *rc4_dec_context;
-#endif /* WITH_RC4 */
+#endif /* WITH_CMU_RC4 */
+
+#ifdef WITH_SSL_RC4
+  RC4_KEY *rc4_enc_context;
+  RC4_KEY *rc4_dec_context;  
+#endif /* WITH_SSL_RC4 */
 
 } context_t;
 
@@ -1152,7 +1176,7 @@ static int init_des(context_t *text,
 
 #endif /* WITH_DES */
 
-#ifdef WITH_RC4
+#ifdef WITH_CMU_RC4
 static int
 init_rc4(void *v, 
 	 sasl_utils_t *utils __attribute__((unused)),
@@ -1215,7 +1239,75 @@ enc_rc4(context_t *text,
   return SASL_OK;
 }
 
-#endif /* WITH_RC4 */
+#endif /* WITH_CMU_RC4 */
+
+#ifdef WITH_SSL_RC4
+
+static int
+init_rc4(void *v, 
+	 sasl_utils_t *utils __attribute__((unused)),
+	 char enckey[16],
+	 char deckey[16])
+{
+  context_t *text = (context_t *) v;
+
+  /* allocate rc4 context structures */
+  text->rc4_enc_context= (RC4_KEY *) text->malloc(sizeof(RC4_KEY));
+  if (text->rc4_enc_context==NULL) return SASL_NOMEM;
+
+  text->rc4_dec_context= (RC4_KEY *) text->malloc(sizeof(RC4_KEY));
+  if (text->rc4_dec_context==NULL) return SASL_NOMEM;
+
+  /* initialize them */
+  RC4_set_key(text->rc4_enc_context,16, (unsigned char *) enckey);
+  RC4_set_key(text->rc4_dec_context,16, (unsigned char *) deckey);
+
+  return SASL_OK;
+}
+
+static int
+dec_rc4(context_t *text,
+	const char *input,
+	unsigned inputlen,
+	unsigned char digest[16],
+	char *output,
+	unsigned *outputlen)
+{
+  /* decrypt the text part */
+  RC4(text->rc4_dec_context, inputlen-10, (unsigned char *) input, output);
+
+  /* decrypt the HMAC part */
+  RC4(text->rc4_dec_context, 10, (unsigned char *) input+(inputlen-10), (char *) digest);
+
+  /* no padding so we just subtract the HMAC to get the text length */
+  *outputlen=inputlen-10;
+
+  return SASL_OK;
+}
+
+static int
+enc_rc4(context_t *text,
+	const char *input,
+	unsigned inputlen,
+	unsigned char digest[16],
+	char *output,
+	unsigned *outputlen)
+{
+  /* pad is zero */
+  *outputlen = inputlen+10;
+
+  /* encrypt the text part */
+  RC4(text->rc4_enc_context, inputlen, (unsigned char *) input, output);
+
+  /* encrypt the HMAC part */
+  RC4(text->rc4_enc_context, 10, (unsigned char *) digest, (output)+inputlen);
+
+  return SASL_OK;
+}
+
+#endif /* WITH_SSL_RC4 */
+
+
 
 static int create_layer_keys(context_t *text,sasl_utils_t *utils,HASH key, int keylen,
 			     char enckey[16], char deckey[16])

@@ -12,6 +12,12 @@ Thu Nov 11 00:10:33 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 1999-11-10  Timothy L Martin  <tmartin@andrew.cmu.edu>
 
+	* lib/db_berkeley.c: Cleaned up
+
+	* plugins/digestmd5.c: Can use rc4 libraries from openSSL if they exist
+
+1999-11-10  Timothy L Martin  <tmartin@andrew.cmu.edu>
+
 	* lib/checkpw.c (parseuser): Added patches from Claus Assmann
 	(ca+sasl@sendmail.org); fixes segfault
 

@@ -51,7 +51,8 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #undef WITH_SYMBOL_UNDERSCORE
 
 /* Do we have rc4 available? */
-#undef WITH_RC4
+#undef WITH_CMU_RC4
+#undef WITH_SSL_RC4
 
 /* do we have des available? */
 #undef WITH_DES

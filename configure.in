@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.52 1999/11/15 06:30:36 leg Exp $
+dnl $Id: configure.in,v 1.53 1999/11/15 17:28:37 tmartin Exp $
 dnl
 dnl         Copyright 1998 by Carnegie Mellon University
 dnl
@@ -481,9 +481,12 @@ AC_ARG_WITH(plugindir, [  --with-plugindir=DIR    set the directory where plugin
 AC_DEFINE_UNQUOTED(PLUGINDIR, "$plugindir")
 AC_SUBST(plugindir)
 
+dnl look for rc4 libraries. we accept the CMU one or one from openSSL
 AC_ARG_WITH(rc4, [  --with-rc4=DIR          use rc4 (look in DIR) [yes] ],
 	with_rc4=$withval,
 	with_rc4=yes)
+
+LIB_RC4=""
 if test "$with_rc4" != no; then
   if test -d $with_rc4; then
     CPPFLAGS="$CPPFLAGS -I${with_rc4}/include"
@@ -491,20 +494,28 @@ if test "$with_rc4" != no; then
   fi
   cmu_save_LIBS="$LIBS"
   AC_CHECK_LIB(rc4, rc4_init,
-	  AC_CHECK_HEADER(rc4.h,,
-		          AC_WARN([Disabling rc4 support]); with_rc4=no),
-	       AC_WARN([Disabling rc4 support]); with_rc4=no)
+	  AC_CHECK_HEADER(rc4.h,  [AC_DEFINE(WITH_CMU_RC4)
+	                           LIB_RC4="-lrc4"],
+		          with_rc4=no),
+	    with_rc4=no)
+
+  if test "$with_rc4" = no; then
+	with_rc4=yes
+	  AC_CHECK_LIB(crypto, RC4_set_key,
+		  AC_CHECK_HEADER(openssl/rc4.h, [AC_DEFINE(WITH_SSL_RC4)
+                                                  LIB_RC4="-lcrypto"],
+			          AC_WARN([SSL: Disabling rc4 support]); with_rc4=no),
+		       AC_WARN([SSL2: Disabling rc4 support]); with_rc4=no)
+  fi
+
   LIBS="$cmu_save_LIBS"
 fi
 
 AC_MSG_CHECKING(rc4 support)
 AC_MSG_RESULT($with_rc4)
-LIB_RC4=""
-if test "$with_rc4" != no; then
-  AC_DEFINE(WITH_RC4)
-  LIB_RC4="-lrc4"
-fi
 AC_SUBST(LIB_RC4)
+
+
 
 AC_HEADER_DIRENT
 AC_HEADER_STDC

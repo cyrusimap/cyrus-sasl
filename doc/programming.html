@@ -1,0 +1,46 @@
+<HTML><HEAD>
+<title>Programming with SASL</title>
+<!-- $Id: programming.html,v 1.1 1999/08/09 16:08:06 leg Exp $ -->
+</HEAD>
+<BODY>
+<H1>Programming with SASL</H1>
+
+Eventually, I hope to expand this into workable documentation for
+using the SASL library with various programs.  For now, all I have is
+what isn't implemented.  For guidance in using the library, take a
+look at the <tt>sample/</tt> directory, and the Cyrus IMAP server
+distribution (versions 1.6.0 or later).
+
+<h2>What's not implemented</h2>
+
+Some parts of this API aren't implemented by this implementation.  A
+brief outline of these features (and what might come of them) is in
+this section.
+
+<h3>Credentials</h3>
+
+None of the modules support passing credentials.  In the future, we
+hope to add credential passing to the modules that support it (most
+likely the Kerberos modules).  Thus, an application that specifies
+<tt>SASL_SEC_PASS_CREDENTIALS</tt> will not receive any mechanisms.
+The functions <tt>sasl_cred_install()</tt> and
+<tt>sasl_cred_uninstall()</tt> do nothing.
+
+It's likely that the credential API will change, and it's also likely
+that you'll need the Cyrus SASL library on both sides of the
+connection to make it work.
+
+<h3>Secrets</h3>
+
+<tt>sasl_client_auth()</tt> is unimplemented.  It is unclear what this
+is intended for.  If we implement it, it will probably be for
+generating secrets for fast reauthentication.
+
+The "<tt>secret</tt>" parameter to <tt>sasl_client_start()</tt> is
+unused.  It is likely that we will use this for fast reauthentication.
+
+<h3>Idle</h3>
+
+While the implementation & plugins correctly implement the idle calls,
+none of them currently do anything.
+

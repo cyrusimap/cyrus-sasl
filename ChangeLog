@@ -1,3 +1,7 @@
+2003-09-12  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/sql.c: Log errors on connect failures
+	  (based on patch from Bruce M Simpson <bms@spc.org>)
+
 2003-09-10  Maya Nigrosh <mnigrosh@andrew.cmu.edu>
 	* plugins/sql.c: created generic sql store function, added 
 	  transaction handling to sql statements

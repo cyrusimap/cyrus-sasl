@@ -1,3 +1,9 @@
+2004-02-19  Ken Murchison <ken@oceana.com>
+	* plugins/ntlm.c, sample/server.c, sample/client.c:
+	  error checking of getnameinfo() (Paul Kranenburg <pk@cs.few.eur.nl>)
+	* plugins/ntlm.c: alignment and endian fixes in load_session_setup()
+	  (Paul Kranenburg <pk@cs.few.eur.nl>)
+
 2004-02-18  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* doc/NTMakefile, NTMakefile: nmake install support
 	  for doc/ (Alexey Melnikov <Alexey.Melnikov@isode.com>)

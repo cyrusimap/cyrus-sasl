@@ -1,4 +1,4 @@
-/* $Id: server.c,v 1.5 2003/02/13 19:56:06 rjs3 Exp $ */
+/* $Id: server.c,v 1.6 2004/02/19 15:22:42 ken3 Exp $ */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
  *
@@ -359,20 +359,26 @@ int main(int argc, char *argv[])
 	if (getsockname(fd, (struct sockaddr *)&local_ip, &salen) < 0) {
 	    perror("getsockname");
 	}
-	getnameinfo((struct sockaddr *)&local_ip, salen,
+	if (getnameinfo((struct sockaddr *)&local_ip, salen,
 		    hbuf, sizeof(hbuf), pbuf, sizeof(pbuf),
-		    NI_NUMERICHOST | NI_WITHSCOPEID | NI_NUMERICSERV);
-	snprintf(localaddr, sizeof(localaddr), "%s;%s", hbuf, pbuf);
+		    NI_NUMERICHOST | NI_NUMERICSERV |
+		    (local_ip.ss_family == AF_INET6 ? NI_WITHSCOPEID : 0)) == 0)
+	    snprintf(localaddr, sizeof(localaddr), "%s;%s", hbuf, pbuf);
+	else
+	    snprintf(localaddr, sizeof(localaddr), "<unknown>");
 
 	salen = sizeof(remote_ip);
 	if (getpeername(fd, (struct sockaddr *)&remote_ip, &salen) < 0) {
 	    perror("getpeername");
 	}
 
-	getnameinfo((struct sockaddr *)&remote_ip, salen,
+	if (getnameinfo((struct sockaddr *)&remote_ip, salen,
 		    hbuf, sizeof(hbuf), pbuf, sizeof(pbuf),
-		    NI_NUMERICHOST | NI_WITHSCOPEID | NI_NUMERICSERV);
-	snprintf(remoteaddr, sizeof(remoteaddr), "%s;%s", hbuf, pbuf);
+		    NI_NUMERICHOST | NI_NUMERICSERV |
+		    (remote_ip.ss_family == AF_INET6 ? NI_WITHSCOPEID : 0)) == 0)
+	    snprintf(remoteaddr, sizeof(remoteaddr), "%s;%s", hbuf, pbuf);
+	else
+	    snprintf(remoteaddr, sizeof(remoteaddr), "<unknown>");
 
 	r = gethostname(myhostname, sizeof(myhostname)-1);
 	if(r == -1) saslfail(r, "getting hostname");

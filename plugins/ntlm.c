@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.20 2003/12/29 21:26:00 rjs3 Exp $
+ * $Id: ntlm.c,v 1.21 2004/02/19 15:22:41 ken3 Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -94,7 +94,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.20 2003/12/29 21:26:00 rjs3 Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.21 2004/02/19 15:22:41 ken3 Exp $";
 
 #ifdef WIN32
 static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);
@@ -639,15 +639,15 @@ static void load_session_setup(unsigned char buf[], SMB_SessionSetup *setup)
 
     *p++ = setup->andx_command;
     *p++ = setup->andx_reserved;
-    *((uint16 *) p) = setup->andx_offset; p += 2;
-    *((uint16 *) p) = setup->max_buffer_size; p += 2;
-    *((uint16 *) p) = setup->max_mpx_count; p += 2;
-    *((uint16 *) p) = setup->vc_number; p += 2;
-    *((uint32 *) p) = setup->session_key; p += 4;
-    *((uint16 *) p) = setup->case_insensitive_passwd_len; p += 2;
-    *((uint16 *) p) = setup->case_sensitive_passwd_len; p += 2;
-    *((uint32 *) p) = setup->reserved; p += 4;
-    *((uint32 *) p) = setup->capabilities;
+    htois(p, setup->andx_offset); p += 2;
+    htois(p, setup->max_buffer_size); p += 2;
+    htois(p, setup->max_mpx_count); p += 2;
+    htois(p, setup->vc_number); p += 2;
+    htoil(p, setup->session_key); p += 4;
+    htois(p, setup->case_insensitive_passwd_len); p += 2;
+    htois(p, setup->case_sensitive_passwd_len); p += 2;
+    htoil(p, setup->reserved); p += 4;
+    htoil(p, setup->capabilities); p += 4;
 }
 
 static void unload_session_setup_resp(unsigned char buf[],
@@ -832,9 +832,13 @@ static int smb_connect_server(const sasl_utils_t *utils, const char *client,
 #endif
 	closesocket (s);
 	s = -1;
-	getnameinfo(r->ai_addr, r->ai_addrlen,
+	if (getnameinfo(r->ai_addr, r->ai_addrlen,
 		    hbuf, sizeof(hbuf), pbuf, sizeof(pbuf),
-		    NI_NUMERICHOST | NI_WITHSCOPEID | NI_NUMERICSERV);
+		    NI_NUMERICHOST | NI_NUMERICSERV |
+		    (r->ai_family == AF_INET6 ? NI_WITHSCOPEID : 0)) != 0) {
+		snprintf(hbuf, sizeof(hbuf), "<unknown>");
+		snprintf(pbuf, sizeof(pbuf), "<unknown>");
+	}
 /* Can't use errno (and %m), as it doesn't contain the socket error on Windows */
 	error_str = _plug_get_error_message (utils, saved_errno);
 	utils->log(NULL, SASL_LOG_WARN, "NTLM: connect %s[%s]/%s: %s",
@@ -845,8 +849,10 @@ static int smb_connect_server(const sasl_utils_t *utils, const char *client,
 	utils->free (error_str);
     }
     if (s < 0) {
-	getnameinfo(ai->ai_addr, ai->ai_addrlen, NULL, 0,
-			pbuf, sizeof(pbuf), NI_NUMERICSERV);
+	if (getnameinfo(ai->ai_addr, ai->ai_addrlen, NULL, 0,
+			pbuf, sizeof(pbuf), NI_NUMERICSERV) != 0) {
+		snprintf(pbuf, sizeof(pbuf), "<unknown>");
+	}
 	utils->log(NULL, SASL_LOG_ERR, "NTLM: couldn't connect to %s/%s",
 		   ai->ai_canonname ? ai->ai_canonname : server, pbuf);
 	freeaddrinfo(ai);

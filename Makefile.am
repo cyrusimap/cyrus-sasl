@@ -1,3 +1,4 @@
+AUTOMAKE_OPTIONS = 1.7
 # Top-level Makefile.am for SASL
 # Rob Earhart
 #

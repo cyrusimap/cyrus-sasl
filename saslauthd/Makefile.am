@@ -1,3 +1,4 @@
+AUTOMAKE_OPTIONS = 1.7
 sbin_PROGRAMS	= saslauthd
 EXTRA_PROGRAMS  = testsaslauthd saslcache
 

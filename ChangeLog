@@ -1,3 +1,7 @@
+2004-10-19  Derrick Brashear <shadow@dementia.org>
+	* Makefile.am, saslauthd/Makefile.am: require automake 1.7;
+	  prior versions require AM_CONFIG_HEADER and dislike AM_LDFLAGS
+
 2004-10-14  Ken Murchison <ken@oceana.com>
 	* plugins/ntlm.c: portability fixes from Alexey, and squashed a
 	  signed/unsigned warning

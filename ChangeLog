@@ -1,3 +1,7 @@
+Tue Aug 17 02:35:17 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* utils/dbconverter.c (dbm_convert): some minor cleanups for sun cc
+
 Mon Aug 16 14:52:27 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* lib/db_ndbm.c (getsecret): fixed a free'd memory read (closed

@@ -848,14 +848,21 @@
     result. The nice thing about interactions is you get them all at
     once so if you had a GUI application you could bring up a dialog
     box asking for authentication name and password together instead
-    of one at a time.
+    of one at a time.<p>
+    Any memory that is given to the SASL library for the purposes of
+    callbacks and interactions must persist until the exchange completes
+    in either success or failure.  That is, the data must persist until
+    <tt>sasl_client_start</tt> or <tt>sasl_client_step</tt> returns something
+    other than <tt>SASL_INTERACT</tt> or <tt>SASL_CONTINUE</tt>.
 
     <p><b>Memory management:</b>As in the rest of the SASLv2 API,
     whoever allocates the memory is responsible for freeing it.
     In almost all cases this should be fairly easy to manage, however
     a slight exception where the interaction sasl_interact_t structure
     is allocated and freed by the library, while the results are allocated
-    and freed by the application.
+    and freed by the application.  As noted above, however, <i>the results
+    may not be freed until after the exchange completes, in either success
+    or failure</i>.
 
     <p>For a detailed description of what each of the callback types are
     see the sasl.h file. Here are some brief explanations:
@@ -937,12 +944,9 @@ mechanisms depend on these being present).
 available</tt>" message, or similar; this is due to the fact that some
 mechanisms do not support realms and therefore never set it.
 
-<a name="cyrus_imapd"><h3>Cyrus imapd v1.6.0 or later</h3></a>
+<a name="cyrus_imapd"><h3>Cyrus imapd v2.1.0 or later</h3></a>
 
-<B><I>This uses Cyrus SASL prior to v2 only.  We should update this section
-when Cyrus Sasl moves to SASL v2</I></B><p> 
-
-The Cyrus IMAP server now incorporates SASL for all its
+The Cyrus IMAP server now incorporates SASLv2 for all its
 authentication needs.  It is a good example of a fairly large server
 application.  Also of interest is the prot layer, included in
 libcyrus.  This is a stdio-like interface that automatically takes
@@ -951,15 +955,15 @@ care of layers using a simple "<tt>prot_setsasl()</tt>" call.
 <p>Cyrus imapd also sets a <tt>SASL_CB_PROXY_POLICY</tt> callback,
 which should be of interest to many applications.
 
-<a name="imtest"><h3><tt>imtest</tt>, from cyrus imapd 1.6.0 or later</h3></a>
-
-<B><I>This uses Cyrus SASL prior to v2 only.  We should update this section
-when Cyrus Sasl moves to SASL v2</I></B><p> 
+<a name="imtest"><h3><tt>imtest</tt>, from Cyrus 2.1.0 or later</h3></a>
 
 <tt>imtest</tt> is an application included with Cyrus imapd.  It is a
 very simple IMAP client, but should be of interest to those writing
 applications.  It also uses the prot layer, but it is easy to
-incorporate similar support without using the prot layer.
+incorporate similar support without using the prot layer.  Likewise,
+there are other sample client applications that you can look at including
+<tt>smtptest</tt> and <tt>pop3test</tt> in the SASL distribution and the Cyrus
+IMAPd distribution, respectively.
 
 <a name="random_things"><h2>Miscellaneous Information</h2></a>
 

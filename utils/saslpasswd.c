@@ -463,9 +463,11 @@ main(int argc, char *argv[])
 			    "cmusaslsecretPLAIN", NULL, 0);
       if(ret == SASL_OK) result = ret;
 
+#if 0
       /* Were we disableing and failed above? */
       if(result != SASL_OK)
 	  exit_sasl(result, NULL);
+#endif
   }
       
       

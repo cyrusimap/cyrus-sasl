@@ -19,7 +19,7 @@ testsaslauthd_LDADD = @COMPAT_OBJ@ @LIB_SOCKET@
 
 EXTRA_DIST	= saslauthd.8 saslauthd.mdoc config include \
 		  getnameinfo.c getaddrinfo.c saslauthd-unix.c \
-		  saslauthd-doors.c
+		  saslauthd-doors.c LDAP_SASLAUTHD
 INCLUDES	= -I$(top_srcdir)/include
 DEFS            = @DEFS@ -DSASLAUTHD_CONF_FILE_DEFAULT=\"@sysconfdir@/saslauthd.conf\"
 

@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.128 2002/05/06 15:57:43 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.129 2002/05/06 16:23:55 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -103,7 +103,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.128 2002/05/06 15:57:43 rjs3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.129 2002/05/06 16:23:55 ken3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -1643,6 +1643,8 @@ digestmd5_common_mech_dispose(void *conn_context, const sasl_utils_t * utils)
 static void
 clear_global_context(global_context_t *glob_context, const sasl_utils_t *utils)
 {
+    time_t timeout;
+
     if (glob_context->authid) utils->free(glob_context->authid);
     if (glob_context->nonce) utils->free(glob_context->nonce);
     if (glob_context->cnonce) utils->free(glob_context->cnonce);
@@ -1651,15 +1653,9 @@ clear_global_context(global_context_t *glob_context, const sasl_utils_t *utils)
     if (glob_context->serverFQDN) utils->free(glob_context->serverFQDN);
 
     /* zero everything except for the reauth timeout */
-    glob_context->authid = glob_context->realm = NULL;
-    glob_context->nonce = glob_context->cnonce = NULL;
-    glob_context->nonce_count = 0;
-
-    glob_context->timestamp = 0;
-
-    glob_context->qop = glob_context->serverFQDN = NULL;
-    glob_context->bestcipher = NULL;
-    glob_context->server_maxbuf = 0;
+    timeout = glob_context->timeout;
+    memset(glob_context, 0, sizeof(global_context_t));
+    glob_context->timeout = timeout;
 }
 
 static void

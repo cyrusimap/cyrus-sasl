@@ -125,6 +125,9 @@ case "$dblib" in
     ;;
 esac
 
+# Do we not install the SASL DB man pages?
+AM_CONDITIONAL(NO_SASL_DB_MANS, test "x$SASL_DB_MANS" = "x")
+
 if test "$enable_static" = yes; then
     if test "$dblib" != "none"; then
       SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/sasldb.o $SASL_DB_BACKEND_STATIC"

@@ -50,8 +50,11 @@ EXTRA_PROGRAMS = saslpasswd2 sasldblistusers2 testsuite testsuitestatic smtptest
 
 noinst_PROGRAMS = dbconverter-2
 
-man_MANS = @SASL_DB_MANS@
-EXTRA_MANS = saslpasswd2.8 sasldblistusers2.8
+if NO_SASL_DB_MANS
+man_MANS = 
+else
+man_MANS = saslpasswd2.8 sasldblistusers2.8
+endif
 
 saslpasswd2_LDADD = ../sasldb/libsasldb.la $(all_sasl_libs)
 saslpasswd2_SOURCES = saslpasswd.c

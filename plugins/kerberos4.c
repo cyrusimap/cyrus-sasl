@@ -1,6 +1,6 @@
 /* Kerberos4 SASL plugin
  * Tim Martin 
- * $Id: kerberos4.c,v 1.54 2000/02/28 04:22:02 tmartin Exp $
+ * $Id: kerberos4.c,v 1.55 2000/02/29 22:49:42 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -196,7 +196,7 @@ static int privacy_decode(void *context,
 	    text->size=ntohl(text->size);
 	    
 	    /* too big? */
-	    if (text->size>0xFFFF) return SASL_FAIL;
+	    if ((text->size>0xFFFF) || (text->size < 0)) return SASL_FAIL;
 	    
 	    if (text->bufsize < text->size + 5) {
 		text->buffer = text->realloc(text->buffer, text->size + 5);
@@ -347,7 +347,7 @@ static int integrity_decode(void *context, const char *input, unsigned inputlen,
 	memcpy(&(text->size), text->sizebuf, 4);
 	text->cursize=0;
 	text->size=ntohl(text->size);
-	if (text->size>0xFFFF) return SASL_FAIL; /* too big probably error */
+	if ((text->size>0xFFFF) || (text->size < 0)) return SASL_FAIL; /* too big probably error */
 
 	if (text->bufsize < text->size) {
 	    text->buffer = text->realloc(text->buffer, text->size);
@@ -839,10 +839,16 @@ int sasl_server_plug_init(sasl_utils_t *utils,
 
     /* fail if we can't open the srvtab file */
     if (access(srvtab, R_OK) != 0)
+    {
+	utils->free(srvtab);
 	return SASL_FAIL;
+    }
 
     if (maxversion<KERBEROS_VERSION)
+    {
+	utils->free(srvtab);
 	return SASL_BADVERS;
+    }
 
     *pluglist=plugins;
 

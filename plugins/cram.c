@@ -1,6 +1,6 @@
 /* CRAM-MD5 SASL plugin
  * Tim Martin 
- * $Id: cram.c,v 1.47 2000/02/23 02:50:01 leg Exp $
+ * $Id: cram.c,v 1.48 2000/02/29 22:49:40 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -347,6 +347,11 @@ static int server_continue_step (void *conn_context,
       *errstr = NULL;
   }
 
+  if (clientinlen < 0)
+  {
+      return SASL_BADPARAM;
+  }
+
   if (text->state==1)
   {    
     char *time, *randdigits;
@@ -370,7 +375,7 @@ static int server_continue_step (void *conn_context,
     if ((time==NULL) || (randdigits==NULL)) return SASL_NOMEM;
 
     /* allocate some space for the nonce */
-    *serverout=sparams->utils->malloc(200);
+    *serverout=sparams->utils->malloc(200+1);
     if (*serverout==NULL) return SASL_NOMEM;
 
     /* create the nonce */
@@ -404,12 +409,12 @@ static int server_continue_step (void *conn_context,
     char *authstr = NULL;
     sasl_secret_t *sec=NULL;
     int lup,pos;
-    int result;
+    int result = SASL_FAIL;
     sasl_server_getsecret_t *getsecret;
     void *getsecret_context;
 
     HMAC_MD5_CTX tmphmac;
-    char *digest_str;
+    char *digest_str = NULL;
     UINT4 digest[4];
 
     VL(("CRAM-MD5 Step 2\n"));
@@ -437,7 +442,7 @@ static int server_continue_step (void *conn_context,
 	      sparams->serverFQDN, authstr);
     sparams->utils->free(authstr);
     if (result != SASL_OK) {
-	return result;
+	goto done;
     }
 
     /* get callback so we can request the secret */
@@ -447,11 +452,12 @@ static int server_continue_step (void *conn_context,
 					 &getsecret_context);
     if (result != SASL_OK) {
 	VL(("result = %i trying to get secret callback\n",result));
-	return result;
+	goto done;
     }
     if (! getsecret) {
 	VL(("Received NULL getsecret callback\n"));
-	return SASL_FAIL;
+	result = SASL_FAIL;
+	goto done;
     }
 
     /* We use the user's CRAM secret which is kinda 1/2 way thru the
@@ -460,20 +466,17 @@ static int server_continue_step (void *conn_context,
     result = getsecret(getsecret_context, "CRAM-MD5", userid, realm, &sec);
     if (result == SASL_NOUSER || !sec) {
       if (errstr) *errstr = "no secret in database";
-      return SASL_NOUSER;
+      result = SASL_NOUSER;
+      goto done;
     }
     if (result != SASL_OK) {
-	sparams->utils->free(userid);
-	sparams->utils->free(realm);
-	return result;
+	goto done;
     }
 
     if (sec->len != sizeof(HMAC_MD5_STATE)) {
-      free_secret(sparams->utils, &sec);
-      free_string(sparams->utils, &userid);
-      free_string(sparams->utils, &realm);
       if (errstr) *errstr = "secret database corruption";
-      return SASL_FAIL;
+      result = SASL_FAIL;
+      goto done;
     }
 
     /* ok this is annoying:
@@ -492,9 +495,6 @@ static int server_continue_step (void *conn_context,
     /* convert to base 16 with lower case letters */
     digest_str = convert16((unsigned char *) digest, 4, sparams->utils);
 
-    /* free sec */
-    free_secret(sparams->utils,&sec);
-
     /* if same then verified 
      *  - we know digest_str is null terminated but clientin might not be
      */
@@ -502,12 +502,10 @@ static int server_continue_step (void *conn_context,
 	sparams->utils->free(userid);
 	if (errstr) {
 	    *errstr = "incorrect digest response";
-	}
-	free(digest_str);
-	return SASL_BADAUTH;
+	}	
+	result = SASL_BADAUTH;
+	goto done;
     }
-    free(digest_str);
-
     VL(("Succeeded!\n"));
 
     /* nothing more to do; authenticated 
@@ -516,10 +514,14 @@ static int server_continue_step (void *conn_context,
     oparams->doneflag=1;
 
     oparams->user = userid; /* set username */
+    userid = NULL; /* set to null so we don't free */
     oparams->realm = realm;
+    realm = NULL; /* set to null so we don't free */
     
-    result = cram_strdup(sparams->utils, userid, &(oparams->authid), NULL);
-    if (result!=SASL_OK) return result;
+    result = cram_strdup(sparams->utils, oparams->user, &(oparams->authid), NULL);
+    if (result!=SASL_OK) {
+	goto done;
+    }
 
     oparams->mech_ssf = 0;
     oparams->maxoutbuf = 0;
@@ -531,9 +533,17 @@ static int server_continue_step (void *conn_context,
     *serverout = NULL;
     *serveroutlen = 0;
 
+    result = SASL_OK;
+  done:
+
+    if (userid) sparams->utils->free(userid);
+    if (realm)  sparams->utils->free(realm);
+    if (sec) free_secret(sparams->utils, &sec);
+    if (digest_str)  sparams->utils->free(digest_str);
+
     text->state = 3; /* if called again will fail */
 
-    return SASL_OK;
+    return result;
   }
 
 
@@ -674,8 +684,8 @@ setpass(void *glob_context __attribute__((unused)),
     int result;
     sasl_server_putsecret_t *putsecret;
     void *putsecret_context;
-    char *user;
-    char *realm;
+    char *user = NULL;
+    char *realm = NULL;
 
     /* These need to be zero'ed out at the end */
     HMAC_MD5_STATE *md5state = NULL;
@@ -753,6 +763,8 @@ setpass(void *glob_context __attribute__((unused)),
 	memset(md5state, 0, sizeof(md5state));
 	sparams->utils->free(md5state);
     }
+    if (user) 	sparams->utils->free(user);
+    if (realm) 	sparams->utils->free(realm);
     return result;
 }
 

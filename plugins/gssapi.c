@@ -241,7 +241,7 @@ sasl_gss_decode(void *context, const char *input, unsigned inputlen,
 	    text->size = ntohl(text->size);
 	    text->cursize = 0;
 
-	    if (text->size > 0xFFFF || text->size == 0) return SASL_FAIL;
+	    if (text->size > 0xFFFF || text->size <= 0) return SASL_FAIL;
 
 	    if (text->bufsize < text->size + 5) {
 		text->buffer = text->realloc(text->buffer, text->size + 5);
@@ -688,8 +688,6 @@ sasl_gss_server_step (void *conn_context,
 	if (GSS_ERROR(maj_stat)) {
 	    sasl_gss_set_error(text, errstr, "gss_unwrap",
 			       maj_stat, min_stat);
-	    if (output_token->value)
-		params->utils->free(output_token->value);
 	    sasl_gss_free_context_contents(text);
 	    return SASL_FAIL;
 	}

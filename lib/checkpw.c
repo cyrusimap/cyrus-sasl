@@ -569,11 +569,12 @@ static int sasldb_verify_password(sasl_conn_t *conn,
 				  const char **reply)
 {
     sasl_server_getsecret_t *getsec;
-    void *context;
-    int ret;
+    void *context = NULL;
+    int ret = SASL_FAIL;
     sasl_secret_t *secret = NULL;
     sasl_secret_t *construct = NULL;
-    char *userid, *realm;
+    char *userid = NULL;
+    char *realm = NULL;
 
     if (reply) { *reply = NULL; }
     if (!userstr || !passwd) {
@@ -582,26 +583,24 @@ static int sasldb_verify_password(sasl_conn_t *conn,
     ret = parseuser(&userid, &realm, user_realm, conn->serverFQDN, userstr);
     if (ret != SASL_OK) {
 	/* error parsing user */
-	return ret;
+	goto done;
     }
     ret = _sasl_getcallback(conn, SASL_CB_SERVER_GETSECRET, &getsec, &context);
     if (ret != SASL_OK) {
 	/* error getting getsecret callback */
-	return ret;
+	goto done;
     }
 
     ret = getsec(context, "PLAIN", userid, realm, &secret);
     if (ret != SASL_OK) {
 	/* error getting PLAIN secret */
-	return ret;
+	goto done;
     }
 
     ret = _sasl_make_plain_secret(secret->data, passwd, strlen(passwd),
 				  &construct);
     if (ret != SASL_OK) {
-	sasl_free_secret(&secret);
-	if (construct) { sasl_free_secret(&construct); }
-	return ret;
+	goto done;
     }
 
     if (!memcmp(secret->data, construct->data, secret->len)) {
@@ -612,8 +611,12 @@ static int sasldb_verify_password(sasl_conn_t *conn,
 	ret = SASL_BADAUTH;
     }
 
-    sasl_free_secret(&secret);
-    sasl_free_secret(&construct);
+ done:
+    if (userid) sasl_FREE(userid);
+    if (realm)  sasl_FREE(realm);
+
+    if (secret) sasl_free_secret(&secret);
+    if (construct) sasl_free_secret(&construct);
     return ret;
 }
 
@@ -626,7 +629,8 @@ int _sasl_sasldb_set_pass(sasl_conn_t *conn,
 			  int flags,
 			  const char **errstr)
 {
-    char *userid, *realm;
+    char *userid = NULL;
+    char *realm = NULL;
     int ret = SASL_OK;
 
     if (errstr) {
@@ -706,7 +710,8 @@ int _sasl_sasldb_set_pass(sasl_conn_t *conn,
 	}
     }
 
-    sasl_FREE(realm);
+    if (userid)   sasl_FREE(userid);
+    if (realm)    sasl_FREE(realm);
     return ret;
 }
 

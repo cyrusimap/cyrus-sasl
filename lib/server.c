@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.70 2000/02/28 04:22:01 tmartin Exp $
+ * $Id: server.c,v 1.71 2000/02/29 22:49:39 tmartin Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -617,7 +617,11 @@ int sasl_server_init(const sasl_callback_t *callbacks,
 
   /* load config file if applicable */
   ret = load_config(vf);
-  if ((ret!=SASL_OK) && (ret!=SASL_CONTINUE)) return ret;
+  if ((ret!=SASL_OK) && (ret!=SASL_CONTINUE))
+  {
+      /* xxx free memory? */
+      return ret;
+  }
 
   /* check db */
   ret = _sasl_server_check_db(vf);

@@ -23,6 +23,11 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
+/*
+ * TODO:
+ *  put in alloc() routines that fail occasionally.
+ */
+
 #include <config.h>
 
 #include <stdio.h>
@@ -208,7 +213,7 @@ void test_listmech(void)
 {
     sasl_conn_t *saslconn;
     int result;
-    char *str;
+    char *str = NULL;
     int plen;
     int lup;
     int pcount;
@@ -252,6 +257,7 @@ void test_listmech(void)
     if (result != SASL_OK) fatal("Failed sasl_listmech() with long user");
 
     if (str[0]!='[') fatal("Failed sasl_listmech() with long user (didn't start with '['");
+    free(str);
 
     /* Test with really long prefix */
 
@@ -267,6 +273,7 @@ void test_listmech(void)
     if (result != SASL_OK) fatal("failed sasl_listmech() with long prefix");
 
     if (str[0]!=really_long_string[0]) fatal("failed sasl_listmech() with long prefix (str is suspect)");
+    free(str);
 
     /* Test with really long suffix */
 
@@ -280,6 +287,7 @@ void test_listmech(void)
 			   NULL);
 
     if (result != SASL_OK) fatal("Failed sasl_listmech() with long suffix");
+    free(str);
 
     /* Test with really long seperator */
 
@@ -293,6 +301,7 @@ void test_listmech(void)
 			   NULL);
 
     if (result != SASL_OK) fatal("Failed sasl_listmech() with long seperator");
+    free(str);
 
     /* Test contents of output string is accurate */
     result = sasl_listmech(saslconn,
@@ -320,7 +329,9 @@ void test_listmech(void)
 	fatal("Number of mechs received doesn't match what we were told");
     }
 
+    free(str);
     /* Call sasl done then make sure listmech doesn't work anymore */
+    sasl_dispose(&saslconn);
     sasl_done();
 
     result = sasl_listmech(saslconn,
@@ -382,6 +393,8 @@ void test_random(void)
     }
     sasl_randseed(rpool, buf, sizeof(buf));
     sasl_churn(rpool, buf, sizeof(buf));
+
+    sasl_randfree(&rpool);
 }
 
 /*
@@ -571,9 +584,15 @@ void corrupt(corrupt_type_t type, char *in, int inlen, char **out, int *outlen)
 	    break;
 
 	case SHORTEN:
-	    *outlen = (rand() % inlen);
-	    *out = (char *) malloc(*outlen);
-	    memcpy(*out, in, *outlen);
+	    if (inlen > 0)
+	    {
+		*outlen = (rand() % inlen);
+		*out = (char *) malloc(*outlen);
+		memcpy(*out, in, *outlen);
+	    } else {
+		*outlen = inlen;
+		*out = in;
+	    }
 	    break;
 	case REASONABLE_RANDOM:
 	    *outlen = inlen;
@@ -607,7 +626,7 @@ void sendbadsecond(char *mech, void *rock)
     int result;
     sasl_conn_t *saslconn;
     sasl_conn_t *clientconn;
-    char *out, *dec;
+    char *out, *dec = NULL;
     unsigned outlen, declen;
     sasl_interact_t *client_interact=NULL;
     const char *mechusing;
@@ -615,12 +634,13 @@ void sendbadsecond(char *mech, void *rock)
     const char *errstr;
     int mystep = 0; /* what step in the authentication are we on */
     int mayfail = 0; /* we did some corruption earlier so it's likely to fail now */
+    char *tofree;
     
     tosend_t *send = (tosend_t *)rock;
 
     printf("%s --> start\n",mech);
     
-    if (strcmp(mech,"GSSAPI")==0) service = "host";
+    if (strcmp(mech,"GSSAPI")==0) service = "imap";
 
     if (sasl_client_init(client_callbacks)!=SASL_OK) fatal("Unable to init client");
     if (sasl_server_init(goodsasl_cb,"TestSuite")!=SASL_OK) fatal("");
@@ -664,6 +684,7 @@ void sendbadsecond(char *mech, void *rock)
 	corrupt(send->type, out, outlen, &out, &outlen);
 	mayfail = 1;
     }
+    tofree = out;
     result = sasl_server_start(saslconn,
 			       mech,
 			       out,
@@ -676,8 +697,10 @@ void sendbadsecond(char *mech, void *rock)
     {
 	if (result >= 0)
 	    printf("WARNING: We did a corruption but it still worked\n");
-	else
-	    return;
+	else {
+	    if (tofree) free(tofree);
+	    goto done;
+	}
     } else {
 	if (result < 0) 
 	{
@@ -686,7 +709,7 @@ void sendbadsecond(char *mech, void *rock)
 	    fatal("sasl_server_start() error");
 	}
     }
-
+    if (tofree) free(tofree);
     mystep++;
 
     while (result == SASL_CONTINUE) {
@@ -696,6 +719,7 @@ void sendbadsecond(char *mech, void *rock)
 	    corrupt(send->type, out, outlen, &out, &outlen);
 	    mayfail = 1;
 	}
+	tofree = out;
 	do {
 	    result = sasl_client_step(clientconn,
 				      out, outlen,
@@ -709,8 +733,10 @@ void sendbadsecond(char *mech, void *rock)
 	{
 	    if (result >= 0)
 		printf("WARNING: We did a corruption but it still worked\n");
-	    else
-		return;
+	    else {
+		if (tofree) free(tofree);
+		goto done;
+	    }
 	} else {
 	    if (result < 0) 
 	    {
@@ -719,6 +745,7 @@ void sendbadsecond(char *mech, void *rock)
 		fatal("sasl_client_step() error");
 	    }
 	}
+	if (tofree) free(tofree);
 	mystep++;
 
 
@@ -727,6 +754,7 @@ void sendbadsecond(char *mech, void *rock)
 	    corrupt(send->type, out, outlen, &out, &outlen);
 	    mayfail = 1;
 	}
+	tofree = out;
 	result = sasl_server_step(saslconn,
 				  out,
 				  outlen,
@@ -738,8 +766,10 @@ void sendbadsecond(char *mech, void *rock)
 	{
 	    if (result >= 0)
 		printf("WARNING: We did a corruption but it still worked\n");
-	    else
-		return;
+	    else {
+		if (tofree) free(tofree);
+		goto done;
+	    }
 	} else {
 	    if (result < 0) 
 	    {
@@ -748,6 +778,7 @@ void sendbadsecond(char *mech, void *rock)
 		fatal("sasl_server_step() error");
 	    }
 	}
+	if (tofree) free(tofree);
 	mystep++;
 
     } 
@@ -764,13 +795,16 @@ void sendbadsecond(char *mech, void *rock)
 	corrupt(send->type, out, outlen, &out, &outlen);
 	mayfail = 1;
     }
+    tofree = out;
     result = sasl_decode(saslconn, out, outlen, &dec, &declen);
     if (mayfail == 1)
     {
 	if (result >= 0)
 	    printf("WARNING: We did a corruption but it still worked\n");
-	else
-	    return;
+	else {
+	    if (tofree) free(tofree);
+	    goto done;
+	}
     } else {
 	if (result < 0) 
 	{
@@ -779,10 +813,15 @@ void sendbadsecond(char *mech, void *rock)
 	    fatal("sasl_decode() failure");
 	}
     }
+    if (tofree) free(tofree);
+    if (dec) free(dec);
     mystep++;
 
     /* no need to do other direction since symetric */
-    
+
+ done:
+    sasl_dispose(&clientconn);
+    sasl_dispose(&saslconn);
     sasl_done();
 }
 
@@ -814,6 +853,7 @@ void foreach_mechanism(foreach_t *func, void *rock)
 			   &str,
 			   NULL,
 			   NULL);
+    sasl_dispose(&saslconn);
     sasl_done();
 
     /* call the function for each mechanism */
@@ -887,11 +927,14 @@ void test_serverstart(void)
 
     if (result == SASL_OK) fatal("Said ok to invalid mechanism");
 
+    sasl_dispose(&saslconn);
+    sasl_done();
+
     tosend.step = 500;
     printf("trying to do correctly\n");
     foreach_mechanism((foreach_t *) &sendbadsecond,&tosend);
 
-    for (lup=0;lup<100;lup++)
+    for (lup=0;lup<0;lup++)
     {
 	tosend.type = rand() % CORRUPT_SIZE;
 	tosend.step = lup % MAX_STEPS;
@@ -961,6 +1004,7 @@ void create_ids(void)
 	fatal("Error setting password. Do we have write access to sasldb?");
 
     /* cleanup */
+    sasl_dispose(&saslconn);
     sasl_done();
 }
 
@@ -1003,7 +1047,9 @@ void test_checkpass(void)
     if (sasl_checkpass(saslconn, username, strlen(username),
 		   NULL, strlen(password), NULL) == SASL_OK)
 	fatal("Suceeded with NULL password");
-    
+
+    sasl_dispose(&saslconn);
+    sasl_done();
 }
 
 void notes(void)

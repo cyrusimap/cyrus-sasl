@@ -259,7 +259,7 @@ void getranddata(unsigned short ret[3])
     long curtime;
     FILE *f;
     
-    memset(ret, 0, sizeof(ret));
+    memset(ret, 0, sizeof(unsigned short)*3);
     
     /* this will probably only work on linux */
     if ((f = fopen(DEV_RANDOM, "r")) != NULL) {
@@ -283,9 +283,10 @@ void getranddata(unsigned short ret[3])
 	    ret[1] ^= (unsigned short) (clock() & 0xFFFF);
 	    ret[1] ^= (unsigned short) (tv.tv_usec >> 16);
 	    ret[2] ^= (unsigned short) (tv.tv_usec & 0xFFFF);
+	    return;
 	}
 
-	return;
+
     }
 #endif /* HAVE_GETTIMEOFDAY */
     

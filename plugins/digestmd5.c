@@ -1494,7 +1494,7 @@ privacy_decode(void *context,
 	   0xFFFFFF, but not 0xFFFF 
 	   -this is according to john myers at least
 	*/
-	if (text->size>0xFFFFFF) return SASL_FAIL; /* too big probably error */
+	if ((text->size>0xFFFFFF) || (text->size < 0)) return SASL_FAIL; /* too big probably error */
 	
 	text->buffer=text->malloc(text->size+5);
 	if (text->buffer == NULL) return SASL_NOMEM;
@@ -1796,7 +1796,7 @@ integrity_decode(void *context,
       text->cursize = 0;
       text->size = ntohl(text->size);
 
-      if (text->size > 0xFFFF)
+      if ((text->size > 0xFFFF) || (text->size < 0))
 	return SASL_FAIL;	/* too big probably error */
       free(text->buffer);
       text->buffer = malloc(text->size);
@@ -1933,7 +1933,7 @@ static int
 server_continue_step(void *conn_context,
 		     sasl_server_params_t * sparams,
 		     const char *clientin,
-		     int clientinlen,
+		     unsigned clientinlen,
 		     char **serverout,
 		     int *serveroutlen,
 		     sasl_out_params_t * oparams,
@@ -1945,6 +1945,8 @@ server_continue_step(void *conn_context,
 
   if (errstr)
     *errstr = NULL;
+
+  if (clientinlen > 2048) return SASL_BADPARAM;
 
   if (text->state == 1) {
     char           *challenge = NULL;
@@ -2145,11 +2147,12 @@ server_continue_step(void *conn_context,
     HASH            A1;
 
     /* can we mess with clientin? copy it to be safe */
-    char           *in_start;
-    char           *in = sparams->utils->malloc(clientinlen + 1);
+    char           *in_start = NULL;
+    char           *in = NULL; 
 
     char *response_auth = NULL;
 
+    in = sparams->utils->malloc(clientinlen + 1);
 
     memcpy(in, clientin, clientinlen);
     in[clientinlen] = 0;
@@ -2519,9 +2522,10 @@ server_continue_step(void *conn_context,
   FreeAllMem:
     /* free everything */
     /*
-     * sparams->utils->free (in_start);
      * sparams->utils->free (authorization_id);
      */
+
+    if (in_start) sparams->utils->free (in_start);
 
     if (username != NULL) {
 	sparams->utils->free (username);
@@ -3311,6 +3315,8 @@ c_continue_step(void *conn_context,
     VL(("Digest-MD5 Step 2\n"));
 
     in = params->utils->malloc(serverinlen + 1);
+    if (in == NULL) return SASL_NOMEM;
+
     memcpy(in, serverin, serverinlen);
     in[serverinlen] = 0;
 
@@ -3327,7 +3333,10 @@ c_continue_step(void *conn_context,
 	get_pair(&in, &name, &value);
 
 	/* if parse error */
-	if (name == NULL) return SASL_FAIL;
+	if (name == NULL) {
+	    result = SASL_FAIL;
+	    goto FreeAllocatedMem;
+	}
 
 	VL(("received pair: %s - %s\n", name, value));
 
@@ -3462,6 +3471,12 @@ c_continue_step(void *conn_context,
       goto FreeAllocatedMem;
     }
 
+    /* make sure we have everything we require */
+    if (nonce == NULL) {
+	result = SASL_FAIL;
+	goto FreeAllocatedMem;
+    }
+
     /* make callbacks */
 
     /* try to get the userid */
@@ -3472,7 +3487,10 @@ c_continue_step(void *conn_context,
 			       prompt_need);
 
       if ((user_result != SASL_OK) && (user_result != SASL_INTERACT))
-	return user_result;
+      {
+	result = user_result;
+	goto FreeAllocatedMem;
+      }
     }
 
     /* try to get the authid */
@@ -3483,7 +3501,10 @@ c_continue_step(void *conn_context,
 			       prompt_need);
 
       if ((auth_result != SASL_OK) && (auth_result != SASL_INTERACT))
-	return auth_result;
+      {
+	result = auth_result;
+	goto FreeAllocatedMem;
+      }
 
     }
     /* try to get the password */
@@ -3493,7 +3514,10 @@ c_continue_step(void *conn_context,
 				 &text->password,
 				 prompt_need);
       if ((pass_result != SASL_OK) && (pass_result != SASL_INTERACT))
-	return pass_result;
+      {
+	result = pass_result;
+	goto FreeAllocatedMem;
+      }
     }
     /* try to get the realm, if needed */
     if (nrealm == 1 && text->realm == NULL) {
@@ -3830,6 +3854,9 @@ FreeAllocatedMem:
       params->utils->free(qop_list);
     }
 
+    if ((result != SASL_CONTINUE) && (client_response))
+	params->utils->free(client_response);
+
     VL(("All done. exiting DIGEST-MD5\n"));
 
     return result;
@@ -3841,6 +3868,7 @@ FreeAllocatedMem:
     VL(("Digest-MD5: In Reauth state\n"));
 
     in = params->utils->malloc(serverinlen + 1);
+    if (in == NULL) return SASL_NOMEM;
     memcpy(in, serverin, serverinlen);
     in[serverinlen] = 0;
 

@@ -1,3 +1,7 @@
+2003-09-23  Maya Nigrosh <mnigrosh@andrew.cmu.edu>
+	* plugins/sql.c: put transaction handling around the entirety of 
+	  the queries, and not just per-property; return the result status
+	  of bad postgres tuples
 2003-09-22  Maya Nigrosh <mnigrosh@andrew.cmu.edu>
 	* plugins/sql.c: added semicolon at the end of each sql statement
 	

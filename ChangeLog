@@ -1,3 +1,9 @@
+1999-12-21  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/server.c (init_mechlist): patch from Claus Assmann
+	<ca+sasl@sendmail.org>. stupid bug; pointer was being used before
+	it was checked for being NULL.
+
 Sun Dec 12 17:32:02 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* configure.in: if we don't find DES, don't use Kerberos (Simon

@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.148 2002/09/17 15:30:48 ken3 Exp $
+dnl $Id: configure.in,v 1.149 2002/10/02 17:13:58 rjs3 Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -42,6 +42,14 @@ dnl AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING
 dnl OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 dnl
 AC_INIT(lib/saslint.h)
+
+dnl use ./config.cache as the default cache file.
+dnl we require a cache file to successfully configure our build.
+if test $cache_file = "/dev/null"; then
+cache_file="./config.cache"
+AC_CACHE_LOAD
+fi
+
 AC_CONFIG_AUX_DIR(config)
 AM_CONFIG_HEADER(config.h)
 AC_CANONICAL_HOST

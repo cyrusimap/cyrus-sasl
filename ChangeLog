@@ -1,6 +1,8 @@
 2002-10-02  Ken Murchison <ken@oceana.com>
 	* lib/checkpw.c: return SASL_NOUSER when we can't find APOP secret
 	* lib/server.c: plug APOP memory leak and consolidate canonification
+	* configure.in: force the use of a cache file
+	  (Carlos Velasco <carlosev@newipnet.com>)
 
 2002-10-02  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/checkpw.c: Fix some misuses of sasl_seterror

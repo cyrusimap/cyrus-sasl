@@ -154,7 +154,7 @@ static int saslauthd_verify_password(const char *saslauthd_path,
     const char *p = NULL;
 
     if(!service) service = "imap";
-    if(!user_realm) user_realm = "localhost";
+    if(!user_realm) user_realm = "";
     if(!userid || !passwd) return -1;
     
     if (saslauthd_path) {

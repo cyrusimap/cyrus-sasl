@@ -1,3 +1,7 @@
+2003-06-11  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* man/sasl_client_new.3, man/sasl_server_new.3:
+	  Security flags don't belong here, connection flags do.
+
 2003-06-10  Ken Murchison <ken@oceana.com>
 	* doc/draft-ietf-sasl-crammd5-00.txt: added
 	* doc/draft-nerenberg-sasl-crammd5-03.txt: deleted

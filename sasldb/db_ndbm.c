@@ -1,7 +1,7 @@
 /* db_ndbm.c--SASL ndbm interface
  * Rob Siemborski
  * Rob Earhart
- * $Id: db_ndbm.c,v 1.2 2001/12/04 02:07:00 rjs3 Exp $
+ * $Id: db_ndbm.c,v 1.3 2001/12/12 00:23:16 rjs3 Exp $
  */
 /*
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -351,7 +351,7 @@ int _sasldb_getnextkey(const sasl_utils_t *utils __attribute__((unused)),
 	dbh->dkey = dbm_firstkey(dbh->db);
 	dbh->first = 0;
     } else {
-	nextkey = dbm_nextkey(dbh->db, dbh->dkey);
+	nextkey = dbm_nextkey(dbh->db);
 	dbh->dkey = nextkey;
     }
 

@@ -775,7 +775,6 @@ void detach_tty() {
 	
 	close(startup_pipe[1]);
 	if(pid_file_lock_fd != -1) close(pid_file_lock_fd);
-	free(pid_file);
     }
     
     logger(L_INFO, L_FUNC, "master pid is: %lu", (unsigned long)master_pid);
@@ -856,12 +855,31 @@ void server_exit() {
 	/*********************************************************
 	 * Tidy up and delete the pid_file. (close will release the lock)
          * besides, we want to unlink it first anyway to avoid a race.
+	 * Note that only one process (the master, in our case) should
+	 * unlink it.
 	 **********************************************************/
-	unlink(pid_file);
-	close(pid_fd);
+	if(flags & DETACH_TTY) {
+	    if(getpid() == master_pid) unlink(pid_file);
+	    close(pid_fd);
 
-	if (flags & VERBOSE)
+	    if (flags & VERBOSE)
 		logger(L_DEBUG, L_FUNC, "pid file removed: %s", pid_file);
+
+	    free(pid_file);
+	} else {
+	    /* Tidy up and delete the pid_file_lock. (in the detached
+	       case this is covered by the parent process already */
+
+	    unlink(pid_file_lock);
+	    close(pid_file_lock_fd);
+	    
+	    if (flags & VERBOSE)
+		logger(L_DEBUG, L_FUNC, "pid file lock removed: %s",
+		       pid_file_lock);
+	    free(pid_file_lock);
+	}
+
+	
 
 	/*********************************************************
  	 * Cleanup the cache, if it's enabled

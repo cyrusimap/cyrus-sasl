@@ -48,6 +48,9 @@ are in one of the following formats:
 to return a "reply" string no longer do.  Now you should (always) check
 <tt>sasl_errdetail</tt>.  Callbacks MUST likewise use <tt>sasl_seterror</tt>
 instead of setting their (now nonexistent) reply parameter.</li>
+<li>Be very careful about your handling of maxoutbuf.  If you claim that
+you can only read 4096 bytes at a time, be sure to only pass at most
+that much at a time to the SASL library!</li>
 </UL></LI>
 
 <LI>Tips for clients:</LI>

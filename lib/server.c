@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.63 1999/12/29 20:30:09 leg Exp $
+ * $Id: server.c,v 1.64 1999/12/31 04:39:50 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -788,7 +788,7 @@ static int mech_permitted(sasl_conn_t *conn,
 
     /* if there's an external layer this is no longer plaintext */
     if ((conn->props.min_ssf <= conn->external.ssf) && 
-	(conn->external.ssf > 0)) {
+	(conn->external.ssf > 1)) {
 	myflags &= ~SASL_SEC_NOPLAINTEXT;
     }
 

@@ -1,6 +1,7 @@
 2002-01-10  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* include/sasl.h: Update for sasl_global_listmech API
 	* lib/common.c, lib/client.c, lib/server.c: sasl_global_listmech()
+	* lib/dlopen.c (_parse_la): fix parseing of dlname= line
 
 2002-01-09  Ken Murchison <ken@oceana.com>
 	* plugins/otp.c: fixed security_flags

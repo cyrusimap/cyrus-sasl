@@ -1,7 +1,7 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Siemborski
  * Rob Earhart
- * $Id: dlopen.c,v 1.35 2001/12/06 04:15:50 rjs3 Exp $
+ * $Id: dlopen.c,v 1.36 2002/01/10 22:32:02 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -277,11 +277,14 @@ static int _parse_la(const char *prefix, const char *in, char *out)
 	    char *start;
 	    int len;
 	    end = strrchr(line, '\'');
+	    if(!end) continue;
 	    start = &line[sizeof("dlname=")-1];
 	    len = strlen(start);
 	    if(len > 3 && start[0] == '\'') {
 		ntmp=&start[1];
 		*end='\0';
+		/* Do we have dlname="" ? */
+		if(ntmp == end) continue;
 		strcpy(out, prefix);
 		strcat(out, ntmp);
 	    }

@@ -91,6 +91,9 @@ AC_ARG_WITH(ipctype, [  --with-ipctype={unix,doors}    use ipctype [unix] ],
 	with_ipctype="unix")
 IPCTYPE=$with_ipctype
 AC_SUBST(IPCTYPE)
+if test "$with_ipctype" = "doors"; then
+  LIBS="$LIBS -ldoor"
+fi
 
 AC_MSG_CHECKING(for PAM support)
 AC_MSG_RESULT($with_pam)

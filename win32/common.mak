@@ -87,6 +87,20 @@ GSSAPI_LIBPATH="C:\Program Files\CyberSafe\Developer Pack\ApplicationSecuritySDK
 !ENDIF
 !ENDIF
 
+!IF "$(SQLITE_INCLUDE)" == ""
+SQLITE_INCLUDES=/I"C:\work\open_source\sqllite\sqlite\src" /I"C:\work\open_source\sqllite\sqlite\win32"
+!IF "$(VERBOSE)" != "0"
+!MESSAGE Defaulting SQLITE_INCLUDES includes to $(SQLITE_INCLUDES).
+!ENDIF
+!ENDIF
+
+!IF "$(SQLITE_LIBPATH)" == ""
+SQLITE_LIBPATH="C:\work\open_source\sqllite\sqlite\objs"
+!IF "$(VERBOSE)" != "0"
+!MESSAGE Defaulting SQLITE library path to $(SQLITE_LIBPATH).
+!ENDIF
+!ENDIF
+
 !IF "$(OS)" == "Windows_NT"
 NULL=
 !ELSE 

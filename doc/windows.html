@@ -119,6 +119,13 @@ that links against CyberSafe Kerberos.
 GSSAPI depends on <tt>GSSAPI_INCLUDE</tt> and <tt>GSSAPI_LIBPATH</tt> parameters.
 You can either specify them on the command line or edit the defaults in win32\common.mak
 
+<p>Specify "SQL=&lt;type&gt;" parameter if you want to enable SQL plugin.
+Currently only &lt;type&gt;=SQLITE is supported and this will build the plugin
+that links against SQLITE (www.sqlite.org).
+
+SQL=&lt;SQLITE&gt; depends on <tt>SQLITE_INCLUDES</tt> and <tt>SQLITE_LIBPATH</tt> parameters.
+You can either specify them on the command line or edit the defaults in win32\common.mak
+
 <p>Specify "NTLM=1" parameter if you want to enable NTLM plugin.
 I.e. "<tt>nmake /f NTMakefile NTLM=1</tt>"
 
@@ -144,12 +151,13 @@ Currently only the following plugins build:
 <li>LOGIN,
 <li>PLAIN,
 <li>CRAM-MD5,
-<li>DIGEST-MD5
-<li>SASLDB (using SleepyCat),
+<li>DIGEST-MD5,
 <li>NTLM,
 <li>GSSAPI (tested using CyberSafe),
-<li>SRP (not tested)
-<li>OTP (not tested)
+<li>SRP (not tested),
+<li>OTP (not tested),
+<li>SASLDB (using SleepyCat),
+<li>SQL (using SQLITE, not tested)
 </ul>
 
 The following executables were built and tested (to some extend):

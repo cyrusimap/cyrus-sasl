@@ -1,3 +1,7 @@
+2004-05-27  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* SQLITE support on windows (Alexey Melnikov
+	  <Alexey.Melnikov@isode.com>)
+
 2004-05-25  Ken Murchison <ken@oceana.com>
 	* plugins/digest-md5.c: use separate global contexts for client/server
 

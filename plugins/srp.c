@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.22 2002/01/18 16:40:06 ken3 Exp $
+ * $Id: srp.c,v 1.23 2002/01/19 17:21:07 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2771,11 +2771,19 @@ static int server_step3(context_t *text,
 	"Error making output buffer in SRP step 3");
       goto end;
     }
-    
-    text->state ++;
-    r = SASL_CONTINUE;
- end:
 
+    /* If the protocol supports server-send-last, we're done */
+    if (params->flags & SASL_SUCCESS_DATA) {
+	text->state = 5;
+	r = SASL_OK;
+    }
+    /* otherwise, wait for an empty exchange */
+    else {
+	text->state++;
+	r = SASL_CONTINUE;
+    }
+
+ end:
     if (osM2)   params->utils->free(osM2);
     if (M2)     params->utils->free(M2);
     if (myM1)   params->utils->free(myM1);
@@ -3812,10 +3820,13 @@ static int client_step4(context_t *text,
 	}
     }
 
-    /* Send out: nothing
-     *
-     */
-    *clientout = NULL;
+    /* If the protocol supports server-send-last, send nothing */
+    if (params->flags & SASL_SUCCESS_DATA)
+	*clientout = NULL;
+    /* otherwise, send an empty exchange */
+    else
+	*clientout = "";
+
     *clientoutlen = 0;
 
     text->state++;

@@ -1,6 +1,6 @@
 # Makefile.am for the SASL library
 # Rob Earhart
-# $Id: Makefile.am,v 1.49 2002/04/26 20:20:53 ken3 Exp $
+# $Id: Makefile.am,v 1.50 2002/04/29 20:43:51 rjs3 Exp $
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -47,8 +47,8 @@ INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/plugins
 
 EXTRA_DIST = windlopen.c
 
-common_headers = saslint.h ../plugins/plugin_common.h
-common_sources = auxprop.c canonusr.c checkpw.c client.c common.c config.c external.c md5.c saslutil.c server.c seterror.c ../plugins/plugin_common.c
+common_headers = saslint.h plugin_common.h
+common_sources = auxprop.c canonusr.c checkpw.c client.c common.c config.c external.c md5.c saslutil.c server.c seterror.c plugin_common.c
 
 lib_LTLIBRARIES = libsasl2.la
 

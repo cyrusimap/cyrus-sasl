@@ -1,4 +1,10 @@
 if test ! -x configure; then
+  echo rm -f lib/plugin_common.c lib/plugin_common.h
+  rm -f lib/plugin_common.c lib/plugin_common.h
+  echo ln -s ../plugins/plugin_common.c lib
+  ln -s ../plugins/plugin_common.c lib
+  echo ln -s ../plugins/plugin_common.h lib
+  ln -s ../plugins/plugin_common.h lib
   echo aclocal -I cmulocal -I config
   aclocal -I cmulocal -I config
   echo autoheader

@@ -78,7 +78,7 @@
  * END HISTORY */
 
 #ifdef __GNUC__
-#ident "$Id: saslauthd-doors.c,v 1.2 2002/04/25 15:10:19 leg Exp $"
+#ident "$Id: saslauthd-doors.c,v 1.3 2002/04/25 18:32:19 leg Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -449,9 +449,14 @@ main(
     }
 
     dfd = door_create(&door_request, NULL, 0);
-    close(open(path_mux, O_CREAT, O_RDWR, 0644));
+    if (dfd < 0) {
+	syslog(LOG_ERR, "FATAL: door_create failed: %m", path_mux);
+	closelog();
+	exit(1);
+    }
+    close(open(path_mux, O_CREAT | O_RDWR, 0666));
     if (fattach(dfd, path_mux) < 0) {
-	syslog(LOG_ERR, "FATAL: fattach %s failed", path_mux);
+	syslog(LOG_ERR, "FATAL: fattach %s failed: %m", path_mux);
 	closelog();
 	exit(1);
     }
@@ -507,36 +512,40 @@ door_request(void *cookie, char *data, size_t datasize,
      * service name and user realm as counted length strings.
      * We read() each string, then dispatch the data.
      */
-    count = ntohs(*(unsigned short *)data);
+    memcpy(&count, data, sizeof(unsigned short));
+    count = ntohs(count);
     data += sizeof(unsigned short);
-    if (data + count >= dataend || count > MAX_REQ_LEN) {
+    if (data + count > dataend || count > MAX_REQ_LEN) {
 	goto sizeerror;
     }
     memcpy(login, data, count);
     login[count] = '\0';
     data += count;
 
-    count = ntohs(*(unsigned short *)data);
+    memcpy(&count, data, sizeof(unsigned short));
+    count = ntohs(count);
     data += sizeof(unsigned short);
-    if (data + count >= dataend || count > MAX_REQ_LEN) {
+    if (data + count > dataend || count > MAX_REQ_LEN) {
 	goto sizeerror;
     }
     memcpy(password, data, count);
     password[count] = '\0';
     data += count;
 
-    count = ntohs(*(unsigned short *)data);
+    memcpy(&count, data, sizeof(unsigned short));
+    count = ntohs(count);
     data += sizeof(unsigned short);
-    if (data + count >= dataend || count > MAX_REQ_LEN) {
+    if (data + count > dataend || count > MAX_REQ_LEN) {
 	goto sizeerror;
     }
     memcpy(service, data, count);
     service[count] = '\0';
     data += count;
 
-    count = ntohs(*(unsigned short *)data);
+    memcpy(&count, data, sizeof(unsigned short));
+    count = ntohs(count);
     data += sizeof(unsigned short);
-    if (data + count >= dataend || count > MAX_REQ_LEN) {
+    if (data + count > dataend || count > MAX_REQ_LEN) {
 	goto sizeerror;
     }
     memcpy(realm, data, count);

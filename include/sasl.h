@@ -35,7 +35,6 @@
  *  sasl_getprop      Get property (e.g., user name, security layer info)
  *  sasl_setprop      Set property (e.g., external ssf)
  *  sasl_errdetail    Generate string from last error on connection
- *  sasl_usererr      Translate server error code to user error code
  *  sasl_errstring    Translate sasl error code to a string
  *  sasl_encode       Encode data to send using security layer
  *  sasl_decode       Decode data received using security layer

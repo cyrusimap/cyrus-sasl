@@ -1,3 +1,16 @@
+2000-01-06  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* configure.in: now detects berkeley db 3.x
+	
+	* utils/saslpasswd.c: removed _sasl_debug (wasn't serving any
+	purpose)
+
+	* lib/dlopen.c: efficiency improvement by Claus Assmann
+	<ca+sasl@sendmail.org>
+
+	* lib/common.c: fix so that we can get options even without a
+	connection structure
+
 2000-01-01  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* version 1.5.14 released

@@ -1,3 +1,7 @@
+Tue Jun 29 00:35:08 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/plain.c (client_continue_step): fixing auth/user problem
+
 Mon Jun 28 00:50:02 1999  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/plain.c (server_continue_step): proxy callback is done

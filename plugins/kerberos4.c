@@ -680,8 +680,8 @@ static int server_continue_step (void *conn_context,
     text->free=sparams->utils->free;
 
     /* fill in oparams */
-    oparams->maxoutbuf=0xFFFF; /* no clue what this should be */
-    oparams->param_version=0;
+    oparams->maxoutbuf = (in[5] << 16) + (in[6] << 8) + in[7];
+    oparams->param_version = 0;
     
     {
       size_t len = strlen(text->pname);
@@ -697,15 +697,14 @@ static int server_continue_step (void *conn_context,
 	strcat(oparams->authid, text->pinst);
       }
 
-      oparams->user = sparams->utils->malloc(len + 1);
-      if (! oparams->user) {
-	sparams->utils->free(oparams->authid);
-	return SASL_NOMEM;
-      }
-      strcpy(oparams->user, text->pname);
-      if (text->pinst[0]) {
-	strcat(oparams->user, ".");
-	strcat(oparams->user, text->pinst);
+      if (in[8]) {
+	  oparams->user = sparams->utils->malloc(strlen(in + 8) + 1);
+	  if (oparams->user == NULL)
+	      return SASL_NOMEM;
+	  strcpy(oparams->user, in + 8);
+      } else {
+	  oparams->user = sparams->utils->malloc(len + 1);
+	  strcpy(oparams->user, oparams->authid);
       }
 
       oparams->realm = sparams->utils->malloc(strlen(text->prealm) + 1);

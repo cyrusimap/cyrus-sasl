@@ -1,11 +1,11 @@
-$Id: README,v 1.8 1999/06/23 20:38:07 leg Exp $
+$Id: README,v 1.9 1999/06/29 19:36:21 leg Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication. See RFC 2222 for more
 information.
 
-It is available at:
-ftp://ftp.andrew.cmu.edu/pub/cyrus/cyrus-sasl-1.5.0.tar.gz
+The latest version is available at:
+ftp://ftp.andrew.cmu.edu/pub/cyrus-mail
 
 There's a mailing list for Cyrus SASL.  Subscribe by sending a message
 to majordomo@lists.andrew.cmu.edu with the body "subscribe cyrus-sasl".
@@ -18,7 +18,7 @@ CRAM-MD5
 KERBEROS_V4
 PLAIN
 SCRAM-MD5 (deprecated)
-GSSAPI (MIT Kerberos 5 or Heimdal Kerberos 5; untested in the release)
+GSSAPI (MIT Kerberos 5 or Heimdal Kerberos 5; untested in this release)
 DIGEST-MD5 (partial)
 
 The library uses a gdbm or ndbm file on the server side to store
@@ -29,7 +29,8 @@ adding authentication secrets to the file.
 PLAIN can either check /etc/passwd, Kerberos V4, or use PAM.  By
 default PAM is used if PAM is found, then Kerberos, finally
 /etc/passwd (non-shadow).  This is also tweakable in the configuration
-file.
+file.  If you wish to implement your own plaintext password checking,
+examine the file lib/pwcheck.c.
 
 The sample directory contains two programs which provide a reference
 for using the library, as well as making it easy to test a mechanism
@@ -76,12 +77,12 @@ Currently configurable parameters:
 KNOWN BUGS
 ----------
 * SCRAM-MD5 is no longer being maintained, and probably needs some
-work in order to be useable.
+work in order to be usable.
 
 * DIGEST-MD5 has authentication implemented, but encryption and
 integrity protection are disabled.  It is the view of the authors that
 the current DIGEST-MD5 spec is ambiguous in regards to encryption.
-The encryption as implemented here generated RC4 in depth and thus
+The encryption implemented in the code generates RC4 in depth and thus
 should not be used.
 
 * The RC4 library is not always correctly found and dynamically

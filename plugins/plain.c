@@ -1,5 +1,6 @@
 /* Plain SASL plugin
  * Tim Martin 
+ * $Id: plain.c,v 1.31 1999/06/29 19:36:24 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -134,22 +135,7 @@ static int server_continue_step (void *conn_context,
 
 #else /* SASL_MINIMAL_SERVER */
 
-extern int _sasl_kerberos_verify_password(const char *user, const char *passwd,
-					  const char *service, 
-					  const char **reply);
-
-extern int _sasl_shadow_verify_password(const char *userid, 
-					const char *password,
-					const char **reply);
-
-extern int _sasl_passwd_verify_password(const char *userid,
-					    const char *password,
-					    const char **reply);
-
-extern int _sasl_PAM_verify_password(const char *userid, const char *password,
-				     const char **reply);
-
-/* fills in password  remember to free password and wipe it out correctly */
+/* fills in password; remember to free password and wipe it out correctly */
 static
 int verify_password(sasl_server_params_t *params, 
 		    const char *user, const char *pass)
@@ -197,17 +183,17 @@ server_continue_step (void *conn_context,
 
   oparams->maxoutbuf = 0;
   
-  oparams->encode=NULL;
-  oparams->decode=NULL;
+  oparams->encode = NULL;
+  oparams->decode = NULL;
 
-  oparams->user=NULL;
-  oparams->authid=NULL;
+  oparams->user = NULL;
+  oparams->authid = NULL;
 
-  oparams->realm=NULL;
-  oparams->param_version=0;
+  oparams->realm = NULL;
+  oparams->param_version = 0;
 
-  /*nothing more to do; authenticated */
-  oparams->doneflag=1;
+  /* nothing more to do; authenticated */
+  oparams->doneflag = 1;
 
   if (text->state == 1 && clientin == NULL && clientinlen == 0)
   {
@@ -220,8 +206,7 @@ server_continue_step (void *conn_context,
       return SASL_CONTINUE;
   }
 
-  if (text->state==1)
-  {
+  if (text->state == 1) {
     const char *author;
     const char *authen;
     const char *password;
@@ -237,28 +222,28 @@ server_continue_step (void *conn_context,
 
     /* get author */
     author = clientin;
-    while ((lup<clientinlen) && (clientin[lup]!=0))
+    while ((lup < clientinlen) && (clientin[lup] != 0))
       ++lup;
 
-    if (lup>=clientinlen)
+    if (lup >= clientinlen)
       return SASL_BADPROT;
 
     /* get authen */
     ++lup;
     authen = clientin + lup;
-    while ((lup<clientinlen) && (clientin[lup]!=0))
+    while ((lup < clientinlen) && (clientin[lup] != 0))
       ++lup;
 
-    if (lup>=clientinlen)
+    if (lup >= clientinlen)
       return SASL_BADPROT;
 
     /* get password */
     lup++;
     password = clientin + lup;
-    while ((lup<clientinlen) && (clientin[lup]!=0))
+    while ((lup < clientinlen) && (clientin[lup] != 0))
       ++lup;
 
-    password_len=clientin + lup - password;
+    password_len = clientin + lup - password;
 
     if (lup != clientinlen)
       return SASL_BADPROT;
@@ -267,16 +252,19 @@ server_continue_step (void *conn_context,
        but we can't assume there is an allocated byte at the end
        of password so we have to copy it */
     passcopy = params->utils->malloc(password_len + 1);    
-    if (passcopy==NULL) return SASL_NOMEM;
+    if (passcopy == NULL) return SASL_NOMEM;
 
-    strcpy(passcopy,password);
+    strcpy(passcopy, password);
 
     /* verify password - return sasl_ok on success*/    
-    result=verify_password(params, authen, passcopy);
+    result = verify_password(params, authen, passcopy);
     
+    for (lup = strlen(passcopy); lup >= 0; lup--) {
+	passcopy[lup] = '\0';
+    }
     params->utils->free(passcopy);
 
-    if (result!=SASL_OK)
+    if (result != SASL_OK)
       return result;
 
     if (! author || !*author)
@@ -301,8 +289,8 @@ server_continue_step (void *conn_context,
 
     if (params->transition)
     {
-      params->transition(params->utils->conn,
-			 password, password_len);
+	params->transition(params->utils->conn,
+			   password, password_len);
     }
     
     *serverout = params->utils->malloc(1);
@@ -590,10 +578,7 @@ static int make_prompts(sasl_client_params_t *params,
     (prompts)->prompt="Please enter your authorization name";
     (prompts)->defresult=NULL;
 
-    printf("id=%ld %d\n",(prompts)->id, SASL_CB_USER);
-    printf("%p\n",prompts);
     prompts++;
-    printf("%p size=%d\n",prompts,sizeof(sasl_interact_t));
   }
 
   if (auth_res==SASL_INTERACT)
@@ -626,8 +611,6 @@ static int make_prompts(sasl_client_params_t *params,
   (prompts)->prompt   =NULL;
   (prompts)->defresult=NULL;
 
-  printf("id=%ld %d\n",(prompts)->id, SASL_CB_USER);
-
   return SASL_OK;
 }
 
@@ -657,11 +640,9 @@ static int client_continue_step (void *conn_context,
     int auth_result=SASL_OK;
     int pass_result=SASL_OK;
 
-
     /* check if sec layer strong enough */
     if (params->props.min_ssf>0)
       return SASL_TOOWEAK;
-
 
     /* try to get the userid */
     if (oparams->user==NULL)
@@ -726,10 +707,11 @@ static int client_continue_step (void *conn_context,
     {
       size_t userid_len, authid_len;
 
-      if (oparams->user && strcmp(oparams->user, oparams->authid)==0)
-	userid_len = strlen(oparams->user);
-      else
-	userid_len = 0;
+      if (oparams->user) {
+	  userid_len = strlen(oparams->user);
+      } else {
+	  userid_len = 0;
+      }
 
       authid_len = strlen(oparams->authid);
 
@@ -771,9 +753,9 @@ static int client_continue_step (void *conn_context,
       strcpy(oparams->realm, params->serverFQDN);
     }
 
-    oparams->param_version=0;
+    oparams->param_version = 0;
 
-    text->state=99; /* so fail next time */
+    text->state = 99; /* so fail next time */
 
     return SASL_OK;
   }

@@ -1,3 +1,9 @@
+2002-10-18  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/lak.[ch], saslauthd/auth_ldap.c:
+	  Code cleanup, now support {SHA}, {SSHA}, {MD5}, and {SMD5} hashes,
+	  misc other cleanup. (Igor Brezac <igor@ypass.net> and
+	  Thomas Lussnig <thomas.lussnig@bewegungsmelder.de>)
+
 2002-10-17  Ken Murchison <ken@oceana.com>
 	* doc/draft-melnikov-rfc2831bis-02.txt: added
 	* doc/draft-melnikov-rfc2831bis-01.txt: deleted

@@ -12,6 +12,8 @@
 	  is present. (Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>)
 	* saslauthd/mechanisms.h: Test for HAVE_KRB5_H instead of HAVE_GSSAPI_H
 	  to activate AUTH_KRB5. (Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>)
+	* plugins/mysql.c: Use mysql_real_connect() instead of mysql_connect()
+	  (Petri Riihikallio <Petri.Riihikallio@Metis.fi>)
 
 2003-05-13  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* config/sasldb.m4, utils/Makefile.am: fix installation of man

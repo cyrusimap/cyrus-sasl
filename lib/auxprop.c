@@ -1,6 +1,6 @@
 /* auxprop.c - auxilliary property support
  * Rob Siemborski
- * $Id: auxprop.c,v 1.7 2002/07/24 16:41:54 rjs3 Exp $
+ * $Id: auxprop.c,v 1.8 2002/12/09 21:10:35 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -294,6 +294,9 @@ int prop_request(struct propctx *ctx, const char **names)
 	/* Clear out new propvals */
 	memset(&(ctx->values[ctx->used_values]), 0,
 	       sizeof(struct propval) * (ctx->allocated_values - ctx->used_values));
+
+        /* Finish updating the context -- we've extended the list! */
+	ctx->list_end = (char **)(ctx->values + ctx->allocated_values);
     }
 
     /* Now do the copy, or referencing rather */
@@ -377,22 +380,47 @@ int prop_getnames(struct propctx *ctx, const char **names,
  */
 void prop_clear(struct propctx *ctx, int requests) 
 {
+    struct proppool *new_pool, *tmp;
     unsigned i;
 
+    /* We're going to need a new proppool once we reset things */
+    new_pool = alloc_proppool(ctx->mem_base->size +
+			      (ctx->used_values+1) * sizeof(struct propval));
+
     if(requests) {
-	memset(ctx->values, 0, sizeof(struct propval) * ctx->allocated_values);
-	ctx->prev_val = NULL;
+	/* We're wiping the whole shebang */
 	ctx->used_values = 0;
     } else {
+	/* Need to keep around old requets */
+	struct propval *new_values = (struct propval *)new_pool->data;
 	for(i=0; i<ctx->used_values; i++) {
-	    ctx->values[i].values = NULL;
-	    ctx->values[i].nvalues = 0;
-	    ctx->values[i].valsize = 0;
+	    new_values[i].name = ctx->values[i].name;
 	}
     }
+
+    while(ctx->mem_base) {
+	tmp = ctx->mem_base;
+	ctx->mem_base = tmp->next;
+	sasl_FREE(tmp);
+    }
     
-    ctx->mem_cur = ctx->mem_base;
-    
+    /* Update allocation-related metadata */
+    ctx->allocated_values = ctx->used_values+1;
+    new_pool->unused =
+	new_pool->size - (ctx->allocated_values * sizeof(struct propval));
+
+    /* Setup pointers for the values array */
+    ctx->values = (struct propval *)new_pool->data;
+    ctx->prev_val = NULL;
+
+    /* Setup the pools */
+    ctx->mem_base = ctx->mem_cur = new_pool;
+
+    /* Reset list_end and data_end for the new memory pool */
+    ctx->list_end =
+	(char **)((char *)ctx->mem_base->data + ctx->allocated_values * sizeof(struct propval));
+    ctx->data_end = (char *)ctx->mem_base->data + ctx->mem_base->size;
+
     return;
 }
 

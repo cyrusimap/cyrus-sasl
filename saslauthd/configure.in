@@ -36,6 +36,8 @@ CMU_HAVE_OPENSSL
 AC_MSG_CHECKING(for OpenSSL)
 AC_MSG_RESULT($with_openssl)
 
+SASL_DES_CHK
+
 dnl mechanism-related checking
 SASL_KERBEROS_V4_CHK
 SASL_GSSAPI_CHK

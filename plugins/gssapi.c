@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.59 2002/04/26 19:33:28 rjs3 Exp $
+ * $Id: gssapi.c,v 1.60 2002/04/27 04:41:56 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -133,7 +133,7 @@ typedef struct context {
     struct 
     {
 	char *authid; /* hold the authid between steps - server */
-	char *user;   /* hold the userid between steps - client */
+	const char *user;   /* hold the userid between steps - client */
     } u;
 } context_t;
 

@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.79 2002/04/26 19:49:19 ken3 Exp $
+ * $Id: kerberos4.c,v 1.80 2002/04/27 04:41:57 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -175,7 +175,7 @@ typedef struct context {
   char *out_buf;                   /* per-step mem management */
   unsigned out_buf_len;
 
-  char *user;                      /* used by client */
+  const char *user;                      /* used by client */
 
   char *buffer;                    /* used for layers */
   int bufsize;
@@ -1074,9 +1074,9 @@ static int kerberosv4_client_mech_step(void *conn_context,
 	if (text->user == NULL) {
 	    user_result = _plug_get_userid(cparams, &text->user, prompt_need);
 
-	    if ((user_result != SASL_OK) && (auth_result != SASL_INTERACT))
+	    if (user_result != SASL_OK && user_result != SASL_INTERACT)
 		return user_result;
-  }
+	}
 
 	/* free prompts we got */
 	if (prompt_need && *prompt_need) {

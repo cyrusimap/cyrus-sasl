@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.41 2002/01/11 20:44:34 rjs3 Exp $
+ * $Id: client.c,v 1.42 2002/01/19 22:24:03 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -559,6 +559,9 @@ int sasl_client_step(sasl_conn_t *conn,
   if ((serverin==NULL) && (serverinlen>0))
       PARAMERROR(conn);
 
+  if(clientout) *clientout = NULL;
+  if(clientoutlen) *clientoutlen = 0;
+
   /* do a step */
   result = c_conn->mech->plug->mech_step(conn->context,
 					 c_conn->cparams,
@@ -573,8 +576,7 @@ int sasl_client_step(sasl_conn_t *conn,
        * 1. the mech does server-send-last
        * 2. the protocol does not
        * we need to return no data */
-      if(!(conn->flags & SASL_SUCCESS_DATA)
-	 && (c_conn->mech->plug->features & SASL_FEAT_WANT_SERVER_LAST)) {
+      if(!*clientout && !(conn->flags & SASL_SUCCESS_DATA)) {
 	  *clientout = "";
 	  *clientoutlen = 0;
       }
@@ -588,8 +590,7 @@ int sasl_client_step(sasl_conn_t *conn,
 			"mech did not call canon_user for both authzid and authid");
 	  result = SASL_BADPROT;
       }
-  }
-  
+  }  
 
   RETURN(conn,result);
 }

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.97 2002/01/16 22:15:56 rjs3 Exp $
+ * $Id: server.c,v 1.98 2002/01/19 22:24:03 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1241,6 +1241,9 @@ int sasl_server_step(sasl_conn_t *conn,
 	return SASL_OK;
     }
 
+    if(serverout) *serverout = NULL;
+    if(serveroutlen) *serveroutlen = 0;
+
     ret = s_conn->mech->plug->mech_step(conn->context,
 					s_conn->sparams,
 					clientin,
@@ -1260,8 +1263,7 @@ int sasl_server_step(sasl_conn_t *conn,
 	 *
 	 * in this case, return SASL_CONTINUE and remember we are done.
 	 */
-	if(!(conn->flags & SASL_SUCCESS_DATA)
-	   && (s_conn->mech->plug->features & SASL_FEAT_WANT_SERVER_LAST)) {
+	if(*serverout && !(conn->flags & SASL_SUCCESS_DATA)) {
 	    s_conn->sent_last = 1;
 	    ret = SASL_CONTINUE;
 	}

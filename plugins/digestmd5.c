@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.103 2002/01/17 05:43:08 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.104 2002/01/19 22:24:04 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -2656,7 +2656,7 @@ static sasl_server_plug_t digestmd5_server_plugins[] =
     0,
 #endif
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
-    SASL_FEAT_INTERNAL_CLIENT_FIRST | SASL_FEAT_WANT_SERVER_LAST,
+    SASL_FEAT_INTERNAL_CLIENT_FIRST,
     NULL,
     &digestmd5_server_mech_new,
     &digestmd5_server_mech_step,
@@ -3843,7 +3843,7 @@ static sasl_client_plug_t digestmd5_client_plugins[] =
 #endif
     SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS,
     /* Note: we don't do client-first on this side of the plugin */
-    SASL_FEAT_WANT_SERVER_LAST,
+    0,
     NULL,
     NULL,
     &digestmd5_client_mech_new,

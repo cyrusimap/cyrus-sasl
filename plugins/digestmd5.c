@@ -3394,27 +3394,20 @@ c_continue_step(void *conn_context,
     secprops = params->props;
     external = params->external_ssf;
     /*    VL(("external ssf=%d\n", external));*/
-    if (params->props.min_ssf > 56 + external) {
-      VL(("Minimum ssf too strong min_ssf=%i\n", params->props.min_ssf));
-      return SASL_TOOWEAK;
+    if ((int)params->props.min_ssf > 56 + external) {
+	return SASL_TOOWEAK;
     } else if (params->props.min_ssf > params->props.max_ssf) {
-      return SASL_BADPARAM;
+	return SASL_BADPARAM;
     }
-    /*
-     * this isn't necessary right? if (secprops.max_ssf<0) { VL (("ssf too
-     * strong")); return SASL_FAIL; }
-     */
-
-    /*    VL(("minssf=%i maxssf=%i\n", params->props.min_ssf, params->props.max_ssf));*/
 
     params->utils->free(qop);
 
     /* need bits of layer */
     need = params->props.max_ssf - external;
 
-    /* if client didn't set use strongest layer */
     if ((need > 1) &&
 	((protection & DIGEST_PRIVACY) == DIGEST_PRIVACY)) {
+	/* let's find an encryption scheme that we like */
 
       oparams->encode = &privacy_encode; 
       oparams->decode = &privacy_decode;
@@ -3499,7 +3492,6 @@ c_continue_step(void *conn_context,
 	oparams->mech_ssf = 1;
 	qop = "auth-int";
 	VL(("Using integrity layer\n"));
-	
       } else {
 	/* no layer */
 	oparams->encode = NULL;

@@ -1,6 +1,6 @@
 /* common.c - Functions that are common to server and clinet
  * Tim Martin
- * $Id: common.c,v 1.3 1998/11/17 01:34:11 tmartin Exp $
+ * $Id: common.c,v 1.4 1998/11/17 01:38:53 rob Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -64,17 +64,17 @@ static void *sasl_mutex_new(void)
   return sasl_ALLOC(1);
 }
 
-int sasl_mutex_lock(void *mutex __attribute__((unused)))
+static int sasl_mutex_lock(void *mutex __attribute__((unused)))
 {
-  return SASL_FAIL;
+  return SASL_OK;
 }
 
-int sasl_mutex_unlock(void *mutex __attribute__((unused)))
+static int sasl_mutex_unlock(void *mutex __attribute__((unused)))
 {
-  return SASL_FAIL;
+  return SASL_OK;
 }
 
-void sasl_mutex_dispose(void *mutex)
+static void sasl_mutex_dispose(void *mutex)
 {
   sasl_FREE(mutex);
 }

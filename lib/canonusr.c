@@ -1,6 +1,6 @@
 /* canonusr.c - user canonicalization support
  * Rob Siemborski
- * $Id: canonusr.c,v 1.4 2001/12/06 22:27:27 rjs3 Exp $
+ * $Id: canonusr.c,v 1.5 2001/12/07 03:22:54 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -162,10 +162,17 @@ int _sasl_canon_user(sasl_conn_t *conn,
     }
 
     if(result != SASL_OK) return result;
+
+    if((flags & SASL_CU_AUTHID) && (flags & SASL_CU_AUTHZID)) {
+	/* We did both, so we need to copy the result into
+	 * the buffer for the authzid from the buffer for the authid */
+	memcpy(conn->user_buf, conn->authid_buf, CANON_BUF_SIZE);
+	oparams->ulen = oparams->alen;
+    }
 	
     /* Set the appropriate oparams (lengths have already been set by lenp) */
     if(flags & SASL_CU_AUTHID) {
-	oparams->authid = user_buf;
+	oparams->authid = conn->authid_buf;
 #ifndef macintosh
 	/* do auxprop lookups (server only) */
 	/* AUTHZID lookups do not occur until after authentication
@@ -175,8 +182,10 @@ int _sasl_canon_user(sasl_conn_t *conn,
 			     oparams->authid, oparams->alen);
 	}
 #endif
-    } else if (flags & SASL_CU_AUTHZID) {
-	oparams->user = user_buf;
+    }
+
+    if (flags & SASL_CU_AUTHZID) {
+	oparams->user = conn->user_buf;
     }
 
 

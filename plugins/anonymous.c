@@ -1,7 +1,7 @@
 /* Anonymous SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: anonymous.c,v 1.39 2001/12/06 22:27:29 rjs3 Exp $
+ * $Id: anonymous.c,v 1.40 2001/12/07 03:22:56 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -107,6 +107,7 @@ anonymous_server_mech_step(void *conn_context __attribute__((unused)),
 			   unsigned *serveroutlen,
 			   sasl_out_params_t *oparams)
 {
+  int ret;
   char *clientdata;
 
   if (!sparams
@@ -149,13 +150,11 @@ anonymous_server_mech_step(void *conn_context __attribute__((unused)),
   oparams->encode=NULL;
   oparams->decode=NULL;
 
-  sparams->canon_user(sparams->utils->conn,
-		      anonymous_id, 0,
-		      SASL_CU_AUTHID, oparams);
-  sparams->canon_user(sparams->utils->conn,
-		      anonymous_id, 0,
-		      SASL_CU_AUTHZID, oparams);
-  
+  ret = sparams->canon_user(sparams->utils->conn,
+			    anonymous_id, 0,
+		      	    SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
+  if(ret != SASL_OK) return ret;
+
   oparams->param_version=0;
 
   /*nothing more to do; authenticated */
@@ -369,12 +368,10 @@ anonymous_client_mech_step(void *conn_context,
   oparams->encode=NULL;
   oparams->decode=NULL;
 
-  cparams->canon_user(cparams->utils->conn,
-		      anonymous_id, 0,
-		      SASL_CU_AUTHID, oparams);
-  cparams->canon_user(cparams->utils->conn,
-		      anonymous_id, 0,
-		      SASL_CU_AUTHZID, oparams);
+  result = cparams->canon_user(cparams->utils->conn,
+			       anonymous_id, 0,
+			       SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
+  if(result != SASL_OK) return result;
 
   oparams->param_version=0;
 

@@ -1,7 +1,7 @@
 /* CRAM-MD5 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: cram.c,v 1.60 2001/12/06 22:27:29 rjs3 Exp $
+ * $Id: cram.c,v 1.61 2001/12/07 03:22:56 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -404,7 +404,8 @@ static int crammd5_server_mech_step (void *conn_context,
 
     /* this will trigger the getting of the aux properties */
     result = sparams->canon_user(sparams->utils->conn,
-				 userid, 0, SASL_CU_AUTHID, oparams);
+				 userid, 0, SASL_CU_AUTHID | SASL_CU_AUTHZID,
+				 oparams);
     if(result != SASL_OK) goto done;
 
     result = sparams->utils->prop_getnames(sparams->propctx, password_request,
@@ -473,11 +474,6 @@ static int crammd5_server_mech_step (void *conn_context,
 	result = SASL_BADAUTH;
 	goto done;
     }
-
-    /* canonicalize the authzid (same) */
-    result = sparams->canon_user(sparams->utils->conn,
-				 userid, 0, SASL_CU_AUTHZID, oparams);
-    if(result != SASL_OK) goto done;
 
     /* nothing more to do; authenticated 
      * set oparams information (canon_user was called before) 
@@ -905,10 +901,7 @@ static int crammd5_client_mech_step(void *conn_context,
 
     /* Canonicalize the username */
     result = params->canon_user(params->utils->conn, text->authid, 0,
-				SASL_CU_AUTHID, oparams);
-    if(result != SASL_OK) return result;
-    result = params->canon_user(params->utils->conn, text->authid, 0,
-				SASL_CU_AUTHZID, oparams);
+				SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
     if(result != SASL_OK) return result;
 
     text->state++; /* fail if called again */

@@ -2,7 +2,7 @@
  * Rob Siemborski (SASLv2 Conversion)
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.9 2001/12/06 22:27:30 rjs3 Exp $
+ * $Id: login.c,v 1.10 2001/12/07 03:22:56 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -230,11 +230,7 @@ login_server_mech_step(void *conn_context,
       return result;
 
     result = params->canon_user(params->utils->conn, text->username->data, 0,
-				SASL_CU_AUTHID, oparams);
-    if(result != SASL_OK) return result;
-
-    result = params->canon_user(params->utils->conn, text->username->data, 0,
-				SASL_CU_AUTHZID, oparams);
+				SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
     if(result != SASL_OK) return result;
 
     if (params->transition)
@@ -569,11 +565,7 @@ static int login_client_mech_step(void *conn_context,
     }
 
     ret = params->canon_user(params->utils->conn, user, 0,
-			     SASL_CU_AUTHID, oparams);
-    if(ret != SASL_OK) return ret;
-
-    ret = params->canon_user(params->utils->conn, user, 0,
-			     SASL_CU_AUTHZID, oparams);
+			     SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
     if(ret != SASL_OK) return ret;
     
     /* set oparams */

@@ -3,7 +3,8 @@
 	* lib/db_ndbm.c (putsecret): return SASL_NOUSER on delete failures
 	* lib/db_gdbm.c (putsecret): return SASL_NOUSER on delete failures
 
-	* lib/db_berkeley.c (putsecret): return SASL_NOUSER if not found in delete
+	* lib/db_berkeley.c (putsecret): return SASL_NOUSER if not found
+	in delete
 
 	* lib/server.c (sasl_setpass): propogate up the specific error code
 
@@ -14,11 +15,11 @@
 
 	* plugins/digestmd5.c (c_continue_step): check params
 
-	* plugins/kerberos4.c (server_continue_step): checks everywhere if errstr exists before setting to it
+	* plugins/kerberos4.c (server_continue_step): checks everywhere if
+	errstr exists before setting to it
 
-	* plugins/gssapi.c (sasl_gss_server_step): function frees memory so we don't have to
-
-	* plugins/kerberos4.c (server_continue_step): only set errstr if non-null
+	* plugins/gssapi.c (sasl_gss_server_step): function frees memory
+	so we don't have to
 
 	* plugins/digestmd5.c (c_continue_step): imid
 	

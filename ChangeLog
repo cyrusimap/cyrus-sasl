@@ -1,3 +1,6 @@
+2003-08-24  Ken Murchison <ken@oceana.com>
+	* lib/common.c: added support for unsigned int types in _sasl_log()
+
 2003-08-18  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* Improvements in Win32 build system from Alexey Melnikov
 	  <Alexey.Melnikov@isode.com>

@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.h,v 1.13 2002/11/21 20:21:26 leg Exp $
+ * $Id: plugin_common.h,v 1.14 2002/12/09 06:08:50 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: sasldb.c,v 1.8 2003/07/17 19:04:22 ken3 Exp $
+ * $Id: sasldb.c,v 1.9 2004/09/08 11:12:33 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -119,7 +119,7 @@ static void sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
 	}
 
 	sparams->utils->prop_set(sparams->propctx, cur->name,
-				 value, value_len);
+				 value, (unsigned) value_len);
     }
 
  done:

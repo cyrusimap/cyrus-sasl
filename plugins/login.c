@@ -2,7 +2,7 @@
  * Rob Siemborski (SASLv2 Conversion)
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.26 2003/07/25 16:11:15 ken3 Exp $
+ * $Id: login.c,v 1.27 2004/09/08 11:09:10 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -54,7 +54,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: login.c,v 1.26 2003/07/25 16:11:15 ken3 Exp $";
+static const char plugin_id[] = "$Id: login.c,v 1.27 2004/09/08 11:09:10 mel Exp $";
 
 /*****************************  Server Section  *****************************/
 
@@ -62,7 +62,7 @@ typedef struct context {
     int state;
 
     char *username;
-    size_t username_len;
+    unsigned username_len;
 } server_context_t;
 
 static int login_server_mech_new(void *glob_context __attribute__((unused)), 
@@ -115,7 +115,7 @@ static int login_server_mech_step(void *conn_context,
 	if (clientinlen == 0) {
 	    /* demand username */
 	    
-	    *serveroutlen = strlen(USERNAME_CHALLENGE);
+	    *serveroutlen = (unsigned) strlen(USERNAME_CHALLENGE);
 	    *serverout = USERNAME_CHALLENGE;
 
 	    return SASL_CONTINUE;
@@ -142,7 +142,7 @@ static int login_server_mech_step(void *conn_context,
 	text->username[clientinlen] = '\0';
 	
 	/* demand password */
-	*serveroutlen = strlen(PASSWORD_CHALLENGE);
+	*serveroutlen = (unsigned) strlen(PASSWORD_CHALLENGE);
 	*serverout = PASSWORD_CHALLENGE;
 	
 	text->state = 3;

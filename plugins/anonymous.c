@@ -1,7 +1,7 @@
 /* Anonymous SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: anonymous.c,v 1.50 2003/02/13 19:56:03 rjs3 Exp $
+ * $Id: anonymous.c,v 1.51 2004/09/08 11:10:52 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -60,7 +60,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: anonymous.c,v 1.50 2003/02/13 19:56:03 rjs3 Exp $";
+static const char plugin_id[] = "$Id: anonymous.c,v 1.51 2004/09/08 11:10:52 mel Exp $";
 
 static const char anonymous_id[] = "anonymous";
 
@@ -233,7 +233,7 @@ anonymous_client_mech_step(void *conn_context,
 			   sasl_out_params_t *oparams)
 {
     client_context_t *text = (client_context_t *) conn_context;
-    unsigned userlen;
+    size_t userlen;
     char hostname[256];
     const char *user = NULL;
     int user_result = SASL_OK;
@@ -308,7 +308,7 @@ anonymous_client_mech_step(void *conn_context,
     gethostname(hostname, sizeof(hostname));
     hostname[sizeof(hostname)-1] = '\0';
     
-    *clientoutlen = userlen + strlen(hostname) + 1;
+    *clientoutlen = (unsigned) (userlen + strlen(hostname) + 1);
     
     result = _plug_buf_alloc(cparams->utils, &text->out_buf,
 			     &text->out_buf_len, *clientoutlen);

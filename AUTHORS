@@ -7,8 +7,8 @@ coding advice.
 
 Leif Johansson <leifj@matematik.su.se> wrote the GSSAPI plugin.
 
-Alexey Melnikov <mel@taaxi.com> wrote the first pass of the DIGEST-MD5
-plugin.
+Alexey Melnikov <mel@messagingdirect.com> wrote the first pass of the
+DIGEST-MD5 plugin and continues to work on it.
 
 Larry Greenfield <leg+sasl@andrew.cmu.edu> complained. a lot.
 

@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.46 2002/01/31 17:58:37 ken3 Exp $
+ * $Id: gssapi.c,v 1.47 2002/03/04 16:11:36 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -714,7 +714,8 @@ gssapi_server_mech_step(void *conn_context,
 	  if (output_token->value) {
 	      gss_release_buffer(&min_stat, output_token);
 	  }
-	  SETERROR(text->utils, "GSSAPI Failure: gss_accept_sec_context");
+	  text->utils->seterror(text->utils->conn, SASL_NOLOG, "GSSAPI Failure: gss_accept_sec_context");
+	  text->utils->log(NULL, SASL_LOG_DEBUG, "GSSAPI Failure: gss_accept_sec_context");
 	  sasl_gss_free_context_contents(text);
 	  return SASL_BADAUTH;
       }

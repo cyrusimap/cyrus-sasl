@@ -1,3 +1,6 @@
+2002-03-04  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* plugins/gssapi.c: Reduce log level of "gss_accept_context" message
+
 2002-02-27  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* saslauthd/saslauthd.mdoc: Clarify that sasldb with saslauthd
 	  is not what you want to be doing.

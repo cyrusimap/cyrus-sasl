@@ -1,5 +1,7 @@
 2000-05-08  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
+	* version 1.5.21 ready for release
+
 	* lib/db_berkeley.c: enable applications to open the database
 	read-only
 

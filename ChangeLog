@@ -1,3 +1,8 @@
+2000-10-16  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/checkpw.c: patch to SIA authentication to handle locked
+	accounts.  from Chris Adams <cmadams@hiwaay.net>
+
 2000-10-13  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/digestmd5.c: patch from alexey to check for a

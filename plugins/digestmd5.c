@@ -122,12 +122,6 @@ typedef unsigned char HASH[HASHLEN + 1];
 #define HASHHEXLEN 32
 typedef unsigned char HASHHEX[HASHHEXLEN + 1];
 
-#define CIPHER_DES   2
-#define CIPHER_3DES  4
-#define CIPHER_RC4   8
-#define CIPHER_RC440 16
-#define CIPHER_RC456 32  /* xxx this still here? */
-
 #define MAC_SIZE 10
 #define MAC_OFFS 2
 
@@ -236,7 +230,7 @@ struct digest_cipher {
     char *name;
     sasl_ssf_t ssf;
     int n; /* bits to make privacy key */
-    int flag; /* the flag name of this cipher */
+    int flag; /* a bitmask to make things easier for us */
     
     cipher_function_t *cipher_enc;
     cipher_function_t *cipher_dec;
@@ -1319,13 +1313,13 @@ enc_rc4(void *v,
 struct digest_cipher available_ciphers[] =
 {
 #ifdef WITH_RC4
-    { "rc4-40", 40, 5, CIPHER_RC440, &enc_rc4, &dec_rc4, &init_rc4 },
-    { "rc4-56", 56, 7, CIPHER_RC456, &enc_rc4, &dec_rc4, &init_rc4 },
-    { "rc4", 128, 16, CIPHER_RC4, &enc_rc4, &dec_rc4, &init_rc4 },
+    { "rc4-40", 40, 5, 0x01, &enc_rc4, &dec_rc4, &init_rc4 },
+    { "rc4-56", 56, 7, 0x02, &enc_rc4, &dec_rc4, &init_rc4 },
+    { "rc4", 128, 16, 0x04, &enc_rc4, &dec_rc4, &init_rc4 },
 #endif
 #ifdef WITH_DES
-    { "des", 55, 16, CIPHER_DES, &enc_des, &dec_des, &init_des },
-    { "3des", 112, 16, CIPHER_3DES, &enc_3des, &dec_3des, &init_3des },
+    { "des", 55, 16, 0x08, &enc_des, &dec_des, &init_des },
+    { "3des", 112, 16, 0x10, &enc_3des, &dec_3des, &init_3des },
 #endif
     { NULL, 0, 0, 0, NULL, NULL, NULL }
 };
@@ -3405,20 +3399,18 @@ c_continue_step(void *conn_context,
 	} else if (strcmp(name, "cipher") == 0) {
 	    while (value && *value) {
 		char *comma = strchr(value, ',');
+		struct digest_cipher *cipher = available_ciphers;
+
 		if (comma != NULL) {
 		    *comma++ = '\0';
 		}
 
-		if (strcmp(value, "des") == 0) {
-		    ciphers |= CIPHER_DES;
-		} else if (strcmp(value, "3des") == 0) {
-		    ciphers |= CIPHER_3DES;
-		} else if (strcmp(value, "rc4") == 0) {
-		    ciphers |= CIPHER_RC4;
-		} else if (strcmp(value, "rc4-40") == 0) {
-		    ciphers |= CIPHER_RC440;
-		} else if (strcmp(value, "rc4-56") == 0) {
-		    ciphers |= CIPHER_RC456;
+		/* do we support this cipher? */
+		while (cipher->name) {
+		    if (!strcmp(value, cipher->name)) break;
+		}
+		if (cipher->name) {
+			ciphers |= cipher->flag;
 		} else {
 		    VL(("Server supports unknown cipher: %s\n", value));
 		}

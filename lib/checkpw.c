@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.52 2002/04/26 18:30:48 leg Exp $
+ * $Id: checkpw.c,v 1.53 2002/04/26 18:59:36 leg Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -521,7 +521,7 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
     }
 
 #ifdef USE_DOORS
-    s = open(pwpath, O_RDWR);
+    s = open(pwpath, O_RDONLY);
     if (s < 0) {
 	sasl_seterror(conn, 0, "cannot open door to saslauthd server: %m");
 	return SASL_FAIL;

@@ -209,7 +209,7 @@ static int saslauthd_verify_password(const char *saslauthd_path,
     }
 
 #ifdef USE_DOORS
-    s = open(pwpath, O_RDWR);
+    s = open(pwpath, O_RDONLY);
     if (s < 0) {
 	perror("open");
 	return -1;

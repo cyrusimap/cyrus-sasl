@@ -123,6 +123,9 @@ typedef struct context {
   int needsize;
   int secflags; /* client/server supports layers? */
 
+  long time_sec; /* These are used to make sure we are getting */
+  char time_5ms; /* strictly increasing timestamps */
+
 } context_t;
 
 static char *srvtab = NULL;
@@ -229,9 +232,22 @@ static int privacy_decode(void *context,
     len= krb_rd_priv((char *) text->buffer,text->size,  text->init_keysched, 
 		     text->session, text->ip_remote, text->ip_local, data);
 
+    /* see if the krb library gave us a failure */
     if (len != 0) {
-	return SASL_FAIL - (len * 100);
+	return SASL_FAIL;
     }
+
+    /* check to make sure the timestamps are ok */
+    if ((data->time_sec < text->time_sec) || /* if an earlier time */
+	(((data->time_sec == text->time_sec) && /* or the exact same time */
+	 (data->time_5ms < text->time_5ms)))) 
+    {
+      return SASL_FAIL;
+    }
+    text->time_sec = data->time_sec;
+    text->time_5ms = data->time_5ms;
+
+
 
     *output = text->malloc(data->app_length + 1);
     if ((*output) == NULL) {
@@ -370,11 +386,22 @@ static int integrity_decode(void *context, const char *input, unsigned inputlen,
 		     (text->ip_remote), (text->ip_local), data);
 
 
-
+    /* see if the krb library found a problem with what we were given */
     if (len!=0)
     {
-      return SASL_FAIL-(len*100);
+      return SASL_FAIL;
     }
+
+    /* check to make sure the timestamps are ok */
+    if ((data->time_sec < text->time_sec) || /* if an earlier time */
+	(((data->time_sec == text->time_sec) && /* or the exact same time */
+	 (data->time_5ms < text->time_5ms)))) 
+    {
+      return SASL_FAIL;
+    }
+    text->time_sec = data->time_sec;
+    text->time_5ms = data->time_5ms;
+
 
     *output=text->malloc(data->app_length+1);
     if ((*output) == NULL) return SASL_NOMEM;
@@ -416,6 +443,9 @@ new_text(sasl_client_params_t *p, context_t **text)
 
     ret->buffer = NULL;
     ret->bufsize = 0;
+
+    ret->time_sec=0;
+    ret->time_5ms=0;
 
     ret->state = 0;  
     *text = ret;

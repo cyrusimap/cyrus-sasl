@@ -270,7 +270,9 @@ typedef struct sasl_client_params {
     int spare_int1;
     int spare_int2;
     int spare_int3;
-    int spare_int4;
+
+    /* flags field as passed to sasl_client_new */
+    unsigned flags;
 
     /* set to 0 initially, this allows a plugin with extended parameters
      * to work with an older framework by updating version as parameters
@@ -497,8 +499,8 @@ typedef struct sasl_server_params {
     int spare_int2;
     int spare_int3;
 
-    /* secflags field as passed to sasl_server_new */
-    unsigned secflags;
+    /* flags field as passed to sasl_server_new */
+    unsigned flags;
 
     /* set to 0 initially, this allows a plugin with extended parameters
      * to work with an older framework by updating version as parameters

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.40 2002/01/10 22:13:45 rjs3 Exp $
+ * $Id: client.c,v 1.41 2002/01/11 20:44:34 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -314,6 +314,7 @@ int sasl_client_new(const char *service,
   utils->conn= *pconn;
   conn->cparams->utils = utils;
   conn->cparams->canon_user = &_sasl_canon_user;
+  conn->cparams->flags = flags;
   
   result = _sasl_strdup(serverFQDN, &conn->serverFQDN, NULL);
   if(result == SASL_OK) return SASL_OK;

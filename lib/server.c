@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.95 2002/01/10 22:13:46 rjs3 Exp $
+ * $Id: server.c,v 1.96 2002/01/11 20:44:34 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -799,6 +799,7 @@ int sasl_server_new(const char *service,
   serverconn->sparams->canon_user = &_sasl_canon_user;
   serverconn->sparams->serverFQDN = (*pconn)->serverFQDN;
   serverconn->sparams->props = serverconn->base.props;
+  serverconn->sparams->flags = flags;
 
   /* set some variables */
   if (user_realm) {
@@ -1176,7 +1177,7 @@ int sasl_server_start(sasl_conn_t *conn,
 	    (s_conn->mech->plug->features & SASL_FEAT_INTERNAL_CLIENT_FIRST)) {
 		/* Mech wants server-first, so let them have it */
 		/* or the send-first situation is handled internally
-		 *  by the mechanism */
+		 * by the mechanism */
 		result = sasl_server_step(conn,
 					  clientin, clientinlen,
 					  serverout, serveroutlen);

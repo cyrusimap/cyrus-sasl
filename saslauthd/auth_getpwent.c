@@ -32,10 +32,12 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_getpwent.c,v 1.2 2000/10/01 22:01:50 esys Exp $"
+#ident "$Id: auth_getpwent.c,v 1.3 2001/01/04 21:20:45 leg Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
+#include <config.h>
+
 #include <unistd.h>
 #include <string.h>
 #include <pwd.h>
@@ -51,8 +53,8 @@
 char *					/* R: allocated response string */
 auth_getpwent (
   /* PARAMETERS */
-  char *login,				/* I: plaintext authenticator */
-  char *password			/* I: plaintext password */
+  const char *login,			/* I: plaintext authenticator */
+  const char *password			/* I: plaintext password */
   /* END PARAMETERS */
   )
 {

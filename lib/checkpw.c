@@ -88,15 +88,15 @@
 #include <security/pam_appl.h>
 #endif
 
-#ifdef HAVE_PWCHECK
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/uio.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
+#if defined(HAVE_PWCHECK) || defined(HAVE_SASLAUTHD)
+# include <errno.h>
+# include <sys/types.h>
+# include <sys/uio.h>
+# include <sys/socket.h>
+# include <sys/un.h>
+# ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+# endif
 
 extern int errno;
 #endif
@@ -1079,6 +1079,110 @@ static int pwcheck_verify_password(sasl_conn_t *conn,
 
 #endif
 
+#ifdef HAVE_SASLAUTHD
+/* saslauthd-authenticated login */
+static int saslauthd_verify_password(sasl_conn_t *conn,
+				   const char *userid, 
+				   const char *passwd,
+				   const char *service __attribute__((unused)),
+				   const char *user_realm 
+				               __attribute__((unused)), 
+				   const char **reply)
+{
+    static char response[1024];
+    int s;
+    struct sockaddr_un srvaddr;
+    int r, n;
+    unsigned int start;
+    sasl_getopt_t *getopt;
+    void *context;
+    char pwpath[sizeof(srvaddr.sun_path)];
+    const char *p = NULL;
+
+    if (reply)
+	*reply = NULL;
+
+    /* check to see if the user configured a rundir */
+    if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context) == SASL_OK) {
+	getopt(context, NULL, "saslauthd_path", &p, NULL);
+    }
+    if (p) {
+	strncpy(pwpath, p, sizeof(pwpath));
+    } else {
+	if (strlen(PATH_SASLAUTHD_RUNDIR) + 4 + 1 > sizeof(pwpath))
+	    return SASL_FAIL;
+
+	strcpy(pwpath, PATH_SASLAUTHD_RUNDIR);
+	strcat(pwpath, "/mux");
+    }
+
+    s = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (s == -1)
+	return errno;
+
+    memset((char *)&srvaddr, 0, sizeof(srvaddr));
+    srvaddr.sun_family = AF_UNIX;
+    strncpy(srvaddr.sun_path, pwpath, sizeof(srvaddr.sun_path));
+
+    r = connect(s, (struct sockaddr *) &srvaddr, sizeof(srvaddr));
+    if (r == -1) {
+	if (reply)
+	    *reply = "cannot connect to pwcheck server";
+	return SASL_FAIL;
+    }
+
+    {
+	int u_len;
+	int p_len;
+	char *msg;
+
+	u_len = strlen(userid) + 1;
+	p_len = strlen(passwd) + 1;
+	msg = sasl_ALLOC(u_len + p_len);
+	if (msg == NULL) {
+	    close(s);
+	    if (reply)
+		*reply = "not enough memory";
+	    return SASL_FAIL;
+	}
+	strcpy(msg, userid);
+	strcpy(msg + u_len, passwd);
+
+	while (write(s, msg, u_len + p_len) == -1)
+	    switch (errno) {
+	    case EINTR:
+		continue;
+	    default:
+		sasl_FREE(msg);
+		if (reply)
+		    *reply = "write failed";
+		return SASL_FAIL;
+	    }
+
+	sasl_FREE(msg);
+    }
+
+    start = 0;
+    while (start < sizeof(response) - 1) {
+	n = read(s, response + start, sizeof(response) - 1 - start);
+	if (n < 1)
+	    break;
+	start += n;
+    }
+
+    close(s);
+
+    if (start > 1 && !strncmp(response, "OK", 2))
+	return SASL_OK;
+
+    response[start] = '\0';
+    if (reply)
+	*reply = response;
+    return SASL_BADAUTH;
+}
+
+#endif
+
 struct sasl_verify_password_s _sasl_verify_password[] = {
     { "sasldb", &sasldb_verify_password },
 #ifdef HAVE_KRB
@@ -1101,6 +1205,9 @@ struct sasl_verify_password_s _sasl_verify_password[] = {
 #endif
 #ifdef HAVE_PWCHECK
     { "pwcheck", &pwcheck_verify_password },
+#endif
+#ifdef HAVE_SASLAUTHD
+    { "saslauthd", &saslauthd_verify_password },
 #endif
     { NULL, NULL }
 };

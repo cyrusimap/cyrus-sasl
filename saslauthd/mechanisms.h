@@ -26,15 +26,19 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: mechanisms.h,v 1.1 2000/10/01 20:42:54 esys Exp $"
+#ident "$Id: mechanisms.h,v 1.2 2001/01/04 21:20:45 leg Exp $"
 #endif
+
+#include <config.h>
+
 
 /* PUBLIC DEPENDENCIES */
 /* Authentication mechanism dispatch table definition */
 typedef struct {
     char *name;				/* name of the mechanism */
     int (*initialize)(void);		/* initialization function */
-    char * (*authenticate)(char *, char *); /* authentication function */
+    char *(*authenticate)(const char *, const char *); /* authentication
+							  function */
 } authmech_t;
 
 extern authmech_t mechanisms[];		/* array of supported auth mechs */
@@ -59,5 +63,11 @@ extern authmech_t *authmech;		/* auth mech daemon is using */
 #ifndef AUTH_SIA
 # if defined(HAVE_SIA_VALIDATE_USER)
 #  define AUTH_SIA
+# endif
+#endif
+
+#ifndef AUTH_PAM
+# ifdef HAVE_PAM
+#  define AUTH_PAM
 # endif
 #endif

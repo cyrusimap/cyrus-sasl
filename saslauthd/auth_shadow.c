@@ -28,10 +28,11 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_shadow.c,v 1.1 2000/10/01 20:42:53 esys Exp $"
+#ident "$Id: auth_shadow.c,v 1.2 2001/01/04 21:20:45 leg Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
+#include <config.h>
 #include "mechanisms.h"
 
 #ifdef AUTH_SHADOW
@@ -43,7 +44,10 @@
 # include <time.h>
 # include <pwd.h>
 # include <syslog.h>
-# include <des.h>
+# ifndef HAVE_GETSPNAM
+/* XXX Is this header only available on AIX? */
+#   include <des.h>
+#endif /* ! HAVE_GETSPNAM */
 # ifdef HAVE_GETUSERPW
 #  include <userpw.h>
 #  include <usersec.h>
@@ -66,8 +70,8 @@
 char *					/* R: allocated response string */
 auth_shadow (
   /* PARAMETERS */
-  char *login,				/* I: plaintext authenticator */
-  char *password			/* I: plaintext password */
+  const char *login,			/* I: plaintext authenticator */
+  const char *password			/* I: plaintext password */
   /* END PARAMETERS */
   )
 {
@@ -232,9 +236,12 @@ auth_shadow (
 #else /* !AUTH_SHADOW */
 
 char *
-auth_shadow (char *login, char *passwd)
+auth_shadow (
+  const char *login __attribute__((unused)),
+  const char *passwd __attribute__((unused))
+  )
 {
-    return 0;
+    return NULL;
 }
 
 #endif /* !AUTH_SHADOW */

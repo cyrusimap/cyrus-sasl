@@ -71,7 +71,7 @@
  * END HISTORY */
 
 #ifdef __GNUC__
-#ident "$Id: saslauthd.c,v 1.3 2000/10/01 22:32:18 esys Exp $"
+#ident "$Id: saslauthd.c,v 1.4 2001/01/04 21:20:45 leg Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -738,7 +738,7 @@ server_exit(
 RETSIGTYPE				/* R: OS dependent */
 sigchld_ignore (
   /* PARAMETERS */
-  int sig				/* I: signal number */
+  int sig __attribute__((unused))	/* I: signal number */
   /* END PARAMETERS */
   )
 {

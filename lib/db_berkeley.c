@@ -1,6 +1,6 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Tim Martin
- * $Id: db_berkeley.c,v 1.15 2000/05/10 16:00:24 leg Exp $
+ * $Id: db_berkeley.c,v 1.16 2001/01/04 21:20:45 leg Exp $
  */
 
 /* 
@@ -117,7 +117,7 @@ static void berkeleydb_close(DB *mbdb)
     
     ret = mbdb->close(mbdb, 0);
     if (ret!=0) {
-	VL(("Error closing mailbox"));
+	/* error closing! */
 	_sasl_log (NULL, SASL_LOG_ERR, NULL,
 		   SASL_FAIL, /* %z */ 0, /* %m */
 		   "error closing sasldb: %s",
@@ -179,8 +179,6 @@ getsecret(void *context,
   if (! mechanism || ! auth_identity || ! secret || ! realm || ! db_ok)
     return SASL_FAIL;
 
-  VL(("getting secret for %s\n",key));
-
   /* allocate a key */
   result = alloc_key(mechanism, auth_identity, realm,
 		     &key, &key_len);
@@ -206,12 +204,10 @@ getsecret(void *context,
     break;
 
   case DB_NOTFOUND:
-    VL(("User not found\n"));
     result = SASL_NOUSER;
     goto cleanup;
     break;
   default:
-    VL(("Other failure\n"));
     _sasl_log (NULL, SASL_LOG_ERR, NULL,
 	       SASL_FAIL,	/* %z */ 0,	/* %m */
 	       "error fetching from sasldb: %s",

@@ -28,10 +28,11 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_sia.c,v 1.1 2000/10/01 20:42:53 esys Exp $"
+#ident "$Id: auth_sia.c,v 1.2 2001/01/04 21:20:45 leg Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
+#include <config.h>
 #include "mechanisms.h"
 
 #ifdef AUTH_SIA
@@ -53,8 +54,8 @@
 char *					/* R: allocated response string */
 auth_sia (
   /* PARAMETERS */
-  char *login,				/* I: plaintext authenticator */
-  char *password			/* I: plaintext password */
+  const char *login,			/* I: plaintext authenticator */
+  const char *password			/* I: plaintext password */
   /* END PARAMETERS */
   )
 {
@@ -71,16 +72,19 @@ auth_sia (
     }
     /* Shouldn't happen */
     syslog(LOG_WARNING,
-	   "auth_sia: impossible return (%d) from sia_validate_user",
-	   rc);
+	   "auth_sia: impossible return (%d) from sia_validate_user", rc);
     return strdup("NO (possible system error)");
 }
 
 #else /* ! AUTH_SIA */
 
 char *
-auth_sia(char *login, char *password) {
-    return 0;
+auth_sia(
+  const char *login __attribute__((unused)),
+  const char *password __attribute__((unused))
+  )
+{
+    return NULL;
 }
 #endif
 

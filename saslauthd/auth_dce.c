@@ -32,28 +32,34 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_dce.c,v 1.1 2000/10/01 20:42:52 esys Exp $"
+#ident "$Id: auth_dce.c,v 1.2 2001/01/04 21:20:45 leg Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
+#include <config.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include "mechanisms.h"
+
+#include "auth_dce.h"
+
 /* END PUBLIC DEPENDENCIES */
 
-#define RETURN(x) {return strdup(x);}
+# define RETURN(x) {return strdup(x);}
 
 /* FUNCTION: auth_dce */
+
+#ifdef AUTH_DCE
 
 char *					/* R: allocated response string */
 auth_dce(
   /* PARAMETERS */
-  char *login,				/* I: plaintext authenticator */
-  char *password			/* I: plaintext password */
+  const char *login,			/* I: plaintext authenticator */
+  const char *password			/* I: plaintext password */
   /* END PARAMETERS */
   )
 {
-#ifdef AUTH_DCE
     int reenter = 0;			/* internal to authenticate() */
     int rc;				/* return code holder */
     char *msg;				/* response from authenticate() */
@@ -89,10 +95,20 @@ auth_dce(
 	    free(msg);
 	RETURN("OK");
     }
-#else
-    return NULL;
-#endif
 }
+
+#else /* !AUTH_DCE */
+
+char *
+auth_dce(
+  const char *login __attribute__((unused)),
+  const char *password __attribute__((unused))
+  )
+{
+     return NULL;
+}
+
+#endif /* !AUTH_DCE */
 
 /* END FUNCTION: auth_dce */
 

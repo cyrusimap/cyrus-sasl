@@ -107,6 +107,12 @@
 /* where do we look for the pwcheck daemon? */
 #undef PWCHECKDIR
 
+/* should we include support for the saslauth daemon? */
+#undef HAVE_SASLAUTHD
+
+/* where does saslauthd look for the communication socket? */
+#undef PATH_SASLAUTHD_RUNDIR
+
 /* do we pay attention to IP addresses in the kerberos 4 tickets? */
 #undef KRB4_IGNORE_IP_ADDRESS
 

@@ -53,10 +53,11 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_rimap.c,v 1.2 2000/10/01 22:23:09 esys Exp $"
+#ident "$Id: auth_rimap.c,v 1.3 2001/01/04 21:20:45 leg Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
+#include <config.h>
 #include "mechanisms.h"
 
 #include <unistd.h>
@@ -149,12 +150,13 @@ sig_null (
 static char *				/* R: the quoted string		*/
 qstring (
   /* PARAMETERS */
-  char *s				/* I: string to quote		*/
+  const char *s				/* I: string to quote		*/
   /* END PARAMETERS */
   )
 {
     char *c;				/* pointer to returned string   */
-    register char *p1, *p2;		/* scratch pointers             */
+    register const char *p1;		/* scratch pointers		*/
+    register char *p2;			/* scratch pointers             */
     int len;				/* length of array to malloc    */
     int num_quotes;			/* number of '"' chars in string*/
 
@@ -316,8 +318,8 @@ auth_rimap_init (
 char *					/* R: Allocated response string */
 auth_rimap (
   /* PARAMETERS */
-  char *login,				/* I: plaintext authenticator */
-  char *password			/* I: plaintext password */
+  const char *login,			/* I: plaintext authenticator */
+  const char *password			/* I: plaintext password */
   /* END PARAMETERS */
   )
 {

@@ -25,4 +25,4 @@
  * DAMAGE.
  * END COPYRIGHT */
 
-char * auth_getpwent(char *, char *);
+char *auth_getpwent(const char *, const char *);

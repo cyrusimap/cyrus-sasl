@@ -28,10 +28,11 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb4.c,v 1.1 2000/10/01 20:42:52 esys Exp $"
+#ident "$Id: auth_krb4.c,v 1.2 2001/01/04 21:20:45 leg Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
+#include <config.h>
 #include "mechanisms.h"
 
 #ifdef AUTH_KRB4
@@ -52,7 +53,9 @@ extern int swap_bytes;			/* from libkrb.a   */
 /* END PUBLIC DEPENDENCIES */
 
 /* PRIVATE DEPENDENCIES */
+#ifdef AUTH_KRB4
 static char *tf_dir;			/* Ticket directory pathname    */
+#endif /* AUTH_KRB4 */
 /* END PRIVATE DEPENDENCIES */
 
 #define TF_DIR "/.tf"			/* Private tickets directory,   */
@@ -141,15 +144,16 @@ auth_krb4_init (
  * Authenticate against Kerberos IV.
  * END SYNOPSIS */
 
+#ifdef AUTH_KRB4
+
 char *					/* R: allocated response string */
 auth_krb4 (
   /* PARAMETERS */
-  char *login,				/* I: plaintext authenticator */
-  char *password			/* I: plaintext password */
+  const char *login,			/* I: plaintext authenticator */
+  const char *password			/* I: plaintext password */
   /* END PARAMETERS */
   )
 {
-#ifdef AUTH_KRB4
     /* VARIABLES */
     char aname[ANAME_SZ];		/* Kerberos principal */
     char inst[INST_SZ];			/* Kerberos instance (default: imap) */
@@ -219,10 +223,20 @@ auth_krb4 (
     syslog(LOG_ERR, "ERROR: auth_krb4: krb_get_pw_in_tkt: %s",
 	   krb_get_err_text(rc));
     return strdup("NO saslauthd internal error");
-#else /* ! AUTH_KRB4 */
-    return NULL;
-#endif /* ! AUTH_KRB4 */
 }
+
+#else /* ! AUTH_KRB4 */
+
+char *
+auth_krb4 (
+  const char *login __attribute__((unused)),
+  const char *password __attribute__((unused))
+  )
+{
+    return NULL;
+}
+
+#endif /* ! AUTH_KRB4 */
 
 /* END FUNCTION: auth_krb4 */
 

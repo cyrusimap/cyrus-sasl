@@ -25,4 +25,4 @@
  * DAMAGE.
  * END COPYRIGHT */
 
-char *auth_sia(char *, char *);
+char *auth_sia(const char *, const char *);

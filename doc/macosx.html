@@ -1,6 +1,6 @@
 <html><head>
 <title>Building and Using Cyrus SASL on Mac OS X</title>
-<!-- $Id: macosx.html,v 1.4 2002/12/25 00:25:14 leg Exp $ -->
+<!-- $Id: macosx.html,v 1.5 2003/06/12 00:32:50 rbraun Exp $ -->
 </head>
 <body>
 <h1>Cyrus SASL v2 on Mac OS X (and 9)</h1><p>
@@ -59,7 +59,7 @@ library, but be aware that your application will not run on OS 9.<p>
 
 The Unix library is mostly ready to build on Mac OS X, but it does
 depend on the <tt>dlcompat</tt> package in order to load its
-plugins. <tt>dlcompat-20010505</tt> is the latest version and is known
+plugins. <tt>dlcompat-20010505</tt> is a relatively simple version known
 to work with SASL; it is provided with the distribution in a
 tarball. You should <tt>make</tt> and <tt>make install</tt> the
 <tt>dlcompat</tt> library (which probably goes into
@@ -67,12 +67,20 @@ tarball. You should <tt>make</tt> and <tt>make install</tt> the
 <tt>./configure</tt> the SASL distribution itself. SASL will then
 pretend it's a real Unix <tt>libdl</tt>, and link against it.<p>
 
-If you are using MIT Kerberos for Macintosh 4.0, which is fully
+Since there are, at this point, newer and far more complex versions of
+dlcompat, you may prefer to use those instead if other software
+requires their functionality. The dlcompat homepage is located
+<a href="http://www.opendarwin.org/projects/dlcompat/">on the
+OpenDarwin site.</a><p>
+
+If you are using MIT Kerberos for Macintosh 4.0 or later, which is fully
 supported by the SASL library, you should <tt>./configure</tt> with
 the added option <tt>--enable-krb4=/usr</tt> so that it finds the
 correct location for the header files. KfM will be automatically
 detected by the configure script, and the correct libraries linked
-in.<p>
+in. <i>Please read the "Known Problems" section at the end of this
+document for information on working around a problem with OpenSSL's
+DES headers.</i><p>
 
 You must be root to make install, since <tt>/usr/local</tt> is only
 modifiable by root. You need not enable the root account using
@@ -96,7 +104,9 @@ or Mac OS X.<p>
 <ul>
 <li>The random code supports the preferred way to generate random
 numbers in Darwin. (In SASL v2, it does this on all unix-like
-platforms that lack jrand48).
+platforms that lack jrand48). <i>Note that Mac OS X "Jaguar", version 10.2,
+now has the standard jrand48 function, and that SASL will use this instead
+of the previous workaround.</i>
 
 <li>Symbols which are dlopened have an underscore prefixed. (This
 behavior is detected by configure in SASL v2.)
@@ -113,7 +123,7 @@ for Macintosh (which also duplicates the symbols, but in a different
 way). Note that the MD5 symbols have local names on all platforms with
 SASL v2; this was only different in SASL v1.
 
-<li>MIT Kerberos for Macintosh 4.0 is fully supported. This was
+<li>MIT Kerberos for Macintosh 4.0 and later are fully supported. This was
 accomplished by using <tt>krb_get_err_text</tt> if available and
 checking for additional names for the krb4 libraries.
 
@@ -170,5 +180,14 @@ include the absolute paths to the library directories from that
 image. It's easier than you having to find the paths yourself, and
 smaller than having to distribute the libraries with SASL.
 
+</ul><p>
+
+<h2>Known Problems</h2><p>
+
+<ul>
+<li>The Kerberos v4 headers bundled with Mac OS X (and Kerberos for Macintosh) are not compatible with OS X's OpenSSL headers. The easiest solution, for now, is to build without using OpenSSL's <tt>libcrypto</tt>. To do this, specify the <tt>--without-openssl</tt> option to <tt>configure</tt>. After running <tt>configure</tt>, you will need to instruct the build system not to use OpenSSL's headers, either. Edit the <tt>config.h</tt> file, and look for the line:<p>
+<tt>#define WITH_SSL_DES 1</tt><p>
+Comment this line out (for example, by adding a double slash <tt>//</tt> to the beginning of it).<p>
+<li>Versions of Cyrus SASL prior to 2.1.14 with support for Carbon CFM applications on Mac OS X have a known bug involving the CFM glue code (in <tt>mac/osx_cfm_glue</tt>). If <tt>sasl_done</tt> is called to unload the SASL library, and then one of the initialization functions (such as <tt>sasl_client_init</tt>) is called to reinitialize it from the same process, the application will crash. A fix for one obvious cause of this problem is included in 2.1.14; however, as of this writing, it has not been tested. It is possible that other bugs in Cyrus SASL, or deficiencies in Apple's libraries, will make this fix insufficient to resolve this issue.
 </ul><p>
 

@@ -1,3 +1,14 @@
+2003-06-11  Rolf Braun <rbraun@andrew.cmu.edu>
+	* config/kerberos_v4.m4:
+	  fix fallback to -lkrb4 when --enable-krb4 is specified
+	* config/ltconfig:
+	* config/ltmain.sh:
+	  make the darwin libtool work on OS X v10.2
+	  (bash/zsh shell syntax, and don't link bundles with extra args)
+	* dlcompat-20010505/dlopen.c: back out bogus delimiter change
+	* doc/macosx.html: update for 10.2 and add known problems section
+	* mac/osx_cfm_glue/cfmglue.c: fix sasl_done followed by client_init
+
 2003-06-11  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* man/sasl_client_new.3, man/sasl_server_new.3:
 	  Security flags don't belong here, connection flags do.

@@ -1372,9 +1372,20 @@ else
     hardcode_shlibpath_var=no
     ;;
 
-  darwin* | rhapsody*)
+  darwin[15]* | rhapsody*)
     allow_undefined_flag='-undefined error'
     archive_cmds='$CC $(test x$module = xyes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs $linkopts -install_name $rpath/$soname $(test -n "$verstring" -a x$verstring != x0.0 && echo $verstring)'
+    # We need to add '_' to the symbols in $export_symbols first
+    #archive_expsym_cmds="$archive_cmds"' && strip -s $export_symbols $lib'
+    hardcode_direct=yes
+    hardcode_shlibpath_var=no
+    whole_archive_flag_spec='-all_load $convenience'
+    ;;
+
+  # Mac OS X v10.2 uses bash for /bin/sh instead of zsh, and the quoting syntax is incompatible
+  darwin*)
+    allow_undefined_flag='-undefined error'
+    archive_cmds='$CC $(test x$module = xyes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs $linkopts $(test x$module != xyes && echo -install_name $rpath/$soname $tmp_verstring)'
     # We need to add '_' to the symbols in $export_symbols first
     #archive_expsym_cmds="$archive_cmds"' && strip -s $export_symbols $lib'
     hardcode_direct=yes

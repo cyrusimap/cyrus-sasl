@@ -1,3 +1,8 @@
+2002-02-05  Rob Siemborski <rjs3+@andrew.cmu.edu>
+	* contrib/tclsasl: Add Marshall Rose's <mrose@dbc.mtview.ca.us>
+	  tclsasl patch.
+	* plugins/anonymous.c: No longer append extra NUL to client response
+
 2002-02-04  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* utils/saslpasswd.c: Added -n option (Ken Murchison)
 	* lib/dlopen.c: Removed confusing entry point message.

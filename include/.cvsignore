@@ -1,0 +1,7 @@
+Makefile.in
+Makefile
+.deps
+.libs
+*.l[ao]
+makemd5
+md5global.h

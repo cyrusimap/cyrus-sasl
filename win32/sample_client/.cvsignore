@@ -3,3 +3,8 @@ Release
 sample_client.plg
 sample_client.ncb
 sample_client.opt
+Makefile.in
+Makefile
+.deps
+.libs
+*.l[ao]

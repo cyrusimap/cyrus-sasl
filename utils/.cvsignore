@@ -1,0 +1,8 @@
+Makefile.in
+Makefile
+.deps
+.libs
+*.l[ao]
+sasldblistusers
+dbconverter-1.5.9
+saslpasswd

@@ -3,3 +3,8 @@ Release
 sample_server.plg
 sample_server.ncb
 sample_server.opt
+Makefile.in
+Makefile
+.deps
+.libs
+*.l[ao]

@@ -3,3 +3,8 @@ Release
 saslANONYMOUS.plg
 saslANONYMOUS.ncb
 saslANONYMOUS.opt
+Makefile.in
+Makefile
+.deps
+.libs
+*.l[ao]

@@ -3,3 +3,8 @@ Release
 saslDIGESTMD5.plg
 saslDIGESTMD5.ncb
 saslDIGESTMD5.opt
+Makefile.in
+Makefile
+.deps
+.libs
+*.l[ao]

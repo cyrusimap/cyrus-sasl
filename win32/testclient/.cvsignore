@@ -3,3 +3,8 @@ Release
 libsasl.plg
 libsasl.ncb
 libsasl.opt
+Makefile.in
+Makefile
+.deps
+.libs
+*.l[ao]

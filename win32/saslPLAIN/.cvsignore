@@ -3,3 +3,8 @@ Release
 saslPLAIN.plg
 saslPLAIN.ncb
 saslPLAIN.opt
+Makefile.in
+Makefile
+.deps
+.libs
+*.l[ao]

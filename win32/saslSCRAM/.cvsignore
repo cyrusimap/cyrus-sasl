@@ -3,3 +3,8 @@ Release
 saslSCRAM.plg
 saslSCRAM.ncb
 saslSCRAM.opt
+Makefile.in
+Makefile
+.deps
+.libs
+*.l[ao]

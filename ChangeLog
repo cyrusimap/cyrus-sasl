@@ -1,3 +1,7 @@
+2003-03-26  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/plain.c: Defend against memory leak on canon_user
+	  failure (Chris Newman <chris.newman@sun.com>)
+
 2003-03-19  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* lib/auxprop.c, lib/checkpw.c, lib/common.c, lib/saslutil.c,
 	  lib/server.c: Assorted minor fixes from Sun Microsystems

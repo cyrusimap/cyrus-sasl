@@ -744,8 +744,9 @@ void detach_tty() {
 		
 		/* Write PID */
 		master_pid = getpid();
-		snprintf(buf, sizeof(buf), "%-16d\n", master_pid);
+		snprintf(buf, sizeof(buf), "%lu\n", (unsigned long)master_pid);
 		if (lseek(pid_fd, 0, SEEK_SET) == -1 ||
+		    ftruncate(pid_fd, 0) == -1 ||
 		    write(pid_fd, buf, strlen(buf)) == -1) {
 		    int exit_result = 1;
 		    rc = errno;

@@ -335,13 +335,30 @@ static int lak_filter(LAK *lak, const char *username, const char *realm, char **
 	char *end, *ptr, *temp;
 	char *ebuf;
 	int rc;
+
+	/* to permit multiple occurences of username and/or realm in filter */
+	/* and avoid memory overflow in filter build [eg: (|(uid=%u)(userid=%u)) ] */
+	int percents, realm_len, user_len, maxparamlength;
 	
 	if (lak->conf->filter == NULL) {
 		syslog(LOG_WARNING|LOG_AUTH, "filter not setup");
 		return LAK_FAIL;
 	}
 
-	buf=malloc(strlen(lak->conf->filter)+strlen(username)+strlen(realm)+1);
+	/* find the longest param of username and realm */
+	user_len=strlen(username);
+	realm_len=strlen(realm);
+	if( user_len > realm_len )
+	    maxparamlength = user_len;
+	else
+	    maxparamlength = realm_len;
+
+	/* find the number of occurences of percent sign in filter */
+	for( percents=0, buf=lak->conf->filter; *buf; buf++ ) {
+		if( *buf == '%' ) percents++;
+	}
+
+	buf=malloc(strlen(lak->conf->filter) + (percents * maxparamlength) +1);
 	if(buf == NULL) {
 		syslog(LOG_ERR|LOG_AUTH, "Cannot allocate memory");
 		return LAK_NOMEM;

@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.18 2002/04/30 20:20:36 ken3 Exp $
+ * $Id: otp.c,v 1.19 2002/04/30 20:46:33 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -76,7 +76,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: otp.c,v 1.18 2002/04/30 20:20:36 ken3 Exp $";
+static const char plugin_id[] = "$Id: otp.c,v 1.19 2002/04/30 20:46:33 ken3 Exp $";
 
 #define OTP_SEQUENCE_MAX	9999
 #define OTP_SEQUENCE_DEFAULT	499
@@ -1428,6 +1428,9 @@ static int otp_client_mech_step1(client_context_t *text,
     const char *user, *authid;
     int user_result = SASL_OK;
     int auth_result = SASL_OK;
+    int pass_result = SASL_OK;
+    sasl_chalprompt_t *echo_cb;
+    void *echo_context;
     int result;
     
     /* check if sec layer strong enough */
@@ -1454,6 +1457,17 @@ static int otp_client_mech_step1(client_context_t *text,
 	}
     }
     
+    /* try to get the secret pass-phrase if we don't have a chalprompt */
+    if ((params->utils->getcallback(params->utils->conn, SASL_CB_ECHOPROMPT,
+				    &echo_cb, &echo_context) == SASL_FAIL) &&
+	(text->password == NULL)) {
+	pass_result = _plug_get_password(params->utils, &text->password,
+					 &text->free_password, prompt_need);
+	
+	if ((pass_result != SASL_OK) && (pass_result != SASL_INTERACT))
+	    return pass_result;
+    }
+
     /* free prompts we got */
     if (prompt_need && *prompt_need) {
 	params->utils->free(*prompt_need);
@@ -1461,7 +1475,8 @@ static int otp_client_mech_step1(client_context_t *text,
     }
     
     /* if there are prompts not filled in */
-    if ((user_result == SASL_INTERACT) || (auth_result == SASL_INTERACT)) {
+    if ((user_result == SASL_INTERACT) || (auth_result == SASL_INTERACT) ||
+	(pass_result == SASL_INTERACT)) {
 	/* make the prompt list */
 	result =
 	    _plug_make_prompts(params->utils, prompt_need,
@@ -1471,7 +1486,9 @@ static int otp_client_mech_step1(client_context_t *text,
 			       auth_result == SASL_INTERACT ?
 			       "Please enter your authentication name" : NULL,
 			       NULL,
-			       NULL, NULL,
+			       pass_result == SASL_INTERACT ?
+			       "Please enter your secret pass-phrase" : NULL,
+			       NULL,
 			       NULL, NULL, NULL,
 			       NULL, NULL, NULL);
 	if (result != SASL_OK) return result;
@@ -1514,7 +1531,6 @@ static int otp_client_mech_step2(client_context_t *text,
 				 sasl_out_params_t *oparams)
 {
     int echo_result = SASL_OK;
-    int pass_result = SASL_OK;
     char challenge[OTP_CHALLENGE_MAX+1];
     int result;
     
@@ -1527,21 +1543,15 @@ static int otp_client_mech_step2(client_context_t *text,
     strncpy(challenge, serverin, serverinlen);
     challenge[serverinlen] = '\0';
     
-    /* try to get the one-time password */
-    echo_result = _plug_challenge_prompt(params->utils, SASL_CB_ECHOPROMPT,
-					 challenge,
-					 "Please enter your one-time password",
-					 &text->otpassword, prompt_need);
-    
-    if ((echo_result != SASL_OK) && (echo_result != SASL_INTERACT)) {
-	/*
-	 * try to get the secret pass-phrase
-	 */
-	pass_result = _plug_get_password(params->utils, &text->password,
-					 &text->free_password, prompt_need);
+    /* try to get the one-time password if we don't ave the secret */
+    if ((text->password == NULL) && (text->otpassword == NULL)) {
+	echo_result = _plug_challenge_prompt(params->utils, SASL_CB_ECHOPROMPT,
+					     challenge,
+					     "Please enter your one-time password",
+					     &text->otpassword, prompt_need);
 	
-	if ((pass_result != SASL_OK) && (pass_result != SASL_INTERACT))
-	    return pass_result;
+	if ((echo_result != SASL_OK) && (echo_result != SASL_INTERACT))
+	    return echo_result;
     }
     
     /* free prompts we got */
@@ -1551,15 +1561,13 @@ static int otp_client_mech_step2(client_context_t *text,
     }
     
     /* if there are prompts not filled in */
-    if ((echo_result == SASL_INTERACT) || (pass_result == SASL_INTERACT)) {
+    if (echo_result == SASL_INTERACT) {
 	/* make the prompt list */
 	result =
 	    _plug_make_prompts(params->utils, prompt_need,
 			       NULL, NULL,
 			       NULL, NULL,
-			       pass_result == SASL_INTERACT ?
-			       "Please enter your secret pass-phrase" : NULL,
-			       NULL,
+			       NULL, NULL,
 			       challenge, echo_result == SASL_INTERACT ?
 			       "Please enter your one-time password" : NULL,
 			       NULL,

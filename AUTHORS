@@ -14,7 +14,7 @@ coding advice.
 Leif Johansson <leifj@matematik.su.se> wrote the GSSAPI plugin, with
 contributions from Sam Hartman <hartmans@fundsxpress.com>.
 
-Alexey Melnikov <mel@messagingdirect.com> wrote the first pass of the
+Alexey Melnikov <mel@isode.com> wrote the first pass of the
 DIGEST-MD5 plugin and continues to work on it.
 
 Rainer Schoepf <schoepf@uni-mainz.de> contributed the LOGIN plugin,
@@ -30,8 +30,15 @@ of misc. bugfixes.
 
 Larry Greenfield <leg+sasl@andrew.cmu.edu> complained. a lot.
 
-Chris Newman <chris.newman@innosoft.com> wrote the initial version of the
+Chris Newman <chris.newman@sun.com> wrote the initial version of the
 SASL API, as well as the version 2 SASL API (documented in sasl.h,
 saslutil.h, saslplug.h, and prop.h).
 
-$Id: AUTHORS,v 1.13 2003/03/31 04:35:45 rjs3 Exp $
+Ryan Troll started the Windows port, and both Larry Greenfield and
+Alexey Melnikov have done more work on it.
+
+getaddrinfo.c was written by Hajimu UMEMOTO <ume@mahoroba.org>
+which is based on the IPv6 code written by KIKUCHI Takahiro
+<kick@kyoto.wide.ad.jp>
+
+$Id: AUTHORS,v 1.14 2003/10/15 17:02:23 rjs3 Exp $

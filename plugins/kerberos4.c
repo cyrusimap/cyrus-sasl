@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.72 2002/01/09 19:14:17 rjs3 Exp $
+ * $Id: kerberos4.c,v 1.73 2002/01/18 01:12:27 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -974,7 +974,16 @@ static int kerberosv4_client_mech_new(
 		 sasl_client_params_t *params,
 		 void **conn)
 {
-  return new_text(params->utils, (context_t **) conn);
+    if(!krb_mutex) {
+	krb_mutex = params->utils->mutex_alloc();
+	if(!krb_mutex) {
+	    params->utils->seterror(params->utils->conn, 0,
+				     "couldn't allocate mutex");
+	    return SASL_FAIL;
+	}
+    }
+
+    return new_text(params->utils, (context_t **) conn);
 }
 
 static int kerberosv4_client_mech_step(void *conn_context,

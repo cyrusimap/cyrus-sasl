@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.126 2002/05/06 04:56:13 ken3 Exp $
+ * $Id: digestmd5.c,v 1.127 2002/05/06 14:28:59 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -103,7 +103,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.126 2002/05/06 04:56:13 ken3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.127 2002/05/06 14:28:59 ken3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -152,15 +152,18 @@ typedef struct rc4_context_s rc4_context_t;
 #endif
 
 typedef struct global_context {
-    time_t timeout;
-
-    time_t timestamp;
+    /* common stuff */
     char *authid;
     char *realm;
     unsigned char *nonce;
     unsigned int nonce_count;
     unsigned char *cnonce;
 
+    /* server stuff */
+    time_t timeout;
+    time_t timestamp;
+
+    /* client stuff */
     char *serverFQDN;
     char *qop;
     struct digest_cipher *bestcipher;
@@ -173,57 +176,50 @@ typedef struct context {
     enum Context_type i_am;	/* are we the client or server? */
     
     global_context_t *global;
-    int stale;
+
+    int stale;			/* last nonce is stale (server) */
+
+    sasl_ssf_t limitssf, requiressf; /* application defined bounds (server) */
+
+    char *realm;		/* realm we are in (client) */
     
-    sasl_ssf_t limitssf, requiressf; /* application defined bounds, for the
-					server */
-    unsigned char  *nonce;
-    int             noncelen;
+    sasl_secret_t *password;	/* user password (client) */
+    unsigned int free_password; /* set if we need to free password (client) */
     
-    unsigned int    last_ncvalue;
+    char *response_value;
     
-    char           *response_value;
+    unsigned int seqnum;
+    unsigned int rec_seqnum;	/* for checking integrity */
     
-    char           *realm;
-    char           *realm_chal; /* challenge for realm interaction (client) */
+    HASH Ki_send;
+    HASH Ki_receive;
     
-    unsigned int    seqnum;
-    unsigned int    rec_seqnum;	/* for checking integrity */
-    
-    HASH            Ki_send;
-    HASH            Ki_receive;
-    
-    HASH            HA1;		/* Kcc or Kcs */
+    HASH HA1;		/* Kcc or Kcs */
     
     /* copy of utils from the params structures */
-    const sasl_utils_t    *utils;
+    const sasl_utils_t *utils;
     
     /* For general use */
     char *out_buf;
     unsigned out_buf_len;
     
     /* for encoding/decoding */
-    buffer_info_t  *enc_in_buf;
-    char           *encode_buf, *decode_buf, *decode_once_buf;
-    unsigned       encode_buf_len, decode_buf_len, decode_once_buf_len;
-    char           *decode_tmp_buf;
-    unsigned       decode_tmp_buf_len;
-    char           *MAC_buf;
-    unsigned       MAC_buf_len;
+    buffer_info_t *enc_in_buf;
+    char *encode_buf, *decode_buf, *decode_once_buf;
+    unsigned encode_buf_len, decode_buf_len, decode_once_buf_len;
+    char *decode_tmp_buf;
+    unsigned decode_tmp_buf_len;
+    char *MAC_buf;
+    unsigned MAC_buf_len;
     
-    char           *buffer;
-    char           sizebuf[4];
-    int            cursize;
-    int            size;
-    int            needsize;
+    char *buffer;
+    char sizebuf[4];
+    int cursize;
+    int size;
+    int needsize;
     
     /* Server MaxBuf for Client or Client MaxBuf For Server */
-    unsigned int    maxbuf;
-    
-    unsigned char  *authid; /* authentication id (client) */
-    unsigned char  *userid; /* authorization_id (client) */
-    sasl_secret_t  *password;
-    unsigned int free_password; /* set if we need to free password */
+    unsigned int maxbuf;
     
     /* if privacy mode is used use these functions for encode and decode */
     cipher_function_t *cipher_enc;
@@ -1624,19 +1620,9 @@ digestmd5_common_mech_dispose(void *conn_context, const sasl_utils_t * utils)
     if (text->cipher_free) text->cipher_free(text);
     
     /* free the stuff in the context */
-    if (text->nonce) utils->free(text->nonce);
     if (text->response_value) utils->free(text->response_value);
     
-    /* no need to free realm for CLIENT, it's just the interaction result */
-    if ((text->i_am == SERVER) && text->realm) utils->free(text->realm);
-    if (text->realm_chal) utils->free(text->realm_chal);
-    /* no need to free authid, it's just the interaction result */
-    /* no need to free userid, it's just the interaction result */
-    
-    if (text->free_password) {
-	_plug_free_secret(utils, &text->password);
-	text->password = NULL;
-    }
+    if (text->free_password) _plug_free_secret(utils, &text->password);
     
     if (text->buffer) utils->free(text->buffer);
     if (text->encode_buf) utils->free(text->encode_buf);
@@ -1665,9 +1651,11 @@ clear_global_context(global_context_t *glob_context, const sasl_utils_t *utils)
     if (glob_context->serverFQDN) utils->free(glob_context->serverFQDN);
 
     /* zero everything except for the reauth timeout */
-    glob_context->timestamp = glob_context->nonce_count = 0;
     glob_context->authid = glob_context->realm = NULL;
     glob_context->nonce = glob_context->cnonce = NULL;
+    glob_context->nonce_count = 0;
+
+    glob_context->timestamp = 0;
 
     glob_context->qop = glob_context->serverFQDN = NULL;
     glob_context->bestcipher = NULL;
@@ -1695,7 +1683,7 @@ DigestCalcHA1FromSecret(context_t * text,
 			unsigned char *pszCNonce,
 			HASHHEX SessionKey)
 {
-    MD5_CTX         Md5Ctx;
+    MD5_CTX Md5Ctx;
     
     /* calculate session key */
     utils->MD5Init(&Md5Ctx);
@@ -2084,7 +2072,6 @@ digestmd5_server_mech_step2(context_t *text,
 {
     /* verify digest */
     sasl_secret_t  *sec = NULL;
-    /* int len=sizeof(MD5_CTX); */
     int             result;
     char           *serverresponse = NULL;
     char           *username = NULL;
@@ -2860,7 +2847,7 @@ static int
 make_client_response(context_t *text,
 		     sasl_client_params_t *params,
 		     sasl_out_params_t *oparams,
-		     int n)
+		     unsigned int n)
 {
     unsigned char  *digesturi = NULL;
     bool            IsUTF8 = FALSE;
@@ -3068,7 +3055,7 @@ digestmd5_client_mech_step1(context_t *text,
     int auth_result = SASL_OK;
     int pass_result = SASL_OK;
     int result = SASL_FAIL;
-    int n = 0;
+    unsigned int n = 0;
 
     params->utils->log(params->utils->conn, SASL_LOG_DEBUG,
 		       "DIGEST-MD5 client step 1");
@@ -3184,25 +3171,26 @@ digestmd5_client_mech_step2(context_t *text,
 			    unsigned *clientoutlen,
 			    sasl_out_params_t *oparams)
 {
-    char           *in = NULL;
-    char           *in_start;
+    char *in = NULL;
+    char *in_start;
     sasl_ssf_t limit, musthave = 0;
     sasl_ssf_t external;
-    int             protection = 0;
-    int             ciphers=0;
+    int protection = 0;
+    int ciphers = 0;
     struct digest_cipher *bestcipher = NULL;
-    unsigned int    n = 0;
-    char          **realm = NULL;
-    int             nrealm = 0;
-    unsigned int    server_maxbuf = 65536; /* Default value for maxbuf */
-    int             maxbuf_count = 0;
-    bool            IsUTF8 = FALSE;
-    int             result = SASL_FAIL;
-    int             user_result = SASL_OK;
-    int             auth_result = SASL_OK;
-    int             pass_result = SASL_OK;
-    int            realm_result = SASL_OK;
-    int            algorithm_count = 0;
+    unsigned int n = 0;
+    char **realms = NULL, *realm_chal = NULL;
+    int nrealm = 0;
+    unsigned int server_maxbuf = 65536; /* Default value for maxbuf */
+    int maxbuf_count = 0;
+    bool IsUTF8 = FALSE;
+    int result = SASL_FAIL;
+    const char *authid, *userid;
+    int user_result = SASL_OK;
+    int auth_result = SASL_OK;
+    int pass_result = SASL_OK;
+    int realm_result = SASL_OK;
+    int algorithm_count = 0;
     
     params->utils->log(params->utils->conn, SASL_LOG_DEBUG,
 		       "DIGEST-MD5 client step 2");
@@ -3235,19 +3223,19 @@ digestmd5_client_mech_step2(context_t *text,
 	if (strcasecmp(name, "realm") == 0) {
 	    nrealm++;
 	    
-	    if(!realm)
-		realm = params->utils->malloc(sizeof(char *) * (nrealm + 1));
+	    if(!realms)
+		realms = params->utils->malloc(sizeof(char *) * (nrealm + 1));
 	    else
-		realm = params->utils->realloc(realm, 
-					       sizeof(char *) * (nrealm + 1));
+		realms = params->utils->realloc(realms, 
+						sizeof(char *) * (nrealm + 1));
 	    
-	    if (realm == NULL) {
+	    if (realms == NULL) {
 		result = SASL_NOMEM;
 		goto FreeAllocatedMem;
 	    }
 	    
-	    _plug_strdup(params->utils, value, &realm[nrealm-1], NULL);
-	    realm[nrealm] = NULL;
+	    _plug_strdup(params->utils, value, &realms[nrealm-1], NULL);
+	    realms[nrealm] = NULL;
 	} else if (strcasecmp(name, "nonce") == 0) {
 	    _plug_strdup(params->utils, value, (char **) &text->global->nonce,
 			 NULL);
@@ -3388,9 +3376,7 @@ digestmd5_client_mech_step2(context_t *text,
     
     /* try to get the authid */
     if (oparams->authid == NULL) {
-	auth_result = _plug_get_authid(params->utils,
-				       (const char **) &text->authid,
-				       prompt_need);
+	auth_result = _plug_get_authid(params->utils, &authid, prompt_need);
 	
 	if ((auth_result != SASL_OK) && (auth_result != SASL_INTERACT)) {
 	    result = auth_result;
@@ -3400,13 +3386,11 @@ digestmd5_client_mech_step2(context_t *text,
     
     /* try to get the userid */
     if (oparams->user == NULL) {
-	user_result = _plug_get_userid(params->utils,
-				       (const char **) &text->userid,
-				       prompt_need);
+	user_result = _plug_get_userid(params->utils, &userid, prompt_need);
 	
 	/* Steal it from the authid */
 	if ((user_result != SASL_OK) && (user_result != SASL_INTERACT)) {
-	    text->userid = text->authid;
+	    userid = authid;
 	}
     }
     
@@ -3422,10 +3406,10 @@ digestmd5_client_mech_step2(context_t *text,
     /* try to get the realm, if needed */
     if (nrealm == 1 && text->realm == NULL) {
 	/* only one choice! */
-	text->realm = realm[0];
+	text->realm = realms[0];
     }
     if (text->realm == NULL) {
-	realm_result = _plug_get_realm(params->utils, (const char **) realm,
+	realm_result = _plug_get_realm(params->utils, (const char **) realms,
 				       (const char **) &text->realm,
 				       prompt_need);
 	
@@ -3455,9 +3439,9 @@ digestmd5_client_mech_step2(context_t *text,
 	int result = SASL_OK;
 	/* make our default realm */
 	if ((realm_result == SASL_INTERACT) && params->serverFQDN) {
-	    text->realm_chal = params->utils->malloc(3+strlen(params->serverFQDN));
-	    if (text->realm_chal) {
-		sprintf(text->realm_chal, "{%s}", params->serverFQDN);
+	    realm_chal = params->utils->malloc(3+strlen(params->serverFQDN));
+	    if (realm_chal) {
+		sprintf(realm_chal, "{%s}", params->serverFQDN);
 	    } else {
 		result = SASL_NOMEM;
 	    }
@@ -3473,7 +3457,7 @@ digestmd5_client_mech_step2(context_t *text,
 				   pass_result == SASL_INTERACT ?
 				   "Please enter your password" : NULL, NULL,
 				   NULL, NULL, NULL,
-				   text->realm_chal ? text->realm_chal : "{}",
+				   realm_chal ? realm_chal : "{}",
 				   realm_result == SASL_INTERACT ?
 				   "Please enter your realm" : NULL,
 				   params->serverFQDN ? params->serverFQDN : NULL);
@@ -3484,14 +3468,14 @@ digestmd5_client_mech_step2(context_t *text,
 	    params->utils->free(text->global->nonce);
 	    text->global->nonce = NULL;
 	}
-	if (realm) {
+	if (realms) {
 	    int lup;
 	    
 	    /* need to free all the realms */
 	    for (lup = 0; lup < nrealm; lup++)
-		params->utils->free(realm[lup]);
+		params->utils->free(realms[lup]);
 	    
-	    params->utils->free(realm);
+	    params->utils->free(realms);
 	}
 	
 	/* need to NULL the realm for the next pass */
@@ -3504,13 +3488,13 @@ digestmd5_client_mech_step2(context_t *text,
     
     if (oparams->authid == NULL) {
 	result = params->canon_user(params->utils->conn,
-				    text->authid, 0, SASL_CU_AUTHID, oparams);
+				    authid, 0, SASL_CU_AUTHID, oparams);
 	if (result != SASL_OK) goto FreeAllocatedMem;
     }
     
     if (oparams->user == NULL) {
 	result = params->canon_user(params->utils->conn,
-				    text->userid, 0, SASL_CU_AUTHZID, oparams);
+				    userid, 0, SASL_CU_AUTHZID, oparams);
 	if (result != SASL_OK) goto FreeAllocatedMem;
     }
     
@@ -3643,14 +3627,14 @@ digestmd5_client_mech_step2(context_t *text,
   FreeAllocatedMem:
     if (in_start) params->utils->free(in_start);
     
-    if (realm) {
+    if (realms) {
 	int lup;
 	
 	/* need to free all the realms */
 	for (lup = 0;lup < nrealm; lup++)
-	    params->utils->free(realm[lup]);
+	    params->utils->free(realms[lup]);
 	
-	params->utils->free(realm);
+	params->utils->free(realms);
     }
     
     /* if we failed, re-initialize everything for a fresh start */

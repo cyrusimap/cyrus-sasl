@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.139 2004/06/16 17:47:41 ken3 Exp $
+ * $Id: server.c,v 1.140 2004/06/18 21:22:27 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -133,6 +133,7 @@ int sasl_setpass(sasl_conn_t *conn,
     void *context = NULL;
     int tried_setpass = 0;
     mechanism_t *m;
+    char *current_mech;
      
     if (!_sasl_server_active || !mechlist) return SASL_NOTINIT;
 
@@ -143,6 +144,20 @@ int sasl_setpass(sasl_conn_t *conn,
     if ((!(flags & SASL_SET_DISABLE) && passlen == 0)
         || ((flags & SASL_SET_CREATE) && (flags & SASL_SET_DISABLE)))
 	PARAMERROR(conn);
+
+    /* Check that we have an active SASL mechanism */
+    if (sasl_getprop (conn,
+		      SASL_MECHNAME,
+		      (const void **) &current_mech) != SASL_OK) {
+	current_mech = NULL;
+    }
+
+    if ( (flags & SASL_SET_CURMECH_ONLY) &&
+	 (current_mech == NULL) ) {
+	sasl_seterror( conn, SASL_NOLOG,
+                  "No current SASL mechanism available");
+	RETURN(conn, SASL_BADPARAM);
+    }
 
     /* Do we want to store SASL_AUX_PASSWORD_PROP (plain text)?  and
      * Do we have an auxprop backend that can store properties?
@@ -201,6 +216,13 @@ int sasl_setpass(sasl_conn_t *conn,
     for (m = mechlist->mech_list; m; m = m->next) {
 	if (!m->plug->setpass) {
 	    /* can't set pass for this mech */
+	    continue;
+	}
+
+	/* Invoke only one setpass for the currently selected mechanism,
+	   if SASL_SET_CURMECH_ONLY is specified */
+	if ((flags & SASL_SET_CURMECH_ONLY) &&
+	    (strcmp(current_mech, m->plug->mech_name) != 0)) {
 	    continue;
 	}
 

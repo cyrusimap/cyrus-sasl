@@ -1087,6 +1087,8 @@ LIBSASL_API int sasl_setpass(sasl_conn_t *conn,
 #define SASL_SET_CREATE  0x01   /* create a new entry for user */
 #define SASL_SET_DISABLE 0x02	/* disable user account */
 #define SASL_SET_NOPLAIN 0x04	/* do not store secret in plain text */
+#define SASL_SET_CURMECH_ONLY 0x08	/* set the mechanism specific password only.
+					   fail if no current mechanism */
 
 /*********************************************************
  * Auxiliary Property Support -- added by cjn 1999-09-29 *

@@ -3,6 +3,8 @@
 	  not just *.rc. This will allow for plugins with own resource files.
 	  Also corrected spelling mistake in OPENSSL (Alexey Melnikov
 	  <Alexey.Melnikov@isode.com>)
+	* lib/server.c, include/sasl.h: Support for SASL_SET_CURMECH_ONLY
+	  flag to sasl_setpass() (Alexey Melnikov <Alexey.Melnikov@isode.com>)
 
 2004-06-16  Ken Murchison <ken@oceana.com>
 	* lib/server.c: use more accurate errors codes for mech_permitted()

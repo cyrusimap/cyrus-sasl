@@ -990,6 +990,16 @@ static int dec_3des(void *v,
 		   unsigned *outputlen)
 {
     context_t *text = (context_t *) v;
+
+    des_ede2_cbc_encrypt((des_cblock *) input,
+			 (des_cblock *) output,
+			 inputlen,
+			 text->keysched_dec,
+			 text->keysched_dec2,
+			 &text->ivec_enc,
+			 DES_DECRYPT);
+
+#if 0
     unsigned int lup;
 
     for (lup=0;lup<inputlen;lup+=8)
@@ -1013,6 +1023,7 @@ static int dec_3des(void *v,
 			DES_DECRYPT);
 	
     }
+#endif
     
     /* now chop off the padding */
     *outputlen=inputlen - (output)[inputlen-11]-10;
@@ -1030,20 +1041,30 @@ int enc_3des(void *v,
 	     char *output,
 	     unsigned *outputlen)
 {
-  context_t *text = (context_t *) v;
-  int len;
-  int lup;
-  int paddinglen;
-  
-  /* determine padding length */
-  paddinglen=8- ((inputlen+10)%8);
-
-  /* now construct the full stuff to be ciphered */
-  memcpy(output, input, inputlen);                /* text */
-  memset(output+inputlen, paddinglen, paddinglen);/* pad  */
-  memcpy(output+inputlen+paddinglen, digest, 10); /* hmac */
-
-  len=inputlen+paddinglen+10;
+    context_t *text = (context_t *) v;
+    int len;
+    int paddinglen;
+    
+    /* determine padding length */
+    paddinglen= 8 - ((inputlen+10)%8);
+    
+    /* now construct the full stuff to be ciphered */
+    memcpy(output, input, inputlen);                /* text */
+    memset(output+inputlen, paddinglen, paddinglen);/* pad  */
+    memcpy(output+inputlen+paddinglen, digest, 10); /* hmac */
+    
+    len=inputlen+paddinglen+10;
+    
+    des_ede2_cbc_encrypt((des_cblock *) output,
+			 (des_cblock *) output,
+			 len,
+			 text->keysched_enc,
+			 text->keysched_enc2,
+			 &text->ivec_enc,
+			 DES_ENCRYPT);
+    
+#if 0
+    int lup;
 
   for (lup=0;lup<len;lup+=8)
   {
@@ -1064,6 +1085,7 @@ int enc_3des(void *v,
 		    DES_ENCRYPT);
 
   }
+#endif
 
   *outputlen=len;
 

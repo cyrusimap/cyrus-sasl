@@ -10,6 +10,10 @@ PLUGINS_EXT=
 PLUGINS_EXT=$(PLUGINS_EXT) saslGSSAPI.dll
 !ENDIF 
 
+!IF "$(SRP)" == "1"
+PLUGINS_EXT=$(PLUGINS_EXT) saslSRP.dll
+!ENDIF 
+
 PLUGINS=saslANONYMOUS.dll \
 	saslPLAIN.dll \
 	saslCRAMMD5.dll \
@@ -52,7 +56,11 @@ saslGSSAPI_sources = gssapi.c gssapiv2_init.c $(common_sources)
 saslGSSAPI_objs = gssapi.obj gssapiv2_init.obj $(common_objs)
 saslGSSAPI_out = saslGSSAPI.dll saslGSSAPI.exp saslGSSAPI.lib
 
-!IF "$(NTLM)" == "1"
+saslSRP_sources = srp.c srp_init.c $(common_sources)
+saslSRP_objs = srp.obj srp_init.obj $(common_objs)
+saslSRP_out = saslSRP.dll saslSRP.exp saslSRP.lib
+
+!IF "$(NTLM)" == "1" || "$(SRP)" == "1"
 OPENSLL_FLAGS= /I $(OPENSSL_INCLUDE)
 !ELSE 
 OPENSLL_FLAGS=
@@ -74,8 +82,8 @@ saslSASLDB_sources = sasldb.c sasldb_init.c $(libsasldb_sources) $(common_source
 saslSASLDB_objs = sasldb.obj sasldb_init.obj $(libsasldb_objs) $(common_objs)
 saslSASLDB_out = saslSASLDB.dll saslSASLDB.exp saslSASLDB.lib
 
-all_objs = $(saslANONYMOUS_objs) $(saslPLAIN_objs) $(saslCRAMMD5_objs) $(saslDIGESTMD5_objs) $(saslLOGIN_objs) $(saslNTLM_objs) $(saslGSSAPI_objs) $(saslSASLDB_objs)
-all_out = $(saslANONYMOUS_out) $(saslPLAIN_out) $(saslCRAMMD5_out) $(saslDIGESTMD5_out) $(saslLOGIN_out) $(saslNTLM_out) $(saslGSSAPI_out) $(saslSASLDB_out)
+all_objs = $(saslANONYMOUS_objs) $(saslPLAIN_objs) $(saslCRAMMD5_objs) $(saslDIGESTMD5_objs) $(saslLOGIN_objs) $(saslNTLM_objs) $(saslGSSAPI_objs) $(saslSRP_objs) $(saslSASLDB_objs)
+all_out = $(saslANONYMOUS_out) $(saslPLAIN_out) $(saslCRAMMD5_out) $(saslDIGESTMD5_out) $(saslLOGIN_out) $(saslNTLM_out) $(saslGSSAPI_out) $(saslSRP_out) $(saslSASLDB_out)
 
 !IF "$(OS)" == "Windows_NT"
 NULL=
@@ -165,6 +173,10 @@ saslNTLM.dll: $(saslNTLM_objs)
 
 saslGSSAPI.dll: $(saslGSSAPI_objs)
 	$(LINK32) @<< $(GSS_LIBS) $(LINK32_FLAGS) /out:"saslGSSAPI.dll" /implib:"saslGSSAPI.lib" $(saslGSSAPI_objs)
+<<
+
+saslSRP.dll: $(saslSRP_objs)
+	$(LINK32) @<< $(OPENSSL_LIBS) $(LINK32_FLAGS) /out:"saslSRP.dll" /implib:"saslSRP.lib" $(saslSRP_objs)
 <<
 
 saslSASLDB.dll: $(saslSASLDB_objs)

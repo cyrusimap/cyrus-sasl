@@ -1110,6 +1110,7 @@ sasl_gss_client_step (void *conn_context,
 	sasl_security_properties_t secprops = params->props;
 	unsigned int alen, external = params->external_ssf;
 	sasl_ssf_t need, allowed;
+	char serverhas;
 
 	if (serverinlen)
 	  {
@@ -1144,23 +1145,24 @@ sasl_gss_client_step (void *conn_context,
 	/* need bits of layer */
 	allowed = secprops.max_ssf - external;
 	need = secprops.min_ssf - external;
+	serverhas = ((char *)output_token->value)[0];
 
 	/* if client didn't set use strongest layer available */
-	if (allowed >= 56 && need <= 56 && (text->ssf & 4)) {
+	if (allowed >= 56 && need <= 56 && (serverhas & 4)) {
 	    /* encryption */
 	    oparams->encode = &sasl_gss_privacy_encode;
 	    oparams->decode = &sasl_gss_decode;
 	    oparams->mech_ssf = 56;
 	    text->ssf = 4;
 	    DEBUG ((stderr,"Using encryption layer\n"));
-	} else if (allowed >= 1 && need <= 1 && (text->ssf & 2)) {
+	} else if (allowed >= 1 && need <= 1 && (serverhas & 2)) {
 	    /* integrity */
 	    oparams->encode = &sasl_gss_integrity_encode;
 	    oparams->decode = &sasl_gss_decode;
 	    oparams->mech_ssf = 1;
 	    text->ssf = 2;
 	    DEBUG ((stderr,"Using integrity layer\n"));
-	} else if (need <= 0 && (text->ssf & 1)) {
+	} else if (need <= 0 && (serverhas & 1)) {
 	    /* no layer */
 	    oparams->encode = NULL;
 	    oparams->decode = NULL;

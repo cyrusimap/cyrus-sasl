@@ -18,8 +18,9 @@ Mechs to write
 
 SRP
 ~~~
-) Add confidentiality layers
+) Add support for maxbuffersize
 ) Cleanup code (debug/error messages, etc)
+) testing
 
 OTP
 ~~~

@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.10 2001/12/15 01:26:13 ken3 Exp $
+ * $Id: srp.c,v 1.11 2001/12/16 04:46:12 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -84,6 +84,8 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 #define BITSFORab 64
 /* How many bytes big should the salt be? */
 #define SRP_SALT_SIZE 16
+/* Size limit of SRP buffer */
+#define MAXBUFFERSIZE 2147483643
 
 #define OPTION_REPLAY_DETECTION	"replay detection"
 #define OPTION_INTEGRITY	"integrity="
@@ -176,6 +178,7 @@ typedef struct srp_options_s {
     unsigned integrity;		/* bitmask of integrity layers */
     unsigned confidentiality;	/* bitmask of confidentiality layers */
     unsigned mandatory;		/* bitmask of mandatory layers */
+    unsigned long maxbufsize;	/* max # bytes processed by security layer */
 } srp_options_t;
 
 /* The main SRP context */
@@ -243,20 +246,25 @@ typedef struct context_s {
  *******************************************/
 
 
+#ifndef EVP_MAX_BLOCK_LENGTH
+#define EVP_MAX_BLOCK_LENGTH 32
+#endif
+
 static int
 layer_encode(void *context,
-		 const struct iovec *invec,
-		 unsigned numiov,
-		 const char **output,
-		 unsigned *outputlen)
+	     const struct iovec *invec,
+	     unsigned numiov,
+	     const char **output,
+	     unsigned *outputlen)
 {
-  context_t      *text = (context_t *) context;
+  context_t *text = (context_t *) context;
   int hashlen = 0;
   char hashdata[EVP_MAX_MD_SIZE];
   int tmpnum;
   int ret;
   char *input;
   unsigned inputlen;
+  char *encdata = NULL;
 
   assert(numiov > 0);
 
@@ -265,6 +273,53 @@ layer_encode(void *context,
   
   input = text->enc_in_buf->data;
   inputlen = text->enc_in_buf->curlen;
+
+  if (text->enabled & BIT_CONFIDENTIALITY) {
+      EVP_CIPHER_CTX ctx;
+      unsigned char IV[EVP_MAX_IV_LENGTH];
+      unsigned char block1[EVP_MAX_BLOCK_LENGTH];
+      unsigned k = 8 * EVP_CIPHER_block_size(text->cipher); /* XXX bug? */
+      unsigned enclen = 0;
+      unsigned tmplen;
+
+      encdata = text->utils->malloc(inputlen + 2 * k);
+      if (!encdata) return SASL_NOMEM;
+
+      EVP_CIPHER_CTX_init(&ctx);
+
+      memset(IV, 0, sizeof(IV));
+      EVP_EncryptInit(&ctx, text->cipher, text->K, IV);
+
+      /* construct the first block so that octets #k-1 and #k
+       * are exact copies of octets #1 and #2
+       */
+      text->utils->rand(text->utils->rpool, block1, k - 2);
+      memcpy(block1 + k-2, block1, 2);
+
+      if (!EVP_EncryptUpdate(&ctx, encdata, &tmplen, block1, k)) {
+	  text->utils->free(encdata);
+	  return SASL_FAIL;
+      }
+      enclen += tmplen;
+	  
+      if (!EVP_EncryptUpdate(&ctx, encdata + enclen, &tmplen,
+			     input, inputlen)) {
+	  text->utils->free(encdata);
+	  return SASL_FAIL;
+      }
+      enclen += tmplen;
+	  
+      if (!EVP_EncryptFinal(&ctx, encdata + enclen, &tmplen)) {
+	  text->utils->free(encdata);
+	  return SASL_FAIL;
+      }
+      enclen += tmplen;
+
+      EVP_CIPHER_CTX_cleanup(&ctx);
+
+      input = encdata;
+      inputlen = enclen;
+  }
 
   if (text->enabled & BIT_INTEGRITY) {
       HMAC_CTX hmac_ctx;
@@ -295,6 +350,8 @@ layer_encode(void *context,
   memcpy( (char *) (*output)+4, input, inputlen);
   memcpy( (char *) (*output)+4+inputlen, hashdata, hashlen);
   
+  if (encdata) text->utils->free(encdata);
+
   return SASL_OK;
 }
 
@@ -307,6 +364,7 @@ decode(context_t *text,
        unsigned *outputlen)
 {
     int hashlen = 0;
+    char *decdata = NULL;
 
     if (text->enabled & BIT_INTEGRITY) {
 	int tmpnum;
@@ -346,11 +404,62 @@ decode(context_t *text,
 	}
     }
 
-    *output = text->utils->malloc(inputlen - hashlen);
+    if (text->enabled & BIT_CONFIDENTIALITY) {
+	EVP_CIPHER_CTX ctx;
+	unsigned char IV[EVP_MAX_IV_LENGTH];
+	unsigned char block1[EVP_MAX_BLOCK_LENGTH];
+	unsigned k = 8 * EVP_CIPHER_block_size(text->cipher); /* XXX bug? */
+	unsigned declen = 0;
+	unsigned tmplen;
+
+	decdata = text->utils->malloc(inputlen - hashlen);
+	if (!decdata) return SASL_NOMEM;
+
+	EVP_CIPHER_CTX_init(&ctx);
+
+	memset(IV, 0, sizeof(IV));
+	EVP_DecryptInit(&ctx, text->cipher, text->K, IV);
+
+	/* check the first block and see if octets #k-1 and #k
+	 * are exact copies of octects #1 and #2
+	 */
+	if (!EVP_DecryptUpdate(&ctx, block1, &tmplen, (char*) input, k)) {
+	    text->utils->free(decdata);
+	    return SASL_FAIL;
+	}
+
+	if ((block1[0] != block1[k-2]) || (block1[1] != block1[k-1])) {
+	    text->utils->free(decdata);
+	    return SASL_BADAUTH;
+	}
+	  
+	if (!EVP_DecryptUpdate(&ctx, decdata, &tmplen, (char*) input + k,
+			       inputlen - k - hashlen)) {
+	    text->utils->free(decdata);
+	    return SASL_FAIL;
+	}
+	declen += tmplen;
+	  
+	if (!EVP_DecryptFinal(&ctx, decdata + declen, &tmplen)) {
+	    text->utils->free(decdata);
+	    return SASL_FAIL;
+	}
+	declen += tmplen;
+
+	EVP_CIPHER_CTX_cleanup(&ctx);
+
+	input = decdata;
+	*outputlen = declen;
+    } else {
+	*outputlen = inputlen - hashlen;
+    }
+
+    *output = text->utils->malloc(*outputlen);
     if (!*output) return SASL_NOMEM;
 
-    *outputlen = inputlen - hashlen;
     memcpy( (char *) *output, input, *outputlen);
+
+    if (decdata) text->utils->free(decdata);
 
     return SASL_OK;
 }
@@ -1399,6 +1508,7 @@ ParseOptionString(char *str, srp_options_t *opts, int isserver)
 	    return SASL_FAIL;
 	}
 	opts->replay_detection = 1;
+
     } else if (!strncasecmp(str, OPTION_INTEGRITY, strlen(OPTION_INTEGRITY))) {
 
 	int bit = FindBit(str+strlen(OPTION_INTEGRITY), integrity_options);
@@ -1438,6 +1548,15 @@ ParseOptionString(char *str, srp_options_t *opts, int isserver)
 			      strlen(OPTION_CONFIDENTIALITY)-1))
 	    opts->mandatory |= BIT_CONFIDENTIALITY;
 	else
+	    return SASL_FAIL;
+
+    } else if (!strncasecmp(str, OPTION_MAXBUFFERSIZE,
+			    strlen(OPTION_MAXBUFFERSIZE))) {
+
+	int n = sscanf(str+strlen(OPTION_MAXBUFFERSIZE),
+		       "%lu", &opts->maxbufsize);
+
+	if ((n != 1) || (opts->maxbufsize > MAXBUFFERSIZE))
 	    return SASL_FAIL;
 
     } else {
@@ -1659,6 +1778,8 @@ CreateClientOpts(sasl_client_params_t *params,
 	
 	if (iopt) {
 	    out->integrity = iopt->bit;
+
+	    /* if we set an integrity option we can set replay detection */
 	    out->replay_detection = available->replay_detection;
 	}
 	else if (musthave > 0) {
@@ -1710,6 +1831,7 @@ SetOptions(srp_options_t *opts,
     
     oparams->encode = &layer_encode;
     oparams->decode = &layer_decode;
+    oparams->maxoutbuf = opts->maxbufsize ? opts->maxbufsize : MAXBUFFERSIZE;
 
     if (opts->replay_detection) {
 	text->enabled |= BIT_REPLAY_DETECTION;

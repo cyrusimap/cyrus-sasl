@@ -1,3 +1,6 @@
+2001-12-15  Ken Murchison <ken@oceana.com>
+	* plugins/srp.c: added confidentiality layers
+
 2001-12-14  Ken Murchison <ken@oceana.com>
 	* plugins/srp.c: improved client/server layer option handling
 	* plugins/srp.c: added client-side support for mandatory options

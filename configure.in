@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.83 2000/03/29 04:45:44 leg Exp $
+dnl $Id: configure.in,v 1.84 2000/04/09 07:51:00 leg Exp $
 dnl
 dnl Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -333,7 +333,8 @@ if test "$with_des" != no; then
     CPPFLAGS="$CPPFLAGS -I${with_des}/include"
     LDFLAGS="$LDFLAGS -I${with_des}/lib"
   fi
-  AC_CHECK_LIB(des, des_pcbc_encrypt, with_des=yes, with_des=no)
+  AC_CHECK_LIB(des, des_pcbc_encrypt, [LIB_DES="-ldes";
+				       with_des=yes], with_des=no)
 
   if test "$with_des" = no; then
     dnl if openssl is around, we might be able to use that for des
@@ -347,6 +348,7 @@ if test "$with_des" != no; then
 
     AC_CHECK_LIB(crypto, des_pcbc_encrypt, 
 	AC_CHECK_HEADER(openssl/des.h, [AC_DEFINE(WITH_SSL_DES)
+					LIB_DES="-lcrypto";
 					with_des=yes],
 			with_des=no), 
         with_des=no, $LIB_RSAREF)
@@ -356,6 +358,7 @@ fi
 if test "$with_des" != no; then
   AC_DEFINE(WITH_DES)
 fi
+AC_SUBST(LIB_DES)
 
 if test "$digest" != no; then
   dnl In order to compile digest, we should look for need libdes.

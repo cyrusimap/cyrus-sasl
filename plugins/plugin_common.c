@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.c,v 1.7 2002/04/30 17:45:33 ken3 Exp $
+ * $Id: plugin_common.c,v 1.8 2002/05/13 14:39:48 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -325,6 +325,8 @@ int _plug_get_simple(const sasl_utils_t *utils, unsigned int id,
     void *simple_context;
     sasl_interact_t *prompt;
 
+    *result = NULL;
+
     /* see if we were given the result in the prompt */
     prompt = _plug_find_prompt(prompt_need, id);
     if (prompt != NULL) {
@@ -367,6 +369,7 @@ int _plug_get_password(const sasl_utils_t *utils, sasl_secret_t **password,
     void *pass_context;
     sasl_interact_t *prompt;
 
+    *password = NULL;
     *iscopy = 0;
 
     /* see if we were given the password in the prompt */
@@ -426,6 +429,8 @@ int _plug_challenge_prompt(const sasl_utils_t *utils, unsigned int id,
     void *chalprompt_context;
     sasl_interact_t *prompt;
 
+    *result = NULL;
+
     /* see if we were given the password in the prompt */
     prompt = _plug_find_prompt(prompt_need, id);
     if (prompt != NULL) {
@@ -469,6 +474,8 @@ int _plug_get_realm(const sasl_utils_t *utils, const char **availrealms,
     sasl_getrealm_t *realm_cb;
     void *realm_context;
     sasl_interact_t *prompt;
+
+    *realm = NULL;
 
     /* see if we were given the result in the prompt */
     prompt = _plug_find_prompt(prompt_need, SASL_CB_GETREALM);

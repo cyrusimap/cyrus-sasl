@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.47 1999/08/26 16:22:43 leg Exp $
+ * $Id: server.c,v 1.48 1999/08/26 16:24:14 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -1065,32 +1065,32 @@ static int _sasl_checkpass(sasl_conn_t *conn,
     int result = SASL_NOMECH;
 
 #ifdef HAVE_PAM
-    if (!strcmp(mech, "PAM")) {
+    if (!strcasecmp(mech, "PAM")) {
 	result = _sasl_PAM_verify_password(conn, user, pass, service, NULL);
     } else
 #endif
 #ifndef SASL_MINIMAL_SERVER
-    if (!strcmp(mech, "passwd")) {
+    if (!strcasecmp(mech, "passwd")) {
 	result = _sasl_passwd_verify_password(conn, user, pass, NULL);
     } else
-    if (!strcmp(mech, "shadow")) {
+    if (!strcasecmp(mech, "shadow")) {
 	result = _sasl_shadow_verify_password(conn, user, pass, NULL);
     } else
 #endif /* SASL_MINIMAL_SERVER */
 #ifdef HAVE_KRB
-    if (!strcmp(mech, "kerberos_v4")) {
+    if (!strcasecmp(mech, "kerberos_v4")) {
 	/* check against krb */
 	result = _sasl_kerberos_verify_password(conn, user, pass, 
 						service, NULL);
     } else
 #endif
 #ifdef HAVE_PWCHECK
-    if (!strcmp(mech, "pwcheck")) {
+    if (!strcasecmp(mech, "pwcheck")) {
 	/* check against pwcheck daemon */
 	result = _sasl_pwcheck_verify_password(conn, user, pass, NULL);
     } else
 #endif
-    if (!strcmp(mech, "sasldb")) {
+    if (!strcasecmp(mech, "sasldb")) {
 	/* check sasl database */
 	result = _sasl_sasldb_verify_password(conn, user, pass, NULL);
     }

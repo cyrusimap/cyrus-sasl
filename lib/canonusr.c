@@ -1,6 +1,6 @@
 /* canonusr.c - user canonicalization support
  * Rob Siemborski
- * $Id: canonusr.c,v 1.2 2001/12/04 02:05:25 rjs3 Exp $
+ * $Id: canonusr.c,v 1.3 2001/12/06 18:12:16 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -128,7 +128,12 @@ int _sasl_canon_user(sasl_conn_t *conn,
     }
 
     /* We clearly don't have this one! */
-    if(!ptr) return SASL_NOMECH;
+    if(!ptr) {
+	sasl_seterror(conn, 0, "desired canon_user plugin %s not found",
+		      plugin_name);
+	return SASL_NOMECH;
+    }
+    
     
     if(sconn) {
 	/* we're a server */

@@ -1109,7 +1109,7 @@ sasl_gss_client_step (void *conn_context,
       {
 	sasl_security_properties_t secprops = params->props;
 	unsigned int alen, external = params->external_ssf;
-	int need = 0;
+	sasl_ssf_t need, allowed;
 
 	if (serverinlen)
 	  {
@@ -1135,46 +1135,43 @@ sasl_gss_client_step (void *conn_context,
 	  }
 	
 	/* taken from kerberos.c */
-	if (secprops.min_ssf > 56 + external) {
+	if (secprops.min_ssf > (56 + external)) {
 	    return SASL_TOOWEAK;
 	} else if (secprops.min_ssf > secprops.max_ssf) {
 	    return SASL_BADPARAM;
 	}
 
 	/* need bits of layer */
-	need = secprops.max_ssf - external;
+	allowed = secprops.max_ssf - external;
+	need = secprops.min_ssf - external;
 
-	/* if client didn't set use strongest layer */
-	if (need >= 56) {
+	/* if client didn't set use strongest layer available */
+	if (allowed >= 56 && need <= 56 && (text->ssf & 4)) {
 	    /* encryption */
 	    oparams->encode = &sasl_gss_privacy_encode;
 	    oparams->decode = &sasl_gss_decode;
 	    oparams->mech_ssf = 56;
 	    text->ssf = 4;
 	    DEBUG ((stderr,"Using encryption layer\n"));
-	} else if (need >= 1) {
+	} else if (allowed >= 1 && need <= 1 && (text->ssf & 2)) {
 	    /* integrity */
 	    oparams->encode = &sasl_gss_integrity_encode;
 	    oparams->decode = &sasl_gss_decode;
 	    oparams->mech_ssf = 1;
 	    text->ssf = 2;
 	    DEBUG ((stderr,"Using integrity layer\n"));
-	} else {
+	} else if (need <= 0 && (text->ssf & 1)) {
 	    /* no layer */
 	    oparams->encode = NULL;
 	    oparams->decode = NULL;
 	    oparams->mech_ssf = 0;
 	    text->ssf = 1;
 	    DEBUG ((stderr,"Using no layer\n"));
-	}
-
-	/* server told me what layers support. 
-	   make sure trying one it supports */
-	if ( (((char *)output_token->value)[0] & text->ssf) == 0 )
-	  {
+	} else {
+	    /* there's no appropriate layering for us! */
 	    sasl_gss_free_context_contents(text);
-	    return SASL_WRONGMECH;
-	  }
+	    return SASL_TOOWEAK;
+	}
 	
 	params->utils->free(output_token->value);
 	output_token->value = NULL;

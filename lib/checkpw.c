@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.63 2003/07/17 19:46:15 rjs3 Exp $
+ * $Id: checkpw.c,v 1.64 2003/07/22 21:44:32 rjs3 Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -92,8 +92,6 @@
 # ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 # endif
-
-extern int errno;
 #endif
 
 

@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.134 2002/06/12 15:33:55 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.135 2002/06/19 16:09:02 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -103,7 +103,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.134 2002/06/12 15:33:55 rjs3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.135 2002/06/19 16:09:02 rjs3 Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -2465,7 +2465,7 @@ digestmd5_server_mech_step2(server_context_t *stext,
     text->needsize = 4;
     text->buffer = NULL;
     
-    if (oparams->mech_ssf > 1) {
+    if (oparams->mech_ssf > 0) {
 	char enckey[16];
 	char deckey[16];
 	

@@ -1,4 +1,7 @@
 2004-07-06  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/digestmd5.c: Fix potential buffer overflow, call
+	  add_to_challenge in 2 more places (Alexey Melnikov
+	  <Alexey.Melnikov@isode.com>)
 	* lib/server.c, lib/saslint.h, lib/common.c: don't directly
 	  store buffers in the params structure
 	* plugins/gssapi.c: Fix server side maxoutbuf calculation

@@ -229,18 +229,18 @@ int _sasl_server_check_db(const sasl_callback_t *verifyfile_cb)
     if (ret == SASL_OK) {
 	sprintf(db, "%s%s", path, DBM_SUFFIX);
 	ret = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(
-	    verifyfile_cb->context, db);
+	    verifyfile_cb->context, db, SASL_VRFY_PASSWD);
     }
 #else
     if (ret == SASL_OK) {
 	sprintf(db, "%s.dir", path);
 	ret = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(
-	    verifyfile_cb->context, db);
+	    verifyfile_cb->context, db, SASL_VRFY_PASSWD);
     }
     if (ret == SASL_OK) {
 	sprintf(db, "%s.pag", path);
 	ret = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(
-	    verifyfile_cb->context, db);
+	    verifyfile_cb->context, db, SASL_VRFY_PASSWD);
     }
 #endif
     if (db) {

@@ -619,7 +619,8 @@ _sasl_getpath(void *context __attribute__((unused)),
 
 static int
 _sasl_verifyfile(void *context __attribute__((unused)),
-		 char *file  __attribute__((unused)))
+		 char *file  __attribute__((unused)),
+		 int type  __attribute__((unused)))
 {
   /* always say ok */
   return SASL_OK;

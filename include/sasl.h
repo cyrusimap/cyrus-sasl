@@ -390,6 +390,7 @@ typedef int sasl_getpath_t(void * context,
  * inputs: 
  *  context     -- verifypath context from the callback record
  *  file        -- full path to file to verify
+ *  type        -- type of file to verify
 
  * returns:
  *  SASL_OK        -- no error (file can safely be used)
@@ -397,9 +398,15 @@ typedef int sasl_getpath_t(void * context,
  *  SASL_FAIL      -- error 
  */
 typedef int sasl_verifyfile_t(void * context,
-                              const char * file);
+                              const char * file, const int type);
 
 #define SASL_CB_VERIFYFILE  (4)
+
+/* these are the types of files libsasl will ask about */
+#define SASL_VRFY_PLUGIN	(1)
+#define SASL_VRFY_CONF		(2)
+#define SASL_VRFY_PASSWD	(3)
+#define SASL_VRFY_OTHER		(4)
 
 /* client/user interaction callbacks:
  */

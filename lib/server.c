@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.65 2000/02/23 01:16:13 tmartin Exp $
+ * $Id: server.c,v 1.66 2000/02/23 07:15:27 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -548,7 +548,7 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
 
   /* Ask the application if it's safe to use this file */
   result = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(verifyfile_cb->context,
-							config_filename);
+					config_filename, SASL_VRFY_CONF);
 
   /* returns continue if this file is to be skipped */
   

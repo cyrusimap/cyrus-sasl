@@ -230,7 +230,7 @@ int _sasl_get_mech_list(const char *entryname,
 	
 	/* Ask the application if we should use this file or not */
 	result = ((sasl_verifyfile_t *)(verifyfile_cb->proc))
-	    (verifyfile_cb->context, tmp);
+	    (verifyfile_cb->context, tmp, SASL_VRFY_PLUGIN);
 	/* returns continue if this file is to be skipped */
 	if (result == SASL_CONTINUE) continue; 
 	

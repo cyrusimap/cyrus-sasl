@@ -209,7 +209,7 @@ int _sasl_server_check_db(const sasl_callback_t *verifyfile_cb)
     }
 
     ret = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(verifyfile_cb->context,
-						       path);
+						       path, SASL_VRFY_PASSWD);
     if (ret == SASL_OK) {
 	db_ok = 1;
     }

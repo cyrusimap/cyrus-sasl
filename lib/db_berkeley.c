@@ -1,6 +1,6 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Tim Martin
- * $Id: db_berkeley.c,v 1.9 2000/02/23 01:16:13 tmartin Exp $
+ * $Id: db_berkeley.c,v 1.10 2000/02/23 07:15:27 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -329,7 +329,7 @@ int _sasl_server_check_db(const sasl_callback_t *verifyfile_cb)
     }
 
     ret = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(verifyfile_cb->context,
-						       path);
+						       path, SASL_VRFY_PASSWD);
     if (ret == SASL_OK) {
 	db_ok = 1;
     }

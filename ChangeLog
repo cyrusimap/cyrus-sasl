@@ -1,3 +1,18 @@
+2000-02-23  Lawrence Greenfield  <leg+@andrew.cmu.edu>
+
+	* lib/common.c, lib/db_berkeley.c, lib/db_ndbm.c, lib/db_gdbm.c,
+	* lib/dlopen.c, lib/server.c: verifyfile fixup
+
+	* include/sasl.h: verifyfile callback changed at the request of
+	sendmail.org
+
+	* acconfig.h: some random includes in here were removed and placed
+	closer to the code that needs them
+
+	* lib/saslutil.c (getranddata): cleaned up, dead code
+	eliminated. DEV_RANDOM moved to config.h, gettimeofday() is used
+	if available.
+
 2000-02-22  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* win32/saslLOGIN: added; contributed by Geir Myrestrand

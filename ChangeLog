@@ -1,3 +1,21 @@
+2000-02-27  Larry Greenfield  <leg+@andrew.cmu.edu>
+
+	* plugins/plain.c: removed superfluous includes, brought in line
+	with new checkpass()
+	* plugins/login.c: removed superfluous includes, brought in line
+	with new checkpass()
+
+	* lib/server.c: changed _sasl_checkpass() to the new format for
+	checkpw.c; much cleaner code.
+
+	* lib/config.c: removed <syslog.h>; we weren't using it anyway
+
+	* lib/common.c: uses syslog(), so look for HAVE_SYSLOG.  removed
+	some conditional compilation code.
+
+	* lib/checkpw.c: cleaned up the code to export a structure
+	containing all the plaintext verifiers instead of functions.
+
 2000-02-24  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
 	* plugins/digestmd5.c: changed protocol version from unsigned int

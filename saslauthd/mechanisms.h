@@ -26,7 +26,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: mechanisms.h,v 1.8 2003/07/15 15:39:28 rjs3 Exp $"
+#ident "$Id: mechanisms.h,v 1.9 2003/07/25 12:32:10 rjs3 Exp $"
 #endif
 
 #ifndef _MECHANISMS_H
@@ -52,7 +52,7 @@ extern authmech_t *authmech;		/* auth mech daemon is using */
  * Figure out which optional drivers we support.
  */
 #ifndef AUTH_KRB5
-# if defined(HAVE_GSSAPI)
+# if defined(HAVE_KRB5_H) && defined(HAVE_GSSAPI)
 #  define AUTH_KRB5
 # endif
 #endif

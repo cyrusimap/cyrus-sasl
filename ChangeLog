@@ -1,3 +1,9 @@
+2003-07-25  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* cmulocal/sasl2.m4, saslauthd/mechanisms.h: Improved
+	  GSSAPI detection (don't default to MIT, require HAVE_KRB5_H
+	  for the kerberos5 saslauthd module)
+	  (Rainer Orth <ro@TechFak.Uni-Bielefeld.DE>)
+
 2003-07-21  Ken Murchison <ken@oceana.com>
 	* plugins/srp.c: updated security layer code to be closer to draft -08
 

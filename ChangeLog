@@ -2,7 +2,8 @@
 	* doc/draft-myers-saslrev-02.txt: moved TOC
 	* doc/draft-myers-saslrev-02.txt: added
 	* doc/draft-myers-saslrev-01.txt: deleted
-	* doc/index.html: changed link to updated draft
+	* doc/index.html: changed link to updated saslrev draft,
+	  added KERBEROS_V4 notation
 
 2002-04-03  Rob Siemborski <rjs3+@andrew.cmu.edu>
 	* saslauthd/configure.in: properly define AUTH_KRB5

@@ -2,7 +2,7 @@
  * Rob Siemborski (SASLv2 Conversion)
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.14 2002/04/18 18:19:31 rjs3 Exp $
+ * $Id: login.c,v 1.15 2002/04/24 22:00:49 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -69,6 +69,7 @@ typedef struct context {
     int state;
     sasl_secret_t *username;
     sasl_secret_t *password;
+    sasl_secret_t *password_free; /* use this if we need to free it */
 } context_t;
 
 static int login_server_mech_new(void *glob_context __attribute__((unused)), 
@@ -106,7 +107,8 @@ static void login_both_mech_dispose(void *conn_context,
 
   /* free sensitive info */
   _plug_free_secret(utils, &(text->username));
-  _plug_free_secret(utils, &(text->password));
+  if(text->password_free)
+      _plug_free_secret(utils, &(text->password_free));
 
   utils->free(text);
 }
@@ -200,6 +202,7 @@ login_server_mech_step(void *conn_context,
 
   if (text->state == 3) {
     int result;
+    sasl_secret_t *password;
 
     /* Catch really long passwords */
     if(clientinlen > 1024) {
@@ -208,24 +211,26 @@ login_server_mech_step(void *conn_context,
     }
 
     /* get password */
-    text->password = params->utils->malloc(sizeof(sasl_secret_t) + clientinlen + 1);
-    if (! text->password) {
+    password = params->utils->malloc(sizeof(sasl_secret_t) + clientinlen + 1);
+    if (!password) {
 	MEMERROR(params->utils);
 	return SASL_NOMEM;
     }
 
-    strncpy(text->password->data,clientin,clientinlen);
-    text->password->data[clientinlen] = '\0';
-    text->password->len = clientinlen;
+    strncpy(password->data,clientin,clientinlen);
+    password->data[clientinlen] = '\0';
+    password->len = clientinlen;
 
     /* verify_password - return sasl_ok on success */
 
     result = verify_password(params, text->username->data,
-			     text->password->data);
+			     password->data);
 
-    if (result != SASL_OK)
-      return result;
-
+    if (result != SASL_OK) {
+	_plug_free_secret(params->utils, &password);
+	return result;
+    }
+    
     result = params->canon_user(params->utils->conn, text->username->data, 0,
 				SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
     if(result != SASL_OK) return result;
@@ -233,9 +238,11 @@ login_server_mech_step(void *conn_context,
     if (params->transition)
     {
 	params->transition(params->utils->conn,
-			   text->password->data, text->password->len);
+			   password->data, password->len);
     }
     
+    _plug_free_secret(params->utils, &password);
+
     *serverout = NULL;
     *serveroutlen = 0;
 
@@ -382,9 +389,9 @@ static int get_userid(sasl_client_params_t *params,
   return result;
 }
 
-static int get_password(sasl_client_params_t *params,
-		      sasl_secret_t **password,
-		      sasl_interact_t **prompt_need)
+static int get_password(context_t *text,
+			sasl_client_params_t *params,
+			sasl_interact_t **prompt_need)
 {
 
   int result;
@@ -397,24 +404,24 @@ static int get_password(sasl_client_params_t *params,
   if (prompt!=NULL)
   {
       /* We prompted, and got.*/
-	
       if (! prompt->result) {
-	  SETERROR(params->utils, "Expected prompt result and got none in LOGIN");
+	  SETERROR(params->utils,
+		   "Expected prompt result and got none in LOGIN");
 	  return SASL_FAIL;
       }
       
-
       /* copy what we got into a secret_t */
-      *password = (sasl_secret_t *) params->utils->malloc(sizeof(sasl_secret_t)
-							  + prompt->len+1);
-      if (! *password) {
+      text->password_free = text->password =
+	  (sasl_secret_t *)params->utils->malloc(sizeof(sasl_secret_t)
+						 + prompt->len+1);
+      if (!text->password) {
 	  MEMERROR(params->utils);
 	  return SASL_NOMEM;
       }
 
-      (*password)->len=prompt->len;
-      memcpy((*password)->data, prompt->result, prompt->len);
-      (*password)->data[(*password)->len]=0;
+      text->password->len=prompt->len;
+      memcpy(text->password->data, prompt->result, prompt->len);
+      text->password->data[text->password->len]=0;
 
       return SASL_OK;
   }
@@ -427,10 +434,10 @@ static int get_password(sasl_client_params_t *params,
 				      &getpass_context);
 
   if (result == SASL_OK && getpass_cb)
-    result = getpass_cb(params->utils->conn,
-			getpass_context,
-			SASL_CB_PASS,
-			password);
+      result = getpass_cb(params->utils->conn,
+			  getpass_context,
+			  SASL_CB_PASS,
+			  &(text->password));
 
   return result;
 }
@@ -536,8 +543,8 @@ static int login_client_mech_step(void *conn_context,
 
       /* try to get the password */
       if (text->password==NULL) {
-	  pass_result=get_password(params,
-				   &text->password,
+	  pass_result=get_password(text,
+				   params,
 				   prompt_need);
       
 	  if ((pass_result!=SASL_OK) && (pass_result!=SASL_INTERACT))

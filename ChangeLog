@@ -1,3 +1,7 @@
+2002-04-23  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* plugins/cram.c, digestmd5.c, login.c, plain.c, srp.c: don't
+	  free the secret when we get data from a callback (and don't copy it)
+	
 2002-04-22  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* include/gai.h: Fix for compatibility with older glibc versions
 	  (Howard Chu, <hyc@highlandsun.com>)

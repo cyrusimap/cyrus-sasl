@@ -1,7 +1,7 @@
 /* CRAM-MD5 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: cram.c,v 1.65 2002/04/18 18:19:30 rjs3 Exp $
+ * $Id: cram.c,v 1.66 2002/04/24 22:00:48 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -76,7 +76,6 @@ static const char rcsid[] = "$Implementation: Carnegie Mellon SASL " VERSION " $
 #endif
 
 typedef struct context {
-
     int state;    /* holds state are in */
     char *msgid;  /* timestamp used for md5 transforms */
     int msgidlen;
@@ -85,10 +84,10 @@ typedef struct context {
 
     char *authid;
     sasl_secret_t *password;
+    sasl_secret_t *password_free;  /* use this if we need to free it */
 
     char *out_buf;
     unsigned out_buf_len;
-
 } context_t;
 
 static int crammd5_server_mech_new(void *glob_context __attribute__((unused)),
@@ -126,7 +125,8 @@ static void crammd5_both_mech_dispose(void *conn_context,
   /* get rid of all sensetive info */
   _plug_free_string(utils,&(text->msgid));
   _plug_free_string(utils,&(text->authid));
-  _plug_free_secret(utils,&(text->password));
+  if(text->password_free)
+      _plug_free_secret(utils,&(text->password_free));
 
   utils->free(text);
 }
@@ -657,9 +657,9 @@ static int get_authid(sasl_client_params_t *params,
 }
 
 
-static int get_password(sasl_client_params_t *params,
-		      sasl_secret_t **password,
-		      sasl_interact_t **prompt_need)
+static int get_password(context_t *text,
+			sasl_client_params_t *params,
+			sasl_interact_t **prompt_need)
 {
 
   int result;
@@ -671,21 +671,21 @@ static int get_password(sasl_client_params_t *params,
   if (prompt_need) prompt=find_prompt(*prompt_need,SASL_CB_PASS);
   if (prompt!=NULL)
   {
-    /* We prompted, and got.*/
-	
+      /* We prompted, and got.*/      
       if (! prompt->result) {
 	  SETERROR(params->utils, "no prompt->result in CRAM plugin");
 	  return SASL_FAIL;
       }
 
       /* copy what we got into a secret_t */
-      *password = (sasl_secret_t *) params->utils->malloc(sizeof(sasl_secret_t)+
-							  prompt->len+1);
-      if (! *password) return SASL_NOMEM;
+      text->password_free = text->password =
+	  (sasl_secret_t *)params->utils->malloc(sizeof(sasl_secret_t)+
+						 prompt->len+1);
+      if (!text->password) return SASL_NOMEM;
 
-      (*password)->len=prompt->len;
-      memcpy((*password)->data, prompt->result, prompt->len);
-      (*password)->data[(*password)->len]=0;
+      text->password->len=prompt->len;
+      memcpy(text->password->data, prompt->result, prompt->len);
+      text->password->data[text->password->len]=0;
 
       return SASL_OK;
   }
@@ -709,7 +709,7 @@ static int get_password(sasl_client_params_t *params,
 	result = getpass_cb(params->utils->conn,
 			    getpass_context,
 			    SASL_CB_PASS,
-			    password);
+			    &(text->password));
 	if (result != SASL_OK)
 	    return result;
 
@@ -835,9 +835,9 @@ static int crammd5_client_mech_step(void *conn_context,
     /* try to get the password */
     if (text->password==NULL)
     {
-      pass_result=get_password(params,
-			  &text->password,
-			  prompt_need);
+      pass_result=get_password(text,
+			       params,
+			       prompt_need);
       
       if ((pass_result!=SASL_OK) && (pass_result!=SASL_INTERACT))
 	return pass_result;

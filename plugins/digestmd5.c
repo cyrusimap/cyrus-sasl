@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.109 2002/04/18 18:19:30 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.110 2002/04/24 22:00:48 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -201,6 +201,7 @@ typedef struct context {
     unsigned char  *authid; /* authentication id */
     unsigned char  *userid; /* authorization_id */
     sasl_secret_t  *password;
+    sasl_secret_t  *password_free; /* for freeing only */
 
     /* if privacy mode is used use these functions for encode and decode */
     cipher_function_t *cipher_enc;
@@ -2899,10 +2900,9 @@ get_userid(sasl_client_params_t *params,
   return result;
 }
 
-static int
-get_password(sasl_client_params_t * params,
-	     sasl_secret_t ** password,
-	     sasl_interact_t ** prompt_need)
+static int get_password(context_t *text,
+			sasl_client_params_t * params,
+			sasl_interact_t ** prompt_need)
 {
   int             result;
   sasl_getsecret_t *getpass_cb;
@@ -2918,14 +2918,15 @@ get_password(sasl_client_params_t * params,
       return SASL_FAIL;
 
     /* copy what we got into a secret_t */
-    *password = (sasl_secret_t *) params->utils->malloc(sizeof(sasl_secret_t) +
-							prompt->len + 1);
-    if (!*password)
+    text->password_free = text->password =
+	(sasl_secret_t *) params->utils->malloc(sizeof(sasl_secret_t) +
+						prompt->len + 1);
+    if (!text->password)
       return SASL_NOMEM;
 
-    (*password)->len = prompt->len;
-    memcpy((*password)->data, prompt->result, prompt->len);
-    (*password)->data[(*password)->len] = 0;
+    text->password->len = prompt->len;
+    memcpy(text->password->data, prompt->result, prompt->len);
+    text->password->data[text->password->len] = 0;
 
     return SASL_OK;
   }
@@ -2944,10 +2945,9 @@ get_password(sasl_client_params_t * params,
     result = getpass_cb(params->utils->conn,
 			getpass_context,
 			SASL_CB_PASS,
-			password);
+			&(text->password));
     if (result != SASL_OK)
       return result;
-
     break;
   default:
     /* sucess */
@@ -3398,8 +3398,8 @@ digestmd5_client_mech_step(void *conn_context,
 
     /* try to get the password */
     if (text->password == NULL) {
-      pass_result = get_password(params,
-				 &text->password,
+      pass_result = get_password(text,
+				 params,
 				 prompt_need);
       if ((pass_result != SASL_OK) && (pass_result != SASL_INTERACT))
       {
@@ -3754,7 +3754,10 @@ digestmd5_client_mech_step(void *conn_context,
 
 FreeAllocatedMem:
     if (response) { params->utils->free(response); }
-    if (text->password) { params->utils->free(text->password); }
+    if (text->password_free) {
+	_plug_free_secret(params->utils, &text->password_free);
+	text->password = NULL;
+    }
     if (in_start) { params->utils->free(in_start); }
 
     if (realm)

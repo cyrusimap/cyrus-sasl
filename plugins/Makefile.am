@@ -45,14 +45,14 @@
 
 # Library version info - here at the top, for sanity
 # CURRENT:REVISION:AGE
-plain_version = 1:14:0
-anonymous_version = 1:15:0
-kerberos4_version = 1:16:0
-crammd5_version = 1:16:0
+plain_version = 1:15:0
+anonymous_version = 1:16:0
+kerberos4_version = 1:17:0
+crammd5_version = 1:17:0
 scrammd5_version = 1:7:0
-gssapiv2_version = 1:15:0
-digestmd5_version = 0:18:0
-login_version = 0:5:0
+gssapiv2_version = 1:18:0
+digestmd5_version = 0:19:0
+login_version = 0:6:0
 srp_version = 0:1:0
 # x509_version = 0:0:0
 

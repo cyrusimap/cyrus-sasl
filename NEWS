@@ -1,3 +1,7 @@
+New in 1.5.26
+-------------
+* Interoperability bug in DIGEST-MD5's layers was fixed.
+
 New in 1.5.25
 -------------
 

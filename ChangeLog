@@ -1,5 +1,7 @@
 2001-02-19  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 
+	* ready for 1.5.26
+
 	* plugins/digestmd5.c (c_continue_step): 
 	* plugins/plain.c (client_continue_step): 
 	* plugins/gssapi.c (sasl_gss_client_start): 

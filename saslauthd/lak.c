@@ -1490,7 +1490,7 @@ static int lak_auth_fastbind(
 done:;
 	if (lu)
 		lak_user_free(lu);
-	if (dn && dn != retdn->bv_val)
+	if (dn && (retdn == NULL || dn != retdn->bv_val))
 		free(dn);
 	if (retdn)
 		ber_bvfree(retdn);

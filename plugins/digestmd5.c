@@ -37,7 +37,7 @@ SOFTWARE.
 
 /* either WITH_CMU_RC4 or WITH_SSL_RC4 is defined Let's make WITH_RC4
    our general "there is rc4 support" and use CMU/SSL for the specific
-   library routines
+   library routines. ditto for DES.
 */
 
 /* DES support */
@@ -1372,7 +1372,7 @@ static int create_layer_keys(context_t *text,sasl_utils_t *utils,HASH key, int k
   return SASL_OK;
 }
 
-static unsigned int version = 1;
+static unsigned short version = 1;
 
 /* len, CIPHER(Kc, {msg, pag, HMAC(ki, {SeqNum, msg})[0..9]}), x0001, SeqNum */
 

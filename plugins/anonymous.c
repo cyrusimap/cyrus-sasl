@@ -26,6 +26,8 @@ SOFTWARE.
 #include <config.h>
 #include <sasl.h>
 #include <saslplug.h>
+
+#include <stdio.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif

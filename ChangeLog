@@ -1,3 +1,8 @@
+2002-05-28  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* saslauthd/LDAP_SASLAUTHD, saslauthd/saslauthd.mdoc:
+	  Update documentation for LDAP and Saslauthd as per
+	  Igor Brezac <igor@ipass.net>
+
 2002-05-22  Lawrence Greenfield  <leg+@andrew.cmu.edu>
 	* lib/checkpw.c: close door file descriptor in
 	  saslauthd_verify_password

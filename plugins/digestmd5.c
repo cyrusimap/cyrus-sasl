@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.116 2002/04/27 05:41:13 ken3 Exp $
+ * $Id: digestmd5.c,v 1.117 2002/04/27 14:55:27 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -896,8 +896,8 @@ static int dec_3des(void *v,
     context_t *text = (context_t *) v;
     int padding, p;
 
-    des_ede2_cbc_encrypt((des_cblock *) input,
-			 (des_cblock *) output,
+    des_ede2_cbc_encrypt((void *) input,
+			 (void *) output,
 			 inputlen,
 			 text->keysched_dec,
 			 text->keysched_dec2,
@@ -947,8 +947,8 @@ int enc_3des(void *v,
     
     len=inputlen+paddinglen+10;
 
-    des_ede2_cbc_encrypt((des_cblock *) output,
-			 (des_cblock *) output,
+    des_ede2_cbc_encrypt((void *) output,
+			 (void *) output,
 			 len,
 			 text->keysched_enc,
 			 text->keysched_enc2,
@@ -1002,8 +1002,8 @@ static int dec_des(void *v,
     context_t *text = (context_t *) v;
     int p,padding = 0;
     
-    des_cbc_encrypt((des_cblock *) input,
-		    (des_cblock *) output,
+    des_cbc_encrypt((void *) input,
+		    (void *) output,
 		    inputlen,
 		    text->keysched_dec,
 		    &text->ivec_dec,
@@ -1037,8 +1037,7 @@ static int enc_des(void *v,
 		   unsigned char digest[16],
 		   char *output,
 		   unsigned *outputlen)
-{
-  context_t *text = (context_t *) v;
+{  context_t *text = (context_t *) v;
   int len;
   int paddinglen;
   
@@ -1052,8 +1051,8 @@ static int enc_des(void *v,
 
   len=inputlen+paddinglen+10;
 
-  des_cbc_encrypt((des_cblock *) output,
-		  (des_cblock *) output,
+  des_cbc_encrypt((void *) output,
+		  (void *) output,
 		  len,
 		  text->keysched_enc,
 		  &text->ivec_enc,

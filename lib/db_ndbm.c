@@ -29,6 +29,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "sasl.h"
 #include "saslint.h"
 
@@ -39,26 +40,26 @@ static int db_ok = 0;
 
 static int alloc_key(const char *mechanism,
 		     const char *auth_identity,
+		     const char *realm,
 		     char **key,
 		     size_t *key_len)
 {
-  size_t auth_id_len,
-         mech_len;
+  size_t auth_id_len, mech_len, realm_len;
 
-  I(mechanism);
-  I(auth_identity);
-  I(key);
-  I(key_len);
+  assert(mechanism && auth_identity && realm && key && key_len);
 
   auth_id_len = strlen(auth_identity);
   mech_len = strlen(mechanism);
-  *key_len = auth_id_len + mech_len + 1;
+  realm_len = strlen(realm);
+  *key_len = auth_id_len + mech_len + realm_len + 2;
   *key = sasl_ALLOC(*key_len);
   if (! *key)
     return SASL_NOMEM;
   memcpy(*key, auth_identity, auth_id_len);
   (*key)[auth_id_len] = '\0';
-  memcpy(*key + auth_id_len + 1, mechanism, mech_len);
+  memcpy(*key + auth_id_len + 1, realm, realm_len);
+  (*key)[auth_id_len + realm_len + 1] = '\0';
+  memcpy(*key + auth_id_len + realm_len + 2, mechanism, mech_len);
 
   return SASL_OK;
 }
@@ -67,6 +68,7 @@ static int
 getsecret(void *context __attribute__((unused)),
 	  const char *mechanism,
 	  const char *auth_identity,
+	  const char *realm,
 	  sasl_secret_t ** secret)
 {
   int result = SASL_OK;
@@ -75,13 +77,11 @@ getsecret(void *context __attribute__((unused)),
   DBM *db;
   datum dkey, dvalue;
 
-  if (! mechanism || ! auth_identity || ! secret || ! db_ok)
+  if (! mechanism || ! auth_identity || ! secret || ! realm || ! db_ok)
     return SASL_FAIL;
 
-  result = alloc_key(mechanism,
-		     auth_identity,
-		     &key,
-		     &key_len);
+  result = alloc_key(mechanism, auth_identity, realm,
+		     &key, &key_len);
   if (result != SASL_OK)
     return result;
 
@@ -126,6 +126,7 @@ static int
 putsecret(void *context __attribute__((unused)),
 	  const char *mechanism,
 	  const char *auth_identity,
+	  const char *realm,
 	  const sasl_secret_t * secret)
 {
   int result = SASL_OK;
@@ -134,13 +135,11 @@ putsecret(void *context __attribute__((unused)),
   DBM *db;
   datum dkey;
 
-  if (! mechanism || ! auth_identity)
+  if (! mechanism || ! auth_identity || ! realm)
     return SASL_FAIL;
 
-  result = alloc_key(mechanism,
-		     auth_identity,
-		     &key,
-		     &key_len);
+  result = alloc_key(mechanism, auth_identity, realm,
+		     &key, &key_len);
   if (result != SASL_OK)
     return result;
 

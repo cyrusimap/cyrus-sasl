@@ -42,6 +42,7 @@ static const char
 build_ident[] = "$Build: sample-server " PACKAGE "-" VERSION " $";
 
 static const char *progname = NULL;
+static int verbose;
 
 /* Note: if this is changed, change it in samp_read(), too. */
 #define SAMPLE_SEC_BUF_SIZE (2048)
@@ -272,6 +273,7 @@ samp_recv()
   if (result != SASL_OK)
     saslfail(result, "Decoding data from base64", NULL);
   buf[len] = '\0';
+  printf("got '%s'\n", buf);
   return len;
 }
 
@@ -302,8 +304,12 @@ main(int argc, char *argv[])
   secprops.max_ssf = UINT_MAX;
   memset(&extprops, 0L, sizeof(extprops));
 
-  while ((c = getopt(argc, argv, "hb:e:m:f:i:p:s:l:u:?")) != EOF)
+  verbose = 0;
+  while ((c = getopt(argc, argv, "vhb:e:m:f:i:p:s:l:u:?")) != EOF)
     switch (c) {
+    case 'v':
+	verbose = 1;
+	break;
     case 'b':
       options = optarg;
       while (*options != '\0')
@@ -579,6 +585,5 @@ main(int argc, char *argv[])
   else
     printf("SSF: %d\n", *ssf);
 
-  printf("a\n");
   return (EXIT_SUCCESS);
 }

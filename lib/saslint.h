@@ -159,11 +159,7 @@ _sasl_log(sasl_conn_t *conn,
 	  int priority,
 	  const char *plugin_name,
 	  int sasl_error,	/* %z */
-#ifndef WIN32
-	  int errno,	/* %m */
-#else
 	  int error_value, /* %m */
-#endif
 	  const char *format,
 	  ...);
 
@@ -195,13 +191,18 @@ extern int _sasl_PAM_verify_password(sasl_conn_t *conn,
 extern int _sasl_sasldb_verify_password(sasl_conn_t *conn,
 					const char *userid, 
 					const char *passwd,
+					const char *user_realm,
 					const char **reply);
 extern int _sasl_pwcheck_verify_password(sasl_conn_t *conn,
 					 const char *userid,
 					 const char *passwd,
 					 const char **reply);
-extern int _sasl_make_plain_secret(const char *salt, const 
-				   char *passwd, int passlen,
-				   sasl_secret_t **secret);
+extern int _sasl_sasldb_set_pass(sasl_conn_t *conn,
+				 const char *user, 
+				 const char *pass,
+				 unsigned passlen,
+				 const char *user_realm,
+				 int flags,
+				 const char **errstr);
 
 #endif /* SASLINT_H */

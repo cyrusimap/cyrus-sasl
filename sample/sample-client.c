@@ -42,6 +42,7 @@ static const char
 build_ident[] = "$Build: sample-client " PACKAGE "-" VERSION " $";
 
 static const char *progname = NULL;
+static int verbose;
 
 #define SAMPLE_SEC_BUF_SIZE (2048)
 
@@ -133,7 +134,7 @@ sasl_my_log(void *context __attribute__((unused)),
 
 static int getrealm(void *context, 
 		    int id,
-		    const char **availrealms,
+		    const char **availrealms __attribute__((unused)),
 		    const char **result)
 {
   if (id!=SASL_CB_GETREALM) return SASL_FAIL;
@@ -387,6 +388,7 @@ samp_recv()
   if (result != SASL_OK)
     saslfail(result, "Decoding data from base64", NULL);
   buf[len] = '\0';
+  if (verbose) { printf("got '%s'\n", buf); }
   return len;
 }
 
@@ -425,8 +427,12 @@ main(int argc, char *argv[])
   secprops.max_ssf = UINT_MAX;
   memset(&extprops, 0L, sizeof(extprops));
 
-  while ((c = getopt(argc, argv, "hb:e:m:f:i:p:r:s:n:u:a:?")) != EOF)
+  verbose = 0;
+  while ((c = getopt(argc, argv, "vhb:e:m:f:i:p:r:s:n:u:a:?")) != EOF)
     switch (c) {
+    case 'v':
+	verbose = 1;
+	break;
     case 'b':
       options = optarg;
       while (*options != '\0')

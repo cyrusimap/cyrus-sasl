@@ -8,7 +8,7 @@ Library
 ) atomic updates of passwords (we can crash and leave the user with 
   different passwords for different mechanisms)
 ) should be able use TLS's RC4 implementation
-) should be able to call _sasl_log without a conn
+) major/minor/version defines
 
 Documentation
 ~~~~~~~~~~~~~
@@ -28,9 +28,9 @@ Digest-MD5
 ) Layers
 ) Checking wacko cases or even not so wacko cases
 ) Testing
-) correct deletion of user account
+) correct handling of SASL_SET_CREATE
 ) support use of other RC4 libraries
-) allow sending multiple realms or no realm from server to client
+) allow sending multiple realms from server to client
 
 Kerberos_V4
 ~~~~~~~~~~~
@@ -43,23 +43,17 @@ GSSAPI
 
 Plain
 ~~~~~
-) any way to handle realms?
-) correct deletion of user account
-) evaluate pwcheck patch
+) finish pwcheck implementation
 
 Cram-MD5
 ~~~~~~~~
 ) needs snprintf support
-) any way to handle realms?
-) correct deletion of user account
-) zero out stuff in setpass()
-) client should set user correctly
+) correct handling of SASL_SET_CREATE
 
 Database stuff
 ~~~~~~~~~~~~~~
 ) Berkeley DB?
 ) Flat text file?
-) realms?
 ) transactions?
 
 ABI

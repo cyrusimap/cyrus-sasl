@@ -27,6 +27,8 @@ SOFTWARE.
 
 #include <sasl.h>
 #include <saslint.h>
+#include <saslutil.h>
+#include <assert.h>
 
 #ifdef HAVE_KRB
 #include <krb.h>
@@ -449,8 +451,9 @@ pam_err:
  *
  * where <secret> = MD5(<salt>, "sasldb", <pass>)
  */
-int _sasl_make_plain_secret(const char *salt, const char *passwd, int passlen,
-			    sasl_secret_t **secret)
+static int _sasl_make_plain_secret(const char *salt, 
+				   const char *passwd, int passlen,
+				   sasl_secret_t **secret)
 {
     MD5_CTX ctx;
     unsigned sec_len = 16 + 1 + 16; /* salt + "\0" + hash */
@@ -473,26 +476,84 @@ int _sasl_make_plain_secret(const char *salt, const char *passwd, int passlen,
     return SASL_OK;
 }
 
+/* returns the realm we should pretend to be in */
+static int parseuser(char **user, char **realm, const char *user_realm, 
+		     const char *serverFQDN, const char *input)
+{
+    int ret;
+    char *r;
+
+    assert(user && serverFQDN);
+
+    if (!user_realm) {
+	ret = _sasl_strdup(serverFQDN, realm, NULL);
+	if (ret == SASL_OK) {
+	    ret = _sasl_strdup(input, user, NULL);
+	}
+    } else if (user_realm[0]) {
+	ret = _sasl_strdup(user_realm, realm, NULL);
+	if (ret == SASL_OK) {
+	    ret = _sasl_strdup(input, user, NULL);
+	}
+    } else {
+	/* otherwise, we gotta get it from the user */
+	r = strchr(input, '@');
+	if (!r) {
+	    *realm = sasl_ALLOC(1);
+	    if (*realm) {
+		*realm[0] = '\0';
+		ret = SASL_OK;
+	    } else {
+		ret = SASL_NOMEM;
+	    }
+	    if (ret == SASL_OK) {
+		ret = _sasl_strdup(input, user, NULL);
+	    }
+	} else {
+	    int i;
+
+	    r++;
+	    ret = _sasl_strdup(r, realm, NULL);
+	    *user = sasl_ALLOC(r - input + 1);
+	    if (*user) {
+		for (i = 0; input[i] != '@'; i++) {
+		    *user[i] = input[i];
+		}
+		*user[i] = '\0';
+	    } else {
+		ret = SASL_NOMEM;
+	    }
+	}
+    }
+
+    return ret;
+}
+
 int _sasl_sasldb_verify_password(sasl_conn_t *conn,
-				 const char *userid, const char *passwd,
-				 const char **reply)
+				 const char *userstr, const char *passwd,
+				 const char *user_realm, const char **reply)
 {
     sasl_server_getsecret_t *getsec;
     void *context;
     int ret;
     sasl_secret_t *secret = NULL;
     sasl_secret_t *construct = NULL;
+    char *userid, *realm;
 
-    if (!userid || !passwd) {
+    if (!userstr || !passwd) {
 	return SASL_BADPARAM;
     }
     if (reply) { *reply = NULL; }
+    ret = parseuser(&userid, &realm, user_realm, conn->serverFQDN, userstr);
+    if (ret != SASL_OK) {
+	return ret;
+    }
     ret = _sasl_getcallback(conn, SASL_CB_SERVER_GETSECRET, &getsec, &context);
     if (ret != SASL_OK) {
 	return ret;
     }
 
-    ret = getsec(context, "PLAIN", userid, &secret);
+    ret = getsec(context, "PLAIN", userid, realm, &secret);
     if (ret != SASL_OK) {
 	return ret;
     }
@@ -515,6 +576,95 @@ int _sasl_sasldb_verify_password(sasl_conn_t *conn,
     sasl_free_secret(&construct);
     return ret;
 }
+
+/* this routine sets the sasldb password given a user/pass */
+int _sasl_sasldb_set_pass(sasl_conn_t *conn,
+			  const char *userstr, 
+			  const char *pass,
+			  unsigned passlen,
+			  const char *user_realm,
+			  int flags,
+			  const char **errstr)
+{
+    char *userid, *realm;
+    int ret = SASL_OK;
+
+    if (*errstr) {
+	*errstr = NULL;
+    }
+
+    ret = parseuser(&userid, &realm, user_realm, conn->serverFQDN, userstr);
+    if (ret != SASL_OK) {
+	return ret;
+    }
+
+    if (pass != NULL && !(flags & SASL_SET_DISABLE)) {
+	/* set the password */
+	sasl_secret_t *sec = NULL;
+	char salt[16];
+	sasl_rand_t *rpool;
+	sasl_server_getsecret_t *getsec;
+	sasl_server_putsecret_t *putsec;
+	void *context;
+
+	/* if SASL_SET_CREATE is set, we don't want to overwrite an
+	   existing account */
+	if (flags & SASL_SET_CREATE) {
+	    ret = _sasl_getcallback(conn, SASL_CB_SERVER_GETSECRET,
+				    &getsec, &context);
+	    if (ret == SASL_OK) {
+		getsec(context, "PLAIN", userid, realm, &sec);
+		if (ret == SASL_OK) {
+		    sasl_free_secret(&sec);
+		    ret = SASL_NOCHANGE;
+		}
+		if (ret == SASL_NOUSER) {
+		    /* hmmm, don't want to change this */
+		    ret = SASL_OK;
+		}
+	    }
+	}
+	
+	/* ret == SASL_OK iff we still want to set this password */
+	if (ret == SASL_OK) {
+	    ret = sasl_randcreate(&rpool);
+	}
+	if (ret == SASL_OK) {
+	    sasl_rand(rpool, salt, 16);
+	    ret = _sasl_make_plain_secret(salt, pass, passlen, &sec);
+	}
+	if (ret == SASL_OK) {
+	    ret = _sasl_getcallback(conn, SASL_CB_SERVER_PUTSECRET, 
+				    &putsec, &context);
+	}
+	if (ret == SASL_OK) {
+	    ret = putsec(context, "PLAIN", userid, realm, sec);
+	}
+	if (ret != SASL_OK) {
+	    _sasl_log(conn, SASL_LOG_ERR, NULL, ret, 0,
+		      "failed to set plaintext secret for %s: %z", userid);
+	}
+	if (rpool) {
+	    sasl_randfree(&rpool);
+	}
+	if (sec) {
+	    sasl_free_secret(&sec);
+	}
+    } else {
+	sasl_server_putsecret_t *putsec;
+	void *context;
+
+	ret = _sasl_getcallback(conn, SASL_CB_SERVER_PUTSECRET, 
+				&putsec, &context);
+	if (ret == SASL_OK) {
+	    ret = putsec(context, "PLAIN", userid, realm, NULL);
+	}
+    }
+
+    sasl_FREE(realm);
+    return ret;
+}
+
 
 #ifdef HAVE_PWCHECK
 /*

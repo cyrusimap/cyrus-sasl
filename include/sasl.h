@@ -458,14 +458,13 @@ typedef int sasl_chalprompt_t(void *context, int id,
  * output:
  *  result      -- NUL terminated realm; NULL is equivalent to ""
  * returns SASL_OK
+ * result must persist until the next callback
  */
-
 /* If there is an interaction with SASL_CB_GETREALM the challenge of
  *  the sasl_interact_t will be of the format: {realm1, realm2,
  *  ...}. That is a list of possible realms seperated by comma spaces
  *  enclosed by brackets. 
  */
-
 typedef int sasl_getrealm_t(void *context, int id,
 			    const char **availrealms,
 			    const char **result);
@@ -477,6 +476,8 @@ typedef int sasl_getrealm_t(void *context, int id,
 /* callback to verify authorization
  *  requested_user -- the identity/username to authorize
  *  auth_identity  -- the identity associated with the secret
+ *                    if the identity is not in the realm specified in
+ *                    sasl_server_new, it will be of the form user@realm
  * return:
  *  user           -- NULL = requested_user, otherwise canonicalized
  *  errstr         -- can be set to error string on failure
@@ -492,6 +493,7 @@ typedef int sasl_authorize_t(void *context,
 /* callback to lookup a user's secret for a mechanism
  *  mechanism     -- the mechanism requesting its secret
  *  auth_identity -- the identity being looked up
+ *  realm         -- the realm the identity is in
  * return:
  *  secret        -- the secret associated with this user
  *                   for this mechanism
@@ -500,12 +502,14 @@ typedef int sasl_authorize_t(void *context,
 typedef int sasl_server_getsecret_t(void *context,
 				    const char *mechanism,
 				    const char *auth_identity,
+				    const char *realm,
 				    sasl_secret_t ** secret);
 #define SASL_CB_SERVER_GETSECRET (0x8002)
 
 /* callback to store a user's secret for a mechanism
  *  mechanism     -- the mechanism storing its secret
  *  auth_identity -- the identity being stored
+ *  realm         -- the realm the identity is in
  *  secret        -- the secret associated with this user
  *                   for this mechanism.  If NULL, user's secret
  *		     for this mechanism will be erased.
@@ -514,6 +518,7 @@ typedef int sasl_server_getsecret_t(void *context,
 typedef int sasl_server_putsecret_t(void *context,
 				    const char *mechanism,
 				    const char *auth_identity,
+				    const char *realm,
 				    const sasl_secret_t * secret);
 #define SASL_CB_SERVER_PUTSECRET (0x8003)
 

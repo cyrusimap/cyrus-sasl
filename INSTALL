@@ -36,20 +36,14 @@ dynamic objects, and where the dynamic library file extension is
 ".so".
 
 You may want to play with your CPPFLAGS and LDFLAGS a little if you're
-using vendor compilers (which we recommend).  We use the following
-settings to configure the system on various platforms:
-
-	Solaris: env CC=cc CPPFLAGS=-I/usr/local/include LDFLAGS=-L/usr/local/lib ./configure
-
-	IRIX: env CC=cc CPPFLAGS=-I/usr/local/include LDFLAGS=-L/usr/local/lib ./configure
-
-	Linux: ./configure
+using vendor compilers (which we recommend).  You can see what
+compilers we use on our platforms by looking at the "SMakefile".
 
 ----------------------------------------------------------------------
 IF YOU ARE USING SASL UNDER Win32 OR HAVE COMPILED IT, 
 PLEASE LET US KNOW! 
 
-We've tested the lastest version under Windows and are eager to see
+We've tested the latest version under Windows and are eager to see
 other people use it!
 
 Installation under Win32:
@@ -68,9 +62,11 @@ At this time, there are no installers available.  To install by hand:
   copy saslKERBEROSV4\Release\*.dll c:\sasl-plugins
   copy saslPLAIN\Release\*.dll c:\sasl-plugins
   copy saslSCRAM\Release\*.dll c:\sasl-plugins
-* Update the registry with these locations.  Example registry settings are in the file:
+* Update the registry with these locations.  Example registry settings
+    are in the file: 
   sasl\win32\cmu-sasl.reg
-* Add this directory to your path, so that apps will be able to find the library
+* Add this directory to your path, so that apps will be able to find
+    the library 
   PATH=c:\sasl-plugins;%PATH%
 
 This has been tested under Windows 2000, using Visual Studio 6 SP1.
@@ -78,8 +74,7 @@ This has been tested under Windows 2000, using Visual Studio 6 SP1.
 WIN32 NOTES
 ###########
 
-* ANONYMOUS and KERBEROS_V4 have been tested.
+* ANONYMOUS, CRAM-MD5, DIGEST-MD5 and KERBEROS_V4 have been tested.
 * Kerberos mechanism has been compiled using MIT's kclient package
 * PLAIN is currently crippled, and does not support server use.
-* CRAM-MD5 and SCRAM-MD5 should work, but have not been tested.
-* DIGEST-MD5 and GSSAPI have been totally untested.
+* GSSAPI has been totally untested.

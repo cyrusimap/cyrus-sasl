@@ -1,6 +1,6 @@
 /* SASL server API implementation
  * Tim Martin
- * $Id: server.c,v 1.50 1999/09/09 02:46:57 leg Exp $
+ * $Id: server.c,v 1.51 1999/09/20 18:35:02 leg Exp $
  */
 /***********************************************************
         Copyright 1998 by Carnegie Mellon University
@@ -235,16 +235,6 @@ typedef struct sasl_server_conn {
 
   int authenticated;
   mechanism_t *mech; /* mechanism trying to use */
-  /* data for mechanism to use so can "remember" challenge thing
-   * for example kerberos sends a random integer
-   */ 
-  union mech_data  
-  {
-    int Idata;  
-    double Fdata;  
-    char *Sdata;  
-  } mech_data_t;
-
   sasl_server_params_t *sparams;
 
 } sasl_server_conn_t;
@@ -286,54 +276,40 @@ int sasl_setpass(sasl_conn_t *conn,
     void *context;
     const char *plainmech;
 
-    /* Zowie -- we have the user's plaintext password.
-     * Let's tell all our mechanisms about it...
-     */
-
-    if (!conn || !pass || !mechlist)
+    if (!conn)
+	return SASL_BADPARAM;
+    
+    if (!mechlist) {
 	return SASL_FAIL;
+    }
 
-    VL(("Setting password for \"%s\" to \"%*s\" (len is %d)\n",
-	user, passlen, pass, passlen));
+    if ((flags & SASL_SET_CREATE) && (flags & SASL_SET_DISABLE)) {
+	return SASL_BADPARAM;
+    }
 
-    _sasl_log(conn, SASL_LOG_INFO, NULL, 0, 0,
-	      "updating secrets for %s", user);
+    if (errstr) { *errstr = NULL; }
 
     if (_sasl_getcallback(conn, SASL_CB_GETOPT, 
 			  &getopt, &context) == SASL_OK) {
 	getopt(context, NULL, "pwcheck_method", &plainmech, NULL);
     }
 
-    if (plainmech != NULL && !strcmp(plainmech, "sasldb")) {
-	/* we store the user's password for plaintext checking */
-	sasl_secret_t *sec = NULL;
-	char salt[16];
-	sasl_rand_t *rpool;
-	int ret;
-	sasl_server_putsecret_t *putsec;
-	void *context;
-
-	ret = sasl_randcreate(&rpool);
-	if (ret == SASL_OK) {
-	    sasl_rand(rpool, salt, 16);
-	    ret = _sasl_make_plain_secret(salt, pass, passlen, &sec);
-	}
-	if (ret == SASL_OK) {
-	    ret = _sasl_getcallback(conn, SASL_CB_SERVER_PUTSECRET, &putsec,
-				    &context);
-	}
-	if (ret == SASL_OK) {
-	    ret = putsec(context, "PLAIN", user, sec);
-	}
-	if (ret != SASL_OK) {
-	    _sasl_log(conn, SASL_LOG_ERR, NULL, ret, 0,
-		      "failed to set plaintext secret for %s: %z", user);
-	}
-	if (rpool) {
-	    sasl_randfree(&rpool);
-	}
-	if (sec) {
-	    sasl_free_secret(&sec);
+    if (plainmech != NULL && !strcasecmp(plainmech, "sasldb")) {
+	/* do we want to set/create password? */
+	tmpresult = _sasl_sasldb_set_pass(conn, user, pass, passlen, 
+					  s_conn->user_realm, flags, errstr);
+	if (tmpresult != SASL_OK) {
+	    result = SASL_FAIL;
+	    _sasl_log(conn, SASL_LOG_ERR, "PLAIN", tmpresult,
+#ifndef WIN32
+		      errno,
+#else
+		      GetLastError(),
+#endif
+		      "failed to set secret for %s: %z", user);
+	} else {
+	    _sasl_log(conn, SASL_LOG_INFO, "PLAIN", 0, 0, 
+		      "set secret for %s", user);
 	}
     }
 
@@ -736,9 +712,9 @@ int sasl_server_new(const char *service,
   serverconn->sparams->props = serverconn->base.props;
 
   /* set some variables */
-  if (user_realm==NULL)
-    serverconn->user_realm=NULL;
-  else {
+  if (user_realm==NULL) {
+    serverconn->user_realm = NULL;
+  } else {
     result = _sasl_strdup(user_realm, &serverconn->user_realm, NULL);
   }
 
@@ -1069,6 +1045,7 @@ static int _sasl_checkpass(sasl_conn_t *conn,
 			   const char *mech, const char *service,
 			   const char *user, const char *pass)
 {
+    sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;
     int result = SASL_NOMECH;
 
 #ifdef HAVE_PAM
@@ -1099,7 +1076,8 @@ static int _sasl_checkpass(sasl_conn_t *conn,
 #endif
     if (is_mech(mech, "sasldb")) {
 	/* check sasl database */
-	result = _sasl_sasldb_verify_password(conn, user, pass, NULL);
+	result = _sasl_sasldb_verify_password(conn, user, pass, 
+					      s_conn->user_realm, NULL);
     } else {
 	/* no mechanism available ?!? */
 	_sasl_log(conn, SASL_LOG_ERR, NULL, 0, 0,

@@ -488,7 +488,8 @@
       to say that authentication is complete.
     }
 
-    send data 'out' with length 'outlen' over the network in protocol specific format    
+    send data 'out' with length 'outlen' over the network in protocol
+    specific format
 
     </pre></tt>
 
@@ -502,9 +503,8 @@
     <li>callbacks - A list of callbacks supported by the application
     (see Interaction and Callbacks section)
 
-    <li>appname - A string of the name of the application. Note that
-    this string is what is used for configuration options and PAM
-    authentication.
+    <li>appname - A string of the name of the application. This string
+    is what is used when loading configuration options.
     
     </ul>
 	
@@ -528,16 +528,24 @@
     might be "acap" or "smtp". This is used by Kerberos mechanisms and
     possibly other mechanisms. It is also used for PAM authentication.
     
-    <li>serverFQDN - This is the fully qualified domain name of the server (i.e. your hostname)
+    <li>serverFQDN - This is the fully qualified domain name of the
+    server (i.e. your hostname); if NULL, the library calls
+    <tt>gethostbyname()</tt>.
 
-    <li>user_realm - The realm the connected client is in.
+    <li>user_realm - The realm the connected client is in.  The
+    Kerberos mechanisms ignore this parameter and default to the local
+    Kerberos realm.  A value of NULL makes the library default,
+    usually to the serverFQDN; a value of "" specifies that the client
+    should specify the realm; this also changes the semantics of "@"
+    in a username for mechanisms that don't support realms.
 
-    <li>callbacks - Additional callbacks that you wish only to apply to this connection.
+    <li>callbacks - Additional callbacks that you wish only to apply
+    to this connection.
 
-    <li>secflags - security flags. 
-
-    <li>pconn - Context. Filled in on success. SASL_SECURITY_LAYER if your
+    <li>secflags - security flags.  SASL_SECURITY_LAYER if your
     application supports security layers. 0 otherwise.
+
+    <li>pconn - Context. Filled in on success.
     </ul>
 	
     <a name="sasl_server_start"><h3>sasl_server_start</h3></a>
@@ -563,7 +571,9 @@
 
       <li>clientinlen - The length of the challenge. 0 is there is none.
 
-      <li>serverout - allocated and filled in by the function. These are the bytes that should be encoded as per the protocol and sent over the network back to the client.
+      <li>serverout - allocated and filled in by the function. These
+      are the bytes that should be encoded as per the protocol and
+      sent over the network back to the client.
 
       <li>serveroutlen - length of bytes to send to client
 
@@ -694,7 +704,8 @@
 
     <pre>
 
-    For a detailed description of what each of the callback types are see the sasl.h file.
+    For a detailed description of what each of the callback types are
+    see the sasl.h file.
     
     Here are some brief explanations:
     SASL_CB_AUTHNAME - the name of the user authenticating
@@ -781,8 +792,8 @@ application.  Also of interest is the prot layer, included in
 libcyrus.  This is a stdio-like interface that automatically takes
 care of layers using a simple "<tt>prot_setsasl()</tt>" call.
 
-<p>Cyrus Imapd also sets a <tt>SASL_CB_PROXY_POLICY</tt> callback, which should
-be of interest to many applications.
+<p>Cyrus imapd also sets a <tt>SASL_CB_PROXY_POLICY</tt> callback,
+which should be of interest to many applications.
 
 <a name="imtest"><h3><tt>imtest</tt>, from cyrus imapd 1.6.0 or later</h3></a>
 

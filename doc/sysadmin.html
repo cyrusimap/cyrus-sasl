@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Cyrus SASL for System Administrators</title>
-<!-- $Id: sysadmin.html,v 1.5 1999/09/09 17:30:43 leg Exp $ -->
+<!-- $Id: sysadmin.html,v 1.6 1999/09/20 18:34:59 leg Exp $ -->
 </HEAD>
 <BODY>
 <H1>Cyrus SASL for System Administrators</H1>
@@ -16,7 +16,8 @@ mechanism for protocols to accomplish authentication.  Since protocols
 (such as SMTP or IMAP) use SASL, it is a natural place for code
 sharing between applications.  Some notable applications that use SASL
 include <a href="http://www.sendmail.org">Sendmail</a> (versions
-8.10.0 and higher) and Cyrus imapd (versions 1.6.0 and higher).
+8.10.0 and higher) and <a href="http://web.asg.cmu.edu/cyrus">Cyrus
+imapd</a> (versions 1.6.0 and higher).
 
 <p> Applications use the SASL library to tell it how to accomplish the
 SASL protocol exchange, and what the results were.
@@ -87,9 +88,6 @@ realm.  Thus, the realm for Kerberos mechanisms defaults to the
 default Kerberos realm on the server.  They may support cross-realm
 authentication; check your application on how it deals with this.
 
-<p>Some authentication mechanisms, such as PLAIN and CRAM-MD5, do not
-support the concept of realms.
-
 <h2><a name="saslhow">How SASL works</a></h2>
 
 How SASL works is governed by what mechanism the client and server 
@@ -156,10 +154,11 @@ flexible in this regard:
 
 <dt><i>sasldb</i><dd> This stores passwords in the SASL secrets
   database, the same database that stores the secrets for shared
-  secret methods.  Its principal advantage is that it means that the
-  passwords used by the shared secrets mechanisms will be in sync with
-  the plaintext password mechanisms.  However, system built-in
-  routines will not use sasldb.<p>
+  secret methods.  Its principal advantages are that passwords used by
+  the shared secrets mechanisms will be in sync with the plaintext
+  password mechanisms and that this is the only plaintext
+  authentication method that supports multiple realms on a single
+  server.  However, system built-in routines will not use sasldb.<p>
 
   Note that to <i>set</i> plaintext passwords in sasldb,
   you need to configure "<tt>saslpasswd</tt>" to do so.  The
@@ -192,7 +191,7 @@ client knows it.
 
 <p>There's a downside: in order to verify such responses, the
 server must keep password equivalents in a database; if this database
-is compromised, it is the same as if every user's password for that
+is compromised, it is the same as if every users' password for that
 realm is compromised.
 
 <p>The Cyrus SASL library stores these secrets in the

@@ -1,4 +1,4 @@
-$Id: README,v 1.14 1999/08/21 03:05:14 leg Exp $
+$Id: README,v 1.15 1999/09/20 18:34:57 leg Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication. See RFC 2222 for more
@@ -81,8 +81,9 @@ CONFIGURATION
 -------------
 By default, libsasl looks for configuration files in
 /usr/lib/sasl/Appname.conf where Appname is settable by the
-application (for example, the Cyrus IMAP server sets this to "Cyrus").
-Applications can also override this default configuration mechanism.
+application (for example, Sendmail 8.10 and later set this to
+"Sendmail").  Applications can also override this default
+configuration mechanism.
 
 Currently configurable parameters:
 - srvtab (for KERBEROS_V4): [/etc/srvtab] path
@@ -110,24 +111,20 @@ the current DIGEST-MD5 spec is ambiguous in regards to encryption.
 The encryption implemented in the code generates RC4 in depth and thus
 should not be used.
 
-* The RC4 library is not always correctly found and dynamically
-loaded.  This isn't regarded as a huge problem, since we aren't
-supporting encryption in DIGEST-MD5 at this time.
-
 * libtool doesn't always link libraries together.  In our environment,
-we only have static Kerb5 libraries; the GSSAPI plugin should link
+we only have static Krb5 libraries; the GSSAPI plugin should link
 these libraries in on platforms that support it (Solaris and Linux
-among them) but it does not.
+among them) but it does not.  It also doesn't always get the runpath
+of libraries correct.
 
 * Also see the "TODO" file.
 
 AUTHORS
 -------
 For any comments/suggestions/bug reports, please contact
-cyrus-bugs@andrew.cmu.edu.
-
-If you feel a great need to send mail to a person, contact Larry
-Greenfield at leg+sasl@andrew.cmu.edu.
+cyrus-bugs@andrew.cmu.edu.  Be sure to include the version of libsasl
+and your operating system; messages without this information will not
+be answered.
 
 Authors can be found in the file AUTHORS.
 

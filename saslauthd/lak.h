@@ -1,5 +1,5 @@
 /* COPYRIGHT
- * Copyright (c) 2002-2002 Igor Brezac
+ * Copyright (c) 2002-2003 Igor Brezac
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,45 +47,68 @@
 #define LAK_NOENT -2
 #define LAK_NOMEM -3
 
-#define LAK_NOT_BOUND 0
-#define LAK_BIND_ANONYMOUS 1
-#define LAK_BIND_AS_USER 2
+#define LAK_NOT_BOUND 1
+#define LAK_BOUND 2
 
 #define LAK_AUTH_METHOD_BIND 0
 #define LAK_AUTH_METHOD_CUSTOM 1
 #define LAK_AUTH_METHOD_FASTBIND 2
 
+#define LAK_STRING_LEN 128
+#define LAK_DN_LEN 512
+#define LAK_PATH_LEN 1024
+#define LAK_URL_LEN LAK_PATH_LEN
+
 typedef struct lak_conf {
-    char   *path;
-    char   *servers;
-    char   *bind_dn;
-    char   *bind_pw;
-    int     version;
-    struct  timeval timeout;
-    int     size_limit;
-    int     time_limit;
-    int     deref;
-    int     referrals;
-    int     restart;
-    int     scope;
-    char   *search_base;
-    char   *filter;
-    char   *group_dn;
-    char   *group_attr;
-    char   *password_attr;
-    char    auth_method;
-    int     tls_check_peer;
-    char   *tls_cacert_file;
-    char   *tls_cacert_dir;
-    char   *tls_ciphers;
-    char   *tls_cert;
-    char   *tls_key;
-    int     debug;
+    char   path[LAK_PATH_LEN];
+    char   servers[LAK_URL_LEN];
+    char   bind_dn[LAK_DN_LEN];
+    char   password[LAK_STRING_LEN];
+    int    version;
+    struct timeval timeout;
+    int    size_limit;
+    int    time_limit;
+    int    deref;
+    int    referrals;
+    int    restart;
+    int    scope;
+    char   search_base[LAK_DN_LEN];
+    char   filter[LAK_DN_LEN];
+    char   group_dn[LAK_DN_LEN];
+    char   group_attr[LAK_STRING_LEN];
+    char   password_attr[LAK_STRING_LEN];
+    char   auth_method;
+    int    use_sasl;
+    char   sasl_authc_id[LAK_STRING_LEN];
+    char   sasl_authz_id[LAK_STRING_LEN];
+    char   sasl_password[LAK_STRING_LEN];
+    char   sasl_mech[LAK_STRING_LEN];
+    char   sasl_realm[LAK_STRING_LEN];
+    char   sasl_secprops[LAK_STRING_LEN];
+    int    start_tls;
+    int    tls_check_peer;
+    char   tls_cacert_file[LAK_PATH_LEN];
+    char   tls_cacert_dir[LAK_PATH_LEN];
+    char   tls_ciphers[LAK_STRING_LEN];
+    char   tls_cert[LAK_PATH_LEN];
+    char   tls_key[LAK_PATH_LEN];
+    int    debug;
 } LAK_CONF;
+
+typedef struct lak_user {
+    char bind_dn[LAK_DN_LEN];
+    char sasl_authc_id[LAK_STRING_LEN];
+    char sasl_authz_id[LAK_STRING_LEN];
+    char sasl_mech[LAK_STRING_LEN];
+    char sasl_realm[LAK_STRING_LEN];
+    char password[LAK_STRING_LEN];
+} LAK_USER;
+
 
 typedef struct lak {
     LDAP     *ld;
-    char      bind_status;
+    char      status;
+    LAK_USER *user;
     LAK_CONF *conf;
 } LAK;
 

@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.70 2002/01/09 18:39:42 rjs3 Exp $
+ * $Id: common.c,v 1.71 2002/01/09 20:22:48 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -236,7 +236,7 @@ int sasl_decode(sasl_conn_t *conn,
     if(!conn->props.maxbufsize) {
 	sasl_seterror(conn, 0,
 		      "called sasl_decode with application that does not support security layers");
-	return SASL_TOOWEAK;
+	RETURN(conn, SASL_TOOWEAK);
     }
 
     if(conn->oparams.decode == NULL)
@@ -244,10 +244,19 @@ int sasl_decode(sasl_conn_t *conn,
 	/* Since we know how long the output is maximally, we can
 	 * just allocate it to begin with, and never need another
          * allocation! */
+
+	/* However, if they pass us more than they actually can take,
+	 * we cannot help them... */
+	if(inputlen > conn->props.maxbufsize) {
+	    sasl_seterror(conn, 0,
+			  "input too large for default sasl_decode");
+	    RETURN(conn,SASL_BUFOVER);
+	}
+
 	if(!conn->decode_buf)
-	    conn->decode_buf = sasl_ALLOC(conn->oparams.maxoutbuf + 1);
-	if(!conn->decode_buf)
-	    MEMERROR( conn );
+	    conn->decode_buf = sasl_ALLOC(conn->props.maxbufsize + 1);
+	if(!conn->decode_buf)	
+	    MEMERROR(conn);
 	
 	memcpy(conn->decode_buf, input, inputlen);
 	conn->decode_buf[inputlen] = '\0';
@@ -356,7 +365,6 @@ int _sasl_conn_init(sasl_conn_t *conn,
   conn->errdetail_buf[0] = '\0';
   
   conn->decode_buf = NULL;
-  conn->decode_buf_len = 0;
 
   if(serverFQDN) {
       result = _sasl_strdup(serverFQDN, &conn->serverFQDN, NULL);

@@ -1,3 +1,14 @@
+New in 2.1.6
+------------
+* Security fix for the CRAM-MD5 plugin to check the full length of the
+  digest string.
+* Return of the Experimental LDAP saslauthd module.
+* Addition of Experimental MySQL auxprop plugin.
+* Can now select multiple auxprop plugins (and a priority ordering)
+* Mechanism selection now includes number of security flags
+* Mac OS X 10.1 Fixes
+* Misc other minor bugfixes.
+
 New in 2.1.5
 ------------
 * Remove LDAP support due to copyright concerns.

@@ -1,7 +1,7 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Rob Siemborski
  * Tim Martin
- * $Id: allockey.c,v 1.2 2001/12/04 02:06:59 rjs3 Exp $
+ * $Id: allockey.c,v 1.3 2002/04/26 17:31:47 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -180,7 +180,9 @@ int _sasldb_putsecret(const sasl_utils_t *utils,
 		      const char *realm,
 		      const sasl_secret_t * secret) 
 {
-    return _sasldb_putdata(utils, context, authid, realm, SASL_AUX_PASSWORD,
+    const char *param = SASL_AUX_PASSWORD;
+    param++; /* skip leading * */
+    return _sasldb_putdata(utils, context, authid, realm, param,
 			   (secret ? secret->data : NULL),
 			   (secret ? secret->len : 0));
 }

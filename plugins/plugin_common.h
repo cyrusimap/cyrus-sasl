@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.h,v 1.4 2002/04/26 19:23:05 ken3 Exp $
+ * $Id: plugin_common.h,v 1.5 2002/04/26 20:20:25 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -104,12 +104,14 @@ int sasl_auxprop_plug_init(const sasl_utils_t *utils, \
     (utils)->seterror( (utils)->conn, 0, \
                        "Parameter Error in " __FILE__ " near line %d", __LINE__ )
 
+#ifndef SASLINT_H
 typedef struct buffer_info 
 {
     char *data;
     unsigned curlen;   /* Current length of data in buffer */
     unsigned reallen;  /* total length of buffer (>= curlen) */
 } buffer_info_t;
+#endif
 
 int _plug_ipfromstring(const sasl_utils_t *utils, const char *addr,
 		       struct sockaddr *out, socklen_t outlen);

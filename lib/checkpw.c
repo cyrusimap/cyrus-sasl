@@ -552,8 +552,9 @@ static int sia_verify_password(sasl_conn_t *conn,
 {
   char *host;
   struct sockaddr_in *addr;
-  int argc = 1;
   char *argv[2], *argv0 = "SASL";
+  SIAENTITY *ent;
+  int ret;
   argv[0] = argv0;
   argv[1] = NULL;
 
@@ -569,10 +570,18 @@ static int sia_verify_password(sasl_conn_t *conn,
       host = inet_ntoa(*addr);
 
   /* Try to validate */
-  if (sia_validate_user(NULL, argc, argv, host, userid, NULL, 0, NULL,
-      password) != SIASUCCESS)
+  if (sia_ses_init (&ent, 1, argv, host, userid, NULL, 0, NULL) != SIASUCCESS)
       return SASL_BADAUTH;
-  return SASL_OK;
+  if ((ret = sia_ses_authent (NULL, password, ent)) != SIASUCCESS) {
+      if (ret & SIASTOP)
+          sia_ses_release (&ent);
+      return SASL_BADAUTH;
+  }
+  if (sia_ses_estab (NULL, ent) == SIASUCCESS) {
+      sia_ses_release (&ent);
+      return SASL_OK;
+  }
+  return SASL_BADAUTH;
 }
 #endif /* HAVE_SIA */
 

@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Options for Cyrus SASL</title>
-<!-- $Id: options.html,v 1.6 2002/04/08 23:34:03 ken3 Exp $ -->
+<!-- $Id: options.html,v 1.7 2002/05/03 18:40:10 ken3 Exp $ -->
 </HEAD>
 <BODY>
 <h1>Options for Cyrus SASL</h1>
@@ -49,6 +49,12 @@ plugins.</TD><TD>all available</TD>
 <TD>Whitespace separated list of mechanisms used to verify passwords,
 used by sasl_checkpass (possible values: 'auxprop', 'pwcheck',
 'saslauthd', 'alwaystrue')</TD><TD>auxprop</TD>
+</TR>
+<TR>
+<TD>reauth_timeout</TD><TD>DIGEST-MD5</TD>
+<TD>Length in time (in minutes) that authentication info will be
+cached for a fast reauth.  A value of 0 will disable reauth.</TD>
+<TD>1440 (24 hours)</TD>
 </TR>
 <TR>
 <TD>saslauthd_path</TD><TD>SASL Library</TD>

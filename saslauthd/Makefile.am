@@ -5,7 +5,7 @@ saslauthd_SOURCES = saslauthd.c mechanisms.c globals.h mechanisms.h auth_dce.c a
 saslauthd_DEPENDENCIES = @COMPAT_OBJ@
 saslauthd_LDADD	= @COMPAT_OBJ@ @SASL_KRB_LIB@ @GSSAPIBASE_LIBS@ @GSSAPI_LIBS@ @PLAIN_LIBS@ @LIB_SIA@ @LIB_SOCKET@ @SASL_DB_LIB@ @LIB_PAM@
 
-testsaslauthd_SORUCES = testsaslauthd.c
+testsaslauthd_SOURCES = testsaslauthd.c
 testsaslauthd_DEPENDENCIES = @COMPAT_OBJ@
 testsaslauthd_LDADD = @COMPAT_OBJ@ @LIB_SOCKET@
 

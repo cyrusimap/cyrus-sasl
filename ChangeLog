@@ -1,3 +1,7 @@
+2003-03-31  Rob Siemborski <rjs3@andrew.cmu.edu>
+	* configure.in, acconfig.h: Add configure option to set what
+          we use for /dev/random
+
 2002-08-16  Ken Murchison <ken@oceana.com>
 	* plugins/digestmd5.c: Set clientout to null if we're not sending
 	  anything (Claus Assmann <ca+sasl@sendmail.org>)

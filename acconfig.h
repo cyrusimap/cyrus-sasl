@@ -2,7 +2,7 @@
  * Rob Earhart
  */
 /* 
- * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,23 +61,8 @@
 #undef SASL_NDBM
 #undef SASL_BERKELEYDB
 
-/* which mechs can we link staticly? */
-#undef STATIC_ANONYMOUS
-#undef STATIC_CRAMMD5
-#undef STATIC_DIGESTMD5
-#undef STATIC_GSSAPIV2
-#undef STATIC_KERBEROS4
-#undef STATIC_LOGIN
-#undef STATIC_OTP
-#undef STATIC_PLAIN
-#undef STATIC_SRP
-#undef STATIC_SASLDB
-
 /* This is where plugins will live at runtime */
 #undef PLUGINDIR
-
-/* Do we need a leading _ for dlsym? */
-#undef DLSYM_NEEDS_UNDERSCORE
 
 /* Make autoheader happy */
 #undef WITH_SYMBOL_UNDERSCORE
@@ -89,17 +74,11 @@
 #undef WITH_DES
 #undef WITH_SSL_DES
 
-/* should we support srp_setpass */
-#undef DO_SRP_SETPASS
-
-/* do we have OPIE for server-side OTP support? */
-#undef HAVE_OPIE
-
-/* should we support otp_setpass */
-#undef DO_OTP_SETPASS
-
 /* Do we have kerberos for plaintext password checking? */
 #undef HAVE_KRB
+
+/* are we using mit kerberos for macintosh as our krb4 implementation? */
+#undef HAVE_MIT_KFM
 
 /* do we have SIA for plaintext password checking? */
 #undef HAVE_SIA
@@ -137,15 +116,6 @@
 /* where does saslauthd look for the communication socket? */
 #undef PATH_SASLAUTHD_RUNDIR
 
-/* do we want alwaystrue (discouraged)? */
-#undef HAVE_ALWAYSTRUE
-
-/* are we linking against DMALLOC? */
-#undef WITH_DMALLOC
-
-/* should we support sasl_checkapop */
-#undef DO_SASL_CHECKAPOP
-
 /* do we pay attention to IP addresses in the kerberos 4 tickets? */
 #undef KRB4_IGNORE_IP_ADDRESS
 
@@ -164,56 +134,16 @@
 /* define if your system has getpid() */
 #undef HAVE_GETPID
 
-/* do we have an inttypes.h? */
-#undef HAVE_INTTYPES_H
-
-/* do we have sys/uio.h? */
-#undef HAVE_SYS_UIO_H
-
-/* define if your system has getnameinfo() */
-#undef HAVE_GETADDRINFO
-
-/* define if your system has getnameinfo() */
-#undef HAVE_GETNAMEINFO
-
-/* define if your system has struct sockaddr_storage */
-#undef HAVE_STRUCT_SOCKADDR_STORAGE
-
-/* Define if you have ss_family in struct sockaddr_storage. */
-#undef HAVE_SS_FAMILY
-
-/* do we have socklen_t? */
-#undef HAVE_SOCKLEN_T
-#undef HAVE_SOCKADDR_SA_LEN
+/* SASL's concept of DEV_RANDOM */
+#undef SASL_DEV_RANDOM
 
 @BOTTOM@
 
-/* Create a struct iovec if we need one */
-#if !defined(_WIN32) && !defined(HAVE_SYS_UIO_H)
-/* (win32 is handled in sasl.h) */
-struct iovec {
-    char *iov_base;
-    long iov_len;
-};
-#else
-#include <sys/types.h>
-#include <sys/uio.h>
-#endif
-
 /* location of the random number generator */
-#ifndef DEV_RANDOM
-#define DEV_RANDOM "/dev/random"
+#ifdef DEV_RANDOM
+#undef DEV_RANDOM
 #endif
-
-/* if we've got krb_get_err_txt, we might as well use it;
-   especially since krb_err_txt isn't in some newer distributions
-   (MIT Kerb for Mac 4 being a notable example). If we don't have
-   it, we fall back to the krb_err_txt array */
-#ifdef HAVE_KRB_GET_ERR_TEXT
-#define get_krb_err_txt krb_get_err_text
-#else
-#define get_krb_err_txt(X) (krb_err_txt[(X)])
-#endif
+#define DEV_RANDOM SASL_DEV_RANDOM
 
 /* Make Solaris happy... */
 #ifndef __EXTENSIONS__
@@ -223,6 +153,17 @@ struct iovec {
 /* Make Linux happy... */
 #define _GNU_SOURCE
 
+#include <stdio.h>
+
+/* we no longer support or use nana, 
+   but we still have code that refers to it */
+#define WITHOUT_NANA
+#define L_DEFAULT_GUARD (0)
+#define I_DEFAULT_GUARD (0)
+#define I(foo)
+#define VL(foo)
+#define VLP(foo,bar)
+
 #ifndef HAVE___ATTRIBUTE__
 /* Can't use attributes... */
 #define __attribute__(foo)
@@ -230,9 +171,14 @@ struct iovec {
 
 #define SASL_PATH_ENV_VAR "SASL_PATH"
 
+#ifdef HAVE_MIT_KFM
+#define get_krb_err_txt(X) "Unknown Kerberos 4 error"
+#else
+#define get_krb_err_txt(X) (krb_err_txt[(X)])
+#endif
+
 #include <stdlib.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 #ifndef WIN32
 # include <netdb.h>
 # include <sys/param.h>
@@ -242,37 +188,5 @@ struct iovec {
 #include <string.h>
 
 #include <netinet/in.h>
-
-#ifndef HAVE_SOCKLEN_T
-typedef unsigned int socklen_t;
-#endif /* HAVE_SOCKLEN_T */
-
-#ifndef HAVE_STRUCT_SOCKADDR_STORAGE
-#define	_SS_MAXSIZE	128	/* Implementation specific max size */
-#define	_SS_PADSIZE	(_SS_MAXSIZE - sizeof (struct sockaddr))
-
-struct sockaddr_storage {
-	struct	sockaddr ss_sa;
-	char		__ss_pad2[_SS_PADSIZE];
-};
-# define ss_family ss_sa.sa_family
-#endif /* !HAVE_STRUCT_SOCKADDR_STORAGE */
-
-#ifndef AF_INET6
-/* Define it to something that should never appear */
-#define	AF_INET6	AF_MAX
-#endif
-
-#ifndef HAVE_GETADDRINFO
-#define	getaddrinfo	sasl_getaddrinfo
-#define	freeaddrinfo	sasl_freeaddrinfo
-#define	getnameinfo	sasl_getnameinfo
-#define	gai_strerror	sasl_gai_strerror
-#include "gai.h"
-#endif
-
-#ifndef	NI_WITHSCOPEID
-#define	NI_WITHSCOPEID	0
-#endif
 
 #endif /* CONFIG_H */

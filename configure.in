@@ -1,6 +1,6 @@
 dnl configure.in for the SASL library
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.111.2.2 2002/07/16 20:03:36 rjs3 Exp $
+dnl $Id: configure.in,v 1.111.2.3 2003/03/31 19:38:03 rjs3 Exp $
 dnl
 dnl Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -135,6 +135,13 @@ AC_ARG_WITH(dbpath, [  --with-dbpath=PATH      set the DB path to use [/etc/sasl
 AC_MSG_CHECKING(DB path to use)
 AC_MSG_RESULT($dbpath)
 AC_DEFINE_UNQUOTED(SASL_DB_PATH, "$dbpath")
+
+AC_ARG_WITH(devrandom, [  --with-devrandom=PATH   set the path to /dev/random [/dev/random] ],
+  devrandom=$withval,
+  devrandom=/dev/random)
+AC_MSG_CHECKING(/dev/random to use)
+AC_MSG_RESULT($devrandom)
+AC_DEFINE_UNQUOTED(SASL_DEV_RANDOM, "$devrandom")
 
 dnl Figure out what database type we're using
 cmu_save_LIBS="$LIBS"

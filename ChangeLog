@@ -1,3 +1,9 @@
+2003-09-15  Ken Murchison <ken@oceana.com>
+	* doc/draft-ietf-sasl-rfc2222bis-02.txt: added
+	* doc/draft-ietf-sasl-rfc2222bis-01.txt: deleted
+	* doc/index.html, doc/Makefile.am: updated to latest version of
+	  SASL draft
+
 2003-09-14  Ken Murchison <ken@oceana.com>
 	* plugins/ntlm.c, plugins/plugin_common.[ch]: Win32 support
 	  (Alexey Melnikov <Alexey.Melnikov@isode.com>)

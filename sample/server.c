@@ -1,4 +1,4 @@
-/* $Id: server.c,v 1.2 2001/12/04 02:06:52 rjs3 Exp $ */
+/* $Id: server.c,v 1.3 2002/09/03 15:11:59 rjs3 Exp $ */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
  *
@@ -45,7 +45,6 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <ctype.h>
-#include <sysexits.h>
 #include <errno.h>
 #include <string.h>
 

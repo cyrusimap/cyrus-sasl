@@ -1,7 +1,7 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Siemborski
  * Rob Earhart
- * $Id: staticopen.c,v 1.4 2002/06/25 18:45:58 rjs3 Exp $
+ * $Id: staticopen.c,v 1.5 2002/09/03 15:11:52 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -46,7 +46,6 @@
 #include <config.h>
 #include <stdlib.h>
 #include <limits.h>
-#include <sys/param.h>
 #include <sasl.h>
 #include "saslint.h"
 #include "staticopen.h"

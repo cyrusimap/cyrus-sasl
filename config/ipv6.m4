@@ -2,17 +2,11 @@ dnl See whether we can use IPv6 related functions
 dnl contributed by Hajimu UMEMOTO
 
 AC_DEFUN(IPv6_CHECK_FUNC, [
-changequote(, )dnl
-ac_tr_lib=HAVE_`echo $1 | sed -e 's/[^a-zA-Z0-9_]/_/g' \
-  -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/'`
-changequote([, ])dnl
 AC_CHECK_FUNC($1, [dnl
-  AC_DEFINE_UNQUOTED($ac_tr_lib)
   ac_cv_lib_socket_$1=no
   ac_cv_lib_inet6_$1=no
 ], [dnl
   AC_CHECK_LIB(socket, $1, [dnl
-    AC_DEFINE_UNQUOTED($ac_tr_lib)
     LIBS="$LIBS -lsocket"
     ac_cv_lib_inet6_$1=no
   ], [dnl
@@ -33,7 +27,6 @@ AC_CHECK_FUNC($1, [dnl
 	LDFLAGS="$LDFLAGS -L$ipv6_cv_dir/lib"
       fi
       AC_CHECK_LIB(inet6, $1, [dnl
-	AC_DEFINE_UNQUOTED($ac_tr_lib)
 	if test $ipv6_libinet6 = no; then
 	  ipv6_libinet6=yes
 	  LIBS="$LIBS -linet6"
@@ -100,3 +93,4 @@ else
   ifelse([$2], , :, [$2])
 fi
 AC_MSG_RESULT($ipv6_cv_socklen_t)])
+

@@ -30,6 +30,8 @@ documentation and/or software.
 #include "md5.h"
 #include "hmac-md5.h"
 
+#include <arpa/inet.h>
+
 /* Constants for MD5Transform routine.
 */
 

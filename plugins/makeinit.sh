@@ -1,11 +1,11 @@
 for mech in anonymous crammd5 digestmd5 gssapiv2 kerberos4 login plain srp otp; do
 
 echo "
+#include <config.h>
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <config.h>
-#include <time.h>
 #ifndef macintosh
 #include <sys/stat.h>
 #endif

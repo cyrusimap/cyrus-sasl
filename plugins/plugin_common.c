@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.c,v 1.9 2002/05/13 15:01:52 ken3 Exp $
+ * $Id: plugin_common.c,v 1.10 2002/09/03 15:11:58 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -47,7 +47,6 @@
 #ifdef WIN32
 # include <winsock.h>
 #else
-# include <sys/param.h>
 # include <sys/socket.h>
 # include <netinet/in.h>
 # include <arpa/inet.h>

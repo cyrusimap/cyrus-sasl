@@ -11,7 +11,6 @@
 #include <ctype.h>
 #include <pwd.h>
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/socket.h>
 #include <sys/file.h>
 #include <netinet/in.h>
@@ -31,8 +30,6 @@
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif
-
-#include <sysexits.h>
 
 #include <sasl.h>
 #include <saslutil.h>

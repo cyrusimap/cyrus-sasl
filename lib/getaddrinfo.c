@@ -1,6 +1,6 @@
 /*
  * Mar  8, 2000 by Hajimu UMEMOTO <ume@mahoroba.org>
- * $Id: getaddrinfo.c,v 1.3 2002/06/13 17:00:47 rjs3 Exp $
+ * $Id: getaddrinfo.c,v 1.4 2002/09/03 15:11:52 rjs3 Exp $
  *
  * This module is based on ssh-1.2.27-IPv6-1.5 written by
  * KIKUCHI Takahiro <kick@kyoto.wide.ad.jp>
@@ -60,7 +60,6 @@
 
 #include "config.h"
 #ifndef macintosh
-#include <sys/param.h>
 #include <arpa/inet.h>
 #endif
 #include <ctype.h>
@@ -183,7 +182,12 @@ getaddrinfo(const char *hostname, const char *servname,
         else
 	    return EAI_MEMORY;
     }
-    if (inet_aton(hostname, &in)) {
+#if HAVE_INET_ATON
+    if (inet_aton(hostname, &in))
+#else
+    if ((in.s_addr = inet_addr(hostname)) != -1)
+#endif
+    {
 	*res = malloc_ai(port, in.s_addr, socktype, proto);
 	if (*res)
 	    return 0;

@@ -165,7 +165,10 @@
 /* do we have sys/uio.h? */
 #undef HAVE_SYS_UIO_H
 
-/* define if your system has getnameinfo() */
+/* do we have sys/param.h? */
+#undef HAVE_SYS_PARAM_H
+
+/* define if your system has getaddrinfo() */
 #undef HAVE_GETADDRINFO
 
 /* define if your system has getnameinfo() */
@@ -235,7 +238,9 @@ struct iovec {
 #include <sys/socket.h>
 #ifndef WIN32
 # include <netdb.h>
-# include <sys/param.h>
+# ifdef HAVE_SYS_PARAM_H
+#  include <sys/param.h>
+# endif
 #else /* WIN32 */
 # include <winsock.h>
 #endif /* WIN32 */
@@ -271,8 +276,29 @@ struct sockaddr_storage {
 #include "gai.h"
 #endif
 
+/* Defined in RFC 1035. max strlen is only 253 due to length bytes. */
+#ifndef MAXHOSTNAMELEN
+#define        MAXHOSTNAMELEN  255
+#endif
+
+#ifndef HAVE_SYSEXITS_H
+#include "exits.h"
+#endif
+
 #ifndef	NI_WITHSCOPEID
 #define	NI_WITHSCOPEID	0
+#endif
+
+/* Get the correct time.h */
+#if TIME_WITH_SYS_TIME
+# include <sys/time.h>
+# include <time.h>
+#else
+# if HAVE_SYS_TIME_H
+#  include <sys/time.h>
+# else
+#  include <time.h>
+# endif
 #endif
 
 #endif /* CONFIG_H */

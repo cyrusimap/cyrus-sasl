@@ -1,7 +1,7 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Siemborski
  * Rob Earhart
- * $Id: dlopen.c,v 1.41 2002/08/19 16:39:18 rjs3 Exp $
+ * $Id: dlopen.c,v 1.42 2002/09/03 15:11:52 rjs3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -52,7 +52,6 @@
 #include <errno.h>
 #include <stdio.h>
 #include <limits.h>
-#include <sys/param.h>
 
 #include <sasl.h>
 #include "saslint.h"

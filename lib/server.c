@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.108 2002/04/26 15:25:18 ken3 Exp $
+ * $Id: server.c,v 1.109 2002/04/30 17:45:32 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -628,7 +628,7 @@ int sasl_server_init(const sasl_callback_t *callbacks,
     }
 
     /* load internal plugins */
-    sasl_server_add_plugin("EXTERNAL", &external_server_init);
+    sasl_server_add_plugin("EXTERNAL", &external_server_plug_init);
 
     /* delayed loading of plugins? (DSO only, as it doesn't
      * make much [any] sense to delay in the static library case) */
@@ -887,7 +887,7 @@ static int mech_permitted(sasl_conn_t *conn,
 	}
     }
     
-    if (plug == &external_server_mech) {
+    if (!strcasecmp(plug->mech_name, "EXTERNAL")) {
 	/* Special case for the external mechanism */
 	if (conn->props.min_ssf > conn->external.ssf
 	    || ! conn->external.auth_id) {

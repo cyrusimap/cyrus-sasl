@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.h,v 1.9 2002/04/29 20:32:42 rjs3 Exp $
+ * $Id: plugin_common.h,v 1.10 2002/04/30 17:45:33 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -163,4 +163,9 @@ int _plug_decode(const sasl_utils_t *utils,
 		 int (*decode_pkt)(void *context,
 				   const char **input, unsigned *inputlen,
 				   char **output, unsigned *outputlen));
+
+int _plug_parseuser(const sasl_utils_t *utils,
+		    char **user, char **realm, const char *user_realm, 
+		    const char *serverFQDN, const char *input);
+
 #endif /* _PLUGIN_COMMON_H_ */

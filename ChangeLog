@@ -1,3 +1,9 @@
+2002-04-30  Ken Murchison <ken@oceana.com>
+	* plugins/plugin_common.[ch], anonymous.c, cram.c, login.c, otp.c,
+	  plain.c, sasldb.c, srp.c,
+	  lib/client.c, external.c, saslint.h, server.c: general plugin
+	  cleanup - reusing more common code, standardizing structure
+
 2002-04-28  Ken Murchison <ken@oceana.com>
 	* plugins/plugin_common.[ch], anonymous.c, cram.c, digestmd5.c,
 	  gssapi.c, kerberosv4.c, login.c, otp.c, plain.c, srp.c,
@@ -8,6 +14,7 @@
 	* plugins/plugin_common.[ch], anonymous.c, cram.c, digestmd5.c,
 	  gssapi.c, kerberosv4.c, login.c, otp.c, plain.c, srp.c,
 	  lib/external.c: move make_prompts stuff into plugin_common
+	* utils/testsuite.c: allow for testing of EXTERNAL
 
 2002-04-26  Rob Siemborski <rjs3@andrew.cmu.edu>
 	* sasldb/allockey.c: be sure to set userPassword and not *userPassword

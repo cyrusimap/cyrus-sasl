@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.c,v 1.6 2002/04/28 05:02:33 ken3 Exp $
+ * $Id: plugin_common.c,v 1.7 2002/04/30 17:45:33 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -637,4 +637,47 @@ int _plug_decode(const sasl_utils_t *utils,
     }
 
     return SASL_OK;    
+}
+
+/* returns the realm we should pretend to be in */
+int _plug_parseuser(const sasl_utils_t *utils,
+		    char **user, char **realm, const char *user_realm, 
+		    const char *serverFQDN, const char *input)
+{
+    int ret;
+    char *r;
+
+    if(!user || !serverFQDN) {
+	PARAMERROR( utils );
+	return SASL_BADPARAM;
+    }
+
+    r = strchr(input, '@');
+    if (!r) {
+	/* hmmm, the user didn't specify a realm */
+	if(user_realm && user_realm[0]) {
+	    ret = _plug_strdup(utils, user_realm, realm, NULL);
+	} else {
+	    /* Default to serverFQDN */
+	    ret = _plug_strdup(utils, serverFQDN, realm, NULL);
+	}
+	
+	if (ret == SASL_OK) {
+	    ret = _plug_strdup(utils, input, user, NULL);
+	}
+    } else {
+	r++;
+	ret = _plug_strdup(utils, r, realm, NULL);
+	*--r = '\0';
+	*user = utils->malloc(r - input + 1);
+	if (*user) {
+	    strncpy(*user, input, r - input +1);
+	} else {
+	    MEMERROR( utils );
+	    ret = SASL_NOMEM;
+	}
+	*r = '@';
+    }
+
+    return ret;
 }

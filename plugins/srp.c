@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.36 2002/04/28 05:02:33 ken3 Exp $
+ * $Id: srp.c,v 1.37 2002/04/30 17:45:34 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -578,59 +578,6 @@ static int srp_decode(void *context,
  *	Helper Functions		   *
  *                                         *
  *******************************************/
-
-/* returns the realm we should pretend to be in */
-static int parseuser(const sasl_utils_t *utils,
-		     char **user, char **realm, const char *user_realm, 
-		     const char *serverFQDN, const char *input)
-{
-    int ret;
-    char *r;
-
-    assert(user);
-    assert(realm);
-    assert(serverFQDN);
-    assert(input);
-
-    if (!user_realm) {
-	ret = _plug_strdup(utils, serverFQDN, realm, NULL);
-	if (ret == SASL_OK) {
-	    ret = _plug_strdup(utils, input, user, NULL);
-	}
-    } else if (user_realm[0]) {
-	ret = _plug_strdup(utils, user_realm, realm, NULL);
-	if (ret == SASL_OK) {
-	    ret = _plug_strdup(utils, input, user, NULL);
-	}
-    } else {
-	/* otherwise, we gotta get it from the user */
-	r = strchr(input, '@');
-	if (!r) {
-	    /* hmmm, the user didn't specify a realm */
-	    /* we'll default to the serverFQDN */
-	    ret = _plug_strdup(utils, serverFQDN, realm, NULL);
-	    if (ret == SASL_OK) {
-		ret = _plug_strdup(utils, input, user, NULL);
-	    }
-	} else {
-	    int i;
-
-	    r++;
-	    ret = _plug_strdup(utils, r, realm, NULL);
-	    *user = utils->malloc(r - input + 1);
-	    if (*user) {
-		for (i = 0; input[i] != '@'; i++) {
-		    (*user)[i] = input[i];
-		}
-		(*user)[i] = '\0';
-	    } else {
-		ret = SASL_NOMEM;
-	    }
-	}
-    }
-
-    return ret;
-}
 
 #define MAX_BUFFER_LEN 2147483643
 #define MAX_UTF8_LEN 65535
@@ -2340,8 +2287,8 @@ static int server_step1(context_t *text,
     }
 
     /* Get the realm */
-    r = parseuser(params->utils, &user, &realm, params->user_realm,
-    		  params->serverFQDN, text->authid);
+    r = _plug_parseuser(params->utils, &user, &realm, params->user_realm,
+			params->serverFQDN, text->authid);
     if (r) {
       params->utils->seterror(params->utils->conn, 0, 
 	"Error getting realm");
@@ -2840,8 +2787,8 @@ static int srp_setpass(void *glob_context __attribute__((unused)),
 	return SASL_FAIL;
     }
 
-    r = parseuser(sparams->utils, &user, &realm, sparams->user_realm,
-		       sparams->serverFQDN, userstr);
+    r = _plug_parseuser(sparams->utils, &user, &realm, sparams->user_realm,
+			sparams->serverFQDN, userstr);
     if (r) {
       sparams->utils->seterror(sparams->utils->conn, 0, 
 	"Error parsing user");

@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.16 2002/04/28 05:02:32 ken3 Exp $
+ * $Id: otp.c,v 1.17 2002/04/30 17:45:33 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -1030,59 +1030,6 @@ static int parse_secret(const sasl_utils_t *utils,
     return SASL_OK;
 }
 
-/* returns the realm we should pretend to be in */
-static int parseuser(const sasl_utils_t *utils,
-		     char **user, char **realm, const char *user_realm, 
-		     const char *serverFQDN, const char *input)
-{
-    int ret;
-    char *r;
-
-    assert(user);
-    assert(realm);
-    assert(serverFQDN);
-    assert(input);
-
-    if (!user_realm) {
-	ret = _plug_strdup(utils, serverFQDN, realm, NULL);
-	if (ret == SASL_OK) {
-	    ret = _plug_strdup(utils, input, user, NULL);
-	}
-    } else if (user_realm[0]) {
-	ret = _plug_strdup(utils, user_realm, realm, NULL);
-	if (ret == SASL_OK) {
-	    ret = _plug_strdup(utils, input, user, NULL);
-	}
-    } else {
-	/* otherwise, we gotta get it from the user */
-	r = strchr(input, '@');
-	if (!r) {
-	    /* hmmm, the user didn't specify a realm */
-	    /* we'll default to the serverFQDN */
-	    ret = _plug_strdup(utils, serverFQDN, realm, NULL);
-	    if (ret == SASL_OK) {
-		ret = _plug_strdup(utils, input, user, NULL);
-	    }
-	} else {
-	    int i;
-
-	    r++;
-	    ret = _plug_strdup(utils, r, realm, NULL);
-	    *user = utils->malloc(r - input + 1);
-	    if (*user) {
-		for (i = 0; input[i] != '@'; i++) {
-		    (*user)[i] = input[i];
-		}
-		(*user)[i] = '\0';
-	    } else {
-		ret = SASL_NOMEM;
-	    }
-	}
-    }
-
-    return ret;
-}
-
 /* Convert the ASCII hex into binary data */
 int hex2bin(char *hex, unsigned char *bin, int binlen)
 {
@@ -1414,9 +1361,9 @@ static int otp_server_mech_step(void *conn_context,
     authid[authid_len] = '\0';
 
     /* Get the realm */
-    r = parseuser(params->utils, &text->authid, &text->realm,
-		  params->user_realm,
-    		  params->serverFQDN, authid);
+    r = _plug_parseuser(params->utils, &text->authid, &text->realm,
+			params->user_realm,
+			params->serverFQDN, authid);
 
     params->utils->free(authid);
     if (r) {
@@ -1635,8 +1582,8 @@ static int otp_setpass(void *glob_context __attribute__((unused)),
 	return SASL_NOMECH;
     }
 
-    r = parseuser(sparams->utils, &user, &realm, sparams->user_realm,
-		       sparams->serverFQDN, userstr);
+    r = _plug_parseuser(sparams->utils, &user, &realm, sparams->user_realm,
+			sparams->serverFQDN, userstr);
     if (r) {
       sparams->utils->seterror(sparams->utils->conn, 0, 
 			       "OTP: Error parsing user");

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: external.c,v 1.10 2002/04/28 05:02:28 ken3 Exp $
+ * $Id: external.c,v 1.11 2002/04/30 17:45:32 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -51,250 +51,94 @@
 #include <string.h>
 #include <sasl.h>
 #include <saslplug.h>
-#include <saslutil.h>
 #include "saslint.h"
+
 #include "plugin_common.h"
 
-static int
-external_server_new(void *glob_context __attribute__((unused)),
-		    sasl_server_params_t *sparams,
-		    const char *challenge __attribute__((unused)),
-		    unsigned challen __attribute__((unused)),
-		    void **conn_context)
-{
-  if (!conn_context
-      || !sparams
-      || !sparams->utils
-      || !sparams->utils->conn)
-    return SASL_BADPARAM;
-  if (!sparams->utils->conn->external.auth_id)
-    return SASL_NOMECH;
-  *conn_context = NULL;
-  return SASL_OK;
-}
+/*****************************  Common Section  *****************************/
+
+static const char plugin_id[] = "$Id: external.c,v 1.11 2002/04/30 17:45:32 ken3 Exp $";
+
+/*****************************  Server Section  *****************************/
 
 static int
-external_server_step(void *conn_context __attribute__((unused)),
-		     sasl_server_params_t *sparams,
-		     const char *clientin,
-		     unsigned clientinlen,
-		     const char **serverout,
-		     unsigned *serveroutlen,
-		     sasl_out_params_t *oparams)
+external_server_mech_new(void *glob_context __attribute__((unused)),
+			 sasl_server_params_t *sparams,
+			 const char *challenge __attribute__((unused)),
+			 unsigned challen __attribute__((unused)),
+			 void **conn_context)
 {
-  int result;
-  
-  if (!sparams
-      || !sparams->utils
-      || !sparams->utils->conn
-      || !sparams->utils->getcallback
-      || !serverout
-      || !serveroutlen
-      || !oparams)
-    return SASL_BADPARAM;
-
-  if (!sparams->utils->conn->external.auth_id)
-    return SASL_BADPROT;
-
-  if ((sparams->props.security_flags & SASL_SEC_NOANONYMOUS) &&
-      (!strcmp(sparams->utils->conn->external.auth_id, "anonymous"))) {
-      sasl_seterror(sparams->utils->conn,0,"anonymous login not allowed");
-      return SASL_NOAUTHZ;
-  }
-  
-  if (! clientin) {
-    /* No initial data; we're in a protocol which doesn't support it.
-     * So we let the server app know that we need some... */
-    *serverout = NULL;
-    *serveroutlen = 0;
-    return SASL_CONTINUE;
-  }
-
-  if (clientinlen) {		/* if we have a non-zero authorization id */
-      /* The user's trying to authorize as someone they didn't
-       * authenticate as */
-      result = sparams->canon_user(sparams->utils->conn,
-				   clientin, 0, SASL_CU_AUTHZID, oparams);
-      if(result != SASL_OK) return result;
-      result = sparams->canon_user(sparams->utils->conn,
-				   sparams->utils->conn->external.auth_id, 0,
-				   SASL_CU_AUTHID, oparams);
-  } else {
-      result = sparams->canon_user(sparams->utils->conn,
-				   sparams->utils->conn->external.auth_id, 0,
-				   SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
-  }
-
-  if (result != SASL_OK) return result;
-
-  oparams->doneflag = 1;
-  oparams->mech_ssf = 0;
-  oparams->maxoutbuf = 0;
-  oparams->encode_context = NULL;
-  oparams->encode = NULL;
-  oparams->decode_context = NULL;
-  oparams->decode = NULL;
-  oparams->param_version = 0;
-
-  return SASL_OK;
-}
-
-sasl_server_plug_t external_server_mech =
-{
-    "EXTERNAL",			/* mech_name */
-    0,				/* max_ssf */
-    SASL_SEC_NOPLAINTEXT
-    | SASL_SEC_NOANONYMOUS
-    | SASL_SEC_NODICTIONARY,	/* security_flags */
-    SASL_FEAT_WANT_CLIENT_FIRST,/* features */
-    NULL,			/* glob_context */
-    &external_server_new,	/* mech_new */
-    &external_server_step,	/* mech_step */
-    NULL,			/* mech_dispose */
-    NULL,			/* mech_free */
-    NULL,			/* setpass */
-    NULL,			/* user_query */
-    NULL,			/* idle */
-    NULL,			/* mech_avail */
-    NULL			/* spare */
-};
-
-int external_server_init(const sasl_utils_t *utils __attribute__((unused)),
-			 int max_version,
-			 int *out_version,
-			 sasl_server_plug_t **pluglist,
-			 int *plugcount)
-{
-  if (!out_version || !pluglist || !plugcount)
-    return SASL_BADPARAM;
-  if (max_version != SASL_SERVER_PLUG_VERSION)
-    return SASL_BADVERS;
-  *out_version = SASL_SERVER_PLUG_VERSION;
-  *pluglist = &external_server_mech;
-  *plugcount = 1;
-  return SASL_OK;
-}
-
-typedef struct external_client_context 
-{
-    char *out_buf;
-    unsigned out_buf_len;
-} external_client_context_t;
-
-static int
-external_client_new(void *glob_context __attribute__((unused)),
-		    sasl_client_params_t *params __attribute__((unused)),
-		    void **conn_context)
-{
-    external_client_context_t *ret;
-    
-    if (!params
-	|| !params->utils
-	|| !params->utils->conn
-	|| !conn_context)
+    if (!conn_context
+	|| !sparams
+	|| !sparams->utils
+	|| !sparams->utils->conn)
 	return SASL_BADPARAM;
-    if (!params->utils->conn->external.auth_id)
-	return SASL_NOMECH;
-    ret = sasl_ALLOC(sizeof(external_client_context_t));
-    if(!ret) return SASL_NOMEM;
     
-    memset(ret, 0, sizeof(external_client_context_t));
+    if (!sparams->utils->conn->external.auth_id)
+	return SASL_NOMECH;
+    
+    *conn_context = NULL;
 
-    *conn_context = ret;
     return SASL_OK;
 }
 
 static int
-external_client_step(void *conn_context,
-		     sasl_client_params_t *params,
-		     const char *serverin __attribute__((unused)),
-		     unsigned serverinlen,
-		     sasl_interact_t **prompt_need,
-		     const char **clientout,
-		     unsigned *clientoutlen,
-		     sasl_out_params_t *oparams)
+external_server_mech_step(void *conn_context __attribute__((unused)),
+			  sasl_server_params_t *sparams,
+			  const char *clientin,
+			  unsigned clientinlen,
+			  const char **serverout,
+			  unsigned *serveroutlen,
+			  sasl_out_params_t *oparams)
 {
-  int result;
-  const char *user = NULL;
-  external_client_context_t *text = (external_client_context_t *)conn_context;
-  int user_result = SASL_OK;
-  
-  if (!params
-      || !params->utils
-      || !params->utils->conn
-      || !params->utils->getcallback
-      || !clientout
-      || !clientoutlen
-      || !oparams)
-    return SASL_BADPARAM;
-
-  if (!params->utils->conn->external.auth_id)
-    return SASL_BADPROT;
-
-  if (serverinlen != 0)
-    return SASL_BADPROT;
-
-  /* try to get the userid */
-  if (user == NULL) {
-      user_result = _plug_get_userid(params->utils, &user, prompt_need);
-
-      if ((user_result != SASL_OK) && (user_result != SASL_INTERACT))
-	  return user_result;
-  }
-
-  /* free prompts we got */
-  if (prompt_need && *prompt_need) {
-      params->utils->free(*prompt_need);
-      *prompt_need = NULL;
-  }
-
-  /* if there are prompts not filled in */
-  if (user_result == SASL_INTERACT) {
-      /* make the prompt list */
-      int result =
-	  _plug_make_prompts(params->utils, prompt_need,
-			     user_result == SASL_INTERACT ?
-			     "Please enter your authorization name" : NULL, "",
-			     NULL, NULL,
-			     NULL, NULL,
-			     NULL, NULL, NULL,
-			     NULL, NULL, NULL);
-      if (result!=SASL_OK) return result;
-
-      return SASL_INTERACT;
-  }
-
-  *clientoutlen = user ? strlen(user) : 0;
-
-  result = _buf_alloc(&text->out_buf, &text->out_buf_len, *clientoutlen + 1);
-
-  if (result != SASL_OK) return result;
-
-  if (user && *user) {
-      result = params->canon_user(params->utils->conn,
-				  user, 0, SASL_CU_AUTHZID, oparams);
-      if(result != SASL_OK) return result;
-      
-      result = params->canon_user(params->utils->conn,
-				  params->utils->conn->external.auth_id, 0,
-				  SASL_CU_AUTHID, oparams);
-      
-      memcpy(text->out_buf, user, *clientoutlen);
-  } else {
-      result = params->canon_user(params->utils->conn,
-				  params->utils->conn->external.auth_id, 0,
-				  SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
-  }
-  
-  text->out_buf[*clientoutlen] = '\0';
-  
-  *clientout = text->out_buf;
-
-  if (prompt_need)
-    *prompt_need = NULL;
-
-  if (result == SASL_OK)
-  {
+    int result;
+    
+    if (!sparams
+	|| !sparams->utils
+	|| !sparams->utils->conn
+	|| !sparams->utils->getcallback
+	|| !serverout
+	|| !serveroutlen
+	|| !oparams)
+	return SASL_BADPARAM;
+    
+    if (!sparams->utils->conn->external.auth_id)
+	return SASL_BADPROT;
+    
+    if ((sparams->props.security_flags & SASL_SEC_NOANONYMOUS) &&
+	(!strcmp(sparams->utils->conn->external.auth_id, "anonymous"))) {
+	sasl_seterror(sparams->utils->conn,0,"anonymous login not allowed");
+	return SASL_NOAUTHZ;
+    }
+    
+    *serverout = NULL;
+    *serveroutlen = 0;
+    
+    if (!clientin) {
+	/* No initial data; we're in a protocol which doesn't support it.
+	 * So we let the server app know that we need some... */
+	return SASL_CONTINUE;
+    }
+    
+    if (clientinlen) {		/* if we have a non-zero authorization id */
+	/* The user's trying to authorize as someone they didn't
+	 * authenticate as */
+	result = sparams->canon_user(sparams->utils->conn,
+				     clientin, 0, SASL_CU_AUTHZID, oparams);
+	if(result != SASL_OK) return result;
+	
+	result = sparams->canon_user(sparams->utils->conn,
+				     sparams->utils->conn->external.auth_id, 0,
+				     SASL_CU_AUTHID, oparams);
+    } else {
+	result = sparams->canon_user(sparams->utils->conn,
+				     sparams->utils->conn->external.auth_id, 0,
+				     SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
+    }
+    
+    if (result != SASL_OK) return result;
+    
+    /* set oparams */
     oparams->doneflag = 1;
     oparams->mech_ssf = 0;
     oparams->maxoutbuf = 0;
@@ -305,60 +149,242 @@ external_client_step(void *conn_context,
     oparams->param_version = 0;
 
     return SASL_OK;
-  }  /* otherwise */
-
-  return result;
 }
 
-static void external_client_dispose(void *conn_context,
-				    const sasl_utils_t *utils __attribute__((unused))) 
+static sasl_server_plug_t external_server_plugins[] =
 {
-    external_client_context_t *text;
+    {
+	"EXTERNAL",			/* mech_name */
+	0,				/* max_ssf */
+	SASL_SEC_NOPLAINTEXT
+	| SASL_SEC_NOANONYMOUS
+	| SASL_SEC_NODICTIONARY,	/* security_flags */
+	SASL_FEAT_WANT_CLIENT_FIRST,	/* features */
+	NULL,				/* glob_context */
+	&external_server_mech_new,	/* mech_new */
+	&external_server_mech_step,	/* mech_step */
+	NULL,				/* mech_dispose */
+	NULL,				/* mech_free */
+	NULL,				/* setpass */
+	NULL,				/* user_query */
+	NULL,				/* idle */
+	NULL,				/* mech_avail */
+	NULL				/* spare */
+    }
+};
+
+int external_server_plug_init(const sasl_utils_t *utils,
+			      int max_version,
+			      int *out_version,
+			      sasl_server_plug_t **pluglist,
+			      int *plugcount)
+{
+    if (!out_version || !pluglist || !plugcount)
+	return SASL_BADPARAM;
     
-    if(!conn_context) return;
+    if (max_version != SASL_SERVER_PLUG_VERSION) {
+	SETERROR( utils, "EXTERNAL version mismatch" );
+	return SASL_BADVERS;
+    }
+    
+    *out_version = SASL_SERVER_PLUG_VERSION;
+    *pluglist = external_server_plugins;
+    *plugcount = 1;
+    return SASL_OK;
+}
 
-    text = (external_client_context_t *)conn_context;
+/*****************************  Client Section  *****************************/
 
+typedef struct client_context 
+{
+    char *out_buf;
+    unsigned out_buf_len;
+} client_context_t;
+
+static int external_client_mech_new(void *glob_context __attribute__((unused)),
+				    sasl_client_params_t *params,
+				    void **conn_context)
+{
+    client_context_t *text;
+    
+    if (!params
+	|| !params->utils
+	|| !params->utils->conn
+	|| !conn_context)
+	return SASL_BADPARAM;
+    
+    if (!params->utils->conn->external.auth_id)
+	return SASL_NOMECH;
+    
+    text = sasl_ALLOC(sizeof(client_context_t));
+    if(!text) return SASL_NOMEM;
+    
+    memset(text, 0, sizeof(client_context_t));
+    
+    *conn_context = text;
+
+    return SASL_OK;
+}
+
+static int
+external_client_mech_step(void *conn_context,
+			  sasl_client_params_t *params,
+			  const char *serverin __attribute__((unused)),
+			  unsigned serverinlen,
+			  sasl_interact_t **prompt_need,
+			  const char **clientout,
+			  unsigned *clientoutlen,
+			  sasl_out_params_t *oparams)
+{
+    client_context_t *text = (client_context_t *)conn_context;
+    const char *user = NULL;
+    int user_result = SASL_OK;
+    int result;
+    
+    if (!params
+	|| !params->utils
+	|| !params->utils->conn
+	|| !params->utils->getcallback
+	|| !clientout
+	|| !clientoutlen
+	|| !oparams)
+	return SASL_BADPARAM;
+    
+    if (!params->utils->conn->external.auth_id)
+	return SASL_BADPROT;
+    
+    if (serverinlen != 0)
+	return SASL_BADPROT;
+    
+    *clientout = NULL;
+    *clientoutlen = 0;
+    
+    /* try to get the userid */
+    if (user == NULL) {
+	user_result = _plug_get_userid(params->utils, &user, prompt_need);
+	
+	if ((user_result != SASL_OK) && (user_result != SASL_INTERACT))
+	    return user_result;
+    }
+    
+    /* free prompts we got */
+    if (prompt_need && *prompt_need) {
+	params->utils->free(*prompt_need);
+	*prompt_need = NULL;
+    }
+    
+    /* if there are prompts not filled in */
+    if (user_result == SASL_INTERACT) {
+	/* make the prompt list */
+	int result =
+	    _plug_make_prompts(params->utils, prompt_need,
+			       user_result == SASL_INTERACT ?
+			       "Please enter your authorization name" : NULL, "",
+			       NULL, NULL,
+			       NULL, NULL,
+			       NULL, NULL, NULL,
+			       NULL, NULL, NULL);
+	if (result != SASL_OK) return result;
+	
+	return SASL_INTERACT;
+    }
+    
+    *clientoutlen = user ? strlen(user) : 0;
+    
+    result = _buf_alloc(&text->out_buf, &text->out_buf_len, *clientoutlen + 1);
+    
+    if (result != SASL_OK) return result;
+    
+    if (user && *user) {
+	result = params->canon_user(params->utils->conn,
+				    user, 0, SASL_CU_AUTHZID, oparams);
+	if (result != SASL_OK) return result;
+	
+	result = params->canon_user(params->utils->conn,
+				    params->utils->conn->external.auth_id, 0,
+				    SASL_CU_AUTHID, oparams);
+	if (result != SASL_OK) return result;
+	
+	memcpy(text->out_buf, user, *clientoutlen);
+    } else {
+	result = params->canon_user(params->utils->conn,
+				    params->utils->conn->external.auth_id, 0,
+				    SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
+	if (result != SASL_OK) return result;
+    }
+    
+    text->out_buf[*clientoutlen] = '\0';
+    
+    *clientout = text->out_buf;
+    
+    /* set oparams */
+    oparams->doneflag = 1;
+    oparams->mech_ssf = 0;
+    oparams->maxoutbuf = 0;
+    oparams->encode_context = NULL;
+    oparams->encode = NULL;
+    oparams->decode_context = NULL;
+    oparams->decode = NULL;
+    oparams->param_version = 0;
+    
+    return SASL_OK;
+}
+
+static void
+external_client_mech_dispose(void *conn_context,
+			     const sasl_utils_t *utils __attribute__((unused))) 
+{
+    client_context_t *text = (client_context_t *) conn_context;
+    
+    if (!text) return;
+    
     if(text->out_buf) sasl_FREE(text->out_buf);
-
+    
     sasl_FREE(text);
 }
 
-static const long external_client_required_prompts[] = {
-  SASL_CB_USER,
-  SASL_CB_LIST_END
+static const long external_required_prompts[] = {
+    SASL_CB_USER,
+    SASL_CB_LIST_END
 };
 
-sasl_client_plug_t external_client_mech =
+static sasl_client_plug_t external_client_plugins[] =
 {
-    "EXTERNAL",			/* mech_name */
-    0,				/* max_ssf */
-    SASL_SEC_NOPLAINTEXT
-    | SASL_SEC_NODICTIONARY,	/* security_flags */
-    SASL_FEAT_WANT_CLIENT_FIRST,/* features */
-    external_client_required_prompts,	/* required_prompts */
-    NULL,			/* glob_context */
-    &external_client_new,	/* mech_new */
-    &external_client_step,	/* mech_step */
-    &external_client_dispose,	/* mech_dispose */
-    NULL,			/* mech_free */
-    NULL,			/* idle */
-    NULL,			/* spare */
-    NULL			/* spare */
+    {
+	"EXTERNAL",			/* mech_name */
+	0,				/* max_ssf */
+	SASL_SEC_NOPLAINTEXT
+	| SASL_SEC_NODICTIONARY,	/* security_flags */
+	SASL_FEAT_WANT_CLIENT_FIRST,	/* features */
+	external_required_prompts,	/* required_prompts */
+	NULL,				/* glob_context */
+	&external_client_mech_new,	/* mech_new */
+	&external_client_mech_step,	/* mech_step */
+	&external_client_mech_dispose,	/* mech_dispose */
+	NULL,				/* mech_free */
+	NULL,				/* idle */
+	NULL,				/* spare */
+	NULL				/* spare */
+    }
 };
 
-int external_client_init(const sasl_utils_t *utils,
-			 int max_version,
-			 int *out_version,
-			 sasl_client_plug_t **pluglist,
-			 int *plugcount)
+int external_client_plug_init(const sasl_utils_t *utils,
+			      int max_version,
+			      int *out_version,
+			      sasl_client_plug_t **pluglist,
+			      int *plugcount)
 {
-  if (!utils || !out_version || !pluglist || !plugcount)
-    return SASL_BADPARAM;
-  if (max_version != SASL_CLIENT_PLUG_VERSION)
-    return SASL_BADVERS;
-  *out_version = SASL_CLIENT_PLUG_VERSION;
-  *pluglist = &external_client_mech;
-  *plugcount = 1;
-  return SASL_OK;
+    if (!utils || !out_version || !pluglist || !plugcount)
+	return SASL_BADPARAM;
+    
+    if (max_version != SASL_CLIENT_PLUG_VERSION) {
+	SETERROR( utils, "EXTERNAL version mismatch" );
+	return SASL_BADVERS;
+    }
+    
+    *out_version = SASL_CLIENT_PLUG_VERSION;
+    *pluglist = external_client_plugins;
+    *plugcount = 1;
+    
+    return SASL_OK;
 }

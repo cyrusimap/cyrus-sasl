@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.40 2002/02/13 20:31:52 rjs3 Exp $
+ * $Id: saslint.h,v 1.41 2002/04/30 17:45:32 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -404,18 +404,16 @@ int _sasl_ipfromstring(const char *addr, struct sockaddr *out,
 /*
  * external plugin (external.c)
  */
-int external_client_init(const sasl_utils_t *utils,
-			 int max_version,
-			 int *out_version,
-			 sasl_client_plug_t **pluglist,
-			 int *plugcount);
-extern sasl_client_plug_t external_client_mech;
-int external_server_init(const sasl_utils_t *utils,
-			 int max_version,
-			 int *out_version,
-			 sasl_server_plug_t **pluglist,
-			 int *plugcount);
-extern sasl_server_plug_t external_server_mech;
+int external_client_plug_init(const sasl_utils_t *utils,
+			      int max_version,
+			      int *out_version,
+			      sasl_client_plug_t **pluglist,
+			      int *plugcount);
+int external_server_plug_init(const sasl_utils_t *utils,
+			      int max_version,
+			      int *out_version,
+			      sasl_server_plug_t **pluglist,
+			      int *plugcount);
 
 /* Mech Listing Functions */
 int _sasl_build_mechlist(void);

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: sasldb.c,v 1.4 2002/04/27 14:04:05 ken3 Exp $
+ * $Id: sasldb.c,v 1.5 2002/04/30 17:45:34 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -56,49 +56,6 @@
 
 #include "plugin_common.h"
 
-/* returns the realm we should pretend to be in */
-static int parseuser(const sasl_utils_t *utils,
-		     char **user, char **realm, const char *user_realm, 
-		     const char *serverFQDN, const char *input)
-{
-    int ret;
-    char *r;
-
-    if(!user || !serverFQDN) {
-	PARAMERROR( utils );
-	return SASL_BADPARAM;
-    }
-
-    r = strchr(input, '@');
-    if (!r) {
-	/* hmmm, the user didn't specify a realm */
-	if(user_realm && user_realm[0]) {
-	    ret = _plug_strdup(utils, user_realm, realm, NULL);
-	} else {
-	    /* Default to serverFQDN */
-	    ret = _plug_strdup(utils, serverFQDN, realm, NULL);
-	}
-	
-	if (ret == SASL_OK) {
-	    ret = _plug_strdup(utils, input, user, NULL);
-	}
-    } else {
-	r++;
-	ret = _plug_strdup(utils, r, realm, NULL);
-	*--r = '\0';
-	*user = utils->malloc(r - input + 1);
-	if (*user) {
-	    strncpy(*user, input, r - input +1);
-	} else {
-	    MEMERROR( utils );
-	    ret = SASL_NOMEM;
-	}
-	*r = '@';
-    }
-
-    return ret;
-}
-
 static void sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
 				  sasl_server_params_t *sparams,
 				  unsigned flags,
@@ -129,8 +86,8 @@ static void sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
 	user_realm = sparams->serverFQDN;
     }
 
-    ret = parseuser(sparams->utils, &userid, &realm, user_realm,
-		    sparams->serverFQDN, user_buf);
+    ret = _plug_parseuser(sparams->utils, &userid, &realm, user_realm,
+			  sparams->serverFQDN, user_buf);
     if(ret != SASL_OK) goto done;
 
     to_fetch = sparams->utils->prop_get(sparams->propctx);

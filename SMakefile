@@ -9,16 +9,19 @@ if test ! -x configure; then
   automake --add-missing --include-deps
 fi
 
+# Note that SASLv1 doesn't build java on andrew anymore (it's overriden
+# by the SASLv2 java
+
 LIBS=""
 case `uname` in
   Linux) CFLAGS="${CFLAGS} -O2 -g"
 	 LIBS="-ldb"
-	 LNEXTRA=" --enable-java --with-javabase=/usr/local/lib/java/"
+	 LNEXTRA=""
 	 ;;
 
   SunOS) CC="gcc"
 	 CFLAGS="${CFLAGS} -O2 -g"
-	 LNEXTRA=" --enable-java --with-javabase=/usr/java/"
+	 LNEXTRA=""
 	 LIBS="-ldb"
 #	 CC="cc"
 #	 if test "${WASH_CYRUS_DEBUG}" = "t"; then

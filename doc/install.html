@@ -1,13 +1,15 @@
-<HTML><HEAD>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+                      "http://www.w3.org/TR/html4/loose.dtd"> 
+<html><head>
 <title>Cyrus SASLv2 INSTALL Documentation</title>
-<!-- $Id: install.html,v 1.9 2003/02/01 21:41:21 leg Exp $ -->
-</HEAD>
-<BODY>
-<H1>Installation Procedure</H1>
+<!-- $Id: install.html,v 1.10 2003/02/01 21:50:22 leg Exp $ -->
+</head>
+<body>
+<h1>Installation Procedure</h1>
 
 This document offers a general overview of installing the SASL library.
 
-<H2>Quick and Dirty</H2>
+<h2>Quick and Dirty</h2>
 <pre>
   cd (directory it was untarred into)
   ./configure
@@ -24,33 +26,7 @@ learn how to configure libsasl in depth.  There is also a <A
 HREF="upgrading.html">document</A> that covers migrating from libsasl v1
 to libsasl v2 applications.
 
-<h2>Slower and Cleaner</h2>
-
-styled as a tutorial
-
-<h3>Compile-time configuration</h3>
-
-configure switches
-
-disable mechanisms you won't be using
-
-set the location of the saslauthd socket
-
-where to find berkeley db
-
-<h3>Installation</h3>
-
-<h3>saslauthd</h3>
-
-
-<h3>Run-time configuration</h3>
-
-see config.html
-
-see sysadmin.html
-
-
-<H2>Details</H2>
+<h2>Details</h2>
 
 <p>Note that the library looks for plugins in <tt>/usr/lib/sasl2</tt>,
 but installs them into <tt>${prefix}/lib/sasl2</tt>, where
@@ -69,20 +45,20 @@ variable SASL_PATH to the path the library should use.
 
 <p>You'll probably need the GNU make program, available as of this
 writing <a
-href=ftp://ftp.gnu.org/pub/gnu/make/make-3.77.tar.gz>here</a>.<p>
+href="ftp://ftp.gnu.org/pub/gnu/make/make-3.77.tar.gz">here</a>.<p>
 
 <p>libsasl2 can use gdbm, Berkeley db, or ndbm to implement its
 user/password lookup. Most systems come with ndbm these days; as of
 this writing, gdbm is available as <a
-href=ftp://ftp.gnu.org/pub/gnu/gdbm/gdbm-1.7.3.tar.gz>this file</a>.
+href="ftp://ftp.gnu.org/pub/gnu/gdbm/gdbm-1.7.3.tar.gz">this file</a>.
 Berkeley DB is available from: <a
-href=http://www.sleepycat.com/>here</a>
+href="http://www.sleepycat.com/">here</a>
 
 <p>For Kerberos support, you'll need the kerberos libraries.  At CMU, the
-version we use comes from <a href=http://www.pdc.kth.se/kth-krb/>here</a>.
+version we use comes from <a href="http://www.pdc.kth.se/kth-krb/">here</a>.
 
 <p>For GSSAPI support you will need either MIT Kerberos 5 or the
-<a href=http://www.pdc.kth.se/heimdal>Heimdal implementation</a>.
+<a href="http://www.pdc.kth.se/heimdal">Heimdal implementation</a>.
 
 <p>You may want to play with your CPPFLAGS and LDFLAGS a little if you're
 using vendor compilers. We use <tt>gcc</tt> extensively, but you'll
@@ -108,8 +84,7 @@ See <a href="windows.html">the Windows documentation</a> for detailed
 instructions.
 
 <hr>
-Back to the <A href=index.html>index</a>
+Back to the <a href="index.html">index</a>
 
 </body>
 </html>
-

@@ -1,6 +1,6 @@
 # Makefile.am for the SASL plugins
 # Rob Earhart
-# $Id: Makefile.am,v 1.3 1998/11/17 00:50:24 rob Exp $
+# $Id: Makefile.am,v 1.4 1998/11/24 18:14:01 rob Exp $
 #
 #
 #         Copyright 1998 by Carnegie Mellon University
@@ -26,8 +26,8 @@
 
 # Library version info - here at the top, for sanity
 plain_version = 1:0:0
-anonymous_version = 1:0:0
-kerberos4_version = 1:0:0
+anonymous_version = 1:1:0
+kerberos4_version = 1:1:0
 crammd5_version = 1:0:0
 scrammd5_version = 1:0:0
 gssapiv2_version = 1:0:0

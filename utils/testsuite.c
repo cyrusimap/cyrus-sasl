@@ -82,13 +82,8 @@ char myhostname[1024+1];
 
 #define CLIENT_TO_SERVER "Hello. Here is some stuff"
 
-#ifdef SASL_NDBM
-#define REALLY_LONG_LENGTH  900
-#define REALLY_LONG_BACKOFF  50
-#else
 #define REALLY_LONG_LENGTH  32000
 #define REALLY_LONG_BACKOFF  2000
-#endif
 
 char *username = "tmartin";
 char *authname = "tmartin";
@@ -1096,11 +1091,15 @@ void create_ids(void)
     if (sasl_setpass(saslconn,username, password, 0, SASL_SET_CREATE, NULL)==SASL_OK)
 	fatal("Allowed password of zero length");
     if (sasl_setpass(saslconn,username, password, strlen(password), 43, NULL)==SASL_OK)
-	fatal("Gave wierd code");
+	fatal("Gave weird code");
 
+#ifndef SASL_NDBM
     if (sasl_setpass(saslconn,really_long_string, password, strlen(password), 
 		     SASL_SET_CREATE, NULL)!=SASL_OK)
 	fatal("Didn't allow really long username");
+#else
+    printf("WARNING: skipping sasl_setpass() on really_long_string with NDBM\n");
+#endif
 
     if (sasl_setpass(saslconn,"bob" ,really_long_string, strlen(really_long_string), 
 		     SASL_SET_CREATE, NULL)!=SASL_OK)

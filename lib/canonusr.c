@@ -1,6 +1,6 @@
 /* canonusr.c - user canonicalization support
  * Rob Siemborski
- * $Id: canonusr.c,v 1.8 2002/05/06 15:57:42 rjs3 Exp $
+ * $Id: canonusr.c,v 1.9 2002/07/18 01:21:27 ken3 Exp $
  */
 /* 
  * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
@@ -118,6 +118,7 @@ int _sasl_canon_user(sasl_conn_t *conn,
 
 	/* Point the input copy at the stored buffer */
 	user = user_buf;
+	ulen = *lenp;
     }
 
     /* which plugin are we supposed to use? */

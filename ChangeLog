@@ -1,3 +1,7 @@
+2002-12-10  Ken Murchison <ken@oceana.com>
+	* plugins/otp.c: explicitly #include <openssl/md5.h> to resolve
+	  OpenBSD/OpenSSL cruftiness
+
 2002-12-10  Rob Siemborksi <rjs3@andrew.cmu.edu>
 	* saslauthd/saslauthd-doors.c: Fix a potential memory leak when
 	  we call door_return()

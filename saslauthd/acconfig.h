@@ -6,6 +6,9 @@
 /* do we have gssapi.h or gssapi/gssapi.h? */
 #undef HAVE_GSSAPI_H
 
+/* define if your compile has __attribute__ */
+#undef HAVE___ATTRIBUTE__
+
 /* what flavor of GSSAPI are we using? */
 #undef HAVE_GSS_C_NT_HOSTBASED_SERVICE
 
@@ -64,6 +67,11 @@
 #undef HAVE_SOCKADDR_SA_LEN
 
 @BOTTOM@
+
+#ifndef HAVE___ATTRIBUTE__
+/* Can't use attributes... */
+#define __attribute__(foo)
+#endif
 
 #include <stdlib.h>
 #include <sys/types.h>

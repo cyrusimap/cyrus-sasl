@@ -2,7 +2,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.152 2003/03/06 17:53:24 rjs3 Exp $
+ * $Id: digestmd5.c,v 1.153 2003/03/30 22:17:06 leg Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -102,7 +102,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.152 2003/03/06 17:53:24 rjs3 Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.153 2003/03/30 22:17:06 leg Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -663,7 +663,7 @@ struct des_context_s {
 typedef struct des_context_s des_context_t;
 
 /* slide the first 7 bytes of 'inbuf' into the high seven bits of the
-   first 8 bytes of 'keybuf'. 'inbuf' better be 8 bytes long or longer. */
+   first 8 bytes of 'keybuf'. 'keybuf' better be 8 bytes long or longer. */
 static void slidebits(unsigned char *keybuf, unsigned char *inbuf)
 {
     keybuf[0] = inbuf[0];

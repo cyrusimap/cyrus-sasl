@@ -1,3 +1,9 @@
+2005-04-11  Derrick Brashear <shadow@andrew.cmu.edu>
+	* sasldb/Makefile.am, config/sasldb.m4: work around HP-UX make's
+	  inability to have pipes in $(shell ...) by setting 
+	  LOCAL_SASL_DB_BACKEND_STATIC at the same time as
+	  SASL_DB_BACKEND_STATIC.
+	
 2005-03-15  Alexey Melnikov <alexey.melnikov@isode.com>
 	* lib/dlopen.c: log the reason for opendir() failure
 	  when loading plugin.

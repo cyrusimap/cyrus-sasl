@@ -1,4 +1,8 @@
 2005-04-11  Derrick Brashear <shadow@andrew.cmu.edu>
+	* configure.in, plugins/digestmd5.c: detect and include des.h if it 
+	  exists, otherwise assume we don't need it (Solaris 9)
+
+2005-04-11  Derrick Brashear <shadow@andrew.cmu.edu>
 	* sasldb/Makefile.am, config/sasldb.m4: work around HP-UX make's
 	  inability to have pipes in $(shell ...) by setting 
 	  LOCAL_SASL_DB_BACKEND_STATIC at the same time as

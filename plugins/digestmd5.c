@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.175 2004/12/27 21:30:43 shadow Exp $
+ * $Id: digestmd5.c,v 1.176 2005/04/11 06:36:17 shadow Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -74,7 +74,9 @@
            DES_ede2_cbc_encrypt((i),(o),(l),&(k1),&(k2),(iv),(e))
 #  endif /* OpenSSL 0.9.7+ w/o old DES support */
 # else /* system DES library */
+#ifdef HAVE_DES_H
 #  include <des.h>
+#endif
 # endif
 #endif /* WITH_DES */
 
@@ -120,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.175 2004/12/27 21:30:43 shadow Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.176 2005/04/11 06:36:17 shadow Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */

@@ -56,9 +56,9 @@ else
 man_MANS = saslpasswd2.8 sasldblistusers2.8
 endif
 
-saslpasswd2_LDADD = ../sasldb/libsasldb.la $(all_sasl_libs)
+saslpasswd2_LDADD = $(all_sasl_libs) ../sasldb/libsasldb.la
 saslpasswd2_SOURCES = saslpasswd.c
-sasldblistusers2_LDADD = ../sasldb/libsasldb.la $(all_sasl_libs)
+sasldblistusers2_LDADD = $(all_sasl_libs) ../sasldb/libsasldb.la
 sasldblistusers2_SOURCES = sasldblistusers.c
 dbconverter_2_LDADD = ../sasldb/libsasldb.la $(all_sasl_libs)
 

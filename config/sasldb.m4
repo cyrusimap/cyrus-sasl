@@ -134,7 +134,7 @@ if test "$enable_static" = yes; then
     fi
 fi
 
-LOCAL_SASL_DB_BACKEND_STATIC=`echo $(SASL_DB_BACKEND_STATIC) | sed -e "s%\.\./sasldb/%%g"`
+LOCAL_SASL_DB_BACKEND_STATIC=`echo $SASL_DB_BACKEND_STATIC | sed -e "s%\.\./sasldb/%%g"`
 AC_SUBST(SASL_DB_UTILS)
 AC_SUBST(SASL_DB_MANS)
 AC_SUBST(SASL_DB_BACKEND)

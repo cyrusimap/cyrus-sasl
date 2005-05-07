@@ -1,3 +1,10 @@
+2005-05-06  Derrick Brashear <shadow@andrew.cmu.edu> 
+	* configure.in, saslauthd/auth_pam.c: detect pam header location also
+	  where MacOS provides it, and use it there
+	* utils/Makefile.am: change link order for MacOS
+	* configure.in: provide option to disable installing MacOS SASL2 
+	  framework
+	
 2005-04-11  Derrick Brashear <shadow@andrew.cmu.edu>
 	* configure.in, plugins/digestmd5.c: detect and include des.h if it 
 	  exists, otherwise assume we don't need it (Solaris 9)

@@ -4,6 +4,11 @@
 	* utils/Makefile.am: change link order for MacOS
 	* configure.in: provide option to disable installing MacOS SASL2 
 	  framework
+	* configure.in, config/kerberos_v4.m4, config/plain.m4,
+	  config/sasldb.m4, lib/Makefile.am, sasldb/Makefile.am,
+	  (cmulocal/sasl2.m4): fix case where we are building 
+	  --enable-static --with-dblib=none causing automake's dependancy
+	  stuff to screw us when we try to build files with .. in their path
 	
 2005-04-11  Derrick Brashear <shadow@andrew.cmu.edu>
 	* configure.in, plugins/digestmd5.c: detect and include des.h if it 

@@ -22,7 +22,8 @@ dnl PLAIN
   AC_MSG_RESULT(enabled)
   SASL_MECHS="$SASL_MECHS libplain.la"
   if test "$enable_static" = yes; then
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/plain.o"
+    SASL_STATIC_OBJS="$SASL_STATIC_OBJS plain.o"
+    SASL_STATIC_SRCS="$SASL_STATIC_SRCS ../plugins/plain.c"
     AC_DEFINE(STATIC_PLAIN,[],[Link PLAIN Staticly])
   fi
  else

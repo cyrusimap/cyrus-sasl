@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.203 2005/05/07 02:38:38 shadow Exp $
+dnl $Id: configure.in,v 1.204 2005/05/07 04:14:49 shadow Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -361,7 +361,8 @@ if test "$cram" != no; then
   AC_MSG_RESULT(enabled)
   SASL_MECHS="$SASL_MECHS libcrammd5.la"
   if test "$enable_static" = yes; then
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/cram.o"
+    SASL_STATIC_OBJS="$SASL_STATIC_OBJS cram.o"
+    SASL_STATIC_SRCS="$SASL_STATIC_SRCS ../plugins/cram.c"
     AC_DEFINE(STATIC_CRAMMD5, [], [Link CRAM-MD5 Staticly])
   fi
 else
@@ -395,7 +396,8 @@ if test "$digest" != no; then
   AC_MSG_RESULT(enabled)
   SASL_MECHS="$SASL_MECHS libdigestmd5.la"
   if test "$enable_static" = yes; then
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/digestmd5.o"
+    SASL_STATIC_SRCS="$SASL_STATIC_SRCS ../plugins/digestmd5.c"
+    SASL_STATIC_OBJS="$SASL_STATIC_OBJS digestmd5.o"
     AC_DEFINE(STATIC_DIGESTMD5, [], [Link DIGEST-MD5 Staticly])
   fi
 else
@@ -419,7 +421,8 @@ if test "$otp" != no; then
 
   SASL_MECHS="$SASL_MECHS libotp.la"
   if test "$enable_static" = yes; then
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/otp.o"
+    SASL_STATIC_SRCS="$SASL_STATIC_SRCS ../plugins/otp.c"
+    SASL_STATIC_OBJS="$SASL_STATIC_OBJS otp.o"
     AC_DEFINE(STATIC_OTP, [], [Link OTP Staticly])
   fi
 
@@ -475,7 +478,8 @@ if test "$srp" != no; then
 
   SASL_MECHS="$SASL_MECHS libsrp.la"
   if test "$enable_static" = yes; then
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/srp.o"
+    SASL_STATIC_SRCS="$SASL_STATIC_SRCS ../plugins/srp.c"
+    SASL_STATIC_OBJS="$SASL_STATIC_OBJS srp.o"
     AC_DEFINE(STATIC_SRP, [], [Link SRP Staticly])
   fi
 
@@ -530,7 +534,8 @@ if test "$anon" != no; then
   AC_MSG_RESULT(enabled)
   SASL_MECHS="$SASL_MECHS libanonymous.la"
   if test "$enable_static" = yes; then
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/anonymous.o"
+    SASL_STATIC_OBJS="$SASL_STATIC_OBJS anonymous.o"
+    SASL_STATIC_SRCS="$SASL_STATIC_SRCS ../plugins/anonymous.c"
     AC_DEFINE(STATIC_ANONYMOUS, [], [Link ANONYMOUS Staticly])
   fi
 else
@@ -547,7 +552,8 @@ if test "$login" != no; then
   AC_MSG_RESULT(enabled)
   SASL_MECHS="$SASL_MECHS liblogin.la"
   if test "$enable_static" = yes; then
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/login.o"
+    SASL_STATIC_SRCS="$SASL_STATIC_SRCS ../plugins/login.c"
+    SASL_STATIC_OBJS="$SASL_STATIC_OBJS login.o"
     AC_DEFINE(STATIC_LOGIN,[],[Link LOGIN Staticly])
   fi
 else
@@ -572,7 +578,8 @@ if test "$ntlm" != no; then
 
   SASL_MECHS="$SASL_MECHS libntlm.la"
   if test "$enable_static" = yes; then
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/ntlm.o"
+    SASL_STATIC_SRCS="$SASL_STATIC_SRCS ../plugins/ntlm.c"
+    SASL_STATIC_OBJS="$SASL_STATIC_OBJS ntlm.o"
     AC_DEFINE(STATIC_NTLM,[],[Link NTLM Staticly])
   fi
 else
@@ -597,7 +604,8 @@ if test "$passdss" != no; then
 
   SASL_MECHS="$SASL_MECHS libpassdss.la"
   if test "$enable_static" = yes; then
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/passdss.o"
+    SASL_STATIC_OBJS="$SASL_STATIC_OBJS passdss.o"
+    SASL_STATIC_SRCS="$SASL_STATIC_SRCS ../plugins/passdss.c"
     AC_DEFINE(STATIC_PASSDSS,[],[Link PASSDSS Staticly])
   fi
 else
@@ -627,7 +635,8 @@ if test "$sql" != no; then
   AC_MSG_RESULT(enabled)
   SASL_MECHS="$SASL_MECHS libsql.la"
   if test "$enable_static" = yes; then
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/sql.o"
+    SASL_STATIC_SRCS="$SASL_STATIC_SRCS ../plugins/sql.c"
+    SASL_STATIC_OBJS="$SASL_STATIC_OBJS sql.o"
     AC_DEFINE(STATIC_SQL,[],[Link SQL plugin staticly])
   fi
 else
@@ -866,7 +875,8 @@ if test "$ldapdb" != no; then
 
             SASL_MECHS="$SASL_MECHS libldapdb.la"
             if test "$enable_static" = yes; then
-                SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/ldapdb.o"
+                SASL_STATIC_SRCS="$SASL_STATIC_SRCS ../plugins/ldapdb.c"
+                SASL_STATIC_OBJS="$SASL_STATIC_OBJS ldapdb.o"
                 AC_DEFINE(STATIC_LDAPDB,[],[Link ldapdb plugin Staticly])
             fi
         fi
@@ -881,6 +891,7 @@ else
 fi
 
 AC_SUBST(SASL_MECHS)
+AC_SUBST(SASL_STATIC_SRCS)
 AC_SUBST(SASL_STATIC_OBJS)
 AC_SUBST(SASL_STATIC_LIBS)
 

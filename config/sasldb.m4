@@ -96,7 +96,8 @@ AC_MSG_CHECKING(DB library to use)
 AC_MSG_RESULT($dblib)
 
 SASL_DB_BACKEND="db_${dblib}.lo"
-SASL_DB_BACKEND_STATIC="../sasldb/db_${dblib}.o ../sasldb/allockey.o"
+SASL_DB_BACKEND_STATIC="db_${dblib}.o allockey.o"
+SASL_DB_BACKEND_STATIC_SRCS="../sasldb/db_${dblib}.c ../sasldb/allockey.c"
 SASL_DB_UTILS="saslpasswd2 sasldblistusers2"
 SASL_DB_MANS="saslpasswd2.8 sasldblistusers2.8"
 
@@ -118,7 +119,8 @@ case "$dblib" in
     dnl note that we do not add libsasldb.la to SASL_MECHS, since it
     dnl will just fail to load anyway.
     SASL_DB_BACKEND="db_none.lo"
-    SASL_DB_BACKEND_STATIC="../sasldb/db_none.o"
+    SASL_DB_BACKEND_STATIC="db_none.o"
+    SASL_DB_BACKEND_STATIC_SRC="../sasldb/db_none.c"
     SASL_DB_UTILS=""
     SASL_DB_MANS=""
     SASL_DB_LIB=""
@@ -127,19 +129,19 @@ esac
 
 if test "$enable_static" = yes; then
     if test "$dblib" != "none"; then
-      SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/sasldb.o $SASL_DB_BACKEND_STATIC"
+      SASL_STATIC_SRCS="$SASL_STATIC_SRCS ../plugins/sasldb.c $SASL_DB_BACKEND_STATIC_SRC"
+      SASL_STATIC_OBJS="$SASL_STATIC_OBJS sasldb.o $SASL_DB_BACKEND_STATIC"
       AC_DEFINE(STATIC_SASLDB,[],[Link SASLdb Staticly])
     else
       SASL_STATIC_OBJS="$SASL_STATIC_OBJS $SASL_DB_BACKEND_STATIC"
+      SASL_STATIC_SRCS="$SASL_STATIC_SRCS $SASL_DB_BACKEND_STATIC_SRC"
     fi
 fi
 
-LOCAL_SASL_DB_BACKEND_STATIC=`echo $SASL_DB_BACKEND_STATIC | sed -e "s%\.\./sasldb/%%g"`
 AC_SUBST(SASL_DB_UTILS)
 AC_SUBST(SASL_DB_MANS)
 AC_SUBST(SASL_DB_BACKEND)
 AC_SUBST(SASL_DB_BACKEND_STATIC)
-AC_SUBST(LOCAL_SASL_DB_BACKEND_STATIC)
 AC_SUBST(SASL_DB_INC)
 AC_SUBST(SASL_DB_LIB)
 ])

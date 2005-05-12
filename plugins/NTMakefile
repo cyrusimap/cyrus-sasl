@@ -137,7 +137,7 @@ EXTRA_FLAGS=$(EXTRA_FLAGS) $(DB_FLAGS) $(OPENSSL_FLAGS) $(GSS_FLAGS) $(SRP_FLAGS
 CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" $(EXTRA_FLAGS) /D "WIN32" /D "_WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL"
 
 DB_LIBS=/libpath:$(DB_LIBPATH) $(DB_LIB)
-OPENSSL_LIBS=/libpath:$(OPENSSL_LIBPATH) libeay32.lib
+OPENSSL_LIBS=/libpath:$(OPENSSL_LIBPATH) libeay32.lib ssleay32.lib
 
 # Where to install files from this directory
 libdir = $(prefix)\lib
@@ -219,7 +219,7 @@ saslSQLITE.dll: $(saslSQL_objs) saslSQLITE.res
 <<
 
 saslLDAPDB.dll: $(saslLDAPDB_objs) saslLDAPDB.res
-	$(LINK32DLL) @<< $(LDAP_LIBS) $(LINK32DLL_FLAGS) /out:"saslLDAPDB.dll" /implib:"saslLDAPDB.lib" $(saslLDAPDB_objs) saslLDAPDB.res
+	$(LINK32DLL) @<< $(LDAP_LIBS) $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslLDAPDB.dll" /implib:"saslLDAPDB.lib" $(saslLDAPDB_objs) saslLDAPDB.res
 <<
 
 CLEAN :

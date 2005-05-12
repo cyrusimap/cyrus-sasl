@@ -1,3 +1,6 @@
+2005-03-15  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/NTMakefile: ldapdb on Windows might depend on OpenSSL.
+
 2005-05-06  Derrick Brashear <shadow@andrew.cmu.edu> 
 	* configure.in, saslauthd/auth_pam.c: detect pam header location also
 	  where MacOS provides it, and use it there

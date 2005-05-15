@@ -1,4 +1,7 @@
-2005-03-15  Alexey Melnikov <alexey.melnikov@isode.com>
+2005-05-15  Derrick Brashear <shadow@andrew.cmu.edu>  
+	* saslauthd/lak.c: leak fix from Igor Brezac
+	
+2005-05-15  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/NTMakefile: ldapdb on Windows might depend on OpenSSL.
 
 2005-05-06  Derrick Brashear <shadow@andrew.cmu.edu> 

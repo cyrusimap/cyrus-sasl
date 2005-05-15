@@ -501,11 +501,7 @@ static int lak_tokenize_domains(
 	s1 = (char *)strtok_r(s, ".", &lasts);
 	while(s1) {
 		if (i == 0) {
-			*result = strdup(s1);
-			if (*result != NULL)
-				rc = lak_escape(s1, strlen(s1), result);
-			else
-				rc = LAK_NOMEM;
+			rc = lak_escape(s1, strlen(s1), result);
 			free(s);
 			return rc;
 		}
@@ -1475,10 +1471,9 @@ static int lak_auth_fastbind(
 	if (lak->conf->use_sasl) {
 		strlcpy(id, user, LAK_BUF_LEN);
 		if (!strchr(id, '@') &&
-		    (ISSET(realm) ||
-		     ISSET(lak->conf->default_realm))) {
-				strlcat(id, "@", LAK_BUF_LEN);
-				strlcat(id, (ISSET(realm) ? realm : lak->conf->default_realm), LAK_BUF_LEN);
+		    (ISSET(realm))) {
+			strlcat(id, "@", LAK_BUF_LEN);
+			strlcat(id, realm, LAK_BUF_LEN);
 		}
 	} else {
 		rc = lak_expand_tokens(lak->conf->filter, user, service, realm, NULL, &dn);

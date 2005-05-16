@@ -122,7 +122,7 @@
 
 #define SASL_VERSION_MAJOR 2
 #define SASL_VERSION_MINOR 1
-#define SASL_VERSION_STEP 20
+#define SASL_VERSION_STEP 21
 
 /* A convenience macro: same as was defined in the OpenLDAP LDAPDB */
 #define SASL_VERSION_FULL ((SASL_VERSION_MAJOR << 16) |\

@@ -75,6 +75,7 @@ EXTRA_DIST=config cmulocal win32 mac dlcompat-20010505 NTMakefile
 dist-hook:
 	@find $(distdir) -exec chmod o+w {} ';'
 	@find $(distdir) -name CVS -print | xargs -t rm -rf
+	(cd $(distdir)/plugins && sh makeinit.sh)
 
 framedir = /Library/Frameworks/SASL2.framework
 install-exec-local: $(INSTALLOSX)

@@ -1,3 +1,9 @@
+2005-05-16  Derrick Brashear <shadow@andrew.cmu.edu>   
+	* configure.in, include/sasl.h, lib/Makefile.am,
+	  plugins/Makefile.am, saslauthd/configure.in, sasldb/Makefile.am,
+	  win32/common.mak, win32/include/config.h: 2.1.21
+	* Makefile.am: fix dist-hook to run makeinit.sh in plugins/
+
 2005-05-15  Derrick Brashear <shadow@andrew.cmu.edu>  
 	* saslauthd/lak.c: leak fix from Igor Brezac
 	

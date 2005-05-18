@@ -1,5 +1,6 @@
 2005-05-19  Derrick Brashear <shadow@andrew.cmu.edu>    
 	* config/libtool.m4: do proper quoting, from Andreas Winkelmann
+	* configure.in: clean up enable switches, from Patrick Welche
 	
 2005-05-16  Derrick Brashear <shadow@andrew.cmu.edu>   
 	* configure.in, include/sasl.h, lib/Makefile.am,

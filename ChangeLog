@@ -1,6 +1,8 @@
 2005-05-19  Derrick Brashear <shadow@andrew.cmu.edu>    
 	* config/libtool.m4: do proper quoting, from Andreas Winkelmann
 	* configure.in: clean up enable switches, from Patrick Welche
+	* config/sasldb.m4: fix macro names, from Andreas Winkelmann
+	* lib/client.c: deal with gcc4 strictness, from Steven Simon
 	
 2005-05-16  Derrick Brashear <shadow@andrew.cmu.edu>   
 	* configure.in, include/sasl.h, lib/Makefile.am,

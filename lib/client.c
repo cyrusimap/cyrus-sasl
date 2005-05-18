@@ -1,7 +1,7 @@
 /* SASL client API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.64 2004/11/02 11:32:17 mel Exp $
+ * $Id: client.c,v 1.65 2005/05/18 21:06:50 shadow Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -60,9 +60,7 @@
 #include "saslint.h"
 
 static cmech_list_t *cmechlist; /* global var which holds the list */
-
-static sasl_global_callbacks_t global_callbacks;
-
+sasl_global_callbacks_t global_callbacks_client; 
 static int _sasl_client_active = 0;
 
 static int init_mechlist()
@@ -70,7 +68,7 @@ static int init_mechlist()
   cmechlist->mutex = sasl_MUTEX_ALLOC();
   if(!cmechlist->mutex) return SASL_FAIL;
   
-  cmechlist->utils=_sasl_alloc_utils(NULL, &global_callbacks);
+  cmechlist->utils=_sasl_alloc_utils(NULL, &global_callbacks_client);
   if (cmechlist->utils==NULL)
     return SASL_NOMEM;
 
@@ -211,8 +209,8 @@ int sasl_client_init(const sasl_callback_t *callbacks)
       return SASL_OK;
   }
 
-  global_callbacks.callbacks = callbacks;
-  global_callbacks.appname = NULL;
+  global_callbacks_client.callbacks = callbacks;
+  global_callbacks_client.appname = NULL;
 
   cmechlist=sasl_ALLOC(sizeof(cmech_list_t));
   if (cmechlist==NULL) return SASL_NOMEM;
@@ -229,7 +227,7 @@ int sasl_client_init(const sasl_callback_t *callbacks)
 
   sasl_client_add_plugin("EXTERNAL", &external_client_plug_init);
 
-  ret = _sasl_common_init(&global_callbacks);
+  ret = _sasl_common_init(&global_callbacks_client);
 
   if (ret == SASL_OK)
       ret = _sasl_load_plugins(ep_list,
@@ -333,10 +331,10 @@ int sasl_client_new(const char *service,
   result = _sasl_conn_init(*pconn, service, flags, SASL_CONN_CLIENT,
 			   &client_idle, serverFQDN,
 			   iplocalport, ipremoteport,
-			   prompt_supp, &global_callbacks);
+			   prompt_supp, &global_callbacks_client);
   if (result != SASL_OK) RETURN(*pconn, result);
   
-  utils=_sasl_alloc_utils(*pconn, &global_callbacks);
+  utils=_sasl_alloc_utils(*pconn, &global_callbacks_client);
   if (utils==NULL)
       MEMERROR(*pconn);
   

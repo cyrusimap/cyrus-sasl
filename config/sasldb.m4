@@ -120,7 +120,7 @@ case "$dblib" in
     dnl will just fail to load anyway.
     SASL_DB_BACKEND="db_none.lo"
     SASL_DB_BACKEND_STATIC="db_none.o"
-    SASL_DB_BACKEND_STATIC_SRC="../sasldb/db_none.c"
+    SASL_DB_BACKEND_STATIC_SRCS="../sasldb/db_none.c"
     SASL_DB_UTILS=""
     SASL_DB_MANS=""
     SASL_DB_LIB=""
@@ -129,12 +129,12 @@ esac
 
 if test "$enable_static" = yes; then
     if test "$dblib" != "none"; then
-      SASL_STATIC_SRCS="$SASL_STATIC_SRCS ../plugins/sasldb.c $SASL_DB_BACKEND_STATIC_SRC"
+      SASL_STATIC_SRCS="$SASL_STATIC_SRCS ../plugins/sasldb.c $SASL_DB_BACKEND_STATIC_SRCS"
       SASL_STATIC_OBJS="$SASL_STATIC_OBJS sasldb.o $SASL_DB_BACKEND_STATIC"
       AC_DEFINE(STATIC_SASLDB,[],[Link SASLdb Staticly])
     else
       SASL_STATIC_OBJS="$SASL_STATIC_OBJS $SASL_DB_BACKEND_STATIC"
-      SASL_STATIC_SRCS="$SASL_STATIC_SRCS $SASL_DB_BACKEND_STATIC_SRC"
+      SASL_STATIC_SRCS="$SASL_STATIC_SRCS $SASL_DB_BACKEND_STATIC_SRCS"
     fi
 fi
 

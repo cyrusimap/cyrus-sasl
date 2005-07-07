@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.29 2004/12/08 12:13:55 mel Exp $
+ * $Id: ntlm.c,v 1.30 2005/07/07 16:10:14 mel Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -74,6 +74,7 @@
 #endif /* WIN32 */
 
 #include <openssl/md4.h>
+#include <openssl/md5.h>
 #include <openssl/hmac.h>
 #include <openssl/des.h>
 #include <openssl/opensslv.h>
@@ -99,7 +100,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.29 2004/12/08 12:13:55 mel Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.30 2005/07/07 16:10:14 mel Exp $";
 
 #ifdef WIN32
 static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);

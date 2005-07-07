@@ -1,3 +1,7 @@
+2005-07-07  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/ntlm.c: Added <openssl/md5.h> include in order to fix
+	  building with OpenSSL 0.9.8.
+
 2005-05-19  Derrick Brashear <shadow@andrew.cmu.edu>    
 	* config/libtool.m4: do proper quoting, from Andreas Winkelmann
 	* configure.in: clean up enable switches, from Patrick Welche

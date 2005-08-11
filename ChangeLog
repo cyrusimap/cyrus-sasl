@@ -1,3 +1,8 @@
+2005-08-11  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/sasldb.c: Return SASL_NOUSER only if all calls to
+	  _sasldb_putdata() return SASL_NOUSER. This prevents spurious
+	  SASL_NOUSER errors.
+
 2005-07-07  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/ntlm.c: Added <openssl/md5.h> include in order to fix
 	  building with OpenSSL 0.9.8.

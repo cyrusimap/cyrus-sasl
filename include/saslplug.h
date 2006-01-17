@@ -175,7 +175,9 @@ typedef struct sasl_out_params {
     unsigned alen;		/* length of canonicalized authid */
 
     /* security layer information */
-    unsigned maxoutbuf;
+    unsigned maxoutbuf;         /* Maximum buffer size, which will
+                                   produce buffer no bigger than the
+                                   negotiated SASL maximum buffer size */
     sasl_ssf_t mech_ssf;   /* Should be set non-zero if negotiation of a
 	 		    * security layer was *attempted*, even if
 			    * the negotiation failed */

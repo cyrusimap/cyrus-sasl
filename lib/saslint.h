@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.56 2004/11/02 11:32:18 mel Exp $
+ * $Id: saslint.h,v 1.57 2006/02/13 19:22:56 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -352,6 +352,9 @@ extern int _sasl_done_with_plugins();
  */
 extern const sasl_callback_t *
 _sasl_find_getpath_callback(const sasl_callback_t *callbacks);
+
+extern const sasl_callback_t *
+_sasl_find_getconfpath_callback(const sasl_callback_t *callbacks);
 
 extern const sasl_callback_t *
 _sasl_find_verifyfile_callback(const sasl_callback_t *callbacks);

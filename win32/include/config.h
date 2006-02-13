@@ -111,7 +111,9 @@ typedef int		    intptr_t;
 #define HAVE_MEMCPY 1
 
 #define SASL_PATH_ENV_VAR "SASL_PATH"
+#define SASL_CONF_PATH_ENV_VAR "SASL_CONF_PATH"
 #define PLUGINDIR "C:\\CMU\\bin\\sasl2"
+#define CONFIGDIR "C:\\CMU\\bin\\sasl2"
 
 /* Windows calls these functions something else
  */

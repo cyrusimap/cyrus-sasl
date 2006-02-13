@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.142 2004/10/26 17:28:46 mel Exp $
+ * $Id: server.c,v 1.143 2006/02/13 19:22:56 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -465,7 +465,7 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
   size_t path_len;
   char *config_filename=NULL;
   size_t len;
-  const sasl_callback_t *getpath_cb=NULL;
+  const sasl_callback_t *getconfpath_cb=NULL;
 
   /* If appname was not provided, behave as if there is no config file 
      (see also sasl_config_init() */
@@ -473,15 +473,15 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
       return SASL_CONTINUE;
   }
 
-  /* get the path to the plugins; for now the config file will reside there */
-  getpath_cb=_sasl_find_getpath_callback( global_callbacks.callbacks );
-  if (getpath_cb==NULL) return SASL_BADPARAM;
+  /* get the path to the config file */
+  getconfpath_cb=_sasl_find_getconfpath_callback( global_callbacks.callbacks );
+  if (getconfpath_cb==NULL) return SASL_BADPARAM;
 
-  /* getpath_cb->proc MUST be a sasl_getpath_t; if only c had a type
+  /* getconfpath_cb->proc MUST be a sasl_getconfpath_t; if only c had a type
      system */
-  result = ((sasl_getpath_t *)(getpath_cb->proc))(getpath_cb->context,
+  result = ((sasl_getconfpath_t *)(getconfpath_cb->proc))(getconfpath_cb->context,
 						  &path_to_config);
-  if (result!=SASL_OK) goto done;
+  if (result != SASL_OK) goto done;
   if (path_to_config == NULL) path_to_config = "";
 
   c = strchr(path_to_config, PATHS_DELIMITER);
@@ -489,10 +489,11 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
   /* length = length of path + '/' + length of appname + ".conf" + 1
      for '\0' */
 
-  if(c != NULL)
+  if (c != NULL) {
     path_len = c - path_to_config;
-  else
+  } else {
     path_len = strlen(path_to_config);
+  }
 
   len = path_len + 2 + strlen(global_callbacks.appname) + 5 + 1;
 
@@ -520,8 +521,9 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
   /* returns SASL_CONTINUE if doesn't exist
    * if doesn't exist we can continue using default behavior
    */
-  if (result==SASL_OK)
+  if (result == SASL_OK) {
     result=sasl_config_init(config_filename);
+  }
 
  done:
   if (config_filename) sasl_FREE(config_filename);

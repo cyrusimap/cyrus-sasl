@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.109 2005/03/01 22:28:30 shadow Exp $
+ * $Id: common.c,v 1.110 2006/02/13 19:22:55 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1121,6 +1121,24 @@ _sasl_getsimple(void *context,
 }
 
 static int
+_sasl_getconfpath(void *context __attribute__((unused)),
+             char ** path_dest)
+{
+  char *path;
+
+  if (! path_dest)
+    return SASL_BADPARAM;
+  path = NULL;
+  /* Honor external variable only in a safe environment */
+  if (getuid() == geteuid() && getgid() == getegid())
+    path = getenv(SASL_CONF_PATH_ENV_VAR);
+  if (! path)
+    path = CONFIGDIR;
+  return _sasl_strdup(path, path_dest, NULL);
+}
+
+
+static int
 _sasl_verifyfile(void *context __attribute__((unused)),
 		 char *file  __attribute__((unused)),
 		 int type  __attribute__((unused)))
@@ -1226,6 +1244,10 @@ int _sasl_getcallback(sasl_conn_t * conn,
 #endif /* HAVE_SYSLOG */
   case SASL_CB_GETPATH:
     *pproc = (int (*)()) &_sasl_getpath;
+    *pcontext = NULL;
+    return SASL_OK;
+  case SASL_CB_GETCONFPATH:
+    *pproc = (int (*)()) &_sasl_getconfpath;
     *pcontext = NULL;
     return SASL_OK;
   case SASL_CB_AUTHNAME:
@@ -1571,6 +1593,29 @@ _sasl_find_getpath_callback(const sasl_callback_t *callbacks)
     }
   
   return &default_getpath_cb;
+}
+
+const sasl_callback_t *
+_sasl_find_getconfpath_callback(const sasl_callback_t *callbacks)
+{
+  static const sasl_callback_t default_getconfpath_cb = {
+    SASL_CB_GETCONFPATH,
+    &_sasl_getconfpath,
+    NULL
+  };
+
+  if (callbacks)
+    while (callbacks->id != SASL_CB_LIST_END)
+    {
+      if (callbacks->id == SASL_CB_GETCONFPATH)
+      {
+       return callbacks;
+      } else {
+       ++callbacks;
+      }
+    }
+
+  return &default_getconfpath_cb;
 }
 
 const sasl_callback_t *

@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.206 2005/05/18 20:56:12 shadow Exp $
+dnl $Id: configure.in,v 1.207 2006/02/13 19:22:54 mel Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -909,6 +909,13 @@ AC_ARG_WITH(plugindir, [  --with-plugindir=DIR    set the directory where plugin
 AC_DEFINE_UNQUOTED(PLUGINDIR, "$plugindir", [Runtime plugin location])
 AC_SUBST(plugindir)
 
+AC_ARG_WITH(configdir, [   --with-configdir=DIR    set the directory where config files will
+                          be found [/usr/lib/sasl2] ],
+  configdir=$withval,
+  configdir=$plugindir)
+AC_DEFINE_UNQUOTED(CONFIGDIR, "$configdir", [Runtime config file location])
+AC_SUBST(configdir)
+
 dnl look for rc4 libraries. we accept the CMU one or one from openSSL
 AC_ARG_WITH(rc4, [  --with-rc4              use internal rc4 routines [[yes]] ],
 	with_rc4=$withval,
@@ -1201,6 +1208,7 @@ struct iovec {
 #endif
 
 #define SASL_PATH_ENV_VAR "SASL_PATH"
+#define SASL_CONF_PATH_ENV_VAR "SASL_CONF_PATH"
 
 #include <stdlib.h>
 #include <sys/types.h>

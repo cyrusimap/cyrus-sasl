@@ -1,3 +1,14 @@
+2006-01-13  Alexey Melnikov <alexey.melnikov@isode.com>
+	* configure.in, include/sasl.h, lib/common.c,
+	  lib/saslinit.h, lib/server.c, man/Makefile.am,
+	  man/sasl_callbacks.3, man/sasl_getconfpath_t.3,
+	  win32/include/config.h: Added a new sasl_getconf_t
+	  callback for specifying where SASL configuration files
+	  can be found. Based on patch from Artur Frysiak
+	  <wiget@pld.org.pl> for SASL v1, updated by Gentoo
+	  folks for SASL v2 and further modified by
+	  Andreas Hasenack <andreas@conectiva.com.br>.
+
 2006-01-31  Alexey Melnikov <alexey.melnikov@isode.com>
 	* INSTALL, INSTALL.TXT: Renamed INSTALL to INSTALL.TXT
 	  as the former conflicts with Windows "install" target

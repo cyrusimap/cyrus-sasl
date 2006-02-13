@@ -1,4 +1,12 @@
 2006-01-13  Alexey Melnikov <alexey.melnikov@isode.com>
+	* include/sasl.h, lib/common.c: Added sasl_set_path
+	  function (for a more convenient way of setting
+	  plugin and config paths. Changed the default
+	  sasl_getpath_t/sasl_getconfpath_t callbacks to
+	  calculate the value only once and cache it
+	  for later use.
+
+2006-01-13  Alexey Melnikov <alexey.melnikov@isode.com>
 	* configure.in, include/sasl.h, lib/common.c,
 	  lib/saslinit.h, lib/server.c, man/Makefile.am,
 	  man/sasl_callbacks.3, man/sasl_getconfpath_t.3,

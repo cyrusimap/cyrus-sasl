@@ -640,11 +640,22 @@ typedef int sasl_canon_user_t(sasl_conn_t *conn,
  * Common Client/server functions *
  **********************************/
 
+/* Types of paths to set (see sasl_set_path below). */
+#define SASL_PATH_TYPE_PLUGIN	0
+#define SASL_PATH_TYPE_CONFIG	1
+
+/* a simpler way to set plugin path or configuration file path
+ * without the need to set sasl_getpath_t callback.
+ *
+ * This function can be called before sasl_server_init/sasl_client_init.
+ */  
+LIBSASL_API int sasl_set_path (int path_type, char * path);
+
 /* get sasl library version information
  * implementation is a vendor-defined string
- * version is a vender-defined representation of the version #
+ * version is a vender-defined representation of the version #.
  *
- * this function is being deprecated in favor of sasl_version_info */
+ * This function is being deprecated in favor of sasl_version_info. */
 LIBSASL_API void sasl_version(const char **implementation,
 			      int *version);
 

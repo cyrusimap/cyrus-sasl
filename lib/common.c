@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.110 2006/02/13 19:22:55 mel Exp $
+ * $Id: common.c,v 1.111 2006/02/13 19:59:02 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -71,6 +71,19 @@ static const char *implementation_string = "Cyrus SASL";
 				SASL_VERSION_STEP)
 
 static int _sasl_getpath(void *context __attribute__((unused)), const char **path);
+static int _sasl_getpath_simple(void *context __attribute__((unused)), const char **path);
+static int _sasl_getconfpath(void *context __attribute__((unused)), char ** path);
+static int _sasl_getconfpath_simple(void *context __attribute__((unused)), const char **path);
+
+#if !defined(WIN32)
+static char * _sasl_get_default_unix_path(void *context __attribute__((unused)),
+                            char * env_var_name, char * default_value);
+#else
+/* NB: Always returned allocated value */
+static char * _sasl_get_default_win_path(void *context __attribute__((unused)),
+                            char * reg_attr_name, char * default_value);
+#endif
+
 
 static const char build_ident[] = "$Build: libsasl " PACKAGE "-" VERSION " $";
 
@@ -93,6 +106,17 @@ sasl_allocation_utils_t _sasl_allocation_utils={
   (sasl_realloc_t *) &realloc,
   (sasl_free_t *) &free
 };
+
+/* Default getpath/getconfpath callbacks. These can be edited by sasl_set_path(). */
+static sasl_callback_t default_getpath_cb = {
+    SASL_CB_GETPATH, &_sasl_getpath, NULL
+};
+static sasl_callback_t default_getconfpath_cb = {
+    SASL_CB_GETCONFPATH, &_sasl_getconfpath, NULL
+};
+
+static char * default_plugin_path = NULL;
+static char * default_conf_path = NULL;
 
 /* Intenal mutex functions do as little as possible (no thread protection) */
 static void *sasl_mutex_alloc(void)
@@ -158,6 +182,57 @@ int _sasl_add_string(char **out, size_t *alloclen,
   *outlen += addlen;
 
   return SASL_OK;
+}
+
+/* a simpler way to set plugin path or configuration file path
+ * without the need to set sasl_getpath_t callback.
+ *
+ * This function can be called before sasl_server_init/sasl_client_init.
+ *
+ * Don't call this function without locking in a multithreaded application.
+ */  
+int sasl_set_path (int path_type, char * path)
+{
+    int result;
+
+    if (path == NULL) {
+        return (SASL_FAIL);
+    }
+
+    switch (path_type) {
+        case SASL_PATH_TYPE_PLUGIN:
+            if (default_plugin_path != NULL) {
+                sasl_FREE (default_plugin_path);
+                default_plugin_path = NULL;
+            }
+            result = _sasl_strdup (path, &default_plugin_path, NULL);
+            if (result != SASL_OK) {
+                return (result);
+            }
+
+            /* Update the default getpath_t callback */
+            default_getpath_cb.proc = (int (*)()) &_sasl_getpath_simple;
+            break;
+
+        case SASL_PATH_TYPE_CONFIG:
+            if (default_conf_path != NULL) {
+                sasl_FREE (default_conf_path);
+                default_conf_path = NULL;
+            }
+            result = _sasl_strdup (path, &default_conf_path, NULL);
+            if (result != SASL_OK) {
+                return (result);
+            }
+
+            /* Update the default getpath_t callback */
+            default_getconfpath_cb.proc = (int (*)()) &_sasl_getconfpath_simple;
+            break;
+
+        default:
+            return (SASL_FAIL);
+    }
+
+    return (SASL_OK);
 }
 
 /* return the version of the cyrus sasl library as compiled,
@@ -1121,22 +1196,114 @@ _sasl_getsimple(void *context,
 }
 
 static int
-_sasl_getconfpath(void *context __attribute__((unused)),
-             char ** path_dest)
+_sasl_getpath(void *context __attribute__((unused)),
+              const char ** path_dest)
 {
-  char *path;
+#if !defined(WIN32)
+    char *path;
+#endif
+    int res = SASL_OK;
 
-  if (! path_dest)
-    return SASL_BADPARAM;
-  path = NULL;
-  /* Honor external variable only in a safe environment */
-  if (getuid() == geteuid() && getgid() == getegid())
-    path = getenv(SASL_CONF_PATH_ENV_VAR);
-  if (! path)
-    path = CONFIGDIR;
-  return _sasl_strdup(path, path_dest, NULL);
+    if (! path_dest) {
+        return SASL_BADPARAM;
+    }
+
+    /* Only calculate the path once. */
+    if (default_plugin_path == NULL) {
+
+#if defined(WIN32)
+        /* NB: On Windows platforms this value is always allocated */
+        default_plugin_path = _sasl_get_default_win_path(context,
+                                                         SASL_PLUGIN_PATH_ATTR,
+                                                         PLUGINDIR);
+#else
+        /* NB: On Unix platforms this value is never allocated */
+        path = _sasl_get_default_unix_path(context,
+                                           SASL_PATH_ENV_VAR,
+                                           PLUGINDIR);
+
+        res = _sasl_strdup(path, &default_plugin_path, NULL);
+#endif
+    }
+
+    if (res == SASL_OK) {
+        *path_dest = default_plugin_path;
+    }
+
+    return res;
 }
 
+static int
+_sasl_getpath_simple(void *context __attribute__((unused)),
+                     const char **path)
+{
+    if (! path) {
+        return SASL_BADPARAM;
+    }
+
+    if (default_plugin_path == NULL) {
+        return SASL_FAIL;
+    }
+
+    *path = default_plugin_path;
+
+    return SASL_OK;
+}
+
+static int
+_sasl_getconfpath(void *context __attribute__((unused)),
+                  char ** path_dest)
+{
+#if !defined(WIN32)
+    char *path;
+#endif
+    int res = SASL_OK;
+
+    if (! path_dest) {
+        return SASL_BADPARAM;
+    }
+
+  /* Only calculate the path once. */
+    if (default_conf_path == NULL) {
+
+#if defined(WIN32)
+        /* NB: On Windows platforms this value is always allocated */
+        default_conf_path = _sasl_get_default_win_path(context,
+                                                       SASL_CONF_PATH_ATTR,
+                                                       CONFIGDIR);
+#else
+        /* NB: On Unix platforms this value is never allocated */
+        path = _sasl_get_default_unix_path(context,
+                                           SASL_CONF_PATH_ENV_VAR,
+                                           CONFIGDIR);
+
+        res = _sasl_strdup(path, &default_conf_path, NULL);
+#endif
+    }
+
+    if (res == SASL_OK) {
+        *path_dest = default_conf_path;
+    }
+
+    return res;
+}
+
+static int
+_sasl_getconfpath_simple(void *context __attribute__((unused)),
+                         const char **path)
+{
+    if (! path) {
+        return SASL_BADPARAM;
+    }
+
+    if (default_conf_path == NULL) {
+        return SASL_FAIL;
+    }
+
+    *path = default_conf_path;
+
+    return SASL_OK;
+}
 
 static int
 _sasl_verifyfile(void *context __attribute__((unused)),
@@ -1243,12 +1410,12 @@ int _sasl_getcallback(sasl_conn_t * conn,
     return SASL_OK;
 #endif /* HAVE_SYSLOG */
   case SASL_CB_GETPATH:
-    *pproc = (int (*)()) &_sasl_getpath;
-    *pcontext = NULL;
+    *pproc = default_getpath_cb.proc;
+    *pcontext = default_getpath_cb.context;
     return SASL_OK;
   case SASL_CB_GETCONFPATH:
-    *pproc = (int (*)()) &_sasl_getconfpath;
-    *pcontext = NULL;
+    *pproc = default_getconfpath_cb.proc;
+    *pcontext = default_getconfpath_cb.context;
     return SASL_OK;
   case SASL_CB_AUTHNAME:
     *pproc = (int (*)()) &_sasl_getsimple;
@@ -1572,50 +1739,42 @@ int sasl_idle(sasl_conn_t *conn)
   return 0;
 }
 
+static const sasl_callback_t *
+_sasl_find_callback_by_type (const sasl_callback_t *callbacks,
+                             unsigned long id)
+{
+    if (callbacks) {
+        while (callbacks->id != SASL_CB_LIST_END) {
+            if (callbacks->id == id) {
+	        return callbacks;
+            } else {
+	        ++callbacks;
+            }
+        }
+    }
+    return NULL;
+}
+
 const sasl_callback_t *
 _sasl_find_getpath_callback(const sasl_callback_t *callbacks)
 {
-  static const sasl_callback_t default_getpath_cb = {
-    SASL_CB_GETPATH,
-    &_sasl_getpath,
-    NULL
-  };
-
-  if (callbacks)
-    while (callbacks->id != SASL_CB_LIST_END)
-    {
-      if (callbacks->id == SASL_CB_GETPATH)
-      {
-	return callbacks;
-      } else {
-	++callbacks;
-      }
-    }
-  
-  return &default_getpath_cb;
+  callbacks = _sasl_find_callback_by_type (callbacks, SASL_CB_GETPATH);
+  if (callbacks != NULL) {
+    return callbacks;
+  } else {
+    return &default_getpath_cb;
+  }
 }
 
 const sasl_callback_t *
 _sasl_find_getconfpath_callback(const sasl_callback_t *callbacks)
 {
-  static const sasl_callback_t default_getconfpath_cb = {
-    SASL_CB_GETCONFPATH,
-    &_sasl_getconfpath,
-    NULL
-  };
-
-  if (callbacks)
-    while (callbacks->id != SASL_CB_LIST_END)
-    {
-      if (callbacks->id == SASL_CB_GETCONFPATH)
-      {
-       return callbacks;
-      } else {
-       ++callbacks;
-      }
-    }
-
-  return &default_getconfpath_cb;
+  callbacks = _sasl_find_callback_by_type (callbacks, SASL_CB_GETCONFPATH);
+  if (callbacks != NULL) {
+    return callbacks;
+  } else {
+    return &default_getconfpath_cb;
+  }
 }
 
 const sasl_callback_t *
@@ -1627,18 +1786,12 @@ _sasl_find_verifyfile_callback(const sasl_callback_t *callbacks)
     NULL
   };
 
-  if (callbacks)
-    while (callbacks->id != SASL_CB_LIST_END)
-    {
-      if (callbacks->id == SASL_CB_VERIFYFILE)
-      {
-	return callbacks;
-      } else {
-	++callbacks;
-      }
-    }
-  
-  return &default_verifyfile_cb;
+  callbacks = _sasl_find_callback_by_type (callbacks, SASL_CB_VERIFYFILE);
+  if (callbacks != NULL) {
+    return callbacks;
+  } else {
+    return &default_verifyfile_cb;
+  }
 }
 
 /* Basically a conditional call to realloc(), if we need more */
@@ -1886,29 +2039,30 @@ int sasl_listmech(sasl_conn_t *conn,
 
 
 #ifndef WIN32
-static int
-_sasl_getpath(void *context __attribute__((unused)),
-	      const char **path)
+static char *
+_sasl_get_default_unix_path(void *context __attribute__((unused)),
+                            char * env_var_name,
+                            char * default_value)
 {
-  if (! path)
-    return SASL_BADPARAM;
+    char *path = NULL;
 
-  *path = NULL;
+    /* Honor external variable only in a safe environment */
+    if (getuid() == geteuid() && getgid() == getegid()) {
+        path = getenv(env_var_name);
+    }
+    if (! path) {
+        path = default_value;
+    }
 
-  /* Honor external variable only in a safe environment */
-  if (getuid() == geteuid() && getgid() == getegid())
-    *path = getenv(SASL_PATH_ENV_VAR);
-
-  if (! *path)
-    *path = PLUGINDIR;
-
-  return SASL_OK;
+    return path;
 }
 
 #else
 /* Return NULL on failure */
-static int
-_sasl_getpath(void *context __attribute__((unused)), const char **path)
+static char *
+_sasl_get_default_win_path(void *context __attribute__((unused)),
+                           char * reg_attr_name,
+                           char * default_value)
 {
     /* Open registry entry, and find all registered SASL libraries.
      *
@@ -1947,15 +2101,15 @@ _sasl_getpath(void *context __attribute__((unused)), const char **path)
 		       &hKey);
 
     if (ret != ERROR_SUCCESS) { 
-		/* no registry entry */
-		*path = PLUGINDIR;
-		return SASL_OK; 
-	}
+        /* no registry entry */
+        (void) _sasl_strdup (default_value, &return_value, NULL);
+        return return_value;
+    }
 
     /* figure out value type and required buffer size */
     /* the size will include space for terminating NUL if required */
     RegQueryValueEx (hKey,
-		     SASL_PATH_SUBKEY,
+		     reg_attr_name,
 		     NULL,	    /* reserved */
 		     &ValueType,
 		     NULL,
@@ -1977,7 +2131,7 @@ _sasl_getpath(void *context __attribute__((unused)), const char **path)
     };
 
     RegQueryValueEx (hKey,
-		     SASL_PATH_SUBKEY,
+		     reg_attr_name,
 		     NULL,	    /* reserved */
 		     &ValueType,
 		     ValueData,
@@ -2063,15 +2217,13 @@ _sasl_getpath(void *context __attribute__((unused)), const char **path)
 
     return_value = ValueData;
 
-    CLEANUP:
+CLEANUP:
     RegCloseKey(hKey);
     if (ExpandedValueData != NULL) sasl_FREE(ExpandedValueData);
     if (return_value == NULL) {
 	if (ValueData != NULL) sasl_FREE(ValueData);
     }
-    *path = return_value;
 
-	return SASL_OK;
+    return (return_value);
 }
-
 #endif

@@ -79,8 +79,8 @@ typedef int		    intptr_t;
 
 /* Registry key that contains the locations of the plugins */
 #define SASL_ROOT_KEY "SOFTWARE\\Carnegie Mellon\\Project Cyrus\\SASL Library"
-#define SASL_KEY_V1 SASL_ROOT_KEY "\\Available Plugins"
-#define SASL_PATH_SUBKEY "SearchPath"
+#define SASL_PLUGIN_PATH_ATTR "SearchPath"
+#define SASL_CONF_PATH_ATTR "ConfFile"
 
 /* : This should probably be replaced with a call to a function
    : that gets the proper value from Registry */
@@ -110,8 +110,7 @@ typedef int		    intptr_t;
  */
 #define HAVE_MEMCPY 1
 
-#define SASL_PATH_ENV_VAR "SASL_PATH"
-#define SASL_CONF_PATH_ENV_VAR "SASL_CONF_PATH"
+/* Note that environment variables are not used on Windows */
 #define PLUGINDIR "C:\\CMU\\bin\\sasl2"
 #define CONFIGDIR "C:\\CMU\\bin\\sasl2"
 

@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.57 2006/02/13 19:22:56 mel Exp $
+ * $Id: saslint.h,v 1.58 2006/02/13 19:55:24 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -89,14 +89,14 @@
 #  ifdef _POSIX_PATH_MAX
 #   define PATH_MAX _POSIX_PATH_MAX
 #  else
-#   define PATH_MAX 1024         /* arbitrary; probably big enough will
-                                  * probably only be 256+64 on
+#   define PATH_MAX 1024         /* arbitrary; probably big enough.
+                                  * will probably only be 256+64 on
                                   * pre-posix machines */
 #  endif /* _POSIX_PATH_MAX */
 # endif /* WIN32 */
 #endif
 
-/* : Define directory delimiter in SASL_PATH variable */
+/* : Define directory delimiter in SASL_PATH/SASL_CONF_PATH variables */
 #ifdef WIN32
 #define PATHS_DELIMITER	';'
 #else
@@ -290,7 +290,7 @@ extern int (*_sasl_client_idle_hook)(sasl_conn_t *conn);
 extern int (*_sasl_server_idle_hook)(sasl_conn_t *conn);
 
 /* These return SASL_OK if we've actually finished cleanup, 
- * SASL_NOTINIT if that part of the library isn't inited, and
+ * SASL_NOTINIT if that part of the library isn't initialized, and
  * SASL_CONTINUE if we need to call them again */
 extern int (*_sasl_client_cleanup_hook)(void);
 extern int (*_sasl_server_cleanup_hook)(void);

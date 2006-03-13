@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.72 2004/03/17 13:58:13 rjs3 Exp $
+ * $Id: checkpw.c,v 1.73 2006/03/13 18:30:41 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -117,7 +117,7 @@ static int _sasl_make_plain_secret(const char *salt,
     _sasl_MD5Init(&ctx);
     _sasl_MD5Update(&ctx, salt, 16);
     _sasl_MD5Update(&ctx, "sasldb", 6);
-    _sasl_MD5Update(&ctx, passwd, passlen);
+    _sasl_MD5Update(&ctx, passwd, (unsigned int) passlen);
     memcpy((*secret)->data, salt, 16);
     (*secret)->data[16] = '\0';
     _sasl_MD5Final((*secret)->data + 17, &ctx);
@@ -969,9 +969,9 @@ struct sasl_verify_password_s _sasl_verify_password[] = {
 #endif
 #ifdef HAVE_AUTHDAEMON
     { "authdaemond", &authdaemon_verify_password },
-#endif     
+#endif
 #ifdef HAVE_ALWAYSTRUE
     { "alwaystrue", &always_true },
-#endif     
+#endif
     { NULL, NULL }
 };

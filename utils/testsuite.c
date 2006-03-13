@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.40 2004/10/26 11:39:41 mel Exp $
+ * $Id: testsuite.c,v 1.41 2006/03/13 18:39:27 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -956,9 +956,9 @@ void test_64(void)
     
     if (sasl_encode64(orig, sizeof(orig), enc, sizeof(enc), &encsize)!=SASL_OK) 
 	fatal("encode64 failed when we didn't expect it to");
-    
+
     if (sasl_decode64(enc, encsize, enc, 8192, &encsize)!=SASL_OK)
-	fatal("decode failed when didn't expect");
+	fatal("decode64 failed when we didn't expect it to");
     
     if (encsize != sizeof(orig)) fatal("Now has different size");
     
@@ -978,7 +978,48 @@ void test_64(void)
 
     if (sasl_encode64(orig, sizeof(orig), enc, sizeof(enc), NULL)!=SASL_OK)
 	fatal("Didn't allow null return size");
-    
+
+    /* New tests in 2.1.22 */
+    for (lup=0;lup<(int) sizeof(orig);lup++) {
+	enc[lup] = 'A';
+    }
+
+    if (sasl_decode64(enc, 3, orig, 8192, &encsize) != SASL_CONTINUE)
+	fatal("decode64 succeded on a 3 byte buffer when it shouldn't have");
+
+    enc[3] = '\r';
+    enc[4] = '\n';
+
+    if (sasl_decode64(enc, 4, orig, 8192, &encsize) == SASL_OK)
+	fatal("decode64 succeded on a 4 byte buffer with a bare CR");
+
+    if (sasl_decode64(enc, 5, orig, 8192, &encsize) == SASL_OK)
+	fatal("decode64 succeded on a 5 byte buffer with CRLF");
+
+    enc[2] = '=';
+    enc[3] = '=';
+    enc[4] = '=';
+
+    if (sasl_decode64(enc, 4, orig, 8192, &encsize) != SASL_OK)
+	fatal("decode64 failed on a 4 byte buffer with a terminating =");
+
+    if (sasl_decode64(enc, 5, orig, 8192, &encsize) != SASL_BADPROT)
+	fatal("decode64 did not return SASL_CONTINUE on a 5 byte buffer with a terminating =");
+
+    /* Test for invalid character after the terminating '=' */
+    enc[3] = '*';
+
+    if (sasl_decode64(enc, 4, orig, 8192, &encsize) == SASL_OK)
+	fatal("decode64 failed on a 4 byte buffer with invalid character a terminating =");
+
+    /* Test for '=' in the middle of an encoded string */
+    enc[3] = 'B';
+
+    if (sasl_decode64(enc, 4, orig, 8192, &encsize) == SASL_OK)
+	fatal("decode64 succeed on a 4 byte buffer with a data after a terminating =");
+
+    if (sasl_decode64(enc, 0, orig, 8192, &encsize) != SASL_OK)
+	fatal("decode64 should have succeeded on an empty buffer");
 }
 
 /* This isn't complete, but then, what in the testsuite is? */

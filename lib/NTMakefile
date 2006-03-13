@@ -4,8 +4,8 @@
 # emulation on Windows, so there is no need to build getaddrinfo.c
 
 !IF "$(VCVER)" == "6"
-compat_sources = getaddrinfo.c
-compat_objs = getaddrinfo.obj
+compat_sources = getaddrinfo.c getnameinfo.c
+compat_objs = getaddrinfo.obj getnameinfo.obj
 !ENDIF
 
 

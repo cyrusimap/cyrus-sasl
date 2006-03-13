@@ -80,6 +80,13 @@ if test "$authsasldb" != no; then
   SASL_DB_LIB="$SASL_DB_LIB ../sasldb/.libs/libsasldb.al"
 fi
 
+AC_ARG_ENABLE(httpform, [  --enable-httpform       enable HTTP form authentication [[no]] ],
+  httpform=$enableval,
+  httpform=no)
+if test "$httpform" != no; then
+  AC_DEFINE(HAVE_HTTPFORM,[],[Include HTTP form Support])
+fi
+
 AC_ARG_WITH(pam, [  --with-pam=DIR          use PAM (rooted in DIR) [yes] ],
 	with_pam=$withval,
 	with_pam=yes)

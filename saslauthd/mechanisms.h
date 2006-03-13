@@ -26,7 +26,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: mechanisms.h,v 1.9 2003/07/25 12:32:10 rjs3 Exp $"
+#ident "$Id: mechanisms.h,v 1.10 2006/03/13 20:17:09 mel Exp $"
 #endif
 
 #ifndef _MECHANISMS_H
@@ -93,5 +93,10 @@ extern authmech_t *authmech;		/* auth mech daemon is using */
 # endif
 #endif
 
+#ifndef AUTH_HTTPFORM
+# ifdef HAVE_HTTPFORM
+#  define AUTH_HTTPFORM
+# endif
+#endif
 
 #endif  /* _MECHANISMS_H */

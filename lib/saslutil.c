@@ -1,7 +1,7 @@
 /* saslutil.c
  * Rob Siemborski
  * Tim Martin
- * $Id: saslutil.c,v 1.43 2004/04/29 15:48:46 rjs3 Exp $
+ * $Id: saslutil.c,v 1.44 2006/03/13 18:26:36 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -168,48 +168,71 @@ int sasl_encode64(const char *_in, unsigned inlen,
  * returns:
  * SASL_BADPROT on bad base64,
  * SASL_BUFOVER if result won't fit,
+ * SASL_CONTINUE on a partial block,
  * SASL_OK on success
  */
 
-int sasl_decode64(const char *in, unsigned inlen,
-		  char *out, unsigned outmax, unsigned *outlen)
+int sasl_decode64(const char *in,
+                  unsigned inlen,
+                  char *out,
+                  unsigned outmax,  /* size of the buffer, not counting the NUL */
+                  unsigned *outlen)
 {
-    unsigned len = 0,lup;
-    int c1, c2, c3, c4;
+    unsigned len = 0;
+    unsigned j;
+    int c[4];
+    int saw_equal = 0;
 
     /* check parameters */
-    if (out==NULL) return SASL_FAIL;
+    if (out == NULL) return SASL_FAIL;
 
-    /* xxx these necessary? */
-    if (in[0] == '+' && in[1] == ' ') in += 2;
-    if (*in == '\r') return SASL_FAIL;
+    if (inlen > 0 && *in == '\r') return SASL_FAIL;
 
-    for (lup=0;lup<inlen/4;lup++)
-    {
-        c1 = in[0];
-        if (CHAR64(c1) == -1) return SASL_BADPROT;
-        c2 = in[1];
-        if (CHAR64(c2) == -1) return SASL_BADPROT;
-        c3 = in[2];
-        if (c3 != '=' && CHAR64(c3) == -1) return SASL_BADPROT; 
-        c4 = in[3];
-        if (c4 != '=' && CHAR64(c4) == -1) return SASL_BADPROT;
-        in += 4;
-        *out++ = (CHAR64(c1) << 2) | (CHAR64(c2) >> 4);
-        if(++len >= outmax) return SASL_BUFOVER;
-        if (c3 != '=') {
-            *out++ = ((CHAR64(c2) << 4) & 0xf0) | (CHAR64(c3) >> 2);
-            if(++len >= outmax) return SASL_BUFOVER;
-            if (c4 != '=') {
-                *out++ = ((CHAR64(c3) << 6) & 0xc0) | CHAR64(c4);
-                if(++len >= outmax) return SASL_BUFOVER;
+    while (inlen > 3) {
+        /* No data is valid after an '=' character */
+        if (saw_equal) {
+            return SASL_BADPROT;
+        }
+
+	for (j = 0; j < 4; j++) {
+	    c[j] = in[0];
+	    in++;
+	    inlen--;
+	}
+
+        if (CHAR64(c[0]) == -1 || CHAR64(c[1]) == -1) return SASL_BADPROT;
+        if (c[2] != '=' && CHAR64(c[2]) == -1) return SASL_BADPROT;
+        if (c[3] != '=' && CHAR64(c[3]) == -1) return SASL_BADPROT;
+        /* No data is valid after a '=' character, unless it is another '=' */
+        if (c[2] == '=' && c[3] != '=') return SASL_BADPROT;
+        if (c[2] == '=' || c[3] == '=') {
+            saw_equal = 1;
+        }
+
+        *out++ = (CHAR64(c[0]) << 2) | (CHAR64(c[1]) >> 4);
+        if (++len >= outmax) return SASL_BUFOVER;
+        if (c[2] != '=') {
+            *out++ = ((CHAR64(c[1]) << 4) & 0xf0) | (CHAR64(c[2]) >> 2);
+            if (++len >= outmax) return SASL_BUFOVER;
+            if (c[3] != '=') {
+                *out++ = ((CHAR64(c[2]) << 6) & 0xc0) | CHAR64(c[3]);
+                if (++len >= outmax) return SASL_BUFOVER;
             }
         }
     }
 
-    *out=0; /* terminate string */
+    if (inlen != 0) {
+        if (saw_equal) {
+            /* Unless there is CRLF at the end? */
+            return SASL_BADPROT;
+        } else {
+	    return (SASL_CONTINUE);
+        }
+    }
 
-    if(outlen) *outlen=len;
+    *out = '\0'; /* NUL terminate the output string */
+
+    if (outlen) *outlen = len;
 
     return SASL_OK;
 }

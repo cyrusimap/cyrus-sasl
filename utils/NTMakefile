@@ -1,13 +1,14 @@
 !INCLUDE ..\win32\common.mak
 
-sasl_apps=saslpasswd2.exe sasldblistusers2.exe testsuite.exe
-sasl_out=saslpasswd2.pdb sasldblistusers2.pdb testsuite.pdb
+sasl_apps=saslpasswd2.exe sasldblistusers2.exe testsuite.exe pluginviewer.exe
+sasl_out=saslpasswd2.pdb sasldblistusers2.pdb testsuite.pdb pluginviewer.pdb
 
 saslpwd_objs = saslpasswd.obj
 sasldblistusers_objs = sasldblistusers.obj
 testsuite_objs = testsuite.obj
+pluginviewer_objs = pluginviewer.obj
 
-all_objs = $(saslpwd_objs) $(sasldblistusers_objs) $(testsuite_objs)
+all_objs = $(saslpwd_objs) $(sasldblistusers_objs) $(testsuite_objs) $(pluginviewer_objs)
 all_out = $(sasl_apps) $(sasl_out)
 
 DB_FLAGS = /I $(DB_INCLUDE) /I "..\sasldb"
@@ -53,6 +54,10 @@ sasldblistusers2.exe: $(sasldblistusers_objs)
 
 testsuite.exe: $(testsuite_objs)
 	$(LINK32EXE) @<< $(LINK32EXE_FLAGS) $(SASL_DB_LIB) /pdb:"testsuite.pdb" /out:"testsuite.exe" $(testsuite_objs)
+<<
+
+pluginviewer.exe: $(pluginviewer_objs)
+	$(LINK32EXE) @<< $(LINK32EXE_FLAGS) /pdb:"pluginviewer.pdb" /out:"pluginviewer.exe" $(pluginviewer_objs)
 <<
 
 CLEAN :

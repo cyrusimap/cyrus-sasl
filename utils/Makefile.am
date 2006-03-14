@@ -46,7 +46,7 @@ all_sasl_libs = ../lib/libsasl2.la $(SASL_DB_LIB) $(LIB_SOCKET)
 all_sasl_static_libs = ../lib/.libs/libsasl2.a $(SASL_DB_LIB) $(LIB_SOCKET) $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(SASL_KRB_LIB) $(LIB_DES) $(PLAIN_LIBS) $(SRP_LIBS) $(LIB_MYSQL) $(LIB_PGSQL) $(LIB_SQLITE)
 
 sbin_PROGRAMS = @SASL_DB_UTILS@ @SMTPTEST_PROGRAM@
-EXTRA_PROGRAMS = saslpasswd2 sasldblistusers2 testsuite testsuitestatic smtptest
+EXTRA_PROGRAMS = saslpasswd2 sasldblistusers2 testsuite testsuitestatic smtptest pluginviewer
 
 noinst_PROGRAMS = dbconverter-2
 
@@ -61,6 +61,8 @@ saslpasswd2_SOURCES = saslpasswd.c
 sasldblistusers2_LDADD = $(all_sasl_libs) ../sasldb/libsasldb.la
 sasldblistusers2_SOURCES = sasldblistusers.c
 dbconverter_2_LDADD = ../sasldb/libsasldb.la $(all_sasl_libs)
+pluginviewer_LDADD = $(all_sasl_libs)
+pluginviewer_SOURCES = pluginviewer.c
 
 testsuite_LDADD = $(all_sasl_libs) @DMALLOC_LIBS@
 
@@ -88,7 +90,7 @@ libsfsasl2_la_LIBADD = sfsasl.lo
 libsfsasl2_la_LDFLAGS = -version-info 1:0:0 -export-dynamic -rpath $(libdir)
 
 INCLUDES=-I$(top_srcdir)/include -I$(top_builddir)/include @SASL_DB_INC@
-EXTRA_DIST = saslpasswd2.8 sasldblistusers2.8 sfsasl.h sfsasl.c smtptest.c testsuite.c NTMakefile
+EXTRA_DIST = saslpasswd2.8 sasldblistusers2.8 sfsasl.h sfsasl.c smtptest.c testsuite.c pluginviewer.c NTMakefile
 
 sfsasl.lo: sfsasl.c
 	$(LIBTOOL) --mode=compile $(COMPILE) @SFIO_INC_FLAGS@ -c $(srcdir)/sfsasl.c

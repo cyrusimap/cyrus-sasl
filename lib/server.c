@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.144 2006/03/14 14:23:56 mel Exp $
+ * $Id: server.c,v 1.145 2006/03/14 22:27:09 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -463,76 +463,89 @@ static int server_idle(sasl_conn_t *conn)
 
 static int load_config(const sasl_callback_t *verifyfile_cb)
 {
-  int result;
-  const char *path_to_config=NULL;
-  const char *c;
-  size_t path_len;
-  char *config_filename=NULL;
-  size_t len;
-  const sasl_callback_t *getconfpath_cb=NULL;
+    int result;
+    const char *path_to_config = NULL;
+    size_t path_len;
+    char *config_filename = NULL;
+    size_t len;
+    const sasl_callback_t *getconfpath_cb = NULL;
+    const char * next;
 
-  /* If appname was not provided, behave as if there is no config file 
-     (see also sasl_config_init() */
-  if (global_callbacks.appname == NULL) {
-      return SASL_CONTINUE;
-  }
+    /* If appname was not provided, behave as if there is no config file 
+        (see also sasl_config_init() */
+    if (global_callbacks.appname == NULL) {
+        return SASL_CONTINUE;
+    }
 
-  /* get the path to the config file */
-  getconfpath_cb=_sasl_find_getconfpath_callback( global_callbacks.callbacks );
-  if (getconfpath_cb==NULL) return SASL_BADPARAM;
+    /* get the path to the config file */
+    getconfpath_cb = _sasl_find_getconfpath_callback( global_callbacks.callbacks );
+    if (getconfpath_cb == NULL) return SASL_BADPARAM;
 
-  /* getconfpath_cb->proc MUST be a sasl_getconfpath_t; if only c had a type
-     system */
-  result = ((sasl_getconfpath_t *)(getconfpath_cb->proc))(getconfpath_cb->context,
-						  &path_to_config);
-  if (result != SASL_OK) goto done;
-  if (path_to_config == NULL) path_to_config = "";
+    /* getconfpath_cb->proc MUST be a sasl_getconfpath_t; if only C had a type
+       system */
+    result = ((sasl_getconfpath_t *)(getconfpath_cb->proc))(getconfpath_cb->context,
+						    &path_to_config);
+    if (result != SASL_OK) goto done;
+    if (path_to_config == NULL) path_to_config = "";
 
-  c = strchr(path_to_config, PATHS_DELIMITER);
+    next = path_to_config;
 
-  /* length = length of path + '/' + length of appname + ".conf" + 1
-     for '\0' */
+    while (next != NULL) {
+        next = strchr(path_to_config, PATHS_DELIMITER);
 
-  if (c != NULL) {
-    path_len = c - path_to_config;
-  } else {
-    path_len = strlen(path_to_config);
-  }
+        /* length = length of path + '/' + length of appname + ".conf" + 1
+            for '\0' */
 
-  len = path_len + 2 + strlen(global_callbacks.appname) + 5 + 1;
+        if (next != NULL) {
+            path_len = next - path_to_config;
+            next++; /* Skip to the next path */
+        } else {
+            path_len = strlen(path_to_config);
+        }
 
-  if (len > PATH_MAX ) {
-      result = SASL_FAIL;
-      goto done;
-  }
+        len = path_len + 2 + strlen(global_callbacks.appname) + 5 + 1;
 
-  /* construct the filename for the config file */
-  config_filename = sasl_ALLOC((unsigned)len);
-  if (! config_filename) {
-      result = SASL_NOMEM;
-      goto done;
-  }
+        if (len > PATH_MAX ) {
+            result = SASL_FAIL;
+            goto done;
+        }
 
-  snprintf(config_filename, len, "%.*s%c%s.conf", path_len, path_to_config, 
-	   HIER_DELIMITER, global_callbacks.appname);
+        /* construct the filename for the config file */
+        config_filename = sasl_ALLOC((unsigned)len);
+        if (! config_filename) {
+            result = SASL_NOMEM;
+            goto done;
+        }
 
-  /* Ask the application if it's safe to use this file */
-  result = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(verifyfile_cb->context,
-					config_filename, SASL_VRFY_CONF);
+        snprintf(config_filename, len, "%.*s%c%s.conf", path_len, path_to_config, 
+	        HIER_DELIMITER, global_callbacks.appname);
 
-  /* returns continue if this file is to be skipped */
-  
-  /* returns SASL_CONTINUE if doesn't exist
-   * if doesn't exist we can continue using default behavior
-   */
-  if (result == SASL_OK) {
-    result=sasl_config_init(config_filename);
-  }
+        /* Ask the application if it's safe to use this file */
+        result = ((sasl_verifyfile_t *)(verifyfile_cb->proc))(verifyfile_cb->context,
+					        config_filename, SASL_VRFY_CONF);
+
+        /* returns SASL_CONTINUE if the config file doesn't exist */
+        if (result == SASL_OK) {
+            result = sasl_config_init(config_filename);
+
+            if (result != SASL_CONTINUE) {
+                /* We are done */
+                break;
+            }
+        }
+
+        if (config_filename) {
+            sasl_FREE(config_filename);
+            config_filename = NULL;
+        }
+
+        path_to_config = next;
+    }
 
  done:
-  if (config_filename) sasl_FREE(config_filename);
+    if (config_filename) sasl_FREE(config_filename);
 
-  return result;
+    return result;
 }
 
 /*

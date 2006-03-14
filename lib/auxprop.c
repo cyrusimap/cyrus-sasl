@@ -1,6 +1,6 @@
 /* auxprop.c - auxilliary property support
  * Rob Siemborski
- * $Id: auxprop.c,v 1.15 2004/06/23 16:11:36 rjs3 Exp $
+ * $Id: auxprop.c,v 1.16 2006/03/14 14:23:55 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -994,4 +994,129 @@ int sasl_auxprop_store(sasl_conn_t *conn,
     }
 
     return ret;
+}
+
+/* It would be nice if we can show other information like Author, Company, Year, plugin version */
+static void
+_sasl_print_mechanism (
+  sasl_auxprop_plug_t *m,
+  sasl_info_callback_stage_t stage,
+  void *rock
+)
+{
+    char delimiter;
+
+    if (stage == SASL_INFO_LIST_START) {
+	printf ("List of auxprop plugins follows\n");
+	return;
+    } else if (stage == SASL_INFO_LIST_END) {
+	return;
+    }
+
+    /* Process the mechanism */
+    printf ("Plugin \"%s\" ", m->name);
+
+#ifdef NOT_YET
+    switch (m->condition) {
+	case SASL_OK:
+	    printf ("[loaded]");
+	    break;
+
+	case SASL_CONTINUE:
+	    printf ("[delayed]");
+	    break;
+
+	case SASL_NOUSER:
+	    printf ("[no users]");
+	    break;
+
+	default:
+	    printf ("[unknown]");
+	    break;
+    }
+#endif
+
+    printf (", \tAPI version: %d\n", /* m->version */ SASL_AUXPROP_PLUG_VERSION);
+
+    /* TODO - Update for auxprop_export, etc. */
+    printf ("\tsupports store: %s\n",
+	    (m->auxprop_store != NULL) ? "yes" : "no"
+	    );
+
+    /* No features defined yet */
+#ifdef NOT_YET
+    printf ("\n\tfeatures:");
+#endif
+
+    printf ("\n");
+}
+
+/* Dump information about available auxprop plugins (separate functions are
+   used for canon and server authentication plugins) */
+int auxprop_plugin_info (
+  const char *c_mech_list,		/* space separated mechanism list or NULL for ALL */
+  auxprop_info_callback_t *info_cb,
+  void *info_cb_rock
+)
+{
+    auxprop_plug_list_t *m;
+    sasl_auxprop_plug_t plug_data;
+    char * cur_mech;
+    char *mech_list = NULL;
+    char * p;
+
+    if (info_cb == NULL) {
+	info_cb = _sasl_print_mechanism;
+    }
+
+    if (auxprop_head != NULL) {
+	info_cb (NULL, SASL_INFO_LIST_START, info_cb_rock);
+
+	if (c_mech_list == NULL) {
+	    m = auxprop_head; /* m point to beginning of the list */
+
+	    while (m != NULL) {
+                /* TODO: Need to be careful when dealing with auxprop_export, etc. */
+		memcpy (&plug_data, m->plug, sizeof(plug_data));
+
+		info_cb (&plug_data, SASL_INFO_LIST_MECH, info_cb_rock);
+	    
+		m = m->next;
+	    }
+	} else {
+            mech_list = strdup(c_mech_list);
+
+	    cur_mech = mech_list;
+
+	    while (cur_mech != NULL) {
+		p = strchr (cur_mech, ' ');
+		if (p != NULL) {
+		    *p = '\0';
+		    p++;
+		}
+
+		m = auxprop_head; /* m point to beginning of the list */
+
+		while (m != NULL) {
+		    if (strcasecmp (cur_mech, m->plug->name) == 0) {
+			memcpy (&plug_data, m->plug, sizeof(plug_data));
+
+			info_cb (&plug_data, SASL_INFO_LIST_MECH, info_cb_rock);
+		    }
+	    
+		    m = m->next;
+		}
+
+		cur_mech = p;
+	    }
+
+            free (mech_list);
+	}
+
+	info_cb (NULL, SASL_INFO_LIST_END, info_cb_rock);
+
+	return (SASL_OK);
+    }
+
+    return (SASL_NOTINIT);
 }

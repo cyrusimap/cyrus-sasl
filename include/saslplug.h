@@ -446,7 +446,7 @@ typedef void sasl_client_info_callback_t (client_sasl_mechanism_t *m,
 					  void *rock);
 
 /* Dump information about available client plugins */
-LIBSASL_API int sasl_client_plugin_info (char *mech_list,
+LIBSASL_API int sasl_client_plugin_info (const char *mech_list,
 	sasl_client_info_callback_t *info_cb,
 	void *info_cb_rock);
 
@@ -787,9 +787,9 @@ typedef void sasl_server_info_callback_t (server_sasl_mechanism_t *m,
 					  void *rock);
 
 
-/* Dump information about available server plugins (separate functions should be
-   used for canon and auxprop plugins */
-LIBSASL_API int sasl_server_plugin_info (char *mech_list,
+/* Dump information about available server plugins (separate functions are
+   used for canon and auxprop plugins) */
+LIBSASL_API int sasl_server_plugin_info (const char *mech_list,
 	sasl_server_info_callback_t *info_cb,
 	void *info_cb_rock);
 
@@ -935,6 +935,16 @@ typedef int sasl_auxprop_init_t(const sasl_utils_t *utils,
  */
 LIBSASL_API int sasl_auxprop_add_plugin(const char *plugname,
 					sasl_auxprop_init_t *auxpropfunc);
+
+typedef void auxprop_info_callback_t (sasl_auxprop_plug_t *m,
+			              sasl_info_callback_stage_t stage,
+				      void *rock);
+
+/* Dump information about available auxprop plugins (separate functions are
+   used for canon and server authentication plugins) */
+LIBSASL_API int auxprop_plugin_info (const char *mech_list,
+	auxprop_info_callback_t *info_cb,
+	void *info_cb_rock);
 
 #ifdef __cplusplus
 }

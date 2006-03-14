@@ -1,7 +1,7 @@
 /* SASL client API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.65 2005/05/18 21:06:50 shadow Exp $
+ * $Id: client.c,v 1.66 2006/03/14 14:23:56 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -958,7 +958,7 @@ _sasl_print_mechanism (
 
 /* Dump information about available client plugins */
 int sasl_client_plugin_info (
-  char *mech_list,		/* space separated mechanism list or NULL for ALL */
+  const char *c_mech_list,		/* space separated mechanism list or NULL for ALL */
   sasl_client_info_callback_t *info_cb,
   void *info_cb_rock
 )
@@ -966,6 +966,7 @@ int sasl_client_plugin_info (
     cmechanism_t *m;
     client_sasl_mechanism_t plug_data;
     char * cur_mech;
+    char * mech_list = NULL;
     char * p;
 
     if (info_cb == NULL) {
@@ -975,7 +976,7 @@ int sasl_client_plugin_info (
     if (cmechlist != NULL) {
 	info_cb (NULL, SASL_INFO_LIST_START, info_cb_rock);
 
-	if (mech_list == NULL) {
+	if (c_mech_list == NULL) {
 	    m = cmechlist->mech_list; /* m point to beginning of the list */
 
 	    while (m != NULL) {
@@ -986,6 +987,7 @@ int sasl_client_plugin_info (
 		m = m->next;
 	    }
 	} else {
+            mech_list = strdup (c_mech_list);
 
 	    cur_mech = mech_list;
 
@@ -1010,6 +1012,8 @@ int sasl_client_plugin_info (
 
 		cur_mech = p;
 	    }
+
+            free (mech_list);
 	}
 
 	info_cb (NULL, SASL_INFO_LIST_END, info_cb_rock);

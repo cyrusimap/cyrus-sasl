@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: sasldb.c,v 1.10 2005/08/11 16:08:57 mel Exp $
+ * $Id: sasldb.c,v 1.11 2006/04/03 10:58:19 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -113,7 +113,7 @@ static void sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
 	    
 	ret = _sasldb_getdata(sparams->utils,
 			      sparams->utils->conn, userid, realm,
-			      realname, value, 8192, &value_len);
+			      realname, value, sizeof(value), &value_len);
 	if(ret != SASL_OK) {
 	    /* We didn't find it, leave it as not found */
 	    continue;
@@ -210,7 +210,7 @@ static sasl_auxprop_plug_t sasldb_auxprop_plugin = {
     0,           		/* Features */
     0,           		/* spare */
     NULL,        		/* glob_context */
-    NULL,        		/* auxprop_free */
+    sasldb_auxprop_free,        /* auxprop_free */
     sasldb_auxprop_lookup,	/* auxprop_lookup */
     "sasldb",			/* name */
     sasldb_auxprop_store	/* auxprop_store */

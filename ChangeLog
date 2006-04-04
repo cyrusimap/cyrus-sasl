@@ -1,4 +1,55 @@
-2006-01-13  Alexey Melnikov <alexey.melnikov@isode.com>
+2006-04-03  Alexey Melnikov <alexey.melnikov@isode.com>
+	* configure.in, plugins/NTMakefile, plugins/sasldb.c,
+	  sasldb/db_berkeley.c, sasldb/sasldb.h:
+	  Patch to keep BerkleyDB handle open between operations
+	  (for performance reason). New behavior can be enabled
+	  with --enable-keep-db-open. Original patch by Curtis King.
+
+2006-03-14  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/server.c: Fixed bug # 2796: load_config now
+	  looks in all directories for the config file,
+	  not just in the first one.
+
+2006-03-14  Alexey Melnikov <alexey.melnikov@isode.com>
+	* include/saslplug.h, lib/auxprop.c, lib/client.c
+	  lib/server.c, utils/Makefile.am, utils/NTMakefile,
+	  utils/pluginviewer.c [new]:
+	  Added support for reporting information about
+	  loaded auxprop plugins. Changed the first parameter
+	  to sasl_server_plugin_info/sasl_client_plugin_info
+	  to be "const char *". Added new utility for
+	  reporting information about client and server side
+	  authentication plugins and auxprop plugins (e.g.
+	  supported features, methods, etc.).
+
+2006-03-13  Alexey Melnikov <alexey.melnikov@isode.com>
+	* saslauthd/Makefile.am, saslauthd/auth_httpform.c,
+	  saslauthd/auth_httpform.h, saslauthd/configure.in,
+	  saslauthd/mechanisms.c, saslauthd/mechanisms.h:
+	  Added support for HTTP POST password validation
+	  in saslauthd (patch by Joe Ammann <joe@pyx.ch>)
+
+2006-03-13  Alexey Melnikov <alexey.melnikov@isode.com>
+	* cmulocal/openldap.m4: Allow for compilation
+	  with OpenLDAP 2.3+.
+
+2006-03-13  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/saslutil.c, utils/testsuite.c: Various
+	  fixes to sasl_decode64: don't ignore partial
+	  base64 data, don't allow any data after the '='
+	  sign, etc.).
+
+2006-03-13  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/saslint.h: Increase canonicalization buffer
+	  size to 1024 bytes, as Luke Howard has reported
+	  that 256 is too small for some certificates.
+
+2006-03-13  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/NTMakefile: Include Cyrus version of
+	  getnameinfo() when compiling with Visual Studio 6,
+	  as Windows SDK emulation is not available.
+
+2006-02-13  Alexey Melnikov <alexey.melnikov@isode.com>
 	* include/sasl.h, lib/common.c: Added sasl_set_path
 	  function (for a more convenient way of setting
 	  plugin and config paths. Changed the default
@@ -6,7 +57,7 @@
 	  calculate the value only once and cache it
 	  for later use.
 
-2006-01-13  Alexey Melnikov <alexey.melnikov@isode.com>
+2006-02-13  Alexey Melnikov <alexey.melnikov@isode.com>
 	* configure.in, include/sasl.h, lib/common.c,
 	  lib/saslinit.h, lib/server.c, man/Makefile.am,
 	  man/sasl_callbacks.3, man/sasl_getconfpath_t.3,

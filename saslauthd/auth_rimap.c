@@ -53,7 +53,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_rimap.c,v 1.11 2004/06/30 14:49:28 rjs3 Exp $"
+#ident "$Id: auth_rimap.c,v 1.12 2006/04/06 20:19:54 jeaton Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -481,7 +481,7 @@ auth_rimap (
     }
     syslog(LOG_WARNING, "auth_rimap: unexpected response to auth request: %s",
 	   rbuf);
-    return RESP_UNEXPECTED;
+    return strdup(RESP_UNEXPECTED);
     
 }
 

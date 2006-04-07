@@ -7,7 +7,7 @@
 ** Simon Loader -- original mysql plugin
 ** Patrick Welche -- original pgsql plugin
 **
-** $Id: sql.c,v 1.28 2004/11/24 18:09:00 ken3 Exp $
+** $Id: sql.c,v 1.29 2006/04/07 13:42:16 jeaton Exp $
 **
 */
 
@@ -97,9 +97,18 @@ static int _mysql_exec(void *conn, const char *cmd, char *value, size_t size,
     /* mysql_real_query() doesn't want a terminating ';' */
     if (cmd[len-1] == ';') len--;
 
-    /* run the query */
-    if ((mysql_real_query(conn, cmd, len) < 0)) {
-	utils->log(NULL, SASL_LOG_ERR, "sql query failed: %s",
+    /* 
+     *  Run the query. It is important to note that mysql_real_query
+     *  will return success even if the sql statement 
+     *  had an error in it. However, mysql_errno() will alsways
+     *  tell us if there was an error. Therefore we can ignore
+     *  the result from mysql_real_query and simply check mysql_errno()
+     *  to decide if there was really an error.
+     */
+    (void)mysql_real_query(conn, cmd, len);
+
+    if(mysql_errno(conn)) {
+        utils->log(NULL, SASL_LOG_ERR, "sql query failed: %s",
 		   mysql_error(conn));
 	return -1;
     }

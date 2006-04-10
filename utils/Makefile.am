@@ -53,12 +53,12 @@ noinst_PROGRAMS = dbconverter-2
 if NO_SASL_DB_MANS
 man_MANS = 
 else
-man_MANS = saslpasswd2.8 sasldblistusers2.8
+man_MANS = saslpasswd2.8 sasldblistusers2.8 pluginviewer.8
 endif
 
-saslpasswd2_LDADD = $(all_sasl_libs) ../sasldb/libsasldb.la
+saslpasswd2_LDADD = ../sasldb/libsasldb.la $(all_sasl_libs)
 saslpasswd2_SOURCES = saslpasswd.c
-sasldblistusers2_LDADD = $(all_sasl_libs) ../sasldb/libsasldb.la
+sasldblistusers2_LDADD = ../sasldb/libsasldb.la $(all_sasl_libs)
 sasldblistusers2_SOURCES = sasldblistusers.c
 dbconverter_2_LDADD = ../sasldb/libsasldb.la $(all_sasl_libs)
 pluginviewer_LDADD = $(all_sasl_libs)

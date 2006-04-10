@@ -1,7 +1,7 @@
 /* pluginviewer.c -- Plugin Viewer for CMU SASL
  * Alexey Melnikov, Isode Ltd.
  *
- * $Id: pluginviewer.c,v 1.1 2006/03/14 18:23:27 mel Exp $
+ * $Id: pluginviewer.c,v 1.2 2006/04/10 13:23:38 mel Exp $
  */
 /* 
  * Copyright (c) 2004 Carnegie Mellon University.  All rights reserved.
@@ -377,14 +377,10 @@ main(int argc, char *argv[])
   sasl_ssf_t extssf = 0;
   const char *ext_authid = NULL;
   char *options, *value;
-  int serverlast = 0;
   const char *available_mechs = NULL;
   unsigned len;
   unsigned count;
-  int clientfirst = 1;
   sasl_callback_t callbacks[N_CALLBACKS], *callback;
-  char *iplocal = NULL;
-  char *ipremote = NULL;
   char *searchpath = NULL;
   char *service = "test";
   char * list_of_server_mechs = NULL;
@@ -417,7 +413,7 @@ main(int argc, char *argv[])
     secprops.maxbufsize = SAMPLE_SEC_BUF_SIZE;
     secprops.max_ssf = UINT_MAX;
 
-    while ((c = getopt(argc, argv, "acshldb:e:m:f:i:p:x:?")) != EOF)
+    while ((c = getopt(argc, argv, "acshb:e:m:f:p:x:?")) != EOF)
         switch (c) {
         case 'a':
 	    list_auxprop_plugins = 1;
@@ -462,14 +458,6 @@ main(int argc, char *argv[])
 	        }
             }
             break;
-
-        case 'l':
-	    serverlast = SASL_SUCCESS_DATA;
-	    break;
-    	
-        case 'd':
-	    clientfirst = 0;
-	    break;
 
         case 'e':
             options = optarg;
@@ -530,31 +518,6 @@ main(int argc, char *argv[])
 	    }
             break;
 
-        case 'i':
-            options = optarg;
-            while (*options != '\0') {
-	        switch(getsubopt(&options, (const char * const *)ip_subopts, &value)) {
-	        case OPT_IP_LOCAL:
-                    if (! value) {
-	                errflag = 1;
-                    } else {
-	                iplocal = value;
-                    }
-	            break;
-	        case OPT_IP_REMOTE:
-                    if (! value) {
-	                errflag = 1;
-                    } else {
-	                ipremote = value;
-                    }
-	            break;
-	        default:
-	            errflag = 1;
-	            break;
-	        }
-            }
-            break;
-
         case 'p':
             searchpath = optarg;
             break;
@@ -583,22 +546,17 @@ main(int argc, char *argv[])
 	        "\t-m MECHS\tforce to use one of MECHS SASL mechanism\n"
 	        "\t-x AUXPROP_MECHS\tforce to use one of AUXPROP_MECHS auxprop plugins\n"
 	        "\t-f ...\tset security flags\n"
-	        "\t\tnoplain\t\trequire security vs. passive attacks\n"
+	        "\t\tnoplain\t\tno plaintext password send during authentication\n"
 	        "\t\tnoactive\trequire security vs. active attacks\n"
 	        "\t\tnodict\t\trequire security vs. passive dictionary attacks\n"
 	        "\t\tforwardsec\trequire forward secrecy\n"
 	        "\t\tmaximum\t\trequire all security flags\n"
 	        "\t\tpasscred\tattempt to pass client credentials\n"
-	        "\t-i ...\tset IP addresses (required by some mechs)\n"
-	        "\t\tlocal=IP;PORT\tset local address to IP, port PORT\n"
-	        "\t\tremote=IP;PORT\tset remote address to IP, port PORT\n"
 #ifdef WIN32
-	        "\t-p PATH\tsemicolon-seperated search path for mechanisms\n"
+	        "\t-p PATH\tsemicolon-separated search path for mechanisms\n",
 #else
-	        "\t-p PATH\tcolon-seperated search path for mechanisms\n"
+	        "\t-p PATH\tcolon-seperated search path for mechanisms\n",
 #endif
-	        "\t-d\tDisable client-send-first\n"
-	        "\t-l\tEnable server-send-last\n",
 	        progname, progname);
         exit(EXIT_FAILURE);
     }
@@ -667,10 +625,10 @@ main(int argc, char *argv[])
         result = sasl_server_new(service,
 			        NULL,			/* localdomain */
 			        NULL,			/* userdomain */
-			        iplocal,
-			        ipremote,
+			        NULL,			/* iplocal */
+			        NULL,			/* ipremote */
 			        NULL,
-			        serverlast,
+			        0,
 			        &server_conn);
         if (result != SASL_OK) {
             saslfail(result, "Allocating sasl connection state (server side)", NULL);
@@ -761,10 +719,10 @@ main(int argc, char *argv[])
         /* SASL client plugins */
         result = sasl_client_new(service,
 			        NULL,			/* fqdn */
-			        iplocal,
-			        ipremote,
+			        NULL,			/* iplocal */
+			        NULL,			/* ipremote */
 			        NULL,
-			        serverlast,
+			        0,
 			        &client_conn);
 
         if (result != SASL_OK) {

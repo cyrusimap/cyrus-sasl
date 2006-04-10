@@ -1,3 +1,33 @@
+2006-04-10  Alexey Melnikov <alexey.melnikov@isode.com>
+	* utils/Makefile.am: Added the pluginviewer man page.
+	  Reordered link dependencies for saslpasswds/sasldblistusers2.
+
+2006-04-10  Alexey Melnikov <alexey.melnikov@isode.com>
+	* utils/pluginviewer.8: Added man page for pluginviewer.
+
+2006-04-10  Alexey Melnikov <alexey.melnikov@isode.com>
+	* utils/pluginviewer.c: Deleted unused command line parameters
+	  and cleaned up usage output.
+
+
+2006-04-10  Alexey Melnikov <alexey.melnikov@isode.com>
+	* include/gai.h: Use HAVE_GETADDRINFO (instead of HAVE_GETNAMEINFO)
+	  to protect definition of getaddrinfo().
+
+2006-04-10  Alexey Melnikov <alexey.melnikov@isode.com>
+	* include/sasl.h: Allocated some GSSAPI specific properties
+	  for Nico Williams (Sun)
+
+2006-04-10  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/common.c: Free default_plugin_path and
+	  default_conf_path variables in sasl_done.
+
+2006-04-10  Alexey Melnikov <alexey.melnikov@isode.com>
+	* sasldb/allockey.c: Cleaned up some warnings
+
+2006-04-10  Alexey Melnikov <alexey.melnikov@isode.com>
+	* win32/include/config.h: Deleted a misleading comment
+
 2006-04-03  Alexey Melnikov <alexey.melnikov@isode.com>
 	* configure.in, plugins/NTMakefile, plugins/sasldb.c,
 	  sasldb/db_berkeley.c, sasldb/sasldb.h:

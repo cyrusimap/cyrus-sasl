@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.111 2006/02/13 19:59:02 mel Exp $
+ * $Id: common.c,v 1.112 2006/04/10 13:30:17 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -412,9 +412,21 @@ void sasl_done(void)
 	_sasl_client_cleanup_hook = NULL;
     }
     
-    if(_sasl_server_cleanup_hook || _sasl_client_cleanup_hook)
+    if (_sasl_server_cleanup_hook || _sasl_client_cleanup_hook) {
 	return;
-    
+    }
+
+    /* NOTE - the caller will need to reinitialize the values,
+       if it is going to call sasl_client_init/sasl_server_init again. */
+    if (default_plugin_path != NULL) {
+	sasl_FREE (default_plugin_path);
+	default_plugin_path = NULL;
+    }
+    if (default_conf_path != NULL) {
+	sasl_FREE (default_conf_path);
+	default_conf_path = NULL;
+    }
+
     _sasl_canonuser_free();
     _sasl_done_with_plugins();
     
@@ -1139,7 +1151,7 @@ static int _sasl_syslog(void *context,
 	break;
     }
     
-    /* do the syslog call. do not need to call openlog */
+    /* do the syslog call. Do not need to call openlog? */
     syslog(syslog_priority | LOG_AUTH, "%s", message);
     
     return SASL_OK;

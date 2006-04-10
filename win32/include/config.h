@@ -110,7 +110,6 @@ typedef int		    intptr_t;
  */
 #define HAVE_MEMCPY 1
 
-/* Note that environment variables are not used on Windows */
 #define PLUGINDIR "C:\\CMU\\bin\\sasl2"
 #define CONFIGDIR "C:\\CMU\\bin\\sasl2"
 

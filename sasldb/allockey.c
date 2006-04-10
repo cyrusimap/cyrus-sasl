@@ -1,7 +1,7 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Rob Siemborski
  * Tim Martin
- * $Id: allockey.c,v 1.7 2003/10/09 14:09:29 ken3 Exp $
+ * $Id: allockey.c,v 1.8 2006/04/10 13:26:51 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -94,7 +94,7 @@ int _sasldb_parse_key(const char *key, const size_t key_len,
 {
     unsigned i = 0;
     unsigned numnulls = 0;
-    unsigned alen = 0, rlen = 0, pnlen = 0;
+    size_t alen = 0, rlen = 0, pnlen = 0;
 
     if(!key || !key_len
        || (authid && !max_authid)
@@ -169,7 +169,7 @@ int _sasldb_getsecret(const sasl_utils_t *utils,
 	return SASL_NOMEM;
     }
 
-    out->len = len;
+    out->len = (unsigned) len;
     memcpy(out->data, buf, len);
     out->data[len]='\0';
 

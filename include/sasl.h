@@ -774,7 +774,23 @@ LIBSASL_API int sasl_getprop(sasl_conn_t *conn, int propnum,
 #define SASL_APPNAME	  17	/* application name (used for logging/
 				   configuration), same as appname parameter
 				   to sasl_server_init */
-   
+
+/* GSS-API credential handle for sasl_client_step() or sasl_server_step().
+ * The application is responsible for releasing this credential handle. */
+#define	SASL_GSS_CREDS	  18
+
+/* GSS name (gss_name_t) of the peer, as output by gss_inquire_context()
+ * or gss_accept_sec_context().
+ * On server end this is similar to SASL_USERNAME, but the gss_name_t
+ * structure can contain additional attributes associated with the peer.
+ */
+#define	SASL_GSS_PEER_NAME	19
+
+/* Local GSS name (gss_name_t) as output by gss_inquire_context(). This
+ * is particularly useful for servers that respond to multiple names. */
+#define	SASL_GSS_LOCAL_NAME	20
+
+
 /* set property in SASL connection state
  * returns:
  *  SASL_OK       -- value set

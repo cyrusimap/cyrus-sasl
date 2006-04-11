@@ -28,6 +28,12 @@
 2006-04-10  Alexey Melnikov <alexey.melnikov@isode.com>
 	* win32/include/config.h: Deleted a misleading comment
 
+2006-04-06 Jeffrey Teaton <jeaton@cmu.edu>
+	* saslauthd/auth_rimap.c: patch from Dale Sedivec to prevent
+	  segfault when saslauth free()s returned string
+	* plugins/sql.c: patch from Matthew Hardin to do better
+	  error checking for mysql_real_query
+
 2006-04-03  Alexey Melnikov <alexey.melnikov@isode.com>
 	* configure.in, plugins/NTMakefile, plugins/sasldb.c,
 	  sasldb/db_berkeley.c, sasldb/sasldb.h:

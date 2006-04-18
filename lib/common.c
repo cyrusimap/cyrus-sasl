@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.112 2006/04/10 13:30:17 mel Exp $
+ * $Id: common.c,v 1.113 2006/04/18 20:25:45 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -53,6 +53,7 @@
 #endif
 #include <stdarg.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include <sasl.h>
 #include <saslutil.h>
@@ -106,6 +107,8 @@ sasl_allocation_utils_t _sasl_allocation_utils={
   (sasl_realloc_t *) &realloc,
   (sasl_free_t *) &free
 };
+
+#define SASL_ENCODEV_EXTRA  4096
 
 /* Default getpath/getconfpath callbacks. These can be edited by sasl_set_path(). */
 static sasl_callback_t default_getpath_cb = {
@@ -287,46 +290,286 @@ int sasl_encode(sasl_conn_t *conn, const char *input,
     RETURN(conn, result);
 }
 
+/* Internal function that doesn't do any verification */
+static int
+_sasl_encodev (sasl_conn_t *conn,
+	       const struct iovec *invec,
+               unsigned numiov,
+               int * p_num_packets,     /* number of packets generated so far */
+	       const char **output,     /* previous output, if *p_num_packets > 0 */
+               unsigned *outputlen)
+{
+    int result;
+    char * new_buf;
+
+    assert (conn->oparams.encode != NULL);
+
+    if (*p_num_packets == 1) {
+        /* This is the second call to this function,
+           so we need to allocate a new output buffer
+           and copy existing data there. */
+        conn->multipacket_encoded_data.curlen = *outputlen;
+        if (conn->multipacket_encoded_data.data == NULL) {
+            conn->multipacket_encoded_data.reallen = 
+                 conn->multipacket_encoded_data.curlen + SASL_ENCODEV_EXTRA;
+            conn->multipacket_encoded_data.data =
+                 sasl_ALLOC(conn->multipacket_encoded_data.reallen + 1);
+
+            if (conn->multipacket_encoded_data.data == NULL) {
+                MEMERROR(conn);
+            }
+        } else {
+            /* A buffer left from a previous sasl_encodev call.
+               Make sure it is big enough. */
+            if (conn->multipacket_encoded_data.curlen >
+                conn->multipacket_encoded_data.reallen) {
+                conn->multipacket_encoded_data.reallen = 
+                    conn->multipacket_encoded_data.curlen + SASL_ENCODEV_EXTRA;
+
+	        new_buf = sasl_REALLOC(conn->multipacket_encoded_data.data,
+                            conn->multipacket_encoded_data.reallen + 1);
+                if (new_buf == NULL) {
+                    MEMERROR(conn);
+                }
+                conn->multipacket_encoded_data.data = new_buf;
+            }
+        }
+
+        memcpy (conn->multipacket_encoded_data.data,
+                *output,
+                *outputlen);
+    }
+
+    result = conn->oparams.encode(conn->context,
+                                  invec,
+                                  numiov,
+				  output,
+                                  outputlen);
+
+    if (*p_num_packets > 0 && result == SASL_OK) {
+        /* Is the allocated buffer big enough? If not, grow it. */
+        if ((conn->multipacket_encoded_data.curlen + *outputlen) >
+             conn->multipacket_encoded_data.reallen) {
+            conn->multipacket_encoded_data.reallen =
+                conn->multipacket_encoded_data.curlen + *outputlen;
+	    new_buf = sasl_REALLOC(conn->multipacket_encoded_data.data,
+                        conn->multipacket_encoded_data.reallen + 1);
+            if (new_buf == NULL) {
+                MEMERROR(conn);
+            }
+            conn->multipacket_encoded_data.data = new_buf;
+        }
+
+        /* Append new data to the end of the buffer */
+        memcpy (conn->multipacket_encoded_data.data +
+                conn->multipacket_encoded_data.curlen,
+                *output,
+                *outputlen);
+        conn->multipacket_encoded_data.curlen += *outputlen;
+
+        *output = conn->multipacket_encoded_data.data;
+        *outputlen = conn->multipacket_encoded_data.curlen;
+    }
+
+    (*p_num_packets)++;
+
+    RETURN(conn, result);
+}
+
 /* security-encode an iovec */
-/* output is only valid until next call to sasl_encode or sasl_encodev */
+/* output is only valid until the next call to sasl_encode or sasl_encodev */
 int sasl_encodev(sasl_conn_t *conn,
-		 const struct iovec *invec, unsigned numiov,
-		 const char **output, unsigned *outputlen)
+		 const struct iovec *invec,
+                 unsigned numiov,
+		 const char **output,
+                 unsigned *outputlen)
 {
     int result;
     unsigned i;
+    unsigned j;
     size_t total_size = 0;
+    struct iovec *cur_invec = NULL;
+    struct iovec last_invec;
+    unsigned cur_numiov;
+    char * next_buf = NULL;
+    unsigned remainder_len;
+    unsigned index_offset;
+    unsigned allocated = 0;
+    /* Number of generated SASL packets */
+    int num_packets = 0;
 
     if (!conn) return SASL_BADPARAM;
-    if (! invec || ! output || ! outputlen || numiov < 1)
+    if (! invec || ! output || ! outputlen || numiov < 1) {
 	PARAMERROR(conn);
+    }
 
-    if(!conn->props.maxbufsize) {
+    if (!conn->props.maxbufsize) {
 	sasl_seterror(conn, 0,
 		      "called sasl_encode[v] with application that does not support security layers");
 	return SASL_TOOWEAK;
+    }
+
+    /* If oparams.encode is NULL, this means there is no SASL security
+       layer in effect, so no SASL framing is needed. */
+    if (conn->oparams.encode == NULL)  {
+	result = _iovec_to_buf(invec, numiov, &conn->encode_buf);
+	if (result != SASL_OK) INTERROR(conn, result);
+       
+	*output = conn->encode_buf->data;
+	*outputlen = (unsigned) conn->encode_buf->curlen;
+
+        RETURN(conn, result);
     }
 
     /* This might be better to check on a per-plugin basis, but I think
      * it's cleaner and more effective here.  It also encourages plugins
      * to be honest about what they accept */
 
-    for(i=0; i<numiov;i++) {
-	total_size += invec[i].iov_len;
-    }    
-    if(total_size > conn->oparams.maxoutbuf)
-	PARAMERROR(conn);
+    last_invec.iov_base = NULL;
+    remainder_len = 0;
+    next_buf = NULL;
+    i = 0;
+    while (i < numiov) {
+        if ((total_size + invec[i].iov_len) > conn->oparams.maxoutbuf) {
 
-    if(conn->oparams.encode == NULL)  {
-	result = _iovec_to_buf(invec, numiov, &conn->encode_buf);
-	if(result != SASL_OK) INTERROR(conn, result);
-       
-	*output = conn->encode_buf->data;
-	*outputlen = (unsigned) conn->encode_buf->curlen;
+            /* CLAIM: total_size < conn->oparams.maxoutbuf */
+            
+            /* Fit as many bytes in last_invec, so that we have conn->oparams.maxoutbuf
+               bytes in total. */
+            last_invec.iov_len = conn->oparams.maxoutbuf - total_size;
+            /* Point to the first byte of the current record. */
+            last_invec.iov_base = invec[i].iov_base;
 
-    } else {
-	result = conn->oparams.encode(conn->context, invec, numiov,
-				      output, outputlen);
+            /* Note that total_size < conn->oparams.maxoutbuf */
+            /* The total size of the iov is bigger then the other end can accept.
+               So we allocate a new iov that contains just enough. */
+
+            /* +1 --- for the tail record */
+            cur_numiov = i + 1;
+
+            /* +1 --- just in case we need the head record */
+            if ((cur_numiov + 1) > allocated) {
+                struct iovec *new_invec;
+
+                allocated = cur_numiov + 1;
+                new_invec = sasl_REALLOC (cur_invec, sizeof(struct iovec) * allocated);
+                if (new_invec == NULL) {
+                    if (cur_invec != NULL) {
+                        sasl_FREE(cur_invec);
+                    }
+                    MEMERROR(conn);
+                }
+                cur_invec = new_invec;
+            }
+
+            if (next_buf != NULL) {
+                cur_invec[0].iov_base = next_buf;
+                cur_invec[0].iov_len = remainder_len;
+                cur_numiov++;
+                index_offset = 1;
+            } else {
+                index_offset = 0;
+            }
+
+            if (i > 0) {
+                /* Copy all previous chunks */
+                /* NOTE - The starting index in invec is always 0 */
+                for (j = 0; j < i; j++) {
+                    cur_invec[j + index_offset] = invec[j];
+                }
+            }
+
+            /* Initialize the last record */
+            cur_invec[i + index_offset] = last_invec;
+
+            result = _sasl_encodev (conn,
+	                            cur_invec,
+                                    cur_numiov,
+                                    &num_packets,
+	                            output,
+                                    outputlen);
+
+            if (result != SASL_OK) {
+                goto cleanup;
+            }
+
+            /* Point to the first byte that wouldn't fit into
+               the conn->oparams.maxoutbuf buffer. */
+            /* Note, if next_buf points to the very end of the IOV record,
+               it will be reset to NULL below */
+            next_buf = last_invec.iov_base + last_invec.iov_len;
+            /* Note - remainder_len is how many bytes left to be encoded in
+               the current IOV slot. */
+            remainder_len = (total_size + invec[i].iov_len) - conn->oparams.maxoutbuf;
+
+            /* Skip all consumed IOV records */
+            invec += i + 1;
+            numiov = numiov - (i + 1);
+            i = 0;
+
+            while (remainder_len > conn->oparams.maxoutbuf) {
+                last_invec.iov_base = next_buf;
+                last_invec.iov_len = conn->oparams.maxoutbuf;
+
+                /* Note, if next_buf points to the very end of the IOV record,
+                   it will be reset to NULL below */
+                next_buf = last_invec.iov_base + last_invec.iov_len;
+                remainder_len = remainder_len - conn->oparams.maxoutbuf;
+
+                result = _sasl_encodev (conn,
+	                                &last_invec,
+                                        1,
+                                        &num_packets,
+	                                output,
+                                        outputlen);
+                if (result != SASL_OK) {
+                    goto cleanup;
+                }
+            }
+
+	    total_size = remainder_len;
+
+            if (remainder_len == 0) {
+                /* Just clear next_buf */
+                next_buf = NULL;
+            }
+        } else {
+	    total_size += invec[i].iov_len;
+            i++;
+        }
+    }
+
+    /* CLAIM - The remaining data is shorter then conn->oparams.maxoutbuf. */
+
+    /* Force encoding of any partial buffer. Might not be optimal on the wire. */
+    if (next_buf != NULL) {
+        last_invec.iov_base = next_buf;
+        last_invec.iov_len = remainder_len;
+
+        result = _sasl_encodev (conn,
+	                        &last_invec,
+                                1,
+                                &num_packets,
+	                        output,
+                                outputlen);
+
+        if (result != SASL_OK) {
+            goto cleanup;
+        }
+    }
+
+    if (numiov > 0) {
+        result = _sasl_encodev (conn,
+	                        invec,
+                                numiov,
+                                &num_packets,
+	                        output,
+                                outputlen);
+    }
+
+cleanup:
+    if (cur_invec != NULL) {
+        sasl_FREE(cur_invec);
     }
 
     RETURN(conn, result);
@@ -586,6 +829,10 @@ void _sasl_conn_dispose(sasl_conn_t *conn) {
 
   if(conn->service)
       sasl_FREE(conn->service);
+
+  if (conn->multipacket_encoded_data.data) {
+      sasl_FREE(conn->multipacket_encoded_data.data);
+  }
 
   /* oparams sub-members should be freed by the plugin, in so much
    * as they were allocated by the plugin */
@@ -1822,6 +2069,7 @@ int _buf_alloc(char **rwbuf, size_t *curlen, size_t newlen)
 	while(needed < newlen)
 	    needed *= 2;
 
+        /* WARN - We will leak the old buffer on failure */
 	*rwbuf = sasl_REALLOC(*rwbuf, (unsigned)needed);
 	
 	if (*rwbuf == NULL) {
@@ -1851,28 +2099,29 @@ int _iovec_to_buf(const struct iovec *vec,
     buffer_info_t *out;
     char *pos;
 
-    if(!vec || !output) return SASL_BADPARAM;
+    if (!vec || !output) return SASL_BADPARAM;
 
-    if(!(*output)) {
+    if (!(*output)) {
 	*output = sasl_ALLOC(sizeof(buffer_info_t));
-	if(!*output) return SASL_NOMEM;
+	if (!*output) return SASL_NOMEM;
 	memset(*output,0,sizeof(buffer_info_t));
     }
 
     out = *output;
     
     out->curlen = 0;
-    for(i=0; i<numiov; i++)
+    for (i = 0; i < numiov; i++) {
 	out->curlen += vec[i].iov_len;
+    }
 
     ret = _buf_alloc(&out->data, &out->reallen, out->curlen);
 
-    if(ret != SASL_OK) return SASL_NOMEM;
+    if (ret != SASL_OK) return SASL_NOMEM;
     
     memset(out->data, 0, out->reallen);
     pos = out->data;
     
-    for(i=0; i<numiov; i++) {
+    for (i = 0; i < numiov; i++) {
 	memcpy(pos, vec[i].iov_base, vec[i].iov_len);
 	pos += vec[i].iov_len;
     }

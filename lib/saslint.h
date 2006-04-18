@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.59 2006/03/13 18:35:48 mel Exp $
+ * $Id: saslint.h,v 1.60 2006/04/18 20:25:45 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -60,7 +60,7 @@
  *  -Error strings are set as soon as possible (first function in stack trace
  *   with a pointer to the sasl_conn_t.
  *  -Error codes are set as late as possible (only in the sasl api functions),
- *   thoug "as often as possible" also comes to mind to ensure correctness
+ *   though "as often as possible" also comes to mind to ensure correctness
  *  -Errors from calls to _buf_alloc, _sasl_strdup, etc are assumed to be
  *   memory errors.
  *  -Only errors (error codes < SASL_OK) should be remembered
@@ -183,6 +183,9 @@ struct sasl_conn {
   char *decode_buf;
 
   char user_buf[CANON_BUF_SIZE+1], authid_buf[CANON_BUF_SIZE+1];
+
+  /* Allocated by sasl_encodev if the output contains multiple SASL packet. */
+  buffer_info_t multipacket_encoded_data;
 };
 
 /* Server Conn Type Information */

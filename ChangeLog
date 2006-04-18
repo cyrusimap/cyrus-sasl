@@ -1,3 +1,8 @@
+2006-04-18  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/saslint.h, lib/common.c: Added support for spliting
+	  big data blocks (bigger than maxbuf) into multiple SASL
+	  packets in sasl_encodev.
+
 2006-04-10  Alexey Melnikov <alexey.melnikov@isode.com>
 	* utils/Makefile.am: Added the pluginviewer man page.
 	  Reordered link dependencies for saslpasswds/sasldblistusers2.
@@ -8,7 +13,6 @@
 2006-04-10  Alexey Melnikov <alexey.melnikov@isode.com>
 	* utils/pluginviewer.c: Deleted unused command line parameters
 	  and cleaned up usage output.
-
 
 2006-04-10  Alexey Melnikov <alexey.melnikov@isode.com>
 	* include/gai.h: Use HAVE_GETADDRINFO (instead of HAVE_GETNAMEINFO)

@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = 1.7
-sbin_PROGRAMS	= saslauthd
-EXTRA_PROGRAMS  = testsaslauthd saslcache
+sbin_PROGRAMS	= saslauthd testsaslauthd
+EXTRA_PROGRAMS  = saslcache
 
 saslauthd_SOURCES = mechanisms.c globals.h \
 		    mechanisms.h auth_dce.c auth_dce.h auth_getpwent.c \

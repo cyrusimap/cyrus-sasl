@@ -1,3 +1,7 @@
+2006-04-19  Alexey Melnikov <alexey.melnikov@isode.com>
+	* saslauthd/Makefile.am: Enable testsaslauthd build
+	  by default.
+
 2006-04-18  Alexey Melnikov <alexey.melnikov@isode.com>
 	* lib/saslint.h, lib/common.c: Added support for spliting
 	  big data blocks (bigger than maxbuf) into multiple SASL

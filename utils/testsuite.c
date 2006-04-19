@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.41 2006/03/13 18:39:27 mel Exp $
+ * $Id: testsuite.c,v 1.42 2006/04/19 20:30:16 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -100,7 +100,7 @@ char myhostname[1024+1];
 const char *username = "shadow";
 const char *nonexistant_username = "ABCDEFGHIJ";
 const char *authname = "shadow";
-const char *proxyasname = "shadowproxy";
+const char *proxyasname = "murchproxy";
 const char *password = "1234";
 const char *cu_plugin = "INTERNAL";
 char other_result[1024];

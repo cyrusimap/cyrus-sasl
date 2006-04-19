@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.210 2006/04/19 17:58:09 mel Exp $
+dnl $Id: configure.in,v 1.211 2006/04/19 19:57:47 murch Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -879,17 +879,17 @@ if test "$ldapdb" != no; then
     if test $ac_cv_header_ldap_h = yes -a $ac_cv_header_lber_h = yes; then
         CMU_OPENLDAP_API
 
-        if test $cmu_cv_openldap_api = yes; then
+        if test "$cmu_cv_openldap_api" = yes; then
             AC_CHECK_LIB(ldap, ldap_initialize, [ cmu_link_openldap="-lldap -llber" ], [ cmu_link_openldap=no ],-llber)
         fi
     fi
 
-    if test $cmu_cv_openldap_api = no -o "$cmu_link_openldap" = no; then
+    if test "$cmu_cv_openldap_api" = no -o "$cmu_link_openldap" = no; then
         AC_MSG_ERROR([Cannot enable LDAPDB plugin: Could not locate OpenLDAP])
     else
         CMU_OPENLDAP_COMPAT
 
-        if test $cmu_cv_openldap_compat = no; then
+        if test "$cmu_cv_openldap_compat" = no; then
             AC_MSG_ERROR([Cannot enable LDAPDB plugin: OpenLDAP library located but incompatible])
         else
             LIB_LDAP=$cmu_link_openldap

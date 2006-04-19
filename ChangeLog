@@ -1,4 +1,10 @@
 2006-04-19  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/common.c: Andrey V. Malyshev pointed out that the SASL
+	  context is always NULL when the default logging callback
+	  _sasl_syslog is called. In particular this means that
+	  the log_level configuration option is always ignored.
+
+2006-04-19  Alexey Melnikov <alexey.melnikov@isode.com>
 	* configure.in: Search for application configuration
 	  files in /usr/lib/sasl2 by default and fall back to
 	  /etc/sasl2 if not found.

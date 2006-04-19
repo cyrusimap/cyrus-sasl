@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.113 2006/04/18 20:25:45 mel Exp $
+ * $Id: common.c,v 1.114 2006/04/19 18:39:59 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1665,7 +1665,7 @@ int _sasl_getcallback(sasl_conn_t * conn,
 #ifdef HAVE_SYSLOG
   case SASL_CB_LOG:
     *pproc = (int (*)()) &_sasl_syslog;
-    *pcontext = NULL;
+    *pcontext = conn;
     return SASL_OK;
 #endif /* HAVE_SYSLOG */
   case SASL_CB_GETPATH:

@@ -1,3 +1,7 @@
+2006-04-19  Ken Murchison <murch@andrew.cmu.edu>
+	* saslauthd/auth_shadow.c, saslauthd/configure.in: Check for 4/5
+	argument versions of getXXname_r().
+
 2006-04-19  Alexey Melnikov <alexey.melnikov@isode.com>
 	* lib/common.c: Andrey V. Malyshev pointed out that the SASL
 	  context is always NULL when the default logging callback

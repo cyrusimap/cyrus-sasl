@@ -30,7 +30,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_shadow.c,v 1.7 2004/04/27 15:56:23 rjs3 Exp $"
+#ident "$Id: auth_shadow.c,v 1.8 2006/04/19 19:36:25 murch Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -131,7 +131,11 @@ auth_shadow (
 #  define SHADOW_PW_EPERM  "*NP*"	/* insufficient database perms */
 
 #  ifdef _REENTRANT
+#    ifdef GETXXNAM_R_5ARG
+	(void) getpwnam_r(login, &pwbuf, pwdata, sizeof(pwdata), &pw);
+#    else
     pw = getpwnam_r(login, &pwbuf, pwdata, sizeof(pwdata));
+#    endif /* GETXXNAM_R_5ARG */
 #  else
     pw = getpwnam(login);
 #  endif /* _REENTRANT */
@@ -146,7 +150,11 @@ auth_shadow (
     today = (long)time(NULL)/(24L*60*60);
 
 #  ifdef _REENTRANT
+#    ifdef GETXXNAM_R_5ARG
+	(void) getspnam_r(login, &spbuf, spdata, sizeof(spdata), &sp);
+#    else
     sp = getspnam_r(login, &spbuf, spdata, sizeof(spdata));
+#    endif /* GETXXNAM_R_5ARG */
 #  else
     sp = getspnam(login);
 #  endif /* _REENTRANT */

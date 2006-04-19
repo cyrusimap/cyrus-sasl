@@ -1,4 +1,9 @@
 2006-04-19  Alexey Melnikov <alexey.melnikov@isode.com>
+	* configure.in: Search for application configuration
+	  files in /usr/lib/sasl2 by default and fall back to
+	  /etc/sasl if not found.
+
+2006-04-19  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/digestmd5.c: Handle missing realm option from
 	  the client as the empty string. This match the behavior
 	  prescribed in RFC 2831.

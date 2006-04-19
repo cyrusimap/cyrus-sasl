@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.208 2006/04/03 10:58:19 mel Exp $
+dnl $Id: configure.in,v 1.209 2006/04/19 16:36:31 mel Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -927,7 +927,7 @@ AC_SUBST(plugindir)
 AC_ARG_WITH(configdir, [   --with-configdir=DIR    set the directory where config files will
                           be found [/usr/lib/sasl2] ],
   configdir=$withval,
-  configdir=$plugindir)
+  configdir=$plugindir:/etc/sasl)
 AC_DEFINE_UNQUOTED(CONFIGDIR, "$configdir", [Runtime config file location])
 AC_SUBST(configdir)
 

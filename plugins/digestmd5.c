@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.177 2006/04/19 15:44:58 mel Exp $
+ * $Id: digestmd5.c,v 1.178 2006/04/19 17:58:56 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.177 2006/04/19 15:44:58 mel Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.178 2006/04/19 17:58:56 mel Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -2259,7 +2259,7 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
         }
 
     /* CLAIM: realm is not NULL below */
-    else if ((strcmp(realm, text->realm) != 0) &&
+    } else if ((strcmp(realm, text->realm) != 0) &&
 	(text->realm[0] != 0)) {
 	SETERROR(sparams->utils,
 		 "realm changed: authentication aborted");

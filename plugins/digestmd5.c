@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.176 2005/04/11 06:36:17 shadow Exp $
+ * $Id: digestmd5.c,v 1.177 2006/04/19 15:44:58 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.176 2005/04/11 06:36:17 shadow Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.177 2006/04/19 15:44:58 mel Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -2244,7 +2244,22 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     }
 
     /* Sanity check the parameters */
-    if (((realm != NULL) && (strcmp(realm, text->realm) != 0)) &&
+    if (realm == NULL) {
+        /* From 2821bis:
+           If the directive is missing, "realm-value" will set to
+           the empty string when computing A1. */
+	_plug_strdup(sparams->utils, "", &realm, NULL);
+	sparams->utils->log(sparams->utils->conn, SASL_LOG_DEBUG,
+			"The client didn't send a realm, assuming empty string.");
+        if (text->realm[0] != '\0') {
+            SETERROR(sparams->utils,
+		 "realm changed: authentication aborted");
+            result = SASL_BADAUTH;
+            goto FreeAllMem;
+        }
+
+    /* CLAIM: realm is not NULL below */
+    else if ((strcmp(realm, text->realm) != 0) &&
 	(text->realm[0] != 0)) {
 	SETERROR(sparams->utils,
 		 "realm changed: authentication aborted");

@@ -54,7 +54,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_httpform.c,v 1.1 2006/03/13 20:17:09 mel Exp $"
+#ident "$Id: auth_httpform.c,v 1.2 2006/04/19 19:51:04 murch Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -80,6 +80,10 @@
 #include "globals.h"
 #include "auth_httpform.h"
 /* END PUBLIC DEPENDENCIES */
+
+#ifndef MAX
+#define MAX(p,q) ((p >= q) ? p : q)
+#endif
 
 /* PRIVATE DEPENDENCIES */
 static cfile config = NULL;

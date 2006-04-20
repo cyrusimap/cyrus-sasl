@@ -1,3 +1,8 @@
+2006-04-20  Alexey Melnikov <alexey.melnikov@isode.com>
+	* utils/testsuite.c: Removed sasl_encode test which is no longer
+	  valid due to changed in sasl_encodev.
+	  Also properly terminated all property request lists with NULL.
+
 2006-04-19  Ken Murchison <murch@andrew.cmu.edu>
 	* saslauthd/auth_shadow.c, saslauthd/configure.in: Check for 4/5
 	argument versions of getXXname_r().

@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.44 2006/04/20 16:24:33 mel Exp $
+ * $Id: testsuite.c,v 1.45 2006/04/20 18:03:42 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -2348,7 +2348,6 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
     sasl_encode(NULL, txstring, (unsigned) strlen(txstring), &out, &outlen);
     sasl_encode(cconn, NULL, (unsigned) strlen(txstring), &out, &outlen);
     sasl_encode(cconn, txstring, 0, &out, &outlen);
-    sasl_encode(cconn, txstring, (unsigned)-1, &out, &outlen);
     sasl_encode(cconn, txstring, (unsigned) strlen(txstring), NULL, &outlen);
     sasl_encode(cconn, txstring, (unsigned) strlen(txstring), &out, NULL);
     

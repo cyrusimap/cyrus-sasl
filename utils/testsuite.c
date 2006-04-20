@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.43 2006/04/19 20:30:56 murch Exp $
+ * $Id: testsuite.c,v 1.44 2006/04/20 16:24:33 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1042,7 +1042,8 @@ void test_props(void)
 	"a",
 	"b",
 	"c",
-	"defghijklmnop"
+	"defghijklmnop",
+	NULL
     };
 
     const char *short_requests[] = {

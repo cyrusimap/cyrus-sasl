@@ -1,7 +1,7 @@
 /* pluginviewer.c -- Plugin Viewer for CMU SASL
  * Alexey Melnikov, Isode Ltd.
  *
- * $Id: pluginviewer.c,v 1.2 2006/04/10 13:23:38 mel Exp $
+ * $Id: pluginviewer.c,v 1.3 2006/04/21 16:26:33 mel Exp $
  */
 /* 
  * Copyright (c) 2004 Carnegie Mellon University.  All rights reserved.
@@ -688,13 +688,10 @@ main(int argc, char *argv[])
             free (list_of_server_mechs);
 
 	    /* Dump information about the requested SASL mechanism */
+		/* NOTE - available_mechs must not be freed */
 	    sasl_server_plugin_info (available_mechs, NULL, NULL);
         } else {
 	    printf ("No server side SASL mechanisms installed\n");
-        }
-
-        if (available_mechs) {
-            free (available_mechs);
         }
     }
 
@@ -784,13 +781,10 @@ main(int argc, char *argv[])
 
 
 	    /* Dump information about the requested SASL mechanism */
+		/* NOTE - available_mechs must not be freed */
 	    sasl_client_plugin_info (available_mechs, NULL, NULL);
         } else {
 	    printf ("No client side SASL mechanisms installed\n");
-        }
-
-        if (available_mechs) {
-            free (available_mechs);
         }
     }
 

@@ -53,7 +53,7 @@ sasldblistusers2.exe: $(sasldblistusers_objs)
 <<
 
 testsuite.exe: $(testsuite_objs)
-	$(LINK32EXE) @<< $(LINK32EXE_FLAGS) $(SASL_DB_LIB) /pdb:"testsuite.pdb" /out:"testsuite.exe" $(testsuite_objs)
+	$(LINK32EXE) @<< $(LINK32EXE_FLAGS) /pdb:"testsuite.pdb" /out:"testsuite.exe" $(testsuite_objs)
 <<
 
 pluginviewer.exe: $(pluginviewer_objs)

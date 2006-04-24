@@ -1,3 +1,6 @@
+2006-04-24  Alexey Melnikov <alexey.melnikov@isode.com>
+	* doc/windows.html: Updated Windows build instructions.
+
 2006-04-20  Alexey Melnikov <alexey.melnikov@isode.com>
 	* utils/testsuite.c: Removed sasl_encode test which is no longer
 	  valid due to changed in sasl_encodev.

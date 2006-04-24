@@ -35,5 +35,5 @@ saslauthd.8: saslauthd.mdoc
 	nroff -mdoc $(srcdir)/saslauthd.mdoc > $(srcdir)/saslauthd.8
 
 install-data-local: saslauthd.8
-	$(mkinstalldirs) $(DESTDIR)$(mandir)/cat8
-	$(INSTALL_DATA) $(srcdir)/saslauthd.8 $(DESTDIR)$(mandir)/cat8/saslauthd.8
+	$(mkinstalldirs) $(DESTDIR)$(mandir)/man8
+	$(INSTALL_DATA) $(srcdir)/saslauthd.8 $(DESTDIR)$(mandir)/man8/saslauthd.8

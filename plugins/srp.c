@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.57 2004/06/23 18:43:37 rjs3 Exp $
+ * $Id: srp.c,v 1.58 2006/04/24 19:21:44 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -87,6 +87,7 @@ typedef unsigned short uint32;
 /* for digest and cipher support */
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
+#include <openssl/md5.h>
 
 #include <sasl.h>
 #define MD5_H  /* suppress internal MD5 */
@@ -100,7 +101,7 @@ typedef unsigned short uint32;
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: srp.c,v 1.57 2004/06/23 18:43:37 rjs3 Exp $";
+static const char plugin_id[] = "$Id: srp.c,v 1.58 2006/04/24 19:21:44 mel Exp $";
 
 /* Size limit of cipher block size */
 #define SRP_MAXBLOCKSIZE 16

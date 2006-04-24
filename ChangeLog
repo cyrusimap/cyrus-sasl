@@ -1,4 +1,8 @@
 2006-04-24  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/passdss.c, plugins/srp.c: Added include files required
+	  by OpenSSL 0.9.8 (original patch by Dan Nicholson).
+
+2006-04-24  Alexey Melnikov <alexey.melnikov@isode.com>
 	* utils/NTMakefile: testsuite.exe doesn't depend on saslSASLDB.dll.
 
 2006-04-24  Alexey Melnikov <alexey.melnikov@isode.com>

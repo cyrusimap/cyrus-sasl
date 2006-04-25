@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.45 2006/04/20 18:03:42 mel Exp $
+ * $Id: testsuite.c,v 1.46 2006/04/25 14:39:04 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -102,6 +102,7 @@ const char *nonexistant_username = "ABCDEFGHIJ";
 const char *authname = "murch";
 const char *proxyasname = "murchproxy";
 const char *password = "1234";
+sasl_secret_t * g_secret = NULL;
 const char *cu_plugin = "INTERNAL";
 char other_result[1024];
 
@@ -170,8 +171,6 @@ int test_getrealm(void *context __attribute__((unused)), int id,
     return SASL_OK;
 }
 
-/* yeah, yeah, this leaks memory, but we don't really care in
- * the testsuite */
 int test_getsecret(sasl_conn_t *conn __attribute__((unused)),
 		   void *context __attribute__((unused)), int id,
 		   sasl_secret_t **psecret) 
@@ -179,9 +178,7 @@ int test_getsecret(sasl_conn_t *conn __attribute__((unused)),
     if(id != SASL_CB_PASS) fatal("test_getsecret not looking for pass");
     if(!psecret) return SASL_BADPARAM;
 
-    *psecret = malloc(sizeof(sasl_secret_t) + strlen(password));
-    (*psecret)->len = (unsigned) strlen(password);
-    strcpy((*psecret)->data, password);
+    *psecret = g_secret;
 
     return SASL_OK;
 }
@@ -2988,6 +2985,10 @@ int main(int argc, char **argv)
 	    break;
     }
 
+    g_secret = malloc(sizeof(sasl_secret_t) + strlen(password));
+    g_secret->len = (unsigned) strlen(password);
+    strcpy(g_secret->data, password);
+
     if(random_tests < 0) random_tests = 25;
 
     notes();
@@ -3120,6 +3121,8 @@ int main(int argc, char **argv)
     printf("Tests of security layer... ok\n");
 
     printf("All tests seemed to go ok (i.e. we didn't crash)\n");
+
+    free(g_secret);
 
     exit(0);
 }

@@ -1,3 +1,13 @@
+2006-04-25  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/digestmd5.c: Make sure that SASL packets
+	  shorter than 16 bytes don't cause buffer overrun.
+	  Also prevent an error report from BoundsChecker
+	  regarding pointer being out of range.
+
+2006-04-25  Alexey Melnikov <alexey.melnikov@isode.com>
+	* win32/common.mak: Fixed bug of not setting CODEGEN
+	  (code generation option) if STATIC is set.
+
 2006-04-24  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/passdss.c, plugins/srp.c: Added include files required
 	  by OpenSSL 0.9.8 (original patch by Dan Nicholson).

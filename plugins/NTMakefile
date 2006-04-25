@@ -115,6 +115,8 @@ GSS_FLAGS=
 GSS_LIBS=
 !ENDIF 
 
+DIGEST_FLAGS=/D "WITH_RC4"
+
 # Auxprop Plugin
 libsasldb_sources = allockey.c db_berkeley.c
 libsasldb_objs = allockey.obj db_berkeley.obj
@@ -133,7 +135,7 @@ DB_FLAGS = /I $(DB_INCLUDE) /I "..\sasldb" /D "LIBSASL_EXPORTS" /D "KEEP_DB_OPEN
 EXTRA_FLAGS = /D TARGET_WIN_SYSTEM=$(TARGET_WIN_SYSTEM) $(EXTRA_FLAGS)
 !ENDIF
 
-EXTRA_FLAGS=$(EXTRA_FLAGS) $(DB_FLAGS) $(OPENSSL_FLAGS) $(GSS_FLAGS) $(SRP_FLAGS) $(SQL_FLAGS) $(LDAP_FLAGS)
+EXTRA_FLAGS=$(EXTRA_FLAGS) $(DB_FLAGS) $(OPENSSL_FLAGS) $(GSS_FLAGS) $(SRP_FLAGS) $(SQL_FLAGS) $(DIGEST_FLAGS) $(LDAP_FLAGS)
 CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" $(EXTRA_FLAGS) /D "WIN32" /D "_WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL"
 
 DB_LIBS=/libpath:$(DB_LIBPATH) $(DB_LIB)

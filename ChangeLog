@@ -1,4 +1,7 @@
 2006-04-25  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/NTMakefile: Enable RC4 cipher in Windows build.
+
+2006-04-25  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/digestmd5.c: Make sure that SASL packets
 	  shorter than 16 bytes don't cause buffer overrun.
 	  Also prevent an error report from BoundsChecker

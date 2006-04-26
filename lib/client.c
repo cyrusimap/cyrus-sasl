@@ -1,7 +1,7 @@
 /* SASL client API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.66 2006/03/14 14:23:56 mel Exp $
+ * $Id: client.c,v 1.67 2006/04/26 15:33:41 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -783,7 +783,7 @@ int _sasl_client_listmech(sasl_conn_t *conn,
 	    /* Can it meet our features? */
 	    if ((conn->flags & SASL_NEED_PROXY) &&
 		!(m->m.plug->features & SASL_FEAT_ALLOWS_PROXY)) {
-		break;
+		continue;
 	    }
 
 	    /* Okay, we like it, add it to the list! */

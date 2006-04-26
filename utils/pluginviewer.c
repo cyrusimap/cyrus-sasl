@@ -1,7 +1,7 @@
 /* pluginviewer.c -- Plugin Viewer for CMU SASL
  * Alexey Melnikov, Isode Ltd.
  *
- * $Id: pluginviewer.c,v 1.3 2006/04/21 16:26:33 mel Exp $
+ * $Id: pluginviewer.c,v 1.4 2006/04/26 15:34:34 mel Exp $
  */
 /* 
  * Copyright (c) 2004 Carnegie Mellon University.  All rights reserved.
@@ -621,9 +621,11 @@ main(int argc, char *argv[])
     }
 
     if (list_all_plugins || list_server_auth_plugins) {
+
         /* SASL server plugins */
         result = sasl_server_new(service,
-			        NULL,			/* localdomain */
+				/* Has to be any non NULL value */
+			        "test.example.com",	/* localdomain */
 			        NULL,			/* userdomain */
 			        NULL,			/* iplocal */
 			        NULL,			/* ipremote */
@@ -715,7 +717,8 @@ main(int argc, char *argv[])
     if (list_all_plugins || list_client_auth_plugins) {
         /* SASL client plugins */
         result = sasl_client_new(service,
-			        NULL,			/* fqdn */
+				/* Has to be any non NULL value */
+			        "test.example.com",	/* fqdn */
 			        NULL,			/* iplocal */
 			        NULL,			/* ipremote */
 			        NULL,

@@ -1,4 +1,8 @@
 2006-04-26  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/digestmd5.c: If neither DES nor RC4 cipher is selected,
+	  advertise maxssf of 1 (integrity protection).
+
+2006-04-26  Alexey Melnikov <alexey.melnikov@isode.com>
 	* utils/pluginviewer.c: Must set fully qualified domain name
 	  in sasl_client_new, or some plugins will not be shown.
 

@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.179 2006/04/25 12:47:35 mel Exp $
+ * $Id: digestmd5.c,v 1.180 2006/04/26 17:39:26 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.179 2006/04/25 12:47:35 mel Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.180 2006/04/26 17:39:26 mel Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -2718,7 +2718,7 @@ static sasl_server_plug_t digestmd5_server_plugins[] =
 #elif WITH_DES
 	112,
 #else 
-	0,
+	1,
 #endif
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOANONYMOUS
@@ -4037,7 +4037,7 @@ static sasl_client_plug_t digestmd5_client_plugins[] =
 #elif WITH_DES
 	112,
 #else
-	0,
+	1,
 #endif
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOANONYMOUS

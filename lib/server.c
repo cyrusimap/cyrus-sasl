@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.145 2006/03/14 22:27:09 mel Exp $
+ * $Id: server.c,v 1.146 2006/04/26 17:45:53 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1908,8 +1908,11 @@ int sasl_checkapop(sasl_conn_t *conn,
     result = _sasl_auxprop_verify_apop(conn, conn->oparams.authid,
 	challenge, user_end + 1, s_conn->user_realm);
 
-    /* If verification failed, we don't want to encourage getprop to work */
-    if(result != SASL_OK) {
+    /* Do authorization */
+    if(result == SASL_OK) {
+      result = do_authorization((sasl_server_conn_t *)conn);
+    } else {
+        /* If verification failed, we don't want to encourage getprop to work */
 	conn->oparams.user = NULL;
 	conn->oparams.authid = NULL;
     }

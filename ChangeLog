@@ -1,3 +1,6 @@
+2006-04-26  Ken Murchison <murch@andrew.cmu.edu>
+	* lib/server.c: call do_authorization() after successful APOP
+
 2006-04-26  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/digestmd5.c: If neither DES nor RC4 cipher is selected,
 	  advertise maxssf of 1 (integrity protection).

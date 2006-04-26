@@ -1,3 +1,11 @@
+2006-04-26  Alexey Melnikov <alexey.melnikov@isode.com>
+	* utils/pluginviewer.c: Must set fully qualified domain name
+	  in sasl_client_new, or some plugins will not be shown.
+
+2006-04-26  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/client.c: Replaced wrong "break" statement with
+	  "continue" in the client side list function.
+
 2006-04-25  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/NTMakefile: Enable RC4 cipher in Windows build.
 

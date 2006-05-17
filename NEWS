@@ -1,3 +1,51 @@
+New in 2.1.22
+-------------
+
+* Added support for spliting big data blocks (bigger than maxbuf)
+  into multiple SASL packets in sasl_encodev
+* Various sasl_decode64() fixes
+* Increase canonicalization buffer size to 1024 bytes
+* Call do_authorization() after successful APOP authentication
+* Allow for configuration file location to be configurable independently
+  of plugin location (bug # 2795)
+* Added sasl_set_path function, which provides a more convenient way
+  of setting plugin and config paths. Changed the default
+  sasl_getpath_t/sasl_getconfpath_t callbacks to calculate
+  the value only once and cache it for later use.
+* Fixed load_config to search for the config file in all directories
+  (bug # 2796). Changed the default search path to be
+  /usr/lib/sasl2:/etc/sasl2
+* Don't ignore log_level configuration option in default UNIX syslog
+  logging callback
+* (Windows) Minor IPv6 related changes in Makefiles for Visual Studio 6
+* (Windows) Fixed bug of not setting the CODEGEN (code generation option)
+  nmake option if STATIC nmake option is set.
+* Several fixed to DIGEST-MD5 plugin:
+  - Enable RC4 cipher in Windows build of DIGEST-MD5
+  - Server side: handle missing realm option as if realm="" was sent
+  - Fix DIGEST-MD5 to properly advertise maxssf when both DES and RC4
+    are disabled
+  - Check that DIGEST-MD5 SASL packet are no shorter than 16 bytes
+* Several changes/fixed to SASLDB plugin:
+  - Prevent spurious SASL_NOUSER errors
+  - Added ability to keep BerkleyDB handle open between operations
+    (for performance reason). New behavior can be enabled
+    with --enable-keep-db-open.
+* Better error checking in SQL (MySQL) auxprop plugin code
+* Added support for HTTP POST password validation in saslauthd
+* Added new application ("pluginviewer") that helps report information
+  about installed plugins
+* Allow for building with OpenSSL 0.9.8
+* Allow for building with OpenLDAP 2.3+
+* Several quoting fixes to configure script
+* A large number of other minor bugfixes and cleanups
+
+New in 2.1.21
+-------------
+* Fixes DIGEST-MD5 server side segfault caused by the client not sending
+  any realms
+* Minor Other bugfixes
+
 New in 2.1.20
 -------------
 * Fixes to cram plugin to avoid attempting to canonify uninitialized data.

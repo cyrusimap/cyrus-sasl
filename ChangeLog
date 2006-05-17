@@ -1,3 +1,9 @@
+2006-05-17  Alexey Melnikov <alexey.melnikov@isode.com>
+	* NEWS: Ready for 2.1.22
+
+2006-05-17  Alexey Melnikov <alexey.melnikov@isode.com>
+	* utils/Makefile.am: enable pluginviewer in the default build.
+
 2006-04-26  Ken Murchison <murch@andrew.cmu.edu>
 	* lib/server.c: call do_authorization() after successful APOP
 

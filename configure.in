@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.212 2006/04/19 20:24:18 murch Exp $
+dnl $Id: configure.in,v 1.213 2006/05/18 19:03:00 mel Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -308,7 +308,7 @@ AM_CONDITIONAL(SASLAUTHD, test "$with_saslauthd" != no)
 AC_MSG_CHECKING(if I should include saslauthd)
 AC_MSG_RESULT($with_saslauthd)
 
-AC_ARG_WITH(authdaemond, [  --with-authdaemond=PATH enable use of authdaemon with default socket=PATH [[no]] ],
+AC_ARG_WITH(authdaemond, [  --with-authdaemond=PATH enable use of authdaemon with default socket=PATH [[yes]] ],
 		with_authdaemon=$withval,
 		with_authdaemon=yes)
 if test "$with_authdaemon" != no; then

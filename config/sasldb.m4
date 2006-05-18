@@ -98,8 +98,8 @@ AC_MSG_RESULT($dblib)
 SASL_DB_BACKEND="db_${dblib}.lo"
 SASL_DB_BACKEND_STATIC="db_${dblib}.o allockey.o"
 SASL_DB_BACKEND_STATIC_SRCS="../sasldb/db_${dblib}.c ../sasldb/allockey.c"
-SASL_DB_UTILS="saslpasswd2 sasldblistusers2 pluginviewer"
-SASL_DB_MANS="saslpasswd2.8 sasldblistusers2.8 pluginviewer.8"
+SASL_DB_UTILS="saslpasswd2 sasldblistusers2"
+SASL_DB_MANS="saslpasswd2.8 sasldblistusers2.8"
 
 case "$dblib" in
   gdbm) 

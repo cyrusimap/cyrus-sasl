@@ -1,5 +1,9 @@
-2006-05-17  Alexey Melnikov <alexey.melnikov@isode.com>
+2006-05-18  Alexey Melnikov <alexey.melnikov@isode.com>
 	* NEWS: Ready for 2.1.22
+
+2006-05-18  Ken Murchison <murch@andrew.cmu.edu>
+	* cmulocal/sasl2.m4: patch to compile with MIT krb5 1.4.3
+	  (Philip Guenther <guenther@sendmail.com>)
 
 2006-05-18  Alexey Melnikov <alexey.melnikov@isode.com>
 	* configure.in: Fixed default value in help for the

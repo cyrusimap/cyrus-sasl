@@ -1,5 +1,6 @@
-2006-05-18  Alexey Melnikov <alexey.melnikov@isode.com>
-	* NEWS: Ready for 2.1.22
+2006-05-19  Ken Murchison <murch@andrew.cmu.edu>
+	* Makefile.am: include INSTALL.TXT in distro
+	*** Ready for 2.1.22
 
 2006-05-18  Ken Murchison <murch@andrew.cmu.edu>
 	* cmulocal/sasl2.m4: patch to compile with MIT krb5 1.4.3
@@ -8,6 +9,9 @@
 2006-05-18  Alexey Melnikov <alexey.melnikov@isode.com>
 	* configure.in: Fixed default value in help for the
 	  --with-authdaemond command line option (Philip Guenther).
+
+2006-05-17  Alexey Melnikov <alexey.melnikov@isode.com>
+	* NEWS: Ready for 2.1.22
 
 2006-05-17  Alexey Melnikov <alexey.melnikov@isode.com>
 	* utils/Makefile.am: enable pluginviewer in the default build.

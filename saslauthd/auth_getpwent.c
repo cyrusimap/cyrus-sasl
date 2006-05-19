@@ -32,7 +32,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_getpwent.c,v 1.7 2005/01/27 04:39:52 shadow Exp $"
+#ident "$Id: auth_getpwent.c,v 1.8 2006/05/19 19:32:22 murch Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -41,6 +41,10 @@
 #include <string.h>
 #include <pwd.h>
 
+#ifdef HAVE_CRYPT_H
+#include <crypt.h>
+#endif
+
 # ifdef WITH_DES
 #  ifdef WITH_SSL_DES
 #   include <openssl/des.h>
@@ -48,10 +52,6 @@
 #   include <des.h>
 #  endif /* WITH_SSL_DES */
 # endif /* WITH_DES */
-
-#ifdef HAVE_CRYPT_H
-#include <crypt.h>
-#endif
 /* END PUBLIC DEPENDENCIES */
 
 #define RETURN(x) return strdup(x)

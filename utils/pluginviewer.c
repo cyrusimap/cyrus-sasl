@@ -1,7 +1,7 @@
 /* pluginviewer.c -- Plugin Viewer for CMU SASL
  * Alexey Melnikov, Isode Ltd.
  *
- * $Id: pluginviewer.c,v 1.4 2006/04/26 15:34:34 mel Exp $
+ * $Id: pluginviewer.c,v 1.5 2006/05/30 11:52:21 mel Exp $
  */
 /* 
  * Copyright (c) 2004 Carnegie Mellon University.  All rights reserved.
@@ -536,7 +536,7 @@ main(int argc, char *argv[])
         fprintf(stderr, "%s: Usage: %s [-a] [-s] [-c] [-b min=N,max=N] [-e ssf=N,id=ID] [-m MECHS] [-x AUXPROP_MECH] [-f FLAGS] [-i local=IP,remote=IP] [-p PATH]\n"
 	        "\t-a\tlist auxprop plugins\n"
                 "\t-s\tlist server authentication (SASL) plugins\n"
-                "\t-s\tlist client authentication (SASL) plugins\n"
+                "\t-c\tlist client authentication (SASL) plugins\n"
 	        "\t-b ...\t#bits to use for encryption\n"
 	        "\t\tmin=N\tminumum #bits to use (1 => integrity)\n"
 	        "\t\tmax=N\tmaximum #bits to use\n"
@@ -555,7 +555,7 @@ main(int argc, char *argv[])
 #ifdef WIN32
 	        "\t-p PATH\tsemicolon-separated search path for mechanisms\n",
 #else
-	        "\t-p PATH\tcolon-seperated search path for mechanisms\n",
+	        "\t-p PATH\tcolon-separated search path for mechanisms\n",
 #endif
 	        progname, progname);
         exit(EXIT_FAILURE);
@@ -685,15 +685,15 @@ main(int argc, char *argv[])
 			            &list_installed_server_mechanisms,
 			            (void *) &list_of_server_mechs);
 
-            printf ("Installed SASL (server side) mechanisms are:\n%s\n", list_of_server_mechs);
+            printf ("Installed and properly configured SASL (server side) mechanisms are:\n%s\n", list_of_server_mechs);
 
             free (list_of_server_mechs);
 
 	    /* Dump information about the requested SASL mechanism */
-		/* NOTE - available_mechs must not be freed */
+	    /* NOTE - available_mechs must not be freed */
 	    sasl_server_plugin_info (available_mechs, NULL, NULL);
         } else {
-	    printf ("No server side SASL mechanisms installed\n");
+	    printf ("No server side SASL mechanisms installed/configured\n");
         }
     }
 
@@ -704,7 +704,8 @@ main(int argc, char *argv[])
 			    &list_installed_auxprop_mechanisms,
 			    (void *) &list_of_auxprop_mechs);
 
-	printf ("Installed auxprop mechanisms are:\n%s\n", list_of_auxprop_mechs);
+	printf ("Installed and properly configured auxprop mechanisms are:\n%s\n",
+		(list_of_auxprop_mechs == NULL) ? "<none>" : list_of_auxprop_mechs);
 
 	free (list_of_auxprop_mechs);
 
@@ -778,16 +779,16 @@ main(int argc, char *argv[])
 			        &list_installed_client_mechanisms,
 			        (void *) &list_of_client_mechs);
 
-	    printf ("Installed SASL (client side) mechanisms are:\n%s\n", list_of_client_mechs);
+	    printf ("Installed and properly configured SASL (client side) mechanisms are:\n%s\n", list_of_client_mechs);
 
 	    free (list_of_client_mechs);
 
 
 	    /* Dump information about the requested SASL mechanism */
-		/* NOTE - available_mechs must not be freed */
+	    /* NOTE - available_mechs must not be freed */
 	    sasl_client_plugin_info (available_mechs, NULL, NULL);
         } else {
-	    printf ("No client side SASL mechanisms installed\n");
+	    printf ("No client side SASL mechanisms installed/configured\n");
         }
     }
 

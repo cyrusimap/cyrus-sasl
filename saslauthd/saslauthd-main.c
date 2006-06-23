@@ -155,6 +155,9 @@ int main(int argc, char **argv) {
 	char            *auth_mech_name = NULL;
 	size_t		pid_file_size;
 
+	/* XXX  force openlog() before any of our mechs try syslog() */
+	logger(L_INFO, L_FUNC, "starting %s", argv[0]);
+
 	SET_AUTH_PARAMETERS(argc, argv);
 
 	g_argc = argc;
@@ -245,6 +248,14 @@ int main(int argc, char **argv) {
     	if (auth_mech_name == NULL) {
 		logger(L_ERR, L_FUNC, "no authentication mechanism specified");
 		show_usage();
+		exit(1);
+	}
+
+	/* Create our working directory */
+	if (mkdir(run_path, 0755) == -1 && errno != EEXIST) {
+		logger(L_ERR, L_FUNC, "can not mkdir: %s", run_path);
+		logger(L_ERR, L_FUNC, "Check to make sure the parent directory exists and is");
+		logger(L_ERR, L_FUNC, "writeable by the user this process runs as.");
 		exit(1);
 	}
 

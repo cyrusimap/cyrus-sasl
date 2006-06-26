@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.180 2006/04/26 17:39:26 mel Exp $
+ * $Id: digestmd5.c,v 1.181 2006/06/26 18:14:02 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.180 2006/04/26 17:39:26 mel Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.181 2006/06/26 18:14:02 mel Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -2116,6 +2116,12 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	} else if (strcasecmp(name, "nonce") == 0) {
 	    _plug_strdup(sparams->utils, value, (char **) &nonce, NULL);
 	} else if (strcasecmp(name, "qop") == 0) {
+	    if (qop) {
+		SETERROR(sparams->utils,
+			 "duplicate qop: authentication aborted");
+		result = SASL_FAIL;
+		goto FreeAllMem;
+	    }
 	    _plug_strdup(sparams->utils, value, &qop, NULL);
 	} else if (strcasecmp(name, "digest-uri") == 0) {
             size_t service_len;
@@ -3168,6 +3174,7 @@ static int parse_server_challenge(client_context_t *ctext,
     sasl_ssf_t limit, musthave = 0;
     sasl_ssf_t external;
     int protection = 0;
+    int saw_qop = 0;
     int ciphers = 0;
     int maxbuf_count = 0;
     bool IsUTF8 = FALSE;
@@ -3230,6 +3237,7 @@ static int parse_server_challenge(client_context_t *ctext,
 			 NULL);
 	    text->nonce_count = 1;
 	} else if (strcasecmp(name, "qop") == 0) {
+	    saw_qop = 1;
 	    while (value && *value) {
 		char *comma;
 		char *end_val;
@@ -3278,13 +3286,6 @@ SKIP_SPACES_IN_QOP:
 		}
 		
 		value = comma;
-	    }
-	    
-	    if (protection == 0) {
-		result = SASL_BADAUTH;
-		params->utils->seterror(params->utils->conn, 0,
-					"Server doesn't support any known qop level");
-		goto FreeAllocatedMem;
 	    }
 	} else if (strcasecmp(name, "cipher") == 0) {
 	    while (value && *value) {
@@ -3412,6 +3413,19 @@ SKIP_SPACES_IN_CIPHER:
 	}
     }
     
+    if (protection == 0) {
+	/* From RFC 2831[bis]:
+	   This directive is optional; if not present it defaults to "auth". */
+	if (saw_qop == 0) {
+	    protection = DIGEST_NOLAYER;
+	} else {
+	    result = SASL_BADAUTH;
+	    params->utils->seterror(params->utils->conn, 0,
+				    "Server doesn't support any known qop level");
+	    goto FreeAllocatedMem;
+	}
+    }
+
     if (algorithm_count != 1) {
 	params->utils->seterror(params->utils->conn, 0,
 				"Must see 'algorithm' once. Didn't see at all");

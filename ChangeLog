@@ -1,3 +1,8 @@
+2006-06-26  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/digestmd5.c: Allow for multiple qop options
+	  from the server and require a single qop option
+	  from the client.
+
 2006-05-19  Ken Murchison <murch@andrew.cmu.edu>
 	* Makefile.am: include INSTALL.TXT in distro
 	*** Ready for 2.1.22

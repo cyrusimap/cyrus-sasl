@@ -2,7 +2,7 @@
  * Rob Siemborski (SASLv2 Conversion)
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.27 2004/09/08 11:09:10 mel Exp $
+ * $Id: login.c,v 1.28 2006/07/03 19:34:40 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -54,7 +54,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: login.c,v 1.27 2004/09/08 11:09:10 mel Exp $";
+static const char plugin_id[] = "$Id: login.c,v 1.28 2006/07/03 19:34:40 murch Exp $";
 
 /*****************************  Server Section  *****************************/
 
@@ -169,7 +169,7 @@ static int login_server_mech_step(void *conn_context,
 	    return SASL_NOMEM;
 	}
 	
-	strncpy(password->data, clientin, clientinlen);
+	strncpy((char *) password->data, clientin, clientinlen);
 	password->data[clientinlen] = '\0';
 	password->len = clientinlen;
 
@@ -183,7 +183,7 @@ static int login_server_mech_step(void *conn_context,
 	/* verify_password - return sasl_ok on success */
 	result = params->utils->checkpass(params->utils->conn,
 					  oparams->authid, oparams->alen,
-					  password->data, password->len);
+					  (char *) password->data, password->len);
 	
 	if (result != SASL_OK) {
 	    _plug_free_secret(params->utils, &password);
@@ -414,7 +414,7 @@ static int login_client_mech_step(void *conn_context,
 	}
 	
 	if (clientoutlen) *clientoutlen = text->password->len;
-	*clientout = text->password->data;
+	*clientout = (char *) text->password->data;
 	
 	/* set oparams */
 	oparams->doneflag = 1;

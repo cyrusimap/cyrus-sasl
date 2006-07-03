@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.181 2006/06/26 18:14:02 mel Exp $
+ * $Id: digestmd5.c,v 1.182 2006/07/03 19:34:39 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.181 2006/06/26 18:14:02 mel Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.182 2006/07/03 19:34:39 murch Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -275,9 +275,11 @@ struct digest_cipher {
     cipher_init_t *cipher_init;
     cipher_free_t *cipher_free;
 };
-
+#if 0
 static const unsigned char *COLON = ":";
-
+#else
+static const unsigned char COLON[] = { ':', '\0' };
+#endif
 /* Hashes a string to produce an unsigned short */
 static unsigned hash(const char *str)
 {
@@ -343,7 +345,7 @@ DigestCalcResponse(const sasl_utils_t * utils,
     if (pszMethod != NULL) {
 	utils->MD5Update(&Md5Ctx, pszMethod, strlen((char *) pszMethod));
     }
-    utils->MD5Update(&Md5Ctx, (unsigned char *) COLON, 1);
+    utils->MD5Update(&Md5Ctx, COLON, 1);
     
     /* utils->MD5Update(&Md5Ctx, (unsigned char *) "AUTHENTICATE:", 13); */
     utils->MD5Update(&Md5Ctx, pszDigestUri, strlen((char *) pszDigestUri));
@@ -363,7 +365,7 @@ DigestCalcResponse(const sasl_utils_t * utils,
     utils->MD5Update(&Md5Ctx, COLON, 1);
     if (*pszQop) {
 	sprintf(ncvalue, "%08x", pszNonceCount);
-	utils->MD5Update(&Md5Ctx, ncvalue, strlen(ncvalue));
+	utils->MD5Update(&Md5Ctx, (unsigned char *) ncvalue, strlen(ncvalue));
 	utils->MD5Update(&Md5Ctx, COLON, 1);
 	utils->MD5Update(&Md5Ctx, pszCNonce, strlen((char *) pszCNonce));
 	utils->MD5Update(&Md5Ctx, COLON, 1);
@@ -1265,7 +1267,8 @@ struct digest_cipher available_ciphers[] =
 static int create_layer_keys(context_t *text,
 			     const sasl_utils_t *utils,
 			     HASH key, int keylen,
-			     char enckey[16], char deckey[16])
+			     unsigned char enckey[16],
+			     unsigned char deckey[16])
 {
     MD5_CTX Md5Ctx;
     
@@ -1278,7 +1281,7 @@ static int create_layer_keys(context_t *text,
 	utils->MD5Update(&Md5Ctx, (const unsigned char *) SEALING_CLIENT_SERVER,
 			 strlen(SEALING_CLIENT_SERVER));
     }
-    utils->MD5Final((unsigned char *) enckey, &Md5Ctx);
+    utils->MD5Final(enckey, &Md5Ctx);
     
     utils->MD5Init(&Md5Ctx);
     utils->MD5Update(&Md5Ctx, key, keylen);
@@ -1289,7 +1292,7 @@ static int create_layer_keys(context_t *text,
 	utils->MD5Update(&Md5Ctx, (const unsigned char *)SEALING_CLIENT_SERVER,
 			 strlen(SEALING_CLIENT_SERVER));
     }
-    utils->MD5Final((unsigned char *) deckey, &Md5Ctx);
+    utils->MD5Final(deckey, &Md5Ctx);
     
     /* create integrity keys */
     /* sending */
@@ -1398,7 +1401,7 @@ static int digestmd5_encode(void *context,
 	text->utils->hmac_md5((const unsigned char *) text->encode_buf,
 			      inblob->curlen + 4, 
 			      text->Ki_send, HASHLEN,
-			      text->encode_buf + inblob->curlen + 4);
+			      (unsigned char *) text->encode_buf + inblob->curlen + 4);
 
 	*outputlen = inblob->curlen + 10; /* for message + CMAC */
 	out+=inblob->curlen + 10;
@@ -1494,7 +1497,7 @@ static int digestmd5_decode_packet(void *context,
 	memcpy(*output, input, inputlen - 6);
 	*outputlen = inputlen - 16; /* -16 to skip HMAC, ver and seqnum */
     }
-    digest = *output + (inputlen - 16);
+    digest = (unsigned char *) *output + (inputlen - 16);
 
     /* check the CMAC */
 
@@ -1944,7 +1947,7 @@ digestmd5_server_mech_step1(server_context_t *stext,
     if (stext->stale &&
 	add_to_challenge(sparams->utils,
 			 &text->out_buf, &text->out_buf_len, &resplen,
-			 "stale", "true", FALSE) != SASL_OK) {
+			 "stale", (unsigned char *) "true", FALSE) != SASL_OK) {
 	SETERROR(sparams->utils, "internal error: add_to_challenge failed");
 	return SASL_FAIL;
     }
@@ -2237,10 +2240,10 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 
 		_plug_strdup(sparams->utils, text->reauth->e[val].realm,
 			     &text->realm, NULL);
-		_plug_strdup(sparams->utils, text->reauth->e[val].nonce,
+		_plug_strdup(sparams->utils, (char *) text->reauth->e[val].nonce,
 			     (char **) &text->nonce, NULL);
 		text->nonce_count = ++text->reauth->e[val].nonce_count;
-		_plug_strdup(sparams->utils, text->reauth->e[val].cnonce,
+		_plug_strdup(sparams->utils, (char *) text->reauth->e[val].cnonce,
 			     (char **) &text->cnonce, NULL);
 		stext->timestamp = text->reauth->e[val].u.s.timestamp;
 	    }
@@ -2277,7 +2280,7 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	result = SASL_BADAUTH;
 	goto FreeAllMem;
     }
-    if (strcmp(nonce, (char *) text->nonce) != 0) {
+    if (strcmp((char *) nonce, (char *) text->nonce) != 0) {
 	SETERROR(sparams->utils,
 		 "nonce changed: authentication aborted");
 	result = SASL_BADAUTH;
@@ -2289,7 +2292,7 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	result = SASL_BADAUTH;
 	goto FreeAllMem;
     }
-    if (text->cnonce && strcmp(cnonce, text->cnonce) != 0) {
+    if (text->cnonce && strcmp((char *) cnonce, (char *) text->cnonce) != 0) {
 	SETERROR(sparams->utils,
 		 "cnonce changed: authentication aborted");
 	result = SASL_BADAUTH;
@@ -2354,7 +2357,7 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	}
 	
 	sec->len = len;
-	strncpy(sec->data, auxprop_values[0].values[0], len + 1); 
+	strncpy((char *) sec->data, auxprop_values[0].values[0], len + 1); 
 	
 	/*
 	 * Verifying response obtained from client
@@ -2371,8 +2374,9 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	     * (used to build A1)
 	     */
 	    
-	    DigestCalcSecret(sparams->utils, username,
-			     text->realm, sec->data, sec->len, Secret);
+	    DigestCalcSecret(sparams->utils, (unsigned char *) username,
+			     (unsigned char *) text->realm,
+			     sec->data, sec->len, Secret);
 	    Secret[HASHLEN] = '\0';
 	}
 	
@@ -2510,8 +2514,8 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 		      DEFAULT_BUFSIZE);
 
     if (oparams->mech_ssf > 0) {
-	char enckey[16];
-	char deckey[16];
+	unsigned char enckey[16];
+	unsigned char deckey[16];
 	
 	create_layer_keys(text, sparams->utils,text->HA1,n,enckey,deckey);
 	
@@ -3003,7 +3007,7 @@ static int make_client_response(context_t *text,
     response =
 	calculate_response(text,
 			   params->utils,
-			   (char *) oparams->authid,
+			   (unsigned char *) oparams->authid,
 			   (unsigned char *) text->realm,
 			   text->nonce,
 			   text->nonce_count,
@@ -3012,7 +3016,7 @@ static int make_client_response(context_t *text,
 			   digesturi,
 			   ctext->password,
 			   strcmp(oparams->user, oparams->authid) ?
-			   (char *) oparams->user : NULL,
+			   (unsigned char *) oparams->user : NULL,
 			   &text->response_value);
     
     
@@ -3037,7 +3041,7 @@ static int make_client_response(context_t *text,
     if (strcmp(oparams->user, oparams->authid)) {
 	if (add_to_challenge(params->utils,
 			     &text->out_buf, &text->out_buf_len, &resplen,
-			     "authzid", (char *) oparams->user, TRUE) != SASL_OK) {
+			     "authzid", (unsigned char *) oparams->user, TRUE) != SASL_OK) {
 	    result = SASL_FAIL;
 	    goto FreeAllocatedMem;
 	}
@@ -3140,8 +3144,8 @@ static int make_client_response(context_t *text,
 		      DEFAULT_BUFSIZE);
     
     if (oparams->mech_ssf > 0) {
-	char enckey[16];
-	char deckey[16];
+	unsigned char enckey[16];
+	unsigned char deckey[16];
 	
 	create_layer_keys(text, params->utils, text->HA1, nbits,
 			  enckey, deckey);
@@ -3742,10 +3746,10 @@ digestmd5_client_mech_step1(client_context_t *ctext,
 	    /* we have info, so use it */
 	    _plug_strdup(params->utils, text->reauth->e[val].realm,
 			 &text->realm, NULL);
-	    _plug_strdup(params->utils, text->reauth->e[val].nonce,
+	    _plug_strdup(params->utils, (char *) text->reauth->e[val].nonce,
 			 (char **) &text->nonce, NULL);
 	    text->nonce_count = ++text->reauth->e[val].nonce_count;
-	    _plug_strdup(params->utils, text->reauth->e[val].cnonce,
+	    _plug_strdup(params->utils, (char *) text->reauth->e[val].cnonce,
 			 (char **) &text->cnonce, NULL);
 	    ctext->protection = text->reauth->e[val].u.c.protection;
 	    ctext->cipher = text->reauth->e[val].u.c.cipher;
@@ -4011,7 +4015,8 @@ static int digestmd5_client_mech_step(void *conn_context,
 	if (text->realm) params->utils->free(text->realm);
 	if (text->nonce) params->utils->free(text->nonce);
 	if (text->cnonce) params->utils->free(text->cnonce);
-	text->realm = text->nonce = text->cnonce = NULL;
+	text->realm = NULL;
+	text->nonce = text->cnonce = NULL;
 	ctext->cipher = NULL;
     
     case 2:

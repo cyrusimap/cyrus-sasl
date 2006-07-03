@@ -1,6 +1,6 @@
 /* auxprop.c - auxilliary property support
  * Rob Siemborski
- * $Id: auxprop.c,v 1.16 2006/03/14 14:23:55 mel Exp $
+ * $Id: auxprop.c,v 1.17 2006/07/03 14:43:16 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -46,6 +46,7 @@
 #include <sasl.h>
 #include <prop.h>
 #include <ctype.h>
+#include <stdio.h>
 #include "saslint.h"
 
 struct proppool 
@@ -1001,11 +1002,9 @@ static void
 _sasl_print_mechanism (
   sasl_auxprop_plug_t *m,
   sasl_info_callback_stage_t stage,
-  void *rock
+  void *rock __attribute__((unused))
 )
 {
-    char delimiter;
-
     if (stage == SASL_INFO_LIST_START) {
 	printf ("List of auxprop plugins follows\n");
 	return;

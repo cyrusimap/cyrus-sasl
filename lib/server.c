@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.146 2006/04/26 17:45:53 murch Exp $
+ * $Id: server.c,v 1.147 2006/07/03 14:43:16 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -484,7 +484,7 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
     /* getconfpath_cb->proc MUST be a sasl_getconfpath_t; if only C had a type
        system */
     result = ((sasl_getconfpath_t *)(getconfpath_cb->proc))(getconfpath_cb->context,
-						    &path_to_config);
+							    (char **) &path_to_config);
     if (result != SASL_OK) goto done;
     if (path_to_config == NULL) path_to_config = "";
 
@@ -1930,7 +1930,7 @@ static void
 _sasl_print_mechanism (
   server_sasl_mechanism_t *m,
   sasl_info_callback_stage_t stage,
-  void *rock
+  void *rock __attribute__((unused))
 )
 {
     char delimiter;

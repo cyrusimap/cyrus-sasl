@@ -30,7 +30,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_shadow.c,v 1.8 2006/04/19 19:36:25 murch Exp $"
+#ident "$Id: auth_shadow.c,v 1.9 2006/07/04 10:39:04 mel Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -45,6 +45,11 @@
 # include <time.h>
 # include <pwd.h>
 # include <syslog.h>
+
+#ifdef HAVE_CRYPT_H
+#include <crypt.h>
+#endif
+
 # ifndef HAVE_GETSPNAM
 
 # ifdef WITH_DES

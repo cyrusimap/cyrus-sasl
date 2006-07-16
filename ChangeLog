@@ -1,3 +1,7 @@
+2006-07-16  Alexey Melnikov <alexey.melnikov@isode.com>
+	* win32/common.mak: Abstracted out compiler command
+	  line options for exception handling.
+
 2006-07-04  Alexey Melnikov <alexey.melnikov@isode.com>
 	* saslauthd/auth_shadow.c: Include crypt.h, so that crypt()
 	  is defined. This fixes crash on x64 Suse where

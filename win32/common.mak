@@ -7,6 +7,12 @@ SASL_VERSION_STEP=22
 # Uncomment the following line, if you want to use Visual Studio 6
 #VCVER=6
 
+# Use in Visual Studio 6 & 7:
+#EXCEPTHANDLING=/GX
+
+# Use in Visual Studio 8:
+EXCEPTHANDLING=/EHsc
+
 # Define compiler/linker/etc.
 
 CPP=cl.exe /nologo
@@ -143,7 +149,7 @@ CODEGEN=/MD
 ENABLE_WIN64_WARNINGS=/Wp64
 !ENDIF
 
-CPP_PROJ= $(CODEGEN) /W3 /GX /O2 $(ENABLE_WIN64_WARNINGS) /Zi /D "NDEBUG" $(CPPFLAGS) /FD /c 
+CPP_PROJ= $(CODEGEN) /W3 $(EXCEPTHANDLING) /O2 $(ENABLE_WIN64_WARNINGS) /Zi /D "NDEBUG" $(CPPFLAGS) /FD /c 
 
 LINK32_FLAGS=/incremental:no /debug /machine:I386
 
@@ -160,7 +166,7 @@ CODEGEN=/MDd
 !ENDIF 
 !ENDIF 
 
-CPP_PROJ=$(CODEGEN) /W3 /Gm /GX /ZI /Od /D "_DEBUG" $(CPPFLAGS) /FD /GZ /c 
+CPP_PROJ=$(CODEGEN) /W3 /Gm $(EXCEPTHANDLING) /ZI /Od /D "_DEBUG" $(CPPFLAGS) /FD /GZ /c 
 
 LINK32_FLAGS=/incremental:yes /debug /machine:I386 /pdbtype:sept 
 

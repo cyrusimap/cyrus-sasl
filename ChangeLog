@@ -1,3 +1,7 @@
+2006-08-24  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/dlopen.c: Fixed segfault in dlclose on HPUX,
+	  based on feedback from <biswatosh2001@yahoo.com>.
+
 2006-07-16  Alexey Melnikov <alexey.melnikov@isode.com>
 	* win32/common.mak: Abstracted out compiler command
 	  line options for exception handling.

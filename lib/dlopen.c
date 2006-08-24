@@ -1,7 +1,7 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Siemborski
  * Rob Earhart
- * $Id: dlopen.c,v 1.49 2005/03/15 13:33:30 mel Exp $
+ * $Id: dlopen.c,v 1.50 2006/08/24 17:04:08 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -95,7 +95,7 @@
 #ifndef HAVE_DLFCN_H
 #include <dl.h>
 
-typedef shl_t dll_handle;
+typedef shl_t * dll_handle;
 typedef void * dll_func;
 
 dll_handle
@@ -117,11 +117,18 @@ dlopen(char *fname, int mode)
 }
 
 int
-dlclose(dll_handle h)
+dlclose(dll_handle hp)
 {
-    shl_t hp = *((shl_t *)h);
-    if (hp != NULL) free(hp);
-    return shl_unload(h);
+    shl_t h;
+
+    if (hp != NULL) {
+	h = *((shl_t *)hp);
+	free(hp);
+	return shl_unload(h);
+    } else {
+	/* Return error */
+	return -1;
+    }
 }
 
 dll_func

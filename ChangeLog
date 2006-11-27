@@ -1,3 +1,7 @@
+2006-11-27  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/digestmd5.c: Cleaned up comments and
+	  some error messages.
+
 2006-08-24  Alexey Melnikov <alexey.melnikov@isode.com>
 	* lib/dlopen.c: Fixed segfault in dlclose on HPUX,
 	  based on feedback from <biswatosh2001@yahoo.com>.

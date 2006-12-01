@@ -1,3 +1,8 @@
+2006-12-01  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/common.c: Typecast iov_base to (char *),
+	  in case it is defined as "void *" on a platform
+	  like HPUX (Olaf Flebbe).
+
 2006-11-27  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/digestmd5.c: Cleaned up comments and
 	  some error messages.

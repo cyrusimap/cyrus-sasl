@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.115 2006/07/03 14:43:16 murch Exp $
+ * $Id: common.c,v 1.116 2006/12/01 17:34:35 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -497,7 +497,9 @@ int sasl_encodev(sasl_conn_t *conn,
                the conn->oparams.maxoutbuf buffer. */
             /* Note, if next_buf points to the very end of the IOV record,
                it will be reset to NULL below */
-            next_buf = last_invec.iov_base + last_invec.iov_len;
+            /* Note, that some platforms define iov_base as "void *",
+               thus the typecase below */
+            next_buf = (char *) last_invec.iov_base + last_invec.iov_len;
             /* Note - remainder_len is how many bytes left to be encoded in
                the current IOV slot. */
             remainder_len = (total_size + invec[i].iov_len) - conn->oparams.maxoutbuf;
@@ -513,7 +515,9 @@ int sasl_encodev(sasl_conn_t *conn,
 
                 /* Note, if next_buf points to the very end of the IOV record,
                    it will be reset to NULL below */
-                next_buf = last_invec.iov_base + last_invec.iov_len;
+                /* Note, that some platforms define iov_base as "void *",
+                   thus the typecase below */
+                next_buf = (char *) last_invec.iov_base + last_invec.iov_len;
                 remainder_len = remainder_len - conn->oparams.maxoutbuf;
 
                 result = _sasl_encodev (conn,

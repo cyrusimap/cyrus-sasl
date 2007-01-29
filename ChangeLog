@@ -1,3 +1,8 @@
+2007-01-29  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/gssapi.c: Check that params->serverFQDN is
+	  not NULL before using strlen on it (reported by
+	  Steven Simon <simon.s@apple.com>)
+	
 2006-12-01  Alexey Melnikov <alexey.melnikov@isode.com>
 	* lib/common.c: Typecast iov_base to (char *),
 	  in case it is defined as "void *" on a platform

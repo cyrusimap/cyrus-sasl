@@ -1,3 +1,7 @@
+2007-02-14  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/digestmd5.c: Fixed parsing of challenges/
+	  responses with extra commas.
+
 2007-01-29  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/gssapi.c: Check that params->serverFQDN is
 	  not NULL before using strlen on it (reported by

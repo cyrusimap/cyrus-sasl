@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.183 2006/11/27 20:41:55 mel Exp $
+ * $Id: digestmd5.c,v 1.184 2007/02/14 17:16:14 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.183 2006/11/27 20:41:55 mel Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.184 2007/02/14 17:16:14 mel Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -556,12 +556,17 @@ static int add_to_challenge(const sasl_utils_t *utils,
     return SASL_OK;
 }
 
+static int is_lws_char (char c)
+{
+    return (c == ' ' || c == HT || c == CR || c == LF);
+}
+
 static char *skip_lws (char *s)
 {
     if (!s) return NULL;
     
     /* skipping spaces: */
-    while (s[0] == ' ' || s[0] == HT || s[0] == CR || s[0] == LF) {
+    while (is_lws_char(s[0])) {
 	if (s[0] == '\0') break;
 	s++;
     }  
@@ -750,17 +755,30 @@ static char *quote (char *str)
 static void get_pair(char **in, char **name, char **value)
 {
     char  *endpair;
-    /* int    inQuotes; */
     char  *curp = *in;
     *name = NULL;
     *value = NULL;
     
     if (curp == NULL) return;
-    if (curp[0] == '\0') return;
-    
-    /* skipping spaces: */
-    curp = skip_lws(curp);
-    
+
+    while (curp[0] != '\0') {
+	/* skipping spaces: */
+	curp = skip_lws(curp);
+        
+	/* 'LWS "," LWS "," ...' is allowed by the DIGEST-MD5 ABNF */
+	if (curp[0] == ',') {
+	    curp++;
+	} else {
+	    break;
+	}
+    }
+
+    if (curp[0] == '\0') {
+	/* End of the string is not an error */
+	*name = "";
+	return;
+    }
+
     *name = curp;
     
     curp = skip_token(curp,1);
@@ -787,22 +805,24 @@ static void get_pair(char **in, char **name, char **value)
     endpair = unquote (curp);
     if (endpair == NULL) { /* Unbalanced quotes */ 
 	*name = NULL;
+	*value = NULL;
 	return;
     }
-    if (endpair[0] != ',') {
-	if (endpair[0]!='\0') {
-	    *endpair++ = '\0'; 
-	}
+
+    /* An optional LWS is allowed after the value. Skip it. */
+    if (is_lws_char (endpair[0])) {
+	/* Remove the trailing LWS from the value */
+	*endpair++ = '\0'; 
+	endpair = skip_lws(endpair);
     }
-    
-    endpair = skip_lws(endpair);
-    
+
     /* syntax check: MUST be '\0' or ',' */  
     if (endpair[0] == ',') {
 	endpair[0] = '\0';
 	endpair++; /* skipping <,> */
     } else if (endpair[0] != '\0') { 
 	*name = NULL;
+	*value = NULL;
 	return;
     }
     
@@ -2090,9 +2110,17 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	char           *name = NULL, *value = NULL;
 	get_pair(&in, &name, &value);
 	
-	if (name == NULL)
-	    break;
+	if (name == NULL) {
+	    SETERROR(sparams->utils,
+		     "Parse error");
+	    result = SASL_BADAUTH;
+	    goto FreeAllMem;
+	}
 	
+	if (*name == '\0') {
+	    break;
+	}
+
 	/* Extracting parameters */
 	
 	/*
@@ -3222,10 +3250,14 @@ static int parse_server_challenge(client_context_t *ctext,
 	/* if parse error */
 	if (name == NULL) {
 	    params->utils->seterror(params->utils->conn, 0, "Parse error");
-	    result = SASL_FAIL;
+	    result = SASL_BADAUTH;
 	    goto FreeAllocatedMem;
 	}
 	
+	if (*name == '\0') {
+	    break;
+	}
+
 	if (strcasecmp(name, "realm") == 0) {
 	    nrealm++;
 	    
@@ -3887,9 +3919,14 @@ digestmd5_client_mech_step3(client_context_t *ctext,
 	if (name == NULL) {
 	    params->utils->seterror(params->utils->conn, 0,
 				    "DIGEST-MD5 Received Garbage");
+	    result = SASL_BADAUTH;
 	    break;
 	}
 	
+	if (*name == '\0') {
+	    break;
+	}
+
 	if (strcasecmp(name, "rspauth") == 0) {
 	    
 	    if (strcmp(text->response_value, value) != 0) {

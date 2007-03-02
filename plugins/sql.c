@@ -7,7 +7,7 @@
 ** Simon Loader -- original mysql plugin
 ** Patrick Welche -- original pgsql plugin
 **
-** $Id: sql.c,v 1.29 2006/04/07 13:42:16 jeaton Exp $
+** $Id: sql.c,v 1.30 2007/03/02 16:55:54 mel Exp $
 **
 */
 
@@ -975,6 +975,11 @@ static int sql_auxprop_store(void *glob_context,
 			    "Unable to begin transaction\n");
     }
     for (cur = to_store; ret == SASL_OK && cur->name; cur++) {
+
+	if (cur->name[0] == '*') {
+	    continue;
+	}
+
 	/* determine which command we need */
 	/* see if we already have a row for this user */
 	statement = sql_create_statement(settings->sql_select,

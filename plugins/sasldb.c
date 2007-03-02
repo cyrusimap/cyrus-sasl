@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: sasldb.c,v 1.11 2006/04/03 10:58:19 mel Exp $
+ * $Id: sasldb.c,v 1.12 2007/03/02 16:55:54 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -178,6 +178,11 @@ static int sasldb_auxprop_store(void *glob_context __attribute__((unused)),
        At least one iteration returns any other error      ==> ret = the error */
     ret = SASL_NOUSER;
     for(cur = to_store; cur->name; cur++) {
+
+	if (cur->name[0] == '*') {
+	    continue;
+	}
+
 	/* We only support one value at a time right now. */
 	tmp_res = _sasldb_putdata(sparams->utils, sparams->utils->conn,
 			      userid, realm, cur->name,

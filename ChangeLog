@@ -1,3 +1,7 @@
+2007-05-14  Alexey Melnikov <alexey.melnikov@isode.com>
+	* man/*: updated to reference RFC 4422 instead of
+	  RFC 2222.
+
 2007-03-02  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/sasldb.c, plugins/sql.c: Ignore properties
 	  starting with '*' in the auxprop store function.

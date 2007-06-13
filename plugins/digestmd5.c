@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.185 2007/02/20 17:53:36 murch Exp $
+ * $Id: digestmd5.c,v 1.186 2007/06/13 14:52:32 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.185 2007/02/20 17:53:36 murch Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.186 2007/06/13 14:52:32 mel Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -2101,7 +2101,8 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     
     /* can we mess with clientin? copy it to be safe */
     char           *in_start = NULL;
-    char           *in = NULL; 
+    char           *in = NULL;
+    cipher_free_t  *old_cipher_free = NULL;
     
     sparams->utils->log(sparams->utils->conn, SASL_LOG_DEBUG,
 			"DIGEST-MD5 server step 2");
@@ -2441,6 +2442,14 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     if (qop == NULL) {
 	_plug_strdup(sparams->utils, "auth", &qop, NULL);      
     }
+
+    if (oparams->mech_ssf > 1) {
+	/* Remember the old cipher free function (if any).
+	   It will be called later, once we are absolutely
+	   sure that authentication was successful. */
+	old_cipher_free = text->cipher_free;
+	/* free the old cipher context first */
+    }
     
     /* check which layer/cipher to use */
     if ((!strcasecmp(qop, "auth-conf")) && (cipher != NULL)) {
@@ -2551,6 +2560,9 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     text->rec_seqnum = 0;	/* for integrity/privacy */
     text->utils = sparams->utils;
 
+    /* Free the old security layer, if any */
+    if (old_cipher_free) old_cipher_free(text);
+
     /* used by layers */
     _plug_decode_init(&text->decode_context, text->utils,
 		      sparams->props.maxbufsize ? sparams->props.maxbufsize :
@@ -2563,11 +2575,12 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	create_layer_keys(text, sparams->utils,text->HA1,n,enckey,deckey);
 	
 	/* initialize cipher if need be */
-	if (text->cipher_init)
+	if (text->cipher_init) {
 	    if (text->cipher_init(text, enckey, deckey) != SASL_OK) {
 		sparams->utils->seterror(sparams->utils->conn, 0,
 					 "couldn't init cipher");
 	    }
+	}
     }
     
     /*
@@ -3002,9 +3015,18 @@ static int make_client_response(context_t *text,
     char           *response = NULL;
     unsigned        resplen = 0;
     int result = SASL_OK;
+    cipher_free_t  *old_cipher_free = NULL;
 
     params->utils->log(params->utils->conn, SASL_LOG_DEBUG,
 		       "DIGEST-MD5 make_client_response()");
+
+    if (oparams->mech_ssf > 1) {
+	/* Remember the old cipher free function (if any).
+	   It will be called later, once we are absolutely
+	   sure that authentication was successful. */
+	old_cipher_free = text->cipher_free;
+	/* free the old cipher context first */
+    }
 
     switch (ctext->protection) {
     case DIGEST_PRIVACY:
@@ -3182,6 +3204,9 @@ static int make_client_response(context_t *text,
     text->rec_seqnum = 0;	/* for integrity/privacy */
     text->utils = params->utils;
 
+    /* Free the old security layer, if any */
+    if (old_cipher_free) old_cipher_free(text);
+
     /* used by layers */
     _plug_decode_init(&text->decode_context, text->utils,
 		      params->props.maxbufsize ? params->props.maxbufsize :
@@ -3195,8 +3220,9 @@ static int make_client_response(context_t *text,
 			  enckey, deckey);
 	
 	/* initialize cipher if need be */
-	if (text->cipher_init)
-	    text->cipher_init(text, enckey, deckey);		       
+	if (text->cipher_init) {
+	    text->cipher_init(text, enckey, deckey);
+	}
     }
     
     result = SASL_OK;

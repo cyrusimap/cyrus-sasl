@@ -1,7 +1,7 @@
 /* dlopen.c--Unix dlopen() dynamic loader interface
  * Rob Siemborski
  * Rob Earhart
- * $Id: dlopen.c,v 1.50 2006/08/24 17:04:08 mel Exp $
+ * $Id: dlopen.c,v 1.51 2007/06/13 15:00:36 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -151,7 +151,11 @@ char *dlerror()
 }
 
 #endif /* HAVE_DLFCN_H */
+#ifdef __ia64
+#define SO_SUFFIX       ".so"
+#else
 #define SO_SUFFIX	".sl"
+#endif /* __ia64 */
 #else /* __hpux */
 #define SO_SUFFIX	".so"
 #endif /* __hpux */

@@ -1,3 +1,10 @@
+2008-01-21  Ken Murchison <murch@andrew.cmu.edu>
+	* saslauthd/auth_krb.c: improved diagnostic in the
+	  k5support_verify_tgt() function. Now, detailed krb5 error
+	  information will be given out in the LOG_DEBUG syslog
+	  channel (based on patch from Enrico Scholz
+	  <enrico.scholz@informatik.tu-chemnitz.de>)
+
 2007-06-11  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/digestmd5.c: Fixed a memory leak in the DIGEST-MD5
 	  security layer (based on patch from Nathan Kinder

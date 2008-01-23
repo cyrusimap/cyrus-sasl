@@ -28,7 +28,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_krb5.c,v 1.17 2005/02/14 05:50:49 shadow Exp $"
+#ident "$Id: auth_krb5.c,v 1.18 2008/01/23 15:39:34 murch Exp $"
 #endif
 
 /* ok, this is  wrong but the most convenient way of doing 
@@ -254,6 +254,16 @@ auth_krb5 (
 
 #else /* !KRB5_HEIMDAL */
 
+static void k5support_log_err(krb5_context context,
+			      krb5_error_code code,
+			      char const *msg)
+{
+    const char *k5_msg = krb5_get_error_message(context, code);
+
+    syslog(LOG_DEBUG, "auth_krb5: %s: %s (%d)\n", msg, k5_msg, code);
+    krb5_free_error_message(context, k5_msg);
+}
+
 /* returns 0 for failure, 1 for success */
 static int k5support_verify_tgt(krb5_context context, 
 				krb5_ccache ccache) 
@@ -269,19 +279,22 @@ static int k5support_verify_tgt(krb5_context context,
     
     memset(&packet, 0, sizeof(packet));
 
-    if (krb5_sname_to_principal(context, NULL, verify_principal,
-				KRB5_NT_SRV_HST, &server)) {
+    if ((k5_retcode = krb5_sname_to_principal(context, NULL, verify_principal,
+					      KRB5_NT_SRV_HST, &server))) {
+	k5support_log_err(context, k5_retcode, "krb5_sname_to_principal()");
 	return 0;
     }
 
     if (keytabname) {
-	if (krb5_kt_resolve(context, keytabname, &kt)) {
+	if ((k5_retcode = krb5_kt_resolve(context, keytabname, &kt))) {
+	    k5support_log_err(context, k5_retcode, "krb5_kt_resolve()");
 	    goto fini;
 	}
     }
     
-    if (krb5_kt_read_service_key(context, kt, server, 0,
-				 0, &keyblock)) {
+    if ((k5_retcode = krb5_kt_read_service_key(context, kt, server, 0,
+					       0, &keyblock))) {
+	k5support_log_err(context, k5_retcode, "krb5_kt_read_service_key()");
 	goto fini;
     }
     
@@ -297,8 +310,10 @@ static int k5support_verify_tgt(krb5_context context,
     }
     thishost[BUFSIZ-1] = '\0';
     
-    k5_retcode = krb5_mk_req(context, &auth_context, 0, verify_principal, 
-			     thishost, NULL, ccache, &packet);
+    if ((k5_retcode = krb5_mk_req(context, &auth_context, 0, verify_principal, 
+				  thishost, NULL, ccache, &packet))) {
+	k5support_log_err(context, k5_retcode, "krb5_mk_req()");
+    }
     
     if (auth_context) {
 	krb5_auth_con_free(context, auth_context);
@@ -309,8 +324,9 @@ static int k5support_verify_tgt(krb5_context context,
 	goto fini;
     }
     
-    if (krb5_rd_req(context, &auth_context, &packet, 
-		    server, NULL, NULL, NULL)) {
+    if ((k5_retcode = krb5_rd_req(context, &auth_context, &packet, 
+				  server, NULL, NULL, NULL))) {
+	k5support_log_err(context, k5_retcode, "krb5_rd_req()");
 	goto fini;
     }
 

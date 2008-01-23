@@ -53,7 +53,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_rimap.c,v 1.12 2006/04/06 20:19:54 jeaton Exp $"
+#ident "$Id: auth_rimap.c,v 1.13 2008/01/23 19:54:54 murch Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -162,6 +162,7 @@ qstring (
     num_quotes = 0;
     p1 = s;
     while ((p1 = strchr(p1, '"')) != NULL) {
+	p1++;
 	num_quotes++;
     }
     
@@ -438,7 +439,7 @@ auth_rimap (
 	syslog(LOG_WARNING, "auth_rimap: writev: %m");
 	memset(qlogin, 0, strlen(qlogin));
 	free(qlogin);
-	memset(qpass, 0, strlen(qlogin));
+	memset(qpass, 0, strlen(qpass));
 	free(qpass);
 	(void)close(s);
 	return strdup(RESP_IERROR);
@@ -447,7 +448,7 @@ auth_rimap (
     /* don't need these any longer */
     memset(qlogin, 0, strlen(qlogin));
     free(qlogin);
-    memset(qpass, 0, strlen(qlogin));
+    memset(qpass, 0, strlen(qpass));
     free(qpass);
 
     /* read and parse the LOGIN response */

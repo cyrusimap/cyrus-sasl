@@ -1,4 +1,9 @@
 2008-01-21  Ken Murchison <murch@andrew.cmu.edu>
+	* saslauthd/auth_rimap.c: fixed bug counting double-quotes in
+	  username/password.  Also fixed bug zeroing password.
+	  (patch from Robert Sanderson <rwsiv1@gmail.com>)
+
+2008-01-21  Ken Murchison <murch@andrew.cmu.edu>
 	* saslauthd/auth_krb.c: improved diagnostic in the
 	  k5support_verify_tgt() function. Now, detailed krb5 error
 	  information will be given out in the LOG_DEBUG syslog

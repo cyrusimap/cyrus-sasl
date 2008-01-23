@@ -1,6 +1,6 @@
 <HTML><HEAD>
 <title>Options for Cyrus SASL</title>
-<!-- $Id: options.html,v 1.30 2005/02/16 20:52:05 shadow Exp $ -->
+<!-- $Id: options.html,v 1.31 2008/01/23 21:27:42 murch Exp $ -->
 </HEAD>
 <BODY>
 <h1>Options for Cyrus SASL</h1>
@@ -80,6 +80,14 @@ optimal way to use this plugin when the servers are on separate machines.</TD>
 <TD>Use StartTLS.  This option may be set to 'try' or 'demand'.  
 When set to "try" any failure in StartTLS is ignored. 
 When set to "demand" then any failure aborts the connection.</TD>
+<TD>none</TD>
+</TR>
+<TR>
+<TD>ldapdb_canon_attr</TD><TD>LDAPDB plugin</TD>
+<TD>Use the value of the specified attribute as the user's
+canonical name. The attribute will be looked up in the user's LDAP
+entry. This setting must be configured in order to use LDAPDB as
+a canonuser plugin.</TD>
 <TD>none</TD>
 </TR>
 <TR>
@@ -273,7 +281,7 @@ quoted.</font>
 </pre>
 is a valid value for <tt>sql_select</tt>.
 
-<h2>Notes on LDAPDB auxprop options</h2>
+<h2>Notes on LDAPDB plugin options</h2>
 
 <p>
 </p>
@@ -286,7 +294,8 @@ LDAP-specific configuration details in one place, the slapd.conf, and
 makes the configuration of remote services much simpler.</p>
 
 <p>This plugin is not for use with slapd itself. When OpenLDAP is
-built with SASL support, slapd uses its own internal auxprop module.
+built with SASL support, slapd uses its own internal auxprop and
+canonuser module.
 By default, without configuring anything else, slapd will fail to load
 the ldapdb module when it's present. This is as it should be. If you
 don't like the "auxpropfunc: error -7" message that is sent to syslog
@@ -303,6 +312,7 @@ ldapdb_uri: ldap://ldap.example.com
 ldapdb_id: root
 ldapdb_pw: secret
 ldapdb_mech: DIGEST-MD5
+ldapdb_canon_attr: uid
 </pre>
 
 <p>The LDAP server must be configured to map the SASL authcId "root" into a DN

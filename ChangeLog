@@ -1,16 +1,21 @@
-2008-01-21  Ken Murchison <murch@andrew.cmu.edu>
+2008-01-23  Ken Murchison <murch@andrew.cmu.edu>
+	* plugins/ntlm.c, doc/options.html: allow a comma separated
+	  list of servernames in 'ntlm_server' option
+	  (patch from Enrico Persiani <enrico@ninfea-soft.org>)
+
+2008-01-23  Ken Murchison <murch@andrew.cmu.edu>
 	* plugins/ldapdb.c, plugins/makeinit.sh, doc/options.html:
 	  Added code to extend ldapdb into a canon_user plugin
 	  in addition to its existing auxprop plugin functionality
 	  (patch from Howard Chu <hyc@symas.com>
 	   and Torsten Schlabach <tschlabach@gmx.net>)
 
-2008-01-21  Ken Murchison <murch@andrew.cmu.edu>
+2008-01-23  Ken Murchison <murch@andrew.cmu.edu>
 	* saslauthd/auth_rimap.c: fixed bug counting double-quotes in
 	  username/password.  Also fixed bug zeroing password.
 	  (patch from Robert Sanderson <rwsiv1@gmail.com>)
 
-2008-01-21  Ken Murchison <murch@andrew.cmu.edu>
+2008-01-23  Ken Murchison <murch@andrew.cmu.edu>
 	* saslauthd/auth_krb.c: improved diagnostic in the
 	  k5support_verify_tgt() function. Now, detailed krb5 error
 	  information will be given out in the LOG_DEBUG syslog

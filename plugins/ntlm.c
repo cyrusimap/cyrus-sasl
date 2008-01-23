@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.30 2005/07/07 16:10:14 mel Exp $
+ * $Id: ntlm.c,v 1.31 2008/01/23 22:15:48 murch Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -100,7 +100,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.30 2005/07/07 16:10:14 mel Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.31 2008/01/23 22:15:48 murch Exp $";
 
 #ifdef WIN32
 static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);
@@ -1370,8 +1370,30 @@ static int ntlm_server_mech_new(void *glob_context __attribute__((unused)),
     sparams->utils->getopt(sparams->utils->getopt_context,
 			   "NTLM", "ntlm_server", &serv, &len);
     if (serv) {
-	/* try to start a NetBIOS session with the server */
-	sock = smb_connect_server(sparams->utils, sparams->serverFQDN, serv);
+	unsigned int i,j;
+	char *tmp, *next;
+
+	/* strip any whitespace */
+	if(_plug_strdup(sparams->utils, serv, &tmp, NULL) != SASL_OK) {
+	    MEMERROR( sparams->utils );
+	    return SASL_NOMEM;
+	}
+	for(i=0, j=0; i<len; i++) {
+	    if(!isspace(tmp[i])) tmp[j++] = tmp[i];
+	}
+	tmp[j] = '\0';
+	next = tmp;
+
+	/* try to connect to a list of servers */
+	do {
+	    serv = next;
+	    next = strchr(serv, ',');
+	    if(next) *(next++) = '\0';
+	    /* try to start a NetBIOS session with the server */
+	    sock = smb_connect_server(sparams->utils, sparams->serverFQDN, serv);
+	} while(sock == (SOCKET) -1 && next);
+
+	sparams->utils->free(tmp);
 	if (sock == (SOCKET) -1) return SASL_UNAVAIL;
     }
     

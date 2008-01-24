@@ -159,8 +159,8 @@ static int lak_config_read(
 		if (buf[strlen(buf)-1] == '\n') 
 			buf[strlen(buf)-1] = '\0';
 		for (p = buf; *p && isspace((int) *p); p++);
-			if (!*p || *p == '#') 
-				continue;
+		if (!*p || *p == '#') 
+		    continue;
 
 		key = p;
 		while (*p && (isalnum((int) *p) || *p == '-' || *p == '_')) {

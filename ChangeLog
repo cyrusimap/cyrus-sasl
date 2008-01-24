@@ -1,3 +1,7 @@
+2008-01-24  Ken Murchison <murch@andrew.cmu.edu>
+	* plugins/ntlm.c: Fixed crash in calculating NTv2 reponse
+	  (patch from Alexey Melnikov <alexey.melnikov@isode.com>)
+
 2008-01-23  Ken Murchison <murch@andrew.cmu.edu>
 	* plugins/ntlm.c, doc/options.html: allow a comma separated
 	  list of servernames in 'ntlm_server' option

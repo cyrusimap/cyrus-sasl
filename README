@@ -1,8 +1,8 @@
-$Id: README,v 1.32 2002/04/06 03:44:52 rjs3 Exp $
+$Id: README,v 1.33 2008/01/25 01:57:40 murch Exp $
 
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication and authorization services.
-See RFC 2222 for more information.
+See RFC 4422 for more information.
 
 The latest version is available at:
 ftp://ftp.andrew.cmu.edu/pub/cyrus-mail

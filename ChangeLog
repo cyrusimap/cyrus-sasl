@@ -1,6 +1,6 @@
 2008-01-24  Ken Murchison <murch@andrew.cmu.edu>
 	* plugins/ntlm.c: Fixed crash in calculating NTv2 reponse
-	  (patch from Alexey Melnikov <alexey.melnikov@isode.com>)
+	  (patch from Tim Costen from Isode)
 
 2008-01-23  Ken Murchison <murch@andrew.cmu.edu>
 	* plugins/ntlm.c, doc/options.html: allow a comma separated
@@ -26,7 +26,11 @@
 	  channel (based on patch from Enrico Scholz
 	  <enrico.scholz@informatik.tu-chemnitz.de>)
 
-2007-06-11  Alexey Melnikov <alexey.melnikov@isode.com>
+2007-06-13  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/dlopen.c: 64bit HP-UX uses .so for shared libraries
+	  (patch by Nathan Kinder <nkinder@redhat.com>).
+
+2007-06-13  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/digestmd5.c: Fixed a memory leak in the DIGEST-MD5
 	  security layer (based on patch from Nathan Kinder
 	  <nkinder@redhat.com>).

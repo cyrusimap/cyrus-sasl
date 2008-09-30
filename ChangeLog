@@ -1,3 +1,9 @@
+2008-09-30  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/common.c: Fixed sasl_set_mutex() to disallow changing
+	  mutex management functions once sasl_server_init/
+	  sasl_client_init is called. Failure to do this is causing
+	  a crash while locking mutexes. [Bug # 3083]
+
 2008-01-24  Ken Murchison <murch@andrew.cmu.edu>
 	* plugins/ntlm.c: Fixed crash in calculating NTv2 reponse
 	  (patch from Tim Costen from Isode)

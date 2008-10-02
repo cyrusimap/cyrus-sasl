@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.73 2006/03/13 18:30:41 mel Exp $
+ * $Id: checkpw.c,v 1.74 2008/10/02 16:05:23 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -590,18 +590,32 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
      * count authid count password count service count realm
      */
     {
- 	unsigned short u_len, p_len, s_len, r_len;
+ 	unsigned short max_len, req_len, u_len, p_len, s_len, r_len;
  
+	max_len = (unsigned short) sizeof(query);
+
+	/* prevent buffer overflow */
+	if ((strlen(userid) > USHRT_MAX) ||
+	    (strlen(passwd) > USHRT_MAX) ||
+	    (strlen(service) > USHRT_MAX) ||
+	    (user_realm && (strlen(user_realm) > USHRT_MAX))) {
+	    goto toobig;
+	}
+
  	u_len = (strlen(userid));
  	p_len = (strlen(passwd));
 	s_len = (strlen(service));
 	r_len = ((user_realm ? strlen(user_realm) : 0));
 
-	if (u_len + p_len + s_len + r_len + 30 > (unsigned short) sizeof(query)) {
-	    /* request just too damn big */
-            sasl_seterror(conn, 0, "saslauthd request too large");
-	    goto fail;
-	}
+	/* prevent buffer overflow */
+	req_len = 30;
+	if (max_len - req_len < u_len) goto toobig;
+	req_len += u_len;
+	if (max_len - req_len < p_len) goto toobig;
+	req_len += p_len;
+	if (max_len - req_len < s_len) goto toobig;
+	req_len += s_len;
+	if (max_len - req_len < r_len) goto toobig;
 
 	u_len = htons(u_len);
 	p_len = htons(p_len);
@@ -731,6 +745,10 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
   
     sasl_seterror(conn, SASL_NOLOG, "authentication failed");
     return SASL_BADAUTH;
+
+ toobig:
+    /* request just too damn big */
+    sasl_seterror(conn, 0, "saslauthd request too large");
 
  fail:
     if (freeme) free(freeme);

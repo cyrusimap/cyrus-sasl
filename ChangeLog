@@ -1,3 +1,7 @@
+2008-10-02  Ken Murchison <murch@andrew.cmu.edu>
+	* lib/checkpw.c: Fixed potential buffer overflow in
+	  saslautd_verify_password().
+
 2008-09-30  Alexey Melnikov <alexey.melnikov@isode.com>
 	* lib/common.c: Fixed sasl_set_mutex() to disallow changing
 	  mutex management functions once sasl_server_init/

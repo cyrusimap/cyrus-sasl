@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.117 2008/09/30 16:53:22 mel Exp $
+ * $Id: common.c,v 1.118 2008/10/19 21:53:32 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -857,7 +857,7 @@ void _sasl_conn_dispose(sasl_conn_t *conn) {
  * returns:
  *  SASL_OK       -- no error
  *  SASL_NOTDONE  -- property not available yet
- *  SASL_BADPARAM -- bad property number
+ *  SASL_BADPARAM -- bad property number or SASL context is NULL
  */
 int sasl_getprop(sasl_conn_t *conn, int propnum, const void **pvalue)
 {

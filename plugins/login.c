@@ -2,7 +2,7 @@
  * Rob Siemborski (SASLv2 Conversion)
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.28 2006/07/03 19:34:40 murch Exp $
+ * $Id: login.c,v 1.29 2008/10/19 21:44:48 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -54,7 +54,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: login.c,v 1.28 2006/07/03 19:34:40 murch Exp $";
+static const char plugin_id[] = "$Id: login.c,v 1.29 2008/10/19 21:44:48 mel Exp $";
 
 /*****************************  Server Section  *****************************/
 
@@ -234,7 +234,8 @@ static sasl_server_plug_t login_server_plugins[] =
     {
 	"LOGIN",			/* mech_name */
 	0,				/* max_ssf */
-	SASL_SEC_NOANONYMOUS,		/* security_flags */
+	SASL_SEC_NOANONYMOUS
+	| SASL_SEC_PASS_CREDENTIALS,	/* security_flags */
 	0,				/* features */
 	NULL,				/* glob_context */
 	&login_server_mech_new,		/* mech_new */
@@ -455,7 +456,8 @@ static sasl_client_plug_t login_client_plugins[] =
     {
 	"LOGIN",			/* mech_name */
 	0,				/* max_ssf */
-	SASL_SEC_NOANONYMOUS,		/* security_flags */
+	SASL_SEC_NOANONYMOUS
+	| SASL_SEC_PASS_CREDENTIALS,	/* security_flags */
 	SASL_FEAT_SERVER_FIRST,		/* features */
 	NULL,				/* required_prompts */
 	NULL,				/* glob_context */

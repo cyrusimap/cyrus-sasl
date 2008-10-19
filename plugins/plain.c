@@ -1,7 +1,7 @@
 /* Plain SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: plain.c,v 1.64 2004/09/08 11:06:11 mel Exp $
+ * $Id: plain.c,v 1.65 2008/10/19 21:44:48 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -57,7 +57,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: plain.c,v 1.64 2004/09/08 11:06:11 mel Exp $";
+static const char plugin_id[] = "$Id: plain.c,v 1.65 2008/10/19 21:44:48 mel Exp $";
 
 /*****************************  Server Section  *****************************/
 
@@ -194,7 +194,8 @@ static sasl_server_plug_t plain_server_plugins[] =
     {
 	"PLAIN",			/* mech_name */
 	0,				/* max_ssf */
-	SASL_SEC_NOANONYMOUS,		/* security_flags */
+	SASL_SEC_NOANONYMOUS
+	| SASL_SEC_PASS_CREDENTIALS,	/* security_flags */
 	SASL_FEAT_WANT_CLIENT_FIRST
 	| SASL_FEAT_ALLOWS_PROXY,	/* features */
 	NULL,				/* glob_context */
@@ -414,7 +415,8 @@ static sasl_client_plug_t plain_client_plugins[] =
     {
 	"PLAIN",			/* mech_name */
 	0,				/* max_ssf */
-	SASL_SEC_NOANONYMOUS,		/* security_flags */
+	SASL_SEC_NOANONYMOUS
+	| SASL_SEC_PASS_CREDENTIALS,	/* security_flags */
 	SASL_FEAT_WANT_CLIENT_FIRST
 	| SASL_FEAT_ALLOWS_PROXY,	/* features */
 	NULL,				/* required_prompts */

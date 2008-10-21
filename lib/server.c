@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.147 2006/07/03 14:43:16 murch Exp $
+ * $Id: server.c,v 1.148 2008/10/21 13:16:39 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -393,6 +393,34 @@ int sasl_server_add_plugin(const char *plugname,
 	mechlist->mech_list = mech;
 	mechlist->mech_length++;
     }
+
+    return SASL_OK;
+}
+
+int sasl_server_done(void)
+{
+    int result = SASL_CONTINUE;
+
+    if (_sasl_server_cleanup_hook == NULL && _sasl_client_cleanup_hook == NULL) {
+	return SASL_NOTINIT;
+    }
+
+    if (_sasl_server_cleanup_hook) {
+	result = _sasl_server_cleanup_hook();
+	
+	if (result == SASL_OK) {
+	    _sasl_server_idle_hook = NULL;
+	    _sasl_server_cleanup_hook = NULL;
+	} else {
+	    return result;
+	}
+    }
+    
+    if (_sasl_server_cleanup_hook || _sasl_client_cleanup_hook) {
+	return result;
+    }
+    
+    sasl_common_done();
 
     return SASL_OK;
 }

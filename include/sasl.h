@@ -679,8 +679,25 @@ LIBSASL_API void sasl_version_info (const char **implementation,
 
 /* dispose of all SASL plugins.  Connection
  * states have to be disposed of before calling this.
+ *
+ * This function is DEPRECATED in favour of sasl_server_done/
+ * sasl_client_done.
  */
 LIBSASL_API void sasl_done(void);
+
+/* dispose of all SASL plugins.  Connection
+ * states have to be disposed of before calling this.
+ * This function should be called instead of sasl_done(),
+   whenever possible.
+ */
+LIBSASL_API int sasl_server_done(void);
+
+/* dispose of all SASL plugins.  Connection
+ * states have to be disposed of before calling this.
+ * This function should be called instead of sasl_done(),
+   whenever possible.
+ */
+LIBSASL_API int sasl_client_done(void);
 
 /* dispose connection state, sets it to NULL
  *  checks for pointer to NULL

@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.60 2006/04/18 20:25:45 mel Exp $
+ * $Id: saslint.h,v 1.61 2008/10/21 13:16:39 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -300,6 +300,8 @@ extern int (*_sasl_server_cleanup_hook)(void);
 
 extern sasl_allocation_utils_t _sasl_allocation_utils;
 extern sasl_mutex_utils_t _sasl_mutex_utils;
+
+void sasl_common_done(void);
 
 /*
  * checkpw.c

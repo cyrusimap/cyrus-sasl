@@ -60,18 +60,22 @@ all-recursive : $(sample_apps)
 server.exe: $(server_objs) $(common_objs)
 	$(LINK32EXE) @<< $(LINK32EXE_FLAGS) /pdb:"server.pdb" /out:"server.exe" $(server_objs) $(common_objs)
 <<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;1
 
 client.exe: $(client_objs) $(common_objs)
 	$(LINK32EXE) @<< $(LINK32EXE_FLAGS) /pdb:"client.pdb" /out:"client.exe" $(client_objs) $(common_objs)
 <<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;1
 
 sample-server.exe: $(sample_server_objs)
 	$(LINK32EXE) @<< $(LINK32EXE_FLAGS) /pdb:"sample-server.pdb" /out:"sample-server.exe" $(sample_server_objs)
 <<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;1
 
 sample-client.exe: $(sample_client_objs)
 	$(LINK32EXE) @<< $(LINK32EXE_FLAGS) /pdb:"sample-client.pdb" /out:"sample-client.exe" $(sample_client_objs)
 <<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;1
 
 getaddrinfo.c: ..\lib\getaddrinfo.c
 	copy ..\lib\getaddrinfo.c .
@@ -84,6 +88,7 @@ CLEAN :
 	-@erase "*.idb"
 	-@erase "*.pch"
 	-@erase "*.pdb"
+	-@erase "*.manifest"
 	-@erase $(all_out)
 	-@erase getaddrinfo.c
 

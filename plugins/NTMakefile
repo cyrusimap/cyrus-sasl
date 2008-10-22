@@ -179,55 +179,68 @@ db_berkeley.c: ..\sasldb\db_berkeley.c
 saslANONYMOUS.dll: $(saslANONYMOUS_objs) saslANONYMOUS.res
 	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"saslANONYMOUS.dll" /implib:"saslANONYMOUS.lib" $(saslANONYMOUS_objs) saslANONYMOUS.res
 <<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 
 saslPLAIN.dll: $(saslPLAIN_objs) saslPLAIN.res
 	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"saslPLAIN.dll" /implib:"saslPLAIN.lib" $(saslPLAIN_objs) saslPLAIN.res
 <<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 
 saslCRAMMD5.dll: $(saslCRAMMD5_objs) saslCRAMMD5.res
 	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"saslCRAMMD5.dll" /implib:"saslCRAMMD5.lib" $(saslCRAMMD5_objs) saslCRAMMD5.res
 <<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 
 saslDIGESTMD5.dll: $(saslDIGESTMD5_objs) saslDIGESTMD5.res
 	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"saslDIGESTMD5.dll" /implib:"saslDIGESTMD5.lib" $(saslDIGESTMD5_objs) saslDIGESTMD5.res
 <<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 
 saslLOGIN.dll: $(saslLOGIN_objs) saslLOGIN.res
 	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"saslLOGIN.dll" /implib:"saslLOGIN.lib" $(saslLOGIN_objs) saslLOGIN.res
 <<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 
 saslNTLM.dll: $(saslNTLM_objs) saslNTLM.res
 	$(LINK32DLL) @<< $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslNTLM.dll" /implib:"saslNTLM.lib" $(saslNTLM_objs) saslNTLM.res
 <<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 
 saslGSSAPI.dll: $(saslGSSAPI_objs) saslGSSAPI.res
 	$(LINK32DLL) @<< $(GSS_LIBS) $(LINK32DLL_FLAGS) /out:"saslGSSAPI.dll" /implib:"saslGSSAPI.lib" $(saslGSSAPI_objs) saslGSSAPI.res
 <<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 
 saslSRP.dll: $(saslSRP_objs) saslSRP.res
 	$(LINK32DLL) @<< $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslSRP.dll" /implib:"saslSRP.lib" $(saslSRP_objs) saslSRP.res
 <<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 
 saslOTP.dll: $(saslOTP_objs) saslOTP.res
 	$(LINK32DLL) @<< $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslOTP.dll" /implib:"saslOTP.lib" $(saslOTP_objs) saslOTP.res
 <<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 
 saslSASLDB.dll: $(saslSASLDB_objs) saslSASLDB.res
 	$(LINK32DLL) @<< $(DB_LIBS) $(LINK32DLL_FLAGS) /out:"saslSASLDB.dll" /implib:"saslSASLDB.lib" $(saslSASLDB_objs) saslSASLDB.res
 <<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 
 saslSQLITE.dll: $(saslSQL_objs) saslSQLITE.res
 	$(LINK32DLL) @<< $(SQLITE_LIBS) $(LINK32DLL_FLAGS) /out:"saslSQLITE.dll" /implib:"saslSQLITE.lib" $(saslSQL_objs) saslSQLITE.res
 <<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 
 saslLDAPDB.dll: $(saslLDAPDB_objs) saslLDAPDB.res
 	$(LINK32DLL) @<< $(LDAP_LIBS) $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslLDAPDB.dll" /implib:"saslLDAPDB.lib" $(saslLDAPDB_objs) saslLDAPDB.res
 <<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 
 CLEAN :
 	-@erase $(all_objs)
 	-@erase "*.idb"
 	-@erase "*.pdb"
+	-@erase "*.manifest"
 	-@erase getaddrinfo.c
 	-@erase allockey.c
 	-@erase db_berkeley.c

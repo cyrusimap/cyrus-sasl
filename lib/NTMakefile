@@ -38,8 +38,10 @@ all: all-recursive
 #
 install: libsasl.dll
 	@echo libsasl.exp > $(exclude_list)
-	@echo libsasl.lib >> $(exclude_list)
 	@echo libsasl.res >> $(exclude_list)
+	@echo libsasl.dll.manifest >> $(exclude_list)
+# .lib is excluded only because it is copied separately below
+	@echo libsasl.lib >> $(exclude_list)
 	@xcopy libsasl.* $(bindir) /I /F /Y /EXCLUDE:$(exclude_list)
 	@xcopy libsasl.l* $(libdir) /I /F /Y
 
@@ -48,6 +50,7 @@ all-recursive: libsasl.dll
 libsasl.dll: $(libsasl_objs) $(libsasl_res)
 	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"libsasl.dll" /implib:"libsasl.lib" /pdb:"libsasl.pdb" $(libsasl_objs) $(libsasl_res)
 <<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 
 plugin_common.c: ..\plugins\plugin_common.c plugin_common.h
 	copy ..\plugins\plugin_common.c .
@@ -55,12 +58,15 @@ plugin_common.c: ..\plugins\plugin_common.c plugin_common.h
 plugin_common.h: ..\plugins\plugin_common.h
 	copy ..\plugins\plugin_common.h .
 
-client.c common.c external.c plugin_common.c server.c seterror.c: ..\include\saslplug.h
+auxprop.c checkpw.c client.c common.c external.c plugin_common.c server.c seterror.c: ..\include\saslplug.h
+
+auxprop.c canonusr.c checkpw.c client.c common.c config.c external.c getsubopt.c md5.c plugin_common.c server.c seterror.c windlopen.c: ..\include\sasl.h
 
 CLEAN :
 	-@erase $(all_objs)
 	-@erase "*.idb"
 	-@erase "*.pdb"
+	-@erase "*.manifest"
 	-@erase $(all_out)
 	-@erase plugin_common.h
 	-@erase plugin_common.c

@@ -1,7 +1,7 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Rob Siemborski
  * Tim Martin
- * $Id: db_berkeley.c,v 1.8 2006/04/03 10:58:19 mel Exp $
+ * $Id: db_berkeley.c,v 1.9 2008/10/23 19:24:46 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -50,6 +50,7 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <errno.h>
 #include "sasldb.h"
 
 static int db_ok = 0;
@@ -114,6 +115,11 @@ static int berkeleydb_open(const sasl_utils_t *utils,
 #endif /* DB_VERSION_MAJOR < 3 */
 
     if (ret != 0) {
+	if (rdwr == 0 && ret == ENOENT) {
+	    /* File not found and we are only reading the data.
+	       Treat as SASL_NOUSER. */
+	    return SASL_NOUSER;
+	}
 	utils->log(conn, SASL_LOG_ERR,
 		   "unable to open Berkeley db %s: %s",
 		   path, db_strerror(ret));

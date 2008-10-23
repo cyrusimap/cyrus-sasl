@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.74 2008/10/02 16:05:23 murch Exp $
+ * $Id: checkpw.c,v 1.75 2008/10/23 19:17:00 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -164,14 +164,16 @@ static int auxprop_verify_password(sasl_conn_t *conn,
     
     result = prop_getnames(sconn->sparams->propctx, password_request,
 			   auxprop_values);
-    if(result < 0)
+    if (result < 0) {
 	return result;
+    }
 
-    if((!auxprop_values[0].name
-         || !auxprop_values[0].values || !auxprop_values[0].values[0])
-       && (!auxprop_values[1].name
-         || !auxprop_values[1].values || !auxprop_values[1].values[0]))
-	    return SASL_NOUSER;
+    /* Verify that the returned <name>s are correct.
+       But we defer checking for NULL values till after we verify
+       that a passwd is specified. */
+    if (!auxprop_values[0].name && !auxprop_values[1].name) {
+	return SASL_NOUSER;
+    }
         
     /* It is possible for us to get useful information out of just
      * the lookup, so we won't check that we have a password until now */
@@ -180,6 +182,11 @@ static int auxprop_verify_password(sasl_conn_t *conn,
 	goto done;
     }
 
+    if ((!auxprop_values[0].values || !auxprop_values[0].values[0])
+	&& (!auxprop_values[1].values || !auxprop_values[1].values[0])) {
+	return SASL_NOUSER;
+    }
+        
     /* At the point this has been called, the username has been canonified
      * and we've done the auxprop lookup.  This should be easy. */
     if(auxprop_values[0].name

@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.61 2008/10/21 13:16:39 mel Exp $
+ * $Id: saslint.h,v 1.62 2008/10/23 14:35:53 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -351,7 +351,6 @@ extern int _sasl_locate_entry(void *library, const char *entryname,
                               void **entry_point);
 extern int _sasl_done_with_plugins();
 
-
 /*
  * common.c
  */
@@ -465,7 +464,7 @@ extern int _sasl_auxprop_verify_apop(sasl_conn_t *conn,
 				     const char *user_realm);
 #endif /* DO_SASL_CHECKAPOP */
 
-/* Auxprop Plugin (checkpw.c) */
+/* Auxprop Plugin (sasldb.c) */
 extern int sasldb_auxprop_plug_init(const sasl_utils_t *utils,
 				    int max_version,
 				    int *out_version,
@@ -494,5 +493,14 @@ extern int _sasl_canon_user(sasl_conn_t *conn,
 			    const char *user, unsigned ulen,
 			    unsigned flags,
 			    sasl_out_params_t *oparams);
+
+/*
+ * saslutil.c
+ */
+int get_fqhostname(
+  char *name,  
+  int namelen,
+  int abort_if_no_fqdn
+  );
 
 #endif /* SASLINT_H */

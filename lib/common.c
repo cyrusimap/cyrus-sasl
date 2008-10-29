@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.120 2008/10/23 14:35:53 mel Exp $
+ * $Id: common.c,v 1.121 2008/10/29 18:33:52 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -786,7 +786,19 @@ int _sasl_conn_init(sasl_conn_t *conn,
 int _sasl_common_init(sasl_global_callbacks_t *global_callbacks)
 {
     int result;
-    
+
+    /* The last specified global callback always wins */
+    if (sasl_global_utils != NULL) {
+	sasl_utils_t * global_utils = (sasl_utils_t *)sasl_global_utils;
+	global_utils->getopt = &_sasl_global_getopt;
+	global_utils->getopt_context = global_callbacks;
+    }
+
+    /* Do nothing if we are already initialized */
+    if (free_mutex) {
+	return SASL_OK;
+    }
+
     /* Setup the global utilities */
     if(!sasl_global_utils) {
 	sasl_global_utils = _sasl_alloc_utils(NULL, global_callbacks);
@@ -797,8 +809,9 @@ int _sasl_common_init(sasl_global_callbacks_t *global_callbacks)
     result = sasl_canonuser_add_plugin("INTERNAL", internal_canonuser_init);
     if(result != SASL_OK) return result;    
 
-    if (!free_mutex)
+    if (!free_mutex) {
 	free_mutex = sasl_MUTEX_ALLOC();
+    }
     if (!free_mutex) return SASL_FAIL;
 
     return SASL_OK;

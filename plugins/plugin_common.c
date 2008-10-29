@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.c,v 1.20 2004/06/23 18:43:37 rjs3 Exp $
+ * $Id: plugin_common.c,v 1.21 2008/10/29 13:10:38 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -290,7 +290,7 @@ void _plug_free_secret(const sasl_utils_t *utils, sasl_secret_t **secret)
 {
     if(!utils || !secret || !(*secret)) return;
 
-    utils->erasebuffer((*secret)->data, (*secret)->len);
+    utils->erasebuffer((char *)(*secret)->data, (*secret)->len);
     utils->free(*secret);
     *secret = NULL;
 }

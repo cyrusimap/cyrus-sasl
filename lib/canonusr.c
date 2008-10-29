@@ -1,6 +1,6 @@
 /* canonusr.c - user canonicalization support
  * Rob Siemborski
- * $Id: canonusr.c,v 1.16 2008/10/29 14:11:28 mel Exp $
+ * $Id: canonusr.c,v 1.17 2008/10/29 15:01:30 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -63,7 +63,6 @@ static canonuser_plug_list_t *canonuser_head = NULL;
 /* default behavior:
  *                   eliminate leading & trailing whitespace,
  *                   null-terminate, and get into the outparams
- *
  *                   (handled by INTERNAL plugin) */
 /* Also does auxprop lookups once username is canonicalized */
 /* a zero ulen or alen indicates that it is strlen(value) */
@@ -183,9 +182,25 @@ int _sasl_canon_user(sasl_conn_t *conn,
 	oparams->user = conn->user_buf;
     }
 
+    RETURN(conn, result);
+}
+
+/* Lookup all properties for authentication and/or authorization identity. */
+int _sasl_auxprop_lookup_user_props (sasl_conn_t *conn,
+				     unsigned flags,
+				     sasl_out_params_t *oparams)
+{
+    sasl_server_conn_t *sconn = NULL;
+    int result = SASL_OK;
+
+    if (!conn) return SASL_BADPARAM;    
+    if (!oparams) return SASL_BADPARAM;
+
 #ifndef macintosh
+    if (conn->type == SASL_CONN_SERVER) sconn = (sasl_server_conn_t *)conn;
+
     /* do auxprop lookups (server only) */
-    if(sconn) {
+    if (sconn) {
 	int authz_result;
 
 	if(flags & SASL_CU_AUTHID) {
@@ -198,17 +213,47 @@ int _sasl_canon_user(sasl_conn_t *conn,
 	    authz_result = _sasl_auxprop_lookup(sconn->sparams, SASL_AUXPROP_AUTHZID,
 				 oparams->user, oparams->ulen);
 
-	    if (authz_result == SASL_NOUSER) {
-		if (result == SASL_CONTINUE) {
-		    result = authz_result;
-		}
-	    } else {
+	    if (result == SASL_CONTINUE) {
+		/* Only SASL_CU_AUTHZID was requested.
+		   The authz_result value is authoritative. */
+		result = authz_result;
+	    } else if (result == SASL_OK && authz_result != SASL_NOUSER) {
+		/* Use the authz_result value, unless "result"
+		   already contains an error */
 		result = authz_result;
 	    }
 	}
     }
 #endif
 
+    RETURN(conn, result);
+}
+
+/* default behavior:
+ *                   Eliminate leading & trailing whitespace,
+ *                   null-terminate, and get into the outparams
+ *                   (handled by INTERNAL plugin).
+ *
+ *                   Also does auxprop lookups once username
+ *                   is canonicalized. */
+int _sasl_canon_user_lookup (sasl_conn_t *conn,
+			     const char *user,
+			     unsigned ulen,
+			     unsigned flags,
+			     sasl_out_params_t *oparams)
+{
+    int result;
+
+    result = _sasl_canon_user (conn,
+			       user,
+			       ulen,
+			       flags,
+			       oparams);
+    if (result == SASL_OK) {
+	result = _sasl_auxprop_lookup_user_props (conn,
+						  flags,
+						  oparams);
+    }
 
     RETURN(conn, result);
 }

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.76 2008/10/29 14:09:55 mel Exp $
+ * $Id: checkpw.c,v 1.77 2008/10/29 15:01:30 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -157,9 +157,11 @@ static int auxprop_verify_password(sasl_conn_t *conn,
 
     if(result != SASL_OK) return result;
 
-    result = _sasl_canon_user(conn, userstr, 0,
-			      SASL_CU_AUTHID | SASL_CU_AUTHZID,
-			      &(conn->oparams));
+    result = _sasl_canon_user_lookup (conn,
+				      userstr,
+				      0,
+				      SASL_CU_AUTHID | SASL_CU_AUTHZID,
+				      &(conn->oparams));
     if(result != SASL_OK) return result;
     
     result = prop_getnames(sconn->sparams->propctx, password_request,

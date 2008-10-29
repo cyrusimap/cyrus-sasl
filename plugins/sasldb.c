@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: sasldb.c,v 1.13 2008/10/29 14:11:28 mel Exp $
+ * $Id: sasldb.c,v 1.14 2008/10/29 15:01:31 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,16 +122,28 @@ static int sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
 			      sparams->utils->conn, userid, realm,
 			      realname, value, sizeof(value), &value_len);
 
-	/* Only save SASL_NOUSER, if we never had any other error/success code */
-	if (cur_ret == SASL_NOUSER) {
-	    if (ret == SASL_CONTINUE) {
-		ret = SASL_NOUSER;
-	    }
-	} else {
+	/* Assumption: cur_ret is never SASL_CONTINUE */
+
+	/* If this is the first property we've tried to fetch ==>
+	   always set the global error code.
+	   If we had SASL_NOUSER ==> any other error code overrides it
+	   (including SASL_NOUSER). */
+	if (ret == SASL_CONTINUE || ret == SASL_NOUSER) {
 	    ret = cur_ret;
+	} else if (ret == SASL_OK) {
+	    /* Any error code other than SASL_NOUSER overrides SASL_OK.
+	       (And SASL_OK overrides SASL_OK as well) */
+	    if (cur_ret != SASL_NOUSER) {
+		ret = cur_ret;
+	    }
 	}
+	/* Any other global error code is left as is */
 
 	if (cur_ret != SASL_OK) {
+	    if (cur_ret != SASL_NOUSER) {
+		/* No point in continuing if we hit any serious error */
+		break;
+	    }
 	    /* We didn't find it, leave it as not found */
 	    continue;
 	}
@@ -140,9 +152,21 @@ static int sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
 				 value, (unsigned) value_len);
     }
 
+    /* [Keep in sync with LDAPDB, SQL]
+       If ret is SASL_CONTINUE, it means that no properties were requested
+       (or maybe some were requested, but they already have values and
+       SASL_AUXPROP_OVERRIDE flag is not set).
+       Always return SASL_OK in this case. */
     if (ret == SASL_CONTINUE) {
-	/* TODO: Should we use SASL_OK instead? */
-	ret = SASL_NOUSER;
+        ret = SASL_OK;
+    }
+
+    if (flags & SASL_AUXPROP_AUTHZID) {
+	/* This is a lie, but the caller can't handle
+	   when we return SASL_NOUSER for authorization identity lookup. */
+	if (ret == SASL_NOUSER) {
+	    ret = SASL_OK;
+	}
     }
 
  done:

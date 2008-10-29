@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.151 2008/10/29 14:10:20 mel Exp $
+ * $Id: server.c,v 1.152 2008/10/29 15:01:31 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1005,7 +1005,7 @@ int sasl_server_new(const char *service,
       serverconn->sparams->transition = &_sasl_transition;
   }
 
-  serverconn->sparams->canon_user = &_sasl_canon_user;
+  serverconn->sparams->canon_user = &_sasl_canon_user_lookup;
   serverconn->sparams->props = serverconn->base.props;
   serverconn->sparams->flags = flags;
 
@@ -1761,7 +1761,7 @@ int sasl_checkpass(sasl_conn_t *conn,
     if(result != SASL_OK) RETURN(conn, result);
     user = conn->oparams.user;
 
-    /* Check the password */
+    /* Check the password and lookup additional properties */
     result = _sasl_checkpass(conn, user, userlen, pass, passlen);
 
     /* Do authorization */
@@ -1832,7 +1832,7 @@ int sasl_user_exists(sasl_conn_t *conn,
 
     /* Screen out the SASL_BADPARAM response
      * we'll get from not giving a password */
-    if(result == SASL_BADPARAM) {
+    if (result == SASL_BADPARAM) {
 	result = SASL_OK;
     }
 
@@ -1923,10 +1923,12 @@ int sasl_checkapop(sasl_conn_t *conn,
     s_conn->sparams->utils->prop_erase(s_conn->sparams->propctx,
 				       password_request[0]);
 
-    /* Cannonify it */
-    result = _sasl_canon_user(conn, user, user_len,
-	                      SASL_CU_AUTHID | SASL_CU_AUTHZID,
-	                      &(conn->oparams));
+    /* canonicalize the username and lookup any associated properties */
+    result = _sasl_canon_user_lookup (conn,
+				      user,
+				      user_len,
+				      SASL_CU_AUTHID | SASL_CU_AUTHZID,
+				      &(conn->oparams));
     sasl_FREE(user);
 
     if(result != SASL_OK) RETURN(conn, result);

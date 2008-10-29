@@ -7,7 +7,7 @@
 ** Simon Loader -- original mysql plugin
 ** Patrick Welche -- original pgsql plugin
 **
-** $Id: sql.c,v 1.30 2007/03/02 16:55:54 mel Exp $
+** $Id: sql.c,v 1.31 2008/10/29 09:23:18 mel Exp $
 **
 */
 
@@ -861,6 +861,8 @@ static void sql_auxprop_lookup(void *glob_context,
 	sparams->utils->log(NULL, SASL_LOG_DEBUG,
 			    "sql plugin doing query %s\n", query);
 	
+	value[0] = '\0';
+	value_len = 0;
 	/* run the query */
 	if (!settings->sql_engine->sql_exec(conn, query, value, sizeof(value),
 					    &value_len, sparams->utils)) {

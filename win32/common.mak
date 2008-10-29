@@ -4,6 +4,10 @@ SASL_VERSION_MAJOR=2
 SASL_VERSION_MINOR=1
 SASL_VERSION_STEP=22
 
+!IF "$(STATIC)" == ""
+STATIC=yes
+!ENDIF
+
 # Uncomment the following line, if you want to use Visual Studio 6
 #VCVER=6
 
@@ -19,8 +23,14 @@ CPP=cl.exe /nologo
 LINK32=link.exe /nologo
 LINK32DLL=$(LINK32) /dll
 LINK32EXE=$(LINK32)
+# It seems that -lib must be the first parameter
+LINK32LIB=link.exe /lib /nologo
 
 SYS_LIBS=ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib
+
+!IF "$(BITS)" == "64"
+SYS_LIBS=$(SYS_LIBS) bufferoverflowU.lib
+!ENDIF
 
 # Define the minimal Windows OS you want to run on:40 (NT), 50 (W2K), 51 (XP)
 # Default is no restrictions. Currently we only check for 51 or later.
@@ -151,7 +161,11 @@ ENABLE_WIN64_WARNINGS=/Wp64
 
 CPP_PROJ= $(CODEGEN) /W3 $(EXCEPTHANDLING) /O2 $(ENABLE_WIN64_WARNINGS) /Zi /D "NDEBUG" $(CPPFLAGS) /FD /c 
 
-LINK32_FLAGS=/incremental:no /debug /machine:I386
+incremental=no
+
+# This use to contain /machine:I386. This breaks cross compiling to Windows 64.
+# It doesn't seem that the /machine option is needed anyway.
+LINK32_FLAGS=/debug
 
 !ELSEIF  "$(CFG)" == "Debug"
 
@@ -168,12 +182,20 @@ CODEGEN=/MDd
 
 CPP_PROJ=$(CODEGEN) /W3 /Gm $(EXCEPTHANDLING) /ZI /Od /D "_DEBUG" $(CPPFLAGS) /FD /GZ /c 
 
-LINK32_FLAGS=/incremental:yes /debug /machine:I386 /pdbtype:sept 
+incremental=yes
+
+# This use to contain /machine:I386. This breaks cross compiling to Windows 64.
+# It doesn't seem that the /machine option is needed anyway.
+LINK32_FLAGS=/debug /pdbtype:sept
 
 !ENDIF
 
-LINK32DLL_FLAGS=$(LINK32_FLAGS) $(SYS_LIBS) $(EXTRA_LIBS)
+LINK32DLL_FLAGS=/incremental:$(incremental) $(LINK32_FLAGS) $(SYS_LIBS) $(EXTRA_LIBS)
 
 # Assume we are only building console applications
-LINK32EXE_FLAGS=/subsystem:console $(LINK32_FLAGS) $(SYS_LIBS) $(EXTRA_LIBS)
+LINK32EXE_FLAGS=/subsystem:console /incremental:$(incremental) $(LINK32_FLAGS) $(SYS_LIBS) $(EXTRA_LIBS)
 
+# Assume we are only building console applications
+LINK32EXE_FLAGS=/subsystem:console /incremental:$(incremental) $(LINK32_FLAGS) $(SYS_LIBS) $(EXTRA_LIBS)
+
+LINK32LIB_FLAGS=$(LINK32_FLAGS)

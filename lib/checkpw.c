@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.75 2008/10/23 19:17:00 mel Exp $
+ * $Id: checkpw.c,v 1.76 2008/10/29 14:09:55 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -126,7 +126,7 @@ static int _sasl_make_plain_secret(const char *salt,
     return SASL_OK;
 }
 
-/* erase & dispose of a sasl_secret_t
+/* verify user password using auxprop plugins
  */
 static int auxprop_verify_password(sasl_conn_t *conn,
 				   const char *userstr,

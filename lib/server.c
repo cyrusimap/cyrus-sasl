@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.150 2008/10/29 09:24:56 mel Exp $
+ * $Id: server.c,v 1.151 2008/10/29 14:10:20 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1784,6 +1784,7 @@ int sasl_checkpass(sasl_conn_t *conn,
  *  SASL_NOUSER   -- user not found
  *  SASL_NOVERIFY -- user found, but no usable mechanism [FIXME: not supported]
  *  SASL_NOMECH   -- no mechanisms enabled
+ *  SASL_UNAVAIL  -- remote authentication server unavailable, try again later
  */
 int sasl_user_exists(sasl_conn_t *conn,
 		     const char *service,

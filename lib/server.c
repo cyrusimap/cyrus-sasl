@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.149 2008/10/23 14:35:53 mel Exp $
+ * $Id: server.c,v 1.150 2008/10/29 09:24:56 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -116,7 +116,8 @@ sasl_global_callbacks_t global_callbacks;
 
 int sasl_setpass(sasl_conn_t *conn,
 		 const char *user,
-		 const char *pass, unsigned passlen,
+		 const char *pass,
+		 unsigned passlen,
 		 const char *oldpass,
 		 unsigned oldpasslen,
 		 unsigned flags)
@@ -1019,9 +1020,11 @@ int sasl_server_new(const char *service,
 
 /*
  * The rule is:
- * IF mech strength + external strength < min ssf THEN FAIL
+ * IF mech strength + external strength < min ssf THEN FAIL.
  * We also have to look at the security properties and make sure
- * that this mechanism has everything we want
+ * that this mechanism has everything we want.
+ * The mechanism should also be listed in "mech_list" option,
+ * if it is not NULL.
  */
 static int mech_permitted(sasl_conn_t *conn,
 			  mechanism_t *mech)
@@ -1517,7 +1520,7 @@ static unsigned mech_names_len()
 
 /* This returns a list of mechanisms in a NUL-terminated string
  *
- * The default behavior is to seperate with spaces if sep==NULL
+ * The default behavior is to separate with spaces if sep == NULL
  */
 int _sasl_server_listmech(sasl_conn_t *conn,
 			  const char *user __attribute__((unused)),

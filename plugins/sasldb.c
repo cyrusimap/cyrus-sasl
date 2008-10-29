@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: sasldb.c,v 1.12 2007/03/02 16:55:54 mel Exp $
+ * $Id: sasldb.c,v 1.13 2008/10/29 14:11:28 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -56,7 +56,7 @@
 
 #include "plugin_common.h"
 
-static void sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
+static int sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
 				  sasl_server_params_t *sparams,
 				  unsigned flags,
 				  const char *user,
@@ -71,10 +71,11 @@ static void sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
     size_t value_len;
     char *user_buf;
     
-    if(!sparams || !user) return;
+    if (!sparams || !user)  return SASL_BADPARAM;
 
     user_buf = sparams->utils->malloc(ulen + 1);
     if(!user_buf) {
+	ret = SASL_NOMEM;
 	goto done;
     }
 
@@ -92,9 +93,15 @@ static void sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
     if(ret != SASL_OK) goto done;
 
     to_fetch = sparams->utils->prop_get(sparams->propctx);
-    if(!to_fetch) goto done;
+    if (!to_fetch) {
+	ret = SASL_NOMEM;
+	goto done;
+    }
 
+    /* Use a fake value to signal that we have no property to lookup */
+    ret = SASL_CONTINUE;
     for(cur = to_fetch; cur->name; cur++) {
+	int cur_ret;
 	const char *realname = cur->name;
 	
 	/* Only look up properties that apply to this lookup! */
@@ -111,10 +118,20 @@ static void sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
 	else if(cur->values)
 	    sparams->utils->prop_erase(sparams->propctx, cur->name);
 	    
-	ret = _sasldb_getdata(sparams->utils,
+	cur_ret = _sasldb_getdata(sparams->utils,
 			      sparams->utils->conn, userid, realm,
 			      realname, value, sizeof(value), &value_len);
-	if(ret != SASL_OK) {
+
+	/* Only save SASL_NOUSER, if we never had any other error/success code */
+	if (cur_ret == SASL_NOUSER) {
+	    if (ret == SASL_CONTINUE) {
+		ret = SASL_NOUSER;
+	    }
+	} else {
+	    ret = cur_ret;
+	}
+
+	if (cur_ret != SASL_OK) {
 	    /* We didn't find it, leave it as not found */
 	    continue;
 	}
@@ -123,10 +140,17 @@ static void sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
 				 value, (unsigned) value_len);
     }
 
+    if (ret == SASL_CONTINUE) {
+	/* TODO: Should we use SASL_OK instead? */
+	ret = SASL_NOUSER;
+    }
+
  done:
     if (userid) sparams->utils->free(userid);
     if (realm)  sparams->utils->free(realm);
     if (user_buf) sparams->utils->free(user_buf);
+
+    return ret;
 }
 
 static int sasldb_auxprop_store(void *glob_context __attribute__((unused)),
@@ -235,6 +259,7 @@ int sasldb_auxprop_plug_init(const sasl_utils_t *utils,
     if(_sasl_check_db(utils, NULL) != SASL_OK)
 	return SASL_NOMECH;
 
+    /* Check if libsasl API is older than ours. If it is, fail */
     if(max_version < SASL_AUXPROP_PLUG_VERSION) return SASL_BADVERS;
     
     *out_version = SASL_AUXPROP_PLUG_VERSION;

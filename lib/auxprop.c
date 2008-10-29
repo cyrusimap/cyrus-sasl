@@ -1,6 +1,6 @@
 /* auxprop.c - auxilliary property support
  * Rob Siemborski
- * $Id: auxprop.c,v 1.17 2006/07/03 14:43:16 murch Exp $
+ * $Id: auxprop.c,v 1.18 2008/10/29 14:11:28 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -811,6 +811,12 @@ int sasl_auxprop_add_plugin(const char *plugname,
     result = auxpropfunc(sasl_global_utils, SASL_AUXPROP_PLUG_VERSION,
 			 &out_version, &plug, plugname);
 
+    /* Check if out_version is too old.
+       We only support the current at the moment */
+    if (result == SASL_OK && out_version < SASL_AUXPROP_PLUG_VERSION) {
+        result = SASL_BADVERS;
+    }
+
     if(result != SASL_OK) {
 	_sasl_log(NULL, SASL_LOG_ERR, "auxpropfunc error %s\n",
 		  sasl_errstring(result, NULL, NULL));
@@ -846,9 +852,56 @@ void _sasl_auxprop_free()
     auxprop_head = NULL;
 }
 
+/* Return the updated account status based on the current ("so far") and
+   the specific status returned by the latest auxprop call */
+static int
+_sasl_account_status (int current_status,
+                      int specific_status)
+{
+    switch (specific_status) {
+	case SASL_NOVERIFY:
+	    specific_status = SASL_OK;
+	    /* fall through */
+	case SASL_OK:
+	    if (current_status == SASL_NOMECH ||
+		current_status == SASL_NOUSER) {
+		current_status = specific_status;
+	    }
+	    break;
+
+	case SASL_NOUSER:
+	    if (current_status == SASL_NOMECH) {
+		current_status = specific_status;
+	    }
+	    break;
+
+	/* NOTE: The disabled flag sticks, unless we hit an error */
+	case SASL_DISABLED:
+	    if (current_status == SASL_NOMECH ||
+		current_status == SASL_NOUSER ||
+		current_status == SASL_OK) {
+		current_status = specific_status;
+	    }
+	    break;
+
+	case SASL_NOMECH:
+	    /* ignore */
+	    break;
+
+	/* SASL_UNAVAIL overrides everything */
+	case SASL_UNAVAIL:
+	    current_status = specific_status;
+	    break;
+
+	default:
+	    current_status = specific_status;
+	    break;
+    }
+    return (current_status);
+}
 
 /* Do the callbacks for auxprop lookups */
-void _sasl_auxprop_lookup(sasl_server_params_t *sparams,
+int _sasl_auxprop_lookup(sasl_server_params_t *sparams,
 			  unsigned flags,
 			  const char *user, unsigned ulen) 
 {
@@ -857,6 +910,7 @@ void _sasl_auxprop_lookup(sasl_server_params_t *sparams,
     void *context;
     const char *plist = NULL;
     auxprop_plug_list_t *ptr;
+    int result = SASL_NOMECH;
 
     if(_sasl_getcallback(sparams->utils->conn,
 			 SASL_CB_GETOPT, &getopt, &context) == SASL_OK) {
@@ -866,15 +920,19 @@ void _sasl_auxprop_lookup(sasl_server_params_t *sparams,
 
     if(!plist) {
 	/* Do lookup in all plugins */
+
+	/* TODO: Ideally, each auxprop plugin should be marked if its failure
+	   should be ignored or treated as a fatal error of the whole lookup. */
 	for(ptr = auxprop_head; ptr; ptr = ptr->next) {
 	    found=1;
-	    ptr->plug->auxprop_lookup(ptr->plug->glob_context,
+	    ret = ptr->plug->auxprop_lookup(ptr->plug->glob_context,
 				      sparams, flags, user, ulen);
+	    result = _sasl_account_status (result, ret);
 	}
     } else {
 	char *pluginlist = NULL, *freeptr = NULL, *thisplugin = NULL;
 
-	if(_sasl_strdup(plist, &pluginlist, NULL) != SASL_OK) return;
+	if(_sasl_strdup(plist, &pluginlist, NULL) != SASL_OK) return SASL_NOMEM;
 	thisplugin = freeptr = pluginlist;
 	
 	/* Do lookup in all *specified* plugins, in order */
@@ -896,8 +954,9 @@ void _sasl_auxprop_lookup(sasl_server_params_t *sparams,
 		    continue;
 	    
 		found=1;
-		ptr->plug->auxprop_lookup(ptr->plug->glob_context,
+		ret = ptr->plug->auxprop_lookup(ptr->plug->glob_context,
 					  sparams, flags, user, ulen);
+		result = _sasl_account_status (result, ret);
 	    }
 
 	    if(last) break;
@@ -908,10 +967,13 @@ void _sasl_auxprop_lookup(sasl_server_params_t *sparams,
 	sasl_FREE(freeptr);
     }
 
-    if(!found)
+    if(!found) {
 	_sasl_log(sparams->utils->conn, SASL_LOG_DEBUG,
 		  "could not find auxprop plugin, was searching for '%s'",
 		  plist ? plist : "[all]");
+    }
+
+    return result;
 }
 
 /* Do the callbacks for auxprop stores */

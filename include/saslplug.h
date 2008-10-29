@@ -888,7 +888,7 @@ typedef struct sasl_auxprop_plug {
      *  last element in array has id of SASL_AUX_END
      *  elements with non-0 len should be ignored.
      */
-    void (*auxprop_lookup)(void *glob_context,
+    int (*auxprop_lookup)(void *glob_context,
 			   sasl_server_params_t *sparams,
 			   unsigned flags,
 			   const char *user, unsigned ulen);
@@ -919,7 +919,7 @@ typedef struct sasl_auxprop_plug {
 				    * we are looking up the authzid flags
 				    * (no prefix) */
 
-#define SASL_AUXPROP_PLUG_VERSION 4
+#define SASL_AUXPROP_PLUG_VERSION 5
 
 /* default name for auxprop plug-in entry point is "sasl_auxprop_init"
  *  similar to sasl_server_plug_init model, except only returns one

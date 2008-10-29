@@ -1,6 +1,6 @@
 /* canonusr.c - user canonicalization support
  * Rob Siemborski
- * $Id: canonusr.c,v 1.15 2004/02/20 23:54:51 rjs3 Exp $
+ * $Id: canonusr.c,v 1.16 2008/10/29 14:11:28 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -186,19 +186,31 @@ int _sasl_canon_user(sasl_conn_t *conn,
 #ifndef macintosh
     /* do auxprop lookups (server only) */
     if(sconn) {
+	int authz_result;
+
 	if(flags & SASL_CU_AUTHID) {
-	    _sasl_auxprop_lookup(sconn->sparams, 0,
+	    result = _sasl_auxprop_lookup(sconn->sparams, 0,
 				 oparams->authid, oparams->alen);
+	} else {
+	    result = SASL_CONTINUE;
 	}
 	if(flags & SASL_CU_AUTHZID) {
-	    _sasl_auxprop_lookup(sconn->sparams, SASL_AUXPROP_AUTHZID,
+	    authz_result = _sasl_auxprop_lookup(sconn->sparams, SASL_AUXPROP_AUTHZID,
 				 oparams->user, oparams->ulen);
+
+	    if (authz_result == SASL_NOUSER) {
+		if (result == SASL_CONTINUE) {
+		    result = authz_result;
+		}
+	    } else {
+		result = authz_result;
+	    }
 	}
     }
 #endif
 
 
-    RETURN(conn, SASL_OK);
+    RETURN(conn, result);
 }
 
 void _sasl_canonuser_free() 

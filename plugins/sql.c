@@ -7,7 +7,7 @@
 ** Simon Loader -- original mysql plugin
 ** Patrick Welche -- original pgsql plugin
 **
-** $Id: sql.c,v 1.31 2008/10/29 09:23:18 mel Exp $
+** $Id: sql.c,v 1.32 2008/10/29 14:11:28 mel Exp $
 **
 */
 
@@ -743,7 +743,7 @@ static void *sql_connect(sql_settings_t *settings, const sasl_utils_t *utils)
     return conn;
 }
 
-static void sql_auxprop_lookup(void *glob_context,
+static int sql_auxprop_lookup(void *glob_context,
 			       sasl_server_params_t *sparams,
 			       unsigned flags,
 			       const char *user,
@@ -755,8 +755,7 @@ static void sql_auxprop_lookup(void *glob_context,
     const char *user_realm = NULL;
     const struct propval *to_fetch, *cur;
     char value[8192];
-    size_t value_len;
-    
+    size_t value_len;    
     char *user_buf;
     char *query = NULL;
     char *escap_userid = NULL;
@@ -764,8 +763,9 @@ static void sql_auxprop_lookup(void *glob_context,
     sql_settings_t *settings;
     void *conn = NULL;
     int do_txn = 0;
+    int ret;
     
-    if (!glob_context || !sparams || !user) return;
+    if (!glob_context || !sparams || !user) return SASL_BADPARAM;
     
     /* setup the settings */
     settings = (sql_settings_t *) glob_context;
@@ -774,7 +774,10 @@ static void sql_auxprop_lookup(void *glob_context,
 			"sql plugin Parse the username %s\n", user);
     
     user_buf = sparams->utils->malloc(ulen + 1);
-    if (!user_buf) goto done;
+    if (!user_buf) {
+	ret = SASL_NOMEM;
+	goto done;
+    }
     
     memcpy(user_buf, user, ulen);
     user_buf[ulen] = '\0';
@@ -785,9 +788,14 @@ static void sql_auxprop_lookup(void *glob_context,
 	user_realm = sparams->serverFQDN;
     }
     
-    if (_plug_parseuser(sparams->utils, &userid, &realm, user_realm,
-			sparams->serverFQDN, user_buf) != SASL_OK )
+    if ((ret = _plug_parseuser(sparams->utils,
+			       &userid,
+			       &realm,
+			       user_realm,
+			       sparams->serverFQDN,
+			       user_buf)) != SASL_OK ) {
 	goto done;
+    }
     
     /* just need to escape userid and realm now */
     /* allocate some memory */
@@ -795,7 +803,7 @@ static void sql_auxprop_lookup(void *glob_context,
     escap_realm = (char *)sparams->utils->malloc(strlen(realm)*2+1);
     
     if (!escap_userid || !escap_realm) {
-	MEMERROR(sparams->utils);
+	ret = SASL_NOMEM;
 	goto done;
     }
     
@@ -804,20 +812,27 @@ static void sql_auxprop_lookup(void *glob_context,
     /* find out what we need to get */
     /* this corrupts const char *user */
     to_fetch = sparams->utils->prop_get(sparams->propctx);
-    if (!to_fetch) goto done;
+    if (!to_fetch) {
+	ret = SASL_NOMEM;
+	goto done;
+    }
 
     conn = sql_connect(settings, sparams->utils);
     if (!conn) {
 	sparams->utils->log(NULL, SASL_LOG_ERR,
 			    "sql plugin couldn't connect to any host\n");
-	
+	/* TODO: in the future we might want to extend the internal
+	   SQL driver API to return a more detailed error */
+	ret = SASL_FAIL;
 	goto done;
     }
     
     /* escape out */
     settings->sql_engine->sql_escape_str(escap_userid, userid);
     settings->sql_engine->sql_escape_str(escap_realm, realm);
-    
+
+    /* Assume that nothing is found */
+    ret = SASL_NOUSER;
     for (cur = to_fetch; cur->name; cur++) {
 	char *realname = (char *) cur->name;
 
@@ -857,6 +872,10 @@ static void sql_auxprop_lookup(void *glob_context,
 				     realname,escap_userid,
 				     escap_realm, NULL,
 				     sparams->utils);
+	if (query == NULL) {
+	    ret = SASL_NOMEM;
+	    break;
+	}
 	
 	sparams->utils->log(NULL, SASL_LOG_DEBUG,
 			    "sql plugin doing query %s\n", query);
@@ -868,6 +887,7 @@ static void sql_auxprop_lookup(void *glob_context,
 					    &value_len, sparams->utils)) {
 	    sparams->utils->prop_set(sparams->propctx, cur->name,
 				     value, value_len);
+	    ret = SASL_OK;
 	}
 	
 	sparams->utils->free(query);
@@ -878,6 +898,7 @@ static void sql_auxprop_lookup(void *glob_context,
 	if (settings->sql_engine->sql_commit_txn(conn, sparams->utils)) {
 	    sparams->utils->log(NULL, SASL_LOG_ERR, 
 				"Unable to commit transaction\n");
+	    /* Failure of the commit is non fatal when reading values */
 	}
     }
     
@@ -888,6 +909,8 @@ static void sql_auxprop_lookup(void *glob_context,
     if (userid) sparams->utils->free(userid);
     if (realm) sparams->utils->free(realm);
     if (user_buf) sparams->utils->free(user_buf);
+
+    return (ret);
 }
 
 static int sql_auxprop_store(void *glob_context,

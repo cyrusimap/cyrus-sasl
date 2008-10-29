@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.62 2008/10/23 14:35:53 mel Exp $
+ * $Id: saslint.h,v 1.63 2008/10/29 14:11:28 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -476,7 +476,7 @@ extern int sasldb_auxprop_plug_init(const sasl_utils_t *utils,
  */
 extern int _sasl_auxprop_add_plugin(void *p, void *library);
 extern void _sasl_auxprop_free(void);
-extern void _sasl_auxprop_lookup(sasl_server_params_t *sparams,
+extern int _sasl_auxprop_lookup(sasl_server_params_t *sparams,
 				 unsigned flags,
 				 const char *user, unsigned ulen);
 

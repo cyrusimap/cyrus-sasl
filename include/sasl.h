@@ -1120,6 +1120,7 @@ LIBSASL_API int sasl_checkpass(sasl_conn_t *conn,
  *  SASL_NOUSER   -- user not found
  *  SASL_NOVERIFY -- user found, but no usable mechanism
  *  SASL_NOMECH   -- no mechanisms enabled
+ *  SASL_UNAVAIL  -- remote authentication server unavailable, try again later
  */
 LIBSASL_API int sasl_user_exists(sasl_conn_t *conn,
 				 const char *service,

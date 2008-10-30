@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.188 2008/10/30 16:06:26 mel Exp $
+ * $Id: digestmd5.c,v 1.189 2008/10/30 16:11:13 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.188 2008/10/30 16:06:26 mel Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.189 2008/10/30 16:11:13 mel Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -1308,7 +1308,7 @@ static int create_layer_keys(context_t *text,
     
     utils->MD5Init(&Md5Ctx);
     utils->MD5Update(&Md5Ctx, key, keylen);
-    if (text->i_am == SERVER) {
+    if (text->i_am != SERVER) {
 	utils->MD5Update(&Md5Ctx, (const unsigned char *) SEALING_SERVER_CLIENT, 
 			 (unsigned) strlen(SEALING_SERVER_CLIENT));
     } else {

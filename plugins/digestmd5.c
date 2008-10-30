@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.187 2008/10/30 14:19:46 mel Exp $
+ * $Id: digestmd5.c,v 1.188 2008/10/30 16:06:26 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.187 2008/10/30 14:19:46 mel Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.188 2008/10/30 16:06:26 mel Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -343,12 +343,12 @@ DigestCalcResponse(const sasl_utils_t * utils,
     utils->MD5Init(&Md5Ctx);
     
     if (pszMethod != NULL) {
-	utils->MD5Update(&Md5Ctx, pszMethod, strlen((char *) pszMethod));
+	utils->MD5Update(&Md5Ctx, pszMethod, (unsigned) strlen((char *) pszMethod));
     }
     utils->MD5Update(&Md5Ctx, COLON, 1);
     
     /* utils->MD5Update(&Md5Ctx, (unsigned char *) "AUTHENTICATE:", 13); */
-    utils->MD5Update(&Md5Ctx, pszDigestUri, strlen((char *) pszDigestUri));
+    utils->MD5Update(&Md5Ctx, pszDigestUri, (unsigned) strlen((char *) pszDigestUri));
     if (strcasecmp((char *) pszQop, "auth") != 0) {
 	/* append ":00000000000000000000000000000000" */
 	utils->MD5Update(&Md5Ctx, COLON, 1);
@@ -361,15 +361,15 @@ DigestCalcResponse(const sasl_utils_t * utils,
     utils->MD5Init(&Md5Ctx);
     utils->MD5Update(&Md5Ctx, HA1, HASHHEXLEN);
     utils->MD5Update(&Md5Ctx, COLON, 1);
-    utils->MD5Update(&Md5Ctx, pszNonce, strlen((char *) pszNonce));
+    utils->MD5Update(&Md5Ctx, pszNonce, (unsigned) strlen((char *) pszNonce));
     utils->MD5Update(&Md5Ctx, COLON, 1);
     if (*pszQop) {
 	sprintf(ncvalue, "%08x", pszNonceCount);
-	utils->MD5Update(&Md5Ctx, (unsigned char *) ncvalue, strlen(ncvalue));
+	utils->MD5Update(&Md5Ctx, (unsigned char *) ncvalue, (unsigned) strlen(ncvalue));
 	utils->MD5Update(&Md5Ctx, COLON, 1);
-	utils->MD5Update(&Md5Ctx, pszCNonce, strlen((char *) pszCNonce));
+	utils->MD5Update(&Md5Ctx, pszCNonce, (unsigned) strlen((char *) pszCNonce));
 	utils->MD5Update(&Md5Ctx, COLON, 1);
-	utils->MD5Update(&Md5Ctx, pszQop, strlen((char *) pszQop));
+	utils->MD5Update(&Md5Ctx, pszQop, (unsigned) strlen((char *) pszQop));
 	utils->MD5Update(&Md5Ctx, COLON, 1);
     }
     utils->MD5Update(&Md5Ctx, HA2Hex, HASHHEXLEN);
@@ -1299,21 +1299,21 @@ static int create_layer_keys(context_t *text,
     utils->MD5Update(&Md5Ctx, key, keylen);
     if (text->i_am == SERVER) {
 	utils->MD5Update(&Md5Ctx, (const unsigned char *) SEALING_SERVER_CLIENT, 
-			 strlen(SEALING_SERVER_CLIENT));
+			 (unsigned) strlen(SEALING_SERVER_CLIENT));
     } else {
 	utils->MD5Update(&Md5Ctx, (const unsigned char *) SEALING_CLIENT_SERVER,
-			 strlen(SEALING_CLIENT_SERVER));
+			 (unsigned) strlen(SEALING_CLIENT_SERVER));
     }
     utils->MD5Final(enckey, &Md5Ctx);
     
     utils->MD5Init(&Md5Ctx);
     utils->MD5Update(&Md5Ctx, key, keylen);
-    if (text->i_am != SERVER) {
-	utils->MD5Update(&Md5Ctx, (const unsigned char *)SEALING_SERVER_CLIENT, 
-			 strlen(SEALING_SERVER_CLIENT));
+    if (text->i_am == SERVER) {
+	utils->MD5Update(&Md5Ctx, (const unsigned char *) SEALING_SERVER_CLIENT, 
+			 (unsigned) strlen(SEALING_SERVER_CLIENT));
     } else {
-	utils->MD5Update(&Md5Ctx, (const unsigned char *)SEALING_CLIENT_SERVER,
-			 strlen(SEALING_CLIENT_SERVER));
+	utils->MD5Update(&Md5Ctx, (const unsigned char *) SEALING_CLIENT_SERVER,
+			 (unsigned) strlen(SEALING_CLIENT_SERVER));
     }
     utils->MD5Final(deckey, &Md5Ctx);
     
@@ -1424,7 +1424,8 @@ static int digestmd5_encode(void *context,
 	text->utils->hmac_md5((const unsigned char *) text->encode_buf,
 			      inblob->curlen + 4, 
 			      text->Ki_send, HASHLEN,
-			      (unsigned char *) text->encode_buf + inblob->curlen + 4);
+			      (unsigned char *) text->encode_buf +
+						inblob->curlen + 4);
 
 	*outputlen = inblob->curlen + 10; /* for message + CMAC */
 	out+=inblob->curlen + 10;
@@ -1731,6 +1732,8 @@ static char *create_response(context_t * text,
     
     /* response_value (used for reauth i think) */
     if (response_value != NULL) {
+	char * new_response_value;
+
 	DigestCalcResponse(utils,
 			   SessionKey,	/* HEX(H(A1)) */
 			   nonce,	/* nonce from server */
@@ -1744,9 +1747,14 @@ static char *create_response(context_t * text,
 			   Response	/* request-digest or response-digest */
 	    );
 	
-	*response_value = utils->realloc(*response_value, HASHHEXLEN + 1);
-	if (*response_value == NULL)
+	new_response_value = utils->realloc(*response_value, HASHHEXLEN + 1);
+	if (new_response_value == NULL) {
+	    free (*response_value);
+	    *response_value = NULL;
 	    return NULL;
+	}
+	*response_value = new_response_value;
+
 	memcpy(*response_value, Response, HASHHEXLEN);
 	(*response_value)[HASHHEXLEN] = 0;
     }
@@ -1915,7 +1923,6 @@ digestmd5_server_mech_step1(server_context_t *stext,
      * charset | cipher-opts | auth-param )
      */
     
-    /* FIXME: get nonce XXX have to clean up after self if fail */
     nonce = create_nonce(sparams->utils);
     if (nonce == NULL) {
 	SETERROR(sparams->utils, "internal erorr: failed creating a nonce");
@@ -2004,7 +2011,6 @@ digestmd5_server_mech_step1(server_context_t *stext,
 	}
     }
     
-
     if (add_to_challenge(sparams->utils,
 			 &text->out_buf, &text->out_buf_len, &resplen,
 			 "charset", 
@@ -2085,7 +2091,7 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     
     /* setting the default value (65536) */
     unsigned long  client_maxbuf = 65536;
-    int            maxbuf_count = 0;  /* How many maxbuf instaces was found */
+    int            maxbuf_count = 0;  /* How many maxbuf instances was found */
     
     char           *charset = NULL;
     char           *cipher = NULL;
@@ -2263,14 +2269,34 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
      * "6" | "7" | "8" | "9" | "a" | "b" | "c" | "d" | "e" | "f"
      * cipher           = "cipher" "=" cipher-value
      */
-    /* Verifing that all parameters was defined */
-    if ((username == NULL) ||
-	(nonce == NULL) ||
-	(noncecount == 0) ||
-	(cnonce == NULL) ||
-	(digesturi == NULL) ||
-	(response == NULL)) {
-	SETERROR(sparams->utils, "required parameters missing");
+    /* Verifing that all required parameters were received */
+    if ((username == NULL)) {
+	SETERROR(sparams->utils, "required parameters missing: username");
+	result = SASL_BADAUTH;
+	goto FreeAllMem;
+    }
+    if ((nonce == NULL)) {
+	SETERROR(sparams->utils, "required parameters missing: nonce");
+	result = SASL_BADAUTH;
+	goto FreeAllMem;
+    }
+    if ((noncecount == 0)) {
+	SETERROR(sparams->utils, "required parameters missing: noncecount");
+	result = SASL_BADAUTH;
+	goto FreeAllMem;
+    }
+    if ((cnonce == NULL)) {
+	SETERROR(sparams->utils, "required parameters missing: cnonce");
+	result = SASL_BADAUTH;
+	goto FreeAllMem;
+    }
+    if ((digesturi == NULL)) {
+	SETERROR(sparams->utils, "required parameters missing: digesturi");
+	result = SASL_BADAUTH;
+	goto FreeAllMem;
+    }
+    if ((response == NULL)) {
+	SETERROR(sparams->utils, "required parameters missing: response");
 	result = SASL_BADAUTH;
 	goto FreeAllMem;
     }
@@ -2401,7 +2427,7 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	    goto FreeAllMem;
 	}
 	
-	sec->len = len;
+	sec->len = (unsigned) len;
 	strncpy((char *) sec->data, auxprop_values[0].values[0], len + 1); 
 	
 	/*
@@ -2419,15 +2445,20 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	     * (used to build A1)
 	     */
 	    
-	    DigestCalcSecret(sparams->utils, (unsigned char *) username,
+	    DigestCalcSecret(sparams->utils,
+			     (unsigned char *) username,
 			     (unsigned char *) text->realm,
-			     sec->data, sec->len, Secret);
+			     sec->data,
+			     sec->len,
+			     Secret);
 	    Secret[HASHLEN] = '\0';
 	}
 	
 	/* We're done with sec now. Let's get rid of it */
 	_plug_free_secret(sparams->utils, &sec);
     } else if (auxprop_values[1].name && auxprop_values[1].values) {
+        /* NB: This will most likely fail for clients that
+	   choose to ignore server-advertised realm */
 	memcpy(Secret, auxprop_values[1].values[0], HASHLEN);
 	Secret[HASHLEN] = '\0';
     } else {
@@ -2977,6 +3008,8 @@ static char *calculate_response(context_t * text,
     result[HASHHEXLEN] = 0;
     
     if (response_value != NULL) {
+	char * new_response_value;
+
 	DigestCalcResponse(utils,
 			   SessionKey,	/* HEX(H(A1)) */
 			   nonce,	/* nonce from server */
@@ -2990,9 +3023,13 @@ static char *calculate_response(context_t * text,
 			   Response	/* request-digest or response-digest */
 	    );
 	
-	*response_value = utils->realloc(*response_value, HASHHEXLEN + 1);
-	if (*response_value == NULL)
+	new_response_value = utils->realloc(*response_value, HASHHEXLEN + 1);
+	if (new_response_value == NULL) {
+	    free (*response_value);
+	    *response_value = NULL;
 	    return NULL;
+	}
+	*response_value = new_response_value;
 	
 	memcpy(*response_value, Response, HASHHEXLEN);
 	(*response_value)[HASHHEXLEN] = 0;
@@ -3090,6 +3127,8 @@ static int make_client_response(context_t *text,
     
     
     resplen = 0;
+    text->out_buf = NULL;
+    text->out_buf_len = 0;
     if (add_to_challenge(params->utils,
 			 &text->out_buf, &text->out_buf_len, &resplen,
 			 "username", (unsigned char *) oparams->authid,

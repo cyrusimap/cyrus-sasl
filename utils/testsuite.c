@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.46 2006/04/25 14:39:04 mel Exp $
+ * $Id: testsuite.c,v 1.47 2008/10/30 14:16:51 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -247,7 +247,7 @@ void *test_malloc(size_t size)
     out = malloc(size);
 
     if(DETAILED_MEMORY_DEBUGGING)
-	fprintf(stderr, "  %X = malloc(%u)\n", (unsigned)out, (unsigned) size);
+	fprintf(stderr, "  %p = malloc(%u)\n", out, (unsigned) size);
     
     if(out) {
 	new_data = malloc(sizeof(mem_info_t));
@@ -270,8 +270,8 @@ void *test_realloc(void *ptr, size_t size)
     out = realloc(ptr, size);
     
     if(DETAILED_MEMORY_DEBUGGING)
-	fprintf(stderr, "  %X = realloc(%X,%d)\n",
-		(unsigned)out, (unsigned)ptr, size);
+	fprintf(stderr, "  %p = realloc(%p,%d)\n",
+		out, ptr, size);
 
     prev = &head; cur = head;
     
@@ -310,8 +310,8 @@ void *test_calloc(size_t nmemb, size_t size)
     out = calloc(nmemb, size);
 
     if(DETAILED_MEMORY_DEBUGGING)    
-	fprintf(stderr, "  %X = calloc(%d, %d)\n",
-		(unsigned)out, nmemb, size);
+	fprintf(stderr, "  %p = calloc(%d, %d)\n",
+		out, nmemb, size);
 
     if(out) {
 	new_data = malloc(sizeof(mem_info_t));
@@ -332,8 +332,8 @@ void test_free(void *ptr)
     mem_info_t **prev, *cur;
 
     if(DETAILED_MEMORY_DEBUGGING)
-	fprintf(stderr, "  free(%X)\n",
-		(unsigned)ptr);
+	fprintf(stderr, "  free(%p)\n",
+		ptr);
 
     prev = &head; cur = head;
     
@@ -372,7 +372,7 @@ int mem_stat()
     
     fprintf(stderr, "  Currently Still Allocated:\n");
     for(cur = head; cur; cur = cur->next) {
-	fprintf(stderr, "    %X (%5d)\t", (unsigned)cur->addr, cur->size);
+	fprintf(stderr, "    %p (%5d)\t", cur->addr, cur->size);
 	for(data = (unsigned char *) cur->addr,
 		n = 0; n < (cur->size > 12 ? 12 : cur->size); n++) {
 	    if (isprint((int) data[n]))
@@ -705,8 +705,9 @@ void test_listmech(void)
     sasl_conn_t *saslconn, *cconn;
     int result;
     const char *str = NULL;
-    unsigned int plen;
-    unsigned lup, flag, pcount;
+    unsigned plen;
+    unsigned lup, flag;
+    int pcount;
     const char **list;
 
     /* test without initializing library */
@@ -928,7 +929,7 @@ void test_random(void)
     
     for (lup=0;lup<(int) sizeof(buf);lup++)
     {
-	buf[lup] = (rand() % 256);	
+	buf[lup] = (char) (rand() % 256);	
     }
     sasl_randseed(rpool, buf, sizeof(buf));
     sasl_churn(rpool, buf, sizeof(buf));

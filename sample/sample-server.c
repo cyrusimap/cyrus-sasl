@@ -1,6 +1,6 @@
 /* sample-server.c -- sample SASL server
  * Rob Earhart
- * $Id: sample-server.c,v 1.31 2004/10/26 11:14:34 mel Exp $
+ * $Id: sample-server.c,v 1.32 2008/10/30 14:18:44 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -549,7 +549,7 @@ main(int argc, char *argv[])
   if (strlen(buf) < len) {
     /* Hmm, there's an initial response here */
     data = buf + strlen(buf) + 1;
-    len = len - strlen(buf) - 1;
+    len = len - (unsigned) strlen(buf) - 1;
   } else {
     data = NULL;
     len = 0;

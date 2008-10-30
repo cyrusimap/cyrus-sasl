@@ -195,7 +195,7 @@ void read_password(const char *prompt,
       fflush(stdout);
     }
 #else
-	SetConsoleMode(hStdin, fdwOldMode);
+    SetConsoleMode(hStdin, fdwOldMode);
     putchar('\n');
     fflush(stdout);
 #endif /*WIN32*/
@@ -243,7 +243,7 @@ int good_getopt(void *context __attribute__((unused)),
     if (sasldb_path && !strcmp(option, "sasldb_path")) {
 	*result = sasldb_path;
 	if (len)
-	    *len = strlen(sasldb_path);
+	    *len = (unsigned) strlen(sasldb_path);
 	return SASL_OK;
     }
 
@@ -261,8 +261,11 @@ main(int argc, char *argv[])
   int flag_pipe = 0, flag_create = 0, flag_disable = 0, flag_error = 0;
   int flag_nouserpass = 0;
   int c;
-  char *userid, *password, *verify;
-  unsigned passlen, verifylen;
+  char *userid;
+  char *password = NULL;
+  char *verify;
+  unsigned passlen = 0;
+  unsigned verifylen;
   const char *errstr = NULL;
   int result;
   sasl_conn_t *conn;

@@ -1,6 +1,6 @@
 /* canonusr.c - user canonicalization support
  * Rob Siemborski
- * $Id: canonusr.c,v 1.17 2008/10/29 15:01:30 mel Exp $
+ * $Id: canonusr.c,v 1.18 2008/10/30 14:21:30 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -327,7 +327,7 @@ static int _canonuser_internal(const sasl_utils_t *utils,
     unsigned i;
     char *in_buf, *userin;
     const char *begin_u;
-    size_t u_apprealm = 0;
+    unsigned u_apprealm = 0;
     sasl_server_conn_t *sconn = NULL;
 
     if(!utils || !user) return SASL_BADPARAM;
@@ -357,7 +357,7 @@ static int _canonuser_internal(const sasl_utils_t *utils,
 
     /* Need to append realm if necessary (see sasl.h) */
     if(sconn && sconn->user_realm && !strchr(user, '@')) {
-	u_apprealm = strlen(sconn->user_realm) + 1;
+	u_apprealm = (unsigned) strlen(sconn->user_realm) + 1;
     }
     
     /* Now Copy */

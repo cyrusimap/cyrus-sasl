@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.32 2008/01/24 15:22:24 murch Exp $
+ * $Id: ntlm.c,v 1.33 2008/10/30 14:19:46 mel Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -100,7 +100,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.32 2008/01/24 15:22:24 murch Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.33 2008/10/30 14:19:46 mel Exp $";
 
 #ifdef WIN32
 static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);
@@ -427,10 +427,10 @@ static unsigned char *V2(unsigned char *V2, sasl_secret_t *passwd,
     HMAC_CTX ctx;
     unsigned char hash[EVP_MAX_MD_SIZE];
     char *upper;
-    int len;
+    unsigned int len;
 
     /* Allocate enough space for the unicode target */
-    len = (int) (strlen(authid) + xstrlen(target));
+    len = (unsigned int) (strlen(authid) + xstrlen(target));
     if (_plug_buf_alloc(utils, buf, buflen, 2 * len + 1) != SASL_OK) {
 	SETERROR(utils, "cannot allocate NTLMv2 hash");
 	*result = SASL_NOMEM;
@@ -697,7 +697,7 @@ static int retry_writev(SOCKET fd, struct iovec *iov, int iovcnt)
 
 	if (!iovcnt) return written;
 
-	n = writev(fd, iov, iovcnt > iov_max ? iov_max : iovcnt);
+	n = (int) writev(fd, iov, iovcnt > iov_max ? iov_max : iovcnt);
 	if (n == -1) {
 #ifndef WIN32
 	    if (errno == EINVAL && iov_max > 10) {
@@ -1336,7 +1336,7 @@ static int create_challenge(const sasl_utils_t *utils,
 	return SASL_FAIL;
     }
 
-    *outlen = offset + 2 * xstrlen(target);
+    *outlen = offset + 2 * (unsigned) xstrlen(target);
 
     if (_plug_buf_alloc(utils, buf, buflen, *outlen) != SASL_OK) {
 	SETERROR(utils, "cannot allocate NTLM challenge");
@@ -1794,7 +1794,7 @@ static int create_request(const sasl_utils_t *utils,
     uint32 offset = NTLM_TYPE1_DATA_OFFSET;
     u_char *base;
 
-    *outlen = offset + xstrlen(domain) + xstrlen(wkstn);
+    *outlen = (unsigned) (offset + xstrlen(domain) + xstrlen(wkstn));
     if (_plug_buf_alloc(utils, buf, buflen, *outlen) != SASL_OK) {
 	SETERROR(utils, "cannot allocate NTLM request");
 	return SASL_NOMEM;
@@ -1842,8 +1842,8 @@ static int create_response(const sasl_utils_t *utils,
 	return SASL_FAIL;
     }
 
-    *outlen = offset + (flags & NTLM_USE_UNICODE ? 2 : 1) * 
-	(xstrlen(domain) + xstrlen(user) + xstrlen(wkstn));
+    *outlen = (unsigned) (offset + (flags & NTLM_USE_UNICODE ? 2 : 1) * 
+	(xstrlen(domain) + xstrlen(user) + xstrlen(wkstn)));
     if (lm_resp) *outlen += NTLM_RESP_LENGTH;
     if (nt_resp) *outlen += NTLM_RESP_LENGTH;
     if (key) *outlen += NTLM_SESSKEY_LENGTH;

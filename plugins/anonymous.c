@@ -1,7 +1,7 @@
 /* Anonymous SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: anonymous.c,v 1.51 2004/09/08 11:10:52 mel Exp $
+ * $Id: anonymous.c,v 1.52 2008/10/30 14:19:46 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -60,7 +60,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: anonymous.c,v 1.51 2004/09/08 11:10:52 mel Exp $";
+static const char plugin_id[] = "$Id: anonymous.c,v 1.52 2008/10/30 14:19:46 mel Exp $";
 
 static const char anonymous_id[] = "anonymous";
 
@@ -347,7 +347,7 @@ static void anonymous_client_dispose(void *conn_context,
     utils->free(text);
 }
 
-static const long anonymous_required_prompts[] = {
+static const unsigned long anonymous_required_prompts[] = {
     SASL_CB_LIST_END
 };
 

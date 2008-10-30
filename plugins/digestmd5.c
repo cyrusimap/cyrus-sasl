@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.186 2007/06/13 14:52:32 mel Exp $
+ * $Id: digestmd5.c,v 1.187 2008/10/30 14:19:46 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.186 2007/06/13 14:52:32 mel Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.187 2008/10/30 14:19:46 mel Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -204,7 +204,7 @@ typedef struct reauth_cache {
     enum Context_type i_am;	/* are we the client or server? */
     time_t timeout;
     void *mutex;
-    size_t size;
+    unsigned size;
 
     reauth_entry_t *e;		/* fixed-size hash table of entries */
 } reauth_cache_t;
@@ -377,7 +377,7 @@ DigestCalcResponse(const sasl_utils_t * utils,
     CvtHex(RespHash, Response);
 }
 
-static bool UTF8_In_8859_1(const unsigned char *base, int len)
+static bool UTF8_In_8859_1(const unsigned char *base, size_t len)
 {
     const unsigned char *scan, *end;
     
@@ -419,7 +419,7 @@ static void MD5_UTF8_8859_1(const sasl_utils_t * utils,
     do {
 	for (scan = base; scan < end && *scan < 0xC0; ++scan);
 	if (scan != base)
-	    utils->MD5Update(ctx, base, scan - base);
+	    utils->MD5Update(ctx, base, (unsigned) (scan - base));
 	if (scan + 1 >= end)
 	    break;
 	cbuf = ((scan[0] & 0x3) << 6) | (scan[1] & 0x3f);
@@ -449,7 +449,7 @@ static void DigestCalcSecret(const sasl_utils_t * utils,
     /* We have to convert UTF-8 to ISO-8859-1 if possible */
     In_8859_1 = UTF8_In_8859_1(pszUserName, strlen((char *) pszUserName));
     MD5_UTF8_8859_1(utils, &Md5Ctx, In_8859_1,
-		    pszUserName, strlen((char *) pszUserName));
+		    pszUserName, (unsigned) strlen((char *) pszUserName));
     
     utils->MD5Update(&Md5Ctx, COLON, 1);
     
@@ -458,7 +458,7 @@ static void DigestCalcSecret(const sasl_utils_t * utils,
 	/* We have to convert UTF-8 to ISO-8859-1 if possible */
 	In_8859_1 = UTF8_In_8859_1(pszRealm, strlen((char *) pszRealm));
 	MD5_UTF8_8859_1(utils, &Md5Ctx, In_8859_1,
-				pszRealm, strlen((char *) pszRealm));
+			pszRealm, (unsigned) strlen((char *) pszRealm));
     }      
     
     utils->MD5Update(&Md5Ctx, COLON, 1);
@@ -510,12 +510,13 @@ static int add_to_challenge(const sasl_utils_t *utils,
 			    unsigned char *value,
 			    bool need_quotes)
 {
-    int             namesize = strlen(name);
-    int             valuesize = strlen((char *) value);
+    size_t          namesize = strlen(name);
+    size_t          valuesize = strlen((char *) value);
+    unsigned        newlen;
     int             ret;
     
-    ret = _plug_buf_alloc(utils, str, buflen,
-			  *curlen + 1 + namesize + 2 + valuesize + 2);
+    newlen = (unsigned) (*curlen + 1 + namesize + 2 + valuesize + 2);
+    ret = _plug_buf_alloc(utils, str, buflen, newlen);
     if(ret != SASL_OK) return ret;
 
     if (*curlen > 0) {
@@ -534,8 +535,7 @@ static int add_to_challenge(const sasl_utils_t *utils,
 	    valuesize = strlen(quoted);
 	    /* As the quoted string is bigger, make sure we have enough
 	       space now */
-	    ret = _plug_buf_alloc(utils, str, buflen,
-			  *curlen + 1 + namesize + 2 + valuesize + 2);
+	    ret = _plug_buf_alloc(utils, str, buflen, newlen);
 	    if (ret == SASL_OK) {
 		strcat(*str, quoted);
 		free (quoted);
@@ -552,7 +552,7 @@ static int add_to_challenge(const sasl_utils_t *utils,
 	strcat(*str, (char *) value);
     }
     
-    *curlen = *curlen + 1 + namesize + 2 + valuesize + 2;
+    *curlen = newlen;
     return SASL_OK;
 }
 
@@ -1323,10 +1323,10 @@ static int create_layer_keys(context_t *text,
     utils->MD5Update(&Md5Ctx, text->HA1, HASHLEN);
     if (text->i_am == SERVER) {
 	utils->MD5Update(&Md5Ctx, (const unsigned char *)SIGNING_SERVER_CLIENT, 
-			 strlen(SIGNING_SERVER_CLIENT));
+			 (unsigned) strlen(SIGNING_SERVER_CLIENT));
     } else {
 	utils->MD5Update(&Md5Ctx, (const unsigned char *)SIGNING_CLIENT_SERVER,
-			 strlen(SIGNING_CLIENT_SERVER));
+			 (unsigned) strlen(SIGNING_CLIENT_SERVER));
     }
     utils->MD5Final(text->Ki_send, &Md5Ctx);
     
@@ -1335,10 +1335,10 @@ static int create_layer_keys(context_t *text,
     utils->MD5Update(&Md5Ctx, text->HA1, HASHLEN);
     if (text->i_am != SERVER) {
 	utils->MD5Update(&Md5Ctx, (const unsigned char *)SIGNING_SERVER_CLIENT, 
-			 strlen(SIGNING_SERVER_CLIENT));
+			 (unsigned) strlen(SIGNING_SERVER_CLIENT));
     } else {
 	utils->MD5Update(&Md5Ctx, (const unsigned char *)SIGNING_CLIENT_SERVER,
-			 strlen(SIGNING_CLIENT_SERVER));
+			 (unsigned) strlen(SIGNING_CLIENT_SERVER));
     }
     utils->MD5Final(text->Ki_receive, &Md5Ctx);
     
@@ -1668,12 +1668,13 @@ static void DigestCalcHA1FromSecret(context_t * text,
     utils->MD5Init(&Md5Ctx);
     utils->MD5Update(&Md5Ctx, HA1, HASHLEN);
     utils->MD5Update(&Md5Ctx, COLON, 1);
-    utils->MD5Update(&Md5Ctx, pszNonce, strlen((char *) pszNonce));
+    utils->MD5Update(&Md5Ctx, pszNonce, (unsigned) strlen((char *) pszNonce));
     utils->MD5Update(&Md5Ctx, COLON, 1);
-    utils->MD5Update(&Md5Ctx, pszCNonce, strlen((char *) pszCNonce));
+    utils->MD5Update(&Md5Ctx, pszCNonce, (unsigned) strlen((char *) pszCNonce));
     if (authorization_id != NULL) {
 	utils->MD5Update(&Md5Ctx, COLON, 1);
-	utils->MD5Update(&Md5Ctx, authorization_id, strlen((char *) authorization_id));
+	utils->MD5Update(&Md5Ctx, authorization_id,
+			(unsigned) strlen((char *) authorization_id));
     }
     utils->MD5Final(HA1, &Md5Ctx);
     
@@ -1780,7 +1781,7 @@ static int get_server_realm(sasl_server_params_t * params, char **realm)
  */
 static int htoi(unsigned char *hexin, unsigned int *res)
 {
-    int             lup, inlen;
+    size_t             lup, inlen;
     inlen = strlen((char *) hexin);
     
     *res = 0;
@@ -2052,7 +2053,7 @@ digestmd5_server_mech_step1(server_context_t *stext,
     text->cnonce = NULL;
     stext->timestamp = time(0);
     
-    *serveroutlen = strlen(text->out_buf);
+    *serveroutlen = (unsigned) strlen(text->out_buf);
     *serverout = text->out_buf;
     
     text->state = 2;
@@ -2088,15 +2089,15 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     
     char           *charset = NULL;
     char           *cipher = NULL;
-    unsigned int   n=0;
+    unsigned int   n = 0;
     
-    HASH            Secret;
+    HASH           Secret;
     
     /* password prop_request */
     const char *password_request[] = { SASL_AUX_PASSWORD,
 				       "*cmusaslsecretDIGEST-MD5",
 				       NULL };
-    unsigned len;
+    size_t len;
     struct propval auxprop_values[2];
     
     /* can we mess with clientin? copy it to be safe */
@@ -2600,8 +2601,8 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     
     /* add to challenge */
     {
-	unsigned resplen =
-	    strlen(text->response_value) + strlen("rspauth") + 3;
+	unsigned resplen = (unsigned)
+	    (strlen(text->response_value) + strlen("rspauth") + 3);
 	
 	result = _plug_buf_alloc(sparams->utils, &(text->out_buf),
 				 &(text->out_buf_len), resplen);
@@ -2618,7 +2619,7 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	}
     }
     
-    *serveroutlen = strlen(text->out_buf);
+    *serveroutlen = (unsigned) strlen(text->out_buf);
     *serverout = text->out_buf;
 	
     result = SASL_OK;
@@ -2895,13 +2896,13 @@ static void DigestCalcHA1(context_t * text,
     utils->MD5Init(&Md5Ctx);
     utils->MD5Update(&Md5Ctx, HA1, HASHLEN);
     utils->MD5Update(&Md5Ctx, COLON, 1);
-    utils->MD5Update(&Md5Ctx, pszNonce, strlen((char *) pszNonce));
+    utils->MD5Update(&Md5Ctx, pszNonce, (unsigned) strlen((char *) pszNonce));
     utils->MD5Update(&Md5Ctx, COLON, 1);
-    utils->MD5Update(&Md5Ctx, pszCNonce, strlen((char *) pszCNonce));
+    utils->MD5Update(&Md5Ctx, pszCNonce, (unsigned) strlen((char *) pszCNonce));
     if (pszAuthorization_id != NULL) {
 	utils->MD5Update(&Md5Ctx, COLON, 1);
 	utils->MD5Update(&Md5Ctx, pszAuthorization_id, 
-			 strlen((char *) pszAuthorization_id));
+			 (unsigned) strlen((char *) pszAuthorization_id));
     }
     utils->MD5Final(HA1, &Md5Ctx);
     
@@ -3854,7 +3855,7 @@ digestmd5_client_mech_step1(client_context_t *ctext,
     result = make_client_response(text, params, oparams);
     if (result != SASL_OK) return result;
 
-    *clientoutlen = strlen(text->out_buf);
+    *clientoutlen = (unsigned) strlen(text->out_buf);
     *clientout = text->out_buf;
 
     text->state = 3;
@@ -3918,7 +3919,7 @@ static int digestmd5_client_mech_step2(client_context_t *ctext,
     result = make_client_response(text, params, oparams);
     if (result != SASL_OK) goto FreeAllocatedMem;
 
-    *clientoutlen = strlen(text->out_buf);
+    *clientoutlen = (unsigned) strlen(text->out_buf);
     *clientout = text->out_buf;
 
     text->state = 3;

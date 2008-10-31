@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.121 2008/10/29 18:33:52 mel Exp $
+ * $Id: common.c,v 1.122 2008/10/31 16:22:13 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -121,6 +121,12 @@ static sasl_callback_t default_getconfpath_cb = {
 static char * default_plugin_path = NULL;
 static char * default_conf_path = NULL;
 
+static int _sasl_global_getopt(void *context,
+			       const char *plugin_name,
+			       const char *option,
+			       const char ** result,
+			       unsigned *len);
+ 
 /* Intenal mutex functions do as little as possible (no thread protection) */
 static void *sasl_mutex_alloc(void)
 {

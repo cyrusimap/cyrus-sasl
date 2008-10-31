@@ -1,3 +1,7 @@
+2008-10-31  Ken Murchison <murch@andrew.cmu.edu>
+	* lib/saslint.h, lib/server.c: order advertised mechanisms
+	  per the specified 'mech_list' option or by relative "strength"
+
 2008-10-29  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/sql.c: Uninitialized variables cause crash when
 	  the searched user is not found (patch from

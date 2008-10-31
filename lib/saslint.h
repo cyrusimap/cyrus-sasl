@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.64 2008/10/29 15:01:30 mel Exp $
+ * $Id: saslint.h,v 1.65 2008/10/31 16:37:57 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -200,8 +200,8 @@ typedef struct mech_list {
   const sasl_utils_t *utils;  /* gotten from plug_init */
 
   void *mutex;            /* mutex for this data */ 
-  mechanism_t *mech_list; /* list of mechanisms */
-  int mech_length;       /* number of mechanisms */
+  mechanism_t *mech_list; /* list loaded of mechanisms */
+  int mech_length;       /* number of loaded mechanisms */
 } mech_list_t;
 
 typedef struct context_list 
@@ -220,6 +220,8 @@ typedef struct sasl_server_conn {
     char *user_realm; /* domain the user authenticating is in */
     int sent_last; /* Have we already done the last send? */
     int authenticated;
+    mechanism_t *mech_list; /* list of available mechanisms */
+    int mech_length;        /* number of available mechanisms */
     mechanism_t *mech; /* mechanism trying to use */
     sasl_server_params_t *sparams;
     context_list_t *mech_contexts;

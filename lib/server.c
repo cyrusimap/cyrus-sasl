@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.153 2008/10/31 16:37:58 murch Exp $
+ * $Id: server.c,v 1.154 2008/11/04 18:40:46 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1316,10 +1316,6 @@ int sasl_server_start(sasl_conn_t *conn,
 
     if (_sasl_server_active==0) return SASL_NOTINIT;
 
-    /* make sure mech is valid mechanism
-       if not return appropriate error */
-    m = s_conn->mech_list;
-
     /* check parameters */
     if(!conn) return SASL_BADPARAM;
     
@@ -1328,6 +1324,10 @@ int sasl_server_start(sasl_conn_t *conn,
 
     if(serverout) *serverout = NULL;
     if(serveroutlen) *serveroutlen = 0;
+
+    /* make sure mech is valid mechanism
+       if not return appropriate error */
+    m = s_conn->mech_list;
 
     while (m!=NULL)
     {

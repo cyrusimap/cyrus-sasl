@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.66 2008/10/31 16:42:14 murch Exp $
+ * $Id: saslint.h,v 1.67 2008/11/15 16:49:12 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -200,8 +200,8 @@ typedef struct mech_list {
   const sasl_utils_t *utils;  /* gotten from plug_init */
 
   void *mutex;            /* mutex for this data */ 
-  mechanism_t *mech_list; /* list loaded of mechanisms */
-  int mech_length;       /* number of loaded mechanisms */
+  mechanism_t *mech_list; /* list of loaded mechanisms */
+  int mech_length;        /* number of loaded mechanisms */
 } mech_list_t;
 
 typedef struct context_list 

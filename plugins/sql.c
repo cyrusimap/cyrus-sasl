@@ -7,7 +7,7 @@
 ** Simon Loader -- original mysql plugin
 ** Patrick Welche -- original pgsql plugin
 **
-** $Id: sql.c,v 1.33 2008/11/15 20:39:56 mel Exp $
+** $Id: sql.c,v 1.34 2008/11/15 20:46:25 mel Exp $
 **
 */
 
@@ -656,10 +656,10 @@ static char *sql_create_statement(const char *statement, const char *prop,
     size_t i;
     
     /* calculate memory needed for creating the complete query string. */
-    ulen = strlen(user);
-    rlen = strlen(realm);
-    plen = strlen(prop);
-    vlen = sql_len(value);
+    ulen = (int)strlen(user);
+    rlen = (int)strlen(realm);
+    plen = (int)strlen(prop);
+    vlen = (int)sql_len(value);
     
     /* what if we have multiple %foo occurrences in the input query? */
     for (i = 0; i < strlen(statement); i++) {
@@ -672,7 +672,7 @@ static char *sql_create_statement(const char *statement, const char *prop,
     biggest = sql_max(sql_max(ulen, rlen), sql_max(plen, vlen));
     
     /* plus one for the semicolon...and don't forget the trailing 0x0 */
-    filtersize = strlen(statement) + 1 + (numpercents*biggest)+1;
+    filtersize = (int)strlen(statement) + 1 + (numpercents*biggest)+1;
     
     /* ok, now try to allocate a chunk of that size */
     buf = (char *) utils->malloc(filtersize);
@@ -895,7 +895,7 @@ static int sql_auxprop_lookup(void *glob_context,
     const char *user_realm = NULL;
     const struct propval *to_fetch, *cur;
     char value[8192];
-    size_t value_len;    
+    size_t value_len;
     char *user_buf;
     char *query = NULL;
     char *escap_userid = NULL;
@@ -1025,8 +1025,10 @@ static int sql_auxprop_lookup(void *glob_context,
 	/* run the query */
 	if (!settings->sql_engine->sql_exec(conn, query, value, sizeof(value),
 					    &value_len, sparams->utils)) {
-	    sparams->utils->prop_set(sparams->propctx, cur->name,
-				     value, value_len);
+	    sparams->utils->prop_set(sparams->propctx,
+				     cur->name,
+				     value,
+				     (int)value_len);
 	    ret = SASL_OK;
 	}
 	

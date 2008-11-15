@@ -7,7 +7,7 @@
 ** Simon Loader -- original mysql plugin
 ** Patrick Welche -- original pgsql plugin
 **
-** $Id: sql.c,v 1.32 2008/10/29 14:11:28 mel Exp $
+** $Id: sql.c,v 1.33 2008/11/15 20:39:56 mel Exp $
 **
 */
 
@@ -468,6 +468,141 @@ static void _sqlite_close(void *db)
 }
 #endif /* HAVE_SQLITE */
 
+#ifdef HAVE_SQLITE3
+#include <sqlite3.h>
+
+static void *_sqlite3_open(char *host __attribute__((unused)),
+			  char *port __attribute__((unused)),
+			  int usessl __attribute__((unused)),
+			  const char *user __attribute__((unused)),
+			  const char *password __attribute__((unused)),
+			  const char *database, const sasl_utils_t *utils)
+{
+    int rc;
+    sqlite3 *db;
+    char *zErrMsg = NULL;
+
+    rc = sqlite3_open(database, &db);
+    if (SQLITE_OK != rc) {
+    	if (db)
+		utils->log(NULL, SASL_LOG_ERR, "sql plugin: %s", sqlite3_errmsg(db));
+	else
+		utils->log(NULL, SASL_LOG_ERR, "sql plugin: %d", rc);
+	sqlite3_close(db);
+	return NULL;
+    }
+
+    rc = sqlite3_exec(db, "PRAGMA empty_result_callbacks = ON", NULL, NULL, &zErrMsg);
+    if (rc != SQLITE_OK) {
+    	if (zErrMsg) {
+		utils->log(NULL, SASL_LOG_ERR, "sql plugin: %s", zErrMsg);
+		sqlite3_free(zErrMsg);
+	} else
+		utils->log(NULL, SASL_LOG_DEBUG, "sql plugin: %d", rc);
+	sqlite3_close(db);
+	return NULL;
+    }
+
+    return (void*)db;
+}
+
+static int _sqlite3_escape_str(char *to, const char *from)
+{
+    char s;
+
+    while ( (s = *from++) != '\0' ) {
+	if (s == '\'' || s == '\\') {
+	    *to++ = '\\';
+	}
+	*to++ = s;
+    }
+    *to = '\0';
+
+    return 0;
+}
+
+static int sqlite3_my_callback(void *pArg, int argc __attribute__((unused)),
+			      char **argv,
+			      char **columnNames __attribute__((unused)))
+{
+    char **result = (char**)pArg;
+
+    if (argv == NULL) {
+	*result = NULL;				/* no record */
+    } else if (argv[0] == NULL) {
+	*result = strdup(SQL_NULL_VALUE);	/* NULL IS SQL_NULL_VALUE */
+    } else {
+	*result = strdup(argv[0]);
+    }
+
+    return /*ABORT*/1;
+}
+
+static int _sqlite3_exec(void *db, const char *cmd, char *value, size_t size,
+		        size_t *value_len, const sasl_utils_t *utils)
+{
+    int rc;
+    char *result = NULL;
+    char *zErrMsg = NULL;
+
+    rc = sqlite3_exec((sqlite3*)db, cmd, sqlite3_my_callback, (void*)&result, &zErrMsg);
+    if (rc != SQLITE_OK && rc != SQLITE_ABORT) {
+    	if (zErrMsg) {
+		utils->log(NULL, SASL_LOG_DEBUG, "sql plugin: %s", zErrMsg);
+		sqlite3_free(zErrMsg);
+	} else
+		utils->log(NULL, SASL_LOG_DEBUG, "sql plugin: %d", rc);
+	return -1;
+    }
+
+    if (rc == SQLITE_OK) {
+	/* no results (BEGIN, COMMIT, DELETE, INSERT, UPDATE) */
+	return 0;
+    }
+
+    if (result == NULL) {
+	/* umm nothing found */
+	utils->log(NULL, SASL_LOG_NOTE, "sql plugin: no result found");
+	return -1;
+    }
+
+    /* XXX: Duplication cannot be found by this method. */
+
+    /* now get the result set value and value_len */
+    /* we only fetch one because we don't care about the rest */
+    if (value) {
+	strncpy(value, result, size - 2);
+	value[size - 1] = '\0';
+	if (value_len) {
+	    *value_len = strlen(value);
+	}
+    }
+
+    free(result);
+    return 0;
+}
+
+static int _sqlite3_begin_txn(void *db, const sasl_utils_t *utils)
+{
+    return _sqlite3_exec(db, "BEGIN TRANSACTION", NULL, 0, NULL, utils);
+}
+
+static int _sqlite3_commit_txn(void *db, const sasl_utils_t *utils)
+{
+    return _sqlite3_exec(db, "COMMIT TRANSACTION", NULL, 0, NULL, utils);
+}
+
+static int _sqlite3_rollback_txn(void *db, const sasl_utils_t *utils)
+{
+    return _sqlite3_exec(db, "ROLLBACK TRANSACTION", NULL, 0, NULL, utils);
+}
+
+static void _sqlite3_close(void *db)
+{
+    sqlite3_close((sqlite3*)db);
+}
+#endif /* HAVE_SQLITE3 */
+
 static const sql_engine_t sql_engines[] = {
 #ifdef HAVE_MYSQL
     { "mysql", &_mysql_open, &_mysql_escape_str,
@@ -483,6 +618,11 @@ static const sql_engine_t sql_engines[] = {
     { "sqlite", &_sqlite_open, &_sqlite_escape_str,
       &_sqlite_begin_txn, &_sqlite_commit_txn, &_sqlite_rollback_txn,
       &_sqlite_exec, &_sqlite_close },
+#endif
+#ifdef HAVE_SQLITE3
+    { "sqlite3", &_sqlite3_open, &_sqlite3_escape_str,
+      &_sqlite3_begin_txn, &_sqlite3_commit_txn, &_sqlite3_rollback_txn,
+      &_sqlite3_exec, &_sqlite3_close },
 #endif
     { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 };

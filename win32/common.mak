@@ -121,6 +121,20 @@ SQLITE_LIBPATH="C:\work\open_source\sqllite\sqlite\objs"
 !ENDIF
 !ENDIF
 
+!IF "$(SQLITE_INCLUDE3)" == ""
+SQLITE_INCLUDES3=/I"c:\work\sqlite\generated"
+!IF "$(VERBOSE)" != "0"
+!MESSAGE Defaulting SQLITE_INCLUDES3 includes to $(SQLITE_INCLUDES3).
+!ENDIF
+!ENDIF
+
+!IF "$(SQLITE_LIBPATH3)" == ""
+SQLITE_LIBPATH3="c:\work\sqlite\objs.NT"
+!IF "$(VERBOSE)" != "0"
+!MESSAGE Defaulting SQLITE library path to $(SQLITE_LIBPATH3).
+!ENDIF
+!ENDIF
+
 !IF "$(LDAP_LIB_BASE)" == ""
 LDAP_LIB_BASE = c:\work\open_source\openldap\openldap-head\ldap\Debug
 !IF "$(VERBOSE)" != "0"

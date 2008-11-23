@@ -131,7 +131,7 @@ static int ldapdb_connect(ldapctx *ctx, sasl_server_params_t *sparams,
     return i;
 }
 
-static void ldapdb_auxprop_lookup(void *glob_context,
+static int ldapdb_auxprop_lookup(void *glob_context,
 				  sasl_server_params_t *sparams,
 				  unsigned flags,
 				  const char *user,
@@ -140,15 +140,17 @@ static void ldapdb_auxprop_lookup(void *glob_context,
     ldapctx *ctx = glob_context;
     connparm cp;
     int ret, i, n, *aindx;
+    int result;
+    int j;
     const struct propval *pr;
     struct berval **bvals;
     LDAPMessage *msg, *res;
     char **attrs = NULL;
     
-    if(!ctx || !sparams || !user) return;
+    if(!ctx || !sparams || !user) return SASL_BADPARAM;
 
     pr = sparams->utils->prop_get(sparams->propctx);
-    if(!pr) return;
+    if (!pr) return SASL_FAIL;
 
     /* count how many attrs to fetch */
     for(i = 0, n = 0; pr[i].name; i++) {
@@ -158,12 +160,16 @@ static void ldapdb_auxprop_lookup(void *glob_context,
 	    continue;
 	n++;
     }
+
     /* nothing to do, bail out */
-    if (!n) return;
+    if (!n) return SASL_OK;
 
     /* alloc an array of attr names for search, and index to the props */
     attrs = sparams->utils->malloc((n+1)*sizeof(char *)*2);
-    if (!attrs) return;
+    if (!attrs) {
+	result = SASL_NOMEM;
+        goto done;
+    }
 
     aindx = (int *)(attrs + n + 1);
 
@@ -180,35 +186,86 @@ static void ldapdb_auxprop_lookup(void *glob_context,
     }
     attrs[n] = NULL;
 
-    if(ldapdb_connect(ctx, sparams, user, ulen, &cp)) {
-    	goto done;
+    if ((ret = ldapdb_connect(ctx, sparams, user, ulen, &cp)) != LDAP_SUCCESS) {
+	goto process_ldap_error;
     }
 
     ret = ldap_search_ext_s(cp.ld, cp.dn->bv_val+3, LDAP_SCOPE_BASE,
     	"(objectclass=*)", attrs, 0, cp.ctrl, NULL, NULL, 1, &res);
     ber_bvfree(cp.dn);
 
-    if (ret != LDAP_SUCCESS) goto done;
+    if (ret != LDAP_SUCCESS) {
+	goto process_ldap_error;
+    }
 
-    for(msg=ldap_first_message(cp.ld, res); msg; msg=ldap_next_message(cp.ld, msg))
-    {
+    /* Assume no user by default */
+    ret = LDAP_NO_SUCH_OBJECT;
+
+    for (msg = ldap_first_message(cp.ld, res);
+         msg;
+         msg = ldap_next_message(cp.ld, msg)) {
     	if (ldap_msgtype(msg) != LDAP_RES_SEARCH_ENTRY) continue;
-	for (i=0; i<n; i++)
-	{
+
+	/* Presence of a search result response indicates that the user exists */
+	ret = LDAP_SUCCESS;
+
+        for (i = 0; i < n; i++) {
 	    bvals = ldap_get_values_len(cp.ld, msg, attrs[i]);
 	    if (!bvals) continue;
-	    if (pr[aindx[i]].values)
+
+	    if (pr[aindx[i]].values) {
 	    	sparams->utils->prop_erase(sparams->propctx, pr[aindx[i]].name);
-	    sparams->utils->prop_set(sparams->propctx, pr[aindx[i]].name,
-				 bvals[0]->bv_val, bvals[0]->bv_len);
+	    }
+
+            for ( j = 0; bvals[j] != NULL; j++ ) {
+	        sparams->utils->prop_set(sparams->propctx,
+                                         pr[aindx[i]].name,
+				         bvals[j]->bv_val,
+                                         bvals[j]->bv_len);
+            }
 	    ber_bvecfree(bvals);
 	}
     }
     ldap_msgfree(res);
 
+ process_ldap_error:
+    switch (ret) {
+	case LDAP_SUCCESS:
+            result = SASL_OK;
+            break;
+
+	case LDAP_NO_SUCH_OBJECT:
+            result = SASL_NOUSER;
+            break;
+
+        case LDAP_NO_MEMORY:
+            result = SASL_NOMEM;
+            break;
+
+	case LDAP_SERVER_DOWN:
+	case LDAP_BUSY:
+	case LDAP_UNAVAILABLE:
+	case LDAP_CONNECT_ERROR:
+	    result = SASL_UNAVAIL;
+	    break;
+
+	case LDAP_PROXY_AUTHZ_FAILURE:
+	case LDAP_INAPPROPRIATE_AUTH:
+	case LDAP_INVALID_CREDENTIALS:
+	case LDAP_INSUFFICIENT_ACCESS:
+	    result = SASL_BADAUTH;
+	    break;
+
+        default:
+            result = SASL_FAIL;
+            break;
+    }
+
  done:
     if(attrs) sparams->utils->free(attrs);
     if(cp.ld) ldap_unbind_ext(cp.ld, NULL, NULL);
+
+    return result;
 }
 
 static int ldapdb_auxprop_store(void *glob_context,

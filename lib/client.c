@@ -1,7 +1,7 @@
 /* SASL client API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.71 2008/10/29 15:01:30 mel Exp $
+ * $Id: client.c,v 1.72 2009/01/25 11:30:49 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -437,7 +437,7 @@ static int have_prompts(sasl_conn_t *conn,
 
 /* xxx confirm this with rfc 2222
  * SASL mechanism allowable characters are "AZaz-_"
- * seperators can be any other characters and of any length
+ * separators can be any other characters and of any length
  * even variable lengths between
  *
  * Apps should be encouraged to simply use space or comma space

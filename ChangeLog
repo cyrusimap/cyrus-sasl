@@ -1,3 +1,8 @@
+2009-01-25  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/windlopen.c: Free handles of shared libraries on Windows
+	  that were loaded but are not SASL plugins (patch by Petr Prazak)
+	  [Bug # 2089].
+
 2008-11-23  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/NTMakefile, win32/common.mak: Added support for building
 	  SQLite3 on Windows.

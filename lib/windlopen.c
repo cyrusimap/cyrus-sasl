@@ -1,6 +1,6 @@
 /* windlopen.c--Windows dynamic loader interface
  * Ryan Troll
- * $Id: windlopen.c,v 1.16 2003/10/20 15:19:59 rjs3 Exp $
+ * $Id: windlopen.c,v 1.17 2009/01/25 20:20:57 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -134,7 +134,7 @@ int _sasl_get_plugin(const char *file,
     if (r != SASL_OK) return r;
 
     newhead = sasl_ALLOC(sizeof(lib_list_t));
-    if(!newhead) return SASL_NOMEM;
+    if (!newhead) return SASL_NOMEM;
 
     if (!(library = LoadLibrary (file))) {
 	_sasl_log(NULL, SASL_LOG_ERR,
@@ -151,7 +151,16 @@ int _sasl_get_plugin(const char *file,
     return SASL_OK;
 }
 
-
+/* undoes actions done by _sasl_get_plugin */
+void _sasl_remove_last_plugin()
+{
+    lib_list_t *last_plugin = lib_list_head;
+    lib_list_head = lib_list_head->next;
+    if (last_plugin->library) {
+	FreeLibrary(last_plugin->library);
+    }
+    sasl_FREE(last_plugin);
+}
 
 /* gets the list of mechanisms */
 int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
@@ -243,6 +252,7 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
 	    void *library;
 	    char *c;
 	    char plugname[PATH_MAX];
+	    int entries;
 
 	    length = strlen(finddata.name);
 	    if (length < 5) { /* At least <Ch>.dll */
@@ -277,11 +287,21 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
 		continue;
 	    }
 
+	    entries = 0;
 	    for (cur_ep = entrypoints; cur_ep->entryname; cur_ep++) {
-		    _sasl_plugin_load(plugname, library, cur_ep->entryname,
-				      cur_ep->add_plugin);
+		result = _sasl_plugin_load(plugname,
+					   library,
+					   cur_ep->entryname,
+					   cur_ep->add_plugin);
+		if (result == SASL_OK) {
+		    ++entries;
+		}
 		/* If this fails, it's not the end of the world */
 	    }
+	    if (entries == 0) {
+		_sasl_remove_last_plugin();
+	    }
+
 	} while (_findnext (fhandle, &finddata) == 0);
 	
 	_findclose (fhandle);

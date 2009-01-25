@@ -1,5 +1,5 @@
 /* sasldblistusers.c -- list users in sasldb
- * $Id: sasldblistusers.c,v 1.22 2003/10/03 20:30:14 rjs3 Exp $
+ * $Id: sasldblistusers.c,v 1.23 2009/01/25 13:03:07 mel Exp $
  * Rob Siemborski
  * Tim Martin
  */
@@ -76,7 +76,7 @@ int good_getopt(void *context __attribute__((unused)),
     if (sasldb_path && !strcmp(option, "sasldb_path")) {
 	*result = sasldb_path;
 	if (len)
-	    *len = strlen(sasldb_path);
+	    *len = (unsigned) strlen(sasldb_path);
 	return SASL_OK;
     }
 

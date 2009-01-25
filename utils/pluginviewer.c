@@ -1,7 +1,7 @@
 /* pluginviewer.c -- Plugin Viewer for CMU SASL
  * Alexey Melnikov, Isode Ltd.
  *
- * $Id: pluginviewer.c,v 1.5 2006/05/30 11:52:21 mel Exp $
+ * $Id: pluginviewer.c,v 1.6 2009/01/25 11:32:27 mel Exp $
  */
 /* 
  * Copyright (c) 2004 Carnegie Mellon University.  All rights reserved.
@@ -579,6 +579,8 @@ main(int argc, char *argv[])
     }
 
     /* getopt */
+    /* NOTE: this will return "sasl_mech" option, however this HAS NO EFFECT
+       on client side SASL plugins, which just never query this option */
     callback->id = SASL_CB_GETOPT;
     callback->proc = &sasl_getopt;
     callback->context = NULL;
@@ -636,7 +638,7 @@ main(int argc, char *argv[])
             saslfail(result, "Allocating sasl connection state (server side)", NULL);
         }
 
-        /* The following two options are required for SSF */
+        /* The following two options are required for SASL EXTERNAL */
         if (extssf) {
             result = sasl_setprop(server_conn,
 			        SASL_SSF_EXTERNAL,
@@ -665,7 +667,7 @@ main(int argc, char *argv[])
             saslfail(result, "Setting security properties", NULL);
         }
 
-        /* This will use getopt callback, which is using the "mech" global variable */
+	/* NOTE - available_mechs must not be freed */
         result = sasl_listmech(server_conn,
 			    ext_authid,
 			    NULL,

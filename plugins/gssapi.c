@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.94 2009/01/25 11:31:34 mel Exp $
+ * $Id: gssapi.c,v 1.95 2009/01/25 14:20:18 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.94 2009/01/25 11:31:34 mel Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.95 2009/01/25 14:20:18 mel Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -804,11 +804,6 @@ gssapi_server_mech_step(void *conn_context,
 	GSS_UNLOCK_MUTEX(params->utils);
 	
 	if (GSS_ERROR(maj_stat)) {
-	    if (without) {
-		GSS_LOCK_MUTEX(params->utils);
-		gss_release_name(&min_stat, &without);
-		GSS_UNLOCK_MUTEX(params->utils);
-	    }
 	    SETERROR(text->utils, "GSSAPI Failure");
 	    sasl_gss_free_context_contents(text);
 	    return SASL_BADAUTH;

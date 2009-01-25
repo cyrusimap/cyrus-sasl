@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.93 2007/01/29 17:45:23 mel Exp $
+ * $Id: gssapi.c,v 1.94 2009/01/25 11:31:34 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.93 2007/01/29 17:45:23 mel Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.94 2009/01/25 11:31:34 mel Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -723,10 +723,10 @@ gssapi_server_mech_step(void *conn_context,
 				   input_token,
 				   GSS_C_NO_CHANNEL_BINDINGS,
 				   &text->client_name,
-				   NULL,
+				   NULL,	/* resulting mech_name */
 				   output_token,
 				   &out_flags,
-				   NULL,
+				   NULL,	/* context validity period */
 				   &(text->client_creds));
 	GSS_UNLOCK_MUTEX(params->utils);
 	

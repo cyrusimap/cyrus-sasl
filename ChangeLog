@@ -1,11 +1,83 @@
+2008-11-23  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/NTMakefile, win32/common.mak: Added support for building
+	  SQLite3 on Windows.
+
+2008-11-23  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/ldapdb.c: Updated LDAPDB lookup function to match auxprop
+	  API changes
+
+2008-11-15  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/sql.c: Added SQLITE3 support (patch by Maxim Gorbachyov)
+
 2008-10-31  Ken Murchison <murch@andrew.cmu.edu>
 	* lib/saslint.h, lib/server.c: order advertised mechanisms
 	  per the specified 'mech_list' option or by relative "strength"
+
+2008-10-30  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/digestmd5.c: Fixed more portability warnings.
+	  Fixed some rare memory leaks. More detailed error reporting.
+
+2008-10-30  Alexey Melnikov <alexey.melnikov@isode.com>
+	* win32/include/config.h, lib/canonusr.c, lib/config.c,
+	  sasldb/allockey.c, utils/saslpasswd.c, utils/testsuite.c,
+	  sample/sample-server.c, plugins/anonymous.c, plugins/digestmd5.c,
+	  plugins/login.c, plugins/ntlm.c, plugins/otp.c:
+	  Fixed Windows 64 portability and other types of warnings
+
+2008-10-29  Alexey Melnikov <alexey.melnikov@isode.com>
+	* win32/common.mak: Added support for building libraries.
+	  Added support for Windows64.
+
+2008-10-29  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/common.c: Prevent freeing of common state on a subsequent
+	  call to _sasl_common_init. Make sure that the last global callback
+	  always wins.
+
+2008-10-29  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/saslint.h, lib/canonusr.c, lib/checkpw.c, lib/client.c,
+	  lib/server.c: Further fixes to auxprop lookup and _sasl_canon_user
+	  cleanup
+
+2008-10-29  Alexey Melnikov <alexey.melnikov@isode.com>
+	* include/saslplug.h, lib/auxprop.c, lib/canonusr.c, lib/saslint.h,
+	  plugins/sasldb.c, plugins/sql.c:
+	  Extended SASL auxprop_lookup to return error code
+
+2008-10-29  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/saslutil.c: Fixed Mac OS X 10.3 build.
 
 2008-10-29  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/sql.c: Uninitialized variables cause crash when
 	  the searched user is not found (patch from
 	  Maxim Gorbachyov <maxim.gorbachyov@gmail.com>)
+
+2008-10-23  Alexey Melnikov <alexey.melnikov@isode.com>
+	* sasldb/db_berkeley.c:  Return SASL_NOUSER instead of SASL_FAIL
+	  when the database file doesn't exist
+
+2008-10-23  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/checkpw.c: Updated sasl_user_exists so that it can handle
+	  passwordless accounts (e.g. disabled)
+
+2008-10-23  Alexey Melnikov <alexey.melnikov@isode.com>
+	* include/saslutil.h, lib/saslint.h, lib/client.c, lib/common.c,
+	  lib/saslutil.c, lib/server.c: Added hostname canonicalization
+
+2008-10-22  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/NTMakefile, utils/NTMakefile, sample/NTMakefile,
+	  plugins/NTMakefile: Updated to build with VC 8.0 (VC++ 2005)
+
+2008-10-22  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/NTMakefile: Don't install .exp and .manifest files.
+	  Updated build dependencies.
+
+2008-10-21  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/saslint.h, lib/client.c, lib/common.c, lib/server.c:
+	  Implemented sasl_client_done/sasl_server_done
+
+2008-10-19  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/login.c, plugins/plain.c: Advertise
+	  SASL_SEC_PASS_CREDENTIALS feature in PLAIN and LOGIN
 
 2008-10-02  Ken Murchison <murch@andrew.cmu.edu>
 	* lib/checkpw.c: Fixed potential buffer overflow in

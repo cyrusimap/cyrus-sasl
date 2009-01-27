@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.154 2008/11/04 18:40:46 murch Exp $
+ * $Id: server.c,v 1.155 2009/01/27 00:14:16 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -963,7 +963,8 @@ int sasl_server_new(const char *service,
   sasl_utils_t *utils;
   sasl_getopt_t *getopt;
   void *context;
-  const char *log_level, *auto_trans, *mlist;
+  const char *log_level, *auto_trans;
+  const char *mlist = NULL;
 
   if (_sasl_server_active==0) return SASL_NOTINIT;
   if (! pconn) return SASL_FAIL;
@@ -1123,8 +1124,6 @@ int sasl_server_new(const char *service,
  * IF mech strength + external strength < min ssf THEN FAIL.
  * We also have to look at the security properties and make sure
  * that this mechanism has everything we want.
- * The mechanism should also be listed in "mech_list" option,
- * if it is not NULL.
  */
 static int mech_permitted(sasl_conn_t *conn,
 			  mechanism_t *mech)

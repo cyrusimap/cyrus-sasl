@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.37 2008/10/30 14:19:46 mel Exp $
+ * $Id: otp.c,v 1.38 2009/01/28 20:17:32 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -68,7 +68,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: otp.c,v 1.37 2008/10/30 14:19:46 mel Exp $";
+static const char plugin_id[] = "$Id: otp.c,v 1.38 2009/01/28 20:17:32 mel Exp $";
 
 #define OTP_SEQUENCE_MAX	9999
 #define OTP_SEQUENCE_DEFAULT	499
@@ -1385,7 +1385,9 @@ static int otp_mech_avail(void *glob_context __attribute__((unused)),
     /* Do we have a backend that can store properties? */
     if (!sparams->utils->auxprop_store ||
 	sparams->utils->auxprop_store(NULL, NULL, NULL) != SASL_OK) {
-	SETERROR(sparams->utils, "OTP: auxprop backend can't store properties");
+	sparams->utils->log(NULL,
+			    SASL_LOG_DEBUG,
+			    "OTP: auxprop backend can't store properties");
 	return SASL_NOMECH;
     }
     

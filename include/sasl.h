@@ -1165,6 +1165,8 @@ LIBSASL_API int sasl_setpass(sasl_conn_t *conn,
 
 #define SASL_AUX_END      NULL	/* last auxiliary property */
 
+#define SASL_AUX_ALL "*" /* A special flag to signal user deletion */
+
 /* traditional Posix items (should be implemented on Posix systems) */
 #define SASL_AUX_PASSWORD_PROP "userPassword" /* User Password */
 #define SASL_AUX_PASSWORD "*" SASL_AUX_PASSWORD_PROP /* User Password (of authid) */

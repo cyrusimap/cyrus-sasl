@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.155 2009/01/27 00:14:16 mel Exp $
+ * $Id: server.c,v 1.156 2009/01/28 21:29:16 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -125,6 +125,7 @@ int sasl_setpass(sasl_conn_t *conn,
     int result = SASL_OK, tmpresult;
     sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;
     const char *password_request[] = { SASL_AUX_PASSWORD_PROP, NULL };
+    const char *user_delete_request[] = { SASL_AUX_PASSWORD_PROP, SASL_AUX_ALL, NULL };
     sasl_server_userdb_setpass_t *setpass_cb = NULL;
     void *context = NULL;
     int tried_setpass = 0;
@@ -167,12 +168,18 @@ int sasl_setpass(sasl_conn_t *conn,
 	if (flags & SASL_SET_DISABLE) {
 	    pass = NULL;
 	    passlen = 0;
+	    result = prop_request(s_conn->sparams->propctx, user_delete_request);
+	} else {
+	    result = prop_request(s_conn->sparams->propctx, password_request);
 	}
-
-	result = prop_request(s_conn->sparams->propctx, password_request);
 	if (result == SASL_OK) {
+	    /* NOTE: When deleting users, this will work in a backward compatible way */
 	    result = prop_set(s_conn->sparams->propctx, SASL_AUX_PASSWORD_PROP,
 			      pass, passlen);
+	}
+	if (result == SASL_OK && flags & SASL_SET_DISABLE) {
+	    result = prop_set(s_conn->sparams->propctx, SASL_AUX_ALL,
+			      NULL, 0);
 	}
 	if (result == SASL_OK) {
 	    result = sasl_auxprop_store(conn, s_conn->sparams->propctx, user);

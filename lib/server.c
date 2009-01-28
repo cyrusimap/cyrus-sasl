@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.156 2009/01/28 21:29:16 mel Exp $
+ * $Id: server.c,v 1.157 2009/01/28 22:49:14 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -129,6 +129,7 @@ int sasl_setpass(sasl_conn_t *conn,
     sasl_server_userdb_setpass_t *setpass_cb = NULL;
     void *context = NULL;
     int tried_setpass = 0;
+    int failed = 0;
     mechanism_t *sm;
     server_sasl_mechanism_t *m;
     char *current_mech;
@@ -188,6 +189,7 @@ int sasl_setpass(sasl_conn_t *conn,
 	    _sasl_log(conn, SASL_LOG_ERR,
 		      "setpass failed for %s: %z",
 		      user, result);
+	    failed++;
 	} else {
 	    _sasl_log(conn, SASL_LOG_NOTE,
 		      "setpass succeeded for %s", user);
@@ -206,10 +208,17 @@ int sasl_setpass(sasl_conn_t *conn,
 	tmpresult = setpass_cb(conn, context, user, pass, passlen,
 			    s_conn->sparams->propctx, flags);
 	if(tmpresult != SASL_OK) {
-	    result = tmpresult;
+	    if (tmpresult == SASL_CONSTRAINT_VIOLAT) {
+		if (result == SASL_OK) {
+		    result = tmpresult;
+		}
+	    } else {
+		result = tmpresult;
+	    }
 	    _sasl_log(conn, SASL_LOG_ERR,
 		      "setpass callback failed for %s: %z",
 		      user, tmpresult);
+	    failed++;
 	} else {
 	    _sasl_log(conn, SASL_LOG_NOTE,
 		      "setpass callback succeeded for %s", user);
@@ -252,6 +261,14 @@ int sasl_setpass(sasl_conn_t *conn,
 	} else if (tmpresult == SASL_NOCHANGE) {
 	    _sasl_log(conn, SASL_LOG_NOTE,
 		      "%s: secret not changed for %s", m->plug->mech_name, user);
+	} else if (tmpresult == SASL_CONSTRAINT_VIOLAT) {
+	    _sasl_log(conn, SASL_LOG_ERR,
+		      "%s: failed to set secret for %s: constrain violation",
+		      m->plug->mech_name, user);
+	    if (result == SASL_OK) {
+		result = tmpresult;
+	    }
+	    failed++;
 	} else {
 	    result = tmpresult;
 	    _sasl_log(conn, SASL_LOG_ERR,
@@ -263,6 +280,7 @@ int sasl_setpass(sasl_conn_t *conn,
 		      GetLastError()
 #endif
 		      );
+	    failed++;
 	}
     }
 
@@ -271,6 +289,12 @@ int sasl_setpass(sasl_conn_t *conn,
 		  "secret not changed for %s: "
 		  "no writable auxprop plugin or setpass callback found",
 		  user);
+    } else if (result == SASL_CONSTRAINT_VIOLAT) {
+	/* If not all setpass failed with SASL_CONSTRAINT_VIOLAT - 
+	   ignore SASL_CONSTRAINT_VIOLAT */
+	if (failed < tried_setpass) {
+	    result = SASL_OK;
+	}
     }
 
     RETURN(conn, result);

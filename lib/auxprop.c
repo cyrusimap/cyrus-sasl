@@ -1,6 +1,6 @@
 /* auxprop.c - auxilliary property support
  * Rob Siemborski
- * $Id: auxprop.c,v 1.18 2008/10/29 14:11:28 mel Exp $
+ * $Id: auxprop.c,v 1.19 2009/01/28 22:49:14 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -981,12 +981,14 @@ int sasl_auxprop_store(sasl_conn_t *conn,
 		       struct propctx *ctx, const char *user)
 {
     sasl_getopt_t *getopt;
-    int ret, found = 0;
+    int ret;
     void *context;
     const char *plist = NULL;
     auxprop_plug_list_t *ptr;
     sasl_server_params_t *sparams = NULL;
     unsigned userlen = 0;
+    int num_constraint_violations = 0;
+    int total_plugins = 0;
 
     if (ctx) {
 	if (!conn || !user)
@@ -1006,10 +1008,15 @@ int sasl_auxprop_store(sasl_conn_t *conn,
     if(!plist) {
 	/* Do store in all plugins */
 	for(ptr = auxprop_head; ptr && ret == SASL_OK; ptr = ptr->next) {
-	    found=1;
-	    if (ptr->plug->auxprop_store)
+	    total_plugins++;
+	    if (ptr->plug->auxprop_store) {
 		ret = ptr->plug->auxprop_store(ptr->plug->glob_context,
 					       sparams, ctx, user, userlen);
+		if (ret == SASL_CONSTRAINT_VIOLAT) {
+		    ret = SASL_OK;
+		    num_constraint_violations++;
+		}
+	    }
 	}
     } else {
 	char *pluginlist = NULL, *freeptr = NULL, *thisplugin = NULL;
@@ -1035,10 +1042,15 @@ int sasl_auxprop_store(sasl_conn_t *conn,
 		    || strcasecmp(ptr->plug->name, thisplugin)))
 		    continue;
 
-		found=1;
-		if (ptr->plug->auxprop_store)
+		total_plugins++;
+		if (ptr->plug->auxprop_store) {
 		    ret = ptr->plug->auxprop_store(ptr->plug->glob_context,
 						   sparams, ctx, user, userlen);
+		    if (ret == SASL_CONSTRAINT_VIOLAT) {
+			ret = SASL_OK;
+			num_constraint_violations++;
+		    }
+		}
 	    }
 
 	    if(last) break;
@@ -1049,11 +1061,13 @@ int sasl_auxprop_store(sasl_conn_t *conn,
 	sasl_FREE(freeptr);
     }
 
-    if(!found) {
+    if(total_plugins == 0) {
 	_sasl_log(NULL, SASL_LOG_ERR,
 		  "could not find auxprop plugin, was searching for %s",
 		  plist ? plist : "[all]");
 	return SASL_FAIL;
+    } else if (total_plugins == num_constraint_violations) {
+	ret = SASL_CONSTRAINT_VIOLAT;
     }
 
     return ret;

@@ -171,6 +171,10 @@
 #define SASL_NOCHANGE   -22  /* requested change was not needed */
 #define SASL_WEAKPASS   -27  /* passphrase is too weak for security policy */
 #define SASL_NOUSERPASS -28  /* user supplied passwords not permitted */
+#define SASL_NEED_OLD_PASSWD -29 /* sasl_setpass needs old password in order
+				    to perform password change */
+#define SASL_CONSTRAINT_VIOLAT	-30 /* a property can't be stored,
+				       because of some constrains/policy violation */
 
 /* max size of a sasl mechanism name */
 #define SASL_MECHNAMEMAX 20

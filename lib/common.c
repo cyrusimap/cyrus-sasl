@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.122 2008/10/31 16:22:13 mel Exp $
+ * $Id: common.c,v 1.123 2009/01/28 22:49:14 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1294,6 +1294,10 @@ const char *sasl_errstring(int saslerr,
     case SASL_NOCHANGE:   return "requested change was not needed";
     case SASL_WEAKPASS:   return "passphrase is too weak for security policy";
     case SASL_NOUSERPASS: return "user supplied passwords are not permitted";
+    case SASL_NEED_OLD_PASSWD: return "sasl_setpass needs old password in order "
+				"to perform password change";
+    case SASL_CONSTRAINT_VIOLAT: return "sasl_setpass can't store a property because "
+			        "of a constraint violation";
 
     default:   return "undefined error!";
     }

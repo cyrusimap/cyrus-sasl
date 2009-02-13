@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.95 2009/01/25 14:20:18 mel Exp $
+ * $Id: gssapi.c,v 1.96 2009/02/13 14:46:47 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.95 2009/01/25 14:20:18 mel Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.96 2009/02/13 14:46:47 mel Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -914,7 +914,7 @@ gssapi_server_mech_step(void *conn_context,
 	}
 	if (name_without_realm.value) {
 	    params->utils->free(name_without_realm.value);
-	}	
+	}
 	
 	/* we have to decide what sort of encryption/integrity/etc.,
 	   we support */
@@ -1174,7 +1174,8 @@ static sasl_server_plug_t gssapi_server_plugins[] =
 	| SASL_SEC_MUTUAL_AUTH		/* security_flags */
 	| SASL_SEC_PASS_CREDENTIALS,
 	SASL_FEAT_WANT_CLIENT_FIRST
-	| SASL_FEAT_ALLOWS_PROXY,	/* features */
+	| SASL_FEAT_ALLOWS_PROXY
+	| SASL_FEAT_DONTUSE_USERPASSWD,	/* features */
 	NULL,				/* glob_context */
 	&gssapi_server_mech_new,	/* mech_new */
 	&gssapi_server_mech_step,	/* mech_step */

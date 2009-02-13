@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.157 2009/01/28 22:49:14 mel Exp $
+ * $Id: server.c,v 1.158 2009/02/13 14:46:46 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -2147,7 +2147,7 @@ _sasl_print_mechanism (
 
 
 	printf ("\n\tfeatures:");
-	
+
 	delimiter = ' ';
 	if (m->plug->features & SASL_FEAT_WANT_CLIENT_FIRST) {
 	    printf ("%cWANT_CLIENT_FIRST", delimiter);
@@ -2161,6 +2161,11 @@ _sasl_print_mechanism (
 
 	if (m->plug->features & SASL_FEAT_ALLOWS_PROXY) {
 	    printf ("%cPROXY_AUTHENTICATION", delimiter);
+	    delimiter = '|';
+	}
+
+	if (m->plug->features & SASL_FEAT_DONTUSE_USERPASSWD) {
+	    printf ("%cDONTUSE_USERPASSWD", delimiter);
 	    delimiter = '|';
 	}
 

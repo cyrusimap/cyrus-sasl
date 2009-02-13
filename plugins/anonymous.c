@@ -1,7 +1,7 @@
 /* Anonymous SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: anonymous.c,v 1.52 2008/10/30 14:19:46 mel Exp $
+ * $Id: anonymous.c,v 1.53 2009/02/13 14:46:47 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -60,7 +60,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: anonymous.c,v 1.52 2008/10/30 14:19:46 mel Exp $";
+static const char plugin_id[] = "$Id: anonymous.c,v 1.53 2009/02/13 14:46:47 mel Exp $";
 
 static const char anonymous_id[] = "anonymous";
 
@@ -157,7 +157,8 @@ static sasl_server_plug_t anonymous_server_plugins[] =
 	"ANONYMOUS",			/* mech_name */
 	0,				/* max_ssf */
 	SASL_SEC_NOPLAINTEXT,		/* security_flags */
-	SASL_FEAT_WANT_CLIENT_FIRST,	/* features */
+	SASL_FEAT_WANT_CLIENT_FIRST
+	| SASL_FEAT_DONTUSE_USERPASSWD,	/* features */
 	NULL,				/* glob_context */
 	&anonymous_server_mech_new,	/* mech_new */
 	&anonymous_server_mech_step,	/* mech_step */

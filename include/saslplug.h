@@ -329,6 +329,9 @@ typedef struct sasl_client_params {
 /* This plugin allows proxying */
 #define SASL_FEAT_ALLOWS_PROXY 0x0020
 
+/* server plugin don't use cleartext userPassword attribute */
+#define SASL_FEAT_DONTUSE_USERPASSWD 0x0080
+
 /* client plug-in features */
 #define SASL_FEAT_NEEDSERVERFQDN 0x0001
 

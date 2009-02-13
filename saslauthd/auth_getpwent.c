@@ -32,7 +32,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_getpwent.c,v 1.8 2006/05/19 19:32:22 murch Exp $"
+#ident "$Id: auth_getpwent.c,v 1.9 2009/02/13 14:23:26 mel Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -47,6 +47,9 @@
 
 # ifdef WITH_DES
 #  ifdef WITH_SSL_DES
+#   ifndef OPENSSL_DISABLE_OLD_DES_SUPPORT
+#    define OPENSSL_DISABLE_OLD_DES_SUPPORT
+#   endif
 #   include <openssl/des.h>
 #  else
 #   include <des.h>

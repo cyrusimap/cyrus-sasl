@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.40 2009/02/14 12:34:25 mel Exp $
+ * $Id: otp.c,v 1.41 2009/02/14 12:45:29 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2009 Carnegie Mellon University.  All rights reserved.
@@ -68,7 +68,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: otp.c,v 1.40 2009/02/14 12:34:25 mel Exp $";
+static const char plugin_id[] = "$Id: otp.c,v 1.41 2009/02/14 12:45:29 mel Exp $";
 
 #define OTP_SEQUENCE_MAX	9999
 #define OTP_SEQUENCE_DEFAULT	499
@@ -1286,8 +1286,12 @@ static int otp_setpass(void *glob_context __attribute__((unused)),
 	return SASL_NOMECH;
     }
     
-    r = _plug_parseuser(sparams->utils, &user_only, &realm, sparams->user_realm,
-			sparams->serverFQDN, userstr);
+    r = _plug_parseuser(sparams->utils,
+			&user_only,
+			&realm,
+			sparams->user_realm,
+			sparams->serverFQDN,
+			userstr);
     if (r) {
 	SETERROR(sparams->utils, "OTP: Error parsing user");
 	return r;
@@ -1632,14 +1636,20 @@ static int otp_client_mech_step2(client_context_t *text,
     if (echo_result == SASL_INTERACT) {
 	/* make the prompt list */
 	result =
-	    _plug_make_prompts(params->utils, prompt_need,
-			       NULL, NULL,
-			       NULL, NULL,
-			       NULL, NULL,
+	    _plug_make_prompts(params->utils,
+			       prompt_need,
+			       NULL,
+			       NULL,
+			       NULL,
+			       NULL,
+			       NULL,
+			       NULL,
 			       text->challenge,
 			       "Please enter your one-time password",
 			       NULL,
-			       NULL, NULL, NULL);
+			       NULL,
+			       NULL,
+			       NULL);
 	if (result != SASL_OK) return result;
 	
 	return SASL_INTERACT;

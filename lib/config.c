@@ -1,10 +1,10 @@
 /* SASL Config file API
  * Rob Siemborski
  * Tim Martin (originally in Cyrus distribution)
- * $Id: config.c,v 1.17 2009/02/14 13:59:51 mel Exp $
+ * $Id: config.c,v 1.18 2009/02/14 14:01:24 mel Exp $
  */
 /* 
- * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 1998-2009 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,17 +41,6 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN
  * AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
-
-/*
- * Current Valid keys:
- *
- * canon_user_plugin: <string>
- * pwcheck_method: <string>
- * auto_transition: <boolean>
- * plugin_list: <string>
- *
- * srvtab: <string>
  */
 
 #include <stdio.h>
@@ -124,8 +113,6 @@ int sasl_config_init(const char *filename)
 				    alloced * sizeof(struct configlist));
 	    if (configlist==NULL) return SASL_NOMEM;
 	}
-
-
 
 	result = _sasl_strdup(key,
 			      &(configlist[nconfiglist].key),

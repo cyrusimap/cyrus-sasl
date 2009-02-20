@@ -32,7 +32,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_sasldb.c,v 1.5 2002/07/27 18:44:46 rjs3 Exp $"
+#ident "$Id: auth_sasldb.c,v 1.6 2009/02/20 22:08:56 mel Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -41,6 +41,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <pwd.h>
+#include <config.h>
 /* END PUBLIC DEPENDENCIES */
 
 #define RETURN(x) return strdup(x)

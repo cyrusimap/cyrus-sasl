@@ -287,7 +287,7 @@ int main(int argc, char **argv) {
 		exit(1);
 	}
 
-	umask(077);
+	umask(0077);
 
 	pid_file_size = strlen(run_path) + sizeof(PID_FILE_LOCK) + 1;
 	if ((pid_file_lock = malloc(pid_file_size)) == NULL) {
@@ -298,7 +298,7 @@ int main(int argc, char **argv) {
 	strlcpy(pid_file_lock, run_path, pid_file_size);
 	strlcat(pid_file_lock, PID_FILE_LOCK, pid_file_size);
 
-	if ((pid_file_lock_fd = open(pid_file_lock, O_CREAT|O_TRUNC|O_RDWR, 644)) < 0) {
+	if ((pid_file_lock_fd = open(pid_file_lock, O_CREAT|O_TRUNC|O_RDWR, 0644)) < 0) {
 		rc = errno;
 		logger(L_ERR, L_FUNC, "could not open pid lock file: %s", pid_file_lock);
 		logger(L_ERR, L_FUNC, "open: %s", strerror(rc));

@@ -1,7 +1,7 @@
 /* SASL client API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.72 2009/01/25 11:30:49 mel Exp $
+ * $Id: client.c,v 1.73 2009/02/20 23:10:53 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -230,6 +230,9 @@ int sasl_client_init(const sasl_callback_t *callbacks)
       { NULL, NULL }
   };
 
+  /* lock allocation type */
+  _sasl_allocation_locked++;
+  
   if(_sasl_client_active) {
       /* We're already active, just increase our refcount */
       /* xxx do something with the callback structure? */

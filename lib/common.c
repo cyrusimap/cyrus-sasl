@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.123 2009/01/28 22:49:14 mel Exp $
+ * $Id: common.c,v 1.124 2009/02/20 23:10:53 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -107,6 +107,7 @@ sasl_allocation_utils_t _sasl_allocation_utils={
   (sasl_realloc_t *) &realloc,
   (sasl_free_t *) &free
 };
+int _sasl_allocation_locked = 0;
 
 #define SASL_ENCODEV_EXTRA  4096
 
@@ -658,6 +659,8 @@ sasl_set_alloc(sasl_malloc_t *m,
 	       sasl_realloc_t *r,
 	       sasl_free_t *f)
 {
+  if (_sasl_allocation_locked++)  return;
+
   _sasl_allocation_utils.malloc=m;
   _sasl_allocation_utils.calloc=c;
   _sasl_allocation_utils.realloc=r;

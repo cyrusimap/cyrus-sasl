@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.158 2009/02/13 14:46:46 mel Exp $
+ * $Id: server.c,v 1.159 2009/02/20 23:10:53 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -805,6 +805,9 @@ int sasl_server_init(const sasl_callback_t *callbacks,
 	{ "sasl_canonuser_init", (add_plugin_t *)sasl_canonuser_add_plugin },
 	{ NULL, NULL }
     };
+
+    /* lock allocation type */
+    _sasl_allocation_locked++;
 
     /* we require the appname (if present) to be short enough to be a path */
     if (appname != NULL && strlen(appname) >= PATH_MAX)

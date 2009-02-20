@@ -55,6 +55,7 @@
 #include <openssl/des.h>
 #endif
 
+#define LDAP_DEPRECATED 1
 #include <ldap.h>
 #include <lber.h>
 #include <sasl.h>

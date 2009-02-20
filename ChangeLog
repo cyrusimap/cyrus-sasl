@@ -1,3 +1,65 @@
+2009-02-20  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/saslint.h, lib/client.c, lib/common.c, lib/server.c:
+	  Make sure that sasl_set_alloc() has no effect once sasl_client_init()
+	  or sasl_server_init() is called [patch from Debian by
+	  fabbe@debian.org]
+
+2009-02-20  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/digestmd5.c: GCC 4.4 requires that the #elif
+	  preprocessor directive have a test condition [patch from Debian by
+	  fabbe@paniq.net]
+
+2009-02-20  Alexey Melnikov <alexey.melnikov@isode.com>
+	* saslauthd/lak.c: Define LDAP_DEPRECATED so that ldap_get_values
+	  is properly defined when compiling [patch from Debian by
+	  Dann Frazier <dannf@debian.org>]
+
+2009-02-20  Alexey Melnikov <alexey.melnikov@isode.com>
+	* saslauthd/auth_sasldb.c: pid_file_lock is created with a mask
+	  of 644 instead of 0644 [patch from Debian by Sam Hocevar <sam@zoy.org>]
+
+2009-02-20  Alexey Melnikov <alexey.melnikov@isode.com>
+	* saslauthd/auth_sasldb.c: Include config.h so that MAXHOSTNAMELEN
+	  is available when building on hurd-i386 [patch from Debian
+	  by mbanck@debian.org]
+
+2009-02-20  Alexey Melnikov <alexey.melnikov@isode.com>
+	* saslauthd/auth_shadow.c: Define _XOPEN_SOURCE before including
+	  unistd.h, so that crypt is correctly defined [patch from Debian
+	  by dannf@debian.org]
+
+2009-02-14  Alexey Melnikov <alexey.melnikov@isode.com>
+	* utils/pluginviewer.c: Code cleanup, improved human readable messages
+
+2009-02-14  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/config.c: Strip trailing spaces from config file option
+	  values (bug # 3139)
+
+2009-02-14  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/otp.c: Don't use a stack variable for an OTP prompt
+	  (bug # 2822)
+
+2009-02-13  Alexey Melnikov <alexey.melnikov@isode.com>
+	* saslauthd/auth_getpwent.c: Fixed Solaris build (patch by Leena
+	  Heino for bug # 2666)
+
+2009-02-13  Alexey Melnikov <alexey.melnikov@isode.com>
+	* include/saslplug.h, lib/server.c, plugins/anonymous.c,
+	  plugins/gssapi.c, plugins/otp.c: Partial support for the
+	  SASL_FEAT_DONTUSE_USERPASSWD feature
+
+2009-01-28  Alexey Melnikov <alexey.melnikov@isode.com>
+	* include/sasl.h, lib/auxprop.c, lib/common.c, lib/server.c:
+	  Don't treat a constraint violation as an error to store an auxprop
+	  property
+
+2009-01-28  Alexey Melnikov <alexey.melnikov@isode.com>
+	* include/sasl.h, lib/server.c: Extended libsasl (auxprop) to support
+	  user deletion
+
+2009-01-28  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/otp.c: Downgrade the failure to store OTP secret to debug level
+
 2009-01-25  Alexey Melnikov <alexey.melnikov@isode.com>
 	* lib/windlopen.c: Free handles of shared libraries on Windows
 	  that were loaded but are not SASL plugins (patch by Petr Prazak)

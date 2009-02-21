@@ -1,3 +1,6 @@
+2009-02-21  Alexey Melnikov <alexey.melnikov@isode.com>
+	* include/saslutil.h, lib/saslint.h: Made sasl_config_init public
+
 2009-02-20  Alexey Melnikov <alexey.melnikov@isode.com>
 	* lib/saslint.h, lib/client.c, lib/common.c, lib/server.c:
 	  Make sure that sasl_set_alloc() has no effect once sasl_client_init()
@@ -33,7 +36,7 @@
 
 2009-02-14  Alexey Melnikov <alexey.melnikov@isode.com>
 	* lib/config.c: Strip trailing spaces from config file option
-	  values (bug # 3139)
+	  values (bug # 3139, bug # 3041)
 
 2009-02-14  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/otp.c: Don't use a stack variable for an OTP prompt

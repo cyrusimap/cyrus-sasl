@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.68 2009/02/20 23:10:53 mel Exp $
+ * $Id: saslint.h,v 1.69 2009/02/21 20:07:45 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -455,7 +455,6 @@ sasl_string_list_t *_sasl_server_mechs(void);
 /*
  * config file declarations (config.c)
  */
-extern int sasl_config_init(const char *filename);
 extern const char *sasl_config_getstring(const char *key,const char *def);
 
 /* checkpw.c */

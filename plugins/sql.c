@@ -7,7 +7,7 @@
 ** Simon Loader -- original mysql plugin
 ** Patrick Welche -- original pgsql plugin
 **
-** $Id: sql.c,v 1.35 2009/02/21 19:46:24 mel Exp $
+** $Id: sql.c,v 1.36 2009/02/21 19:47:38 mel Exp $
 **
 */
 
@@ -584,17 +584,17 @@ static int _sqlite3_exec(void *db, const char *cmd, char *value, size_t size,
 
 static int _sqlite3_begin_txn(void *db, const sasl_utils_t *utils)
 {
-    return _sqlite3_exec(db, "BEGIN TRANSACTION", NULL, 0, NULL, utils);
+    return _sqlite3_exec(db, "BEGIN TRANSACTION;", NULL, 0, NULL, utils);
 }
 
 static int _sqlite3_commit_txn(void *db, const sasl_utils_t *utils)
 {
-    return _sqlite3_exec(db, "COMMIT TRANSACTION", NULL, 0, NULL, utils);
+    return _sqlite3_exec(db, "COMMIT TRANSACTION;", NULL, 0, NULL, utils);
 }
 
 static int _sqlite3_rollback_txn(void *db, const sasl_utils_t *utils)
 {
-    return _sqlite3_exec(db, "ROLLBACK TRANSACTION", NULL, 0, NULL, utils);
+    return _sqlite3_exec(db, "ROLLBACK TRANSACTION;", NULL, 0, NULL, utils);
 }
 
 static void _sqlite3_close(void *db)

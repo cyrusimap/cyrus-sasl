@@ -7,7 +7,7 @@
 ** Simon Loader -- original mysql plugin
 ** Patrick Welche -- original pgsql plugin
 **
-** $Id: sql.c,v 1.34 2008/11/15 20:46:25 mel Exp $
+** $Id: sql.c,v 1.35 2009/02/21 19:46:24 mel Exp $
 **
 */
 
@@ -637,7 +637,7 @@ static const sql_engine_t sql_engines[] = {
 **   %p = prop
 **   %r = realm
 **   %v = value of prop
-**  e.g select %p from auth where user = %p and domain = %r;
+**  e.g select %p from auth where user = %u and domain = %r;
 **  Note: calling function must free memory.
 **
 */

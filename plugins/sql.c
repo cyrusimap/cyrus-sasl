@@ -7,7 +7,7 @@
 ** Simon Loader -- original mysql plugin
 ** Patrick Welche -- original pgsql plugin
 **
-** $Id: sql.c,v 1.36 2009/02/21 19:47:38 mel Exp $
+** $Id: sql.c,v 1.37 2009/03/10 17:16:16 mel Exp $
 **
 */
 
@@ -901,6 +901,7 @@ static int sql_auxprop_lookup(void *glob_context,
     char *escap_userid = NULL;
     char *escap_realm = NULL;
     sql_settings_t *settings;
+    int verify_against_hashed_password;
     void *conn = NULL;
     int do_txn = 0;
     int ret;
@@ -971,6 +972,8 @@ static int sql_auxprop_lookup(void *glob_context,
     settings->sql_engine->sql_escape_str(escap_userid, userid);
     settings->sql_engine->sql_escape_str(escap_realm, realm);
 
+    verify_against_hashed_password = flags & SASL_AUXPROP_VERIFY_AGAINST_HASH;
+
     /* Assume that nothing is found */
     ret = SASL_NOUSER;
     for (cur = to_fetch; cur->name; cur++) {
@@ -988,11 +991,16 @@ static int sql_auxprop_lookup(void *glob_context,
 	}
 	
 	/* If it's there already, we want to see if it needs to be
-	 * overridden */
-	if (cur->values && !(flags & SASL_AUXPROP_OVERRIDE))
+	 * overridden. userPassword is a special case, because it's value
+	   is always present if SASL_AUXPROP_VERIFY_AGAINST_HASH is specified.
+	   When SASL_AUXPROP_VERIFY_AGAINST_HASH is set, we just clear userPassword. */
+	if (cur->values && !(flags & SASL_AUXPROP_OVERRIDE) &&
+	    (verify_against_hashed_password == 0 ||
+	     strcasecmp(realname, SASL_AUX_PASSWORD_PROP) != 0)) {
 	    continue;
-	else if (cur->values)
+	} else if (cur->values) {
 	    sparams->utils->prop_erase(sparams->propctx, cur->name);
+	}
 
 	if (!do_txn) {
 	    do_txn = 1;

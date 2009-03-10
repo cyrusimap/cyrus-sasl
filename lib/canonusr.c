@@ -1,6 +1,6 @@
 /* canonusr.c - user canonicalization support
  * Rob Siemborski
- * $Id: canonusr.c,v 1.19 2009/03/10 14:10:52 mel Exp $
+ * $Id: canonusr.c,v 1.20 2009/03/10 16:27:52 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -64,7 +64,6 @@ static canonuser_plug_list_t *canonuser_head = NULL;
  *                   eliminate leading & trailing whitespace,
  *                   null-terminate, and get into the outparams
  *                   (handled by INTERNAL plugin) */
-/* Also does auxprop lookups once username is canonicalized */
 /* a zero ulen or alen indicates that it is strlen(value) */
 int _sasl_canon_user(sasl_conn_t *conn,
                      const char *user, unsigned ulen,
@@ -108,7 +107,7 @@ int _sasl_canon_user(sasl_conn_t *conn,
 	result = cuser_cb(conn, context,
 			user, ulen,
 			flags, (conn->type == SASL_CONN_SERVER ?
-				((sasl_server_conn_t *)conn)->user_realm :
+				sconn->user_realm :
 				NULL),
 			user_buf, CANON_BUF_SIZE, lenp);
 	
@@ -232,6 +231,15 @@ static int _sasl_auxprop_lookup_user_props (sasl_conn_t *conn,
 		result = authz_result;
 	    }
 	}
+
+	if (result == SASL_NOUSER && (flags & SASL_CU_EXTERNALLY_VERIFIED)) {
+	    /* The called has explicitly told us that the authentication identity
+	       was already verified. So a failure to retrieve any associated properties
+	       is not an error. For example the caller is using Kerberos to verify user,
+	       but the LDAPDB/SASLDB auxprop plugin doesn't contain any auxprops for
+	       the user. */
+	    result = SASL_OK;
+	}	
     }
 #endif
 
@@ -243,7 +251,7 @@ static int _sasl_auxprop_lookup_user_props (sasl_conn_t *conn,
  *                   null-terminate, and get into the outparams
  *                   (handled by INTERNAL plugin).
  *
- *                   Also does auxprop lookups once username
+ *                   Server only: Also does auxprop lookups once username
  *                   is canonicalized. */
 int _sasl_canon_user_lookup (sasl_conn_t *conn,
 			     const char *user,

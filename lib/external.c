@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: external.c,v 1.23 2006/07/03 14:43:16 murch Exp $
+ * $Id: external.c,v 1.24 2009/03/10 16:27:52 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -57,7 +57,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: external.c,v 1.23 2006/07/03 14:43:16 murch Exp $";
+static const char plugin_id[] = "$Id: external.c,v 1.24 2009/03/10 16:27:52 mel Exp $";
 
 /*****************************  Server Section  *****************************/
 
@@ -133,11 +133,11 @@ external_server_mech_step(void *conn_context __attribute__((unused)),
 	
 	result = sparams->canon_user(sparams->utils->conn,
 				     sparams->utils->conn->external.auth_id, 0,
-				     SASL_CU_AUTHID, oparams);
+				     SASL_CU_AUTHID | SASL_CU_EXTERNALLY_VERIFIED, oparams);
     } else {
 	result = sparams->canon_user(sparams->utils->conn,
 				     sparams->utils->conn->external.auth_id, 0,
-				     SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
+				     SASL_CU_AUTHID | SASL_CU_EXTERNALLY_VERIFIED | SASL_CU_AUTHZID, oparams);
     }
     
     if (result != SASL_OK) return result;

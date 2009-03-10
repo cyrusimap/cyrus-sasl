@@ -1,7 +1,7 @@
 /* Kerberos4 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: kerberos4.c,v 1.99 2005/01/10 07:08:53 shadow Exp $
+ * $Id: kerberos4.c,v 1.100 2009/03/10 16:27:52 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -115,7 +115,7 @@ extern int gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: kerberos4.c,v 1.99 2005/01/10 07:08:53 shadow Exp $";
+static const char plugin_id[] = "$Id: kerberos4.c,v 1.100 2009/03/10 16:27:52 mel Exp $";
 
 #ifndef KEYFILE
 #define KEYFILE "/etc/srvtab";
@@ -745,7 +745,7 @@ static int kerberosv4_server_mech_step(void *conn_context,
 	if (sparams->canon_user) {
 	    char *user=NULL, *authid=NULL;
 	    size_t ulen = 0, alen = strlen(text->pname);
-	    int ret, cflag = SASL_CU_AUTHID;
+	    int ret, cflag = SASL_CU_AUTHID | SASL_CU_EXTERNALLY_VERIFIED;
 	    
 	    if (text->pinst[0]) {
 		alen += strlen(text->pinst) + 1 /* for the . */;

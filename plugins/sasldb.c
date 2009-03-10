@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: sasldb.c,v 1.15 2009/03/10 14:10:53 mel Exp $
+ * $Id: sasldb.c,v 1.16 2009/03/10 14:23:45 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -71,6 +71,7 @@ static int sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
     size_t value_len;
     char *user_buf;
     int verify_against_hashed_password;
+    int saw_user_password = 0;
 
     if (!sparams || !user) return SASL_BADPARAM;
 
@@ -126,6 +127,10 @@ static int sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
 	    sparams->utils->prop_erase(sparams->propctx, cur->name);
 	}
 
+	if (strcasecmp(realname, SASL_AUX_PASSWORD_PROP) == 0) {
+	    saw_user_password = 1;
+	}
+
 	cur_ret = _sasldb_getdata(sparams->utils,
 			      sparams->utils->conn, userid, realm,
 			      realname, value, sizeof(value), &value_len);
@@ -174,6 +179,19 @@ static int sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
 	   when we return SASL_NOUSER for authorization identity lookup. */
 	if (ret == SASL_NOUSER) {
 	    ret = SASL_OK;
+	}
+    } else {
+	if (ret == SASL_NOUSER && saw_user_password == 0) {
+	    /* Verify user existence by checking presence of
+	       the userPassword attribute */
+	    ret = _sasldb_getdata(sparams->utils,
+				  sparams->utils->conn,
+				  userid,
+				  realm,
+				  SASL_AUX_PASSWORD_PROP,
+				  value,
+				  sizeof(value),
+				  &value_len);
 	}
     }
 

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: sasldb.c,v 1.14 2008/10/29 15:01:31 mel Exp $
+ * $Id: sasldb.c,v 1.15 2009/03/10 14:10:53 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -70,8 +70,9 @@ static int sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
     char value[8192];
     size_t value_len;
     char *user_buf;
-    
-    if (!sparams || !user)  return SASL_BADPARAM;
+    int verify_against_hashed_password;
+
+    if (!sparams || !user) return SASL_BADPARAM;
 
     user_buf = sparams->utils->malloc(ulen + 1);
     if(!user_buf) {
@@ -98,6 +99,8 @@ static int sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
 	goto done;
     }
 
+    verify_against_hashed_password = flags & SASL_AUXPROP_VERIFY_AGAINST_HASH;
+
     /* Use a fake value to signal that we have no property to lookup */
     ret = SASL_CONTINUE;
     for(cur = to_fetch; cur->name; cur++) {
@@ -112,12 +115,17 @@ static int sasldb_auxprop_lookup(void *glob_context __attribute__((unused)),
 	}
 	
 	/* If it's there already, we want to see if it needs to be
-	 * overridden */
-	if(cur->values && !(flags & SASL_AUXPROP_OVERRIDE))
+	 * overridden. userPassword is a special case, because it's value
+	   is always present if SASL_AUXPROP_VERIFY_AGAINST_HASH is specified.
+	   When SASL_AUXPROP_VERIFY_AGAINST_HASH is set, we just clear userPassword. */
+	if (cur->values && !(flags & SASL_AUXPROP_OVERRIDE) &&
+	    (verify_against_hashed_password == 0 ||
+	     strcasecmp(realname, SASL_AUX_PASSWORD_PROP) != 0)) {
 	    continue;
-	else if(cur->values)
+	} else if (cur->values) {
 	    sparams->utils->prop_erase(sparams->propctx, cur->name);
-	    
+	}
+
 	cur_ret = _sasldb_getdata(sparams->utils,
 			      sparams->utils->conn, userid, realm,
 			      realname, value, sizeof(value), &value_len);

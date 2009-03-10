@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.77 2008/10/29 15:01:30 mel Exp $
+ * $Id: checkpw.c,v 1.78 2009/03/10 14:10:52 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -135,8 +135,6 @@ static int auxprop_verify_password(sasl_conn_t *conn,
 				   const char *user_realm __attribute__((unused)))
 {
     int ret = SASL_FAIL;
-    char *userid = NULL;
-    char *realm = NULL;
     int result = SASL_OK;
     sasl_server_conn_t *sconn = (sasl_server_conn_t *)conn;
     const char *password_request[] = { SASL_AUX_PASSWORD,
@@ -150,7 +148,7 @@ static int auxprop_verify_password(sasl_conn_t *conn,
     /* We need to clear any previous results and re-canonify to 
      * ensure correctness */
 
-    prop_clear(sconn->sparams->propctx, 0);
+    prop_clear (sconn->sparams->propctx, 0);
 	
     /* ensure its requested */
     result = prop_request(sconn->sparams->propctx, password_request);
@@ -229,9 +227,102 @@ static int auxprop_verify_password(sasl_conn_t *conn,
 				      password_request[0]);
 
  done:
-    if (userid) sasl_FREE(userid);
-    if (realm)  sasl_FREE(realm);
+    /* We're not going to erase the property here because other people
+     * may want it */
+    return ret;
+}
 
+/* Verify user password using auxprop plugins. Allow verification against a hashed password,
+ * or non-retrievable password. Don't use cmusaslsecretPLAIN attribute.
+ *
+ * This function is similar to auxprop_verify_password().
+ */
+static int auxprop_verify_password_hashed(sasl_conn_t *conn,
+					  const char *userstr,
+					  const char *passwd,
+					  const char *service __attribute__((unused)),
+					  const char *user_realm __attribute__((unused)))
+{
+    int ret = SASL_FAIL;
+    int result = SASL_OK;
+    sasl_server_conn_t *sconn = (sasl_server_conn_t *)conn;
+    const char *password_request[] = { SASL_AUX_PASSWORD,
+				       NULL };
+    struct propval auxprop_values[2];
+    unsigned extra_cu_flags = 0;
+
+    if (!conn || !userstr)
+	return SASL_BADPARAM;
+
+    /* We need to clear any previous results and re-canonify to 
+     * ensure correctness */
+
+    prop_clear(sconn->sparams->propctx, 0);
+	
+    /* ensure its requested */
+    result = prop_request(sconn->sparams->propctx, password_request);
+
+    if (result != SASL_OK) return result;
+
+    /* We need to pass "password" down to the auxprop_lookup */
+    /* NB: We don't support binary passwords */
+    if (passwd != NULL) {
+	prop_set (sconn->sparams->propctx,
+		  SASL_AUX_PASSWORD,
+		  passwd,
+		  -1);
+	extra_cu_flags = SASL_CU_VERIFY_AGAINST_HASH;
+    }
+
+    result = _sasl_canon_user_lookup (conn,
+				      userstr,
+				      0,
+				      SASL_CU_AUTHID | SASL_CU_AUTHZID | extra_cu_flags,
+				      &(conn->oparams));
+
+    if (result != SASL_OK) return result;
+    
+    result = prop_getnames(sconn->sparams->propctx, password_request,
+			   auxprop_values);
+    if (result < 0) {
+	return result;
+    }
+
+    /* Verify that the returned <name>s are correct.
+       But we defer checking for NULL values till after we verify
+       that a passwd is specified. */
+    if (!auxprop_values[0].name && !auxprop_values[1].name) {
+	return SASL_NOUSER;
+    }
+        
+    /* It is possible for us to get useful information out of just
+     * the lookup, so we won't check that we have a password until now */
+    if (!passwd) {
+	ret = SASL_BADPARAM;
+	goto done;
+    }
+
+    if ((!auxprop_values[0].values || !auxprop_values[0].values[0])) {
+	return SASL_NOUSER;
+    }
+
+    /* At the point this has been called, the username has been canonified
+     * and we've done the auxprop lookup.  This should be easy. */
+
+    /* NB: Note that if auxprop_lookup failed to verify the password,
+       then the userPassword property value would be NULL */
+    if (auxprop_values[0].name
+        && auxprop_values[0].values
+        && auxprop_values[0].values[0]
+        && !strcmp(auxprop_values[0].values[0], passwd)) {
+	/* We have a plaintext version and it matched! */
+	return SASL_OK;
+    } else {
+	/* passwords do not match */
+	ret = SASL_BADAUTH;
+    }
+
+ done:
     /* We're not going to erase the property here because other people
      * may want it */
     return ret;
@@ -988,6 +1079,7 @@ static int always_true(sasl_conn_t *conn,
 
 struct sasl_verify_password_s _sasl_verify_password[] = {
     { "auxprop", &auxprop_verify_password },
+    { "auxprop-hashed", &auxprop_verify_password_hashed },
 #ifdef HAVE_PWCHECK
     { "pwcheck", &pwcheck_verify_password },
 #endif

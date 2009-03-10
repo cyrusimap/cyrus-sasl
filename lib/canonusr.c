@@ -1,6 +1,6 @@
 /* canonusr.c - user canonicalization support
  * Rob Siemborski
- * $Id: canonusr.c,v 1.18 2008/10/30 14:21:30 mel Exp $
+ * $Id: canonusr.c,v 1.19 2009/03/10 14:10:52 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -128,7 +128,7 @@ int _sasl_canon_user(sasl_conn_t *conn,
     }
 
     if(!plugin_name) {
-	/* Use Defualt */
+	/* Use Default */
 	plugin_name = "INTERNAL";
     }
     
@@ -186,9 +186,9 @@ int _sasl_canon_user(sasl_conn_t *conn,
 }
 
 /* Lookup all properties for authentication and/or authorization identity. */
-int _sasl_auxprop_lookup_user_props (sasl_conn_t *conn,
-				     unsigned flags,
-				     sasl_out_params_t *oparams)
+static int _sasl_auxprop_lookup_user_props (sasl_conn_t *conn,
+					    unsigned flags,
+					    sasl_out_params_t *oparams)
 {
     sasl_server_conn_t *sconn = NULL;
     int result = SASL_OK;
@@ -202,16 +202,25 @@ int _sasl_auxprop_lookup_user_props (sasl_conn_t *conn,
     /* do auxprop lookups (server only) */
     if (sconn) {
 	int authz_result;
+	unsigned auxprop_lookup_flags = flags & SASL_CU_ASIS_MASK;
 
-	if(flags & SASL_CU_AUTHID) {
-	    result = _sasl_auxprop_lookup(sconn->sparams, 0,
-				 oparams->authid, oparams->alen);
+	if (flags & SASL_CU_OVERRIDE) {
+	    auxprop_lookup_flags |= SASL_AUXPROP_OVERRIDE;
+	}
+
+	if (flags & SASL_CU_AUTHID) {
+	    result = _sasl_auxprop_lookup(sconn->sparams,
+					  auxprop_lookup_flags,
+					  oparams->authid,
+					  oparams->alen);
 	} else {
 	    result = SASL_CONTINUE;
 	}
-	if(flags & SASL_CU_AUTHZID) {
-	    authz_result = _sasl_auxprop_lookup(sconn->sparams, SASL_AUXPROP_AUTHZID,
-				 oparams->user, oparams->ulen);
+	if (flags & SASL_CU_AUTHZID) {
+	    authz_result = _sasl_auxprop_lookup(sconn->sparams,
+						auxprop_lookup_flags | SASL_AUXPROP_AUTHZID,
+						oparams->user,
+						oparams->ulen);
 
 	    if (result == SASL_CONTINUE) {
 		/* Only SASL_CU_AUTHZID was requested.

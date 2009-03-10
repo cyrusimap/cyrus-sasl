@@ -631,6 +631,14 @@ typedef int sasl_server_userdb_setpass_t(sasl_conn_t *conn,
 #define SASL_CU_AUTHID  0x01
 #define SASL_CU_AUTHZID 0x02
 
+#define SASL_CU_OVERRIDE	    0x08    /* mapped to SASL_AUXPROP_OVERRIDE */
+
+/* The following CU flags are passed "as is" down to auxprop lookup */
+#define SASL_CU_ASIS_MASK	    0xFFF0
+/* NOTE: Keep in sync with SASL_AUXPROP_<XXX> flags */
+#define SASL_CU_VERIFY_AGAINST_HASH 0x10
+
+
 typedef int sasl_canon_user_t(sasl_conn_t *conn,
 			      void *context,
 			      const char *in, unsigned inlen,

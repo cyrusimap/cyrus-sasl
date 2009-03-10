@@ -922,7 +922,11 @@ typedef struct sasl_auxprop_plug {
 				    * we are looking up the authzid flags
 				    * (no prefix) */
 
-#define SASL_AUXPROP_PLUG_VERSION 5
+/* NOTE: Keep in sync with SASL_CU_<XXX> flags */
+#define SASL_AUXPROP_VERIFY_AGAINST_HASH 0x10
+
+
+#define SASL_AUXPROP_PLUG_VERSION 8
 
 /* default name for auxprop plug-in entry point is "sasl_auxprop_init"
  *  similar to sasl_server_plug_init model, except only returns one

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: sasldb.c,v 1.16 2009/03/10 14:23:45 mel Exp $
+ * $Id: sasldb.c,v 1.17 2009/03/10 14:37:03 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -213,7 +213,6 @@ static int sasldb_auxprop_store(void *glob_context __attribute__((unused)),
     char *realm = NULL;
     const char *user_realm = NULL;
     int ret = SASL_FAIL;
-    int tmp_res;
     const struct propval *to_store, *cur;
     char *user_buf;
 
@@ -247,34 +246,32 @@ static int sasldb_auxprop_store(void *glob_context __attribute__((unused)),
 	goto done;
     }
 
-    /* All iterations return SASL_NOUSER                   ==> ret = SASL_NOUSER
-       Some iterations return SASL_OK and some SASL_NOUSER ==> ret = SASL_OK
-       At least one iteration returns any other error      ==> ret = the error */
-    ret = SASL_NOUSER;
-    for(cur = to_store; cur->name; cur++) {
+    ret = SASL_OK;
+    for (cur = to_store; cur->name; cur++) {
+	char * value = (cur->values && cur->values[0]) ? cur->values[0] : NULL;
 
 	if (cur->name[0] == '*') {
 	    continue;
 	}
 
-	/* We only support one value at a time right now. */
-	tmp_res = _sasldb_putdata(sparams->utils, sparams->utils->conn,
-			      userid, realm, cur->name,
-			      cur->values && cur->values[0] ?
-			      cur->values[0] : NULL,
-			      cur->values && cur->values[0] ?
-			      strlen(cur->values[0]) : 0);
-        /* SASL_NOUSER is returned when _sasldb_putdata fails to delete
-           a non-existent entry, which should not be treated as an error */
-        if ((tmp_res != SASL_NOUSER) &&
-            (ret == SASL_NOUSER || ret == SASL_OK)) {
-            ret = tmp_res;
-        }
+	/* WARN: We only support one value right now. */
+	ret = _sasldb_putdata(sparams->utils,
+			      sparams->utils->conn,
+			      userid,
+			      realm,
+			      cur->name,
+			      value,
+			      value ? strlen(value) : 0);
 
-        /* Abort the loop if an error has occurred */
-        if (ret != SASL_NOUSER && ret != SASL_OK) {
-            break;
-        }
+	if (value == NULL && ret == SASL_NOUSER) {
+	    /* Deleting something which is not there is not an error */
+	    ret = SASL_OK;
+	}
+
+	if (ret != SASL_OK) {
+	    /* We've already failed, no point in continuing */
+	    break;
+	}
     }
 
  done:

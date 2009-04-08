@@ -1,3 +1,7 @@
+2009-04-08  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/client.c, lib/server.c: Removed unused mutexes
+	  (bug # 3141)
+
 2009-02-21  Alexey Melnikov <alexey.melnikov@isode.com>
 	* include/saslutil.h, lib/saslint.h: Made sasl_config_init public
 

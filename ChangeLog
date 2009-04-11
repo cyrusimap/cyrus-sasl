@@ -1,6 +1,23 @@
+2009-04-11  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/dlopen.c: Updated to use .plugin extension on MacOS
+
 2009-04-08  Alexey Melnikov <alexey.melnikov@isode.com>
 	* lib/client.c, lib/server.c: Removed unused mutexes
 	  (bug # 3141)
+
+2009-03-10  Alexey Melnikov <alexey.melnikov@isode.com>
+	* include/sasl.h, include/saslplug.h, lib/canonusr.c,
+	  lib/checkpw.c, plugins/sasldb.c, plugins/sql.c:
+	  Added direct support for hashed password to auxprop API
+
+2009-03-10  Alexey Melnikov <alexey.melnikov@isode.com>
+	* include/sasl.h, lib/canonusr.c, lib/external.c,
+	  plugins/gssapi.c, plugins/kerberos4.c: Make auxprop lookup
+	  calls in SASL GSSAPI/EXTERNAL optional
+
+2009-03-10  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/sasldb.c: A better fix for spurious 'user not found'
+	  errors caused by an attempt to delete a non-existent property
 
 2009-02-21  Alexey Melnikov <alexey.melnikov@isode.com>
 	* include/saslutil.h, lib/saslint.h: Made sasl_config_init public

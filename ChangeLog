@@ -1,4 +1,9 @@
 2009-04-11  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/sql.c: Fixed SQLite lookup function.
+	  Also fixed SASL PLAIN authenticaion when used with
+	  SQLite auxprop backend.
+
+2009-04-11  Alexey Melnikov <alexey.melnikov@isode.com>
 	* lib/dlopen.c: Updated to use .plugin extension on MacOS
 
 2009-04-08  Alexey Melnikov <alexey.melnikov@isode.com>

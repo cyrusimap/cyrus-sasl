@@ -7,7 +7,7 @@
 ** Simon Loader -- original mysql plugin
 ** Patrick Welche -- original pgsql plugin
 **
-** $Id: sql.c,v 1.37 2009/03/10 17:16:16 mel Exp $
+** $Id: sql.c,v 1.38 2009/04/11 10:48:07 mel Exp $
 **
 */
 
@@ -535,27 +535,32 @@ static int sqlite3_my_callback(void *pArg, int argc __attribute__((unused)),
 	*result = strdup(argv[0]);
     }
 
-    return /*ABORT*/1;
+    return 0;
 }
 
-static int _sqlite3_exec(void *db, const char *cmd, char *value, size_t size,
-		        size_t *value_len, const sasl_utils_t *utils)
+static int _sqlite3_exec(void *db,
+			 const char *cmd,
+			 char *value,
+			 size_t size,
+			 size_t *value_len,
+			 const sasl_utils_t *utils)
 {
     int rc;
     char *result = NULL;
     char *zErrMsg = NULL;
 
     rc = sqlite3_exec((sqlite3*)db, cmd, sqlite3_my_callback, (void*)&result, &zErrMsg);
-    if (rc != SQLITE_OK && rc != SQLITE_ABORT) {
+    if (rc != SQLITE_OK) {
     	if (zErrMsg) {
-		utils->log(NULL, SASL_LOG_DEBUG, "sql plugin: %s", zErrMsg);
-		sqlite3_free(zErrMsg);
-	} else
-		utils->log(NULL, SASL_LOG_DEBUG, "sql plugin: %d", rc);
+	    utils->log(NULL, SASL_LOG_DEBUG, "sql plugin: %s", zErrMsg);
+	    sqlite3_free(zErrMsg);
+	} else {
+	    utils->log(NULL, SASL_LOG_DEBUG, "sql plugin: %d", rc);
+	}
 	return -1;
     }
 
-    if (rc == SQLITE_OK) {
+    if (value == NULL && rc == SQLITE_OK) {
 	/* no results (BEGIN, COMMIT, DELETE, INSERT, UPDATE) */
 	return 0;
     }
@@ -902,6 +907,7 @@ static int sql_auxprop_lookup(void *glob_context,
     char *escap_realm = NULL;
     sql_settings_t *settings;
     int verify_against_hashed_password;
+    int saw_user_password = 0;
     void *conn = NULL;
     int do_txn = 0;
     int ret;
@@ -1002,6 +1008,10 @@ static int sql_auxprop_lookup(void *glob_context,
 	    sparams->utils->prop_erase(sparams->propctx, cur->name);
 	}
 
+	if (strcasecmp(realname, SASL_AUX_PASSWORD_PROP) == 0) {
+	    saw_user_password = 1;
+	}
+
 	if (!do_txn) {
 	    do_txn = 1;
 	    sparams->utils->log(NULL, SASL_LOG_DEBUG, "begin transaction");
@@ -1042,6 +1052,62 @@ static int sql_auxprop_lookup(void *glob_context,
 	
 	sparams->utils->free(query);
     }
+
+    if (flags & SASL_AUXPROP_AUTHZID) {
+	/* This is a lie, but the caller can't handle
+	   when we return SASL_NOUSER for authorization identity lookup. */
+	if (ret == SASL_NOUSER) {
+	    ret = SASL_OK;
+	}
+    } else {
+	if (ret == SASL_NOUSER && saw_user_password == 0) {
+	    /* Verify user existence by checking presence of
+	       the userPassword attribute */
+	    if (!do_txn) {
+		do_txn = 1;
+		sparams->utils->log(NULL, SASL_LOG_DEBUG, "begin transaction");
+		if (settings->sql_engine->sql_begin_txn(conn, sparams->utils)) {
+		    sparams->utils->log(NULL, SASL_LOG_ERR, 
+					"Unable to begin transaction\n");
+		}
+	    }
+
+	    sparams->utils->log(NULL, SASL_LOG_DEBUG,
+				"sql plugin create statement from %s %s %s\n",
+				SASL_AUX_PASSWORD_PROP,
+				escap_userid,
+				escap_realm);
+    	
+	    /* create a statement that we will use */
+	    query = sql_create_statement(settings->sql_select,
+					 SASL_AUX_PASSWORD_PROP,
+					 escap_userid,
+					 escap_realm,
+					 NULL,
+					 sparams->utils);
+	    if (query == NULL) {
+		ret = SASL_NOMEM;
+	    } else {
+		sparams->utils->log(NULL, SASL_LOG_DEBUG,
+				    "sql plugin doing query %s\n", query);
+        	
+		value[0] = '\0';
+		value_len = 0;
+		/* run the query */
+		if (!settings->sql_engine->sql_exec(conn,
+						    query,
+						    value,
+						    sizeof(value),
+						    &value_len,
+						    sparams->utils)) {
+		    ret = SASL_OK;
+		}
+        	
+		sparams->utils->free(query);
+	    }
+	}
+    }
+
 
     if (do_txn) {
 	sparams->utils->log(NULL, SASL_LOG_DEBUG, "commit transaction");

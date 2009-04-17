@@ -1,7 +1,7 @@
 /* saslutil.c
  * Rob Siemborski
  * Tim Martin
- * $Id: saslutil.c,v 1.46 2008/10/29 12:39:58 mel Exp $
+ * $Id: saslutil.c,v 1.47 2009/04/17 05:53:45 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -757,13 +757,13 @@ getpass(prompt)
 const char *prompt;
 {
 	register char *p;
-	register c;
+	register int c;
 	static char pbuf[PASSWORD_MAX];
 
 	fprintf(stderr, "%s", prompt); (void) fflush(stderr);
 	for (p=pbuf; (c = _getch())!=13 && c!=EOF;) {
 		if (p < &pbuf[sizeof(pbuf)-1])
-			*p++ = c;
+			*p++ = (char) c;
 	}
 	*p = '\0';
 	fprintf(stderr, "\n"); (void) fflush(stderr);

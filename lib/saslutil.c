@@ -1,7 +1,7 @@
 /* saslutil.c
  * Rob Siemborski
  * Tim Martin
- * $Id: saslutil.c,v 1.48 2009/04/17 06:04:50 mel Exp $
+ * $Id: saslutil.c,v 1.49 2009/04/27 13:26:27 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -137,7 +137,7 @@ int sasl_encode64(const char *_in,
     if (outlen) {
 	*outlen = olen;
     }
-    if (outmax < olen) {
+    if (outmax <= olen) {
 	return SASL_BUFOVER;
     }
 
@@ -162,9 +162,7 @@ int sasl_encode64(const char *_in,
         *out++ = '=';
     }
 
-    if (olen < outmax) {
-	*out = '\0';
-    }
+    *out = '\0';
     
     return SASL_OK;
 }

@@ -1,3 +1,7 @@
+2009-04-27  Ken Murchison <murch@andrew.cmu.edu>
+	* lib/saslutil.c: Fixed CERT VU#238019 (make sure sasl_encode64()
+	  always NUL terminates output or returns SASL_BUFOVER).
+
 2009-04-11  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/sql.c: Fixed SQLite lookup function.
 	  Also fixed SASL PLAIN authenticaion when used with

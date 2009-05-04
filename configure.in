@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.215 2009/05/04 19:41:31 mel Exp $
+dnl $Id: configure.in,v 1.216 2009/05/04 19:50:02 mel Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -852,7 +852,7 @@ AC_ARG_WITH(sqlite3,  [  --with-sqlite3=PATH       use SQLite3 from PATH ],
   with_sqlite3=$sql)
 
 # find location of library 
-# presuing if one given then correct
+# we assume that if one given then it is correct
 if test "${with_sqlite3}" = "yes"; then
   with_sqlite3=notfound
   for sqlite3loc in lib

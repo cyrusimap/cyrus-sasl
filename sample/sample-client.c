@@ -1,6 +1,6 @@
 /* sample-client.c -- sample SASL client
  * Rob Earhart
- * $Id: sample-client.c,v 1.31 2004/10/26 11:14:33 mel Exp $
+ * $Id: sample-client.c,v 1.32 2009/05/04 21:35:51 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -395,9 +395,19 @@ samp_recv()
   unsigned len;
   int result;
   
-  if (! fgets(buf, SAMPLE_SEC_BUF_SIZE, stdin)
-      || strncmp(buf, "S: ", 3))
+  if (! fgets(buf, SAMPLE_SEC_BUF_SIZE, stdin)) {
     fail("Unable to parse input");
+  }
+
+  if (strncmp(buf, "S: ", 3) != 0) {
+    fail("Line must start with 'S: '");
+  }
+
+  len = strlen(buf);
+  if (len > 0 && buf[len-1] == '\n') {
+      buf[len-1] = '\0';
+  }
+
   result = sasl_decode64(buf + 3, (unsigned) strlen(buf + 3), buf,
 			 SAMPLE_SEC_BUF_SIZE, &len);
   if (result != SASL_OK)

@@ -1,6 +1,24 @@
+2009-05-03  Alexey Melnikov <alexey.melnikov@isode.com>
+	* sample/sample-client.c, sample/sample-server.c, utils/smtptest.c:
+	  Fixed bug # 2895 (passing LF to sasl_decode64)
+
+2009-05-03  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/NTMakefile: Disabled annoying warnings about use of
+	  deprecated standard C library functions, enabled
+	  warnings about Windows64 portability
+
+2009-05-03  Alexey Melnikov <alexey.melnikov@isode.com>
+	* configure.in: Added support for SQLite3
+	  (patch by Maxim Gorbachyov)
+
 2009-04-27  Ken Murchison <murch@andrew.cmu.edu>
 	* lib/saslutil.c: Fixed CERT VU#238019 (make sure sasl_encode64()
 	  always NUL terminates output or returns SASL_BUFOVER).
+
+2009-04-11  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/sql.c: Fixed SQLite lookup function.
+	  Also fixed SASL PLAIN authenticaion when used with
+	  SQLite auxprop backend.
 
 2009-04-11  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/sql.c: Fixed SQLite lookup function.

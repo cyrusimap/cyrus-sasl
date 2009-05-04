@@ -14,7 +14,7 @@ libsasl_objs = auxprop.obj canonusr.obj checkpw.obj client.obj common.obj config
 libsasl_res = libsasl.res
 libsasl_out = libsasl.dll libsasl.exp libsasl.lib $(libsasl_res)
 
-CPPFLAGS = /D NEED_GETOPT /I "..\win32\include" /I "." /I "..\include" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBSASL_EXPORTS"
+CPPFLAGS = /wd4996 /Wp64 /D NEED_GETOPT /I "..\win32\include" /I "." /I "..\include" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBSASL_EXPORTS"
 
 !IF $(TARGET_WIN_SYSTEM) >= 51
 CPPFLAGS = /D TARGET_WIN_SYSTEM=$(TARGET_WIN_SYSTEM) $(CPPFLAGS)

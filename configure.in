@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.214 2008/11/22 05:29:40 selsky Exp $
+dnl $Id: configure.in,v 1.215 2009/05/04 19:41:31 mel Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -846,8 +846,60 @@ case "$with_sqlite" in
 esac
 AC_SUBST(LIB_SQLITE)
 
-if test "$sql" = yes -a "$with_pgsql" = no -a "$with_mysql" = no -a "$with_sqlite" = no; then
-    AC_ERROR([--enable-sql chosen but neither Postgres nor MySQL nor SQLite found])
+dnl SQLite3
+AC_ARG_WITH(sqlite3,  [  --with-sqlite3=PATH       use SQLite3 from PATH ],
+  with_sqlite3=$withval,
+  with_sqlite3=$sql)
+
+# find location of library 
+# presuing if one given then correct
+if test "${with_sqlite3}" = "yes"; then
+  with_sqlite3=notfound
+  for sqlite3loc in lib
+  do
+    if test -f ${prefix}/${sqlite3loc}/libsqlite3.a; then
+      with_sqlite3="${prefix}"
+      break
+    elif test -f /usr/local/${sqlite3loc}/libsqlite3.a; then
+      with_sqlite3="/usr/local"
+      break
+    elif test -f /usr/${sqlite3loc}/libsqlite3.a; then
+      with_sqlite3="/usr"
+      break
+    fi
+  done
+fi
+
+LIB_SQLITE3=""
+
+case "$with_sqlite3" in
+    no) true;;
+    notfound) AC_WARN([SQLite3 Library not found]); true;;
+    *)
+     if test -d ${with_sqlite3}/lib; then
+         LIB_SQLITE3="-L${with_sqlite3}/lib -R${with_sqlite3}/lib"
+     else
+         LIB_SQLITE3="-L${with_sqlite3} -R${with_sqlite3}"
+     fi
+
+     LIB_SQLITE3_DIR=$LIB_SQLITE3
+     LIB_SQLITE3="$LIB_SQLITE3 -lsqlite3"
+
+     if test -d ${with_sqlite3}/include; then
+         CPPFLAGS="${CPPFLAGS} -I${with_sqlite3}/include"
+     else
+         CPPFLAGS="${CPPFLAGS} -I${with_sqlite3}"
+     fi
+       AC_CHECK_LIB(sqlite3, sqlite3_open, AC_DEFINE(HAVE_SQLITE3,[],
+	   [Do we have SQLite3 support?]),
+           [AC_WARN([SQLite3 Library sqlite3 does not work])
+	    with_sqlite3=no], $LIB_SQLITE3_DIR);;
+         
+esac
+AC_SUBST(LIB_SQLITE3)
+
+if test "$sql" = yes -a "$with_pgsql" = no -a "$with_mysql" = no -a "$with_sqlite" = no -a "$with_sqlite3" = no; then
+    AC_ERROR([--enable-sql chosen but neither Postgres nor MySQL nor SQLite nor SQLite3 found])
 fi
 
 if test "$enable_shared" = yes; then

@@ -1,3 +1,90 @@
+New in 2.1.24
+-------------
+
+* Order advertised server-side SASL mechanisms per the specified 'mech_list'
+  option or by relative "strength"
+* Make sure that sasl_set_alloc() has no effect once sasl_client_init()
+  or sasl_server_init() is called
+* Fixed sasl_set_mutex() to disallow changing mutex management functions
+  once sasl_server_init()/sasl_client_init() is called (bug # 3083)
+* Removed unused mutexes in lib/client.c and lib/server.c (bug # 3141)
+* Added direct support for hashed password to auxprop API
+* Don't treat a constraint violation as an error to store an auxprop property
+* Extended libsasl (auxprop) to support user deletion
+* Extended SASL auxprop_lookup to return error code
+* Updated sasl_user_exists() so that it can handle passwordless accounts (e.g. disabled)
+* (Windows) Free handles of shared libraries on Windows that were loaded
+  but are not SASL plugins (bug # 2089)
+* Prevent freeing of common state on a subsequent call to _sasl_common_init.
+  Make sure that the last global callback always wins.
+* Implemented sasl_client_done()/sasl_server_done()
+* Added automatic hostname canonicalization inside libsasl
+* Made sasl_config_init() public
+* Strip trailing spaces from server config file option values (bug # 3139, bug # 3041)
+* Fixed potential buffer overflow in saslautd_verify_password().
+* Fixed segfault in dlclose() on HPUX
+* Various bugfixes for 64bit platforms
+* Fixed bug # 2895 (passing LF to sasl_decode64) in sample/sample-client.c,
+  sample/sample-server.c, utils/smtptest.c
+* pluginviewer: Code cleanup, improved human readable messages
+* Build:
+ - (Windows) Updated makefiles to build with VC 8.0 (VC++ 2005)
+ - (Windows) Added Windows64 build
+ - Updated to use .plugin extension on MacOS
+ - Changed 64bit HP-UX build to use .so for shared libraries
+* saslauthd:
+ - Fixed bug counting double-quotes in username/password in
+   auth_rimap.c. Also fixed bug zeroing password.
+ - auth_krb.c: improved diagnostic in the k5support_verify_tgt() function.
+ - auth_sasldb.c: pid_file_lock is created with a mask of 644 instead of 0644
+ - auth_shadow.c: Define _XOPEN_SOURCE before including unistd.h,
+   so that crypt is correctly defined
+ - auth_getpwent.c: Fixed Solaris build
+* SASLDB plugin:
+ - Fixed spurious 'user not found' errors caused by an attempt
+   to delete a non-existent property
+ - Added direct support for hashed password to auxprop API
+ - Sleepycat driver:  Return SASL_NOUSER instead of SASL_FAIL when the database
+   file doesn't exist
+ - Ignore properties starting with '*' in the auxprop store function
+* SQL plugin:
+ - Added support for SQLITE3
+ - Uninitialized variables can cause crash when the searched user is not found
+ - Added direct support for hashed password
+ - Ignore properties starting with '*' in the auxprop store function
+* LDAPDB plugin:
+ - Added code to extend LDAPDB into a canon_user plugin in addition
+   to its existing auxprop plugin functionality
+* PLAIN plugin:
+ - Advertise SASL_SEC_PASS_CREDENTIALS feature
+* LOGIN plugin:
+ - Advertise SASL_SEC_PASS_CREDENTIALS feature
+* DIGEST-MD5 plugin:
+ - Fixed a memory leak in the DIGEST-MD5 security layer
+ - Fixed memory leaks in client-side reauth and other places
+ - More detailed error reporting.
+ - Fixed parsing of challenges/responses with extra commas.
+ - Allow for multiple qop options from the server and require
+   a single qop option from the client.
+* GSSAPI plugin:
+ - Check that params->serverFQDN is not NULL before using strlen on it
+ - Make auxprop lookup calls optional
+* EXTERNAL plugin:
+ - Make auxprop lookup calls optional
+* NTLM plugin:
+ - allow a comma separated list of servernames in 'ntlm_server' option
+ - Fixed crash in calculating NTv2 reponse
+* OTP plugin:
+ - Don't use a stack variable for an OTP prompt (bug # 2822)
+ - Downgrade the failure to store OTP secret to debug level
+* KERBEROS_V4 plugin:
+ - Make auxprop lookup calls optional
+
+New in 2.1.23
+-------------
+* Fixed CERT VU#238019 (make sure sasl_encode64() always NUL
+  terminates output or returns SASL_BUFOVER)
+
 New in 2.1.22
 -------------
 

@@ -1,7 +1,7 @@
 # Makefile.am for the SASL plugins
 # Rob Siemborski
 # Rob Earhart
-# $Id: Makefile.am,v 1.79 2008/10/31 15:49:42 murch Exp $
+# $Id: Makefile.am,v 1.80 2009/05/07 13:49:31 murch Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -46,7 +46,7 @@
 
 # Library version info - here at the top, for sanity
 # CURRENT:REVISION:AGE
-plugin_version = 2:22:0
+plugin_version = 2:24:0
 
 INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/sasldb -I$(top_builddir)/include
 AM_LDFLAGS = -module -export-dynamic -rpath $(plugindir) -version-info $(plugin_version)

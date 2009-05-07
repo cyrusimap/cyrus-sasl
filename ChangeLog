@@ -1,3 +1,8 @@
+2009-05-07  Derrick Brashear <shadow@andrew.cmu.edu>   
+	* configure.in, include/sasl.h, lib/Makefile.am,
+	  plugins/Makefile.am, saslauthd/configure.in, sasldb/Makefile.am,
+	  win32/common.mak, win32/include/config.h: 2.1.24
+
 2009-05-03  Alexey Melnikov <alexey.melnikov@isode.com>
 	* sample/sample-client.c, sample/sample-server.c, utils/smtptest.c:
 	  Fixed bug # 2895 (passing LF to sasl_decode64)

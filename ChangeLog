@@ -1,4 +1,4 @@
-2009-05-07  Derrick Brashear <shadow@andrew.cmu.edu>   
+2009-05-07  Ken Murchison <murch@andrew.cmu.edu>
 	* configure.in, include/sasl.h, lib/Makefile.am,
 	  plugins/Makefile.am, saslauthd/configure.in, sasldb/Makefile.am,
 	  win32/common.mak, win32/include/config.h: 2.1.24
@@ -22,12 +22,7 @@
 
 2009-04-11  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/sql.c: Fixed SQLite lookup function.
-	  Also fixed SASL PLAIN authenticaion when used with
-	  SQLite auxprop backend.
-
-2009-04-11  Alexey Melnikov <alexey.melnikov@isode.com>
-	* plugins/sql.c: Fixed SQLite lookup function.
-	  Also fixed SASL PLAIN authenticaion when used with
+	  Also fixed SASL PLAIN authentication when used with
 	  SQLite auxprop backend.
 
 2009-04-11  Alexey Melnikov <alexey.melnikov@isode.com>

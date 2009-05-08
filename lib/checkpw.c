@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: checkpw.c,v 1.78 2009/03/10 14:10:52 mel Exp $
+ * $Id: checkpw.c,v 1.79 2009/05/08 00:43:44 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -74,6 +74,7 @@
 #include <string.h>
 #endif
 
+#include <limits.h>
 #include <sys/types.h>
 #include <ctype.h>
 

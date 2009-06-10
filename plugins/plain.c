@@ -1,7 +1,7 @@
 /* Plain SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: plain.c,v 1.65 2008/10/19 21:44:48 mel Exp $
+ * $Id: plain.c,v 1.66 2009/06/10 15:58:38 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -57,7 +57,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: plain.c,v 1.65 2008/10/19 21:44:48 mel Exp $";
+static const char plugin_id[] = "$Id: plain.c,v 1.66 2009/06/10 15:58:38 mel Exp $";
 
 /*****************************  Server Section  *****************************/
 
@@ -146,11 +146,15 @@ static int plain_server_mech_step(void *conn_context __attribute__((unused)),
    
     /* Canonicalize userid first, so that password verification is only
      * against the canonical id */
-    if (!author || !*author)
+    if (!author || !*author) {
 	author = authen;
-    
+    }
+
     result = params->canon_user(params->utils->conn,
-				authen, 0, SASL_CU_AUTHID, oparams);
+				authen,
+				0,
+				SASL_CU_AUTHID,
+				oparams);
     if (result != SASL_OK) {
 	_plug_free_string(params->utils, &passcopy);
 	return result;
@@ -158,8 +162,10 @@ static int plain_server_mech_step(void *conn_context __attribute__((unused)),
     
     /* verify password - return sasl_ok on success*/
     result = params->utils->checkpass(params->utils->conn,
-				      oparams->authid, oparams->alen,
-				      passcopy, password_len);
+				      oparams->authid,
+				      oparams->alen,
+				      passcopy,
+				      password_len);
     
     _plug_free_string(params->utils, &passcopy);
     
@@ -173,7 +179,10 @@ static int plain_server_mech_step(void *conn_context __attribute__((unused)),
     /* We need to do this after calling verify_user just in case verify_user
      * needed to get auxprops itself */
     result = params->canon_user(params->utils->conn,
-				author, 0, SASL_CU_AUTHZID, oparams);
+				author,
+				0,
+				SASL_CU_AUTHZID,
+				oparams);
     if (result != SASL_OK) return result;
 
     /* set oparams */

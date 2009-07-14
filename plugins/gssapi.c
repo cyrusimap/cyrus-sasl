@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.97 2009/03/10 16:27:52 mel Exp $
+ * $Id: gssapi.c,v 1.98 2009/07/14 15:21:46 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.97 2009/03/10 16:27:52 mel Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.98 2009/07/14 15:21:46 mel Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -320,9 +320,9 @@ sasl_gss_encode(void *context, const struct iovec *invec, unsigned numiov,
     
     if(!output) return SASL_BADPARAM;
     
-    if(numiov > 1) {
+    if (numiov > 1) {
 	ret = _plug_iovec_to_buf(text->utils, invec, numiov, &text->enc_in_buf);
-	if(ret != SASL_OK) return ret;
+	if (ret != SASL_OK) return ret;
 	inblob = text->enc_in_buf;
     } else {
 	bufinfo.data = invec[0].iov_base;
@@ -351,16 +351,15 @@ sasl_gss_encode(void *context, const struct iovec *invec, unsigned numiov,
 			 output_token);
     GSS_UNLOCK_MUTEX(text->utils);
     
-    if (GSS_ERROR(maj_stat))
-	{
-	    sasl_gss_seterror(text->utils, maj_stat, min_stat);
-	    if (output_token->value) {
-		GSS_LOCK_MUTEX(text->utils);
-		gss_release_buffer(&min_stat, output_token);
-		GSS_UNLOCK_MUTEX(text->utils);
-	    }
-	    return SASL_FAIL;
+    if (GSS_ERROR(maj_stat)) {
+	sasl_gss_seterror(text->utils, maj_stat, min_stat);
+	if (output_token->value) {
+	    GSS_LOCK_MUTEX(text->utils);
+	    gss_release_buffer(&min_stat, output_token);
+	    GSS_UNLOCK_MUTEX(text->utils);
 	}
+	return SASL_FAIL;
+    }
     
     if (output_token->value && output) {
 	int len;
@@ -390,7 +389,8 @@ sasl_gss_encode(void *context, const struct iovec *invec, unsigned numiov,
 	GSS_LOCK_MUTEX(text->utils);
 	gss_release_buffer(&min_stat, output_token);
 	GSS_UNLOCK_MUTEX(text->utils);
-    } 
+    }
+
     return SASL_OK;
 }
 
@@ -408,9 +408,12 @@ static int gssapi_integrity_encode(void *context, const struct iovec *invec,
     return sasl_gss_encode(context,invec,numiov,output,outputlen,0);
 }
 
-static int gssapi_decode_packet(void *context,
-				const char *input, unsigned inputlen,
-				char **output, unsigned *outputlen)
+static int
+gssapi_decode_packet(void *context,
+		     const char *input,
+		     unsigned inputlen,
+		     char **output,
+		     unsigned *outputlen)
 {
     context_t *text = (context_t *) context;
     OM_uint32 maj_stat, min_stat;
@@ -440,26 +443,26 @@ static int gssapi_decode_packet(void *context,
 			   NULL);
     GSS_UNLOCK_MUTEX(text->utils);
     
-    if (GSS_ERROR(maj_stat))
-	{
-	    sasl_gss_seterror(text->utils,maj_stat,min_stat);
-	    if (output_token->value) {
-		GSS_LOCK_MUTEX(text->utils);
-		gss_release_buffer(&min_stat, output_token);
-		GSS_UNLOCK_MUTEX(text->utils);
-	    }
-	    return SASL_FAIL;
+    if (GSS_ERROR(maj_stat)) {
+	sasl_gss_seterror(text->utils,maj_stat,min_stat);
+	if (output_token->value) {
+	    GSS_LOCK_MUTEX(text->utils);
+	    gss_release_buffer(&min_stat, output_token);
+	    GSS_UNLOCK_MUTEX(text->utils);
 	}
+	return SASL_FAIL;
+    }
     
-    if (outputlen)
+    if (outputlen) {
 	*outputlen = output_token->length;
+    }
     
     if (output_token->value) {
 	if (output) {
 	    result = _plug_buf_alloc(text->utils, &text->decode_once_buf,
 				     &text->decode_once_buf_len,
 				     *outputlen);
-	    if(result != SASL_OK) {
+	    if (result != SASL_OK) {
 		GSS_LOCK_MUTEX(text->utils);
 		gss_release_buffer(&min_stat, output_token);
 		GSS_UNLOCK_MUTEX(text->utils);
@@ -1145,7 +1148,8 @@ gssapi_server_mech_step(void *conn_context,
 	text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
 	
 	/* used by layers */
-	_plug_decode_init(&text->decode_context, text->utils,
+	_plug_decode_init(&text->decode_context,
+			  text->utils,
 			  (params->props.maxbufsize > 0xFFFFFF) ? 0xFFFFFF :
 			  params->props.maxbufsize);
 	
@@ -1576,7 +1580,7 @@ static int gssapi_client_mech_step(void *conn_context,
 	    /* good to go */
 	    need = 0;
 	}
-	
+
 	/* bit mask of server support */
 	serverhas = ((char *)output_token->value)[0];
 	
@@ -1611,7 +1615,7 @@ static int gssapi_client_mech_step(void *conn_context,
             (((unsigned char *) output_token->value)[2] << 8) |
             (((unsigned char *) output_token->value)[3] << 0);
 
-	if(oparams->mech_ssf) {
+	if (oparams->mech_ssf) {
             maj_stat = gss_wrap_size_limit( &min_stat,
                                             text->gss_ctx,
                                             1,
@@ -1619,7 +1623,7 @@ static int gssapi_client_mech_step(void *conn_context,
                                             (OM_uint32) oparams->maxoutbuf,
                                             &max_input);
 
-	    if(max_input > oparams->maxoutbuf) {
+	    if (max_input > oparams->maxoutbuf) {
 		/* Heimdal appears to get this wrong */
 		oparams->maxoutbuf -= (max_input - oparams->maxoutbuf);
 	    } else {
@@ -1636,10 +1640,11 @@ static int gssapi_client_mech_step(void *conn_context,
 	 * Make sure the client actually requested it though, by checking
 	 * if our context was set.
 	 */
-	if (text->user && text->user[0])
+	if (text->user && text->user[0]) {
 	    alen = strlen(oparams->user);
-	else
+	} else {
 	    alen = 0;
+	}
 	
 	input_token->length = 4 + alen;
 	input_token->value =
@@ -1693,12 +1698,15 @@ static int gssapi_client_mech_step(void *conn_context,
 	    return SASL_FAIL;
 	}
 	
-	if (clientoutlen)
+	if (clientoutlen) {
 	    *clientoutlen = output_token->length;
+	}
 	if (output_token->value) {
 	    if (clientout) {
-		ret = _plug_buf_alloc(text->utils, &(text->out_buf),
-				      &(text->out_buf_len), *clientoutlen);
+		ret = _plug_buf_alloc(text->utils,
+				      &(text->out_buf),
+				      &(text->out_buf_len),
+				      *clientoutlen);
 		if (ret != SASL_OK) {
 		    GSS_LOCK_MUTEX(params->utils);
 		    gss_release_buffer(&min_stat, output_token);

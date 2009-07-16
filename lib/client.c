@@ -1,7 +1,7 @@
 /* SASL client API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.74 2009/04/08 19:36:20 mel Exp $
+ * $Id: client.c,v 1.75 2009/07/16 13:43:50 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -142,50 +142,50 @@ static int client_done(void) {
 int sasl_client_add_plugin(const char *plugname,
 			   sasl_client_plug_init_t *entry_point)
 {
-  int plugcount;
-  sasl_client_plug_t *pluglist;
-  cmechanism_t *mech;
-  int result;
-  int version;
-  int lupe;
+    int plugcount;
+    sasl_client_plug_t *pluglist;
+    cmechanism_t *mech;
+    int result;
+    int version;
+    int lupe;
 
-  if(!plugname || !entry_point) return SASL_BADPARAM;
-  
-  result = entry_point(cmechlist->utils, SASL_CLIENT_PLUG_VERSION, &version,
-		       &pluglist, &plugcount);
+    if (!plugname || !entry_point) return SASL_BADPARAM;
 
-  if (result != SASL_OK)
-  {
-    _sasl_log(NULL, SASL_LOG_WARN,
+    result = entry_point(cmechlist->utils, SASL_CLIENT_PLUG_VERSION, &version,
+		   &pluglist, &plugcount);
+
+    if (result != SASL_OK)
+    {
+	_sasl_log(NULL, SASL_LOG_WARN,
 	      "entry_point failed in sasl_client_add_plugin for %s",
 	      plugname);
-    return result;
-  }
-
-  if (version != SASL_CLIENT_PLUG_VERSION)
-  {
-    _sasl_log(NULL, SASL_LOG_WARN,
-	      "version conflict in sasl_client_add_plugin for %s", plugname);
-    return SASL_BADVERS;
-  }
-
-  for (lupe=0;lupe< plugcount ;lupe++)
-    {
-      mech = sasl_ALLOC(sizeof(cmechanism_t));
-      if (! mech) return SASL_NOMEM;
-
-      mech->m.plug=pluglist++;
-      if(_sasl_strdup(plugname, &mech->m.plugname, NULL) != SASL_OK) {
-	sasl_FREE(mech);
-	return SASL_NOMEM;
-      }
-      mech->m.version = version;
-      mech->next = cmechlist->mech_list;
-      cmechlist->mech_list = mech;
-      cmechlist->mech_length++;
+	return result;
     }
 
-  return SASL_OK;
+    if (version != SASL_CLIENT_PLUG_VERSION)
+    {
+	_sasl_log(NULL, SASL_LOG_WARN,
+	      "version conflict in sasl_client_add_plugin for %s", plugname);
+	return SASL_BADVERS;
+    }
+
+    for (lupe=0; lupe< plugcount ;lupe++)
+    {
+	mech = sasl_ALLOC(sizeof(cmechanism_t));
+	if (!mech) return SASL_NOMEM;
+
+	mech->m.plug = pluglist++;
+	if (_sasl_strdup(plugname, &mech->m.plugname, NULL) != SASL_OK) {
+	    sasl_FREE(mech);
+	    return SASL_NOMEM;
+	}
+	mech->m.version = version;
+	mech->next = cmechlist->mech_list;
+	cmechlist->mech_list = mech;
+	cmechlist->mech_length++;
+    }
+
+    return SASL_OK;
 }
 
 static int

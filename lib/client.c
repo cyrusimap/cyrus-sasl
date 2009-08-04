@@ -1,7 +1,7 @@
 /* SASL client API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.75 2009/07/16 13:43:50 mel Exp $
+ * $Id: client.c,v 1.76 2009/08/04 17:13:51 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -104,39 +104,40 @@ int sasl_client_done(void)
 }
 
 static int client_done(void) {
-  cmechanism_t *cm;
-  cmechanism_t *cprevm;
+    cmechanism_t *cm;
+    cmechanism_t *cprevm;
 
-  if(!_sasl_client_active)
-      return SASL_NOTINIT;
-  else
-      _sasl_client_active--;
-  
-  if(_sasl_client_active) {
-      /* Don't de-init yet! Our refcount is nonzero. */
-      return SASL_CONTINUE;
-  }
-  
-  cm=cmechlist->mech_list; /* m point to beggining of the list */
-  while (cm!=NULL)
-  {
-    cprevm=cm;
-    cm=cm->next;
-
-    if (cprevm->m.plug->mech_free) {
-	cprevm->m.plug->mech_free(cprevm->m.plug->glob_context,
-				cmechlist->utils);
+    if (!_sasl_client_active) {
+	return SASL_NOTINIT;
+    } else {
+	_sasl_client_active--;
     }
 
-    sasl_FREE(cprevm->m.plugname);
-    sasl_FREE(cprevm);    
-  }
-  _sasl_free_utils(&cmechlist->utils);
-  sasl_FREE(cmechlist);
+    if(_sasl_client_active) {
+	/* Don't de-init yet! Our refcount is nonzero. */
+	return SASL_CONTINUE;
+    }
 
-  cmechlist = NULL;
+    cm = cmechlist->mech_list; /* m point to beggining of the list */
+    while (cm!=NULL)
+    {
+	cprevm = cm;
+	cm = cm->next;
 
-  return SASL_OK;
+	if (cprevm->m.plug->mech_free) {
+	    cprevm->m.plug->mech_free(cprevm->m.plug->glob_context,
+				      cmechlist->utils);
+	}
+
+	sasl_FREE(cprevm->m.plugname);
+	sasl_FREE(cprevm);    
+    }
+    _sasl_free_utils(&cmechlist->utils);
+    sasl_FREE(cmechlist);
+
+    cmechlist = NULL;
+
+    return SASL_OK;
 }
 
 int sasl_client_add_plugin(const char *plugname,
@@ -151,8 +152,11 @@ int sasl_client_add_plugin(const char *plugname,
 
     if (!plugname || !entry_point) return SASL_BADPARAM;
 
-    result = entry_point(cmechlist->utils, SASL_CLIENT_PLUG_VERSION, &version,
-		   &pluglist, &plugcount);
+    result = entry_point(cmechlist->utils,
+			 SASL_CLIENT_PLUG_VERSION,
+			 &version,
+			 &pluglist,
+			 &plugcount);
 
     if (result != SASL_OK)
     {
@@ -739,16 +743,16 @@ int _sasl_client_listmech(sasl_conn_t *conn,
 			  unsigned *plen,
 			  int *pcount)
 {
-    cmechanism_t *m=NULL;
+    cmechanism_t *m = NULL;
     sasl_ssf_t minssf = 0;
     int ret;
     size_t resultlen;
     int flag;
     const char *mysep;
 
-    if(_sasl_client_active == 0) return SASL_NOTINIT;
+    if (_sasl_client_active == 0) return SASL_NOTINIT;
     if (!conn) return SASL_BADPARAM;
-    if(conn->type != SASL_CONN_CLIENT) PARAMERROR(conn);
+    if (conn->type != SASL_CONN_CLIENT) PARAMERROR(conn);
     
     if (! result)
 	PARAMERROR(conn);
@@ -764,7 +768,7 @@ int _sasl_client_listmech(sasl_conn_t *conn,
 	mysep = " ";
     }
 
-    if(conn->props.min_ssf < conn->external.ssf) {
+    if (conn->props.min_ssf < conn->external.ssf) {
 	minssf = 0;
     } else {
 	minssf = conn->props.min_ssf - conn->external.ssf;

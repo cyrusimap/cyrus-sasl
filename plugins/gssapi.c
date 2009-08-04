@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.99 2009/07/24 11:30:20 mel Exp $
+ * $Id: gssapi.c,v 1.100 2009/08/04 17:17:26 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.99 2009/07/24 11:30:20 mel Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.100 2009/08/04 17:17:26 mel Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -777,15 +777,24 @@ gssapi_server_mech_step(void *conn_context,
 	} else {
 	    /* No output token, send an empty string */
 	    *serverout = GSSAPI_BLANK_STRING;
-	    serveroutlen = 0;
+	    *serveroutlen = 0;
 	}
-	
+
 	if (maj_stat == GSS_S_COMPLETE) {
 	    /* Switch to ssf negotiation */
 	    text->state = SASL_GSSAPI_STATE_SSFCAP;
+
+	    if (*serveroutlen != 0) {
+		return SASL_CONTINUE;
+	    }
+
+	    /* Pretend that we just got an empty response from the client */
+	    clientinlen = 0;
+
+	    /* fall through */
+	} else {
+	    return SASL_CONTINUE;
 	}
-	
-	return SASL_CONTINUE;
 
     case SASL_GSSAPI_STATE_SSFCAP: {
 	unsigned char sasldata[4];
@@ -797,7 +806,11 @@ gssapi_server_mech_step(void *conn_context,
 	name_token.value = NULL;
 	name_without_realm.value = NULL;
 	
-	/* We ignore whatever the client sent us at this stage */
+	if (clientinlen != 0) {
+	    SETERROR(text->utils, "GSSAPI server is not expecting data at this stage");
+	    sasl_gss_free_context_contents(text);
+	    return SASL_BADAUTH;
+	}
 	
 	GSS_LOCK_MUTEX(params->utils);
 	maj_stat = gss_display_name (&min_stat,

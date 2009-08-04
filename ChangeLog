@@ -1,3 +1,12 @@
+2009-08-04  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/gssapi.c: Properly set serveroutlen to 0 in one place.
+	  Don't send empty challenge once server context establishment is done,
+	  as this is in violation of the RFC 2222 and its successor.
+
+2009-07-24  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/gssapi.c: Don't send maxbuf, if no security layer
+	  can be established. Added additional checks for buffer lengths.
+
 2009-05-20  Ken Murchison <murch@andrew.cmu.edu>
 	* configure.in, cmulocal/sasl2.m4,
 	  config/kerberos_v4.m4, config/plain.m4, config/sasldb.m4,

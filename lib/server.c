@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.160 2009/04/08 19:36:20 mel Exp $
+ * $Id: server.c,v 1.161 2009/08/04 17:45:55 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1351,8 +1351,8 @@ int sasl_server_start(sasl_conn_t *conn,
     if (!mech || ((clientin==NULL) && (clientinlen>0)))
 	PARAMERROR(conn);
 
-    if(serverout) *serverout = NULL;
-    if(serveroutlen) *serveroutlen = 0;
+    if (serverout) *serverout = NULL;
+    if (serveroutlen) *serveroutlen = 0;
 
     /* make sure mech is valid mechanism
        if not return appropriate error */
@@ -1476,8 +1476,10 @@ int sasl_server_start(sasl_conn_t *conn,
             } else {
                 /* Mech wants client-first, so let them have it */
                 result = sasl_server_step(conn,
-                                          clientin, clientinlen,
-                                          serverout, serveroutlen);
+                                          clientin,
+					  clientinlen,
+                                          serverout,
+					  serveroutlen);
             }
         } else {
             if(s_conn->mech->m.plug->features & SASL_FEAT_WANT_CLIENT_FIRST) {
@@ -1488,8 +1490,10 @@ int sasl_server_start(sasl_conn_t *conn,
             } else {
                 /* Mech wants server-first, so let them have it */
                 result = sasl_server_step(conn,
-                                          clientin, clientinlen,
-                                          serverout, serveroutlen);
+                                          clientin,
+					  clientinlen,
+                                          serverout,
+					  serveroutlen);
             }
 	}
     }
@@ -1510,9 +1514,9 @@ int sasl_server_start(sasl_conn_t *conn,
 
 
 /* perform one step of the SASL exchange
- *  inputlen & input -- client data
+ *  clientinlen & clientin -- client data
  *                      NULL on first step if no optional client step
- *  outputlen & output -- set to the server data to transmit
+ *  serveroutlen & serverout -- set to the server data to transmit
  *                        to the client in the next step
  *                        (library handles freeing this)
  *
@@ -1542,7 +1546,7 @@ int sasl_server_step(sasl_conn_t *conn,
 	PARAMERROR(conn);
 
     /* If we've already done the last send, return! */
-    if(s_conn->sent_last == 1) {
+    if (s_conn->sent_last == 1) {
 	return SASL_OK;
     }
 
@@ -1552,8 +1556,8 @@ int sasl_server_step(sasl_conn_t *conn,
 	return SASL_FAIL;
     }
 
-    if(serverout) *serverout = NULL;
-    if(serveroutlen) *serveroutlen = 0;
+    if (serverout) *serverout = NULL;
+    if (serveroutlen) *serveroutlen = 0;
 
     ret = s_conn->mech->m.plug->mech_step(conn->context,
 					s_conn->sparams,

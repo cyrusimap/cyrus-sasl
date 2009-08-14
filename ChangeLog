@@ -1,3 +1,10 @@
+2009-08-14  Alexey Melnikov <alexey.melnikov@isode.com>
+	* saslauthd/auth_shadow.c: Rolled back the previous commit
+	  (#define _XOPEN_SOURCE before including unistd.h),
+	  as this seems to break Solaris 8 build. Note that crypt.h
+	  should be present on a Solaris 8 machine, as well is on Debian,
+	  so this shouldn't be a problem.
+
 2009-08-04  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/gssapi.c: Properly set serveroutlen to 0 in one place.
 	  Don't send empty challenge once server context establishment is done,

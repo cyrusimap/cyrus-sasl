@@ -1,4 +1,3 @@
-#define _XOPEN_SOURCE
 #define PWBUFSZ 256 /***SWB***/
 
 /* MODULE: auth_shadow */
@@ -31,7 +30,7 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_shadow.c,v 1.10 2009/02/20 21:59:50 mel Exp $"
+#ident "$Id: auth_shadow.c,v 1.11 2009/08/14 14:55:51 mel Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */

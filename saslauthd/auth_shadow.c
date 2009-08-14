@@ -1,5 +1,3 @@
-#define PWBUFSZ 256 /***SWB***/
-
 /* MODULE: auth_shadow */
 
 /* COPYRIGHT
@@ -30,13 +28,15 @@
  * END COPYRIGHT */
 
 #ifdef __GNUC__
-#ident "$Id: auth_shadow.c,v 1.11 2009/08/14 14:55:51 mel Exp $"
+#ident "$Id: auth_shadow.c,v 1.12 2009/08/14 14:58:38 mel Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
 #include "mechanisms.h"
 
 #ifdef AUTH_SHADOW
+
+#define PWBUFSZ 256 /***SWB***/
 
 # include <unistd.h>
 # include <stdlib.h>

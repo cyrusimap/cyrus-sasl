@@ -1,7 +1,7 @@
 /* saslutil.c
  * Rob Siemborski
  * Tim Martin
- * $Id: saslutil.c,v 1.49 2009/04/27 13:26:27 murch Exp $
+ * $Id: saslutil.c,v 1.50 2010/01/22 15:14:53 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -231,6 +231,10 @@ int sasl_decode64(const char *in,
         }
     }
 
+    *out = '\0'; /* NUL terminate the output string */
+
+    if (outlen) *outlen = len;
+
     if (inlen != 0) {
         if (saw_equal) {
             /* Unless there is CRLF at the end? */
@@ -239,10 +243,6 @@ int sasl_decode64(const char *in,
 	    return (SASL_CONTINUE);
         }
     }
-
-    *out = '\0'; /* NUL terminate the output string */
-
-    if (outlen) *outlen = len;
 
     return SASL_OK;
 }

@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.102 2010/02/15 12:14:47 mel Exp $
+ * $Id: gssapi.c,v 1.103 2010/02/15 12:23:45 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.102 2010/02/15 12:14:47 mel Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.103 2010/02/15 12:23:45 mel Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -1423,23 +1423,24 @@ static int gssapi_client_mech_step(void *conn_context,
 	    GSS_UNLOCK_MUTEX(params->utils);
 	    text->gss_ctx = GSS_C_NO_CONTEXT;
 	}
-	    
+
 	/* Setup req_flags properly */
-	req_flags = GSS_C_MUTUAL_FLAG | GSS_C_SEQUENCE_FLAG;
-	if(params->props.max_ssf > params->external_ssf) {
+	req_flags = GSS_C_INTEG_FLAG;
+	if (params->props.max_ssf > params->external_ssf) {
 	    /* We are requesting a security layer */
-	    req_flags |= GSS_C_INTEG_FLAG;
+	    req_flags |= GSS_C_MUTUAL_FLAG | GSS_C_SEQUENCE_FLAG;
 	    /* Any SSF bigger than 1 is confidentiality. */
 	    /* Let's check if the client of the API requires confidentiality,
 	       and it wasn't already provided by an external layer */
-	    if(params->props.max_ssf - params->external_ssf > 1) {
+	    if (params->props.max_ssf - params->external_ssf > 1) {
 		/* We want to try for privacy */
 		req_flags |= GSS_C_CONF_FLAG;
 	    }
 	}
-	
-	if (params->props.security_flags & SASL_SEC_PASS_CREDENTIALS)
+
+	if (params->props.security_flags & SASL_SEC_PASS_CREDENTIALS) {
 	    req_flags = req_flags |  GSS_C_DELEG_FLAG;
+	}
 
 	GSS_LOCK_MUTEX(params->utils);
 	maj_stat = gss_init_sec_context(&min_stat,

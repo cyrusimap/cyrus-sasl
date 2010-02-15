@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.101 2010/02/15 12:12:13 mel Exp $
+ * $Id: gssapi.c,v 1.102 2010/02/15 12:14:47 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.101 2010/02/15 12:12:13 mel Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.102 2010/02/15 12:14:47 mel Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -362,10 +362,12 @@ sasl_gss_encode(void *context, const struct iovec *invec, unsigned numiov,
     }
     
     if (output_token->value && output) {
-	int len;
+	unsigned char * p = (unsigned char *) text->encode_buf;
 	
-	ret = _plug_buf_alloc(text->utils, &(text->encode_buf),
-			      &(text->encode_buf_len), output_token->length + 4);
+	ret = _plug_buf_alloc(text->utils,
+			      &(text->encode_buf),
+			      &(text->encode_buf_len),
+			      output_token->length + 4);
 	
 	if (ret != SASL_OK) {
 	    GSS_LOCK_MUTEX(text->utils);
@@ -374,8 +376,11 @@ sasl_gss_encode(void *context, const struct iovec *invec, unsigned numiov,
 	    return ret;
 	}
 	
-	len = htonl(output_token->length);
-	memcpy(text->encode_buf, &len, 4);
+	p[0] = (output_token->length>>24) & 0xFF;
+	p[1] = (output_token->length>>16) & 0xFF;
+	p[2] = (output_token->length>>8) & 0xFF;
+	p[3] = output_token->length & 0xFF;
+
 	memcpy(text->encode_buf + 4, output_token->value, output_token->length);
     }
     

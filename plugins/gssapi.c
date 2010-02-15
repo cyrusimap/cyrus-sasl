@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.103 2010/02/15 12:23:45 mel Exp $
+ * $Id: gssapi.c,v 1.104 2010/02/15 12:32:12 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.103 2010/02/15 12:23:45 mel Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.104 2010/02/15 12:32:12 mel Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -150,6 +150,8 @@ typedef struct context {
 
     sasl_ssf_t limitssf, requiressf; /* application defined bounds, for the
 					server */
+    unsigned char qop;		     /* as allowed by GSSAPI */
+
     const sasl_utils_t *utils;
     
     /* layers buffering */
@@ -176,6 +178,10 @@ enum {
     SASL_GSSAPI_STATE_SSFREQ = 3,
     SASL_GSSAPI_STATE_AUTHENTICATED = 4
 };
+
+#define LAYER_CONFIDENTIALITY	4
+#define LAYER_INTEGRITY		2
+#define LAYER_NONE		1
 
 /* sasl_gss_log: only logs status string returned from gss_display_status() */
 #define sasl_gss_log(x,y,z) sasl_gss_seterror_(x,y,z,1)
@@ -749,7 +755,26 @@ gssapi_server_mech_step(void *conn_context,
 	    sasl_gss_free_context_contents(text);
 	    return SASL_BADAUTH;
 	}
-	    
+
+	/* When GSS_Accept_sec_context returns GSS_S_COMPLETE, the server
+	   examines the context to ensure that it provides a level of protection
+	   permitted by the server's security policy.  In particular, if the
+	   integ_avail flag is not set in the context, then no security layer
+	   can be offered or accepted.  If the conf_avail flag is not set in the
+	   context, then no security layer with confidentiality can be offered
+	   or accepted. */
+	if ((out_flags & GSS_C_INTEG_FLAG) == 0) {
+	    /* if the integ_avail flag is not set in the context,
+	       then no security layer can be offered or accepted. */
+	    text->qop = LAYER_NONE;
+	} else if ((out_flags & GSS_C_CONF_FLAG) == 0) {
+	    /* If the conf_avail flag is not set in the context,
+	       then no security layer with confidentiality can be offered
+	       or accepted. */
+	    text->qop = LAYER_NONE | LAYER_INTEGRITY;
+	} else {
+	    text->qop = LAYER_NONE | LAYER_INTEGRITY | LAYER_CONFIDENTIALITY;
+	}
 
 	if ((params->props.security_flags & SASL_SEC_PASS_CREDENTIALS) &&
 	    (!(out_flags & GSS_C_DELEG_FLAG) ||
@@ -951,7 +976,8 @@ gssapi_server_mech_step(void *conn_context,
 	}
 	
 	/* build up our security properties token */
-	if (text->requiressf != 0) {
+	if (text->requiressf != 0 &&
+	    (text->qop & (LAYER_INTEGRITY|LAYER_CONFIDENTIALITY))) {
 	    if (params->props.maxbufsize > 0xFFFFFF) {
 		/* make sure maxbufsize isn't too large */
 		/* maxbufsize = 0xFFFFFF */
@@ -975,15 +1001,19 @@ gssapi_server_mech_step(void *conn_context,
 	}
 	
 	if (text->requiressf == 0) {
-	    sasldata[0] |= 1; /* authentication */
+	    sasldata[0] |= LAYER_NONE; /* authentication */
 	}
-	if (text->requiressf <= 1 && text->limitssf >= 1
-	    && params->props.maxbufsize) {
-	    sasldata[0] |= 2;
+	if ((text->qop & LAYER_INTEGRITY) &&
+	    text->requiressf <= 1 &&
+	    text->limitssf >= 1 &&
+	    params->props.maxbufsize) {
+	    sasldata[0] |= LAYER_INTEGRITY;
 	}
-	if (text->requiressf <= K5_MAX_SSF && text->limitssf >= K5_MAX_SSF
-	    && params->props.maxbufsize) {
-	    sasldata[0] |= 4;
+	if ((text->qop & LAYER_CONFIDENTIALITY) &&
+	    text->requiressf <= K5_MAX_SSF &&
+	    text->limitssf >= K5_MAX_SSF &&
+	    params->props.maxbufsize) {
+	    sasldata[0] |= LAYER_CONFIDENTIALITY;
 	}
 	
 	real_input_token.value = (void *)sasldata;
@@ -1032,6 +1062,9 @@ gssapi_server_mech_step(void *conn_context,
 	    GSS_UNLOCK_MUTEX(params->utils);
 	}
 	
+	/* Remember what we want and can offer */
+	text->qop = sasldata[0];
+
 	/* Wait for ssf request and authid */
 	text->state = SASL_GSSAPI_STATE_SSFREQ; 
 	
@@ -1070,17 +1103,20 @@ gssapi_server_mech_step(void *conn_context,
 	}
 	
 	layerchoice = (int)(((char *)(output_token->value))[0]);
-	if (layerchoice == 1 && text->requiressf == 0) { /* no encryption */
+	if (layerchoice == LAYER_NONE &&
+	    (text->qop & LAYER_NONE)) { /* no encryption */
 	    oparams->encode = NULL;
 	    oparams->decode = NULL;
 	    oparams->mech_ssf = 0;
-	} else if (layerchoice == 2 && text->requiressf <= 1 &&
-		   text->limitssf >= 1) { /* integrity */
-	    oparams->encode=&gssapi_integrity_encode;
-	    oparams->decode=&gssapi_decode;
-	    oparams->mech_ssf=1;
-	} else if (layerchoice == 4 && text->requiressf <= K5_MAX_SSF &&
-		   text->limitssf >= K5_MAX_SSF) { /* privacy */
+	} else if (layerchoice == LAYER_INTEGRITY &&
+		   (text->qop & LAYER_INTEGRITY)) { /* integrity */
+	    oparams->encode = &gssapi_integrity_encode;
+	    oparams->decode = &gssapi_decode;
+	    oparams->mech_ssf = 1;
+	} else if ((layerchoice == LAYER_CONFIDENTIALITY ||
+		    /* For compatibility with broken clients setting both bits */
+		    layerchoice == (LAYER_CONFIDENTIALITY|LAYER_INTEGRITY)) &&
+		   (context->qop & LAYER_CONFIDENTIALITY)) { /* privacy */
 	    oparams->encode = &gssapi_privacy_encode;
 	    oparams->decode = &gssapi_decode;
 	    /* FIX ME: Need to extract the proper value here */
@@ -1469,6 +1505,19 @@ static int gssapi_client_mech_step(void *conn_context,
 	    return SASL_FAIL;
 	}
 
+	if ((out_req_flags & GSS_C_INTEG_FLAG) == 0) {
+	    /* if the integ_avail flag is not set in the context,
+	       then no security layer can be offered or accepted. */
+	    text->qop = LAYER_NONE;
+	} else if ((out_req_flags & GSS_C_CONF_FLAG) == 0) {
+	    /* If the conf_avail flag is not set in the context,
+	       then no security layer with confidentiality can be offered
+	       or accepted. */
+	    text->qop = LAYER_NONE | LAYER_INTEGRITY;
+	} else {
+	    text->qop = LAYER_NONE | LAYER_INTEGRITY | LAYER_CONFIDENTIALITY;
+	}
+
 	if ((out_req_flags & GSS_C_DELEG_FLAG) != (req_flags & GSS_C_DELEG_FLAG)) {
 	    text->utils->seterror(text->utils->conn, SASL_LOG_WARN, "GSSAPI warning: no credentials were passed");
 	    /* not a fatal error */
@@ -1622,26 +1671,32 @@ static int gssapi_client_mech_step(void *conn_context,
 	/* bit mask of server support */
 	serverhas = ((char *)output_token->value)[0];
 	
-	/* if client didn't set use strongest layer available */
-	if (allowed >= K5_MAX_SSF && need <= K5_MAX_SSF && (serverhas & 4)) {
+	/* use the strongest layer available */
+	if ((context->qop & LAYER_CONFIDENTIALITY) &&
+	    allowed >= K5_MAX_SSF &&
+	    need <= K5_MAX_SSF &&
+	    (serverhas & LAYER_CONFIDENTIALITY)) {
 	    /* encryption */
 	    oparams->encode = &gssapi_privacy_encode;
 	    oparams->decode = &gssapi_decode;
 	    /* FIX ME: Need to extract the proper value here */
 	    oparams->mech_ssf = K5_MAX_SSF;
-	    mychoice = 4;
-	} else if (allowed >= 1 && need <= 1 && (serverhas & 2)) {
+	    mychoice = LAYER_CONFIDENTIALITY;
+	} else if ((context->qop & LAYER_INTEGRITY) &&
+		    allowed >= 1 &&
+		    need <= 1 &&
+		    (serverhas & LAYER_INTEGRITY)) {
 	    /* integrity */
 	    oparams->encode = &gssapi_integrity_encode;
 	    oparams->decode = &gssapi_decode;
 	    oparams->mech_ssf = 1;
-	    mychoice = 2;
-	} else if (need <= 0 && (serverhas & 1)) {
+	    mychoice = LAYER_INTEGRITY;
+	} else if (need <= 0 && (serverhas & LAYER_NONE)) {
 	    /* no layer */
 	    oparams->encode = NULL;
 	    oparams->decode = NULL;
 	    oparams->mech_ssf = 0;
-	    mychoice = 1;
+	    mychoice = LAYER_NONE;
 	} else {
 	    /* there's no appropriate layering for us! */
 	    sasl_gss_free_context_contents(text);

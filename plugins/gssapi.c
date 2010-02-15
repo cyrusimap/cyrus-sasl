@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.100 2009/08/04 17:17:26 mel Exp $
+ * $Id: gssapi.c,v 1.101 2010/02/15 12:12:13 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.100 2009/08/04 17:17:26 mel Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.101 2010/02/15 12:12:13 mel Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -318,7 +318,7 @@ sasl_gss_encode(void *context, const struct iovec *invec, unsigned numiov,
     int ret;
     struct buffer_info *inblob, bufinfo;
     
-    if(!output) return SASL_BADPARAM;
+    if (!output) return SASL_BADPARAM;
     
     if (numiov > 1) {
 	ret = _plug_iovec_to_buf(text->utils, invec, numiov, &text->enc_in_buf);
@@ -931,7 +931,7 @@ gssapi_server_mech_step(void *conn_context,
 	if (name_without_realm.value) {
 	    params->utils->free(name_without_realm.value);
 	}
-	
+
 	/* we have to decide what sort of encryption/integrity/etc.,
 	   we support */
 	if (params->props.max_ssf < params->external_ssf) {

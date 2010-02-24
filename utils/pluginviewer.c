@@ -1,7 +1,7 @@
 /* pluginviewer.c -- Plugin Viewer for CMU SASL
  * Alexey Melnikov, Isode Ltd.
  *
- * $Id: pluginviewer.c,v 1.7 2009/02/14 14:42:46 mel Exp $
+ * $Id: pluginviewer.c,v 1.8 2010/02/24 19:41:59 mel Exp $
  */
 /* 
  * Copyright (c) 2004 Carnegie Mellon University.  All rights reserved.
@@ -216,7 +216,7 @@ getpath(void *context,
 }
 
 static int
-sasl_getopt (
+plugview_sasl_getopt (
     void *context,
     const char *plugin_name,
     const char *option,
@@ -582,7 +582,7 @@ main(int argc, char *argv[])
     /* NOTE: this will return "sasl_mech" option, however this HAS NO EFFECT
        on client side SASL plugins, which just never query this option */
     callback->id = SASL_CB_GETOPT;
-    callback->proc = &sasl_getopt;
+    callback->proc = &plugview_sasl_getopt;
     callback->context = NULL;
     ++callback;
 

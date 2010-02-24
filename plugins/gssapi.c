@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.107 2010/02/24 22:23:29 mel Exp $
+ * $Id: gssapi.c,v 1.108 2010/02/24 22:32:30 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.107 2010/02/24 22:23:29 mel Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.108 2010/02/24 22:32:30 mel Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -1685,12 +1685,30 @@ static int gssapi_client_mech_step(void *conn_context,
 	    allowed >= K5_MAX_SSF &&
 	    need <= K5_MAX_SSF &&
 	    (serverhas & LAYER_CONFIDENTIALITY)) {
+	    
+	    const char *ad_compat;
+
 	    /* encryption */
 	    oparams->encode = &gssapi_privacy_encode;
 	    oparams->decode = &gssapi_decode;
 	    /* FIX ME: Need to extract the proper value here */
 	    oparams->mech_ssf = K5_MAX_SSF;
 	    mychoice = LAYER_CONFIDENTIALITY;
+
+	    if (serverhas & LAYER_INTEGRITY) {
+		/* should we send an AD compatible choice of security layers? */
+		params->utils->getopt(params->utils->getopt_context,
+				      "GSSAPI",
+				      "ad_compat",
+				      &ad_compat,
+				      NULL);
+		if (ad_compat &&
+		    (ad_compat[0] == '1' || ad_compat[0] == 'y' ||
+		     (ad_compat[0] == 'o' && ad_compat[1] == 'n') ||
+		     ad_compat[0] == 't')) {
+		    mychoice = LAYER_INTEGRITY|LAYER_CONFIDENTIALITY;
+		}
+	    }
 	} else if ((text->qop & LAYER_INTEGRITY) &&
 		    allowed >= 1 &&
 		    need <= 1 &&

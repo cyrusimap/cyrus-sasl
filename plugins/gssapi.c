@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.104 2010/02/15 12:32:12 mel Exp $
+ * $Id: gssapi.c,v 1.105 2010/02/24 22:15:06 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.104 2010/02/15 12:32:12 mel Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.105 2010/02/24 22:15:06 mel Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -1116,7 +1116,7 @@ gssapi_server_mech_step(void *conn_context,
 	} else if ((layerchoice == LAYER_CONFIDENTIALITY ||
 		    /* For compatibility with broken clients setting both bits */
 		    layerchoice == (LAYER_CONFIDENTIALITY|LAYER_INTEGRITY)) &&
-		   (context->qop & LAYER_CONFIDENTIALITY)) { /* privacy */
+		   (text->qop & LAYER_CONFIDENTIALITY)) { /* privacy */
 	    oparams->encode = &gssapi_privacy_encode;
 	    oparams->decode = &gssapi_decode;
 	    /* FIX ME: Need to extract the proper value here */
@@ -1672,7 +1672,7 @@ static int gssapi_client_mech_step(void *conn_context,
 	serverhas = ((char *)output_token->value)[0];
 	
 	/* use the strongest layer available */
-	if ((context->qop & LAYER_CONFIDENTIALITY) &&
+	if ((text->qop & LAYER_CONFIDENTIALITY) &&
 	    allowed >= K5_MAX_SSF &&
 	    need <= K5_MAX_SSF &&
 	    (serverhas & LAYER_CONFIDENTIALITY)) {
@@ -1682,7 +1682,7 @@ static int gssapi_client_mech_step(void *conn_context,
 	    /* FIX ME: Need to extract the proper value here */
 	    oparams->mech_ssf = K5_MAX_SSF;
 	    mychoice = LAYER_CONFIDENTIALITY;
-	} else if ((context->qop & LAYER_INTEGRITY) &&
+	} else if ((text->qop & LAYER_INTEGRITY) &&
 		    allowed >= 1 &&
 		    need <= 1 &&
 		    (serverhas & LAYER_INTEGRITY)) {

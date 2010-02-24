@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.105 2010/02/24 22:15:06 mel Exp $
+ * $Id: gssapi.c,v 1.106 2010/02/24 22:19:20 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.105 2010/02/24 22:15:06 mel Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.106 2010/02/24 22:19:20 mel Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -198,10 +198,12 @@ sasl_gss_seterror_(const sasl_utils_t *utils, OM_uint32 maj, OM_uint32 min,
     char *out = NULL;
     size_t len, curlen = 0;
     const char prefix[] = "GSSAPI Error: ";
+
+    if (!utils) return SASL_OK;
     
     len = sizeof(prefix);
     ret = _plug_buf_alloc(utils, &out, &curlen, 256);
-    if(ret != SASL_OK) return SASL_OK;
+    if (ret != SASL_OK) return SASL_NOMEM;
     
     strcpy(out, prefix);
     
@@ -231,7 +233,7 @@ sasl_gss_seterror_(const sasl_utils_t *utils, OM_uint32 maj, OM_uint32 min,
 	
 	if(ret != SASL_OK) {
 	    utils->free(out);
-	    return SASL_OK;
+	    return SASL_NOMEM;
 	}
 	
 	strcat(out, msg.value);

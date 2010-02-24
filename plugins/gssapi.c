@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.106 2010/02/24 22:19:20 mel Exp $
+ * $Id: gssapi.c,v 1.107 2010/02/24 22:23:29 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.106 2010/02/24 22:19:20 mel Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.107 2010/02/24 22:23:29 mel Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -675,6 +675,12 @@ gssapi_server_mech_step(void *conn_context,
 
     case SASL_GSSAPI_STATE_AUTHNEG:
 	if (text->server_name == GSS_C_NO_NAME) { /* only once */
+	    if (params->serverFQDN == NULL
+		|| strlen(params->serverFQDN) == 0) {
+		SETERROR(text->utils, "GSSAPI Failure: no serverFQDN");
+		sasl_gss_free_context_contents(text);
+		return SASL_FAIL;
+	    }
 	    name_token.length = strlen(params->service) + 1 + strlen(params->serverFQDN);
 	    name_token.value = (char *)params->utils->malloc((name_token.length + 1) * sizeof(char));
 	    if (name_token.value == NULL) {
@@ -1416,6 +1422,7 @@ static int gssapi_client_mech_step(void *conn_context,
 	    if (params->serverFQDN == NULL
 		|| strlen(params->serverFQDN) == 0) {
 		SETERROR(text->utils, "GSSAPI Failure: no serverFQDN");
+		sasl_gss_free_context_contents(text);
 		return SASL_FAIL;
 	    }
 	    name_token.length = strlen(params->service) + 1 + strlen(params->serverFQDN);

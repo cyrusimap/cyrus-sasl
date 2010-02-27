@@ -1,7 +1,7 @@
 /* pluginviewer.c -- Plugin Viewer for CMU SASL
  * Alexey Melnikov, Isode Ltd.
  *
- * $Id: pluginviewer.c,v 1.8 2010/02/24 19:41:59 mel Exp $
+ * $Id: pluginviewer.c,v 1.9 2010/02/27 19:24:56 mel Exp $
  */
 /* 
  * Copyright (c) 2004 Carnegie Mellon University.  All rights reserved.
@@ -706,7 +706,7 @@ main(int argc, char *argv[])
 			    &len,
 			    &count);
         if (result != SASL_OK) {
-            saslfail(result, "Setting security properties", NULL);
+            saslfail(result, "Listing SASL mechanisms", NULL);
         }
 
 	/* NOTE: available_mechs contains subset of sasl_mech */
@@ -788,7 +788,7 @@ main(int argc, char *argv[])
 			       &len,
 			       &count);
         if (result != SASL_OK) {
-            saslfail(result, "Setting security properties", NULL);
+            saslfail(result, "Listing SASL mechanisms", NULL);
         }
 
         if (count > 0) {

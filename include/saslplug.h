@@ -253,8 +253,10 @@ typedef struct sasl_client_params {
     sasl_security_properties_t props;
     sasl_ssf_t external_ssf;	/* external SSF active */
 
+    /* GSS credentials */
+    void *gss_creds;
+
     /* for additions which don't require a version upgrade; set to 0 */
-    void *spare_ptr1;
     void *spare_ptr2;
     void *spare_ptr3;
     void *spare_ptr4;
@@ -552,8 +554,10 @@ typedef struct sasl_server_params {
      */
     struct propctx *propctx;
 
+    /* GSS credentials */
+    void *gss_creds;
+
     /* for additions which don't require a version upgrade; set to 0 */
-    void *spare_ptr1;
     void *spare_ptr2;
     void *spare_ptr3;
     void *spare_ptr4;

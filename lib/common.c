@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.124 2009/02/20 23:10:53 mel Exp $
+ * $Id: common.c,v 1.125 2010/05/12 21:28:19 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1027,6 +1027,14 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, const void **pvalue)
   case SASL_SEC_PROPS:
       *((const sasl_security_properties_t **)pvalue) = &conn->props;
       break;
+  case SASL_GSS_CREDS:
+      if(conn->type == SASL_CONN_CLIENT)
+	  *(void **)pvalue = 
+              ((sasl_client_conn_t *)conn)->cparams->gss_creds;
+      else
+	  *(void **)pvalue = 
+              ((sasl_server_conn_t *)conn)->sparams->gss_creds;
+      break;
   default: 
       result = SASL_BADPARAM;
   }
@@ -1236,6 +1244,13 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
 	  ((sasl_server_conn_t *)conn)->sparams->appname = NULL;
 	  ((sasl_server_conn_t *)conn)->sparams->applen = 0;
       }
+      break;
+
+  case SASL_GSS_CREDS:
+      if(conn->type == SASL_CONN_CLIENT)
+          ((sasl_client_conn_t *)conn)->cparams->gss_creds = value;
+      else
+          ((sasl_server_conn_t *)conn)->sparams->gss_creds = value;
       break;
 
   default:

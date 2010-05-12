@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.109 2010/02/24 22:41:18 mel Exp $
+ * $Id: gssapi.c,v 1.110 2010/05/12 21:28:19 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.109 2010/02/24 22:41:18 mel Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.110 2010/05/12 21:28:19 mel Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -657,6 +657,7 @@ gssapi_server_mech_step(void *conn_context,
     OM_uint32 max_input;
     gss_buffer_desc name_token;
     int ret, out_flags = 0 ;
+    gss_cred_id_t server_creds = params->gss_creds;
     
     input_token = &real_input_token;
     output_token = &real_output_token;
@@ -716,22 +717,26 @@ gssapi_server_mech_step(void *conn_context,
 	    	GSS_UNLOCK_MUTEX(params->utils);
 		text->server_creds = GSS_C_NO_CREDENTIAL;
 	    }
+
+	    /* If caller didn't provide creds already */
+	    if ( server_creds == GSS_C_NO_CREDENTIAL) {
+		GSS_LOCK_MUTEX(params->utils);
+		maj_stat = gss_acquire_cred(&min_stat, 
+					    text->server_name,
+					    GSS_C_INDEFINITE, 
+					    GSS_C_NO_OID_SET,
+					    GSS_C_ACCEPT,
+					    &text->server_creds, 
+					    NULL, 
+					    NULL);
+		GSS_UNLOCK_MUTEX(params->utils);
 	    
-	    GSS_LOCK_MUTEX(params->utils);
-	    maj_stat = gss_acquire_cred(&min_stat, 
-					text->server_name,
-					GSS_C_INDEFINITE, 
-					GSS_C_NO_OID_SET,
-					GSS_C_ACCEPT,
-					&text->server_creds, 
-					NULL, 
-					NULL);
-	    GSS_UNLOCK_MUTEX(params->utils);
-	    
-	    if (GSS_ERROR(maj_stat)) {
-		sasl_gss_seterror(text->utils, maj_stat, min_stat);
-		sasl_gss_free_context_contents(text);
-		return SASL_FAIL;
+		if (GSS_ERROR(maj_stat)) {
+		    sasl_gss_seterror(text->utils, maj_stat, min_stat);
+		    sasl_gss_free_context_contents(text);
+		    return SASL_FAIL;
+		}
+		server_creds = text->server-creds;
 	    }
 	}
 	
@@ -745,7 +750,7 @@ gssapi_server_mech_step(void *conn_context,
 	maj_stat =
 	    gss_accept_sec_context(&min_stat,
 				   &(text->gss_ctx),
-				   text->server_creds,
+				   server_creds,
 				   input_token,
 				   GSS_C_NO_CHANNEL_BINDINGS,
 				   &text->client_name,
@@ -1380,6 +1385,7 @@ static int gssapi_client_mech_step(void *conn_context,
     output_token->value = NULL;
     input_token->value = NULL; 
     input_token->length = 0;
+    gss_cred_id_t client_creds = (gss_cred_id_t)params->gss_creds;
     
     *clientout = NULL;
     *clientoutlen = 0;
@@ -1493,7 +1499,7 @@ static int gssapi_client_mech_step(void *conn_context,
 
 	GSS_LOCK_MUTEX(params->utils);
 	maj_stat = gss_init_sec_context(&min_stat,
-					GSS_C_NO_CREDENTIAL,
+					client_creds, /* GSS_C_NO_CREDENTIAL */
 					&text->gss_ctx,
 					text->server_name,
 					GSS_C_NO_OID,

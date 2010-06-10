@@ -430,6 +430,8 @@ ldapdb_canon_client(void *glob_context,
 {
     if(!cparams || !user) return SASL_BADPARAM;
 
+    if (ulen > out_umax) return SASL_BUFOVER;
+
     /* Trim whitespace */
     while(isspace(*(unsigned char *)user)) {
 	user++;

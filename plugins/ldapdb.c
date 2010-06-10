@@ -430,8 +430,6 @@ ldapdb_canon_client(void *glob_context,
 {
     if(!cparams || !user) return SASL_BADPARAM;
 
-    if (ulen > out_umax) return SASL_BUFOVER;
-
     /* Trim whitespace */
     while(isspace(*(unsigned char *)user)) {
 	user++;
@@ -446,6 +444,9 @@ ldapdb_canon_client(void *glob_context,
 	    "All-whitespace username.");
 	return SASL_FAIL;
     }
+
+    if (ulen > out_umax) return SASL_BUFOVER;
+
     memcpy(out, user, ulen);
     out[ulen] = '\0';
     *out_ulen = ulen;

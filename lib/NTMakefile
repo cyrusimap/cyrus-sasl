@@ -58,9 +58,11 @@ plugin_common.c: ..\plugins\plugin_common.c plugin_common.h
 plugin_common.h: ..\plugins\plugin_common.h
 	copy ..\plugins\plugin_common.h .
 
-auxprop.c checkpw.c client.c common.c external.c plugin_common.c server.c seterror.c: ..\include\saslplug.h
+auxprop.obj checkpw.obj client.obj common.obj external.obj plugin_common.obj server.obj seterror.obj: ..\include\saslplug.h
 
-auxprop.c canonusr.c checkpw.c client.c common.c config.c external.c getsubopt.c md5.c plugin_common.c server.c seterror.c windlopen.c: ..\include\sasl.h
+auxprop.obj canonusr.obj checkpw.obj client.obj common.obj config.obj external.obj getsubopt.obj md5.obj plugin_common.obj server.obj seterror.obj windlopen.obj: ..\include\sasl.h ..\include\prop.h
+
+auxprop.obj canonusr.obj checkpw.obj client.obj common.obj config.obj dlopen.obj external.obj saslutil.obj server.obj seterror.obj windlopen.obj: saslint.h
 
 CLEAN :
 	-@erase $(all_objs)

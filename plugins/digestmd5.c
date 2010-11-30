@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.191 2010/11/30 11:34:17 mel Exp $
+ * $Id: digestmd5.c,v 1.192 2010/11/30 11:38:42 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.191 2010/11/30 11:34:17 mel Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.192 2010/11/30 11:38:42 mel Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -429,15 +429,19 @@ static void MD5_UTF8_8859_1(const sasl_utils_t * utils,
     while (base < end);
 }
 
-static void DigestCalcSecret(const sasl_utils_t * utils,
-			     unsigned char *pszUserName,
-			     unsigned char *pszRealm,
-			     unsigned char *Password,
-			     int PasswordLen,
-			     HASH HA1)
+/**
+ * Returns true if it mangled the username.
+ */
+static bool DigestCalcSecret(const sasl_utils_t * utils,
+		            unsigned char *pszUserName,
+		            unsigned char *pszRealm,
+		            unsigned char *Password,
+		            int PasswordLen,
+		            bool Ignore_8859,
+		            HASH HA1)
 {
     bool            In_8859_1;
-    
+    bool            Any_8859_1 = FALSE;
     MD5_CTX         Md5Ctx;
     
     /* Chris Newman clarified that the following text in DIGEST-MD5 spec
@@ -447,28 +451,44 @@ static void DigestCalcSecret(const sasl_utils_t * utils,
     utils->MD5Init(&Md5Ctx);
     
     /* We have to convert UTF-8 to ISO-8859-1 if possible */
-    In_8859_1 = UTF8_In_8859_1(pszUserName, strlen((char *) pszUserName));
-    MD5_UTF8_8859_1(utils, &Md5Ctx, In_8859_1,
-		    pszUserName, (unsigned) strlen((char *) pszUserName));
+    if (Ignore_8859 == FALSE) {
+	In_8859_1 = UTF8_In_8859_1(pszUserName, strlen((char *) pszUserName));
+	MD5_UTF8_8859_1(utils, &Md5Ctx, In_8859_1,
+			pszUserName, (unsigned) strlen((char *) pszUserName));
+	Any_8859_1 |= In_8859_1;
+    } else {
+	utils->MD5Update(&Md5Ctx, pszUserName, (unsigned) strlen((char *) pszUserName));
+    }
     
     utils->MD5Update(&Md5Ctx, COLON, 1);
     
     /* a NULL realm is equivalent to the empty string */
     if (pszRealm != NULL && pszRealm[0] != '\0') {
-	/* We have to convert UTF-8 to ISO-8859-1 if possible */
-	In_8859_1 = UTF8_In_8859_1(pszRealm, strlen((char *) pszRealm));
-	MD5_UTF8_8859_1(utils, &Md5Ctx, In_8859_1,
-			pszRealm, (unsigned) strlen((char *) pszRealm));
-    }      
+	if (Ignore_8859 == FALSE) {
+	    /* We have to convert UTF-8 to ISO-8859-1 if possible */
+	    In_8859_1 = UTF8_In_8859_1(pszRealm, strlen((char *) pszRealm));
+	    MD5_UTF8_8859_1(utils, &Md5Ctx, In_8859_1,
+			    pszRealm, (unsigned) strlen((char *) pszRealm));
+	    Any_8859_1 |= In_8859_1;
+	} else {
+	   utils->MD5Update(&Md5Ctx, pszRealm, (unsigned) strlen((char *) pszRealm));
+	}
+    }  
     
     utils->MD5Update(&Md5Ctx, COLON, 1);
-    
-    /* We have to convert UTF-8 to ISO-8859-1 if possible */
-    In_8859_1 = UTF8_In_8859_1(Password, PasswordLen);
-    MD5_UTF8_8859_1(utils, &Md5Ctx, In_8859_1,
-		    Password, PasswordLen);
-    
+
+    if (Ignore_8859 == FALSE) {
+	/* We have to convert UTF-8 to ISO-8859-1 if possible */
+	In_8859_1 = UTF8_In_8859_1(Password, PasswordLen);
+	MD5_UTF8_8859_1(utils, &Md5Ctx, In_8859_1,
+			Password, PasswordLen);
+	Any_8859_1 |= In_8859_1;
+    } else {
+	utils->MD5Update(&Md5Ctx, Password, PasswordLen);
+    }
     utils->MD5Final(HA1, &Md5Ctx);
+
+    return Any_8859_1;
 }
 
 static unsigned char *create_nonce(const sasl_utils_t * utils)
@@ -2098,6 +2118,8 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     unsigned int   n = 0;
     
     HASH           Secret;
+    HASH           SecretBogus;
+    bool           Try_8859_1 = FALSE;
     int            client_ignores_realm = 0;
     char           *full_username = NULL;
     char           *internal_username = NULL;
@@ -2470,13 +2492,30 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	     * (used to build A1)
 	     */
 	    
+	    Try_8859_1 = DigestCalcSecret(sparams->utils,
+					  (unsigned char *) username,
+					  (unsigned char *) text->realm,
+					  sec->data,
+					  sec->len,
+					  FALSE,
+					  Secret);
+	    Secret[HASHLEN] = '\0';
+	}
+	if (Try_8859_1) {
+	    /*
+	     * Secret = { H( { username-value, ":", realm-value, ":", passwd } ) }
+	     *
+	     * (used to build A1)
+	     */
+	    
 	    DigestCalcSecret(sparams->utils,
 			     (unsigned char *) username,
 			     (unsigned char *) text->realm,
 			     sec->data,
 			     sec->len,
-			     Secret);
-	    Secret[HASHLEN] = '\0';
+			     TRUE,
+			     SecretBogus);
+	    SecretBogus[HASHLEN] = '\0';
 	}
 	
 	/* We're done with sec now. Let's get rid of it */
@@ -2561,7 +2600,7 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	result = SASL_FAIL;
 	goto FreeAllMem;
     }
-    
+
     serverresponse = create_response(text,
 				     sparams->utils,
 				     text->nonce,
@@ -2581,11 +2620,41 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     
     /* if ok verified */
     if (strcmp(serverresponse, response) != 0) {
-	SETERROR(sparams->utils,
-		 "client response doesn't match what we generated");
-	result = SASL_BADAUTH;
-	
-	goto FreeAllMem;
+	if (Try_8859_1) {
+	    
+	    serverresponse = create_response(text,
+					     sparams->utils,
+					     text->nonce,
+					     text->nonce_count,
+					     cnonce,
+					     qop,
+					     digesturi,
+					     SecretBogus,
+					     authorization_id,
+					     &text->response_value);
+	    
+	    if (serverresponse == NULL) {
+		SETERROR(sparams->utils, "internal error: unable to create response");
+		result = SASL_NOMEM;
+		goto FreeAllMem;
+	    }
+	    
+	    /* if ok verified */
+	    if (strcmp(serverresponse, response) != 0) {
+		SETERROR(sparams->utils,
+			 "client response doesn't match what we generated (tried bogus)");
+		result = SASL_BADAUTH;
+		
+		goto FreeAllMem;
+	    }
+	    
+	} else {	    
+	    SETERROR(sparams->utils,
+		     "client response doesn't match what we generated");
+	    result = SASL_BADAUTH;
+	    
+	    goto FreeAllMem;
+	}
     }
 
     /* see if our nonce expired */
@@ -2949,6 +3018,7 @@ static void DigestCalcHA1(context_t * text,
 		     pszRealm,
 		     (unsigned char *) pszPassword->data,
 		     pszPassword->len,
+		     FALSE,
 		     HA1);
     
     /* calculate the session key */

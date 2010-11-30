@@ -1,3 +1,41 @@
+2010-11-30  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/digestmd5.c: Eliminated some "signed/unsigned mismatch"
+	  warnings.
+
+2010-11-30  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/digestmd5.c, plugins/srp.c, plugins/otp.c,
+	  plugins/ntlm.c, plugins/login.c, plugins/cram.c:
+	  Be protective against calling sasl_server_step
+	  once authentication has failed.
+
+2010-11-30  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/digestmd5.c: Minimize the number of auxprop lookups
+	  in the server side DIGEST-MD5 plugin for the most common
+	  case when authentication and authorization identities are
+	  the same.
+
+2010-11-30  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/digestmd5.c: Updated digestmd5_server_mech_step2()
+	  to be more defensive against empty client input.
+
+2010-11-30  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/digestmd5.c: Fixed some memory leaks on failed
+	  plugin initialization. Prevent potential race condition
+	  when freeding plugin state. Set the freed reauthentication
+	  cache mutex to NULL, to make errors due to mutex access
+	  after free more obvious.
+
+2010-11-30  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/digestmd5.c: Test against broken UTF-8 based hashes
+	  if calculation using special ISO-8859-1 code fails.
+	  This affected some XMPP clients. Patch by Dave Cridland
+	  <dave.cridland@isode.com>.
+
+2010-11-30  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/digestmd5.c: Fixed an interop problem with some
+	  LDAP clients ignoring server advertised realm
+	  and providing their own.
+
 2009-08-14  Alexey Melnikov <alexey.melnikov@isode.com>
 	* saslauthd/auth_shadow.c: Rolled back the previous commit
 	  (#define _XOPEN_SOURCE before including unistd.h),

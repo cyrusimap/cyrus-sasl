@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.192 2010/11/30 11:38:42 mel Exp $
+ * $Id: digestmd5.c,v 1.193 2010/11/30 11:53:10 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.192 2010/11/30 11:38:42 mel Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.193 2010/11/30 11:53:10 mel Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -1647,20 +1647,26 @@ static void digestmd5_common_mech_free(void *glob_context,
 	(digest_glob_context_t *) glob_context;
     reauth_cache_t *reauth_cache = my_glob_context->reauth;
     size_t n;
-    
+
     utils->log(utils->conn, SASL_LOG_DEBUG,
 	       "DIGEST-MD5 common mech free");
+ 
+    /* Prevent anybody else from freeing this as well */
+    my_glob_context->reauth = NULL;
 
     if (!reauth_cache) return;
 
-    for (n = 0; n < reauth_cache->size; n++)
+    for (n = 0; n < reauth_cache->size; n++) {
 	clear_reauth_entry(&reauth_cache->e[n], reauth_cache->i_am, utils);
+    }
     if (reauth_cache->e) utils->free(reauth_cache->e);
 
-    if (reauth_cache->mutex) utils->mutex_free(reauth_cache->mutex);
+    if (reauth_cache->mutex) {
+	utils->mutex_free(reauth_cache->mutex);
+	reauth_cache->mutex = NULL;
+    }
 
     utils->free(reauth_cache);
-    my_glob_context->reauth = NULL;
 }
 
 /*****************************  Server Section  *****************************/
@@ -2942,36 +2948,45 @@ int digestmd5_server_plug_init(sasl_utils_t *utils,
     const char *timeout = NULL;
     unsigned int len;
 
-    if (maxversion < SASL_SERVER_PLUG_VERSION)
+    if (maxversion < SASL_SERVER_PLUG_VERSION) {
 	return SASL_BADVERS;
+    }
 
     /* reauth cache */
     reauth_cache = utils->malloc(sizeof(reauth_cache_t));
-    if (reauth_cache == NULL)
+    if (reauth_cache == NULL) {
 	return SASL_NOMEM;
+    }
     memset(reauth_cache, 0, sizeof(reauth_cache_t));
     reauth_cache->i_am = SERVER;
 
     /* fetch and canonify the reauth_timeout */
     utils->getopt(utils->getopt_context, "DIGEST-MD5", "reauth_timeout",
 		  &timeout, &len);
-    if (timeout)
+    if (timeout) {
 	reauth_cache->timeout = (time_t) 60 * strtol(timeout, NULL, 10);
-    if (reauth_cache->timeout < 0)
+    }
+    if (reauth_cache->timeout < 0) {
 	reauth_cache->timeout = 0;
+    }
 
     if (reauth_cache->timeout) {
 	/* mutex */
 	reauth_cache->mutex = utils->mutex_alloc();
-	if (!reauth_cache->mutex)
+	if (!reauth_cache->mutex) {
+	    utils->free(reauth_cache);
 	    return SASL_FAIL;
+	}
 
 	/* entries */
 	reauth_cache->size = 100;
 	reauth_cache->e = utils->malloc(reauth_cache->size *
 					sizeof(reauth_entry_t));
-	if (reauth_cache->e == NULL)
+	if (reauth_cache->e == NULL) {
+	    utils->mutex_free(reauth_cache->mutex);
+	    utils->free(reauth_cache);
 	    return SASL_NOMEM;
+	}
 	memset(reauth_cache->e, 0, reauth_cache->size * sizeof(reauth_entry_t));
     }
 

@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.196 2010/11/30 12:08:24 mel Exp $
+ * $Id: digestmd5.c,v 1.197 2010/11/30 12:09:17 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.196 2010/11/30 12:08:24 mel Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.197 2010/11/30 12:09:17 mel Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -337,7 +337,7 @@ DigestCalcResponse(const sasl_utils_t * utils,
     HASH            HA2;
     HASH            RespHash;
     HASHHEX         HA2Hex;
-    char ncvalue[10];
+    unsigned char ncvalue[10];
     
     /* calculate H(A2) */
     utils->MD5Init(&Md5Ctx);
@@ -345,7 +345,7 @@ DigestCalcResponse(const sasl_utils_t * utils,
     if (pszMethod != NULL) {
 	utils->MD5Update(&Md5Ctx, pszMethod, (unsigned) strlen((char *) pszMethod));
     }
-    utils->MD5Update(&Md5Ctx, COLON, 1);
+    utils->MD5Update(&Md5Ctx, (unsigned char *) COLON, 1);
     
     /* utils->MD5Update(&Md5Ctx, (unsigned char *) "AUTHENTICATE:", 13); */
     utils->MD5Update(&Md5Ctx, pszDigestUri, (unsigned) strlen((char *) pszDigestUri));
@@ -364,8 +364,8 @@ DigestCalcResponse(const sasl_utils_t * utils,
     utils->MD5Update(&Md5Ctx, pszNonce, (unsigned) strlen((char *) pszNonce));
     utils->MD5Update(&Md5Ctx, COLON, 1);
     if (*pszQop) {
-	sprintf(ncvalue, "%08x", pszNonceCount);
-	utils->MD5Update(&Md5Ctx, (unsigned char *) ncvalue, (unsigned) strlen(ncvalue));
+	sprintf((char *)ncvalue, "%08x", pszNonceCount);
+	utils->MD5Update(&Md5Ctx, ncvalue, (unsigned) strlen((char *)ncvalue));
 	utils->MD5Update(&Md5Ctx, COLON, 1);
 	utils->MD5Update(&Md5Ctx, pszCNonce, (unsigned) strlen((char *) pszCNonce));
 	utils->MD5Update(&Md5Ctx, COLON, 1);

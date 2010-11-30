@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.193 2010/11/30 11:53:10 mel Exp $
+ * $Id: digestmd5.c,v 1.194 2010/11/30 11:57:00 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.193 2010/11/30 11:53:10 mel Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.194 2010/11/30 11:57:00 mel Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -2145,6 +2145,12 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     sparams->utils->log(sparams->utils->conn, SASL_LOG_DEBUG,
 			"DIGEST-MD5 server step 2");
 
+    if (clientinlen == 0) {
+	SETERROR(sparams->utils, "input expected in DIGEST-MD5, step 2");
+	result = SASL_BADAUTH;
+	goto FreeAllMem;
+    }
+
     in = sparams->utils->malloc(clientinlen + 1);
     
     memcpy(in, clientin, clientinlen);
@@ -2756,7 +2762,8 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     result = SASL_OK;
 
   FreeAllMem:
-    if (text->reauth->timeout &&
+    if (clientinlen > 0 &&
+	text->reauth->timeout &&
 	sparams->utils->mutex_lock(text->reauth->mutex) == SASL_OK) { /* LOCK */
 	/* Look for an entry for our "internal username" */
 	unsigned val = hash(internal_username) % text->reauth->size;

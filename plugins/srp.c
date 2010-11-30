@@ -1,7 +1,7 @@
 /* SRP SASL plugin
  * Ken Murchison
  * Tim Martin  3/17/00
- * $Id: srp.c,v 1.58 2006/04/24 19:21:44 mel Exp $
+ * $Id: srp.c,v 1.59 2010/11/30 11:41:47 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -101,7 +101,7 @@ typedef unsigned short uint32;
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: srp.c,v 1.58 2006/04/24 19:21:44 mel Exp $";
+static const char plugin_id[] = "$Id: srp.c,v 1.59 2010/11/30 11:41:47 mel Exp $";
 
 /* Size limit of cipher block size */
 #define SRP_MAXBLOCKSIZE 16
@@ -2161,12 +2161,16 @@ static int srp_server_mech_step(void *conn_context,
 	|| !oparams)
 	return SASL_BADPARAM;
     
-    sparams->utils->log(NULL, SASL_LOG_DEBUG,
-			"SRP server step %d\n", text->state);
-    
     *serverout = NULL;
     *serveroutlen = 0;
-	
+
+    if (text == NULL) {
+	return SASL_BADPROT;
+    }
+
+    sparams->utils->log(NULL, SASL_LOG_DEBUG,
+			"SRP server step %d\n", text->state);
+
     switch (text->state) {
 
     case 1:

@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.41 2009/02/14 12:45:29 mel Exp $
+ * $Id: otp.c,v 1.42 2010/11/30 11:41:47 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2009 Carnegie Mellon University.  All rights reserved.
@@ -68,7 +68,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: otp.c,v 1.41 2009/02/14 12:45:29 mel Exp $";
+static const char plugin_id[] = "$Id: otp.c,v 1.42 2010/11/30 11:41:47 mel Exp $";
 
 #define OTP_SEQUENCE_MAX	9999
 #define OTP_SEQUENCE_DEFAULT	499
@@ -350,6 +350,10 @@ static int opie_server_mech_step(void *conn_context,
     *serverout = NULL;
     *serveroutlen = 0;
     
+    if (text == NULL) {
+	return SASL_BADPROT;
+    }
+
     switch (text->state) {
 
     case 1: {

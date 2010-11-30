@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.34 2010/01/25 15:45:46 murch Exp $
+ * $Id: ntlm.c,v 1.35 2010/11/30 11:41:47 mel Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -100,7 +100,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.34 2010/01/25 15:45:46 murch Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.35 2010/11/30 11:41:47 mel Exp $";
 
 #ifdef WIN32
 static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);
@@ -1689,6 +1689,10 @@ static int ntlm_server_mech_step(void *conn_context,
     *serverout = NULL;
     *serveroutlen = 0;
     
+    if (text == NULL) {
+	return SASL_BADPROT;
+    }
+
     sparams->utils->log(NULL, SASL_LOG_DEBUG,
 		       "NTLM server step %d\n", text->state);
 

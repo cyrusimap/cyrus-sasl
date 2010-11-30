@@ -2,7 +2,7 @@
  * Rob Siemborski (SASLv2 Conversion)
  * contributed by Rainer Schoepf <schoepf@uni-mainz.de>
  * based on PLAIN, by Tim Martin <tmartin@andrew.cmu.edu>
- * $Id: login.c,v 1.30 2008/10/30 14:19:46 mel Exp $
+ * $Id: login.c,v 1.31 2010/11/30 11:41:47 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -54,7 +54,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: login.c,v 1.30 2008/10/30 14:19:46 mel Exp $";
+static const char plugin_id[] = "$Id: login.c,v 1.31 2010/11/30 11:41:47 mel Exp $";
 
 /*****************************  Server Section  *****************************/
 
@@ -105,6 +105,10 @@ static int login_server_mech_step(void *conn_context,
     *serverout = NULL;
     *serveroutlen = 0;
     
+    if (text == NULL) {
+	return SASL_BADPROT;
+    }
+
     switch (text->state) {
 
     case 1:

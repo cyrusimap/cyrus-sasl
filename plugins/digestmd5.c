@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.190 2009/02/20 22:55:58 mel Exp $
+ * $Id: digestmd5.c,v 1.191 2010/11/30 11:34:17 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.190 2009/02/20 22:55:58 mel Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.191 2010/11/30 11:34:17 mel Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -2098,7 +2098,10 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     unsigned int   n = 0;
     
     HASH           Secret;
-    
+    int            client_ignores_realm = 0;
+    char           *full_username = NULL;
+    char           *internal_username = NULL;
+
     /* password prop_request */
     const char *password_request[] = { SASL_AUX_PASSWORD,
 				       "*cmusaslsecretDIGEST-MD5",
@@ -2344,12 +2347,20 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
         }
 
     /* CLAIM: realm is not NULL below */
+    } else if (text->realm == NULL) {
+	sparams->utils->log(sparams->utils->conn, SASL_LOG_DEBUG,
+			"The client specifies a realm when the server hasn't provided one. Using client's realm.");
+	_plug_strdup(sparams->utils, realm, &text->realm, NULL);
     } else if ((strcmp(realm, text->realm) != 0) &&
-	(text->realm[0] != 0)) {
-	SETERROR(sparams->utils,
-		 "realm changed: authentication aborted");
-	result = SASL_BADAUTH;
-	goto FreeAllMem;
+	    /* XXX - Not sure why the check for text->realm not being empty is needed,
+	       as it should always be non-empty */
+	       (text->realm[0] != 0)) {
+
+	client_ignores_realm = 1;
+	sparams->utils->log(sparams->utils->conn, SASL_LOG_DEBUG,
+			"The client tries to override server provided realm");
+	if (text->realm) sparams->utils->free(text->realm);
+	_plug_strdup(sparams->utils, realm, &text->realm, NULL);
     }
     if (strcmp((char *) nonce, (char *) text->nonce) != 0) {
 	SETERROR(sparams->utils,
@@ -2378,24 +2389,38 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     
     /* this will trigger the getting of the aux properties */
     /* Note that if we don't have an authorization id, we don't use it... */
+
+    if (client_ignores_realm) {
+	if (strlen(text->realm) == 0) {
+	    /* Don't put @ at the end of the username, if the realm is empty */
+	    _plug_strdup(sparams->utils, username, &full_username, NULL);
+	} else {
+	    full_username = (char *) sparams->utils->malloc(strlen(username) +
+					strlen(text->realm) + 2);
+	    full_username[0] = '\0';
+	    sprintf (full_username, "%s@%s", username, text->realm);
+	}
+	internal_username = full_username;
+    } else {
+	internal_username = username;
+    }
     result = sparams->canon_user(sparams->utils->conn,
-				 username, 0, SASL_CU_AUTHID, oparams);
+				 internal_username, 0, SASL_CU_AUTHID, oparams);
     if (result != SASL_OK) {
-	SETERROR(sparams->utils, "unable canonify user and get auxprops");
+	SETERROR(sparams->utils, "unable to canonify user and get auxprops");
 	goto FreeAllMem;
     }
     
     if (!authorization_id || !*authorization_id) {
 	result = sparams->canon_user(sparams->utils->conn,
-				     username, 0, SASL_CU_AUTHZID, oparams);
+				     internal_username, 0, SASL_CU_AUTHZID, oparams);
     } else {
 	result = sparams->canon_user(sparams->utils->conn,
 				     authorization_id, 0, SASL_CU_AUTHZID,
 				     oparams);
     }
-    
     if (result != SASL_OK) {
-	SETERROR(sparams->utils, "unable authorization ID");
+	SETERROR(sparams->utils, "unable to canonify authorization ID");
 	goto FreeAllMem;
     }
     
@@ -2658,7 +2683,8 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
   FreeAllMem:
     if (text->reauth->timeout &&
 	sparams->utils->mutex_lock(text->reauth->mutex) == SASL_OK) { /* LOCK */
-	unsigned val = hash(username) % text->reauth->size;
+	/* Look for an entry for our "internal username" */
+	unsigned val = hash(internal_username) % text->reauth->size;
 
 	switch (result) {
 	case SASL_OK:
@@ -2695,6 +2721,8 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     /* free everything */
     if (in_start) sparams->utils->free (in_start);
     
+    if (full_username != NULL) 
+	sparams->utils->free (full_username);
     if (username != NULL)
 	sparams->utils->free (username);
     if (authorization_id != NULL)

@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.125 2010/05/12 21:28:19 mel Exp $
+ * $Id: common.c,v 1.126 2010/12/01 14:24:21 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1287,11 +1287,11 @@ const char *sasl_errstring(int saslerr,
     case SASL_BUFOVER:  return "overflowed buffer";
     case SASL_NOMECH:   return "no mechanism available";
     case SASL_BADPROT:  return "bad protocol / cancel";
-    case SASL_NOTDONE:  return "can't request info until later in exchange";
+    case SASL_NOTDONE:  return "can't request information until later in exchange";
     case SASL_BADPARAM: return "invalid parameter supplied";
     case SASL_TRYAGAIN: return "transient failure (e.g., weak key)";
     case SASL_BADMAC:   return "integrity check failed";
-    case SASL_NOTINIT:  return "SASL library not initialized";
+    case SASL_NOTINIT:  return "SASL library is not initialized";
                              /* -- client only codes -- */
     case SASL_INTERACT:   return "needs user interaction";
     case SASL_BADSERV:    return "server failed mutual authentication step";

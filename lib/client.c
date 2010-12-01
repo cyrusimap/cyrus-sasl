@@ -1,7 +1,7 @@
 /* SASL client API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.77 2009/08/18 12:23:57 mel Exp $
+ * $Id: client.c,v 1.78 2010/12/01 14:51:53 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -424,6 +424,114 @@ static int have_prompts(sasl_conn_t *conn,
   return 1; /* we have all the prompts */
 }
 
+static int
+_mech_plus_p(const char *mech, size_t len)
+{
+    return (len > 5 && strncasecmp(&mech[len - 5], "-PLUS", 5) == 0);
+}
+
+/*
+ * Order PLUS mechanisms first. Returns NUL separated list of
+ * *count items.
+ */
+static int
+_sasl_client_order_mechs(const sasl_utils_t *utils,
+			 const char *mechs,
+			 int has_cb_data,
+			 char **ordered_mechs,
+			 size_t *count,
+			 int *server_can_cb)
+{
+    char *list, *listp;
+    size_t i, mechslen, start;
+
+    *count = 0;
+    *server_can_cb = 0;
+
+    if (mechs == NULL || mechs[0] == '\0')
+        return SASL_NOMECH;
+
+    mechslen = strlen(mechs);
+
+    listp = list = utils->malloc(mechslen + 1);
+    if (list == NULL)
+	return SASL_NOMEM;
+
+    /* xxx confirm this with rfc 2222
+     * SASL mechanism allowable characters are "AZaz-_"
+     * seperators can be any other characters and of any length
+     * even variable lengths between
+     *
+     * Apps should be encouraged to simply use space or comma space
+     * though
+     */
+#define ismechchar(c)   (isalnum((c)) || (c) == '_' || (c) == '-')
+    do {
+        for (i = start = 0; i <= mechslen; i++) {
+	    if (!ismechchar(mechs[i])) {
+                const char *mechp = &mechs[start];
+		size_t len = i - start;
+
+		if (len != 0 &&
+                    _mech_plus_p(mechp, len) == has_cb_data) {
+		    memcpy(listp, mechp, len);
+		    listp[len] = '\0';
+		    listp += len + 1;
+		    (*count)++;
+		    if (*server_can_cb == 0 && has_cb_data)
+			*server_can_cb = 1;
+		}
+		start = ++i;
+	    }
+	}
+	if (has_cb_data)
+	    has_cb_data = 0;
+	else
+	    break;
+    } while (1);
+
+    if (*count == 0) {
+        utils->free(list);
+        return SASL_NOMECH;
+    }
+
+    *ordered_mechs = list;
+
+    return SASL_OK;
+}
+
+static INLINE int
+_sasl_cbinding_disp(sasl_client_params_t *cparams,
+                    int mech_nego,
+                    int server_can_cb,
+                    sasl_cbinding_disp_t *cbindingdisp)
+{
+    /*
+     * If negotiating mechanisms, then we fail immediately if the
+     * client requires channel binding and the server does not
+     * advertise support. Otherwise we send "y" (which later will
+     * become "p" if we select a supporting mechanism).
+     *
+     * If the client explicitly selected a mechanism, then we only
+     * send channel bindings if they're marked critical.
+     */
+
+    *cbindingdisp = SASL_CB_DISP_NONE;
+
+    if (SASL_CB_PRESENT(cparams)) {
+        if (mech_nego) {
+            if (!server_can_cb && SASL_CB_CRITICAL(cparams))
+	        return SASL_NOMECH;
+            else
+                *cbindingdisp = SASL_CB_DISP_WANT;
+        } else if (SASL_CB_CRITICAL(cparams)) {
+            *cbindingdisp = SASL_CB_DISP_USED;
+        }
+    }
+
+    return SASL_OK;
+}
+
 /* select a mechanism for a connection
  *  mechlist      -- mechanisms server has available (punctuation ignored)
  *  secret        -- optional secret from previous session
@@ -439,10 +547,12 @@ static int have_prompts(sasl_conn_t *conn,
  *  SASL_INTERACT -- user interaction needed to fill in prompt_need list
  */
 
-/* xxx confirm this with rfc 2222
- * SASL mechanism allowable characters are "AZaz-_"
+/*
+ * SASL mechanism allowable characters are "AZ-_"
  * separators can be any other characters and of any length
- * even variable lengths between
+ * even variable lengths between.
+ *
+ * But for convenience we accept lowercase ASCII.
  *
  * Apps should be encouraged to simply use space or comma space
  * though
@@ -455,12 +565,12 @@ int sasl_client_start(sasl_conn_t *conn,
 		      const char **mech)
 {
     sasl_client_conn_t *c_conn = (sasl_client_conn_t *) conn;
-    char name[SASL_MECHNAMEMAX + 1];
+    char *ordered_mechs = NULL, *name;
     cmechanism_t *m=NULL,*bestm=NULL;
-    size_t pos=0,place;
-    size_t list_len;
+    size_t i, list_len;
     sasl_ssf_t bestssf = 0, minssf = 0;
-    int result;
+    int result, server_can_cb = 0;
+    sasl_cbinding_disp_t cbindingdisp;
 
     if (_sasl_client_active == 0) return SASL_NOTINIT;
 
@@ -486,38 +596,33 @@ int sasl_client_start(sasl_conn_t *conn,
 	minssf = conn->props.min_ssf - conn->external.ssf;
     }
 
-    /* parse mechlist */
-    list_len = strlen(mechlist);
+    /* Order mechanisms so -PLUS are preferred */
+    result = _sasl_client_order_mechs(c_conn->cparams->utils,
+				      mechlist,
+				      SASL_CB_PRESENT(c_conn->cparams),
+				      &ordered_mechs,
+				      &list_len,
+				      &server_can_cb);
+    if (result != 0)
+	goto done;
 
-    while (pos<list_len)
-    {
-	place=0;
-	while ((pos<list_len) && (isalnum((unsigned char)mechlist[pos])
-				  || mechlist[pos] == '_'
-				  || mechlist[pos] == '-')) {
-	    name[place]=mechlist[pos];
-	    pos++;
-	    place++;
-	    if (SASL_MECHNAMEMAX < place) {
-		place--;
-		while(pos<list_len && (isalnum((unsigned char)mechlist[pos])
-				       || mechlist[pos] == '_'
-				       || mechlist[pos] == '-'))
-		    pos++;
-	    }
-	}
-	pos++;
-	name[place]=0;
+    /*
+     * Determine channel binding disposition based on whether we
+     * are doing mechanism negotiation and whether server supports
+     * channel bindings.
+     */
+    result = _sasl_cbinding_disp(c_conn->cparams, (list_len > 1),
+                                 server_can_cb, &cbindingdisp);
+    if (result != 0)
+	goto done;
 
-	if (! place) continue;
-
+    for (i = 0, name = ordered_mechs; i < list_len; i++) {
 	/* foreach in client list */
 	for (m = cmechlist->mech_list; m != NULL; m = m->next) {
-	    int myflags;
-	    
-	    /* Is this the mechanism the server is suggesting? */
-	    if (strcasecmp(m->m.plug->mech_name, name))
-		continue; /* no */
+	    int myflags, plus;
+
+	    if (!_sasl_is_equal_mech(name, m->m.plug->mech_name, &plus))
+		continue;
 
 	    /* Do we have the prompts for it? */
 	    if (!have_prompts(conn, m->m.plug))
@@ -541,6 +646,11 @@ int sasl_client_start(sasl_conn_t *conn,
 	    }
 
 	    /* Can we meet it's features? */
+	    if (cbindingdisp != SASL_CB_DISP_NONE &&
+		!(m->m.plug->features & SASL_FEAT_CHANNEL_BINDING)) {
+		break;
+	    }
+
 	    if ((m->m.plug->features & SASL_FEAT_NEEDSERVERFQDN)
 		&& !conn->serverFQDN) {
 		break;
@@ -551,7 +661,7 @@ int sasl_client_start(sasl_conn_t *conn,
 		!(m->m.plug->features & SASL_FEAT_ALLOWS_PROXY)) {
 		break;
 	    }
-	    
+
 #ifdef PREFER_MECH
 	    if (strcasecmp(m->m.plug->mech_name, PREFER_MECH) &&
 		bestm && m->m.plug->max_ssf <= bestssf) {
@@ -590,6 +700,10 @@ int sasl_client_start(sasl_conn_t *conn,
 		break;
 	    }
 
+	    if (SASL_CB_PRESENT(c_conn->cparams) && plus) {
+		cbindingdisp = SASL_CB_DISP_USED;
+	    }
+
 	    if (mech) {
 		*mech = m->m.plug->mech_name;
 	    }
@@ -597,6 +711,7 @@ int sasl_client_start(sasl_conn_t *conn,
 	    bestm = m;
 	    break;
 	}
+	name += strlen(name) + 1;
     }
 
     if (bestm == NULL) {
@@ -619,6 +734,7 @@ int sasl_client_start(sasl_conn_t *conn,
 
     c_conn->cparams->external_ssf = conn->external.ssf;
     c_conn->cparams->props = conn->props;
+    c_conn->cparams->cbindingdisp = cbindingdisp;
     c_conn->mech = bestm;
 
     /* init that plugin */
@@ -643,6 +759,8 @@ int sasl_client_start(sasl_conn_t *conn,
 	result = SASL_CONTINUE;
 
  done:
+    if (ordered_mechs != NULL)
+	c_conn->cparams->utils->free(ordered_mechs);
     RETURN(conn, result);
 }
 
@@ -982,6 +1100,16 @@ _sasl_print_mechanism (
 
 	if (m->plug->features & SASL_FEAT_NEEDSERVERFQDN) {
 	    printf ("%cNEED_SERVER_FQDN", delimiter);
+	    delimiter = '|';
+	}
+
+	if (m->plug->features & SASL_FEAT_GSS_FRAMING) {
+	    printf ("%cGSS_FRAMING", delimiter);
+	    delimiter = '|';
+	}
+
+	if (m->plug->features & SASL_FEAT_CHANNEL_BINDING) {
+	    printf ("%cCHANNEL_BINDING", delimiter);
 	    delimiter = '|';
 	}
     }

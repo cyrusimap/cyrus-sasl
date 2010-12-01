@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.161 2009/08/04 17:45:55 mel Exp $
+ * $Id: server.c,v 1.162 2010/12/01 14:51:53 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1342,6 +1342,7 @@ int sasl_server_start(sasl_conn_t *conn,
     int result;
     context_list_t *cur, **prev;
     mechanism_t *m;
+    int plus = 0;
 
     if (_sasl_server_active==0) return SASL_NOTINIT;
 
@@ -1358,13 +1359,11 @@ int sasl_server_start(sasl_conn_t *conn,
        if not return appropriate error */
     m = s_conn->mech_list;
 
-    while (m!=NULL)
-    {
-	if ( strcasecmp(mech, m->m.plug->mech_name)==0)
-	{
+    while (m != NULL) {
+	if (_sasl_is_equal_mech(mech, m->m.plug->mech_name, &plus))
 	    break;
-	}
-	m=m->next;
+
+	m = m->next;
     }
   
     if (m==NULL) {
@@ -1586,7 +1585,39 @@ int sasl_server_step(sasl_conn_t *conn,
 	    conn->oparams.maxoutbuf = conn->props.maxbufsize;
 	}
 
-	if(conn->oparams.user == NULL || conn->oparams.authid == NULL) {
+        /* Validate channel bindings */
+	switch (conn->oparams.cbindingdisp) {
+	case SASL_CB_DISP_NONE:
+	    if (SASL_CB_CRITICAL(s_conn->sparams)) {
+		sasl_seterror(conn, 0,
+			      "server requires channel binding but client provided none");
+		ret = SASL_BADBINDING;
+	    }
+	    break;
+	case SASL_CB_DISP_WANT:
+	    if (SASL_CB_PRESENT(s_conn->sparams)) {
+		sasl_seterror(conn, 0,
+			      "client incorrectly assumed server had no channel binding");
+		ret = SASL_BADAUTH;
+	    }
+	    break;
+	case SASL_CB_DISP_USED:
+	    if (!SASL_CB_PRESENT(s_conn->sparams)) {
+		sasl_seterror(conn, 0,
+			      "client provided channel binding but server had none");
+		ret = SASL_BADBINDING;
+	    } else if (strcmp(conn->oparams.cbindingname,
+		       s_conn->sparams->cbinding->name) != 0) {
+		sasl_seterror(conn, 0,
+			      "client channel binding %s does not match server %s",
+			      conn->oparams.cbindingname, s_conn->sparams->cbinding->name);
+		ret = SASL_BADBINDING;
+	    }
+	    break;
+	}
+
+        if (ret == SASL_OK &&
+	    (conn->oparams.user == NULL || conn->oparams.authid == NULL)) {
 	    sasl_seterror(conn, 0,
 			  "mech did not call canon_user for both authzid " \
 			  "and authid");
@@ -1637,7 +1668,7 @@ int _sasl_server_listmech(sasl_conn_t *conn,
 			  unsigned *plen,
 			  int *pcount)
 {
-  sasl_server_conn_t *s_conn = (sasl_server_conn_t *)conn;
+  sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;  /* cast */
   int lup;
   mechanism_t *listptr;
   int ret;
@@ -1668,10 +1699,12 @@ int _sasl_server_listmech(sasl_conn_t *conn,
       INTERROR(conn, SASL_NOMECH);
 
   resultlen = (prefix ? strlen(prefix) : 0)
-            + (strlen(mysep) * (s_conn->mech_length - 1))
-	    + mech_names_len(s_conn->mech_list)
+            + (strlen(mysep) * (s_conn->mech_length - 1) * 2)
+	    + (mech_names_len(s_conn->mech_list) * 2) /* including -PLUS variant */
+	    + (s_conn->mech_length * (sizeof("-PLUS") - 1))
             + (suffix ? strlen(suffix) : 0)
 	    + 1;
+
   ret = _buf_alloc(&conn->mechlist_buf,
 		   &conn->mechlist_buf_len, resultlen);
   if(ret != SASL_OK) MEMERROR(conn);
@@ -1688,18 +1721,38 @@ int _sasl_server_listmech(sasl_conn_t *conn,
   for (lup = 0; lup < s_conn->mech_length; lup++) {
       /* currently, we don't use the "user" parameter for anything */
       if (mech_permitted(conn, listptr) == SASL_OK) {
-	  if (pcount != NULL)
+          /*
+           * If the server would never succeed in the authentication of
+           * he non-PLUS-variant due to policy reasons, it MUST advertise
+           * only the PLUS-variant.
+           */
+          if (!SASL_CB_PRESENT(s_conn->sparams) ||
+              !SASL_CB_CRITICAL(s_conn->sparams)) {
+            if (pcount != NULL)
 	      (*pcount)++;
-
-	  /* print separator */
-	  if (flag) {
-	      strcat(conn->mechlist_buf, mysep);
-	  } else {
-	      flag = 1;
+            if (flag)
+              strcat(conn->mechlist_buf, mysep);
+            else
+              flag = 1;
+	    strcat(conn->mechlist_buf, listptr->m.plug->mech_name);
+          }
+          /*
+           * If the server cannot support channel binding, it SHOULD
+           * advertise only the non-PLUS-variant. Here, supporting channel
+           * binding means the underlying SASL mechanism supports it and
+           * the application has set some channel binding data.
+           */
+	  if ((listptr->m.plug->features & SASL_FEAT_CHANNEL_BINDING) &&
+	      SASL_CB_PRESENT(s_conn->sparams)) {
+	    if (pcount != NULL)
+		(*pcount)++;
+            if (flag)
+              strcat(conn->mechlist_buf, mysep);
+            else
+              flag = 1;
+	    strcat(conn->mechlist_buf, listptr->m.plug->mech_name);
+	    strcat(conn->mechlist_buf, "-PLUS");
 	  }
-
-	  /* now print the mechanism name */
-	  strcat(conn->mechlist_buf, listptr->m.plug->mech_name);
       }
 
       listptr = listptr->next;
@@ -2185,6 +2238,16 @@ _sasl_print_mechanism (
 
         if (m->plug->features & SASL_FEAT_GETSECRET) {
 	    printf ("%cNEED_GETSECRET", delimiter);
+	    delimiter = '|';
+	}
+
+        if (m->plug->features & SASL_FEAT_GSS_FRAMING) {
+	    printf ("%cGSS_FRAMING", delimiter);
+	    delimiter = '|';
+	}
+
+        if (m->plug->features & SASL_FEAT_CHANNEL_BINDING) {
+	    printf ("%cCHANNEL_BINDING", delimiter);
 	    delimiter = '|';
 	}
     }

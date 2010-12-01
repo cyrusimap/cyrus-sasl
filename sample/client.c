@@ -1,4 +1,4 @@
-/* $Id: client.c,v 1.7 2004/03/09 17:35:32 rjs3 Exp $ */
+/* $Id: client.c,v 1.8 2010/12/01 14:51:53 mel Exp $ */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
  *
@@ -108,7 +108,9 @@ static int simple(void *context __attribute__((unused)),
 		  const char **result,
 		  unsigned *len)
 {
-    static char buf[1024];
+    static char bufU[1024];
+    static char bufA[1024];
+    char *b;
 
     /* paranoia check */
     if (! result)
@@ -117,18 +119,20 @@ static int simple(void *context __attribute__((unused)),
     switch (id) {
     case SASL_CB_USER:
 	printf("please enter an authorization id: ");
+        b = bufU;
 	break;
     case SASL_CB_AUTHNAME:
 	printf("please enter an authentication id: ");
+        b = bufA;
 	break;
     default:
 	return SASL_BADPARAM;
     }
 
-    fgets(buf, sizeof buf, stdin);
-    chop(buf);
-    *result = buf;
-    if (len) *len = strlen(buf);
+    fgets(b, 1024, stdin);
+    chop(b);
+    *result = b;
+    if (len) *len = strlen(b);
   
     return SASL_OK;
 }
@@ -317,7 +321,7 @@ int mysasl_negotiate(FILE *in, FILE *out, sasl_conn_t *conn)
 
 void usage(void)
 {
-    fprintf(stderr, "usage: client [-p port] [-s service] [-m mech] host\n");
+    fprintf(stderr, "usage: client [-c|-C] [-p port] [-s service] [-m mech] host\n");
     exit(EX_USAGE);
 }
 
@@ -337,9 +341,19 @@ int main(int argc, char *argv[])
     int salen;
     int niflags, error;
     struct sockaddr_storage local_ip, remote_ip;
+    int cb_flag = 0;
+    sasl_channel_binding_t cb;
 
-    while ((c = getopt(argc, argv, "p:s:m:")) != EOF) {
+    while ((c = getopt(argc, argv, "Ccp:s:m:")) != EOF) {
 	switch(c) {
+	case 'C':
+	    cb_flag = 2;    /* channel bindings are critical */
+	    break;
+
+	case 'c':
+	    cb_flag = 1;    /* channel bindings are optional */
+	    break;
+
 	case 'p':
 	    port = optarg;
 	    break;
@@ -415,11 +429,21 @@ int main(int argc, char *argv[])
     r = sasl_client_new(service, host, localaddr, remoteaddr, NULL, 0, &conn);
     if (r != SASL_OK) saslfail(r, "allocating connection state");
 
+    if (cb_flag) {
+        cb.name = "sasl-sample";
+        cb.critical = cb_flag > 1;
+        cb.data = "this is a test of channel binding";
+        cb.len = strlen(cb.data);
+
+        sasl_setprop(conn, SASL_CHANNEL_BINDING, &cb);
+    }
+
     /* set external properties here
        sasl_setprop(conn, SASL_SSF_EXTERNAL, &extprops); */
 
     /* set required security properties here
        sasl_setprop(conn, SASL_SEC_PROPS, &secprops); */
+
 
     in = fdopen(fd, "r");
     out = fdopen(fd, "w");
@@ -439,5 +463,5 @@ int main(int argc, char *argv[])
 
     sasl_done();
 
-    return 0;
+    return r;
 }

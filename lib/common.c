@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.126 2010/12/01 14:24:21 mel Exp $
+ * $Id: common.c,v 1.127 2010/12/01 14:51:53 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1018,6 +1018,18 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, const void **pvalue)
       else
 	  *((const char **)pvalue) = conn->oparams.client_creds;
       break;
+  case SASL_GSS_PEER_NAME:
+      if(! conn->oparams.gss_peer_name)
+	  result = SASL_NOTDONE;
+      else
+	  *((const char **)pvalue) = conn->oparams.gss_peer_name;
+      break;
+  case SASL_GSS_LOCAL_NAME:
+      if(! conn->oparams.gss_peer_name)
+	  result = SASL_NOTDONE;
+      else
+	  *((const char **)pvalue) = conn->oparams.gss_local_name;
+      break;
   case SASL_SSF_EXTERNAL:
       *((const sasl_ssf_t **)pvalue) = &conn->external.ssf;
       break;
@@ -1253,6 +1265,15 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
           ((sasl_server_conn_t *)conn)->sparams->gss_creds = value;
       break;
 
+  case SASL_CHANNEL_BINDING: {
+    const struct sasl_channel_binding *cb = (const struct sasl_channel_binding *)value;
+
+    if (conn->type == SASL_CONN_SERVER)
+        ((sasl_server_conn_t *)conn)->sparams->cbinding = cb;
+    else
+        ((sasl_client_conn_t *)conn)->cparams->cbinding = cb;
+    break;
+  }
   default:
       sasl_seterror(conn, 0, "Unknown parameter type");
       result = SASL_BADPARAM;
@@ -1316,6 +1337,7 @@ const char *sasl_errstring(int saslerr,
 				"to perform password change";
     case SASL_CONSTRAINT_VIOLAT: return "sasl_setpass can't store a property because "
 			        "of a constraint violation";
+    case SASL_BADBINDING: return "channel binding failure";
 
     default:   return "undefined error!";
     }
@@ -2366,6 +2388,24 @@ int sasl_listmech(sasl_conn_t *conn,
     PARAMERROR(conn);
 }
 
+int _sasl_is_equal_mech(const char *req_mech,
+                        const char *plug_mech,
+                        int *plus)
+{
+    size_t len = strlen(req_mech);
+    size_t n;
+
+    if (len > 5 &&
+        strcasecmp(&req_mech[len - 5], "-PLUS") == 0) {
+        n = len - 5;
+        *plus = 1;
+    } else {
+        n = len;
+        *plus = 0;
+    }
+
+    return (strncasecmp(req_mech, plug_mech, n) == 0);
+}
 
 #ifndef WIN32
 static char *

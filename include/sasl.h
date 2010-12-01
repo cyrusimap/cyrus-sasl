@@ -176,6 +176,8 @@
 #define SASL_CONSTRAINT_VIOLAT	-30 /* a property can't be stored,
 				       because of some constrains/policy violation */
 
+#define SASL_BADBINDING -32  /* channel binding failure */
+
 /* max size of a sasl mechanism name */
 #define SASL_MECHNAMEMAX 20
 
@@ -796,7 +798,7 @@ LIBSASL_API int sasl_getprop(sasl_conn_t *conn, int propnum,
  * is returned by the mechanism. The user will probably need to know
  * which mechanism was used to actually known how to make use of them
  * currently only implemented for the gssapi mechanism */
-#define SASL_DELEGATEDCREDS 11  
+#define SASL_DELEGATEDCREDS 11
 
 #define SASL_SERVICE      12	/* service passed to sasl_*_new */
 #define SASL_SERVERFQDN   13	/* serverFQDN passed to sasl_*_new */
@@ -823,6 +825,15 @@ LIBSASL_API int sasl_getprop(sasl_conn_t *conn, int propnum,
  * is particularly useful for servers that respond to multiple names. */
 #define	SASL_GSS_LOCAL_NAME	20
 
+/* Channel binding information. Memory is managed by the caller. */
+typedef struct sasl_channel_binding {
+    const char *name;
+    int critical;
+    unsigned long len;
+    const unsigned char *data;
+} sasl_channel_binding_t;
+
+#define SASL_CHANNEL_BINDING    21
 
 /* set property in SASL connection state
  * returns:

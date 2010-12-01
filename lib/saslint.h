@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.69 2009/02/21 20:07:45 mel Exp $
+ * $Id: saslint.h,v 1.70 2010/12/01 14:51:53 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -51,6 +51,15 @@
 #include "saslplug.h"
 #include "saslutil.h"
 #include "prop.h"
+
+#ifndef INLINE
+#if defined (WIN32)
+/* Visual Studio: "inline" keyword is not available in C, only in C++ */
+#define INLINE __inline
+#else
+#define INLINE  inline
+#endif
+#endif
 
 /* #define'd constants */
 #define CANON_BUF_SIZE 1024
@@ -305,6 +314,10 @@ extern sasl_mutex_utils_t _sasl_mutex_utils;
 extern int _sasl_allocation_locked;
 
 void sasl_common_done(void);
+
+extern int _sasl_is_equal_mech(const char *req_mech,
+                               const char *plug_mech,
+                               int *plus);
 
 /*
  * checkpw.c

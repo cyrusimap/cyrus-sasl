@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.164 2010/12/01 15:19:52 mel Exp $
+ * $Id: server.c,v 1.165 2010/12/01 15:30:45 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -303,52 +303,64 @@ int sasl_setpass(sasl_conn_t *conn,
 /* local mechanism which disposes of server */
 static void server_dispose(sasl_conn_t *pconn)
 {
-  sasl_server_conn_t *s_conn=  (sasl_server_conn_t *) pconn;
-  context_list_t *cur, *cur_next;
+    sasl_server_conn_t *s_conn=  (sasl_server_conn_t *) pconn;
+    context_list_t *cur, *cur_next;
+
+    /* Just sanity check that sasl_server_done wasn't called yet */
+    if (_sasl_server_active != 0) {
+	if (s_conn->mech) {
+	    void (*mech_dispose)(void *conn_context, const sasl_utils_t *utils);
+
+	    mech_dispose = s_conn->mech->m.plug->mech_dispose;
+
+	    if (mech_dispose) {
+		mech_dispose(pconn->context, s_conn->sparams->utils);
+	    }
+	}
+	pconn->context = NULL;
+
+	for(cur = s_conn->mech_contexts; cur; cur=cur_next) {
+	    cur_next = cur->next;
+	    if (cur->context) {
+		cur->mech->m.plug->mech_dispose(cur->context, s_conn->sparams->utils);
+	    }
+	    sasl_FREE(cur);
+	}  
+	s_conn->mech_contexts = NULL;
+    }
   
-  if (s_conn->mech
-      && s_conn->mech->m.plug->mech_dispose) {
-    s_conn->mech->m.plug->mech_dispose(pconn->context,
-				     s_conn->sparams->utils);
-  }
-  pconn->context = NULL;
+    _sasl_free_utils(&s_conn->sparams->utils);
 
-  for(cur = s_conn->mech_contexts; cur; cur=cur_next) {
-      cur_next = cur->next;
-      if(cur->context)
-	  cur->mech->m.plug->mech_dispose(cur->context, s_conn->sparams->utils);
-      sasl_FREE(cur);
-  }  
-  s_conn->mech_contexts = NULL;
-  
-  _sasl_free_utils(&s_conn->sparams->utils);
+    if (s_conn->sparams->propctx) {
+	prop_dispose(&s_conn->sparams->propctx);
+    }
 
-  if (s_conn->sparams->propctx)
-      prop_dispose(&s_conn->sparams->propctx);
+    if (s_conn->appname) {
+	sasl_FREE(s_conn->appname);
+    }
 
-  if (s_conn->appname)
-      sasl_FREE(s_conn->appname);
+    if (s_conn->user_realm) {
+	sasl_FREE(s_conn->user_realm);
+    }
 
-  if (s_conn->user_realm)
-      sasl_FREE(s_conn->user_realm);
+    if (s_conn->sparams) {
+	sasl_FREE(s_conn->sparams);
+    }
 
-  if (s_conn->sparams)
-      sasl_FREE(s_conn->sparams);
+    if (s_conn->mech_list != mechlist->mech_list) {
+	/* free connection-specific mech_list */
+	mechanism_t *m, *prevm;
 
-  if (s_conn->mech_list != mechlist->mech_list) {
-      /* free connection-specific mech_list */
-      mechanism_t *m, *prevm;
+	m = s_conn->mech_list; /* m point to beginning of the list */
 
-      m = s_conn->mech_list; /* m point to beginning of the list */
+	while (m) {
+	     prevm = m;
+	     m = m->next;
+	     sasl_FREE(prevm);
+	}
+    }
 
-      while (m) {
-	  prevm = m;
-	  m = m->next;
-	  sasl_FREE(prevm);    
-      }
-  }
-
-  _sasl_conn_dispose(pconn);
+    _sasl_conn_dispose(pconn);
 }
 
 static int init_mechlist(void)

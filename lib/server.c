@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.163 2010/12/01 15:18:12 mel Exp $
+ * $Id: server.c,v 1.164 2010/12/01 15:19:52 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -549,18 +549,23 @@ static int server_done(void) {
 
 static int server_idle(sasl_conn_t *conn)
 {
+    sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;
     mechanism_t *m;
-    if (! mechlist)
+
+    if (! mechlist) {
 	return 0;
-    
-    for (m = mechlist->mech_list;
+    }
+
+    for (m = s_conn->mech_list;
 	 m != NULL;
-	 m = m->next)
+	 m = m->next) {
 	if (m->m.plug->idle
 	    &&  m->m.plug->idle(m->m.plug->glob_context,
-			      conn,
-			      conn ? ((sasl_server_conn_t *)conn)->sparams : NULL))
+				conn,
+				conn ? ((sasl_server_conn_t *)conn)->sparams : NULL)) {
 	    return 1;
+	}
+    }
 
     return 0;
 }

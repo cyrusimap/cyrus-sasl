@@ -1,3 +1,30 @@
+2010-12-01  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/server.c: Some reformatting and safer handling of 'free
+	  after SASL server shutdown' condition in server_dispose.
+
+2010-12-01  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/server.c: server_idle needs to obey server's SASL mechanism
+	  list from the server context.
+
+2010-12-01  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/client.c, lib/saslint.h: Added support for ordering
+	  SASL mechanisms by strength (on the client side),
+	  or using the client_mech_list option.
+
+2010-12-01  Alexey Melnikov <alexey.melnikov@isode.com>
+	* include/sasl.h, include/saslplug.h, lib/client.c, lib/common.c,
+	  lib/saslint.h, lib/server.c, sample/Makefile.am, sample/client.c,
+	  sample/server.c: Added support for channel bindings
+	  (patch by Luke Howard).
+
+2010-12-01  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/saslutil.c: Fixed the random number generator on Windows
+	  to actually produce random output on each run.
+
+2010-12-01  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/common.c: Updated textual representations of some error
+	  messages
+
 2010-11-30  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/digestmd5.c: Eliminated some "signed/unsigned mismatch"
 	  warnings.

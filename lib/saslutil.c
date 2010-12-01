@@ -1,7 +1,7 @@
 /* saslutil.c
  * Rob Siemborski
  * Tim Martin
- * $Id: saslutil.c,v 1.50 2010/01/22 15:14:53 murch Exp $
+ * $Id: saslutil.c,v 1.51 2010/12/01 14:25:53 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -45,6 +45,11 @@
 
 #include <config.h>
 #include <stdio.h>
+
+#if defined(WIN32)
+#define _CRT_RAND_S
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -431,6 +436,11 @@ static void randinit(sasl_rand_t *rpool)
 	srandom(*foo);
     }
 #endif /* HAVE_JRAND48 */
+#else if defined(WIN32)
+    {
+	unsigned int *foo = (unsigned int *)rpool->pool;
+	srand(*foo);
+    }
 #endif /* WIN32 */
     }
 
@@ -439,24 +449,33 @@ static void randinit(sasl_rand_t *rpool)
 void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
 {
     unsigned int lup;
+#if defined(WIN32)
+    unsigned int randomValue;
+#endif
+
     /* check params */
     if (!rpool || !buf) return;
     
     /* init if necessary */
     randinit(rpool);
- 
-#if (defined(WIN32)||defined(macintosh))
-    for (lup=0;lup<len;lup++)
+
+    for (lup = 0; lup < len; lup++) {
+#if defined(WIN32)
+	if (rand_s(&randomValue) != 0) {
+	    randomValue = rand();
+	}
+
+	buf[lup] = (char) (randomValue >> 8);
+#elif defined(macintosh)
 	buf[lup] = (char) (rand() >> 8);
-#else /* WIN32 */
+#else /* !WIN32 && !macintosh */
 #ifdef HAVE_JRAND48
-    for (lup=0; lup<len; lup++)
 	buf[lup] = (char) (jrand48(rpool->pool) >> 8);
 #else
-    for (lup=0;lup<len;lup++)
 	buf[lup] = (char) (random() >> 8);
 #endif /* HAVE_JRAND48 */
 #endif /* WIN32 */
+    }
 }
 
 /* this function is just a bad idea all around, since we're not trying to

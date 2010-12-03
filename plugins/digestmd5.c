@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.197 2010/11/30 12:09:17 mel Exp $
+ * $Id: digestmd5.c,v 1.198 2010/12/03 17:42:33 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.197 2010/11/30 12:09:17 mel Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.198 2010/12/03 17:42:33 murch Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -2745,16 +2745,16 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     
     /* add to challenge */
     {
-	unsigned resplen = (unsigned)
-	    (strlen(text->response_value) + strlen("rspauth") + 3);
-	
-	result = _plug_buf_alloc(sparams->utils, &(text->out_buf),
-				 &(text->out_buf_len), resplen);
-	if(result != SASL_OK) {
+	unsigned resplen = 0;
+
+	if (add_to_challenge(sparams->utils,
+			     &text->out_buf, &text->out_buf_len, &resplen,
+			     "rspauth", (unsigned char *) text->response_value,
+			     FALSE) != SASL_OK) {
+	    SETERROR(sparams->utils, "internal error: add_to_challenge failed");
+	    result = SASL_FAIL;
 	    goto FreeAllMem;
 	}
-	
-	sprintf(text->out_buf, "rspauth=%s", text->response_value);
 	
 	/* self check */
 	if (strlen(text->out_buf) > 2048) {

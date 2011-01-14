@@ -273,6 +273,7 @@ typedef unsigned sasl_ssf_t;
  */
 #define SASL_SUCCESS_DATA    0x0004 /* server supports data on success */
 #define SASL_NEED_PROXY      0x0008 /* require a mech that allows proxying */
+#define SASL_NEED_HTTP       0x0010 /* require a mech that can do HTTP auth */
 
 /***************************
  * Security Property Types *
@@ -834,6 +835,9 @@ typedef struct sasl_channel_binding {
 } sasl_channel_binding_t;
 
 #define SASL_CHANNEL_BINDING    21
+
+/* HTTP request method (RFC 2616) - ONLY used for HTTP Digest auth (RFC 2617) */
+#define SASL_HTTP_METHOD	22
 
 /* set property in SASL connection state
  * returns:

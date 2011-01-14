@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.165 2010/12/01 15:30:45 mel Exp $
+ * $Id: server.c,v 1.166 2011/01/14 14:33:21 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1272,6 +1272,10 @@ static int mech_permitted(sasl_conn_t *conn,
     /* Can it meet our features? */
     if ((conn->flags & SASL_NEED_PROXY) &&
 	!(plug->features & SASL_FEAT_ALLOWS_PROXY)) {
+	return SASL_NOMECH;
+    }
+    if ((conn->flags & SASL_NEED_HTTP) &&
+	!(plug->features & SASL_FEAT_SUPPORTS_HTTP)) {
 	return SASL_NOMECH;
     }
     

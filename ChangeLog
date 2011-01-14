@@ -1,3 +1,9 @@
+2011-01-14  Ken Murchison <murch@andrew.cmu.edu>
+	* include/sasl.h, include/saslplug.h,
+	  lib/common.c, lib/server.c, plugins/digest-md5.c:
+	  Allow DIGEST-MD5 plugin to be used for server-side 
+	  HTTP Digest (RFC 2617)
+
 2010-12-01  Alexey Melnikov <alexey.melnikov@isode.com>
 	* lib/server.c: Some reformatting and safer handling of 'free
 	  after SASL server shutdown' condition in server_dispose.

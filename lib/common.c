@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.127 2010/12/01 14:51:53 mel Exp $
+ * $Id: common.c,v 1.128 2011/01/14 14:33:21 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1274,6 +1274,23 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
         ((sasl_client_conn_t *)conn)->cparams->cbinding = cb;
     break;
   }
+  case SASL_HTTP_METHOD:
+      if(value && strlen(value)) {
+	  result = _sasl_strdup(value, &str, NULL);
+	  if(result != SASL_OK) MEMERROR(conn);
+      } else {
+	  str = NULL;
+      }
+
+      if(conn->type == SASL_CONN_SERVER) {
+	  if(((sasl_server_conn_t *)conn)->sparams->http_method)
+	      sasl_FREE(((sasl_server_conn_t *)conn)->sparams->http_method);
+
+	  ((sasl_server_conn_t *)conn)->sparams->http_method = str;
+      }
+
+      break;
+
   default:
       sasl_seterror(conn, 0, "Unknown parameter type");
       result = SASL_BADPARAM;

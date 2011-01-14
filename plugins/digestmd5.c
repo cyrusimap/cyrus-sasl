@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.199 2010/12/03 18:05:29 murch Exp $
+ * $Id: digestmd5.c,v 1.200 2011/01/14 14:33:21 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.199 2010/12/03 18:05:29 murch Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.200 2011/01/14 14:33:21 murch Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -218,6 +218,7 @@ typedef struct digest_glob_context {
 typedef struct context {
     int state;			/* state in the authentication we are in */
     enum Context_type i_am;	/* are we the client or server? */
+    int http_mode;    		/* use RFC 2617 compatible protocol? */
     
     reauth_cache_t *reauth;
 
@@ -1693,7 +1694,17 @@ static void DigestCalcHA1FromSecret(context_t * text,
     
     /* calculate session key */
     utils->MD5Init(&Md5Ctx);
-    utils->MD5Update(&Md5Ctx, HA1, HASHLEN);
+    if (text->http_mode) {
+	/* per RFC 2617 Errata ID 1649 */
+	HASHHEX HA1Hex;
+    
+	CvtHex(HA1, HA1Hex);
+	utils->MD5Update(&Md5Ctx, HA1Hex, HASHHEXLEN);
+    }
+    else {
+	/* per RFC 2831 */
+	utils->MD5Update(&Md5Ctx, HA1, HASHLEN);
+    }
     utils->MD5Update(&Md5Ctx, COLON, 1);
     utils->MD5Update(&Md5Ctx, pszNonce, (unsigned) strlen((char *) pszNonce));
     utils->MD5Update(&Md5Ctx, COLON, 1);
@@ -1719,6 +1730,7 @@ static char *create_response(context_t * text,
 			     unsigned char *cnonce,
 			     char *qop,
 			     char *digesturi,
+			     const char *method,
 			     HASH Secret,
 			     char *authorization_id,
 			     char **response_value)
@@ -1747,7 +1759,7 @@ static char *create_response(context_t * text,
 		       (unsigned char *) qop,	/* qop-value: "", "auth",
 						 * "auth-int" */
 		       (unsigned char *) digesturi,	/* requested URL */
-		       (unsigned char *) "AUTHENTICATE",
+		       (unsigned char *) method,
 		       HEntity,	/* H(entity body) if qop="auth-int" */
 		       Response	/* request-digest or response-digest */
 	);
@@ -1877,6 +1889,7 @@ static int digestmd5_server_mech_new(void *glob_context,
     
     text->state = 1;
     text->i_am = SERVER;
+    text->http_mode = (sparams->flags & SASL_NEED_HTTP);
     text->reauth = ((digest_glob_context_t *) glob_context)->reauth;
     
     *conn_context = text;
@@ -2113,6 +2126,7 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     unsigned int   noncecount = 0;
     char           *qop = NULL;
     char           *digesturi = NULL;
+    const char     *method = NULL;
     char           *response = NULL;
     
     /* setting the default value (65536) */
@@ -2215,7 +2229,9 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 		goto FreeAllMem;
 	    }
 	    _plug_strdup(sparams->utils, value, &qop, NULL);
-	} else if (strcasecmp(name, "digest-uri") == 0) {
+	} else if (strcasecmp(name, "digest-uri") == 0 ||  /* per RFC 2831 */
+		   (text->http_mode &&
+		    strcasecmp(name, "uri") == 0)) {	   /* per RFC 2617 */
             size_t service_len;
 
 	    if (digesturi) {
@@ -2227,22 +2243,24 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 
 	    _plug_strdup(sparams->utils, value, &digesturi, NULL);
 
-	    /* Verify digest-uri format:
-	     *
-	     * digest-uri-value  = serv-type "/" host [ "/" serv-name ]
-	     */
+	    if (!text->http_mode) {
+		/* Verify digest-uri format (per RFC 2831):
+		 *
+		 * digest-uri-value  = serv-type "/" host [ "/" serv-name ]
+		 */
 
-            /* make sure it's the service that we're expecting */
-            service_len = strlen(sparams->service);
-            if (strncasecmp(digesturi, sparams->service, service_len) ||
-                digesturi[service_len] != '/') {
-                result = SASL_BADAUTH;
-                SETERROR(sparams->utils, 
-                         "bad digest-uri: doesn't match service");
-                goto FreeAllMem;
-            }
+		/* make sure it's the service that we're expecting */
+		service_len = strlen(sparams->service);
+		if (strncasecmp(digesturi, sparams->service, service_len) ||
+		    digesturi[service_len] != '/') {
+		    result = SASL_BADAUTH;
+		    SETERROR(sparams->utils, 
+			     "bad digest-uri: doesn't match service");
+		    goto FreeAllMem;
+		}
 
-            /* xxx we don't verify the hostname component */
+		/* xxx we don't verify the hostname component */
+	    }
             
 	} else if (strcasecmp(name, "response") == 0) {
 	    _plug_strdup(sparams->utils, value, &response, NULL);
@@ -2281,6 +2299,14 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 		goto FreeAllMem;
 	    }
 	    _plug_strdup(sparams->utils, value, &charset, NULL);
+	} else if (strcasecmp(name,"algorithm") == 0) {
+	    /* per RFC 2831: algorithm MUST be ignored if received */
+	    if (text->http_mode && strcasecmp(value, "md5-sess") != 0) {
+		/* per RFC 2617: algorithm MUST match that sent in challenge */
+		SETERROR(sparams->utils, "'algorithm' isn't 'md5-sess'");
+		result = SASL_FAIL;
+		goto FreeAllMem;
+	    }
 	} else {
 	    sparams->utils->log(sparams->utils->conn, SASL_LOG_DEBUG,
 				"DIGEST-MD5 unrecognized pair %s/%s: ignoring",
@@ -2409,12 +2435,15 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	result = SASL_BADAUTH;
 	goto FreeAllMem;
     }
+#if 0  /* XXX  Neither RFC 2617 nor RFC 2831 state that the cnonce
+	  needs to remain constant for subsequent authentication to work */
     if (text->cnonce && strcmp((char *) cnonce, (char *) text->cnonce) != 0) {
 	SETERROR(sparams->utils,
 		 "cnonce changed: authentication aborted");
 	result = SASL_BADAUTH;
 	goto FreeAllMem;
     }
+#endif
 	    
     result = sparams->utils->prop_request(sparams->propctx, password_request);
     if(result != SASL_OK) {
@@ -2619,7 +2648,16 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	result = SASL_FAIL;
 	goto FreeAllMem;
     }
-
+    
+    if (text->http_mode) {
+	/* per RFC 2617 (RFC 2616 Method as set by calling application) */
+	method = sparams->http_method;
+    }
+    if (!method) {
+	/* per RFC 2831 */
+	method = "AUTHENTICATE";
+    }
+    
     serverresponse = create_response(text,
 				     sparams->utils,
 				     text->nonce,
@@ -2627,6 +2665,7 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 				     cnonce,
 				     qop,
 				     digesturi,
+				     method,
 				     Secret,
 				     authorization_id,
 				     &text->response_value);
@@ -2648,6 +2687,7 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 					     cnonce,
 					     qop,
 					     digesturi,
+					     method,
 					     SecretBogus,
 					     authorization_id,
 					     &text->response_value);
@@ -2750,12 +2790,37 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	if (add_to_challenge(sparams->utils,
 			     &text->out_buf, &text->out_buf_len, &resplen,
 			     "rspauth", (unsigned char *) text->response_value,
-			     FALSE) != SASL_OK) {
+			     text->http_mode ? TRUE : FALSE) != SASL_OK) {
 	    SETERROR(sparams->utils, "internal error: add_to_challenge failed");
 	    result = SASL_FAIL;
 	    goto FreeAllMem;
 	}
 	
+	if (text->http_mode) {
+	    /* per RFC 2617 */
+	    char ncvalue[10];
+
+	    if (add_to_challenge(sparams->utils,
+				 &text->out_buf, &text->out_buf_len, &resplen,
+				 "cnonce", cnonce, TRUE) != SASL_OK) {
+		result = SASL_FAIL;
+		goto FreeAllMem;
+	    }
+	    snprintf(ncvalue, sizeof(ncvalue), "%08x", text->nonce_count);
+	    if (add_to_challenge(sparams->utils,
+				 &text->out_buf, &text->out_buf_len, &resplen,
+				 "nc", (unsigned char *) ncvalue, FALSE) != SASL_OK) {
+		result = SASL_FAIL;
+		goto FreeAllMem;
+	    }
+	    if (add_to_challenge(sparams->utils,
+				 &text->out_buf, &text->out_buf_len, &resplen,
+				 "qop", (unsigned char *) qop, FALSE) != SASL_OK) {
+		result = SASL_FAIL;
+		goto FreeAllMem;
+	    }
+	}
+
 	/* self check */
 	if (strlen(text->out_buf) > 2048) {
 	    result = SASL_FAIL;
@@ -2942,7 +3007,8 @@ static sasl_server_plug_t digestmd5_server_plugins[] =
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOANONYMOUS
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
-	SASL_FEAT_ALLOWS_PROXY,		/* features */
+	SASL_FEAT_ALLOWS_PROXY
+	| SASL_FEAT_SUPPORTS_HTTP,	/* features */
 	&server_glob_context,		/* glob_context */
 	&digestmd5_server_mech_new,	/* mech_new */
 	&digestmd5_server_mech_step,	/* mech_step */

@@ -354,6 +354,9 @@ typedef struct sasl_client_params {
 /* Underlying mechanism supports channel binding */
 #define SASL_FEAT_CHANNEL_BINDING	0x0800
 
+/* This plugin can be used for HTTP authentication */
+#define SASL_FEAT_SUPPORTS_HTTP	    	0x1000
+
 /* client plug-in features */
 #define SASL_FEAT_NEEDSERVERFQDN	0x0001
 
@@ -577,7 +580,7 @@ typedef struct sasl_server_params {
     /* for additions which don't require a version upgrade; set to 0 */
     const void *gss_creds;                  /* GSS credential handle */
     const sasl_channel_binding_t *cbinding; /* server channel binding */
-    void *spare_ptr3;
+    const char *http_method;	 	    /* HTTP Digest request method */
     void *spare_ptr4;
     int (*spare_fptr1)();
     int (*spare_fptr2)();

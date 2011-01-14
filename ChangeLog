@@ -1,4 +1,7 @@
 2011-01-14  Ken Murchison <murch@andrew.cmu.edu>
+	* plugins/ntlm.c: Flag NTLM plugin as HTTP-ready
+
+2011-01-14  Ken Murchison <murch@andrew.cmu.edu>
 	* include/sasl.h, include/saslplug.h,
 	  lib/common.c, lib/server.c, plugins/digest-md5.c:
 	  Allow DIGEST-MD5 plugin to be used for server-side 

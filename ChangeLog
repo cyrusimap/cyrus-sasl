@@ -1,3 +1,8 @@
+2011-01-18  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/digestmd5.c: Use the same username for reauthentication
+	  cache lookup and update. Thanks to Ken for pointing out the
+	  problem.
+
 2011-01-14  Ken Murchison <murch@andrew.cmu.edu>
 	* plugins/ntlm.c: Flag NTLM plugin as HTTP-ready
 

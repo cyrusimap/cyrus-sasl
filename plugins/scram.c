@@ -1,6 +1,6 @@
 /* SCRAM-SHA-1 SASL plugin
  * Alexey Melnikov
- * $Id: scram.c,v 1.19 2011/01/19 10:19:07 mel Exp $
+ * $Id: scram.c,v 1.20 2011/01/19 10:40:11 mel Exp $
  */
 /* 
  * Copyright (c) 2009-2010 Carnegie Mellon University.  All rights reserved.
@@ -69,7 +69,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: scram.c,v 1.19 2011/01/19 10:19:07 mel Exp $";
+static const char plugin_id[] = "$Id: scram.c,v 1.20 2011/01/19 10:40:11 mel Exp $";
 
 #define NONCE_SIZE (32)		    /* arbitrary */
 #define SALT_SIZE  (16)		    /* arbitrary */
@@ -84,6 +84,8 @@ static const char plugin_id[] = "$Id: scram.c,v 1.19 2011/01/19 10:19:07 mel Exp
 #define ITERATION_COUNTER_BUF_LEN   20
 
 #define SCRAM_HASH_SIZE		    20
+
+#define BASE64_LEN(size)	    (((size) / 3 * 4) + (((size) % 3) ? 4 : 0))
 
 #define MAX_CLIENTIN_LEN	    2048
 #define MAX_SERVERIN_LEN	    2048
@@ -265,9 +267,9 @@ print_hash (const char * func, const char * hash)
 /* The result variable need to point to a buffer big enough for the [SHA-1] hash */
 static void
 Hi (const sasl_utils_t * utils,
-    char * str,
+    const char * str,
     size_t str_len,
-    char * salt,
+    const char * salt,
     size_t salt_len,
     unsigned int iteration_count,
     char * result)
@@ -334,10 +336,98 @@ Hi (const sasl_utils_t * utils,
  */
 static unsigned char *
 scram_server_user_salt(const sasl_utils_t * utils,
-                       const char * username)
+                       const char * username,
+		       size_t * p_salt_len)
 {
     char * result = utils->malloc(SCRAM_HASH_SIZE);
-    Hi(utils, username, strlen(username), g_salt_key, SALT_SIZE, 20, result);
+    Hi(utils, username, strlen(username), g_salt_key, SALT_SIZE, 20 /* iterations */, result);
+    *p_salt_len = SCRAM_HASH_SIZE;
+    return result;
+}
+
+static int
+GenerateScramSecrets (const sasl_utils_t * utils,
+		      const char * password,
+		      size_t password_len,
+		      char * salt,
+		      size_t salt_len,
+		      unsigned int iteration_count,
+		      char * StoredKey,
+		      char * ServerKey,
+		      char ** error_text)
+{
+    char SaltedPassword[SCRAM_HASH_SIZE];
+    char ClientKey[SCRAM_HASH_SIZE];
+    sasl_secret_t *sec = NULL;
+    unsigned int hash_len = 0;
+    int result;
+
+    *error_text = NULL;
+
+    if (password_len == 0) {
+	*error_text = "empty secret";
+	result = SASL_FAIL;
+	goto cleanup;
+    }
+
+    sec = utils->malloc(sizeof(sasl_secret_t) + password_len);
+    if (sec == NULL) {
+	result = SASL_NOMEM;
+	goto cleanup;
+    }
+	
+    sec->len = (unsigned) password_len;
+    strncpy((char *)sec->data, password, password_len + 1);
+
+    /* SaltedPassword  := Hi(password, salt) */
+    Hi (utils,
+	sec->data,
+	sec->len,
+	salt,
+	salt_len,
+	iteration_count,
+	SaltedPassword);
+
+    /* ClientKey       := HMAC(SaltedPassword, "Client Key") */
+    if (HMAC(EVP_sha1(),
+	     (const unsigned char *) SaltedPassword,
+	     SCRAM_HASH_SIZE,
+	     CLIENT_KEY_CONSTANT,
+	     CLIENT_KEY_CONSTANT_LEN,
+	     (unsigned char *)ClientKey,
+	     &hash_len) == NULL) {
+	*error_text = "HMAC-SHA1 call failed";
+	result = SASL_SCRAM_INTERNAL;
+	goto cleanup;
+    }
+
+    /* StoredKey       := H(ClientKey) */
+    if (SHA1(ClientKey, SCRAM_HASH_SIZE, StoredKey) == NULL) {
+	*error_text = "SHA1 call failed";
+	result = SASL_SCRAM_INTERNAL;
+	goto cleanup;
+
+    }
+
+    /* ServerKey       := HMAC(SaltedPassword, "Server Key") */
+    if (HMAC(EVP_sha1(),
+	     (const unsigned char *) SaltedPassword,
+	     SCRAM_HASH_SIZE,
+	     SERVER_KEY_CONSTANT,
+	     SERVER_KEY_CONSTANT_LEN,
+	     (unsigned char *)ServerKey,
+	     &hash_len) == NULL) {
+	*error_text = "HMAC-SHA1 call failed";
+	result = SASL_SCRAM_INTERNAL;
+	goto cleanup;
+    }
+
+    result = SASL_OK;
+
+cleanup:
+    if (sec) {
+	_plug_free_secret(utils, &sec);
+    }
     return result;
 }
 
@@ -355,7 +445,10 @@ typedef struct server_context {
     char * nonce;
     /* in binary form */
     char * salt;
+    size_t salt_len;
     unsigned int iteration_count;
+    char StoredKey[SCRAM_HASH_SIZE + 1];
+    char ServerKey[SCRAM_HASH_SIZE + 1];
 } server_context_t;
 
 static int
@@ -401,6 +494,12 @@ scram_server_mech_step1(server_context_t *text,
     size_t gs2_header_length = 0;
     size_t pure_scram_length;
     char * inbuf = NULL;
+    const char *password_request[] = { SASL_AUX_PASSWORD,
+				       "*authPassword",
+				       NULL };
+    int canon_flags;
+    struct propval auxprop_values[3];
+    unsigned int hash_len = 0;
     int result;
 
     if (clientinlen == 0) {
@@ -587,17 +686,257 @@ scram_server_mech_step1(server_context_t *text,
 	goto cleanup;
     }
 
-    /* NOTE: The following would change, if we start storing salt
-       and iteration_count in a SCRAM specific attribute */
 
-    text->salt = scram_server_user_salt(sparams->utils, text->authentication_id);
 
-    text->iteration_count = DEFAULT_ITERATION_COUNTER;
+    /* Now we fetch user's password and calculate our secret */
+    result = sparams->utils->prop_request(sparams->propctx, password_request);
+    if (result != SASL_OK) {
+	goto cleanup;
+    }
+    
+    /* this will trigger the getting of the aux properties */
+    canon_flags = SASL_CU_AUTHID;
+    if (text->authorization_id == NULL || *text->authorization_id == '\0') {
+	canon_flags |= SASL_CU_AUTHZID;
+    }
+
+    result = sparams->canon_user(sparams->utils->conn,
+				 text->authentication_id,
+				 0,
+				 canon_flags,
+				 oparams);
+    if (result != SASL_OK) {
+	SETERROR(sparams->utils, "unable to canonify user and get auxprops");
+	goto cleanup;
+    }
+    
+    if (text->authorization_id != NULL && *text->authorization_id != '\0') {
+	result = sparams->canon_user(sparams->utils->conn,
+				     text->authorization_id,
+				     0,
+				     SASL_CU_AUTHZID,
+				     oparams);
+    }
+    if (result != SASL_OK) {
+	SETERROR(sparams->utils, "unable to canonify authorization ID");
+	goto cleanup;
+    }
+
+    result = sparams->utils->prop_getnames(sparams->propctx,
+					   password_request,
+					   auxprop_values);
+    if (result < 0 ||
+	((!auxprop_values[0].name || !auxprop_values[0].values) &&
+	 (!auxprop_values[1].name || !auxprop_values[1].values))) {
+	/* We didn't find this username */
+	sparams->utils->seterror(sparams->utils->conn,0,
+				 "no secret in database");
+	result = sparams->transition ? SASL_TRANS : SASL_NOUSER;
+	goto cleanup;
+    }
+
+    if (auxprop_values[0].name && auxprop_values[0].values) {
+	char * error_text = NULL;
+
+	text->salt = scram_server_user_salt(sparams->utils, text->authentication_id, &text->salt_len);
+
+	text->iteration_count = DEFAULT_ITERATION_COUNTER;
+
+
+	result = GenerateScramSecrets (sparams->utils,
+				       auxprop_values[0].values[0],
+				       strlen(auxprop_values[0].values[0]),
+				       text->salt,
+				       text->salt_len,
+				       text->iteration_count,
+				       text->StoredKey,
+				       text->ServerKey,
+				       &error_text);
+	if (result != SASL_OK) {
+	    if (error_text != NULL) {
+		sparams->utils->seterror(sparams->utils->conn, 0, error_text);
+	    }
+	    goto cleanup;
+	}
+
+    } else if (auxprop_values[1].name && auxprop_values[1].values) {
+	char s_iteration_count[ITERATION_COUNTER_BUF_LEN+1];
+	size_t base64_salt_len;
+	unsigned int exact_key_len;
+	const char * scram_hash;
+	const char * p_field;
+	char * end;
+	int i;
+
+	result = SASL_SCRAM_INTERNAL;
+
+	for (i = 0; auxprop_values[1].values[i] != NULL; i++) {
+	    scram_hash = auxprop_values[1].values[i];
+
+	    /* Skip the leading spaces */
+	    while (*scram_hash == ' ') {
+		scram_hash++;
+	    }
+
+	    if (strncmp(scram_hash, SCRAM_SASL_MECH, SCRAM_SASL_MECH_LEN) != 0) {
+		continue;
+	    }
+	    scram_hash += SCRAM_SASL_MECH_LEN;
+
+	    /* Skip spaces */
+	    while (*scram_hash == ' ') {
+		scram_hash++;
+	    }
+
+	    if (*scram_hash != '$') {
+		/* syntax error, ignore the value */
+		continue;
+	    }
+	    scram_hash++;
+
+	    /* Skip spaces */
+	    while (*scram_hash == ' ') {
+		scram_hash++;
+	    }
+
+	    p_field = strchr(scram_hash, ':');
+	    if (p_field == NULL || p_field == scram_hash) {
+		/* syntax error, ignore the value */
+		continue;
+	    }
+
+	    if ((p_field - scram_hash) > ITERATION_COUNTER_BUF_LEN) {
+		/* The iteration counter is too big for us */
+		SETERROR(sparams->utils, "Invalid iteration-count in " SCRAM_SASL_MECH " input: the value is too big");
+		continue;
+	    }
+
+	    memcpy(s_iteration_count, scram_hash, p_field - scram_hash);
+	    s_iteration_count[p_field - scram_hash] = '\0';
+
+	    errno = 0;
+	    text->iteration_count = strtoul(s_iteration_count, &end, 10);
+	    if (s_iteration_count == end || *end != '\0' || errno != 0) {
+		SETERROR(sparams->utils, "Invalid iteration-count in " SCRAM_SASL_MECH " input: not a number");
+		continue;
+	    }
+
+	    scram_hash = p_field + 1;
+
+	    p_field = scram_hash + strcspn(scram_hash, "$ ");
+	    if (p_field == scram_hash || *p_field == '\0') {
+		/* syntax error, ignore the value */
+		continue;
+	    }
+
+	    base64_salt_len = p_field - scram_hash;
+	    text->salt = (char *) sparams->utils->malloc(base64_salt_len);
+	    if (sparams->utils->decode64(scram_hash,
+					 (unsigned int)base64_salt_len,
+					 text->salt,
+					 (unsigned int)base64_salt_len,
+					 &text->salt_len) != SASL_OK) {
+		SETERROR(sparams->utils, "Invalid base64 encoding of the salt in " SCRAM_SASL_MECH " stored value");
+		continue;
+	    }
+
+	    scram_hash = p_field;
+
+	    /* Skip spaces */
+	    while (*scram_hash == ' ') {
+		scram_hash++;
+	    }
+
+	    if (*scram_hash != '$') {
+		/* syntax error, ignore the value */
+		sparams->utils->free(text->salt);
+		text->salt = NULL;
+		continue;
+	    }
+	    scram_hash++;
+
+	    /* Skip spaces */
+	    while (*scram_hash == ' ') {
+		scram_hash++;
+	    }
+
+	    p_field = strchr(scram_hash, ':');
+	    if (p_field == NULL || p_field == scram_hash) {
+		/* syntax error, ignore the value */
+		sparams->utils->free(text->salt);
+		text->salt = NULL;
+		continue;
+	    }
+
+	    if (sparams->utils->decode64(scram_hash,
+					 (unsigned int)(p_field - scram_hash),
+					 text->StoredKey,
+					 SCRAM_HASH_SIZE + 1,
+					 &exact_key_len) != SASL_OK) {
+		SETERROR(sparams->utils, "Invalid base64 encoding of StoredKey in " SCRAM_SASL_MECH " per-user storage");
+		sparams->utils->free(text->salt);
+		text->salt = NULL;
+		continue;
+	    }
+
+	    if (exact_key_len != SCRAM_HASH_SIZE) {
+		SETERROR(sparams->utils, "Invalid StoredKey in " SCRAM_SASL_MECH " per-user storage");
+		sparams->utils->free(text->salt);
+		text->salt = NULL;
+		continue;
+	    }
+
+	    scram_hash = p_field + 1;
+
+	    p_field = strchr(scram_hash, ' ');
+	    if (p_field == NULL) {
+		p_field = scram_hash + strlen(scram_hash);
+	    }
+
+
+	    if (sparams->utils->decode64(scram_hash,
+					 (unsigned int)(p_field - scram_hash),
+					 text->ServerKey,
+					 SCRAM_HASH_SIZE + 1,
+					 &exact_key_len) != SASL_OK) {
+		SETERROR(sparams->utils, "Invalid base64 encoding of ServerKey in " SCRAM_SASL_MECH " per-user storage");
+		sparams->utils->free(text->salt);
+		text->salt = NULL;
+		continue;
+	    }
+
+	    if (exact_key_len != SCRAM_HASH_SIZE) {
+		SETERROR(sparams->utils, "Invalid ServerKey in " SCRAM_SASL_MECH " per-user storage");
+		sparams->utils->free(text->salt);
+		text->salt = NULL;
+		continue;
+	    }
+
+	    result = SASL_OK;
+	    break;
+	}
+
+	if (result != SASL_OK) {
+	    sparams->utils->seterror(sparams->utils->conn,
+				     0,
+				     "No valid " SCRAM_SASL_MECH " secret found");
+	    goto cleanup;
+	}
+
+    } else {
+	sparams->utils->seterror(sparams->utils->conn,
+				 0,
+				 "Have neither type of secret");
+	return SASL_FAIL;
+    }
+    
+    /* erase the plaintext password */
+    sparams->utils->prop_erase(sparams->propctx, password_request[0]);
 
 
 
     /* base 64 encode it so it has valid chars */
-    base64len = (SALT_SIZE / 3 * 4) + ((SALT_SIZE % 3) ? 4 : 0);
+    base64len = (text->salt_len / 3 * 4) + ((text->salt_len % 3) ? 4 : 0);
     
     base64_salt = (char *) sparams->utils->malloc(base64len + 1);
     if (base64_salt == NULL) {
@@ -610,7 +949,7 @@ scram_server_mech_step1(server_context_t *text,
      * Returns SASL_OK on success, SASL_BUFOVER if result won't fit
      */
     if (sparams->utils->encode64(text->salt,
-				 SALT_SIZE,
+				 (unsigned int)text->salt_len,
 				 base64_salt,
 				 (unsigned int)base64len + 1,
 				 NULL) != SASL_OK) {
@@ -688,15 +1027,7 @@ scram_server_mech_step2(server_context_t *text,
     char *client_proof = NULL;
     char *inbuf = NULL;
     char *p;
-    int canon_flags;
-    sasl_secret_t *sec = NULL;
-    size_t len;
     int result = SASL_FAIL;
-    const char *password_request[] = { SASL_AUX_PASSWORD,
-				       NULL };
-    struct propval auxprop_values[3];
-    char StoredKey[SCRAM_HASH_SIZE];
-    char ServerKey[SCRAM_HASH_SIZE];
     size_t proof_offset;
     char * full_auth_message;
     char ReceivedClientKey[SCRAM_HASH_SIZE];
@@ -815,138 +1146,6 @@ scram_server_mech_step2(server_context_t *text,
 	goto cleanup;
     }
 
-    /* Now we fetch user's password and calculate our secret */
-    result = sparams->utils->prop_request(sparams->propctx, password_request);
-    if (result != SASL_OK) {
-	goto cleanup;
-    }
-    
-    /* this will trigger the getting of the aux properties */
-    canon_flags = SASL_CU_AUTHID;
-    if (text->authorization_id == NULL || *text->authorization_id == '\0') {
-	canon_flags |= SASL_CU_AUTHZID;
-    }
-
-    result = sparams->canon_user(sparams->utils->conn,
-				 text->authentication_id,
-				 0,
-				 canon_flags,
-				 oparams);
-    if (result != SASL_OK) {
-	SETERROR(sparams->utils, "unable to canonify user and get auxprops");
-	goto cleanup;
-    }
-    
-    if (text->authorization_id != NULL && *text->authorization_id != '\0') {
-	result = sparams->canon_user(sparams->utils->conn,
-				     text->authorization_id,
-				     0,
-				     SASL_CU_AUTHZID,
-				     oparams);
-    }
-    if (result != SASL_OK) {
-	SETERROR(sparams->utils, "unable to canonify authorization ID");
-	goto cleanup;
-    }
-
-    result = sparams->utils->prop_getnames(sparams->propctx,
-					   password_request,
-					   auxprop_values);
-    if (result < 0 ||
-	((!auxprop_values[0].name || !auxprop_values[0].values) &&
-	 (!auxprop_values[1].name || !auxprop_values[1].values))) {
-	/* We didn't find this username */
-	sparams->utils->seterror(sparams->utils->conn,0,
-				 "no secret in database");
-	result = sparams->transition ? SASL_TRANS : SASL_NOUSER;
-	goto cleanup;
-    }
-    
-    if (auxprop_values[0].name && auxprop_values[0].values) {
-	char SaltedPassword[SCRAM_HASH_SIZE];
-	char ClientKey[SCRAM_HASH_SIZE];
-
-	len = strlen(auxprop_values[0].values[0]);
-	if (len == 0) {
-	    sparams->utils->seterror(sparams->utils->conn,0,
-				     "empty secret");
-	    result = SASL_FAIL;
-	    goto cleanup;
-	}
-
-	sec = sparams->utils->malloc(sizeof(sasl_secret_t) + len);
-	if (sec == NULL) {
-	    MEMERROR( sparams->utils );
-	    result = SASL_NOMEM;
-	    goto cleanup;
-	}
-	
-	sec->len = (unsigned) len;
-	strncpy((char *)sec->data, auxprop_values[0].values[0], len + 1);
-
-	/* SaltedPassword  := Hi(password, salt) */
-	Hi (sparams->utils,
-	    sec->data,
-	    sec->len,
-	    text->salt,
-	    SALT_SIZE,
-	    text->iteration_count,
-	    SaltedPassword);
-
-	/* ClientKey       := HMAC(SaltedPassword, "Client Key") */
-	if (HMAC(EVP_sha1(),
-		 (const unsigned char *) SaltedPassword,
-		 SCRAM_HASH_SIZE,
-		 CLIENT_KEY_CONSTANT,
-		 CLIENT_KEY_CONSTANT_LEN,
-		 (unsigned char *)ClientKey,
-		 &hash_len) == NULL) {
-	    sparams->utils->seterror(sparams->utils->conn,0,
-				     "HMAC-SHA1 call failed");
-	    result = SASL_SCRAM_INTERNAL;
-	    goto cleanup;
-	}
-
-	/* StoredKey       := H(ClientKey) */
-	if (SHA1(ClientKey, SCRAM_HASH_SIZE, StoredKey) == NULL) {
-	    sparams->utils->seterror(sparams->utils->conn,0,
-				     "SHA1 call failed");
-	    result = SASL_SCRAM_INTERNAL;
-	    goto cleanup;
-
-	}
-
-	/* ServerKey       := HMAC(SaltedPassword, "Server Key") */
-	if (HMAC(EVP_sha1(),
-		 (const unsigned char *) SaltedPassword,
-		 SCRAM_HASH_SIZE,
-		 SERVER_KEY_CONSTANT,
-		 SERVER_KEY_CONSTANT_LEN,
-		 (unsigned char *)ServerKey,
-		 &hash_len) == NULL) {
-	    sparams->utils->seterror(sparams->utils->conn,0,
-				     "HMAC-SHA1 call failed");
-	    result = SASL_SCRAM_INTERNAL;
-	    goto cleanup;
-	}
-
-#ifdef NOT_YET
-    } else if (auxprop_values[1].name && auxprop_values[1].values) {
-	/* We have a precomputed secret */
-	memcpy(&md5state, auxprop_values[1].values[0],
-	       sizeof(HMAC_SHA1_STATE));
-#endif
-    } else {
-	sparams->utils->seterror(sparams->utils->conn, 0,
-				 "Have neither type of secret");
-	return SASL_FAIL;
-    }
-    
-    /* erase the plaintext password */
-    sparams->utils->prop_erase(sparams->propctx, password_request[0]);
-
-
-
     /* Construct the full AuthMessage */
     full_auth_message = sparams->utils->realloc(text->auth_message,
 						text->auth_message_len + proof_offset + 1);
@@ -965,7 +1164,7 @@ scram_server_mech_step2(server_context_t *text,
 
     /* ClientSignature := HMAC(StoredKey, AuthMessage) */
     if (HMAC(EVP_sha1(),
-	     (const unsigned char *) StoredKey,
+	     (const unsigned char *) text->StoredKey,
 	     SCRAM_HASH_SIZE,
 	     text->auth_message,
 	     (int)text->auth_message_len,
@@ -1007,7 +1206,7 @@ scram_server_mech_step2(server_context_t *text,
     }
     
     for (k = 0; k < SCRAM_HASH_SIZE; k++) {
-	if (CalculatedStoredKey[k] != StoredKey[k]) {
+	if (CalculatedStoredKey[k] != text->StoredKey[k]) {
 	    SETERROR(sparams->utils, "StoredKey mismatch");
 	    result = SASL_BADPROT;
 	    goto cleanup;
@@ -1016,7 +1215,7 @@ scram_server_mech_step2(server_context_t *text,
     
     /* ServerSignature := HMAC(ServerKey, AuthMessage) */
     if (HMAC(EVP_sha1(),
-	     (const unsigned char *) ServerKey,
+	     (const unsigned char *) text->ServerKey,
 	     SCRAM_HASH_SIZE,
 	     text->auth_message,
 	     (int)text->auth_message_len,
@@ -1070,7 +1269,6 @@ scram_server_mech_step2(server_context_t *text,
     result = SASL_OK;
     
 cleanup:
-    if (sec) _plug_free_secret(sparams->utils, &sec);
 
     return result;
 }
@@ -1135,6 +1333,197 @@ static int scram_server_mech_step(void *conn_context,
     return SASL_FAIL; /* should never get here */
 }
 
+static int scram_setpass(void *glob_context __attribute__((unused)),
+			 sasl_server_params_t *sparams,
+			 const char *userstr,
+			 const char *pass,
+			 unsigned passlen,
+			 const char *oldpass __attribute__((unused)),
+			 unsigned oldpasslen __attribute__((unused)),
+			 unsigned flags)
+{
+    int r;
+    char *user = NULL;
+    char *user_only = NULL;
+    char *realm = NULL;
+    sasl_secret_t *sec = NULL;
+    struct propctx *propctx = NULL;
+    const char *store_request[] = { "authPassword",
+				    NULL };
+    const char *generate_scram_secret;
+    
+    /* Do we have a backend that can store properties? */
+    if (!sparams->utils->auxprop_store ||
+	sparams->utils->auxprop_store(NULL, NULL, NULL) != SASL_OK) {
+	SETERROR(sparams->utils, SCRAM_SASL_MECH ": auxprop backend can't store properties");
+	return SASL_NOMECH;
+    }
+
+    sparams->utils->getopt(sparams->utils->getopt_context,
+			   /* This affects all SCRAM plugins, not just SCRAM-SHA-1 */
+			   "SCRAM",
+			   "scram_secret_generate",
+			   &generate_scram_secret,
+			   NULL);
+
+    /* NOTE: The default (when this option is not set) is NOT to generate authPassword secret */
+    if (!(generate_scram_secret &&
+	  (generate_scram_secret[0] == '1' || generate_scram_secret[0] == 'y' ||
+	  (generate_scram_secret[0] == 'o' && generate_scram_secret[1] == 'n') ||
+	  generate_scram_secret[0] == 't'))) {
+	/* Pretend that everything is Ok, no need to generate noise in the logs */
+	return SASL_OK;
+    }
+
+    r = _plug_parseuser(sparams->utils,
+			&user_only,
+			&realm,
+			sparams->user_realm,
+			sparams->serverFQDN,
+			userstr);
+    if (r) {
+	SETERROR(sparams->utils, SCRAM_SASL_MECH ": Error parsing user");
+	return r;
+    }
+
+    r = _plug_make_fulluser(sparams->utils, &user, user_only, realm);
+    if (r) {
+       goto cleanup;
+    }
+
+    if ((flags & SASL_SET_DISABLE) || pass == NULL) {
+	sec = NULL;
+    } else {
+	char * error_text = NULL;
+	char salt[SALT_SIZE + 1];
+	char base64_salt[BASE64_LEN(SALT_SIZE) + 1];
+	/* size_t salt_len = SALT_SIZE; */
+	char StoredKey[SCRAM_HASH_SIZE + 1];
+	char ServerKey[SCRAM_HASH_SIZE + 1];
+	char base64_StoredKey[BASE64_LEN(SCRAM_HASH_SIZE) + 1];
+	char base64_ServerKey[BASE64_LEN(SCRAM_HASH_SIZE) + 1];
+	size_t secret_len;
+
+	sparams->utils->rand(sparams->utils->rpool, salt, SALT_SIZE);
+
+	r = GenerateScramSecrets (sparams->utils,
+				  pass,
+				  passlen,
+				  salt,
+				  SALT_SIZE,
+				  DEFAULT_ITERATION_COUNTER,
+				  StoredKey,
+				  ServerKey,
+				  &error_text);
+	if (r != SASL_OK) {
+	    if (error_text != NULL) {
+		SETERROR(sparams->utils, error_text);
+	    }
+	    goto cleanup;
+	}
+
+	/* Returns SASL_OK on success, SASL_BUFOVER if result won't fit */
+	if (sparams->utils->encode64(salt,
+				     SALT_SIZE,
+				     base64_salt,
+				     BASE64_LEN(SALT_SIZE) + 1,
+				     NULL) != SASL_OK) {
+	    MEMERROR( sparams->utils );
+	    r = SASL_NOMEM;
+	    goto cleanup;
+	}
+
+	base64_salt[BASE64_LEN(SALT_SIZE)] = '\0';
+
+
+	/* Returns SASL_OK on success, SASL_BUFOVER if result won't fit */
+	if (sparams->utils->encode64(StoredKey,
+				     SCRAM_HASH_SIZE,
+				     base64_StoredKey,
+				     BASE64_LEN(SCRAM_HASH_SIZE) + 1,
+				     NULL) != SASL_OK) {
+	    MEMERROR( sparams->utils );
+	    r = SASL_NOMEM;
+	    goto cleanup;
+	}
+
+	base64_StoredKey[BASE64_LEN(SCRAM_HASH_SIZE)] = '\0';
+
+
+
+	/* Returns SASL_OK on success, SASL_BUFOVER if result won't fit */
+	if (sparams->utils->encode64(ServerKey,
+				     SCRAM_HASH_SIZE,
+				     base64_ServerKey,
+				     BASE64_LEN(SCRAM_HASH_SIZE) + 1,
+				     NULL) != SASL_OK) {
+	    MEMERROR( sparams->utils );
+	    r = SASL_NOMEM;
+	    goto cleanup;
+	}
+
+	base64_ServerKey[BASE64_LEN(SCRAM_HASH_SIZE)] = '\0';
+
+	secret_len = strlen(SCRAM_SASL_MECH ":$:") + 
+		     ITERATION_COUNTER_BUF_LEN +
+		     sizeof(base64_salt) +
+		     sizeof(base64_StoredKey) +
+		     sizeof(base64_ServerKey);
+
+	sec = sparams->utils->malloc(sizeof(sasl_secret_t) + secret_len);
+	if (sec == NULL) {
+	    MEMERROR( sparams->utils );
+	    r = SASL_NOMEM;
+	    goto cleanup;
+	}
+    	
+	sprintf(sec->data,
+		"%s$%u:%s$%s:%s",
+		SCRAM_SASL_MECH,
+		DEFAULT_ITERATION_COUNTER,
+		base64_salt,
+		base64_StoredKey,
+		base64_ServerKey);
+	sec->len = (unsigned int) strlen(sec->data);
+    }
+    
+    /* do the store */
+    propctx = sparams->utils->prop_new(0);
+    if (!propctx) {
+	r = SASL_FAIL;
+    }
+    if (!r) {
+	r = sparams->utils->prop_request(propctx, store_request);
+    }
+    if (!r) {
+	r = sparams->utils->prop_set(propctx,
+				     "authPassword",
+				     (sec ? sec->data : NULL),
+				     (sec ? sec->len : 0));
+    }
+    if (!r) {
+	r = sparams->utils->auxprop_store(sparams->utils->conn, propctx, user);
+    }
+    if (propctx) {
+	sparams->utils->prop_dispose(&propctx);
+    }
+    
+    if (r) {
+	SETERROR(sparams->utils, "Error putting " SCRAM_SASL_MECH " secret");
+	goto cleanup;
+    }
+    
+    sparams->utils->log(NULL, SASL_LOG_DEBUG, "Setpass for " SCRAM_SASL_MECH " successful\n");
+    
+  cleanup:
+    if (user) 	_plug_free_string(sparams->utils, &user);
+    if (user_only)     _plug_free_string(sparams->utils, &user_only);
+    if (realm) 	_plug_free_string(sparams->utils, &realm);
+    if (sec)    _plug_free_secret(sparams->utils, &sec);
+    
+    return r;
+}
+
 static void scram_server_mech_dispose(void *conn_context,
 				      const sasl_utils_t *utils)
 {
@@ -1167,7 +1556,7 @@ static sasl_server_plug_t scram_server_plugins[] =
 	&scram_server_mech_step,	/* mech_step */
 	&scram_server_mech_dispose,	/* mech_dispose */
 	NULL,				/* mech_free */
-	NULL,				/* setpass */
+	&scram_setpass,			/* setpass */
 	NULL,				/* user_query */
 	NULL,				/* idle */
 	NULL,				/* mech avail */

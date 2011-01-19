@@ -1,7 +1,7 @@
 /* pluginviewer.c -- Plugin Viewer for CMU SASL
  * Alexey Melnikov, Isode Ltd.
  *
- * $Id: pluginviewer.c,v 1.9 2010/02/27 19:24:56 mel Exp $
+ * $Id: pluginviewer.c,v 1.10 2011/01/19 12:01:42 mel Exp $
  */
 /* 
  * Copyright (c) 2004 Carnegie Mellon University.  All rights reserved.
@@ -132,14 +132,6 @@ static const char *flag_subopts[] = {
   "noanonymous",
 #define OPT_PASSCRED (5)
   "passcred",
-  NULL
-};
-
-static const char *ip_subopts[] = {
-#define OPT_IP_LOCAL (0)
-  "local",
-#define OPT_IP_REMOTE (1)
-  "remote",
   NULL
 };
 
@@ -278,13 +270,6 @@ fail(const char *what)
     exit(EXIT_FAILURE);
 }
 
-static void
-osfail()
-{
-    perror(progname);
-    exit(EXIT_FAILURE);
-}
-
 /* Produce a space separated list of installed mechanisms */
 static void
 list_installed_server_mechanisms (
@@ -379,7 +364,7 @@ main(int argc, char *argv[])
   char *options, *value;
   const char *available_mechs = NULL;
   unsigned len;
-  unsigned count;
+  int count;
   sasl_callback_t callbacks[N_CALLBACKS], *callback;
   char *searchpath = NULL;
   char *service = "test";

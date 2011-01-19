@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.128 2011/01/14 14:33:21 murch Exp $
+ * $Id: common.c,v 1.129 2011/01/19 12:15:42 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -386,7 +386,7 @@ _sasl_encodev (sasl_conn_t *conn,
         conn->multipacket_encoded_data.curlen += *outputlen;
 
         *output = conn->multipacket_encoded_data.data;
-        *outputlen = conn->multipacket_encoded_data.curlen;
+        *outputlen = (unsigned)conn->multipacket_encoded_data.curlen;
     }
 
     (*p_num_packets)++;
@@ -410,7 +410,7 @@ int sasl_encodev(sasl_conn_t *conn,
     struct iovec last_invec;
     unsigned cur_numiov;
     char * next_buf = NULL;
-    unsigned remainder_len;
+    size_t remainder_len;
     unsigned index_offset;
     unsigned allocated = 0;
     /* Number of generated SASL packets */
@@ -482,7 +482,7 @@ int sasl_encodev(sasl_conn_t *conn,
 
             if (next_buf != NULL) {
                 cur_invec[0].iov_base = next_buf;
-                cur_invec[0].iov_len = remainder_len;
+                cur_invec[0].iov_len = (long)remainder_len;
                 cur_numiov++;
                 index_offset = 1;
             } else {
@@ -566,7 +566,7 @@ int sasl_encodev(sasl_conn_t *conn,
     /* Force encoding of any partial buffer. Might not be optimal on the wire. */
     if (next_buf != NULL) {
         last_invec.iov_base = next_buf;
-        last_invec.iov_len = remainder_len;
+        last_invec.iov_len = (long)remainder_len;
 
         result = _sasl_encodev (conn,
 	                        &last_invec,

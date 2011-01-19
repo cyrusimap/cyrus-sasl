@@ -1,7 +1,7 @@
 /* SASL client API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.80 2010/12/01 15:49:25 murch Exp $
+ * $Id: client.c,v 1.81 2011/01/19 09:04:29 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -909,8 +909,8 @@ int sasl_client_step(sasl_conn_t *conn,
   sasl_client_conn_t *c_conn= (sasl_client_conn_t *) conn;
   int result;
 
-  if(_sasl_client_active==0) return SASL_NOTINIT;
-  if(!conn) return SASL_BADPARAM;
+  if (_sasl_client_active == 0) return SASL_NOTINIT;
+  if (!conn) return SASL_BADPARAM;
 
   /* check parameters */
   if ((serverin==NULL) && (serverinlen>0))

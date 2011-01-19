@@ -1,6 +1,6 @@
 /* auxprop.c - auxilliary property support
  * Rob Siemborski
- * $Id: auxprop.c,v 1.19 2009/01/28 22:49:14 mel Exp $
+ * $Id: auxprop.c,v 1.20 2011/01/19 09:04:29 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1075,10 +1075,9 @@ int sasl_auxprop_store(sasl_conn_t *conn,
 
 /* It would be nice if we can show other information like Author, Company, Year, plugin version */
 static void
-_sasl_print_mechanism (
-  sasl_auxprop_plug_t *m,
-  sasl_info_callback_stage_t stage,
-  void *rock __attribute__((unused))
+_sasl_print_mechanism (sasl_auxprop_plug_t *m,
+		       sasl_info_callback_stage_t stage,
+		       void *rock __attribute__((unused))
 )
 {
     if (stage == SASL_INFO_LIST_START) {

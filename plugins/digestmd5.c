@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * Alexey Melnikov 
- * $Id: digestmd5.c,v 1.202 2011/01/19 21:28:49 murch Exp $
+ * $Id: digestmd5.c,v 1.203 2011/01/19 23:06:52 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -122,7 +122,7 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.202 2011/01/19 21:28:49 murch Exp $";
+static const char plugin_id[] = "$Id: digestmd5.c,v 1.203 2011/01/19 23:06:52 murch Exp $";
 
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
@@ -1729,18 +1729,16 @@ static char *create_response(context_t * text,
 			     unsigned int ncvalue,
 			     unsigned char *cnonce,
 			     char *qop,
-			     char *digesturi,
 			     const sasl_http_request_t *request,
 			     HASH Secret,
 			     char *authorization_id,
 			     char **response_value)
 {
     HASHHEX         SessionKey;
+    HASH            EntityHash;
+    HASHHEX         HEntity;
     HASHHEX         Response;
     char           *result;
-    /* RFC 2831 defaults */
-    const char	    *method = "AUTHENTICATE";
-    HASHHEX         HEntity = "00000000000000000000000000000000";
     
     if (qop == NULL) qop = "auth";
     
@@ -1752,19 +1750,19 @@ static char *create_response(context_t * text,
 			    cnonce,
 			    SessionKey);
 
-    if (request) {
+    if (text->http_mode) {
 	/* per RFC 2617 */
 	MD5_CTX Md5Ctx;
-	HASH HE;
 
-	method = request->method;
 	utils->MD5Init(&Md5Ctx);
-	utils->MD5Update(&Md5Ctx,
-			 request->entity ? request->entity : (u_char *) "",
-			 request->elen);
-	utils->MD5Final(HE, &Md5Ctx);
-	CvtHex(HE, HEntity);
+	utils->MD5Update(&Md5Ctx, request->entity, request->elen);
+	utils->MD5Final(EntityHash, &Md5Ctx);
     }
+    else {
+	/* per RFC 2831 */
+	memset(EntityHash, 0, HASHLEN);
+    }
+    CvtHex(EntityHash, HEntity);
 
     /* Calculate response for comparison with client's response */
     DigestCalcResponse(utils,
@@ -1774,8 +1772,8 @@ static char *create_response(context_t * text,
 		       cnonce,	/* client nonce */
 		       (unsigned char *) qop,	/* qop-value: "", "auth",
 						 * "auth-int" */
-		       (unsigned char *) digesturi,	/* requested URL */
-		       (unsigned char *) method,
+		       (unsigned char *) request->uri,	/* requested URL */
+		       (unsigned char *) request->method,
 		       HEntity,	/* H(entity body) if qop="auth-int" */
 		       Response	/* request-digest or response-digest */
 	);
@@ -1795,7 +1793,7 @@ static char *create_response(context_t * text,
 			   cnonce,	/* client nonce */
 			   (unsigned char *) qop,	/* qop-value: "", "auth",
 							 * "auth-int" */
-			   (unsigned char *) digesturi,	/* requested URL */
+			   (unsigned char *) request->uri, /* requested URL */
 			   NULL,
 			   HEntity,	/* H(entity body) if qop="auth-int" */
 			   Response	/* request-digest or response-digest */
@@ -2142,7 +2140,8 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     unsigned int   noncecount = 0;
     char           *qop = NULL;
     char           *digesturi = NULL;
-    const sasl_http_request_t *request = NULL;
+    sasl_http_request_t rfc2831_request;
+    const sasl_http_request_t *request;
     char           *response = NULL;
     
     /* setting the default value (65536) */
@@ -2185,6 +2184,14 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     if (text->http_mode) {
 	/* per RFC 2617 (RFC 2616 request as set by calling application) */
 	request = sparams->http_request;
+    }
+    else {
+	/* per RFC 2831 */
+	rfc2831_request.method = "AUTHENTICATE";
+	rfc2831_request.uri = NULL;  /* to be filled in below from response */
+	rfc2831_request.entity = NULL;
+	rfc2831_request.elen = 0;
+	request = &rfc2831_request;
     }
     
     in = sparams->utils->malloc(clientinlen + 1);
@@ -2290,6 +2297,8 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 		}
 
 		/* xxx we don't verify the hostname component */
+
+		rfc2831_request.uri = digesturi;
 	    }
             
 	} else if (strcasecmp(name, "response") == 0) {
@@ -2687,7 +2696,6 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 				     text->nonce_count,
 				     cnonce,
 				     qop,
-				     digesturi,
 				     request,
 				     Secret,
 				     authorization_id,
@@ -2709,7 +2717,6 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 					     text->nonce_count,
 					     cnonce,
 					     qop,
-					     digesturi,
 					     request,
 					     SecretBogus,
 					     authorization_id,

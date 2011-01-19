@@ -1,6 +1,6 @@
 /* SCRAM-SHA-1 SASL plugin
  * Alexey Melnikov
- * $Id: scram.c,v 1.18 2010/09/24 19:54:43 mel Exp $
+ * $Id: scram.c,v 1.19 2011/01/19 10:19:07 mel Exp $
  */
 /* 
  * Copyright (c) 2009-2010 Carnegie Mellon University.  All rights reserved.
@@ -69,7 +69,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: scram.c,v 1.18 2010/09/24 19:54:43 mel Exp $";
+static const char plugin_id[] = "$Id: scram.c,v 1.19 2011/01/19 10:19:07 mel Exp $";
 
 #define NONCE_SIZE (32)		    /* arbitrary */
 #define SALT_SIZE  (16)		    /* arbitrary */
@@ -106,6 +106,10 @@ static const char plugin_id[] = "$Id: scram.c,v 1.18 2010/09/24 19:54:43 mel Exp
 /* NB: A temporary mapping for "internal errors". It would be better to add
    a new SASL error code for that */
 #define SASL_SCRAM_INTERNAL	    SASL_NOMEM
+
+
+#define SCRAM_SASL_MECH		"SCRAM-SHA-1"
+#define SCRAM_SASL_MECH_LEN	11
 
 /* Holds the core salt to avoid regenerating salt each auth. */
 static unsigned char g_salt_key[SALT_SIZE];
@@ -400,7 +404,7 @@ scram_server_mech_step1(server_context_t *text,
     int result;
 
     if (clientinlen == 0) {
-	SETERROR(sparams->utils, "SCRAM-SHA-1 input expected");
+	SETERROR(sparams->utils, SCRAM_SASL_MECH " input expected");
 	return SASL_BADPROT;
     }
 
@@ -408,7 +412,7 @@ scram_server_mech_step1(server_context_t *text,
 		   username "," nonce ["," extensions]' */
 
     if (clientinlen < 10) {
-	SETERROR(sparams->utils, "Invalid SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "Invalid " SCRAM_SASL_MECH " input");
 	return SASL_BADPROT;
     }
 
@@ -423,7 +427,7 @@ scram_server_mech_step1(server_context_t *text,
     inbuf[clientinlen] = 0;
 
     if (strlen(inbuf) != clientinlen) {
-	SETERROR(sparams->utils, "NULs found in SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "NULs found in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -439,7 +443,7 @@ scram_server_mech_step1(server_context_t *text,
     switch (p[0]) {
 	case 'p':
 	    if (clientin[1] != '=') {
-		SETERROR(sparams->utils, "The initial 'p' needs to be followed by '=' in SCRAM-SHA-1 input");
+		SETERROR(sparams->utils, "The initial 'p' needs to be followed by '=' in " SCRAM_SASL_MECH " input");
 		result = SASL_BADPROT;
 		goto cleanup;
 	    }
@@ -456,13 +460,13 @@ scram_server_mech_step1(server_context_t *text,
 	    break;
 
 	default:
-	    SETERROR(sparams->utils, "The initial SCRAM-SHA-1 client response needs to start with 'y', 'n' or 'p'");
+	    SETERROR(sparams->utils, "The initial " SCRAM_SASL_MECH " client response needs to start with 'y', 'n' or 'p'");
 	    result = SASL_BADPROT;
 	    goto cleanup;
     }
 
     if (p[0] != ',') {
-	SETERROR(sparams->utils, "',' expected in SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "',' expected in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -475,7 +479,7 @@ scram_server_mech_step1(server_context_t *text,
 	if (p == NULL) {
 	    text->authorization_id = NULL;
 
-	    SETERROR(sparams->utils, "At least nonce is expected in SCRAM-SHA-1 input");
+	    SETERROR(sparams->utils, "At least nonce is expected in " SCRAM_SASL_MECH " input");
 	    result = SASL_BADPROT;
 	    goto cleanup;
 	}
@@ -491,12 +495,12 @@ scram_server_mech_step1(server_context_t *text,
 	_plug_strdup(sparams->utils, text->authorization_id, &text->authorization_id, NULL);
 
 	if (decode_saslname(text->authorization_id) != SASL_OK) {
-	    SETERROR(sparams->utils, "Invalid authorization identity encoding in SCRAM-SHA-1 input");
+	    SETERROR(sparams->utils, "Invalid authorization identity encoding in " SCRAM_SASL_MECH " input");
 	    result = SASL_BADPROT;
 	    goto cleanup;
 	}
     } else if (p[0] != ',') {
-	SETERROR(sparams->utils, "',' expected in SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "',' expected in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     } else {
@@ -509,19 +513,19 @@ scram_server_mech_step1(server_context_t *text,
     }
 
     if (p[1] != '=') {
-	SETERROR(sparams->utils, "Invalid SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "Invalid " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
 
     if (p[0] == 'm') {
-	SETERROR(sparams->utils, "Unsupported mandatory extension to SCRAM-SHA-1");
+	SETERROR(sparams->utils, "Unsupported mandatory extension to " SCRAM_SASL_MECH);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
 
     if (p[0] != 'n') {
-	SETERROR(sparams->utils, "Username (n=) expected in SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "Username (n=) expected in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -531,7 +535,7 @@ scram_server_mech_step1(server_context_t *text,
 
     /* MUST be followed by a nonce */
     if (p == NULL) {
-	SETERROR(sparams->utils, "Nonce expected after the username in SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "Nonce expected after the username in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -540,7 +544,7 @@ scram_server_mech_step1(server_context_t *text,
     p++;
 
     if (decode_saslname(authentication_id) != SASL_OK) {
-	SETERROR(sparams->utils, "Invalid username encoding in SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "Invalid username encoding in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -548,7 +552,7 @@ scram_server_mech_step1(server_context_t *text,
     _plug_strdup(sparams->utils, authentication_id, &text->authentication_id, NULL);
 
     if (strncmp(p, "r=", 2) != 0) {
-	SETERROR(sparams->utils, "Nonce expected after the username in SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "Nonce expected after the username in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -704,16 +708,16 @@ scram_server_mech_step2(server_context_t *text,
     size_t client_proof_len;
     size_t server_proof_len;
     unsigned exact_client_proof_len;
-    int k;
     unsigned int hash_len = 0;
+    int k;
 
     if (clientinlen == 0) {
-	SETERROR(sparams->utils, "SCRAM-SHA-1 input expected");
+	SETERROR(sparams->utils, SCRAM_SASL_MECH " input expected");
 	return SASL_BADPROT;
     }
 
     if (clientinlen < 3 || clientin[1] != '=') {
-	SETERROR(sparams->utils, "Invalid SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "Invalid " SCRAM_SASL_MECH " input");
 	return SASL_BADPROT;
     }
 
@@ -728,7 +732,7 @@ scram_server_mech_step2(server_context_t *text,
     inbuf[clientinlen] = 0;
 
     if (strlen(inbuf) != clientinlen) {
-	SETERROR(sparams->utils, "NULs found in SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "NULs found in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -738,7 +742,7 @@ scram_server_mech_step2(server_context_t *text,
     p = inbuf;
 
     if (strncmp(p, "c=", 2) != 0) {
-	SETERROR(sparams->utils, "Channel binding expected in SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "Channel binding expected in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -747,7 +751,7 @@ scram_server_mech_step2(server_context_t *text,
 
     p = strchr (channel_binding, ',');
     if (p == NULL) {
-	SETERROR(sparams->utils, "At least nonce is expected in SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "At least nonce is expected in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -755,7 +759,7 @@ scram_server_mech_step2(server_context_t *text,
     p++;
 
     if (strncmp(p, "r=", 2) != 0) {
-	SETERROR(sparams->utils, "Nonce expected in SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "Nonce expected in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -764,7 +768,7 @@ scram_server_mech_step2(server_context_t *text,
 
     p = strchr (nonce, ',');
     if (p == NULL) {
-	SETERROR(sparams->utils, "At least proof is expected in SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "At least proof is expected in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -772,7 +776,7 @@ scram_server_mech_step2(server_context_t *text,
     p++;
 
     if (strcmp(nonce, text->nonce) != 0) {
-	SETERROR(sparams->utils, "Nonce mismatch SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "Nonce mismatch " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -792,7 +796,7 @@ scram_server_mech_step2(server_context_t *text,
     }
 
     if (client_proof == NULL) {
-	SETERROR(sparams->utils, "Client proof is expected in SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "Client proof is expected in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -800,13 +804,13 @@ scram_server_mech_step2(server_context_t *text,
     /* Check that no extension data exists after the proof */
     p = strchr (client_proof, ',');
     if (p != NULL) {
-	SETERROR(sparams->utils, "No extension data is allowed after the client proof in SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "No extension data is allowed after the client proof in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
 
     if (strlen(client_proof) != (SCRAM_HASH_SIZE / 3 * 4 + (SCRAM_HASH_SIZE % 3 ? 4 : 0))) {
-	SETERROR(sparams->utils, "Invalid client proof length in SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "Invalid client proof length in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -979,13 +983,13 @@ scram_server_mech_step2(server_context_t *text,
 				 DecodedClientProof,
 				 SCRAM_HASH_SIZE + 1,
 				 &exact_client_proof_len) != SASL_OK) {
-	SETERROR(sparams->utils, "Invalid base64 encoding of the client proof in SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "Invalid base64 encoding of the client proof in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
 
     if (exact_client_proof_len != SCRAM_HASH_SIZE) {
-	SETERROR(sparams->utils, "Invalid client proof (truncated) in SCRAM-SHA-1 input");
+	SETERROR(sparams->utils, "Invalid client proof (truncated) in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1090,7 +1094,7 @@ static int scram_server_mech_step(void *conn_context,
 
     /* this should be well more than is ever needed */
     if (clientinlen > MAX_CLIENTIN_LEN) {
-	SETERROR(sparams->utils, "SCRAM-SHA-1 input longer than " STRINGIZE((MAX_CLIENTIN_LEN)) " bytes");
+	SETERROR(sparams->utils, SCRAM_SASL_MECH " input longer than " STRINGIZE((MAX_CLIENTIN_LEN)) " bytes");
 	return SASL_BADPROT;
     }
     
@@ -1124,7 +1128,7 @@ static int scram_server_mech_step(void *conn_context,
 
     default: /* should never get here */
 	sparams->utils->log(NULL, SASL_LOG_ERR,
-			   "Invalid SCRAM-SHA-1 server step %d\n", text->state);
+			   "Invalid " SCRAM_SASL_MECH " server step %d\n", text->state);
 	return SASL_FAIL;
     }
     
@@ -1151,7 +1155,7 @@ static void scram_server_mech_dispose(void *conn_context,
 static sasl_server_plug_t scram_server_plugins[] = 
 {
     {
-	"SCRAM-SHA-1",			/* mech_name */
+	SCRAM_SASL_MECH,		/* mech_name */
 	0,				/* max_ssf */
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOACTIVE
@@ -1258,7 +1262,7 @@ scram_client_mech_step1(client_context_t *text,
 
     /* check if sec layer strong enough */
     if (params->props.min_ssf > params->external_ssf) {
-	SETERROR( params->utils, "SSF requested of SCRAM-SHA-1 plugin");
+	SETERROR( params->utils, "SSF requested of " SCRAM_SASL_MECH " plugin");
 	return SASL_TOOWEAK;
     }
     
@@ -1496,24 +1500,24 @@ scram_client_mech_step2(client_context_t *text,
     unsigned int hash_len = 0;
 
     if (serverinlen == 0) {
-	SETERROR(params->utils, "SCRAM-SHA-1 input expected");
+	SETERROR(params->utils, SCRAM_SASL_MECH " input expected");
 	return SASL_BADPROT;
     }
 
     /* [reserved-mext ","] nonce "," salt "," iteration-count ["," extensions] */
 
     if (serverinlen < 3 || serverin[1] != '=') {
-	SETERROR(params->utils, "Invalid SCRAM-SHA-1 input");
+	SETERROR(params->utils, "Invalid " SCRAM_SASL_MECH " input");
 	return SASL_BADPROT;
     }
 
     if (serverin[0] == 'm') {
-	SETERROR(params->utils, "Unsupported mandatory extension to SCRAM-SHA-1");
+	SETERROR(params->utils, "Unsupported mandatory extension to " SCRAM_SASL_MECH);
 	return SASL_BADPROT;
     }
 
     if (serverin[0] != 'r') {
-	SETERROR(params->utils, "Nonce (r=) expected in SCRAM-SHA-1 input");
+	SETERROR(params->utils, "Nonce (r=) expected in " SCRAM_SASL_MECH " input");
 	return SASL_BADPROT;
     }
 
@@ -1527,7 +1531,7 @@ scram_client_mech_step2(client_context_t *text,
     inbuf[serverinlen] = 0;
 
     if (strlen(inbuf) != serverinlen) {
-	SETERROR(params->utils, "NULs found in SCRAM-SHA-1 input");
+	SETERROR(params->utils, "NULs found in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1537,7 +1541,7 @@ scram_client_mech_step2(client_context_t *text,
 
     /* MUST be followed by a salt */
     if (p == NULL) {
-	SETERROR(params->utils, "Salt expected after the nonce in SCRAM-SHA-1 input");
+	SETERROR(params->utils, "Salt expected after the nonce in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1546,7 +1550,7 @@ scram_client_mech_step2(client_context_t *text,
     p++;
 
     if (strncmp(p, "s=", 2) != 0) {
-	SETERROR(params->utils, "Salt expected after the nonce in SCRAM-SHA-1 input");
+	SETERROR(params->utils, "Salt expected after the nonce in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1558,7 +1562,7 @@ scram_client_mech_step2(client_context_t *text,
 
     /* MUST be followed by an iteration-count */
     if (p == NULL) {
-	SETERROR(params->utils, "iteration-count expected after the salt in SCRAM-SHA-1 input");
+	SETERROR(params->utils, "iteration-count expected after the salt in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1567,7 +1571,7 @@ scram_client_mech_step2(client_context_t *text,
     p++;
 
     if (strncmp(p, "i=", 2) != 0) {
-	SETERROR(params->utils, "iteration-count expected after the salt in SCRAM-SHA-1 input");
+	SETERROR(params->utils, "iteration-count expected after the salt in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1585,7 +1589,7 @@ scram_client_mech_step2(client_context_t *text,
     errno = 0;
     text->iteration_count = strtoul(counter, &end, 10);
     if (counter == end || *end != '\0' || errno != 0) {
-	SETERROR(params->utils, "Invalid iteration-count in SCRAM-SHA-1 input");
+	SETERROR(params->utils, "Invalid iteration-count in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1651,7 +1655,7 @@ scram_client_mech_step2(client_context_t *text,
 				text->salt,
 				(unsigned int)text->salt_len + 1,
 				&exact_salt_len) != SASL_OK) {
-	SETERROR(params->utils, "Invalid base64 encoding of the salt in SCRAM-SHA-1 input");
+	SETERROR(params->utils, "Invalid base64 encoding of the salt in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1861,14 +1865,14 @@ scram_client_mech_step3(client_context_t *text,
     unsigned int hash_len = 0;
 
     if (serverinlen < 3) {
-	SETERROR(params->utils, "Invalid SCRAM-SHA-1 input expected");
+	SETERROR(params->utils, "Invalid " SCRAM_SASL_MECH " input expected");
 	return SASL_BADPROT;
     }
 
     /* Expecting: 'verifier ["," extensions]' */
 
     if (strncmp(serverin, "v=", 2) != 0) {
-	SETERROR(params->utils, "ServerSignature expected in SCRAM-SHA-1 input");
+	SETERROR(params->utils, "ServerSignature expected in " SCRAM_SASL_MECH " input");
 	return SASL_BADPROT;
     }
 
@@ -1884,13 +1888,13 @@ scram_client_mech_step3(client_context_t *text,
 				DecodedServerProof,
 				SCRAM_HASH_SIZE + 1,
 				&exact_server_proof_len) != SASL_OK) {
-	SETERROR(params->utils, "Invalid base64 encoding of the server proof in SCRAM-SHA-1 input");
+	SETERROR(params->utils, "Invalid base64 encoding of the server proof in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
 
     if (exact_server_proof_len != SCRAM_HASH_SIZE) {
-	SETERROR(params->utils, "Invalid server proof (truncated) in SCRAM-SHA-1 input");
+	SETERROR(params->utils, "Invalid server proof (truncated) in " SCRAM_SASL_MECH " input");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1964,7 +1968,7 @@ static int scram_client_mech_step(void *conn_context,
 
     /* this should be well more than is ever needed */
     if (serverinlen > MAX_SERVERIN_LEN) {
-	SETERROR(params->utils, "SCRAM-SHA-1 input longer than " STRINGIZE((MAX_SERVERIN_LEN)) " bytes");
+	SETERROR(params->utils, SCRAM_SASL_MECH " input longer than " STRINGIZE((MAX_SERVERIN_LEN)) " bytes");
 	return SASL_BADPROT;
     }
     
@@ -2004,7 +2008,7 @@ static int scram_client_mech_step(void *conn_context,
 
     default: /* should never get here */
 	params->utils->log(NULL, SASL_LOG_ERR,
-			   "Invalid SCRAM-SHA-1 client step %d\n", text->state);
+			   "Invalid " SCRAM_SASL_MECH " client step %d\n", text->state);
 	return SASL_FAIL;
     }
     
@@ -2047,7 +2051,7 @@ static void scram_client_mech_dispose(void *conn_context,
 static sasl_client_plug_t scram_client_plugins[] = 
 {
     {
-	"SCRAM-SHA-1",			/* mech_name */
+	SCRAM_SASL_MECH,		/* mech_name */
 	0,				/* max_ssf */
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOANONYMOUS

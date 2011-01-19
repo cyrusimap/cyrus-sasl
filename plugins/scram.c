@@ -1,6 +1,6 @@
 /* SCRAM-SHA-1 SASL plugin
  * Alexey Melnikov
- * $Id: scram.c,v 1.20 2011/01/19 10:40:11 mel Exp $
+ * $Id: scram.c,v 1.21 2011/01/19 12:05:49 mel Exp $
  */
 /* 
  * Copyright (c) 2009-2010 Carnegie Mellon University.  All rights reserved.
@@ -69,7 +69,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: scram.c,v 1.20 2011/01/19 10:40:11 mel Exp $";
+static const char plugin_id[] = "$Id: scram.c,v 1.21 2011/01/19 12:05:49 mel Exp $";
 
 #define NONCE_SIZE (32)		    /* arbitrary */
 #define SALT_SIZE  (16)		    /* arbitrary */
@@ -737,11 +737,32 @@ scram_server_mech_step1(server_context_t *text,
 
     if (auxprop_values[0].name && auxprop_values[0].values) {
 	char * error_text = NULL;
+	char * s_iteration_count;
+	char * end;
 
 	text->salt = scram_server_user_salt(sparams->utils, text->authentication_id, &text->salt_len);
 
-	text->iteration_count = DEFAULT_ITERATION_COUNTER;
+	sparams->utils->getopt(sparams->utils->getopt_context,
+			       /* Different SCRAM hashes can have different strengh */
+			       SCRAM_SASL_MECH,
+			       "scram_iteration_counter",
+			       &s_iteration_count,
+			       NULL);
 
+	if (s_iteration_count != NULL) {
+	    errno = 0;
+	    text->iteration_count = strtoul(s_iteration_count, &end, 10);
+	    if (s_iteration_count == end || *end != '\0' || errno != 0) {
+		sparams->utils->log(NULL,
+				    SASL_LOG_DEBUG,
+				    "Invalid iteration-count in scram_iteration_count SASL option: not a number. Using the default instead.");
+		s_iteration_count = NULL;
+	    }
+	}
+
+	if (s_iteration_count == NULL) {
+	    text->iteration_count = DEFAULT_ITERATION_COUNTER;
+	}
 
 	result = GenerateScramSecrets (sparams->utils,
 				       auxprop_values[0].values[0],
@@ -1403,6 +1424,31 @@ static int scram_setpass(void *glob_context __attribute__((unused)),
 	char base64_StoredKey[BASE64_LEN(SCRAM_HASH_SIZE) + 1];
 	char base64_ServerKey[BASE64_LEN(SCRAM_HASH_SIZE) + 1];
 	size_t secret_len;
+	unsigned int iteration_count = DEFAULT_ITERATION_COUNTER;
+	char * s_iteration_count;
+	char * end;
+
+	sparams->utils->getopt(sparams->utils->getopt_context,
+			       /* Different SCRAM hashes can have different strengh */
+			       SCRAM_SASL_MECH,
+			       "scram_iteration_counter",
+			       &s_iteration_count,
+			       NULL);
+
+	if (s_iteration_count != NULL) {
+	    errno = 0;
+	    iteration_count = strtoul(s_iteration_count, &end, 10);
+	    if (s_iteration_count == end || *end != '\0' || errno != 0) {
+		sparams->utils->log(NULL,
+				    SASL_LOG_DEBUG,
+				    "Invalid iteration-count in scram_iteration_count SASL option: not a number. Using the default instead.");
+		s_iteration_count = NULL;
+	    }
+	}
+
+	if (s_iteration_count == NULL) {
+	    iteration_count = DEFAULT_ITERATION_COUNTER;
+	}
 
 	sparams->utils->rand(sparams->utils->rpool, salt, SALT_SIZE);
 
@@ -1411,7 +1457,7 @@ static int scram_setpass(void *glob_context __attribute__((unused)),
 				  passlen,
 				  salt,
 				  SALT_SIZE,
-				  DEFAULT_ITERATION_COUNTER,
+				  iteration_count,
 				  StoredKey,
 				  ServerKey,
 				  &error_text);
@@ -1480,7 +1526,7 @@ static int scram_setpass(void *glob_context __attribute__((unused)),
 	sprintf(sec->data,
 		"%s$%u:%s$%s:%s",
 		SCRAM_SASL_MECH,
-		DEFAULT_ITERATION_COUNTER,
+		iteration_count,
 		base64_salt,
 		base64_StoredKey,
 		base64_ServerKey);
@@ -1571,15 +1617,15 @@ int scram_server_plug_init(const sasl_utils_t *utils,
 			     int *plugcount)
 {
     if (maxversion < SASL_SERVER_PLUG_VERSION) {
-	SETERROR( utils, "SCRAM version mismatch");
+	SETERROR( utils, SCRAM_SASL_MECH " version mismatch");
 	return SASL_BADVERS;
     }
 
     *out_version = SASL_SERVER_PLUG_VERSION;
     *pluglist = scram_server_plugins;
-    *plugcount = 1;  
+    *plugcount = 1;
     utils->rand(utils->rpool, (char *)g_salt_key, SALT_SIZE);
-
+    
     return SASL_OK;
 }
 
@@ -2466,7 +2512,7 @@ int scram_client_plug_init(const sasl_utils_t *utils,
 			     int *plugcount)
 {
     if (maxversion < SASL_CLIENT_PLUG_VERSION) {
-	SETERROR( utils, "SCRAM version mismatch");
+	SETERROR( utils, SCRAM_SASL_MECH " version mismatch");
 	return SASL_BADVERS;
     }
     

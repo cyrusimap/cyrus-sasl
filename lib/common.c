@@ -1,7 +1,7 @@
 /* common.c - Functions that are common to server and clinet
  * Rob Siemborski
  * Tim Martin
- * $Id: common.c,v 1.129 2011/01/19 12:15:42 mel Exp $
+ * $Id: common.c,v 1.130 2011/01/19 21:28:49 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1047,6 +1047,12 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, const void **pvalue)
 	  *(void **)pvalue = 
               ((sasl_server_conn_t *)conn)->sparams->gss_creds;
       break;
+  case SASL_HTTP_REQUEST: {
+      if (conn->type == SASL_CONN_SERVER)
+	  *(const sasl_http_request_t **)pvalue =
+	      ((sasl_server_conn_t *)conn)->sparams->http_request;
+      break;
+  }
   default: 
       result = SASL_BADPARAM;
   }
@@ -1274,22 +1280,14 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
         ((sasl_client_conn_t *)conn)->cparams->cbinding = cb;
     break;
   }
-  case SASL_HTTP_METHOD:
-      if(value && strlen(value)) {
-	  result = _sasl_strdup(value, &str, NULL);
-	  if(result != SASL_OK) MEMERROR(conn);
-      } else {
-	  str = NULL;
-      }
 
-      if(conn->type == SASL_CONN_SERVER) {
-	  if(((sasl_server_conn_t *)conn)->sparams->http_method)
-	      sasl_FREE(((sasl_server_conn_t *)conn)->sparams->http_method);
+  case SASL_HTTP_REQUEST: {
+      const sasl_http_request_t *req = (const sasl_http_request_t *)value;
 
-	  ((sasl_server_conn_t *)conn)->sparams->http_method = str;
-      }
-
+      if (conn->type == SASL_CONN_SERVER)
+	  ((sasl_server_conn_t *)conn)->sparams->http_request = req;
       break;
+  }
 
   default:
       sasl_seterror(conn, 0, "Unknown parameter type");

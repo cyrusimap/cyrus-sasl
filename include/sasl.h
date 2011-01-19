@@ -836,8 +836,15 @@ typedef struct sasl_channel_binding {
 
 #define SASL_CHANNEL_BINDING    21
 
-/* HTTP request method (RFC 2616) - ONLY used for HTTP Digest auth (RFC 2617) */
-#define SASL_HTTP_METHOD	22
+/* HTTP Request (RFC 2616) - ONLY used for HTTP Digest Auth (RFC 2617) */
+typedef struct sasl_http_request {
+    const char *method;
+    const char *uri;
+    const unsigned char *entity;
+    unsigned long elen;
+} sasl_http_request_t;
+
+#define SASL_HTTP_REQUEST	22
 
 /* set property in SASL connection state
  * returns:

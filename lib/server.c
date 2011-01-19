@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.168 2011/01/19 12:27:44 mel Exp $
+ * $Id: server.c,v 1.169 2011/01/19 21:28:49 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -2277,6 +2277,11 @@ _sasl_print_mechanism (
 
         if (m->plug->features & SASL_FEAT_CHANNEL_BINDING) {
 	    printf ("%cCHANNEL_BINDING", delimiter);
+	    delimiter = '|';
+	}
+
+        if (m->plug->features & SASL_FEAT_SUPPORTS_HTTP) {
+	    printf ("%cSUPPORTS_HTTP", delimiter);
 	    delimiter = '|';
 	}
     }

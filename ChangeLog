@@ -1,9 +1,63 @@
+2011-01-21  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/client.c, lib/server.c, lib/common.c, lib/saslint.h: Fixed libsasl
+	  to accept *-PLUS SASL mechanism names in client_mech_list/mech_list options.
+	  As *-PLUS mechanism names were synthesized and didn't correspond to real
+	  plugin names, setting client_mech_list to "SCRAM-SHA-1-PLUS" (for example)
+	  was resulting in authentication failure due to inability to find a matching
+	  SASL plugin.
+
+2011-01-21  Alexey Melnikov <alexey.melnikov@isode.com>
+	* include/saslplug.h, lib/client.c: Fixed handling of channel bindings
+	  on the client side. The client side was failing to select a suitable
+	  SASL mechanism when the application specified channel bindings, but
+	  didn't make them mandatory to use. In such a configuration, if a
+	  non channel binding capable mechanism was selected through
+	  "client_mech_list" SASL option, sasl_client_start would fail.
+	  For example if the server supports both SCRAM-SHA-1[-PLUS] and
+	  PLAIN and "client_mech_list" was set to "PLAIN", authentication
+	  would never work.
+
+2011-01-21  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/client.c, lib/server.c: Better default ordering of SASL mechanisms.
+	  Ordering by plugins max_ssf produces wrong result in case an application
+	  using SASL doesn't care about SASL security layers. Before this change
+	  DIGEST-MD5 was always preferred over SCRAM-SHA-1[-PLUS]. In particular
+	  this change takes support for channel bindings into considerations.
+
 2011-01-19  Ken Murchison <murch@andrew.cmu.edu>
 	* include/sasl.h, include/saslplug.h,
 	  lib/common.c, lib/server.c, plugins/digest-md5.c:
 	  Changed server-side of HTTP Digest so that the application
 	  must pass an HTTP Request structure (Method/URI/Entity-Body)
 	  rather than just the HTTP Method
+
+2011-01-19  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/server.c: Server side SASL context should list *-PLUS SASL
+	  mechanisms before the corresponding non-PLUS mechanisms for naive
+	  SASL clients.
+
+2011-01-19  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/common.c: Fixed some Windows warnings in SASL security layer
+	  handling.
+
+2011-01-19  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/scram.c: Made the default number of SCRAM hash iterations
+	  configurable using a new SASL option called "scram_iteration_counter".
+	  Also fixed a couple of error messages.
+
+2011-01-19  Alexey Melnikov <alexey.melnikov@isode.com>
+	* utils/pluginviewer.c: Fixed some Linux warnings in pluginviewer.
+
+2011-01-19  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/scram.c: Added support for storing SCRAM secrets in
+	  authPassword attribute. Also added the "scram_secret_generate" option
+	  for controlling if authPassword SCRAM secret should be generated
+	  or not. By default (when not specified) the authPassword SCRAM secret
+	  is NOT generated.
+
+2011-01-19  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/scram.c: Updated the SCRAM plugin not to use the hardcoded
+	  SCRAM-SHA-1 plugin name in logging.
 
 2011-01-18  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/digestmd5.c: Use the same username for reauthentication

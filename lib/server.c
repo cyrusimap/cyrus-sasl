@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.169 2011/01/19 21:28:49 murch Exp $
+ * $Id: server.c,v 1.170 2011/01/21 14:58:07 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -385,26 +385,31 @@ static int mech_compare(const sasl_server_plug_t *a,
 			const sasl_server_plug_t *b)
 {
     unsigned sec_diff;
-
-    if (a->max_ssf > b->max_ssf) return 1;
-    if (a->max_ssf < b->max_ssf) return -1;
+    unsigned features_diff;
 
     /* XXX  the following is fairly arbitrary, but its independent
        of the order in which the plugins are loaded
     */
     sec_diff = a->security_flags ^ b->security_flags;
-    if (sec_diff & a->security_flags & SASL_SEC_FORWARD_SECRECY) return 1;
-    if (sec_diff & b->security_flags & SASL_SEC_FORWARD_SECRECY) return -1;
-    if (sec_diff & a->security_flags & SASL_SEC_NOACTIVE) return 1;
-    if (sec_diff & b->security_flags & SASL_SEC_NOACTIVE) return -1;
-    if (sec_diff & a->security_flags & SASL_SEC_NODICTIONARY) return 1;
-    if (sec_diff & b->security_flags & SASL_SEC_NODICTIONARY) return -1;
-    if (sec_diff & a->security_flags & SASL_SEC_MUTUAL_AUTH) return 1;
-    if (sec_diff & b->security_flags & SASL_SEC_MUTUAL_AUTH) return -1;
     if (sec_diff & a->security_flags & SASL_SEC_NOANONYMOUS) return 1;
     if (sec_diff & b->security_flags & SASL_SEC_NOANONYMOUS) return -1;
     if (sec_diff & a->security_flags & SASL_SEC_NOPLAINTEXT) return 1;
     if (sec_diff & b->security_flags & SASL_SEC_NOPLAINTEXT) return -1;
+    if (sec_diff & a->security_flags & SASL_SEC_MUTUAL_AUTH) return 1;
+    if (sec_diff & b->security_flags & SASL_SEC_MUTUAL_AUTH) return -1;
+    if (sec_diff & a->security_flags & SASL_SEC_NOACTIVE) return 1;
+    if (sec_diff & b->security_flags & SASL_SEC_NOACTIVE) return -1;
+    if (sec_diff & a->security_flags & SASL_SEC_NODICTIONARY) return 1;
+    if (sec_diff & b->security_flags & SASL_SEC_NODICTIONARY) return -1;
+    if (sec_diff & a->security_flags & SASL_SEC_FORWARD_SECRECY) return 1;
+    if (sec_diff & b->security_flags & SASL_SEC_FORWARD_SECRECY) return -1;
+
+    features_diff = a->features ^ b->features;
+    if (features_diff & a->features & SASL_FEAT_CHANNEL_BINDING) return 1;
+    if (features_diff & b->features & SASL_FEAT_CHANNEL_BINDING) return -1;
+
+    if (a->max_ssf > b->max_ssf) return 1;
+    if (a->max_ssf < b->max_ssf) return -1;
 
     return 0;
 }

@@ -1,4 +1,7 @@
 2011-01-21  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/scram.c: Added support for channel bindings to SCRAM-SHA-1.
+
+2011-01-21  Alexey Melnikov <alexey.melnikov@isode.com>
 	* lib/client.c, lib/server.c, lib/common.c, lib/saslint.h: Fixed libsasl
 	  to accept *-PLUS SASL mechanism names in client_mech_list/mech_list options.
 	  As *-PLUS mechanism names were synthesized and didn't correspond to real

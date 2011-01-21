@@ -1,6 +1,6 @@
 /* SCRAM-SHA-1 SASL plugin
  * Alexey Melnikov
- * $Id: scram.c,v 1.21 2011/01/19 12:05:49 mel Exp $
+ * $Id: scram.c,v 1.22 2011/01/21 15:37:44 mel Exp $
  */
 /* 
  * Copyright (c) 2009-2010 Carnegie Mellon University.  All rights reserved.
@@ -69,7 +69,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: scram.c,v 1.21 2011/01/19 12:05:49 mel Exp $";
+static const char plugin_id[] = "$Id: scram.c,v 1.22 2011/01/21 15:37:44 mel Exp $";
 
 #define NONCE_SIZE (32)		    /* arbitrary */
 #define SALT_SIZE  (16)		    /* arbitrary */
@@ -98,6 +98,11 @@ static const char plugin_id[] = "$Id: scram.c,v 1.21 2011/01/19 12:05:49 mel Exp
 #define SERVER_KEY_CONSTANT	    "Server Key"
 #define CLIENT_KEY_CONSTANT_LEN	    sizeof(CLIENT_KEY_CONSTANT)-1
 #define SERVER_KEY_CONSTANT_LEN	    sizeof(SERVER_KEY_CONSTANT)-1
+
+#define SCRAM_CB_FLAG_MASK    0x0F
+#define SCRAM_CB_FLAG_N       0x00
+#define SCRAM_CB_FLAG_P       0x01
+#define SCRAM_CB_FLAG_Y       0x02
 
 #ifdef SCRAM_DEBUG
 #define PRINT_HASH(func,hash)	    print_hash(func,hash)
@@ -449,6 +454,11 @@ typedef struct server_context {
     unsigned int iteration_count;
     char StoredKey[SCRAM_HASH_SIZE + 1];
     char ServerKey[SCRAM_HASH_SIZE + 1];
+
+    int cb_flags;
+    char *cbindingname;
+    char *gs2_header;
+    size_t gs2_header_length;
 } server_context_t;
 
 static int
@@ -491,7 +501,6 @@ scram_server_mech_step1(server_context_t *text,
     char * base64_salt = NULL;
     size_t base64len;
     size_t estimated_challenge_len;
-    size_t gs2_header_length = 0;
     size_t pure_scram_length;
     char * inbuf = NULL;
     const char *password_request[] = { SASL_AUX_PASSWORD,
@@ -541,19 +550,38 @@ scram_server_mech_step1(server_context_t *text,
                          ;; The selected channel binding follows "p=". */
     switch (p[0]) {
 	case 'p':
-	    if (clientin[1] != '=') {
+	    if (p[1] != '=') {
 		SETERROR(sparams->utils, "The initial 'p' needs to be followed by '=' in " SCRAM_SASL_MECH " input");
 		result = SASL_BADPROT;
 		goto cleanup;
 	    }
+	    p++;
+
+	    text->cbindingname = p + 1;
+	    p = strchr (p, ',');
+	    if (p == NULL) {
+		text->cbindingname = NULL;
+
+		SETERROR(sparams->utils, "Channel binding name must be terminated by a comma in " SCRAM_SASL_MECH " input");
+		result = SASL_BADPROT;
+		goto cleanup;
+	    }
+
+	    *p = '\0';
+	    _plug_strdup(sparams->utils, text->cbindingname, &text->cbindingname, NULL);
+	    *p = ',';
+
+	    text->cb_flags = SCRAM_CB_FLAG_P;
 	    break;
 
 	case 'n':
+	    text->cb_flags = SCRAM_CB_FLAG_N;
 	    /* We always have at least 10 bytes, so this is safe */
 	    p++;
 	    break;
 
 	case 'y':
+	    text->cb_flags = SCRAM_CB_FLAG_Y;
 	    /* We always have at least 10 bytes, so this is safe */
 	    p++;
 	    break;
@@ -586,7 +614,7 @@ scram_server_mech_step1(server_context_t *text,
 	/* End of the GS2 header */
 	p[0] = '\0';
 	/* The GS2 header length DOES include the terminating comma */
-	gs2_header_length = p - inbuf + 1;
+	text->gs2_header_length = p - inbuf + 1;
 
 	p++;
 
@@ -606,10 +634,24 @@ scram_server_mech_step1(server_context_t *text,
 	/* End of the GS2 header */
 	p[0] = '\0';
 	/* The GS2 header length DOES include the terminating comma */
-	gs2_header_length = p - inbuf + 1;
+	text->gs2_header_length = p - inbuf + 1;
 
 	p++;
     }
+
+    text->gs2_header = sparams->utils->malloc (text->gs2_header_length + 1);
+    if (text->gs2_header == NULL) {
+	MEMERROR( sparams->utils );
+	result = SASL_NOMEM;
+	goto cleanup;
+    }
+
+    memcpy(text->gs2_header, inbuf, text->gs2_header_length - 1);
+    /* Remember the comma */
+    text->gs2_header[text->gs2_header_length - 1] = ',';
+    text->gs2_header[text->gs2_header_length] = 0;
+
+
 
     if (p[1] != '=') {
 	SETERROR(sparams->utils, "Invalid " SCRAM_SASL_MECH " input");
@@ -1002,7 +1044,7 @@ scram_server_mech_step1(server_context_t *text,
 
     /* Save the (client response, ",", server challenge, ",").
        Note, we skip the GS2 prefix here */
-    pure_scram_length = clientinlen - gs2_header_length;
+    pure_scram_length = clientinlen - text->gs2_header_length;
     text->auth_message_len = pure_scram_length + 1 + estimated_challenge_len + 1;
     text->auth_message = sparams->utils->malloc (text->auth_message_len + 1);
     if (text->auth_message == NULL) {
@@ -1011,7 +1053,7 @@ scram_server_mech_step1(server_context_t *text,
 	goto cleanup;
     }
 
-    memcpy(text->auth_message, clientin + gs2_header_length, pure_scram_length);
+    memcpy(text->auth_message, clientin + text->gs2_header_length, pure_scram_length);
     text->auth_message[pure_scram_length] = ',';
     strcpy (text->auth_message + pure_scram_length + 1, text->out_buf);
     strcat (text->auth_message + pure_scram_length + 1, ",");
@@ -1045,6 +1087,9 @@ scram_server_mech_step2(server_context_t *text,
 			sasl_out_params_t *oparams)
 {
     char *channel_binding = NULL;
+    size_t channel_binding_len = 0;
+    char *binary_channel_binding = NULL;
+    size_t binary_channel_binding_len = 0;
     char *client_proof = NULL;
     char *inbuf = NULL;
     char *p;
@@ -1109,6 +1154,74 @@ scram_server_mech_step2(server_context_t *text,
     }
     *p = '\0';
     p++;
+
+    channel_binding_len = strlen(channel_binding);
+
+    /* We can calculate the exact length, but the decoded (binary) data
+       is always shorter than its base64 version. */
+    binary_channel_binding = (char *) sparams->utils->malloc(channel_binding_len + 1);
+
+    if (sparams->utils->decode64(channel_binding,
+				 (unsigned int)channel_binding_len,
+				 binary_channel_binding,
+				 (unsigned int)channel_binding_len,
+				 &binary_channel_binding_len) != SASL_OK) {
+	SETERROR(sparams->utils, "Invalid base64 encoding of the channel bindings in " SCRAM_SASL_MECH);
+	result = SASL_BADPROT;
+	goto cleanup;
+    }
+
+    if (binary_channel_binding_len < text->gs2_header_length ||
+	strncmp(binary_channel_binding, text->gs2_header, text->gs2_header_length) != 0) {
+	sparams->utils->seterror (sparams->utils->conn,
+				  0,
+				  "Channel bindings prefix doesn't match the one received in the GS2 header of "
+				  SCRAM_SASL_MECH ". Expected \"%s\"",
+				  text->gs2_header);
+	result = SASL_BADPROT;
+	goto cleanup;
+    }
+
+    switch (text->cb_flags & SCRAM_CB_FLAG_MASK) {
+    case SCRAM_CB_FLAG_P:
+	binary_channel_binding_len -= text->gs2_header_length;
+	if (binary_channel_binding_len == 0) {
+	    SETERROR(sparams->utils, "Channel bindings data expected in " SCRAM_SASL_MECH);
+	    result = SASL_BADPROT;
+	    goto cleanup;
+	}
+
+	if (strcmp(sparams->cbinding->name, text->cbindingname) != 0) {
+	    sparams->utils->seterror (sparams->utils->conn,
+				      0,
+				      "Unsupported channel bindings type received in " SCRAM_SASL_MECH
+				      ". Expected: %s, received: %s",
+				      sparams->cbinding->name,
+				      text->cbindingname);
+	    result = SASL_BADPROT;
+	    goto cleanup;
+	}
+
+	if (binary_channel_binding_len != sparams->cbinding->len) {
+	    sparams->utils->seterror (sparams->utils->conn,
+				      0,
+				      "Unsupported channel bindings length received in " SCRAM_SASL_MECH
+				      ". Expected lenght: %d, received: %d",
+				      sparams->cbinding->len,
+				      binary_channel_binding_len);
+	    result = SASL_BADPROT;
+	    goto cleanup;
+	}
+
+	if (memcmp(binary_channel_binding + text->gs2_header_length,
+		   sparams->cbinding->data,
+		   binary_channel_binding_len) != 0) {
+	    SETERROR(sparams->utils, "Channel bindings mismatch in " SCRAM_SASL_MECH);
+	    result = SASL_BADPROT;
+	    goto cleanup;
+	}
+        break;
+    }
 
     if (strncmp(p, "r=", 2) != 0) {
 	SETERROR(sparams->utils, "Nonce expected in " SCRAM_SASL_MECH " input");
@@ -1278,6 +1391,20 @@ scram_server_mech_step2(server_context_t *text,
 
 
     /* set oparams */
+
+    switch (text->cb_flags & SCRAM_CB_FLAG_MASK) {
+    case SCRAM_CB_FLAG_N:
+        oparams->cbindingdisp = SASL_CB_DISP_NONE;
+        break;
+    case SCRAM_CB_FLAG_P:
+        oparams->cbindingdisp = SASL_CB_DISP_USED;
+        oparams->cbindingname = text->cbindingname;
+        break;
+    case SCRAM_CB_FLAG_Y:
+        oparams->cbindingdisp = SASL_CB_DISP_WANT;
+        break;
+    }
+
     oparams->doneflag = 1;
     oparams->mech_ssf = 0;
     oparams->maxoutbuf = 0;
@@ -1290,6 +1417,9 @@ scram_server_mech_step2(server_context_t *text,
     result = SASL_OK;
     
 cleanup:
+    if (binary_channel_binding != NULL) {
+	sparams->utils->free(binary_channel_binding);
+    }
 
     return result;
 }
@@ -1583,7 +1713,15 @@ static void scram_server_mech_dispose(void *conn_context,
     if (text->auth_message) _plug_free_string(utils,&(text->auth_message));
     if (text->nonce) _plug_free_string(utils,&(text->nonce));
     if (text->salt) utils->free(text->salt);
-   
+    if (text->cbindingname != NULL) {
+	utils->free(text->cbindingname);
+	text->cbindingname = NULL;
+    }
+    if (text->gs2_header != NULL) {
+	utils->free(text->gs2_header);
+	text->gs2_header = NULL;
+    }
+
     utils->free(text);
 }
 
@@ -1596,7 +1734,8 @@ static sasl_server_plug_t scram_server_plugins[] =
 	| SASL_SEC_NOACTIVE
 	| SASL_SEC_NOANONYMOUS
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
-	SASL_FEAT_ALLOWS_PROXY,		/* features */
+	SASL_FEAT_ALLOWS_PROXY
+	| SASL_FEAT_CHANNEL_BINDING,	/* features */
 	NULL,				/* glob_context */
 	&scram_server_mech_new,		/* mech_new */
 	&scram_server_mech_step,	/* mech_step */
@@ -1649,6 +1788,8 @@ typedef struct client_context {
     size_t salt_len;
     unsigned int iteration_count;
     char SaltedPassword[SCRAM_HASH_SIZE];
+
+    int cb_flags;
 } client_context_t;
 
 static int scram_client_mech_new(void *glob_context __attribute__((unused)), 
@@ -1800,6 +1941,26 @@ scram_client_mech_step1(client_context_t *text,
 	}
     }
 
+    switch (params->cbindingdisp) {
+    case SASL_CB_DISP_NONE:
+	text->cb_flags = SCRAM_CB_FLAG_N;
+	channel_binding_state = 'n';
+	break;
+    case SASL_CB_DISP_USED:
+	if (!SASL_CB_PRESENT(params)) {
+	    result = SASL_BADPARAM;
+	    goto cleanup;
+	}
+	channel_binding_name = params->cbinding->name;
+	text->cb_flags = SCRAM_CB_FLAG_P;
+	channel_binding_state = 'p';
+	break;
+    case SASL_CB_DISP_WANT:
+	text->cb_flags = SCRAM_CB_FLAG_Y;
+	channel_binding_state = 'y';
+	break;
+    }
+
     text->nonce = params->utils->malloc (NONCE_SIZE + 1);
 
     if (text->nonce == NULL) {
@@ -1864,12 +2025,10 @@ scram_client_mech_step1(client_context_t *text,
     text->gs2_header_length = strlen(text->out_buf);
     _plug_strdup(params->utils, text->out_buf, &text->gs2_header, NULL);
 
-    snprintf(text->out_buf + text->gs2_header_length,
-	     maxsize + 1,
-	     "n=%s,r=%s",
-	     encoded_authcid,
-	     text->nonce);
-
+    sprintf(text->out_buf + text->gs2_header_length,
+	    "n=%s,r=%s",
+	    encoded_authcid,
+	    text->nonce);
 
     /* Save the copy of the client-first-message */
 
@@ -1921,9 +2080,11 @@ scram_client_mech_step2(client_context_t *text,
     size_t length_no_proof;
     char * full_auth_message;
     size_t cb_bin_length;
+    size_t channel_binding_data_len = 0;
     size_t cb_encoded_length;
     char * channel_binding_data = NULL;
     char * cb_encoded = NULL;
+    char * cb_bin = NULL;
     int result;
     char ClientKey[SCRAM_HASH_SIZE];
     char StoredKey[SCRAM_HASH_SIZE];
@@ -2100,12 +2261,32 @@ scram_client_mech_step2(client_context_t *text,
     /* Now we generate client response */
 
     if (text->gs2_header[0] == 'p') {
+
+	if (params->cbinding == NULL) {
+	    result = SASL_FAIL;
+	    goto cleanup;
+	}
+
+	channel_binding_data = params->cbinding->data;
+	channel_binding_data_len = params->cbinding->len;
     }
 
     cb_bin_length = text->gs2_header_length + 
-		    ((channel_binding_data != NULL) ? strlen(channel_binding_data) : 0);
+		    ((channel_binding_data != NULL) ? channel_binding_data_len : 0);
     cb_encoded_length = (cb_bin_length / 3 * 4) + ((cb_bin_length % 3) ? 4 : 0);
     
+    if (channel_binding_data != NULL) {
+	cb_bin = (char *) params->utils->malloc(cb_bin_length + 1);
+	if (cb_bin == NULL) {
+	    MEMERROR( params->utils );
+	    result = SASL_NOMEM;
+	    goto cleanup;
+	}
+
+	memcpy(cb_bin, text->gs2_header, text->gs2_header_length);
+	memcpy(cb_bin + text->gs2_header_length, channel_binding_data, channel_binding_data_len);
+    }
+
     cb_encoded = (char *) params->utils->malloc(cb_encoded_length + 1);
     if (cb_encoded == NULL) {
 	MEMERROR( params->utils );
@@ -2116,12 +2297,11 @@ scram_client_mech_step2(client_context_t *text,
     /*
      * Returns SASL_OK on success, SASL_BUFOVER if result won't fit
      */
-    if (params->utils->encode64(
-				 text->gs2_header,
-				 (unsigned int)cb_bin_length,
-				 cb_encoded,
-				 (unsigned int)cb_encoded_length + 1,
-				 NULL) != SASL_OK) {
+    if (params->utils->encode64((cb_bin != NULL) ? cb_bin : text->gs2_header,
+				(unsigned int)cb_bin_length,
+				cb_encoded,
+				(unsigned int)cb_encoded_length + 1,
+				NULL) != SASL_OK) {
 	MEMERROR( params->utils );
 	result = SASL_NOMEM;
 	goto cleanup;
@@ -2273,6 +2453,10 @@ cleanup:
 
     if (cb_encoded != NULL) {
 	params->utils->free(cb_encoded);
+    }
+
+    if (cb_bin != NULL) {
+	params->utils->free(cb_bin);
     }
 
     return result;
@@ -2492,7 +2676,8 @@ static sasl_client_plug_t scram_client_plugins[] =
 	| SASL_SEC_NOANONYMOUS
 	| SASL_SEC_NOACTIVE
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
-	SASL_FEAT_ALLOWS_PROXY, 	/* features */
+	SASL_FEAT_ALLOWS_PROXY
+	| SASL_FEAT_CHANNEL_BINDING, 	/* features */
 	NULL,				/* required_prompts */
 	NULL,				/* glob_context */
 	&scram_client_mech_new,		/* mech_new */

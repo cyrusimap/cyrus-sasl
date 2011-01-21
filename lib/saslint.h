@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.71 2010/12/01 15:08:00 mel Exp $
+ * $Id: saslint.h,v 1.72 2011/01/21 15:19:36 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -319,6 +319,7 @@ void sasl_common_done(void);
 
 extern int _sasl_is_equal_mech(const char *req_mech,
                                const char *plug_mech,
+                               size_t req_mech_len,
                                int *plus);
 
 /*

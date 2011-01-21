@@ -1,7 +1,7 @@
 /* SASL client API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.83 2011/01/21 15:02:41 mel Exp $
+ * $Id: client.c,v 1.84 2011/01/21 15:19:36 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -396,6 +396,7 @@ int sasl_client_new(const char *service,
   sasl_getopt_t *getopt;
   void *context;
   const char *mlist = NULL;
+  int plus = 0;
 
   if (_sasl_client_active == 0) return SASL_NOTINIT;
   
@@ -455,10 +456,10 @@ int sasl_client_new(const char *service,
 	  for (mptr = cmechlist->mech_list; mptr; mptr = mptr->next) {
 	      const sasl_client_plug_t *plug = mptr->m.plug;
 
-	      if (((size_t) (cp - mlist) == strlen(plug->mech_name)) &&
-		  !strncasecmp(mlist, plug->mech_name, strlen(plug->mech_name)))
+	      if (_sasl_is_equal_mech(mlist, plug->mech_name, (size_t) (cp - mlist), &plus)) {
 		  /* found a match */
 		  break;
+	      }
 	  }
 	  if (mptr) {
 	      new = sasl_ALLOC(sizeof(cmechanism_t));
@@ -692,7 +693,7 @@ int sasl_client_start(sasl_conn_t *conn,
     sasl_client_conn_t *c_conn = (sasl_client_conn_t *) conn;
     char *ordered_mechs = NULL, *name;
     cmechanism_t *m = NULL, *bestm = NULL;
-    size_t i, list_len;
+    size_t i, list_len, name_len;
     sasl_ssf_t bestssf = 0, minssf = 0;
     int result, server_can_cb = 0;
     sasl_cbinding_disp_t cbindingdisp;
@@ -747,11 +748,13 @@ int sasl_client_start(sasl_conn_t *conn,
 
     for (i = 0, name = ordered_mechs; i < list_len; i++) {
 
+	name_len = strlen(name);
+
 	/* for each mechanism in client's list */
 	for (m = c_conn->mech_list; m != NULL; m = m->next) {
 	    int myflags, plus;
 
-	    if (!_sasl_is_equal_mech(name, m->m.plug->mech_name, &plus)) {
+	    if (!_sasl_is_equal_mech(name, m->m.plug->mech_name, name_len, &plus)) {
 		continue;
 	    }
 

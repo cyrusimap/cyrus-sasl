@@ -1,7 +1,7 @@
 /* SASL client API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.82 2011/01/21 14:58:07 mel Exp $
+ * $Id: client.c,v 1.83 2011/01/21 15:02:41 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -644,10 +644,11 @@ _sasl_cbinding_disp(sasl_client_params_t *cparams,
 
     if (SASL_CB_PRESENT(cparams)) {
         if (mech_nego) {
-            if (!server_can_cb && SASL_CB_CRITICAL(cparams))
+	    if (!server_can_cb && SASL_CB_CRITICAL(cparams)) {
 	        return SASL_NOMECH;
-            else
+	    } else {
                 *cbindingdisp = SASL_CB_DISP_WANT;
+	    }
         } else if (SASL_CB_CRITICAL(cparams)) {
             *cbindingdisp = SASL_CB_DISP_USED;
         }
@@ -690,11 +691,13 @@ int sasl_client_start(sasl_conn_t *conn,
 {
     sasl_client_conn_t *c_conn = (sasl_client_conn_t *) conn;
     char *ordered_mechs = NULL, *name;
-    cmechanism_t *m=NULL,*bestm=NULL;
+    cmechanism_t *m = NULL, *bestm = NULL;
     size_t i, list_len;
     sasl_ssf_t bestssf = 0, minssf = 0;
     int result, server_can_cb = 0;
     sasl_cbinding_disp_t cbindingdisp;
+    sasl_cbinding_disp_t cur_cbindingdisp;
+    sasl_cbinding_disp_t best_cbindingdisp = SASL_CB_DISP_NONE;
 
     if (_sasl_client_active == 0) return SASL_NOTINIT;
 
@@ -735,18 +738,22 @@ int sasl_client_start(sasl_conn_t *conn,
      * are doing mechanism negotiation and whether server supports
      * channel bindings.
      */
-    result = _sasl_cbinding_disp(c_conn->cparams, (list_len > 1),
-                                 server_can_cb, &cbindingdisp);
+    result = _sasl_cbinding_disp(c_conn->cparams,
+				 (list_len > 1),
+                                 server_can_cb,
+				 &cbindingdisp);
     if (result != 0)
 	goto done;
 
     for (i = 0, name = ordered_mechs; i < list_len; i++) {
+
 	/* for each mechanism in client's list */
 	for (m = c_conn->mech_list; m != NULL; m = m->next) {
 	    int myflags, plus;
 
-	    if (!_sasl_is_equal_mech(name, m->m.plug->mech_name, &plus))
+	    if (!_sasl_is_equal_mech(name, m->m.plug->mech_name, &plus)) {
 		continue;
+	    }
 
 	    /* Do we have the prompts for it? */
 	    if (!have_prompts(conn, m->m.plug))
@@ -770,7 +777,7 @@ int sasl_client_start(sasl_conn_t *conn,
 	    }
 
 	    /* Can we meet it's features? */
-	    if (cbindingdisp != SASL_CB_DISP_NONE &&
+	    if (cbindingdisp == SASL_CB_DISP_USED &&
 		!(m->m.plug->features & SASL_FEAT_CHANNEL_BINDING)) {
 		break;
 	    }
@@ -785,20 +792,6 @@ int sasl_client_start(sasl_conn_t *conn,
 		!(m->m.plug->features & SASL_FEAT_ALLOWS_PROXY)) {
 		break;
 	    }
-
-#ifdef PREFER_MECH
-	    if (strcasecmp(m->m.plug->mech_name, PREFER_MECH) &&
-		bestm && m->m.plug->max_ssf <= bestssf) {
-		/* this mechanism isn't our favorite, and it's no better
-		   than what we already have! */
-		break;
-	    }
-#else
-	    if (bestm && m->m.plug->max_ssf <= bestssf) {
-		/* this mechanism is no better than what we already have! */
-		break;
-	    }
-#endif
 
 	    /* compare security flags, only take new mechanism if it has
 	     * all the security flags of the previous one.
@@ -825,12 +818,34 @@ int sasl_client_start(sasl_conn_t *conn,
 	    }
 
 	    if (SASL_CB_PRESENT(c_conn->cparams) && plus) {
-		cbindingdisp = SASL_CB_DISP_USED;
+		cur_cbindingdisp = SASL_CB_DISP_USED;
+	    } else {
+		cur_cbindingdisp = cbindingdisp;
 	    }
+
+	    if (bestm && (best_cbindingdisp > cur_cbindingdisp)) {
+		break;
+	    }
+
+#ifdef PREFER_MECH
+	    if (strcasecmp(m->m.plug->mech_name, PREFER_MECH) &&
+		bestm && m->m.plug->max_ssf <= bestssf) {
+		/* this mechanism isn't our favorite, and it's no better
+		   than what we already have! */
+		break;
+	    }
+#else
+	    if (bestm && m->m.plug->max_ssf <= bestssf) {
+		/* this mechanism is no better than what we already have! */
+		break;
+	    }
+#endif
 
 	    if (mech) {
 		*mech = m->m.plug->mech_name;
 	    }
+
+	    best_cbindingdisp = cur_cbindingdisp;
 	    bestssf = m->m.plug->max_ssf;
 	    bestm = m;
 	    break;
@@ -858,7 +873,7 @@ int sasl_client_start(sasl_conn_t *conn,
 
     c_conn->cparams->external_ssf = conn->external.ssf;
     c_conn->cparams->props = conn->props;
-    c_conn->cparams->cbindingdisp = cbindingdisp;
+    c_conn->cparams->cbindingdisp = best_cbindingdisp;
     c_conn->mech = bestm;
 
     /* init that plugin */

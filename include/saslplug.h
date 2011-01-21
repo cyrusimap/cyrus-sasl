@@ -225,8 +225,8 @@ typedef enum  {
 
 typedef enum {
     SASL_CB_DISP_NONE = 0,          /* client did not support CB */
-    SASL_CB_DISP_USED,              /* client supports and used CB */
-    SASL_CB_DISP_WANT               /* client supports CB, thinks server does not */
+    SASL_CB_DISP_WANT,              /* client supports CB, thinks server does not */
+    SASL_CB_DISP_USED               /* client supports and used CB */
 } sasl_cbinding_disp_t;
 
 /* TRUE if channel binding is non-NULL */

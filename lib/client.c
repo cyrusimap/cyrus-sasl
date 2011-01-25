@@ -1,7 +1,7 @@
 /* SASL client API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: client.c,v 1.84 2011/01/21 15:19:36 mel Exp $
+ * $Id: client.c,v 1.85 2011/01/25 20:36:42 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -796,6 +796,11 @@ int sasl_client_start(sasl_conn_t *conn,
 		break;
 	    }
 
+	    if ((conn->flags & SASL_NEED_HTTP) &&
+		!(m->m.plug->features & SASL_FEAT_SUPPORTS_HTTP)) {
+		break;
+	    }
+
 	    /* compare security flags, only take new mechanism if it has
 	     * all the security flags of the previous one.
 	     *
@@ -1253,6 +1258,11 @@ _sasl_print_mechanism (
 
 	if (m->plug->features & SASL_FEAT_CHANNEL_BINDING) {
 	    printf ("%cCHANNEL_BINDING", delimiter);
+	    delimiter = '|';
+	}
+
+	if (m->plug->features & SASL_FEAT_SUPPORTS_HTTP) {
+	    printf ("%cSUPPORTS_HTTP", delimiter);
 	    delimiter = '|';
 	}
     }

@@ -1,3 +1,8 @@
+2011-03-25  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/Makefile.am, plugins/makeinit.sh, plugins/gs2_token.h,
+	  plugins/gs2_token.c, README.GS2, cmulocal/sasl2.m4: GS2 plugin
+	  from Luke Howard
+
 2011-01-25  Ken Murchison <murch@andrew.cmu.edu>
 	* include/sasl.h, include/saslplug.h, lib/client.c, lib/common.c,
 	  plugins/digest-md5.c sample/http_digest_client.c:
@@ -9,11 +14,11 @@
 
 2011-01-21  Alexey Melnikov <alexey.melnikov@isode.com>
 	* lib/client.c, lib/server.c, lib/common.c, lib/saslint.h: Fixed libsasl
-	  to accept *-PLUS SASL mechanism names in client_mech_list/mech_list options.
-	  As *-PLUS mechanism names were synthesized and didn't correspond to real
-	  plugin names, setting client_mech_list to "SCRAM-SHA-1-PLUS" (for example)
-	  was resulting in authentication failure due to inability to find a matching
-	  SASL plugin.
+	  to accept *-PLUS SASL mechanism names in client_mech_list/mech_list
+	  options. As *-PLUS mechanism names were synthesized and didn't
+	  correspond to real plugin names, setting client_mech_list to
+	  "SCRAM-SHA-1-PLUS" (for example) was resulting in authentication
+	  failure due to inability to find a matching SASL plugin.
 
 2011-01-21  Alexey Melnikov <alexey.melnikov@isode.com>
 	* include/saslplug.h, lib/client.c: Fixed handling of channel bindings

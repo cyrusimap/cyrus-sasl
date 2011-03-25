@@ -1,7 +1,7 @@
 # Makefile.am for the SASL plugins
 # Rob Siemborski
 # Rob Earhart
-# $Id: Makefile.am,v 1.80 2009/05/07 13:49:31 murch Exp $
+# $Id: Makefile.am,v 1.81 2011/03/25 11:54:49 mel Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -65,7 +65,7 @@ common_sources = plugin_common.c plugin_common.h
 sasldir = $(prefix)/lib/sasl2
 sasl_LTLIBRARIES = @SASL_MECHS@
 EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la \
-	libgssapiv2.la libdigestmd5.la liblogin.la libsrp.la libotp.la \
+	libgs2.la libgssapiv2.la libdigestmd5.la liblogin.la libsrp.la libotp.la \
 	libntlm.la libpassdss.la libsasldb.la libsql.la libldapdb.la
 
 libplain_la_SOURCES = plain.c plain_init.c $(common_sources)
@@ -79,6 +79,10 @@ libanonymous_la_LIBADD = $(COMPAT_OBJS)
 libkerberos4_la_SOURCES = kerberos4.c kerberos4_init.c $(common_sources)
 libkerberos4_la_DEPENDENCIES = $(COMPAT_OBJS)
 libkerberos4_la_LIBADD = $(SASL_KRB_LIB) $(LIB_SOCKET) $(COMPAT_OBJS)
+
+libgs2_la_SOURCES = gs2.c gs2_init.c gs2_token.c $(common_sources)
+libgs2_la_DEPENDENCIES = $(COMPAT_OBJS)
+libgs2_la_LIBADD = $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS)
 
 libgssapiv2_la_SOURCES = gssapi.c gssapiv2_init.c $(common_sources)
 libgssapiv2_la_DEPENDENCIES = $(COMPAT_OBJS)
@@ -129,7 +133,7 @@ libsql_la_LIBADD = $(COMPAT_OBJS)
 
 # Instructions for making the _init files
 
-init_src=anonymous_init.c crammd5_init.c digestmd5_init.c gssapiv2_init.c \
+init_src=anonymous_init.c crammd5_init.c digestmd5_init.c gs2_init.c gssapiv2_init.c \
 kerberos4_init.c login_init.c plain_init.c srp_init.c otp_init.c ntlm_init.c \
 passdss_init.c sasldb_init.c sql_init.c ldapdb_init.c
 

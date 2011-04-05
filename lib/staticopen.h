@@ -1,7 +1,7 @@
 /* staticopen.h
  * Rob Siemborski
  * Howard Chu
- * $Id: staticopen.h,v 1.8 2005/02/16 20:52:09 shadow Exp $
+ * $Id: staticopen.h,v 1.9 2011/04/05 14:50:07 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -87,6 +87,10 @@ extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( crammd5 );
 #ifdef STATIC_DIGESTMD5
 extern SPECIFIC_SERVER_PLUG_INIT_PROTO( digestmd5 );
 extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( digestmd5 );
+#endif
+#ifdef STATIC_SCRAM
+extern SPECIFIC_SERVER_PLUG_INIT_PROTO( scram );
+extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( scram );
 #endif
 #ifdef STATIC_GSSAPIV2
 extern SPECIFIC_SERVER_PLUG_INIT_PROTO( gssapiv2 );

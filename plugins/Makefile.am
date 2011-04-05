@@ -1,7 +1,7 @@
 # Makefile.am for the SASL plugins
 # Rob Siemborski
 # Rob Earhart
-# $Id: Makefile.am,v 1.81 2011/03/25 11:54:49 mel Exp $
+# $Id: Makefile.am,v 1.82 2011/04/05 14:50:07 mel Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -66,7 +66,7 @@ sasldir = $(prefix)/lib/sasl2
 sasl_LTLIBRARIES = @SASL_MECHS@
 EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la \
 	libgs2.la libgssapiv2.la libdigestmd5.la liblogin.la libsrp.la libotp.la \
-	libntlm.la libpassdss.la libsasldb.la libsql.la libldapdb.la
+	libscram.la libntlm.la libpassdss.la libsasldb.la libsql.la libldapdb.la
 
 libplain_la_SOURCES = plain.c plain_init.c $(common_sources)
 libplain_la_DEPENDENCIES = $(COMPAT_OBJS)
@@ -95,6 +95,10 @@ libcrammd5_la_LIBADD = $(COMPAT_OBJS)
 libdigestmd5_la_SOURCES = digestmd5.c digestmd5_init.c $(common_sources)
 libdigestmd5_la_DEPENDENCIES = $(COMPAT_OBJS)
 libdigestmd5_la_LIBADD = $(LIB_DES) $(LIB_SOCKET) $(COMPAT_OBJS)
+
+libscram_la_SOURCES = scram.c scram_init.c $(common_sources)
+libscram_la_DEPENDENCIES = $(COMPAT_OBJS)
+libscram_la_LIBADD = $(SCRAM_LIBS) $(COMPAT_OBJS)
 
 liblogin_la_SOURCES = login.c login_init.c $(common_sources)
 liblogin_la_DEPENDENCIES = $(COMPAT_OBJS)
@@ -133,7 +137,7 @@ libsql_la_LIBADD = $(COMPAT_OBJS)
 
 # Instructions for making the _init files
 
-init_src=anonymous_init.c crammd5_init.c digestmd5_init.c gs2_init.c gssapiv2_init.c \
+init_src=anonymous_init.c crammd5_init.c digestmd5_init.c scram_init.c gs2_init.c gssapiv2_init.c \
 kerberos4_init.c login_init.c plain_init.c srp_init.c otp_init.c ntlm_init.c \
 passdss_init.c sasldb_init.c sql_init.c ldapdb_init.c
 

@@ -1,5 +1,5 @@
 # mechanism plugins
-for mech in anonymous crammd5 digestmd5 gssapiv2 kerberos4 login ntlm otp passdss plain srp gs2; do
+for mech in anonymous crammd5 digestmd5 scram gssapiv2 kerberos4 login ntlm otp passdss plain srp gs2; do
 
 echo "
 #include <config.h>

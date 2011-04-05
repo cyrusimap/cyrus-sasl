@@ -1,3 +1,8 @@
+2011-04-05  Alexey Melnikov <alexey.melnikov@isode.com>
+	* configure.in, plugins/Makefile.am, plugins/NTMakefile,
+	  plugins/makeinit.sh, lib/staticopen.h, win32/include/config.h:
+	  Enabled SCRAM plugin build
+
 2011-03-25  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/Makefile.am, plugins/makeinit.sh, plugins/gs2_token.h,
 	  plugins/gs2_token.c, README.GS2, cmulocal/sasl2.m4: GS2 plugin

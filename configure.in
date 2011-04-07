@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.219 2011/04/05 14:50:07 mel Exp $
+dnl $Id: configure.in,v 1.220 2011/04/07 08:50:31 mel Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -439,7 +439,7 @@ fi
 AC_MSG_CHECKING(SCRAM)
 if test "$scram" != no; then
   AC_MSG_RESULT(enabled)
-  SCRAM_LIBS="-lisode_crypto $LIB_RSAREF"
+  SCRAM_LIBS="-lcrypto $LIB_RSAREF"
 
   SASL_MECHS="$SASL_MECHS libscram.la"
   if test "$enable_static" = yes; then

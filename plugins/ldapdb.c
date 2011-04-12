@@ -249,7 +249,9 @@ static int ldapdb_auxprop_lookup(void *glob_context,
 	    result = SASL_UNAVAIL;
 	    break;
 
+#if defined(LDAP_PROXY_AUTHZ_FAILURE)
 	case LDAP_PROXY_AUTHZ_FAILURE:
+#endif
 	case LDAP_INAPPROPRIATE_AUTH:
 	case LDAP_INVALID_CREDENTIALS:
 	case LDAP_INSUFFICIENT_ACCESS:
@@ -445,7 +447,7 @@ ldapdb_canon_client(void *glob_context,
 	return SASL_FAIL;
     }
 
-    if (ulen > out_umax) return SASL_BUFOVER;
+    if (ulen > out_max) return SASL_BUFOVER;
 
     memcpy(out, user, ulen);
     out[ulen] = '\0';

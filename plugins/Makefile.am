@@ -1,7 +1,7 @@
 # Makefile.am for the SASL plugins
 # Rob Siemborski
 # Rob Earhart
-# $Id: Makefile.am,v 1.82 2011/04/05 14:50:07 mel Exp $
+# $Id: Makefile.am,v 1.83 2011/04/12 10:29:59 mel Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -127,7 +127,7 @@ libsasldb_la_LIBADD = ../sasldb/libsasldb.la $(SASL_DB_LIB) $(COMPAT_OBJS)
 
 libldapdb_la_SOURCES = ldapdb.c ldapdb_init.c $(common_sources)
 libldapdb_la_DEPENDENCIES = $(COMPAT_OBJS)
-libldapdb_la_LIBADD = $(COMPAT_OBJS)
+libldapdb_la_LIBADD = $(LIB_LDAP) $(COMPAT_OBJS)
 
 libsql_la_SOURCES = sql.c sql_init.c $(common_sources)
 libsql_la_LDFLAGS = $(LIB_MYSQL) $(LIB_PGSQL) $(LIB_SQLITE) $(AM_LDFLAGS)

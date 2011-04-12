@@ -90,4 +90,4 @@ SASL_AUXPROP_PLUG_INIT( $auxprop )
 done
 
 # ldapdb is also a canon_user plugin
-echo "SASL_CANONUSER_PLUG_INIT( ldap )" >> ldapdb_init.c
+echo "SASL_CANONUSER_PLUG_INIT( ldapdb )" >> ldapdb_init.c

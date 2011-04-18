@@ -1,7 +1,7 @@
 # Makefile.am for the SASL plugins
 # Rob Siemborski
 # Rob Earhart
-# $Id: Makefile.am,v 1.83 2011/04/12 10:29:59 mel Exp $
+# $Id: Makefile.am,v 1.84 2011/04/18 16:14:57 mel Exp $
 #
 ################################################################
 # Copyright (c) 2000 Carnegie Mellon University.  All rights reserved.
@@ -80,7 +80,7 @@ libkerberos4_la_SOURCES = kerberos4.c kerberos4_init.c $(common_sources)
 libkerberos4_la_DEPENDENCIES = $(COMPAT_OBJS)
 libkerberos4_la_LIBADD = $(SASL_KRB_LIB) $(LIB_SOCKET) $(COMPAT_OBJS)
 
-libgs2_la_SOURCES = gs2.c gs2_init.c gs2_token.c $(common_sources)
+libgs2_la_SOURCES = gs2.c gs2_init.c gs2_token.c gs2_token.h $(common_sources)
 libgs2_la_DEPENDENCIES = $(COMPAT_OBJS)
 libgs2_la_LIBADD = $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS)
 

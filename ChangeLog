@@ -1,3 +1,19 @@
+2011-04-19  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/gssapi.c: Fix to build GSSAPI with Heimdal (patch from
+	  Russ Allbery from Debian)
+
+2011-04-18  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/gs2_token.h: Added gs2_token.h for the "make dist" target
+	  (patch by Dan White)
+
+2011-04-13  Alexey Melnikov <alexey.melnikov@isode.com>
+	* cmulocal/sasl2.m4: Only enable GS2 plugin if
+	  gss_inquire_mech_for_saslname is defined in gssapi.h
+
+2011-04-12  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/Makefile.am, plugins/makeinit.sh, plugins/ldapdb.c:
+	  LDAPDB build fixes from Dan White
+
 2011-04-05  Alexey Melnikov <alexey.melnikov@isode.com>
 	* configure.in, plugins/Makefile.am, plugins/NTMakefile,
 	  plugins/makeinit.sh, lib/staticopen.h, win32/include/config.h:

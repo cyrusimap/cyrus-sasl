@@ -1,3 +1,9 @@
+2011-05-13  Ken Murchison <murch@andrew.cmu.edu>
+	* include/sasl.h, plugins/digest-md5.c:
+	  Allow for non-persistent connections when using DIGEST-MD5 plugin
+	  for server-side HTTP Digest (RFC 2617).  Also make sure that an
+	  HTTP request is handed to plugin when required.
+
 2011-04-19  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/gssapi.c: Fix to build GSSAPI with Heimdal (patch from
 	  Russ Allbery from Debian)

@@ -838,10 +838,11 @@ typedef struct sasl_channel_binding {
 
 /* HTTP Request (RFC 2616) - ONLY used for HTTP Digest Auth (RFC 2617) */
 typedef struct sasl_http_request {
-    const char *method;
-    const char *uri;
-    const unsigned char *entity;
-    unsigned long elen;
+    const char *method;			/* HTTP Method */
+    const char *uri;			/* request-URI */
+    const unsigned char *entity;	/* entity-body */
+    unsigned long elen;			/* entity-body length */
+    unsigned non_persist;		/* Is it a non-persistent connection? */
 } sasl_http_request_t;
 
 #define SASL_HTTP_REQUEST	22

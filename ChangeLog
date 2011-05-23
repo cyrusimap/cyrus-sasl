@@ -1,3 +1,8 @@
+2011-05-23  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/gs2.c, plugins/gs2_token.c, plugins/gs2_token.h,
+	  cmulocal/sasl2.m4: Use draft-josefsson-gss-capsulate-01 if present.
+	  Negative SASL errors are fatal. (Patch from Luke Howard.)
+
 2011-05-13  Ken Murchison <murch@andrew.cmu.edu>
 	* include/sasl.h, plugins/digest-md5.c:
 	  Allow for non-persistent connections when using DIGEST-MD5 plugin

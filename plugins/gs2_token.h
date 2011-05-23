@@ -23,24 +23,33 @@
 #ifndef _GS2_TOKEN_H_
 #define _GS2_TOKEN_H_ 1
 
-#define g_OID_equal(o1, o2)                                             \
-        (((o1)->length == (o2)->length) &&                              \
-        (memcmp((o1)->elements, (o2)->elements, (o1)->length) == 0))
+#include <config.h>
 
-extern OM_uint32
-gs2_verify_token_header(OM_uint32 *minor,
-                        gss_const_OID mech,
-                        size_t *body_size,
-                        unsigned char **buf_in,
-                        size_t toksize_in);
+#include <gssapi/gssapi.h>
+#ifdef HAVE_GSSAPI_GSSAPI_EXT_H
+#include <gssapi/gssapi_ext.h>
+#endif
 
-extern void
-gs2_make_token_header(
-    const gss_OID_desc *mech,
-    size_t body_size,
-    unsigned char **buf);
+#ifndef HAVE_GSS_DECAPSULATE_TOKEN
+OM_uint32
+gs2_decapsulate_token(const gss_buffer_t input_token,
+                      const gss_OID token_oid,
+                      gss_buffer_t output_token);
+#define gss_decapsulate_token gs2_decapsulate_token
+#endif
 
-extern size_t
-gs2_token_size(const gss_OID_desc *mech, size_t body_size);
+#ifndef HAVE_GSS_ENCAPSULATE_TOKEN
+OM_uint32
+gs2_encapsulate_token(const gss_buffer_t input_token,
+                      const gss_OID token_oid,
+                      gss_buffer_t output_token);
+#define gss_encapsulate_token gs2_encapsulate_token
+#endif
+
+#ifndef HAVE_GSS_OID_EQUAL
+int
+gs2_oid_equal(const gss_OID o1, const gss_OID o2);
+#define gss_oid_equal gs2_oid_equal
+#endif
 
 #endif /* _GS2_TOKEN_H_ */

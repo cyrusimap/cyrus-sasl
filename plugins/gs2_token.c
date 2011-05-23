@@ -1,4 +1,35 @@
 /*
+ * Copyright (c) 2011, PADL Software Pty Ltd.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of PADL Software nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY PADL SOFTWARE AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL PADL SOFTWARE OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+/*
  * Copyright 1993 by OpenVision Technologies, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software
@@ -20,14 +51,17 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <config.h>
 #include <string.h>
-#include <gssapi/gssapi.h>
+#include <stdlib.h>
+
 #include "gs2_token.h"
 
 /*
- * $Id: gs2_token.c,v 1.1 2011/03/25 11:54:49 mel Exp $
+ * $Id: gs2_token.c,v 1.2 2011/05/23 14:45:40 mel Exp $
  */
 
+#ifndef HAVE_GSS_ENCAPSULATE_TOKEN
 /* XXXX this code currently makes the assumption that a mech oid will
    never be longer than 127 bytes.  This assumption is not inherent in
    the interfaces, so the code can be fixed if the OSI namespace
@@ -95,6 +129,65 @@ der_write_length(unsigned char **buf, size_t length)
     }
 }
 
+/* returns the length of a token, given the mech oid and the body size */
+
+static size_t
+token_size(const gss_OID_desc *mech, size_t body_size)
+{
+    /* set body_size to sequence contents size */
+    body_size += 2 + (size_t) mech->length;         /* NEED overflow check */
+    return 1 + der_length_size(body_size) + body_size;
+}
+
+/* fills in a buffer with the token header.  The buffer is assumed to
+   be the right size.  buf is advanced past the token header */
+
+static void
+make_token_header(
+    const gss_OID_desc *mech,
+    size_t body_size,
+    unsigned char **buf)
+{
+    *(*buf)++ = 0x60;
+    der_write_length(buf, 2 + mech->length + body_size);
+    *(*buf)++ = 0x06;
+    *(*buf)++ = (unsigned char)mech->length;
+    memcpy(*buf, mech->elements, mech->length);
+    *buf += mech->length;
+}
+
+OM_uint32
+gs2_encapsulate_token(const gss_buffer_t input_token,
+                      const gss_OID token_oid,
+                      gss_buffer_t output_token)
+{
+    size_t tokenSize;
+    unsigned char *buf;
+
+    if (input_token == GSS_C_NO_BUFFER || token_oid == GSS_C_NO_OID)
+        return GSS_S_CALL_INACCESSIBLE_READ;
+
+    if (output_token == GSS_C_NO_BUFFER)
+        return GSS_S_CALL_INACCESSIBLE_WRITE;
+
+    tokenSize = token_size(token_oid, input_token->length);
+
+    output_token->value = malloc(tokenSize);
+    if (output_token->value == NULL)
+        return GSS_S_FAILURE;
+
+    buf = output_token->value;
+
+    make_token_header(token_oid, input_token->length, &buf);
+    memcpy(buf, input_token->value, input_token->length);
+    output_token->length = tokenSize;
+
+    return GSS_S_COMPLETE;
+}
+#endif
+
+
+#ifndef HAVE_GSS_DECAPSULATE_TOKEN
 /* returns decoded length, or < 0 on failure.  Advances buf and
    decrements bufsize */
 
@@ -126,33 +219,6 @@ der_read_length(unsigned char **buf, ssize_t *bufsize)
     return ret;
 }
 
-/* returns the length of a token, given the mech oid and the body size */
-
-size_t
-gs2_token_size(const gss_OID_desc *mech, size_t body_size)
-{
-    /* set body_size to sequence contents size */
-    body_size += 2 + (size_t) mech->length;         /* NEED overflow check */
-    return 1 + der_length_size(body_size) + body_size;
-}
-
-/* fills in a buffer with the token header.  The buffer is assumed to
-   be the right size.  buf is advanced past the token header */
-
-void
-gs2_make_token_header(
-    const gss_OID_desc *mech,
-    size_t body_size,
-    unsigned char **buf)
-{
-    *(*buf)++ = 0x60;
-    der_write_length(buf, 2 + mech->length + body_size);
-    *(*buf)++ = 0x06;
-    *(*buf)++ = (unsigned char)mech->length;
-    memcpy(*buf, mech->elements, mech->length);
-    *buf += mech->length;
-}
-
 /*
  * Given a buffer containing a token, reads and verifies the token,
  * leaving buf advanced past the token header, and setting body_size
@@ -162,12 +228,12 @@ gs2_make_token_header(
  * *body_size are left unmodified on error.
  */
 
-OM_uint32
-gs2_verify_token_header(OM_uint32 *minor,
-                        gss_const_OID mech,
-                        size_t *body_size,
-                        unsigned char **buf_in,
-                        size_t toksize_in)
+static OM_uint32
+verify_token_header(OM_uint32 *minor,
+                    const gss_OID mech,
+                    size_t *body_size,
+                    unsigned char **buf_in,
+                    size_t toksize_in)
 {
     unsigned char *buf = *buf_in;
     ssize_t seqsize;
@@ -206,11 +272,53 @@ gs2_verify_token_header(OM_uint32 *minor,
     toid.elements = buf;
     buf += toid.length;
 
-    if (!g_OID_equal(&toid, mech))
-        return GSS_S_BAD_MECH;
+    if (!gss_oid_equal(&toid, mech))
+        return GSS_S_DEFECTIVE_TOKEN;
 
     *buf_in = buf;
     *body_size = toksize;
 
     return GSS_S_COMPLETE;
 }
+
+OM_uint32
+gs2_decapsulate_token(const gss_buffer_t input_token,
+                      const gss_OID token_oid,
+                      gss_buffer_t output_token)
+{
+    OM_uint32 major, minor;
+    size_t body_size = 0;
+    unsigned char *buf_in;
+
+    if (input_token == GSS_C_NO_BUFFER || token_oid == GSS_C_NO_OID)
+        return GSS_S_CALL_INACCESSIBLE_READ;
+
+    if (output_token == GSS_C_NO_BUFFER)
+        return GSS_S_CALL_INACCESSIBLE_WRITE;
+
+    buf_in = input_token->value;
+
+    major = verify_token_header(&minor, token_oid, &body_size, &buf_in,
+                                input_token->length);
+    if (minor != 0)
+        return GSS_S_DEFECTIVE_TOKEN;
+
+    output_token->value = malloc(body_size);
+    if (output_token->value == NULL)
+        return GSS_S_FAILURE;
+
+    memcpy(output_token->value, buf_in, body_size);
+    output_token->length = body_size;
+
+    return GSS_S_COMPLETE;
+}
+#endif
+
+#ifndef HAVE_GSS_OID_EQUAL
+int
+gs2_oid_equal(const gss_OID o1, const gss_OID o2)
+{
+    return o1->length == o2->length &&
+        (memcmp(o1->elements, o2->elements, o1->length) == 0);
+}
+#endif

@@ -539,7 +539,7 @@ cleanup:
         sasl_gs2_seterror(text->utils, maj_stat, min_stat);
         ret = SASL_FAIL;
     }
-    if (ret != SASL_OK && ret != SASL_CONTINUE)
+    if (ret < SASL_OK)
         sasl_gs2_free_context_contents(text);
 
     return ret;
@@ -842,7 +842,7 @@ cleanup:
         sasl_gs2_seterror(text->utils, maj_stat, min_stat);
         ret = SASL_FAIL;
     }
-    if (ret != SASL_OK && ret != SASL_CONTINUE)
+    if (ret < SASL_OK)
         sasl_gs2_free_context_contents(text);
 
     return ret;
@@ -1013,6 +1013,7 @@ gs2_verify_initial_message(context_t *text,
                            unsigned inlen,
                            gss_buffer_t token)
 {
+    OM_uint32 major, minor;
     char *p = (char *)in;
     unsigned remain = inlen;
     int ret;
@@ -1088,32 +1089,29 @@ gs2_verify_initial_message(context_t *text,
     if (ret != SASL_OK)
         return ret;
 
-    buf.length = remain;
-    buf.value = p;
-
     if (text->gs2_flags & GS2_NONSTD_FLAG) {
-        token->value = text->utils->malloc(buf.length);
-        if (token->value == NULL)
-            return SASL_NOMEM;
-
-        token->length = buf.length;
-        memcpy(token->value, buf.value, buf.length);
+        buf.length = remain;
+        buf.value = p;
     } else {
-        unsigned int token_size;
+        gss_buffer_desc tmp;
 
-        /* create a properly formed GSS token */
-        token_size = gs2_token_size(text->mechanism, buf.length);
-        token->value = text->utils->malloc(token_size);
-        if (token->value == NULL)
+        tmp.length = remain;
+        tmp.value = p;
+
+        major = gss_encapsulate_token(&tmp, text->mechanism, &buf);
+        if (GSS_ERROR(major))
             return SASL_NOMEM;
-
-        token->length = token_size;
-
-        p = (char *)token->value;
-        gs2_make_token_header(text->mechanism, buf.length,
-                              (unsigned char **)&p);
-        memcpy(p, buf.value, buf.length);
     }
+
+    token->value = text->utils->malloc(buf.length);
+    if (token->value == NULL)
+        return SASL_NOMEM;
+
+    token->length = buf.length;
+    memcpy(token->value, buf.value, buf.length);
+
+    if ((text->gs2_flags & GS2_NONSTD_FLAG) == 0)
+        gss_release_buffer(&minor, &buf);
 
     return SASL_OK;
 }
@@ -1231,36 +1229,32 @@ gs2_make_message(context_t *text,
                  unsigned *outlen)
 {
     OM_uint32 major, minor;
-    unsigned char *mech_token_data;
-    size_t mech_token_size;
-    char *p;
-    unsigned header_len = 0;
     int ret;
-
-    mech_token_size = token->length;
-    mech_token_data = (unsigned char *)token->value;
+    unsigned header_len = 0;
+    gss_buffer_desc decap_token = GSS_C_EMPTY_BUFFER;
 
     if (initialContextToken) {
         header_len = *outlen;
 
-        major = gs2_verify_token_header(&minor, text->mechanism,
-                                        &mech_token_size, &mech_token_data,
-                                        token->length);
+        major = gss_decapsulate_token(token, text->mechanism, &decap_token);
         if ((major == GSS_S_DEFECTIVE_TOKEN &&
              (text->plug.client->features & SASL_FEAT_GSS_FRAMING)) ||
             GSS_ERROR(major))
             return SASL_FAIL;
+
+        token = &decap_token;
     }
 
     ret = _plug_buf_alloc(text->utils, out, outlen,
-                          header_len + mech_token_size);
+                          header_len + token->length);
     if (ret != 0)
         return ret;
 
-    p = *out + header_len;
-    memcpy(p, mech_token_data, mech_token_size);
+    memcpy(*out + header_len, token->value, token->length);
+    *outlen = header_len + token->length;
 
-    *outlen = header_len + mech_token_size;
+    if (initialContextToken)
+        gss_release_buffer(&minor, &decap_token);
 
     return SASL_OK;
 }

@@ -1,6 +1,6 @@
 /* SCRAM-SHA-1 SASL plugin
  * Alexey Melnikov
- * $Id: scram.c,v 1.23 2011/09/01 14:49:25 mel Exp $
+ * $Id: scram.c,v 1.24 2011/09/01 14:50:24 mel Exp $
  */
 /* 
  * Copyright (c) 2009-2010 Carnegie Mellon University.  All rights reserved.
@@ -69,7 +69,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: scram.c,v 1.23 2011/09/01 14:49:25 mel Exp $";
+static const char plugin_id[] = "$Id: scram.c,v 1.24 2011/09/01 14:50:24 mel Exp $";
 
 #define NONCE_SIZE (32)		    /* arbitrary */
 #define SALT_SIZE  (16)		    /* arbitrary */
@@ -1184,7 +1184,7 @@ scram_server_mech_step2(server_context_t *text,
 
     switch (text->cb_flags & SCRAM_CB_FLAG_MASK) {
     case SCRAM_CB_FLAG_P:
-	binary_channel_binding_len -= text->gs2_header_length;
+	binary_channel_binding_len -= (unsigned)text->gs2_header_length;
 	if (binary_channel_binding_len == 0) {
 	    SETERROR(sparams->utils, "Channel bindings data expected in " SCRAM_SASL_MECH);
 	    result = SASL_BADPROT;
@@ -1833,7 +1833,7 @@ scram_client_mech_step1(client_context_t *text,
     char * freeme = NULL;
     char * freeme2 = NULL;
     char channel_binding_state = 'n';
-    char * channel_binding_name = NULL;
+    const char * channel_binding_name = NULL;
     char * encoded_authorization_id = NULL;
 
     /* check if sec layer strong enough */
@@ -1949,6 +1949,7 @@ scram_client_mech_step1(client_context_t *text,
     case SASL_CB_DISP_USED:
 	if (!SASL_CB_PRESENT(params)) {
 	    result = SASL_BADPARAM;
+	    sparams->utils->free(salt);
 	    goto cleanup;
 	}
 	channel_binding_name = params->cbinding->name;
@@ -2082,7 +2083,7 @@ scram_client_mech_step2(client_context_t *text,
     size_t cb_bin_length;
     size_t channel_binding_data_len = 0;
     size_t cb_encoded_length;
-    char * channel_binding_data = NULL;
+    const char * channel_binding_data = NULL;
     char * cb_encoded = NULL;
     char * cb_bin = NULL;
     int result;

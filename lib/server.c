@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.175 2011/09/01 16:31:19 mel Exp $
+ * $Id: server.c,v 1.176 2011/09/01 16:33:10 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1558,6 +1558,7 @@ int sasl_server_start(sasl_conn_t *conn,
 					       s_conn->sparams->utils);
 	    conn->context = NULL;
 	}
+	conn->oparams.doneflag = 0;
     }
     
     RETURN(conn,result);
@@ -1677,14 +1678,15 @@ int sasl_server_step(sasl_conn_t *conn,
 	}	
     }
     
-    if(   ret != SASL_OK
+    if (  ret != SASL_OK
        && ret != SASL_CONTINUE
        && ret != SASL_INTERACT) {
-	if(conn->context) {
+	if (conn->context) {
 	    s_conn->mech->m.plug->mech_dispose(conn->context,
 					     s_conn->sparams->utils);
 	    conn->context = NULL;
 	}
+	conn->oparams.doneflag = 0;
     }
 
     RETURN(conn, ret);

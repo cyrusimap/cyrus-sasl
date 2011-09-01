@@ -1,6 +1,14 @@
 2011-09-01  Alexey Melnikov <alexey.melnikov@isode.com>
-	* config/ltconfig: Fix SASL's libtool MacOS/X 64-bit file magic.
-	  (Patch by Kurt Zeilenga)
+	* lib/server.c: Make sure that a failed authorization doesn't preclude
+	  further SASL authentication attempts from working.
+
+2011-09-01  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/server.c: Fixed some aspects of mech_avail callback handling
+	  in the server side SASL code.
+
+2011-09-01  Alexey Melnikov <alexey.melnikov@isode.com>
+	* config/ltconfig, saslauthd/config/ltconfig: Fix SASL's libtool
+	  MacOS/X 64-bit file magic. (Patch by Kurt Zeilenga)
 
 2011-09-01  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/scram.c: Fixed some additional Windows warnings and

@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.171 2011/01/21 15:19:36 mel Exp $
+ * $Id: server.c,v 1.172 2011/09/01 12:18:05 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -447,8 +447,11 @@ int sasl_server_add_plugin(const char *plugname,
     /* Make sure plugin is using the same SASL version as us */
     if (version != SASL_SERVER_PLUG_VERSION)
     {
-	_sasl_log(NULL, SASL_LOG_ERR,
-		  "version mismatch on plugin");
+	_sasl_log(NULL,
+		  SASL_LOG_ERR,
+		  "version mismatch on plugin: %d expected, but %d reported",
+		  SASL_SERVER_PLUG_VERSION,
+		  version);
 	return SASL_BADVERS;
     }
 

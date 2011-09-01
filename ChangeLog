@@ -1,3 +1,33 @@
+2011-09-01  Alexey Melnikov <alexey.melnikov@isode.com>
+	* config/ltconfig: Fix SASL's libtool MacOS/X 64-bit file magic.
+	  (Patch by Kurt Zeilenga)
+
+2011-09-01  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/scram.c: Fixed some additional Windows warnings and
+	  a memory leak in SCRAM.
+
+2011-09-01  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/scram.c: Fix size_t * v. unsigned * bug.
+	  (Patch by Kurt Zeilenga)
+
+2011-09-01  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/server.c: Fixed a crash caused by aborted SASL authentication
+	  and initiation of another one using the same SASL context.
+
+2011-09-01  Alexey Melnikov <alexey.melnikov@isode.com>
+	* include/md5.h, include/sasl.h, include/saslplug.h, lib/auxprop.c,
+	  lib/canonusr.c, lib/client.c, lib/common.c, lib/saslint.h, lib/server.c,
+	  lib/seterror.c, plugins/otp.c, plugins/plugin_common.c,
+	  sasldb/db_berkeley.c, sample/sample-client.c, sample/sample-server.c,
+	  utils/pluginviewer.c, utils/sasldblistusers.c, utils/saslpasswd.c,
+	  utils/testsuite.c: Many of the SASL includes define function pointers
+	  without specifying arguments. In C, the () is treated as unspecified,
+	  rather than (void), hence this is technically not a prototype,
+	  and gcc warns about it. (Patch by Dave Cridland and Alexey Melnikov)
+
+2011-09-01  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/server.c: Better server plugin API mismatch reporting
+
 2011-05-23  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/gs2.c, plugins/gs2_token.c, plugins/gs2_token.h,
 	  cmulocal/sasl2.m4: Use draft-josefsson-gss-capsulate-01 if present.

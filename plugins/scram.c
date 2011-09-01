@@ -1,6 +1,6 @@
 /* SCRAM-SHA-1 SASL plugin
  * Alexey Melnikov
- * $Id: scram.c,v 1.22 2011/01/21 15:37:44 mel Exp $
+ * $Id: scram.c,v 1.23 2011/09/01 14:49:25 mel Exp $
  */
 /* 
  * Copyright (c) 2009-2010 Carnegie Mellon University.  All rights reserved.
@@ -69,7 +69,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: scram.c,v 1.22 2011/01/21 15:37:44 mel Exp $";
+static const char plugin_id[] = "$Id: scram.c,v 1.23 2011/09/01 14:49:25 mel Exp $";
 
 #define NONCE_SIZE (32)		    /* arbitrary */
 #define SALT_SIZE  (16)		    /* arbitrary */
@@ -1089,7 +1089,7 @@ scram_server_mech_step2(server_context_t *text,
     char *channel_binding = NULL;
     size_t channel_binding_len = 0;
     char *binary_channel_binding = NULL;
-    size_t binary_channel_binding_len = 0;
+    unsigned binary_channel_binding_len = 0;
     char *client_proof = NULL;
     char *inbuf = NULL;
     char *p;

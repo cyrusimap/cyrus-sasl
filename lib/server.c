@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.174 2011/09/01 14:47:53 mel Exp $
+ * $Id: server.c,v 1.175 2011/09/01 16:31:19 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -1189,7 +1189,8 @@ static int mech_permitted(sasl_conn_t *conn,
     int ret;
     int myflags;
     context_list_t *cur;
-    void *context;
+    context_list_t *mech_context_list_entry = NULL;
+    void *context = NULL;
     sasl_ssf_t minssf = 0;
 
     if(!conn) return SASL_NOMECH;
@@ -1209,10 +1210,15 @@ static int mech_permitted(sasl_conn_t *conn,
     s_conn->sparams->external_ssf=conn->external.ssf;
 
     /* Check if we have banished this one already */
-    for(cur = s_conn->mech_contexts; cur; cur=cur->next) {
-	if(cur->mech == mech) {
+    for (cur = s_conn->mech_contexts; cur; cur=cur->next) {
+	if (cur->mech == mech) {
 	    /* If it's not mech_avail'd, then stop now */
-	    if(!cur->context) return SASL_NOMECH;
+	    if (!cur->context) {
+		return SASL_NOMECH;
+	    } else {
+		context = cur->context;
+		mech_context_list_entry = cur;
+	    }
 	    break;
 	}
     }
@@ -1230,7 +1236,6 @@ static int mech_permitted(sasl_conn_t *conn,
 	return SASL_TOOWEAK; /* too weak */
     }
 
-    context = NULL;
     if (plug->mech_avail
         && (ret = plug->mech_avail(plug->glob_context,
 				   s_conn->sparams,
@@ -1253,16 +1258,21 @@ static int mech_permitted(sasl_conn_t *conn,
 	/* Error should be set by mech_avail call */
 	return SASL_NOMECH;
     } else if (context) {
-	/* Save this context */
-	cur = sasl_ALLOC(sizeof(context_list_t));
-	if (!cur) {
-	    MEMERROR(conn);
-	    return SASL_NOMECH;
+	if (mech_context_list_entry != NULL) {
+	    /* Update the context. It shouldn't have changed, but who knows */
+	    mech_context_list_entry->context = context;
+	} else {
+	    /* Save this context */
+	    cur = sasl_ALLOC(sizeof(context_list_t));
+	    if (!cur) {
+		MEMERROR(conn);
+		return SASL_NOMECH;
+	    }
+	    cur->context = context;
+	    cur->mech = mech;
+	    cur->next = s_conn->mech_contexts;
+	    s_conn->mech_contexts = cur;
 	}
-	cur->context = context;
-	cur->mech = mech;
-	cur->next = s_conn->mech_contexts;
-	s_conn->mech_contexts = cur;
     }
     
     /* Generic mechanism */
@@ -1475,18 +1485,19 @@ int sasl_server_start(sasl_conn_t *conn,
     /* We used to setup sparams HERE, but now it's done
        inside of mech_permitted (which is called above) */
     prev = &s_conn->mech_contexts;
-    for(cur = *prev; cur; prev=&cur->next,cur=cur->next) {
-	if(cur->mech == m) {
-	    if(!cur->context) {
+    for (cur = *prev; cur; prev=&cur->next,cur=cur->next) {
+	if (cur->mech == m) {
+	    if (!cur->context) {
 		sasl_seterror(conn, 0,
 			      "Got past mech_permitted with a disallowed mech!");
 		return SASL_NOMECH;
 	    }
 	    /* If we find it, we need to pull cur out of the
 	       list so it won't be freed later! */
-	    (*prev)->next = cur->next;
+	    *prev = cur->next;
 	    conn->context = cur->context;
 	    sasl_FREE(cur);
+	    break;
 	}
     }
 

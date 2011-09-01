@@ -1,6 +1,6 @@
 /* canonusr.c - user canonicalization support
  * Rob Siemborski
- * $Id: canonusr.c,v 1.20 2009/03/10 16:27:52 mel Exp $
+ * $Id: canonusr.c,v 1.21 2011/09/01 14:12:53 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -102,7 +102,7 @@ int _sasl_canon_user(sasl_conn_t *conn,
     
     /* check to see if we have a callback to make*/
     result = _sasl_getcallback(conn, SASL_CB_CANON_USER,
-			       &cuser_cb, &context);
+			       (sasl_callback_ft *)&cuser_cb, &context);
     if(result == SASL_OK && cuser_cb) {
 	result = cuser_cb(conn, context,
 			user, ulen,
@@ -121,7 +121,7 @@ int _sasl_canon_user(sasl_conn_t *conn,
 
     /* which plugin are we supposed to use? */
     result = _sasl_getcallback(conn, SASL_CB_GETOPT,
-			       &getopt, &context);
+			       (sasl_callback_ft *)&getopt, &context);
     if(result == SASL_OK && getopt) {
 	getopt(context, NULL, "canon_user_plugin", &plugin_name, NULL);
     }

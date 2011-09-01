@@ -33,9 +33,10 @@ extern "C" {
  *  SASL_FAIL -- unable to find a callback of the requested type
  *  SASL_INTERACT -- caller must use interaction to get data
  */
+typedef int (*sasl_callback_ft)(void);
 typedef int sasl_getcallback_t(sasl_conn_t *conn,
 			       unsigned long callbackid,
-			       int (**pproc)(),
+			       sasl_callback_ft * pproc,
 			       void **pcontext);
 
 /* The sasl_utils structure will remain backwards compatible unless
@@ -132,7 +133,7 @@ typedef struct sasl_utils {
     void (*seterror)(sasl_conn_t *conn, unsigned flags, const char *fmt, ...);
 
     /* spare function pointer */
-    int *(*spare_fptr)();
+    int *(*spare_fptr)(void);
 
     /* auxiliary property utilities */
     struct propctx *(*prop_new)(unsigned estimate);
@@ -154,8 +155,8 @@ typedef struct sasl_utils {
 			 struct propctx *ctx, const char *user);
 
     /* for additions which don't require a version upgrade; set to 0 */
-    int (*spare_fptr1)();
-    int (*spare_fptr2)();
+    int (*spare_fptr1)(void);
+    int (*spare_fptr2)(void);
 } sasl_utils_t;
 
 /*
@@ -196,8 +197,8 @@ typedef struct sasl_out_params {
     const void *gss_peer_name;
     const void *gss_local_name;
     const char *cbindingname;   /* channel binding name from packet */
-    int (*spare_fptr1)();
-    int (*spare_fptr2)();
+    int (*spare_fptr1)(void);
+    int (*spare_fptr2)(void);
     unsigned int cbindingdisp;  /* channel binding disposition from client */
     int spare_int2;
     int spare_int3;
@@ -301,7 +302,7 @@ typedef struct sasl_client_params {
                     unsigned flags,
                     sasl_out_params_t *oparams);
 
-    int (*spare_fptr1)();
+    int (*spare_fptr1)(void);
 
     unsigned int cbindingdisp;
     int spare_int2;
@@ -429,8 +430,8 @@ typedef struct sasl_client_plug {
 		sasl_client_params_t *cparams);
 
     /* for additions which don't require a version upgrade; set to 0 */
-    int (*spare_fptr1)();
-    int (*spare_fptr2)();
+    int (*spare_fptr1)(void);
+    int (*spare_fptr2)(void);
 } sasl_client_plug_t;
 
 #define SASL_CLIENT_PLUG_VERSION         4
@@ -582,8 +583,8 @@ typedef struct sasl_server_params {
     const sasl_channel_binding_t *cbinding; /* server channel binding */
     const sasl_http_request_t *http_request;/* HTTP Digest request method */
     void *spare_ptr4;
-    int (*spare_fptr1)();
-    int (*spare_fptr2)();
+    int (*spare_fptr1)(void);
+    int (*spare_fptr2)(void);
     int spare_int1;
     int spare_int2;
     int spare_int3;
@@ -767,7 +768,7 @@ typedef struct sasl_server_plug {
 		      void **conn_context);
 
     /* for additions which don't require a version upgrade; set to 0 */
-    int (*spare_fptr2)();
+    int (*spare_fptr2)(void);
 } sasl_server_plug_t;
 
 #define SASL_SERVER_PLUG_VERSION 4
@@ -873,9 +874,9 @@ typedef struct sasl_canonuser {
 			     unsigned out_max, unsigned *out_len);
 
     /* for additions which don't require a version upgrade; set to 0 */
-    int (*spare_fptr1)();
-    int (*spare_fptr2)();
-    int (*spare_fptr3)();
+    int (*spare_fptr1)(void);
+    int (*spare_fptr2)(void);
+    int (*spare_fptr3)(void);
 } sasl_canonuser_plug_t;
 
 #define SASL_CANONUSER_PLUG_VERSION 5

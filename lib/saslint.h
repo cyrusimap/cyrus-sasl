@@ -1,7 +1,7 @@
 /* saslint.h - internal SASL library definitions
  * Rob Siemborski
  * Tim Martin
- * $Id: saslint.h,v 1.72 2011/01/21 15:19:36 mel Exp $
+ * $Id: saslint.h,v 1.73 2011/09/01 14:12:53 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -404,7 +404,7 @@ extern int _sasl_free_utils(const sasl_utils_t ** utils);
 extern int
 _sasl_getcallback(sasl_conn_t * conn,
 		  unsigned long callbackid,
-		  int (**pproc)(),
+		  sasl_callback_ft * pproc,
 		  void **pcontext);
 
 extern void

@@ -1,6 +1,6 @@
 /* auxprop.c - auxilliary property support
  * Rob Siemborski
- * $Id: auxprop.c,v 1.20 2011/01/19 09:04:29 mel Exp $
+ * $Id: auxprop.c,v 1.21 2011/09/01 14:12:53 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -913,7 +913,9 @@ int _sasl_auxprop_lookup(sasl_server_params_t *sparams,
     int result = SASL_NOMECH;
 
     if(_sasl_getcallback(sparams->utils->conn,
-			 SASL_CB_GETOPT, &getopt, &context) == SASL_OK) {
+			 SASL_CB_GETOPT,
+			 (sasl_callback_ft *)&getopt,
+			 &context) == SASL_OK) {
 	ret = getopt(context, NULL, "auxprop_plugin", &plist, NULL);
 	if(ret != SASL_OK) plist = NULL;
     }
@@ -999,7 +1001,7 @@ int sasl_auxprop_store(sasl_conn_t *conn,
     }
     
     /* Pickup getopt callback from the connection, if conn is not NULL */
-    if(_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context) == SASL_OK) {
+    if(_sasl_getcallback(conn, SASL_CB_GETOPT, (sasl_callback_ft *)&getopt, &context) == SASL_OK) {
 	ret = getopt(context, NULL, "auxprop_plugin", &plist, NULL);
 	if(ret != SASL_OK) plist = NULL;
     }

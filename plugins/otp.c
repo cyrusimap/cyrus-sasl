@@ -1,6 +1,6 @@
 /* OTP SASL plugin
  * Ken Murchison
- * $Id: otp.c,v 1.42 2010/11/30 11:41:47 mel Exp $
+ * $Id: otp.c,v 1.43 2011/09/01 14:12:18 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2009 Carnegie Mellon University.  All rights reserved.
@@ -68,7 +68,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: otp.c,v 1.42 2010/11/30 11:41:47 mel Exp $";
+static const char plugin_id[] = "$Id: otp.c,v 1.43 2011/09/01 14:12:18 mel Exp $";
 
 #define OTP_SEQUENCE_MAX	9999
 #define OTP_SEQUENCE_DEFAULT	499
@@ -1527,7 +1527,7 @@ static int otp_client_mech_step1(client_context_t *text,
     
     /* try to get the secret pass-phrase if we don't have a chalprompt */
     if ((params->utils->getcallback(params->utils->conn, SASL_CB_ECHOPROMPT,
-				    &echo_cb, &echo_context) == SASL_FAIL) &&
+				    (sasl_callback_ft *)&echo_cb, &echo_context) == SASL_FAIL) &&
 	(text->password == NULL)) {
 	pass_result = _plug_get_password(params->utils, &text->password,
 					 &text->free_password, prompt_need);

@@ -1,7 +1,7 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Rob Siemborski
  * Tim Martin
- * $Id: db_berkeley.c,v 1.9 2008/10/23 19:24:46 mel Exp $
+ * $Id: db_berkeley.c,v 1.10 2011/09/01 14:12:18 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -377,7 +377,7 @@ int _sasl_check_db(const sasl_utils_t *utils,
     }
 
     ret = utils->getcallback(conn, SASL_CB_VERIFYFILE,
-			     &vf, &cntxt);
+			     (sasl_callback_ft *)&vf, &cntxt);
     if (ret != SASL_OK) {
 	utils->seterror(conn, 0, "verifyfile failed");
 	return ret;

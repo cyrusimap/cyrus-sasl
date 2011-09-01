@@ -1,6 +1,6 @@
 /* sample-server.c -- sample SASL server
  * Rob Earhart
- * $Id: sample-server.c,v 1.33 2009/05/04 21:35:51 mel Exp $
+ * $Id: sample-server.c,v 1.34 2011/09/01 14:12:18 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -63,6 +63,7 @@ __declspec(dllimport) int getsubopt(char **optionp, const char * const *tokens, 
 # include <netinet/in.h>
 #endif /* WIN32 */
 #include <sasl.h>
+#include <saslplug.h>
 #include <saslutil.h>
 
 #ifndef HAVE_GETSUBOPT
@@ -185,9 +186,9 @@ getpath(void *context __attribute__((unused)),
 
 static sasl_callback_t callbacks[] = {
   {
-    SASL_CB_LOG, &sasl_my_log, NULL
+    SASL_CB_LOG, (sasl_callback_ft)&sasl_my_log, NULL
   }, {
-    SASL_CB_GETPATH, &getpath, NULL
+    SASL_CB_GETPATH, (sasl_callback_ft)&getpath, NULL
   }, {
     SASL_CB_LIST_END, NULL, NULL
   }

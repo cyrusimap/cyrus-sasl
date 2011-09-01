@@ -1,6 +1,6 @@
 /* Generic SASL plugin utility functions
  * Rob Siemborski
- * $Id: plugin_common.c,v 1.21 2008/10/29 13:10:38 mel Exp $
+ * $Id: plugin_common.c,v 1.22 2011/09/01 14:12:18 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -343,7 +343,7 @@ int _plug_get_simple(const sasl_utils_t *utils, unsigned int id, int required,
     }
   
     /* Try to get the callback... */
-    ret = utils->getcallback(utils->conn, id, &simple_cb, &simple_context);
+    ret = utils->getcallback(utils->conn, id, (sasl_callback_ft *)&simple_cb, &simple_context);
 
     if (ret == SASL_FAIL && !required)
 	return SASL_OK;
@@ -405,7 +405,7 @@ int _plug_get_password(const sasl_utils_t *utils, sasl_secret_t **password,
 
     /* Try to get the callback... */
     ret = utils->getcallback(utils->conn, SASL_CB_PASS,
-			     &pass_cb, &pass_context);
+			     (sasl_callback_ft *)&pass_cb, &pass_context);
 
     if (ret == SASL_OK && pass_cb) {
 	ret = pass_cb(utils->conn, pass_context, SASL_CB_PASS, password);
@@ -451,7 +451,7 @@ int _plug_challenge_prompt(const sasl_utils_t *utils, unsigned int id,
 
     /* Try to get the callback... */
     ret = utils->getcallback(utils->conn, id,
-			     &chalprompt_cb, &chalprompt_context);
+			     (sasl_callback_ft *)&chalprompt_cb, &chalprompt_context);
 
     if (ret == SASL_OK && chalprompt_cb) {
 	ret = chalprompt_cb(chalprompt_context, id,
@@ -497,7 +497,7 @@ int _plug_get_realm(const sasl_utils_t *utils, const char **availrealms,
 
     /* Try to get the callback... */
     ret = utils->getcallback(utils->conn, SASL_CB_GETREALM,
-			     &realm_cb, &realm_context);
+			     (sasl_callback_ft *)&realm_cb, &realm_context);
 
     if (ret == SASL_OK && realm_cb) {
 	ret = realm_cb(realm_context, SASL_CB_GETREALM, availrealms, realm);

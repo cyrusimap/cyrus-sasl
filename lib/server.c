@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.172 2011/09/01 12:18:05 mel Exp $
+ * $Id: server.c,v 1.173 2011/09/01 14:12:53 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -200,7 +200,7 @@ int sasl_setpass(sasl_conn_t *conn,
 
     /* call userdb callback function */
     tmpresult = _sasl_getcallback(conn, SASL_CB_SERVER_USERDB_SETPASS,
-			       &setpass_cb, &context);
+			       (sasl_callback_ft *)&setpass_cb, &context);
     if (tmpresult == SASL_OK && setpass_cb) {
 
 	tried_setpass++;
@@ -889,7 +889,7 @@ int sasl_server_init(const sasl_callback_t *callbacks,
 #ifdef PIC
     /* delayed loading of plugins? (DSO only, as it doesn't
      * make much [any] sense to delay in the static library case) */
-    if (_sasl_getcallback(NULL, SASL_CB_GETOPT, &getopt, &context) 
+    if (_sasl_getcallback(NULL, SASL_CB_GETOPT, (sasl_callback_ft *)&getopt, &context) 
 	   == SASL_OK) {
 	/* No sasl_conn_t was given to getcallback, so we provide the
 	 * global callbacks structure */
@@ -958,7 +958,7 @@ _sasl_transition(sasl_conn_t * conn,
 	PARAMERROR(conn);
 
     /* check if this is enabled: default to false */
-    if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context) == SASL_OK)
+    if (_sasl_getcallback(conn, SASL_CB_GETOPT, (sasl_callback_ft *)&getopt, &context) == SASL_OK)
     {
 	getopt(context, NULL, "auto_transition", &dotrans, NULL);
 	if (dotrans == NULL) dotrans = "n";
@@ -1099,7 +1099,7 @@ int sasl_server_new(const char *service,
   serverconn->sparams->callbacks = callbacks;
 
   log_level = auto_trans = NULL;
-  if(_sasl_getcallback(*pconn, SASL_CB_GETOPT, &getopt, &context) == SASL_OK) {
+  if(_sasl_getcallback(*pconn, SASL_CB_GETOPT, (sasl_callback_ft *)&getopt, &context) == SASL_OK) {
     getopt(context, NULL, "log_level", &log_level, NULL);
     getopt(context, NULL, "auto_transition", &auto_trans, NULL);
     getopt(context, NULL, "mech_list", &mlist, NULL);
@@ -1334,7 +1334,7 @@ static int do_authorization(sasl_server_conn_t *s_conn)
     
     /* check the proxy callback */
     if (_sasl_getcallback(&s_conn->base, SASL_CB_PROXY_POLICY,
-			  &authproc, &auth_context) != SASL_OK) {
+			  (sasl_callback_ft *)&authproc, &auth_context) != SASL_OK) {
 	INTERROR(&s_conn->base, SASL_NOAUTHZ);
     }
 
@@ -1874,7 +1874,7 @@ static int _sasl_checkpass(sasl_conn_t *conn,
 
     /* call userdb callback function, if available */
     result = _sasl_getcallback(conn, SASL_CB_SERVER_USERDB_CHECKPASS,
-			       &checkpass_cb, &context);
+			       (sasl_callback_ft *)&checkpass_cb, &context);
     if(result == SASL_OK && checkpass_cb) {
 	result = checkpass_cb(conn, context, user, pass, passlen,
 			      s_conn->sparams->propctx);
@@ -1883,7 +1883,7 @@ static int _sasl_checkpass(sasl_conn_t *conn,
     }
 
     /* figure out how to check (i.e. auxprop or saslauthd or pwcheck) */
-    if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context)
+    if (_sasl_getcallback(conn, SASL_CB_GETOPT, (sasl_callback_ft *)&getopt, &context)
             == SASL_OK) {
         getopt(context, NULL, "pwcheck_method", &mlist, NULL);
     }
@@ -2007,7 +2007,7 @@ int sasl_user_exists(sasl_conn_t *conn,
     if(!service) service = conn->service;
     
     /* figure out how to check (i.e. auxprop or saslauthd or pwcheck) */
-    if (_sasl_getcallback(conn, SASL_CB_GETOPT, &getopt, &context)
+    if (_sasl_getcallback(conn, SASL_CB_GETOPT, (sasl_callback_ft *)&getopt, &context)
             == SASL_OK) {
         getopt(context, NULL, "pwcheck_method", &mlist, NULL);
     }

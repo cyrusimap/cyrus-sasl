@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.47 2008/10/30 14:16:51 mel Exp $
+ * $Id: testsuite.c,v 1.48 2011/09/01 14:12:18 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -63,11 +63,9 @@
 #include <stdlib.h>
 
 #include <sasl.h>
+#include <saslplug.h>
 #include <saslutil.h>
 #include <prop.h>
-#include <md5global.h>
-#include <md5.h>
-#include <hmac-md5.h>
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -206,13 +204,13 @@ int test_getsimple(void *context __attribute__((unused)), int id,
 /* callbacks we support */
 static sasl_callback_t client_callbacks[] = {
   {
-    SASL_CB_GETREALM, test_getrealm, NULL
+    SASL_CB_GETREALM, (sasl_callback_ft)test_getrealm, NULL
   }, {
-    SASL_CB_USER, test_getsimple, NULL
+    SASL_CB_USER, (sasl_callback_ft)test_getsimple, NULL
   }, {
-    SASL_CB_AUTHNAME, test_getsimple, NULL
+    SASL_CB_AUTHNAME, (sasl_callback_ft)test_getsimple, NULL
   }, {
-    SASL_CB_PASS, test_getsecret, NULL    
+    SASL_CB_PASS, (sasl_callback_ft)test_getsecret, NULL    
   }, {
     SASL_CB_LIST_END, NULL, NULL
   }
@@ -479,7 +477,7 @@ int good_getopt(void *context __attribute__((unused)),
 }
 
 static struct sasl_callback goodsasl_cb[] = {
-    { SASL_CB_GETOPT, &good_getopt, NULL },
+    { SASL_CB_GETOPT, (sasl_callback_ft)&good_getopt, NULL },
     { SASL_CB_LIST_END, NULL, NULL }
 };
 
@@ -497,7 +495,7 @@ int givebadpath(void * context __attribute__((unused)),
 }
 
 static struct sasl_callback withbadpathsasl_cb[] = {
-    { SASL_CB_GETPATH, &givebadpath, NULL },
+    { SASL_CB_GETPATH, (sasl_callback_ft)&givebadpath, NULL },
     { SASL_CB_LIST_END, NULL, NULL }
 };
 
@@ -510,7 +508,7 @@ int giveokpath(void * context __attribute__((unused)),
 }
 
 static struct sasl_callback withokpathsasl_cb[] = {
-    { SASL_CB_GETPATH, &giveokpath, NULL },
+    { SASL_CB_GETPATH, (sasl_callback_ft)&giveokpath, NULL },
     { SASL_CB_LIST_END, NULL, NULL }
 };
 
@@ -543,8 +541,8 @@ static int proxy_authproc(sasl_conn_t *conn,
 }
 
 static struct sasl_callback goodsaslproxy_cb[] = {
-    { SASL_CB_PROXY_POLICY, &proxy_authproc, NULL },
-    { SASL_CB_GETOPT, &good_getopt, NULL },
+    { SASL_CB_PROXY_POLICY, (sasl_callback_ft)&proxy_authproc, NULL },
+    { SASL_CB_GETOPT, (sasl_callback_ft)&good_getopt, NULL },
     { SASL_CB_LIST_END, NULL, NULL }
 };
 

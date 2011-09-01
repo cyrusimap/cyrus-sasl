@@ -1,6 +1,6 @@
 /* sample-client.c -- sample SASL client
  * Rob Earhart
- * $Id: sample-client.c,v 1.32 2009/05/04 21:35:51 mel Exp $
+ * $Id: sample-client.c,v 1.33 2011/09/01 14:12:18 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -55,6 +55,7 @@ __declspec(dllimport) int getsubopt(char **optionp, const char * const *tokens, 
 # include <netinet/in.h>
 #endif /* WIN32 */
 #include <sasl.h>
+#include <saslplug.h>
 #include <saslutil.h>
 
 #ifdef macintosh
@@ -653,14 +654,14 @@ main(int argc, char *argv[])
 
   /* log */
   callback->id = SASL_CB_LOG;
-  callback->proc = &sasl_my_log;
+  callback->proc = (sasl_callback_ft)&sasl_my_log;
   callback->context = NULL;
   ++callback;
   
   /* getpath */
   if (searchpath) {
     callback->id = SASL_CB_GETPATH;
-    callback->proc = &getpath;
+    callback->proc = (sasl_callback_ft)&getpath;
     callback->context = searchpath;
     ++callback;
   }
@@ -668,7 +669,7 @@ main(int argc, char *argv[])
   /* user */
   if (userid) {
     callback->id = SASL_CB_USER;
-    callback->proc = &simple;
+    callback->proc = (sasl_callback_ft)&simple;
     callback->context = userid;
     ++callback;
   }
@@ -676,7 +677,7 @@ main(int argc, char *argv[])
   /* authname */
   if (authid) {
     callback->id = SASL_CB_AUTHNAME;
-    callback->proc = &simple;
+    callback->proc = (sasl_callback_ft)&simple;
     callback->context = authid;
     ++callback;
   }
@@ -684,26 +685,26 @@ main(int argc, char *argv[])
   if (realm!=NULL)
   {
     callback->id = SASL_CB_GETREALM;
-    callback->proc = &getrealm;
+    callback->proc = (sasl_callback_ft)&getrealm;
     callback->context = realm;
     callback++;
   }
 
   /* password */
   callback->id = SASL_CB_PASS;
-  callback->proc = &getsecret;
+  callback->proc = (sasl_callback_ft)&getsecret;
   callback->context = NULL;
   ++callback;
 
   /* echoprompt */
   callback->id = SASL_CB_ECHOPROMPT;
-  callback->proc = &prompt;
+  callback->proc = (sasl_callback_ft)&prompt;
   callback->context = NULL;
   ++callback;
 
   /* noechoprompt */
   callback->id = SASL_CB_NOECHOPROMPT;
-  callback->proc = &prompt;
+  callback->proc = (sasl_callback_ft)&prompt;
   callback->context = NULL;
   ++callback;
 

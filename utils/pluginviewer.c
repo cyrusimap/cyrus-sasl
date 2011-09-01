@@ -1,7 +1,7 @@
 /* pluginviewer.c -- Plugin Viewer for CMU SASL
  * Alexey Melnikov, Isode Ltd.
  *
- * $Id: pluginviewer.c,v 1.10 2011/01/19 12:01:42 mel Exp $
+ * $Id: pluginviewer.c,v 1.11 2011/09/01 14:12:18 mel Exp $
  */
 /* 
  * Copyright (c) 2004 Carnegie Mellon University.  All rights reserved.
@@ -551,14 +551,14 @@ main(int argc, char *argv[])
 
     /* log */
     callback->id = SASL_CB_LOG;
-    callback->proc = &sasl_my_log;
+    callback->proc = (sasl_callback_ft)&sasl_my_log;
     callback->context = NULL;
     ++callback;
       
     /* getpath */
     if (searchpath) {
         callback->id = SASL_CB_GETPATH;
-        callback->proc = &getpath;
+        callback->proc = (sasl_callback_ft)&getpath;
         callback->context = searchpath;
         ++callback;
     }
@@ -567,7 +567,7 @@ main(int argc, char *argv[])
     /* NOTE: this will return "sasl_mech" option, however this HAS NO EFFECT
        on client side SASL plugins, which just never query this option */
     callback->id = SASL_CB_GETOPT;
-    callback->proc = &plugview_sasl_getopt;
+    callback->proc = (sasl_callback_ft)&plugview_sasl_getopt;
     callback->context = NULL;
     ++callback;
 

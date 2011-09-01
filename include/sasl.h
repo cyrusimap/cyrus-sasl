@@ -353,7 +353,7 @@ typedef struct sasl_callback {
      * Mechanisms must ignore callbacks with id's they don't recognize.
      */
     unsigned long id;
-    int (*proc)();   /* Callback function.  Types of arguments vary by 'id' */
+    int (*proc)(void);   /* Callback function.  Types of arguments vary by 'id' */
     void *context;
 } sasl_callback_t;
 

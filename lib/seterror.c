@@ -3,7 +3,7 @@
  * Rob Siemborski
  * Tim Martin
  * split from common.c by Rolf Braun
- * $Id: seterror.c,v 1.9 2003/12/12 17:30:18 rjs3 Exp $
+ * $Id: seterror.c,v 1.10 2011/09/01 14:12:53 mel Exp $
  */
 
 /* 
@@ -120,7 +120,7 @@ void sasl_seterror(sasl_conn_t *conn,
 #ifndef SASL_OSX_CFMGLUE
       if(!(flags & SASL_NOLOG)) {
 	  /* See if we have a logging callback... */
-	  result = _sasl_getcallback(NULL, SASL_CB_LOG, &log_cb, &log_ctx);
+	  result = _sasl_getcallback(NULL, SASL_CB_LOG, (sasl_callback_ft *)&log_cb, &log_ctx);
 	  if (result == SASL_OK && ! log_cb)
 	      result = SASL_FAIL;
 	  if (result != SASL_OK)
@@ -251,7 +251,7 @@ void sasl_seterror(sasl_conn_t *conn,
 #ifndef SASL_OSX_CFMGLUE
   if(!(flags & SASL_NOLOG)) {
       /* See if we have a logging callback... */
-      result = _sasl_getcallback(conn, SASL_CB_LOG, &log_cb, &log_ctx);
+      result = _sasl_getcallback(conn, SASL_CB_LOG, (sasl_callback_ft *)&log_cb, &log_ctx);
       if (result == SASL_OK && ! log_cb)
 	  result = SASL_FAIL;
       if (result != SASL_OK)

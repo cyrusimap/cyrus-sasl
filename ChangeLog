@@ -1,3 +1,7 @@
+2011-09-02  Alexey Melnikov <alexey.melnikov@isode.com>
+	* config/config.guess, config/config.sub, saslauthd/config/config.guess,
+	  saslauthd/config/config.sub: Updated config to the latest GNU snapshot.
+
 2011-09-01  Alexey Melnikov <alexey.melnikov@isode.com>
 	* lib/server.c: Make sure that a failed authorization doesn't preclude
 	  further SASL authentication attempts from working.

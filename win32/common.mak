@@ -2,7 +2,7 @@
 #Keep in sync with include/sasl.h and win32/include/config.h
 SASL_VERSION_MAJOR=2
 SASL_VERSION_MINOR=1
-SASL_VERSION_STEP=24
+SASL_VERSION_STEP=25
 
 !IF "$(STATIC)" == ""
 STATIC=yes

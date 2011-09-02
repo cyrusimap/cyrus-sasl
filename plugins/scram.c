@@ -1,6 +1,6 @@
 /* SCRAM-SHA-1 SASL plugin
  * Alexey Melnikov
- * $Id: scram.c,v 1.24 2011/09/01 14:50:24 mel Exp $
+ * $Id: scram.c,v 1.25 2011/09/02 14:25:52 mel Exp $
  */
 /* 
  * Copyright (c) 2009-2010 Carnegie Mellon University.  All rights reserved.
@@ -69,7 +69,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: scram.c,v 1.24 2011/09/01 14:50:24 mel Exp $";
+static const char plugin_id[] = "$Id: scram.c,v 1.25 2011/09/02 14:25:52 mel Exp $";
 
 #define NONCE_SIZE (32)		    /* arbitrary */
 #define SALT_SIZE  (16)		    /* arbitrary */
@@ -1949,7 +1949,6 @@ scram_client_mech_step1(client_context_t *text,
     case SASL_CB_DISP_USED:
 	if (!SASL_CB_PRESENT(params)) {
 	    result = SASL_BADPARAM;
-	    sparams->utils->free(salt);
 	    goto cleanup;
 	}
 	channel_binding_name = params->cbinding->name;

@@ -1,7 +1,7 @@
 /* CRAM-MD5 SASL plugin
  * Rob Siemborski
  * Tim Martin 
- * $Id: cram.c,v 1.86 2010/11/30 11:41:47 mel Exp $
+ * $Id: cram.c,v 1.87 2011/09/07 13:19:44 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -65,7 +65,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: cram.c,v 1.86 2010/11/30 11:41:47 mel Exp $";
+static const char plugin_id[] = "$Id: cram.c,v 1.87 2011/09/07 13:19:44 murch Exp $";
 
 /* convert a string of 8bit chars to it's representation in hex
  * using lowercase letters
@@ -224,7 +224,9 @@ crammd5_server_mech_step2(server_context_t *text,
     size_t len;
     int result = SASL_FAIL;
     const char *password_request[] = { SASL_AUX_PASSWORD,
+#if defined(OBSOLETE_CRAM_ATTR)
 				       "*cmusaslsecretCRAM-MD5",
+#endif
 				       NULL };
     struct propval auxprop_values[3];
     HMAC_MD5_CTX tmphmac;
@@ -265,8 +267,11 @@ crammd5_server_mech_step2(server_context_t *text,
 					   password_request,
 					   auxprop_values);
     if (result < 0 ||
-	((!auxprop_values[0].name || !auxprop_values[0].values) &&
-	 (!auxprop_values[1].name || !auxprop_values[1].values))) {
+	((!auxprop_values[0].name || !auxprop_values[0].values)
+#if defined(OBSOLETE_CRAM_ATTR)
+	  && (!auxprop_values[1].name || !auxprop_values[1].values)
+#endif
+	)) {
 	/* We didn't find this username */
 	sparams->utils->seterror(sparams->utils->conn,0,
 				 "no secret in database");
@@ -294,10 +299,12 @@ crammd5_server_mech_step2(server_context_t *text,
 	sparams->utils->hmac_md5_precalc(&md5state, /* OUT */
 					 sec->data,
 					 sec->len);
+#if defined(OBSOLETE_CRAM_ATTR)
     } else if (auxprop_values[1].name && auxprop_values[1].values) {
 	/* We have a precomputed secret */
 	memcpy(&md5state, auxprop_values[1].values[0],
 	       sizeof(HMAC_MD5_STATE));
+#endif
     } else {
 	sparams->utils->seterror(sparams->utils->conn, 0,
 				 "Have neither type of secret");

@@ -1,9 +1,10 @@
 2011-09-07  Ken Murchison <murch@andrew.cmu.edu>
 	* plugins/scram.c:
 	  Fixed 3 memory leaks in SCRAM
+
 2011-09-07  Alexey Melnikov <alexey.melnikov@isode.com>
-	* configure.in, plugins/NTMakefile, plugins/cramd.c:
-	  Allow cmusaslCRAM property to be disabled.
+	* configure.in, plugins/NTMakefile, plugins/cram.c:
+	  Allow use of cmusaslsecretCRAM-MD5 property to be disabled.
 
 2011-09-02  Alexey Melnikov <alexey.melnikov@isode.com>
 	* config/config.guess, config/config.sub, saslauthd/config/config.guess,

@@ -1,3 +1,55 @@
+New in 2.1.25
+-------------
+
+* Make sure that a failed authorization doesn't preclude
+  further server-side SASL authentication attempts from working.
+* Fixed a crash caused by aborted SASL authentication
+  and initiation of another one using the same SASL context.
+* (Windows) Fixed the random number generator to actually produce random
+  output on each run.
+* Be protective against calling sasl_server_step once authentication
+  has failed (multiple SASL plugins)
+* Fixed several bugs in the mech_avail callback handling
+  in the server side code.
+* Added support for channel bindings
+* Added support for ordering SASL mechanisms by strength (on the client side),
+  or using the "client_mech_list" option.
+* server_idle needs to obey server's SASL mechanism list from the server
+  context.
+* Better server plugin API mismatch reporting
+* Build:
+ - Updated config to the latest GNU snapshot
+ - Fixed SASL's libtool MacOS/X 64-bit file magic
+* New SASL plugin: SCRAM
+* New SASL plugin: GS2
+* DIGEST-MD5 plugin:
+ -  Allow DIGEST-MD5 plugin to be used for client-side and
+    server-side HTTP Digest, including running over non-persistent
+    connections (RFC 2617)
+ - Use the same username for reauthentication cache lookup and update
+ - Minimize the number of auxprop lookups in the server side DIGEST-MD5
+   plugin for the most common case when authentication and authorization
+   identities are the same.
+ - Updated digestmd5_server_mech_step2() to be more defensive against
+   empty client input.
+ - Fixed some memory leaks on failed plugin initialization.
+   Prevent potential race condition when freeding plugin state.
+   Set the freed reauthentication cache mutex to NULL, to make errors
+   due to mutex access after free more obvious.
+ - Test against broken UTF-8 based hashes if calculation using special
+   ISO-8859-1 code fails.
+ - Fixed an interop problem with some LDAP clients ignoring server
+   advertised realm and providing their own.
+* GSSAPI plugin:
+ - Fix to build GSSAPI with Heimdal
+ - Properly set serveroutlen to 0 in one place.
+   Don't send empty challenge once server context establishment is done,
+   as this is in violation of the RFC 2222 and its successor.
+ - Don't send maxbuf, if no security layer can be established.
+   Added additional checks for buffer lengths.
+* LDAPDB plugin:
+ - build fixes
+
 New in 2.1.24
 -------------
 
@@ -82,6 +134,7 @@ New in 2.1.24
 
 New in 2.1.23
 -------------
+
 * Fixed CERT VU#238019 (make sure sasl_encode64() always NUL
   terminates output or returns SASL_BUFOVER)
 

@@ -1,5 +1,7 @@
 !INCLUDE ..\win32\common.mak
 
+SCRAM=1
+
 !IF "$(NTLM)" == "1"
 PLUGINS_EXT=saslNTLM.dll
 !ELSE 
@@ -111,7 +113,7 @@ saslLDAPDB_sources = ldapdb.c $(common_sources)
 saslLDAPDB_objs = ldapdb.obj $(common_objs)
 saslLDAPDB_out = saslLDAPDB.dll saslLDAPDB.exp saslLDAPDB.lib
 
-!IF "$(NTLM)" == "1" || "$(SRP)" == "1" || "$(OTP)" == "1"
+!IF "$(NTLM)" == "1" || "$(SRP)" == "1" || "$(OTP)" == "1" || "$(SCRAM)" == "1"
 OPENSSL_FLAGS= /I $(OPENSSL_INCLUDE)
 !ELSE 
 OPENSSL_FLAGS=

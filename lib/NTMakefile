@@ -53,10 +53,10 @@ libsasl.dll: $(libsasl_objs) $(libsasl_res)
 	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 
 plugin_common.c: ..\plugins\plugin_common.c plugin_common.h
-	copy ..\plugins\plugin_common.c .
+	xcopy /D /Y ..\plugins\plugin_common.c .
 
 plugin_common.h: ..\plugins\plugin_common.h
-	copy ..\plugins\plugin_common.h .
+	xcopy /D /Y ..\plugins\plugin_common.h .
 
 auxprop.obj checkpw.obj client.obj common.obj external.obj plugin_common.obj server.obj seterror.obj: ..\include\saslplug.h
 

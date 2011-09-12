@@ -177,16 +177,16 @@ install: $(PLUGINS)
 all-recursive : $(PLUGINS)
 
 getaddrinfo.c: ..\lib\getaddrinfo.c
-	copy ..\lib\getaddrinfo.c .
+	xcopy /D /Y ..\lib\getaddrinfo.c .
 
 getnameinfo.c: ..\lib\getnameinfo.c
-	copy ..\lib\getnameinfo.c .
+	xcopy /D /Y ..\lib\getnameinfo.c .
 
 allockey.c: ..\sasldb\allockey.c
-	copy ..\sasldb\allockey.c .
+	xcopy /D /Y ..\sasldb\allockey.c .
 
 db_berkeley.c: ..\sasldb\db_berkeley.c
-	copy ..\sasldb\db_berkeley.c .
+	xcopy /D /Y ..\sasldb\db_berkeley.c .
 
 #Add /pdb: option?
 

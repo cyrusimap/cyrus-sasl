@@ -1,7 +1,7 @@
 /* db_berkeley.c--SASL berkeley db interface
  * Rob Siemborski
  * Tim Martin
- * $Id: db_berkeley.c,v 1.10 2011/09/01 14:12:18 mel Exp $
+ * $Id: db_berkeley.c,v 1.11 2011/09/12 08:50:47 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -79,7 +79,7 @@ static int berkeleydb_open(const sasl_utils_t *utils,
 #endif
 
     if (utils->getcallback(conn, SASL_CB_GETOPT,
-			  &getopt, &cntxt) == SASL_OK) {
+			   (sasl_callback_ft *)&getopt, &cntxt) == SASL_OK) {
 	const char *p;
 	if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK 
 	    && p != NULL && *p != 0) {
@@ -368,7 +368,7 @@ int _sasl_check_db(const sasl_utils_t *utils,
     if (!utils) return SASL_BADPARAM;
 
     if (utils->getcallback(conn, SASL_CB_GETOPT,
-			  &getopt, &cntxt) == SASL_OK) {
+			   (sasl_callback_ft *)&getopt, &cntxt) == SASL_OK) {
 	const char *p;
 	if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK 
 	    && p != NULL && *p != 0) {

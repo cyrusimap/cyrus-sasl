@@ -1,14 +1,27 @@
+2011-09-12  Alexey Melnikov <alexey.melnikov@isode.com>
+	* win32/common.mak: Add _CRT_SECURE_NO_DEPRECATE define
+	to suppress warnings about use of strdup, snprintf, etc.
+
+2011-09-12  Alexey Melnikov <alexey.melnikov@isode.com>
+	* sasldb/db_berkeley.c:
+	  Fixed warnings about incompatible callback types.
+
+2011-09-12  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/NTMakefile plugins/NTMakefile:
+	  Make sure that copied .c files are only rebuilt when changed.
+
 2011-09-07  Ken Murchison <murch@andrew.cmu.edu>
 	* plugins/scram.c:
-	  Fixed 3 memory leaks in SCRAM
+	  Fixed 3 memory leaks in SCRAM. Final 2.1.25.
 
 2011-09-07  Alexey Melnikov <alexey.melnikov@isode.com>
 	* configure.in, plugins/NTMakefile, plugins/cram.c:
 	  Allow use of cmusaslsecretCRAM-MD5 property to be disabled.
 
 2011-09-02  Alexey Melnikov <alexey.melnikov@isode.com>
-	* config/config.guess, config/config.sub, saslauthd/config/config.guess,
-	  saslauthd/config/config.sub: Updated config to the latest GNU snapshot.
+	* config/config.guess, config/config.sub,
+	  saslauthd/config/config.guess, saslauthd/config/config.sub:
+	  Updated config to the latest GNU snapshot.
 
 2011-09-01  Alexey Melnikov <alexey.melnikov@isode.com>
 	* lib/server.c: Make sure that a failed authorization doesn't preclude

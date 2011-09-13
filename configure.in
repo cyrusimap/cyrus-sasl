@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.222 2011/09/07 13:19:44 murch Exp $
+dnl $Id: configure.in,v 1.223 2011/09/13 16:30:23 mel Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -1399,7 +1399,7 @@ struct sockaddr_storage {
 #endif /* CONFIG_H */
 ])
 
-AC_CONFIG_HEADERS(config.h)
+AM_CONFIG_HEADER(config.h)
 
 AC_OUTPUT(Makefile
 include/Makefile

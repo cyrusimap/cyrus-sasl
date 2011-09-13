@@ -1,7 +1,8 @@
 2011-09-13  Alexey Melnikov <alexey.melnikov@isode.com>
 	* configure.in, config/ltconfig, config/ltmain.sh:
 	  MacOS X related build fixes: use .plugin when building
-	  SASL plugins, fixed version number calculation.
+	  SASL plugins, fixed version number calculation,
+	  don't generate multiple symlinks.
 	  Also use LD_RUN_PATH as rpath. (patches by Chris Ridd)
 
 2011-09-12  Alexey Melnikov <alexey.melnikov@isode.com>

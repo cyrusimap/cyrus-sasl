@@ -1,4 +1,4 @@
-/* $Id: client.c,v 1.8 2010/12/01 14:51:53 mel Exp $ */
+/* $Id: client.c,v 1.9 2011/09/15 09:31:49 mel Exp $ */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
  *
@@ -60,6 +60,7 @@
 #include <assert.h>
 
 #include <sasl.h>
+#include <saslplug.h>
 
 #include "common.h"
 
@@ -184,13 +185,13 @@ getsecret(sasl_conn_t *conn,
 /* callbacks we support */
 static sasl_callback_t callbacks[] = {
   {
-    SASL_CB_GETREALM, &getrealm, NULL
+    SASL_CB_GETREALM, (sasl_callback_ft)&getrealm, NULL
   }, {
-    SASL_CB_USER, &simple, NULL
+    SASL_CB_USER, (sasl_callback_ft)&simple, NULL
   }, {
-    SASL_CB_AUTHNAME, &simple, NULL
+    SASL_CB_AUTHNAME, (sasl_callback_ft)&simple, NULL
   }, {
-    SASL_CB_PASS, &getsecret, NULL
+    SASL_CB_PASS, (sasl_callback_ft)&getsecret, NULL
   }, {
     SASL_CB_LIST_END, NULL, NULL
   }

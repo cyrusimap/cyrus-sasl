@@ -1,7 +1,7 @@
 /* saslutil.c
  * Rob Siemborski
  * Tim Martin
- * $Id: saslutil.c,v 1.51 2010/12/01 14:25:53 mel Exp $
+ * $Id: saslutil.c,v 1.52 2011/09/22 14:43:01 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -436,7 +436,7 @@ static void randinit(sasl_rand_t *rpool)
 	srandom(*foo);
     }
 #endif /* HAVE_JRAND48 */
-#else if defined(WIN32)
+#elif defined(WIN32)
     {
 	unsigned int *foo = (unsigned int *)rpool->pool;
 	srand(*foo);
@@ -449,7 +449,7 @@ static void randinit(sasl_rand_t *rpool)
 void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
 {
     unsigned int lup;
-#if defined(WIN32)
+#if defined(WIN32) && !defined(__MINGW32__)
     unsigned int randomValue;
 #endif
 
@@ -460,7 +460,9 @@ void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
     randinit(rpool);
 
     for (lup = 0; lup < len; lup++) {
-#if defined(WIN32)
+#if defined(__MINGW32__)
+	buf[lup] = (char) (rand() >> 8);
+#elif defined(WIN32)
 	if (rand_s(&randomValue) != 0) {
 	    randomValue = rand();
 	}

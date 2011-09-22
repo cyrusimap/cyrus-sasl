@@ -53,7 +53,7 @@
  * END SYNOPSIS */
 
 #ifdef __GNUC__
-#ident "$Id: auth_rimap.c,v 1.13 2008/01/23 19:54:54 murch Exp $"
+#ident "$Id: auth_rimap.c,v 1.14 2011/09/22 14:39:03 mel Exp $"
 #endif
 
 /* PUBLIC DEPENDENCIES */
@@ -199,7 +199,7 @@ qstring (
 	}
 	*p2++ = *p1++;
     }
-    strcat(p2, "\"");
+    strcpy(p2, "\"");
     return c;
 }
 

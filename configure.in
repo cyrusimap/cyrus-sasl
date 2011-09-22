@@ -1,7 +1,7 @@
 dnl configure.in for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.223 2011/09/13 16:30:23 mel Exp $
+dnl $Id: configure.in,v 1.224 2011/09/22 14:44:15 mel Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl
@@ -1268,7 +1268,8 @@ AH_BOTTOM([
 
 
 /* Create a struct iovec if we need one */
-#if !defined(_WIN32) && !defined(HAVE_SYS_UIO_H)
+#if !defined(_WIN32)
+#if !defined(HAVE_SYS_UIO_H)
 /* (win32 is handled in sasl.h) */
 struct iovec {
     char *iov_base;
@@ -1277,6 +1278,7 @@ struct iovec {
 #else
 #include <sys/types.h>
 #include <sys/uio.h>
+#endif
 #endif
 
 /* location of the random number generator */
@@ -1315,9 +1317,10 @@ struct iovec {
 
 #include <stdlib.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 #ifndef WIN32
+# include <sys/socket.h>
 # include <netdb.h>
+# include <netinet/in.h>
 # ifdef HAVE_SYS_PARAM_H
 #  include <sys/param.h>
 # endif
@@ -1326,13 +1329,11 @@ struct iovec {
 #endif /* WIN32 */
 #include <string.h>
 
-#include <netinet/in.h>
-
 #ifndef HAVE_SOCKLEN_T
 typedef unsigned int socklen_t;
 #endif /* HAVE_SOCKLEN_T */
 
-#ifndef HAVE_STRUCT_SOCKADDR_STORAGE
+#if !defined(HAVE_STRUCT_SOCKADDR_STORAGE) && !defined(WIN32)
 #define	_SS_MAXSIZE	128	/* Implementation specific max size */
 #define	_SS_PADSIZE	(_SS_MAXSIZE - sizeof (struct sockaddr))
 
@@ -1394,6 +1395,18 @@ struct sockaddr_storage {
 
 #ifndef HIER_DELIMITER
 #define HIER_DELIMITER '/'
+#endif
+
+#ifdef WIN32
+#define SASL_ROOT_KEY "SOFTWARE\\Carnegie Mellon\\Project Cyrus\\SASL Library"
+#define SASL_PLUGIN_PATH_ATTR "SearchPath"
+#define SASL_CONF_PATH_ATTR "ConfFile"
+
+#include <windows.h>
+inline static unsigned int sleep(unsigned int seconds) {
+       Sleep(seconds * 1000);
+       return 0;
+}
 #endif
 
 #endif /* CONFIG_H */

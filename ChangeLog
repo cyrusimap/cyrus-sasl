@@ -1,3 +1,28 @@
+2011-09-22  Alexey Melnikov <alexey.melnikov@isode.com>
+	* config/ltconfig, saslauthd/config/ltconfig: Fixed Cyrus SASL
+	  build on some versions of Mac OS.
+
+2011-09-22  Alexey Melnikov <alexey.melnikov@isode.com>
+	* saslauthd/auth_rimap.c: qstring incorrectly appending
+	  the closing double quote. (Merge from RedHat)
+
+2011-09-22  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/common.c: unlock the mutex in sasl_dispose if the context
+	  was freed by another thread. (Merge from RedHat)
+
+2011-09-22  Alexey Melnikov <alexey.melnikov@isode.com>
+	* Makefile.am: "lib" should be built before "plugins"
+	  (Patch from marcandre.lureau@redhat.com)
+
+2011-09-22  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/saslutil.c: MINGW32 doesn't have rand_s
+	  (Patch from marcandre.lureau@redhat.com)
+
+2011-09-22  Alexey Melnikov <alexey.melnikov@isode.com>
+	* configure.in: Various build fixes for MINGW32
+	  (including defining sleep())
+	  (Patch from marcandre.lureau@redhat.com)
+
 2011-09-15  Alexey Melnikov <alexey.melnikov@isode.com>
 	* sample/client.c: Added additional typecasts to kill warnings
 	  about incompatible callback types

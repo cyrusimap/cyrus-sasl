@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.112 2011/04/19 09:19:18 mel Exp $
+ * $Id: gssapi.c,v 1.113 2011/10/07 11:22:47 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -82,7 +82,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.112 2011/04/19 09:19:18 mel Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.113 2011/10/07 11:22:47 mel Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -370,7 +370,7 @@ sasl_gss_encode(void *context, const struct iovec *invec, unsigned numiov,
     }
     
     if (output_token->value && output) {
-	unsigned char * p = (unsigned char *) text->encode_buf;
+	unsigned char * p;
 	
 	ret = _plug_buf_alloc(text->utils,
 			      &(text->encode_buf),
@@ -383,6 +383,8 @@ sasl_gss_encode(void *context, const struct iovec *invec, unsigned numiov,
 	    GSS_UNLOCK_MUTEX(text->utils);
 	    return ret;
 	}
+
+	p = (unsigned char *) text->encode_buf;
 	
 	p[0] = (output_token->length>>24) & 0xFF;
 	p[1] = (output_token->length>>16) & 0xFF;

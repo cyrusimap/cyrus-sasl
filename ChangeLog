@@ -1,3 +1,7 @@
+2011-10-07  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/gssapi.c: Fixed a segfault in gssapi.c
+	  (patch by Phil Pennock)
+
 2011-09-22  Alexey Melnikov <alexey.melnikov@isode.com>
 	* config/ltconfig, saslauthd/config/ltconfig: Fixed Cyrus SASL
 	  build on some versions of Mac OS.

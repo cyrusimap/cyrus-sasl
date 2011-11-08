@@ -1,4 +1,7 @@
 2011-11-08  Ken Murchison <murch@andrew.cmu.edu>
+	* plugins/ntlm.c: Flag client-side of NTLM plugin as HTTP-ready
+
+2011-11-08  Ken Murchison <murch@andrew.cmu.edu>
 	* include/saslutil.h, lib/config.c, lib/server.c
 	  Added sasl_config_done() to plug a memory leak when using an
 	  application specific config file

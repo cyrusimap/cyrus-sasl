@@ -1,6 +1,6 @@
 /* NTLM SASL plugin
  * Ken Murchison
- * $Id: ntlm.c,v 1.36 2011/01/14 14:35:57 murch Exp $
+ * $Id: ntlm.c,v 1.37 2011/11/08 17:31:55 murch Exp $
  *
  * References:
  *   http://www.innovation.ch/java/ntlm.html
@@ -100,7 +100,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: ntlm.c,v 1.36 2011/01/14 14:35:57 murch Exp $";
+static const char plugin_id[] = "$Id: ntlm.c,v 1.37 2011/11/08 17:31:55 murch Exp $";
 
 #ifdef WIN32
 static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);
@@ -2142,7 +2142,8 @@ static sasl_client_plug_t ntlm_client_plugins[] =
 	0,				/* max_ssf */
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOANONYMOUS,		/* security_flags */
-	SASL_FEAT_WANT_CLIENT_FIRST,	/* features */
+	SASL_FEAT_WANT_CLIENT_FIRST
+	| SASL_FEAT_SUPPORTS_HTTP,	/* features */
 	NULL,				/* required_prompts */
 	NULL,				/* glob_context */
 	&ntlm_client_mech_new,		/* mech_new */

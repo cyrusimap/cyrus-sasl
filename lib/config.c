@@ -1,7 +1,7 @@
 /* SASL Config file API
  * Rob Siemborski
  * Tim Martin (originally in Cyrus distribution)
- * $Id: config.c,v 1.18 2009/02/14 14:01:24 mel Exp $
+ * $Id: config.c,v 1.19 2011/11/08 17:22:40 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2009 Carnegie Mellon University.  All rights reserved.
@@ -55,8 +55,8 @@ struct configlist {
     char *value;
 };
 
-static struct configlist *configlist;
-static int nconfiglist;
+static struct configlist *configlist = NULL;
+static int nconfiglist = 0;
 
 #define CONFIGLISTGROWSIZE 100
 
@@ -140,4 +140,18 @@ const char *sasl_config_getstring(const char *key,const char *def)
 	  return configlist[opt].value;
     }
     return def;
+}
+
+void sasl_config_done(void)
+{
+    int opt;
+
+    for (opt = 0; opt < nconfiglist; opt++) {
+	if (configlist[opt].key) sasl_FREE(configlist[opt].key);
+	if (configlist[opt].value) sasl_FREE(configlist[opt].value);
+    }
+
+    sasl_FREE(configlist);
+    configlist = NULL;
+    nconfiglist = 0;
 }

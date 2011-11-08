@@ -1,3 +1,8 @@
+2011-11-08  Ken Murchison <murch@andrew.cmu.edu>
+	* include/saslutil.h, lib/config.c, lib/server.c
+	  Added sasl_config_done() to plug a memory leak when using an
+	  application specific config file
+
 2011-10-07  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/gssapi.c: Fixed a segfault in gssapi.c
 	  (patch by Phil Pennock)

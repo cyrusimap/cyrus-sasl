@@ -1,7 +1,7 @@
 /* SASL server API implementation
  * Rob Siemborski
  * Tim Martin
- * $Id: server.c,v 1.176 2011/09/01 16:33:10 mel Exp $
+ * $Id: server.c,v 1.177 2011/11/08 17:22:40 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -563,6 +563,8 @@ static int server_done(void) {
 
   global_callbacks.callbacks = NULL;
   global_callbacks.appname = NULL;
+
+  sasl_config_done();
 
   return SASL_OK;
 }

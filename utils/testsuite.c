@@ -1,7 +1,7 @@
 /* testsuite.c -- Stress the library a little
  * Rob Siemborski
  * Tim Martin
- * $Id: testsuite.c,v 1.48 2011/09/01 14:12:18 mel Exp $
+ * $Id: testsuite.c,v 1.49 2011/11/09 15:49:47 murch Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -95,10 +95,10 @@ char myhostname[1024+1];
 #define REALLY_LONG_LENGTH  32000
 #define REALLY_LONG_BACKOFF  2000
 
-const char *username = "murch";
+const char *username = "ken";
 const char *nonexistant_username = "ABCDEFGHIJ";
-const char *authname = "murch";
-const char *proxyasname = "murchproxy";
+const char *authname = "ken";
+const char *proxyasname = "kenproxy";
 const char *password = "1234";
 sasl_secret_t * g_secret = NULL;
 const char *cu_plugin = "INTERNAL";
@@ -1324,7 +1324,7 @@ void sendbadsecond(char *mech, void *rock)
 
     printf("%s --> start\n",mech);
     
-    if (strcmp(mech,"GSSAPI")==0) service = gssapi_service;
+    if (strncmp(mech,"GSS",3)==0) service = gssapi_service;
 
     if (sasl_client_init(client_interactions)!=SASL_OK) fatal("Unable to init client");
 
@@ -1574,7 +1574,7 @@ int doauth(char *mech, sasl_conn_t **server_conn, sasl_conn_t **client_conn,
 
     if(!server_conn || !client_conn) return SASL_BADPARAM;
     
-    if (strcmp(mech,"GSSAPI")==0) service = gssapi_service;
+    if (strncmp(mech,"GSS",3)==0) service = gssapi_service;
 
     result = sasl_client_init((c_calls ? c_calls : client_interactions));
     if (result!=SASL_OK) {
@@ -1729,7 +1729,7 @@ int doauth_noclientfirst(char *mech, sasl_conn_t **server_conn,
 
     if(!server_conn || !client_conn) return SASL_BADPARAM;
     
-    if (strcmp(mech,"GSSAPI")==0) service = gssapi_service;
+    if (strncmp(mech,"GSS",3)==0) service = gssapi_service;
 
 
     if (sasl_client_init((c_calls ? c_calls : client_interactions))!=SASL_OK)
@@ -1862,7 +1862,7 @@ int doauth_serverlast(char *mech, sasl_conn_t **server_conn,
 
     if(!server_conn || !client_conn) return SASL_BADPARAM;
     
-    if (strcmp(mech,"GSSAPI")==0) service = gssapi_service;
+    if (strncmp(mech,"GSS",3)==0) service = gssapi_service;
 
     if (sasl_client_init((c_calls ? c_calls : client_interactions))!=SASL_OK)
 	fatal("unable to init client");
@@ -2000,7 +2000,7 @@ int doauth_noclientfirst_andserverlast(char *mech, sasl_conn_t **server_conn,
 
     if(!server_conn || !client_conn) return SASL_BADPARAM;
     
-    if (strcmp(mech,"GSSAPI")==0) service = gssapi_service;
+    if (strncmp(mech,"GSS",3)==0) service = gssapi_service;
 
     if (sasl_client_init((c_calls ? c_calls : client_interactions))!=SASL_OK)
 	fatal("unable to init client");

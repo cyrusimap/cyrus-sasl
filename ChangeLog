@@ -1,3 +1,8 @@
+2011-11-09  Ken Murchison <murch@andrew.cmu.edu>
+	* cmulocal/sasl2.m4, plugins/gssapi.c, utils/testsuite.c:
+	  Added GSS-SPNEGO plugin which can also be used for HTTP
+	  Negotiate authentication (RFC 4559)
+
 2011-11-08  Ken Murchison <murch@andrew.cmu.edu>
 	* plugins/ntlm.c: Flag client-side of NTLM plugin as HTTP-ready
 

@@ -82,7 +82,7 @@ target_triplet = @target@
 noinst_PROGRAMS = client$(EXEEXT) server$(EXEEXT)
 EXTRA_PROGRAMS = sample-client$(EXEEXT) sample-server$(EXEEXT)
 subdir = sample
-DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in $(srcdir)/NTMakefile
+DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/config/kerberos_v4.m4 \
 	$(top_srcdir)/config/libtool.m4 $(top_srcdir)/config/plain.m4 \
@@ -136,7 +136,7 @@ LINK = $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link \
 SOURCES = $(client_SOURCES) $(sample_client_SOURCES) \
 	$(sample_server_SOURCES) $(server_SOURCES)
 DIST_SOURCES = $(client_SOURCES) $(sample_client_SOURCES) \
-	$(sample_server_SOURCES) $(server_SOURCES) $(srcdir)/http_digest_client.c
+	$(sample_server_SOURCES) $(server_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)

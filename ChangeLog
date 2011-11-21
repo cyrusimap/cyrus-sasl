@@ -1,3 +1,7 @@
+2011-11-21  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/gssapi.c: Only check out_flags once authentication is
+	  successfully completed
+
 2011-11-09  Ken Murchison <murch@andrew.cmu.edu>
 	* cmulocal/sasl2.m4, plugins/gssapi.c, utils/testsuite.c:
 	  Added GSS-SPNEGO plugin which can also be used for HTTP

@@ -1,7 +1,7 @@
 /* GSSAPI SASL plugin
  * Leif Johansson
  * Rob Siemborski (SASL v2 Conversion)
- * $Id: gssapi.c,v 1.114 2011/11/09 15:49:47 murch Exp $
+ * $Id: gssapi.c,v 1.115 2011/11/21 15:12:35 mel Exp $
  */
 /* 
  * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.
@@ -83,7 +83,7 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.114 2011/11/09 15:49:47 murch Exp $";
+static const char plugin_id[] = "$Id: gssapi.c,v 1.115 2011/11/21 15:12:35 mel Exp $";
 
 static const char * GSSAPI_BLANK_STRING = "";
 
@@ -770,37 +770,9 @@ gssapi_server_mech_authneg(context_t *text,
 	return SASL_BADAUTH;
     }
 
-    /* When GSS_Accept_sec_context returns GSS_S_COMPLETE, the server
-       examines the context to ensure that it provides a level of protection
-       permitted by the server's security policy.  In particular, if the
-       integ_avail flag is not set in the context, then no security layer
-       can be offered or accepted.  If the conf_avail flag is not set in the
-       context, then no security layer with confidentiality can be offered
-       or accepted. */
-    if ((out_flags & GSS_C_INTEG_FLAG) == 0) {
-	/* if the integ_avail flag is not set in the context,
-	   then no security layer can be offered or accepted. */
-	text->qop = LAYER_NONE;
-    } else if ((out_flags & GSS_C_CONF_FLAG) == 0) {
-	/* If the conf_avail flag is not set in the context,
-	   then no security layer with confidentiality can be offered
-	   or accepted. */
-	text->qop = LAYER_NONE | LAYER_INTEGRITY;
-    } else {
-	text->qop = LAYER_NONE | LAYER_INTEGRITY | LAYER_CONFIDENTIALITY;
-    }
-
-    if ((params->props.security_flags & SASL_SEC_PASS_CREDENTIALS) &&
-	(!(out_flags & GSS_C_DELEG_FLAG) ||
-	 text->client_creds == GSS_C_NO_CREDENTIAL) ) 
-	{
-	    text->utils->seterror(text->utils->conn, SASL_LOG_WARN,
-				  "GSSAPI warning: no credentials were passed");
-	    /* continue with authentication */
-	}
-
-    if (serveroutlen)
+    if (serveroutlen) {
 	*serveroutlen = output_token->length;
+    }
     if (output_token->value) {
 	if (serverout) {
 	    ret = _plug_buf_alloc(text->utils, &(text->out_buf),
@@ -830,6 +802,35 @@ gssapi_server_mech_authneg(context_t *text,
     }
 
     assert(maj_stat == GSS_S_COMPLETE);
+
+    /* When GSS_Accept_sec_context returns GSS_S_COMPLETE, the server
+       examines the context to ensure that it provides a level of protection
+       permitted by the server's security policy.  In particular, if the
+       integ_avail flag is not set in the context, then no security layer
+       can be offered or accepted.  If the conf_avail flag is not set in the
+       context, then no security layer with confidentiality can be offered
+       or accepted. */
+    if ((out_flags & GSS_C_INTEG_FLAG) == 0) {
+	/* if the integ_avail flag is not set in the context,
+	   then no security layer can be offered or accepted. */
+	text->qop = LAYER_NONE;
+    } else if ((out_flags & GSS_C_CONF_FLAG) == 0) {
+	/* If the conf_avail flag is not set in the context,
+	   then no security layer with confidentiality can be offered
+	   or accepted. */
+	text->qop = LAYER_NONE | LAYER_INTEGRITY;
+    } else {
+	text->qop = LAYER_NONE | LAYER_INTEGRITY | LAYER_CONFIDENTIALITY;
+    }
+
+    if ((params->props.security_flags & SASL_SEC_PASS_CREDENTIALS) &&
+	(!(out_flags & GSS_C_DELEG_FLAG) ||
+	 text->client_creds == GSS_C_NO_CREDENTIAL) ) 
+	{
+	    text->utils->seterror(text->utils->conn, SASL_LOG_WARN,
+				  "GSSAPI warning: no credentials were passed");
+	    /* continue with authentication */
+	}
 
     GSS_LOCK_MUTEX(params->utils);
     maj_stat = gss_canonicalize_name(&min_stat,

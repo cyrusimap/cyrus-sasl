@@ -336,7 +336,7 @@ gs2_server_mech_step(void *conn_context,
     gss_name_t without = GSS_C_NO_NAME;
     gss_OID_set_desc mechs;
     OM_uint32 out_flags = 0;
-    int ret = 0, equal = 0;
+    int ret = SASL_OK, equal = 0;
     int initialContextToken = (text->gss_ctx == GSS_C_NO_CONTEXT);
     char *p;
 
@@ -463,14 +463,12 @@ gs2_server_mech_step(void *conn_context,
                                    GSS_C_NT_USER_NAME,
                                    &without);
         if (GSS_ERROR(maj_stat)) {
-            ret = SASL_FAIL;
             goto cleanup;
         }
 
         maj_stat = gss_compare_name(&min_stat, text->client_name,
                                     without, &equal);
         if (GSS_ERROR(maj_stat)) {
-            ret = SASL_FAIL;
             goto cleanup;
         }
 
@@ -486,8 +484,9 @@ gs2_server_mech_step(void *conn_context,
         ret = params->canon_user(params->utils->conn,
                                  text->authzid, 0,
                                  SASL_CU_AUTHZID, oparams);
-        if (ret != SASL_OK)
+        if (ret != SASL_OK) {
             goto cleanup;
+	}
     }
 
     ret = params->canon_user(params->utils->conn,
@@ -496,8 +495,9 @@ gs2_server_mech_step(void *conn_context,
                                 ? (SASL_CU_AUTHZID | SASL_CU_AUTHID)
                                 : SASL_CU_AUTHID,
                              oparams);
-    if (ret != SASL_OK)
+    if (ret != SASL_OK) {
         goto cleanup;
+    }
 
     switch (text->gs2_flags & GS2_CB_FLAG_MASK) {
     case GS2_CB_FLAG_N:
@@ -528,19 +528,22 @@ gs2_server_mech_step(void *conn_context,
     ret = SASL_OK;
 
 cleanup:
-    if (initialContextToken)
+    if (ret == SASL_OK && maj_stat != GSS_S_COMPLETE) {
+        sasl_gs2_seterror(text->utils, maj_stat, min_stat);
+        ret = SASL_FAIL;
+    }
+
+    if (initialContextToken) {
         gss_release_buffer(&min_stat, &input_token);
+    }
     gss_release_buffer(&min_stat, &name_buf);
     gss_release_buffer(&min_stat, &short_name_buf);
     gss_release_buffer(&min_stat, &output_token);
     gss_release_name(&min_stat, &without);
 
-    if (ret == SASL_OK && maj_stat != GSS_S_COMPLETE) {
-        sasl_gs2_seterror(text->utils, maj_stat, min_stat);
-        ret = SASL_FAIL;
-    }
-    if (ret < SASL_OK)
+    if (ret < SASL_OK) {
         sasl_gs2_free_context_contents(text);
+    }
 
     return ret;
 }
@@ -698,12 +701,14 @@ static int gs2_client_mech_step(void *conn_context,
 
     if (text->gss_ctx == GSS_C_NO_CONTEXT) {
         ret = gs2_get_init_creds(text, params, prompt_need, oparams);
-        if (ret != SASL_OK)
+        if (ret != SASL_OK) {
             goto cleanup;
+	}
 
         initialContextToken = 1;
-    } else
+    } else {
         initialContextToken = 0;
+    }
 
     if (text->server_name == GSS_C_NO_NAME) { /* only once */
         name_buf.length = strlen(params->service) + 1 + strlen(params->serverFQDN);
@@ -729,8 +734,10 @@ static int gs2_client_mech_step(void *conn_context,
         params->utils->free(name_buf.value);
         name_buf.value = NULL;
 
-        if (GSS_ERROR(maj_stat))
+        if (GSS_ERROR(maj_stat)) {
+	    ret = SASL_OK;
             goto cleanup;
+	}
     }
 
     /* From GSSAPI plugin: apparently this is for some IMAP bug workaround */
@@ -762,8 +769,9 @@ static int gs2_client_mech_step(void *conn_context,
                               strcmp(oparams->user, oparams->authid) ?
                                      (char *) oparams->user : NULL,
                               &text->out_buf, &text->out_buf_len);
-        if (ret != 0)
+        if (ret != 0) {
             goto cleanup;
+	}
     }
 
     req_flags = GSS_C_MUTUAL_FLAG | GSS_C_SEQUENCE_FLAG;
@@ -783,13 +791,16 @@ static int gs2_client_mech_step(void *conn_context,
                                     &output_token,
                                     &ret_flags,
                                     &text->lifetime);
-    if (GSS_ERROR(maj_stat))
+    if (GSS_ERROR(maj_stat)) {
+	ret = SASL_OK;
         goto cleanup;
+    }
 
     ret = gs2_make_message(text, params, initialContextToken, &output_token,
                            &text->out_buf, &text->out_buf_len);
-    if (ret != 0)
+    if (ret != 0) {
         goto cleanup;
+    }
 
     *clientout = text->out_buf;
     *clientoutlen = text->out_buf_len;
@@ -799,9 +810,9 @@ static int gs2_client_mech_step(void *conn_context,
         goto cleanup;
     }
 
-    if (text->client_name != GSS_C_NO_NAME)
+    if (text->client_name != GSS_C_NO_NAME) {
         gss_release_name(&min_stat, &text->client_name);
-
+    }
     maj_stat = gss_inquire_context(&min_stat,
                                    text->gss_ctx,
                                    &text->client_name,
@@ -811,11 +822,13 @@ static int gs2_client_mech_step(void *conn_context,
                                    &ret_flags, /* flags */
                                    NULL,
                                    NULL);
-    if (GSS_ERROR(maj_stat))
+    if (GSS_ERROR(maj_stat)) {
+	ret = SASL_OK;
         goto cleanup;
+    }
 
     if ((ret_flags & req_flags) != req_flags) {
-        maj_stat = SASL_BADAUTH;
+        ret = SASL_BADAUTH;
         goto cleanup;
     }
 
@@ -823,8 +836,10 @@ static int gs2_client_mech_step(void *conn_context,
                                 text->client_name,
                                 &name_buf,
                                 NULL);
-    if (GSS_ERROR(maj_stat))
+    if (GSS_ERROR(maj_stat)) {
+	ret = SASL_OK;
         goto cleanup;
+    }
 
     oparams->gss_peer_name = text->server_name;
     oparams->gss_local_name = text->client_name;
@@ -834,16 +849,20 @@ static int gs2_client_mech_step(void *conn_context,
     oparams->maxoutbuf = 0xFFFFFF;
     oparams->doneflag = 1;
 
-cleanup:
-    gss_release_buffer(&min_stat, &output_token);
-    gss_release_buffer(&min_stat, &name_buf);
+    ret = SASL_OK;
 
+cleanup:
     if (ret == SASL_OK && maj_stat != GSS_S_COMPLETE) {
         sasl_gs2_seterror(text->utils, maj_stat, min_stat);
         ret = SASL_FAIL;
     }
-    if (ret < SASL_OK)
+
+    gss_release_buffer(&min_stat, &output_token);
+    gss_release_buffer(&min_stat, &name_buf);
+
+    if (ret < SASL_OK) {
         sasl_gs2_free_context_contents(text);
+    }
 
     return ret;
 }

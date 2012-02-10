@@ -1899,12 +1899,6 @@ static int digestmd5_server_mech_new(void *glob_context,
 {
     context_t *text;
     
-    if ((sparams->flags & SASL_NEED_HTTP) && !sparams->http_request) {
-	SETERROR(sparams->utils,
-		 "DIGEST-MD5 unavailable due to lack of HTTP request");
-	return SASL_BADPARAM;
-    }
-
     /* holds state are in -- allocate server size */
     text = sparams->utils->malloc(sizeof(server_context_t));
     if (text == NULL)
@@ -2213,6 +2207,12 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     if (text->http_mode) {
 	/* per RFC 2617 (HTTP Request as set by calling application) */
 	request = sparams->http_request;
+	if (!request) {
+	    SETERROR(sparams->utils,
+		     "missing HTTP request in DIGEST-MD5, step 2");
+	    result = SASL_BADPARAM;
+	    goto FreeAllMem;
+	}
     }
     else {
 	/* per RFC 2831 */

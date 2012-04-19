@@ -241,12 +241,14 @@ static int _sasl_auxprop_lookup_user_props (sasl_conn_t *conn,
 	    }
 	}
 
-	if (result == SASL_NOUSER && (flags & SASL_CU_EXTERNALLY_VERIFIED)) {
+	if ((flags & SASL_CU_EXTERNALLY_VERIFIED) && (result == SASL_NOUSER || result == SASL_NOMECH)) {
 	    /* The called has explicitly told us that the authentication identity
-	       was already verified. So a failure to retrieve any associated properties
+	       was already verified or will be verified independently.
+	       So a failure to retrieve any associated properties
 	       is not an error. For example the caller is using Kerberos to verify user,
 	       but the LDAPDB/SASLDB auxprop plugin doesn't contain any auxprops for
-	       the user. */
+	       the user.
+	       Another case is PLAIN/LOGIN not using auxprop to verify user passwords. */
 	    result = SASL_OK;
 	}	
     }

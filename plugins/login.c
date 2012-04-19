@@ -179,9 +179,11 @@ static int login_server_mech_step(void *conn_context,
 
 	/* canonicalize username first, so that password verification is
 	 * done against the canonical id */
-	result = params->canon_user(params->utils->conn, text->username,
+	result = params->canon_user(params->utils->conn,
+				    text->username,
 				    text->username_len,
-				    SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
+				    SASL_CU_AUTHID | SASL_CU_AUTHZID | SASL_CU_EXTERNALLY_VERIFIED,
+				    oparams);
 	if (result != SASL_OK) return result;
 	
 	/* verify_password - return sasl_ok on success */

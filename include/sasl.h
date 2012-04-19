@@ -633,8 +633,10 @@ typedef int sasl_server_userdb_setpass_t(sasl_conn_t *conn,
 /* One of the following two is required */
 #define SASL_CU_AUTHID  0x01
 #define SASL_CU_AUTHZID 0x02
+
 /* Combine the following with SASL_CU_AUTHID, if you don't want
-   to fail if auxprop returned SASL_NOUSER */
+   to fail if auxprop returned SASL_NOUSER/SASL_NOMECH.
+   This flag has no effect on SASL_CU_AUTHZID. */
 #define SASL_CU_EXTERNALLY_VERIFIED 0x04
 
 #define SASL_CU_OVERRIDE	    0x08    /* mapped to SASL_AUXPROP_OVERRIDE */

@@ -159,7 +159,7 @@ static int plain_server_mech_step(void *conn_context __attribute__((unused)),
     result = params->canon_user(params->utils->conn,
 				authen,
 				0,
-				SASL_CU_AUTHID | canon_flags,
+				SASL_CU_AUTHID | canon_flags | SASL_CU_EXTERNALLY_VERIFIED,
 				oparams);
     if (result != SASL_OK) {
 	_plug_free_string(params->utils, &passcopy);

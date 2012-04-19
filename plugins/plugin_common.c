@@ -152,7 +152,7 @@ int _plug_ipfromstring(const sasl_utils_t *utils, const char *addr,
 	return SASL_BADPARAM;
     }
 
-    len = ai->ai_addrlen;
+    len = (socklen_t) ai->ai_addrlen;
     memcpy(&ss, ai->ai_addr, len);
     freeaddrinfo(ai);
     sockaddr_unmapped((struct sockaddr *)&ss, &len);
@@ -230,7 +230,7 @@ int _plug_buf_alloc(const sasl_utils_t *utils, char **rwbuf,
 	}
 	*curlen = newlen;
     } else if(*rwbuf && *curlen < newlen) {
-	size_t needed = 2*(*curlen);
+	unsigned needed = 2*(*curlen);
 
 	while(needed < newlen)
 	    needed *= 2;
@@ -267,7 +267,7 @@ int _plug_strdup(const sasl_utils_t * utils, const char *in,
   strcpy((char *) *out, in);
 
   if (outlen)
-      *outlen = len;
+      *outlen = (int) len;
 
   return SASL_OK;
 }
@@ -280,7 +280,7 @@ void _plug_free_string(const sasl_utils_t *utils, char **str)
 
   len = strlen(*str);
 
-  utils->erasebuffer(*str, len);
+  utils->erasebuffer(*str, (unsigned int) len);
   utils->free(*str);
 
   *str=NULL;

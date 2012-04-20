@@ -90,7 +90,7 @@ static int _sasl_checkpass(sasl_conn_t *conn,
 
 static mech_list_t *mechlist = NULL; /* global var which holds the list */
 
-sasl_global_callbacks_t global_callbacks;
+static sasl_global_callbacks_t global_callbacks;
 
 /* set the password for a user
  *  conn        -- SASL connection

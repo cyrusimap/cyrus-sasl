@@ -60,7 +60,7 @@
 #include "saslint.h"
 
 static cmech_list_t *cmechlist; /* global var which holds the list */
-sasl_global_callbacks_t global_callbacks_client; 
+static sasl_global_callbacks_t global_callbacks_client;
 static int _sasl_client_active = 0;
 
 static int init_mechlist()

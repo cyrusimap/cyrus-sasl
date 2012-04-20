@@ -118,8 +118,6 @@ typedef struct {
   const char *appname;
 } sasl_global_callbacks_t;
 
-extern sasl_global_callbacks_t global_callbacks;
-
 typedef struct _sasl_external_properties 
 {
     sasl_ssf_t ssf;

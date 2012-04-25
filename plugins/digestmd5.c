@@ -198,7 +198,7 @@ typedef struct reauth_entry {
 
 	    /* for HTTP mode (RFC 2617) only */
 	    char *algorithm;
-	    unsigned char *opaque;	
+	    unsigned char *opaque;
 	} c; /* client stuff */
     } u;
 } reauth_entry_t;

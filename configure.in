@@ -277,8 +277,8 @@ if test "$with_pam" != no; then
   fi
   AC_CHECK_HEADERS(security/pam_appl.h pam/pam_appl.h)
   cmu_save_LIBS="$LIBS"
-  AC_CHECK_FUNC(pam_start, :, 
-	LIBS="-lpam $LIBS" 
+  AC_CHECK_FUNC(pam_start, :,
+	LIBS="-lpam $LIBS"
 	AC_TRY_LINK([[
 #include <sys/types.h>
 #ifdef HAVE_PAM_PAM_APPL_H
@@ -835,7 +835,7 @@ AC_ARG_WITH(sqlite,  [  --with-sqlite=PATH       use SQLite from PATH ],
   with_sqlite=$withval,
   with_sqlite=$sql)
 
-# find location of library 
+# find location of library
 # presuing if one given then correct
 if test "${with_sqlite}" = "yes"; then
   with_sqlite=notfound
@@ -878,7 +878,7 @@ case "$with_sqlite" in
 	   [Do we have SQLite support?]),
            [AC_WARN([SQLite Library sqlite does not work])
 	    with_sqlite=no], $LIB_SQLITE_DIR);;
-         
+
 esac
 AC_SUBST(LIB_SQLITE)
 
@@ -887,7 +887,7 @@ AC_ARG_WITH(sqlite3,  [  --with-sqlite3=PATH       use SQLite3 from PATH ],
   with_sqlite3=$withval,
   with_sqlite3=$sql)
 
-# find location of library 
+# find location of library
 # we assume that if one given then it is correct
 if test "${with_sqlite3}" = "yes"; then
   with_sqlite3=notfound
@@ -930,7 +930,7 @@ case "$with_sqlite3" in
 	   [Do we have SQLite3 support?]),
            [AC_WARN([SQLite3 Library sqlite3 does not work])
 	    with_sqlite3=no], $LIB_SQLITE3_DIR);;
-         
+
 esac
 AC_SUBST(LIB_SQLITE3)
 

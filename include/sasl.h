@@ -225,9 +225,9 @@ extern "C" {
 
 /* memory allocation functions which may optionally be replaced:
  */
-typedef void *sasl_malloc_t(unsigned long);
-typedef void *sasl_calloc_t(unsigned long, unsigned long);
-typedef void *sasl_realloc_t(void *, unsigned long);
+typedef void *sasl_malloc_t(size_t);
+typedef void *sasl_calloc_t(size_t, size_t);
+typedef void *sasl_realloc_t(void *, size_t);
 typedef void sasl_free_t(void *);
 
 LIBSASL_API void sasl_set_alloc(sasl_malloc_t *,

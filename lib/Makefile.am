@@ -43,7 +43,7 @@
 # Library version info - here at the top, for sanity
 sasl_version = 2:25:0
 
-INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/plugins -I$(top_builddir)/include -I$(top_srcdir)/sasldb
+INCLUDES=-DLIBSASL_EXPORTS=1 -I$(top_srcdir)/include -I$(top_srcdir)/plugins -I$(top_builddir)/include -I$(top_srcdir)/sasldb
 
 EXTRA_DIST = windlopen.c staticopen.h NTMakefile
 EXTRA_LIBRARIES = libsasl2.a

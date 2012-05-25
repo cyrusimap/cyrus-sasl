@@ -1521,7 +1521,8 @@ static void
 srp_common_mech_free(void *global_context __attribute__((unused)),
 		     const sasl_utils_t *utils __attribute__((unused)))
 {
-    EVP_cleanup();
+    /* Don't call EVP_cleanup(); here, as this might confuse the calling
+       application if it also uses OpenSSL */
 }
 
 

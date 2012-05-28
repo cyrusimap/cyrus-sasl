@@ -53,6 +53,8 @@
 #include <errno.h>
 #include "sasldb.h"
 
+#define DB_VERSION_FULL ((DB_VERSION_MAJOR << 24) | (DB_VERSION_MINOR << 16) | DB_VERSION_PATCH)
+
 static int db_ok = 0;
 #if defined(KEEP_DB_OPEN)
 static DB * g_db = NULL;
@@ -95,13 +97,13 @@ static int berkeleydb_open(const sasl_utils_t *utils,
 #endif
 #endif
 
-#if DB_VERSION_MAJOR < 3
+#if DB_VERSION_FULL < 0x03000000
     ret = db_open(path, DB_HASH, flags, 0660, NULL, NULL, mbdb);
-#else /* DB_VERSION_MAJOR < 3 */
+#else /* DB_VERSION_FULL < 0x03000000 */
     ret = db_create(mbdb, NULL, 0);
     if (ret == 0 && *mbdb != NULL)
     {
-#if DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR >= 1
+#if DB_VERSION_FULL >= 0x04010000 
 	ret = (*mbdb)->open(*mbdb, NULL, path, NULL, DB_HASH, flags, 0660);
 #else
 	ret = (*mbdb)->open(*mbdb, path, NULL, DB_HASH, flags, 0660);
@@ -112,7 +114,7 @@ static int berkeleydb_open(const sasl_utils_t *utils,
 	    *mbdb = NULL;
 	}
     }
-#endif /* DB_VERSION_MAJOR < 3 */
+#endif /* DB_VERSION_FULL < 0x03000000 */
 
     if (ret != 0) {
 	if (rdwr == 0 && ret == ENOENT) {
@@ -464,15 +466,11 @@ int _sasldb_getnextkey(const sasl_utils_t *utils __attribute__((unused)),
 
     if(!dbh->cursor) {
         /* make cursor */
-#if DB_VERSION_MAJOR < 3
-#if DB_VERSION_MINOR < 6
+#if DB_VERSION_FULL < 0x03060000
 	result = mbdb->cursor(mbdb, NULL,&dbh->cursor); 
 #else
 	result = mbdb->cursor(mbdb, NULL,&dbh->cursor, 0); 
-#endif /* DB_VERSION_MINOR < 7 */
-#else /* DB_VERSION_MAJOR < 3 */
-	result = mbdb->cursor(mbdb, NULL,&dbh->cursor, 0); 
-#endif /* DB_VERSION_MAJOR < 3 */
+#endif /* DB_VERSION_FULL < 0x03000000 */
 
 	if (result!=0) {
 	    return SASL_FAIL;

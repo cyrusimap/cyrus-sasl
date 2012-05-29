@@ -72,9 +72,13 @@
 
 #include <config.h>
 #include <gssapi/gssapi.h>
+
+#ifndef KRB5_HEIMDAL
 #ifdef HAVE_GSSAPI_GSSAPI_EXT_H
 #include <gssapi/gssapi_ext.h>
 #endif
+#endif
+
 #include <fcntl.h>
 #include <stdio.h>
 #include <sasl.h>

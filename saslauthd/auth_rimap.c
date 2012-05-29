@@ -1,3 +1,4 @@
+
 /* MODULE: auth_rimap */
 
 /* COPYRIGHT
@@ -367,6 +368,30 @@ auth_rimap (
     alarm(NETWORK_IO_TIMEOUT);
     rc = read(s, rbuf, sizeof(rbuf));
     alarm(0);
+    if ( rc>0 ) {
+        /* check if there is more to read */
+        fd_set         perm;
+        int            fds, ret;
+        struct timeval timeout;
+
+        FD_ZERO(&perm);
+        FD_SET(s, &perm);
+        fds = s +1;
+
+        timeout.tv_sec  = 1;
+        timeout.tv_usec = 0;
+        while( select (fds, &perm, NULL, NULL, &timeout ) >0 ) {
+           if ( FD_ISSET(s, &perm) ) {
+              ret = read(s, rbuf+rc, sizeof(rbuf)-rc);
+              if ( ret<0 ) {
+                 rc = ret;
+                 break;
+              } else {
+                 rc += ret;
+              }
+           }
+        }
+    }
     if (rc == -1) {
 	syslog(LOG_WARNING, "auth_rimap: read (banner): %m");
 	(void) close(s);
@@ -456,6 +481,30 @@ auth_rimap (
     alarm(NETWORK_IO_TIMEOUT);
     rc = read(s, rbuf, sizeof(rbuf));
     alarm(0);
+    if ( rc>0 ) {
+        /* check if there is more to read */
+        fd_set         perm;
+        int            fds, ret;
+        struct timeval timeout;
+
+        FD_ZERO(&perm);
+        FD_SET(s, &perm);
+        fds = s +1;
+
+        timeout.tv_sec  = 1;
+        timeout.tv_usec = 0;
+        while( select (fds, &perm, NULL, NULL, &timeout ) >0 ) {
+           if ( FD_ISSET(s, &perm) ) {
+              ret = read(s, rbuf+rc, sizeof(rbuf)-rc);
+              if ( ret<0 ) {
+                 rc = ret;
+                 break;
+              } else {
+                 rc += ret;
+              }
+           }
+        }
+    }
     (void) close(s);			/* we're done with the remote */
     if (rc == -1) {
 	syslog(LOG_WARNING, "auth_rimap: read (response): %m");

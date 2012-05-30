@@ -179,8 +179,7 @@ static char *url_escape(
         char in = string[inidx];
         if (!(in >= 'a' && in <= 'z') &&
             !(in >= 'A' && in <= 'Z') &&
-            !(in >= '0' && in <= '9') &&
-            in != '&' && in != '=' && in != '-' && in != '_') {
+            !(in >= '0' && in <= '9')) {
 
             /* encode it */
             if (outidx+3 > alloc) {
@@ -242,12 +241,36 @@ static char *create_post_data(
     int biggest;
     size_t i;
     /* END VARIABLES */
+
+    user = url_escape(user);
+    if (!user) {
+        logger(LOG_ERR, "auth_httpform:create_post_data", "failed to allocate memory");
+        return NULL;
+    }
+
+    password = url_escape(password);
+    if (!password) {
+        memset(user, 0, strlen(user));
+        free(user);
+        logger(LOG_ERR, "auth_httpform:create_post_data", "failed to allocate memory");
+        return NULL;
+    }
+
+    realm = url_escape(realm);
+    if (!realm) {
+        memset(user, 0, strlen(user));
+        free(user);
+        memset(password, 0, strlen(password));
+        free(password);
+        logger(LOG_ERR, "auth_httpform:create_post_data", "failed to allocate memory");
+        return NULL;
+    }
     
     /* calculate memory needed for creating the complete query string. */
     ulen = strlen(user);
     plen = strlen(password);
     rlen = strlen(realm);
-    
+
     /* what if we have multiple %foo occurrences in the input query? */
     for (i = 0; i < strlen(formdata); i++) {
         if (formdata[i] == '%') {
@@ -266,7 +289,7 @@ static char *create_post_data(
     
     if (!buf) {
         logger(LOG_ERR, "auth_httpform:create_post_data", "failed to allocate memory");
-        return NULL;
+        goto CLEANUP;
     }
     
     buf_ptr = buf;
@@ -307,6 +330,14 @@ static char *create_post_data(
 
     /* don't forget the rest */    
     memcpy(buf_ptr, line_ptr, strlen(line_ptr)+1);
+
+CLEANUP:
+    memset(user, 0, strlen(user));
+    memset(password, 0, strlen(password));
+    memset(realm, 0, strlen(realm));
+    free(user);
+    free(password);
+    free(realm);
 
     return buf;
 }
@@ -471,7 +502,6 @@ auth_httpform (
     int s=-1;                           /* socket to remote auth host   */
     struct addrinfo *r;                 /* remote socket address info   */
     char *req;                          /* request, with user and pw    */
-    char *escreq;                       /* URL-escaped request          */
     char *c;                            /* scratch pointer              */
     int rc;                             /* return code scratch area     */
     char postbuf[RESP_LEN];             /* request buffer               */
@@ -535,14 +565,6 @@ auth_httpform (
         syslog(LOG_WARNING, "auth_httpform: create_post_data == NULL");
         return strdup(RESP_IERROR);
     }
-    escreq = url_escape(req);
-    if (escreq == NULL) {
-        memset(req, 0, strlen(req));
-        free(req); 
-        close(s);
-        syslog(LOG_WARNING, "auth_httpform: url_escape == NULL");
-        return strdup(RESP_IERROR);
-    }
 
     postlen = snprintf(postbuf, RESP_LEN-1,
               "POST %s HTTP/1.1" CRLF
@@ -552,11 +574,11 @@ auth_httpform (
               "Content-Type: application/x-www-form-urlencoded" CRLF
               "Content-Length: %d" TWO_CRLF
               "%s",
-              r_uri, r_host, r_port, strlen(escreq), escreq);
+              r_uri, r_host, r_port, strlen(req), req);
 
     if (flags & VERBOSE) {
         syslog(LOG_DEBUG, "auth_httpform: sending %s %s %s",
-               r_host, r_uri, escreq);
+               r_host, r_uri, req);
     }
     
     /* send it */
@@ -568,8 +590,6 @@ auth_httpform (
         syslog(LOG_WARNING, "auth_httpform: failed to send request");
         memset(req, 0, strlen(req));
         free(req); 
-        memset(escreq, 0, strlen(escreq));
-        free(escreq);
         memset(postbuf, 0, postlen);
         close(s);
         return strdup(RESP_IERROR);
@@ -578,8 +598,6 @@ auth_httpform (
     /* don't need these any longer */
     memset(req, 0, strlen(req));
     free(req); 
-    memset(escreq, 0, strlen(escreq));
-    free(escreq);
     memset(postbuf, 0, postlen);
 
     /* read and parse the response */

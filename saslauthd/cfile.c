@@ -116,6 +116,7 @@ cfile cfile_read(const char *filename, char *complaint, int complaint_len)
 	  if (complaint)
 	    snprintf(complaint, complaint_len, "%s: line %d: no colon separator", filename, lineno);
 	  cfile_free(cf);
+	  fclose(infile);
 	  return 0;
 	}
 	*p++ = '\0';
@@ -126,6 +127,7 @@ cfile cfile_read(const char *filename, char *complaint, int complaint_len)
 	  if (complaint)
 	    snprintf(complaint, complaint_len, "%s: line %d: keyword %s: no value", filename, lineno, key);
 	  cfile_free(cf);
+	  fclose(infile);
 	  return 0;
 	}
 
@@ -137,6 +139,7 @@ cfile cfile_read(const char *filename, char *complaint, int complaint_len)
 	      if (complaint)
 	        snprintf(complaint, complaint_len, "cfile_read: no memory");
 	      cfile_free(cf);
+	      fclose(infile);
 	      return 0;
 	    }
 	}
@@ -147,6 +150,7 @@ cfile cfile_read(const char *filename, char *complaint, int complaint_len)
 	        snprintf(complaint, complaint_len, "cfile_read: no memory");
 	      cf->n_kv++; /* maybe one strdup() worked */
 	      cfile_free(cf);
+	      fclose(infile);
 	      return 0;
 	}
 

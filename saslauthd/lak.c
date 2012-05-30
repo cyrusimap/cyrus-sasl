@@ -169,16 +169,20 @@ static int lak_config_read(
 				*p = tolower(*p);
 			p++;
 		}
-		if (*p != ':')
+		if (*p != ':') {
+			fclose(infile);
 			return LAK_FAIL;
+		}
 		
 		*p++ = '\0';
 
 		while (*p && isspace((int) *p)) 
 			p++;
 
-		if (!*p)
+		if (!*p) {
+			fclose(infile);
 			return LAK_FAIL;
+		}
 
 		if (!strcasecmp(key, "ldap_servers"))
 			strlcpy(conf->servers, p, LAK_URL_LEN);

@@ -90,6 +90,7 @@ int sasl_config_init(const char *filename)
 	    p++;
 	}
 	if (*p != ':') {
+	    fclose(infile);
 	    return SASL_FAIL;
 	}
 	*p++ = '\0';
@@ -97,6 +98,7 @@ int sasl_config_init(const char *filename)
 	while (*p && isspace((int) *p)) p++;
 	
 	if (!*p) {
+	    fclose(infile);
 	    return SASL_FAIL;
 	}
 
@@ -111,17 +113,26 @@ int sasl_config_init(const char *filename)
 	    alloced += CONFIGLISTGROWSIZE;
 	    configlist=sasl_REALLOC((char *)configlist, 
 				    alloced * sizeof(struct configlist));
-	    if (configlist==NULL) return SASL_NOMEM;
+	    if (configlist == NULL) {
+		fclose(infile);
+		return SASL_NOMEM;
+	    }
 	}
 
 	result = _sasl_strdup(key,
 			      &(configlist[nconfiglist].key),
 			      NULL);
-	if (result!=SASL_OK) return result;
+	if (result != SASL_OK) {
+	    fclose(infile);
+	    return result;
+	}
 	result = _sasl_strdup(p,
 			      &(configlist[nconfiglist].value),
 			      NULL);
-	if (result!=SASL_OK) return result;
+	if (result != SASL_OK) {
+	    fclose(infile);
+	    return result;
+	}
 
 	nconfiglist++;
     }

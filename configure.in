@@ -124,7 +124,7 @@ AC_ARG_ENABLE(staticdlopen, [  --enable-staticdlopen   try dynamic plugins when 
                 enable_staticdlopen=no)
 
 if test "$enable_staticdlopen" = yes; then
-  AC_DEFINE(TRY_DLOPEN_WHEN_STATIC,[],[Should we try to dlopen() plugins while staticly compiled?])
+  AC_DEFINE(TRY_DLOPEN_WHEN_STATIC,[],[Should we try to dlopen() plugins while statically compiled?])
 fi
 
 if test "$ac_cv_prog_gcc" = yes; then
@@ -394,7 +394,7 @@ if test "$cram" != no; then
   if test "$enable_static" = yes; then
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS cram.o"
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/cram.c"
-    AC_DEFINE(STATIC_CRAMMD5, [], [Link CRAM-MD5 Staticly])
+    AC_DEFINE(STATIC_CRAMMD5, [], [Link CRAM-MD5 Statically])
   fi
 else
   AC_MSG_RESULT(disabled)
@@ -429,7 +429,7 @@ if test "$digest" != no; then
   if test "$enable_static" = yes; then
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/digestmd5.c"
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS digestmd5.o"
-    AC_DEFINE(STATIC_DIGESTMD5, [], [Link DIGEST-MD5 Staticly])
+    AC_DEFINE(STATIC_DIGESTMD5, [], [Link DIGEST-MD5 Statically])
   fi
 else
   AC_MSG_RESULT(disabled)
@@ -454,7 +454,7 @@ if test "$scram" != no; then
   if test "$enable_static" = yes; then
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/scram.c"
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS scram.o"
-    AC_DEFINE(STATIC_SCRAM, [], [Link SCRAM Staticly])
+    AC_DEFINE(STATIC_SCRAM, [], [Link SCRAM Statically])
   fi
 
   AC_SUBST(SCRAM_LIBS)
@@ -481,7 +481,7 @@ if test "$otp" != no; then
   if test "$enable_static" = yes; then
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/otp.c"
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS otp.o"
-    AC_DEFINE(STATIC_OTP, [], [Link OTP Staticly])
+    AC_DEFINE(STATIC_OTP, [], [Link OTP Statically])
   fi
 
   dnl Test for OPIE
@@ -538,7 +538,7 @@ if test "$srp" != no; then
   if test "$enable_static" = yes; then
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/srp.c"
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS srp.o"
-    AC_DEFINE(STATIC_SRP, [], [Link SRP Staticly])
+    AC_DEFINE(STATIC_SRP, [], [Link SRP Statically])
   fi
 
 dnl srp_setpass support
@@ -564,7 +564,7 @@ SASL_KERBEROS_V4_CHK
 SASL_GSSAPI_CHK
 
 if test "$gssapi" != "no"; then
-  AC_DEFINE(STATIC_GSSAPIV2,[],[Link GSSAPI Staticly])
+  AC_DEFINE(STATIC_GSSAPIV2,[],[Link GSSAPI Statically])
   mutex_default="no"
   if test "$gss_impl" = "mit"; then
      mutex_default="yes"
@@ -594,7 +594,7 @@ if test "$anon" != no; then
   if test "$enable_static" = yes; then
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS anonymous.o"
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/anonymous.c"
-    AC_DEFINE(STATIC_ANONYMOUS, [], [Link ANONYMOUS Staticly])
+    AC_DEFINE(STATIC_ANONYMOUS, [], [Link ANONYMOUS Statically])
   fi
 else
   AC_MSG_RESULT(disabled)
@@ -612,7 +612,7 @@ if test "$login" != no; then
   if test "$enable_static" = yes; then
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/login.c"
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS login.o"
-    AC_DEFINE(STATIC_LOGIN,[],[Link LOGIN Staticly])
+    AC_DEFINE(STATIC_LOGIN,[],[Link LOGIN Statically])
   fi
 else
   AC_MSG_RESULT(disabled)
@@ -638,7 +638,7 @@ if test "$ntlm" != no; then
   if test "$enable_static" = yes; then
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/ntlm.c"
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS ntlm.o"
-    AC_DEFINE(STATIC_NTLM,[],[Link NTLM Staticly])
+    AC_DEFINE(STATIC_NTLM,[],[Link NTLM Statically])
   fi
 else
   AC_MSG_RESULT(disabled)
@@ -664,7 +664,7 @@ if test "$passdss" != no; then
   if test "$enable_static" = yes; then
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS passdss.o"
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/passdss.c"
-    AC_DEFINE(STATIC_PASSDSS,[],[Link PASSDSS Staticly])
+    AC_DEFINE(STATIC_PASSDSS,[],[Link PASSDSS Statically])
   fi
 else
   AC_MSG_RESULT(disabled)
@@ -695,7 +695,7 @@ if test "$sql" != no; then
   if test "$enable_static" = yes; then
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/sql.c"
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS sql.o"
-    AC_DEFINE(STATIC_SQL,[],[Link SQL plugin staticly])
+    AC_DEFINE(STATIC_SQL,[],[Link SQL plugin statically])
   fi
 else
   AC_MSG_RESULT(disabled)
@@ -987,7 +987,7 @@ if test "$ldapdb" != no; then
             if test "$enable_static" = yes; then
                 SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/ldapdb.c"
                 SASL_STATIC_OBJS="$SASL_STATIC_OBJS ldapdb.o"
-                AC_DEFINE(STATIC_LDAPDB,[],[Link ldapdb plugin Staticly])
+                AC_DEFINE(STATIC_LDAPDB,[],[Link ldapdb plugin Statically])
             fi
         fi
     fi

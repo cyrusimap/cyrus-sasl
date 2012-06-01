@@ -1,5 +1,3 @@
-$Id: README,v 1.33 2008/01/25 01:57:40 murch Exp $
-
 This is the Cyrus SASL API implentation. It can be used on the client
 or server side to provide authentication and authorization services.
 See RFC 4422 for more information.
@@ -16,7 +14,7 @@ http://asg.web.cmu.edu/archive/mailbox.php3?mailbox=archive.cyrus-sasl.
 If you are looking to port SASLv1 applications to SASLv2, please see
 doc/appconvert.html
 
-Bugs can be searched/reported at: http://bugzilla.andrew.cmu.edu
+Bugs can be searched/reported at: http://bugzilla.cyrussasl.org
 
 DOCUMENTATION
 --------------

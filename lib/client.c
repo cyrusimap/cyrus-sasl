@@ -195,8 +195,8 @@ int sasl_client_add_plugin(const char *plugname,
     if (result != SASL_OK)
     {
 	_sasl_log(NULL, SASL_LOG_WARN,
-	      "entry_point failed in sasl_client_add_plugin for %s",
-	      plugname);
+		  "sasl_client_add_plugin(): entry_point(): failed for plugname %s: %z",
+		  plugname, result);
 	return result;
     }
 

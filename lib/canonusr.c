@@ -316,14 +316,15 @@ int sasl_canonuser_add_plugin(const char *plugname,
 			   &out_version, &plug, plugname);
 
     if(result != SASL_OK) {
-	_sasl_log(NULL, SASL_LOG_ERR, "canonuserfunc error %i\n",result);
+	_sasl_log(NULL, SASL_LOG_ERR, "%s_canonuser_plug_init() failed in sasl_canonuser_add_plugin(): %z\n",
+		  plugname, result);
 	return result;
     }
 
     if(!plug->canon_user_server && !plug->canon_user_client) {
 	/* We need at least one of these implemented */
 	_sasl_log(NULL, SASL_LOG_ERR,
-		  "canonuser plugin without either client or server side");
+		  "canonuser plugin '%s' without either client or server side", plugname);
 	return SASL_BADPROT;
     }
     

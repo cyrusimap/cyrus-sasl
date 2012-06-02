@@ -440,7 +440,8 @@ int sasl_server_add_plugin(const char *plugname,
     if ((result != SASL_OK) && (result != SASL_NOUSER)
         && (result != SASL_CONTINUE)) {
 	_sasl_log(NULL, SASL_LOG_DEBUG,
-		  "server add_plugin entry_point error %z\n", result);
+		  "%s_client_plug_init() failed in sasl_server_add_plugin(): %z\n",
+		  plugname, result);
 	return result;
     }
 
@@ -449,7 +450,8 @@ int sasl_server_add_plugin(const char *plugname,
     {
 	_sasl_log(NULL,
 		  SASL_LOG_ERR,
-		  "version mismatch on plugin: %d expected, but %d reported",
+		  "version mismatch on  sasl_server_add_plugin for '%s': %d expected, but %d reported",
+		  plugname,
 		  SASL_SERVER_PLUG_VERSION,
 		  version);
 	return SASL_BADVERS;

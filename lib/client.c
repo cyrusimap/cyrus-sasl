@@ -752,7 +752,8 @@ int sasl_client_start(sasl_conn_t *conn,
 
 	/* for each mechanism in client's list */
 	for (m = c_conn->mech_list; m != NULL; m = m->next) {
-	    int myflags, plus;
+	    unsigned myflags;
+	    int plus;
 
 	    if (!_sasl_is_equal_mech(name, m->m.plug->mech_name, name_len, &plus)) {
 		continue;
@@ -766,15 +767,17 @@ int sasl_client_start(sasl_conn_t *conn,
 	    if (minssf > m->m.plug->max_ssf)
 		break;
 
-	    /* Does it meet our security properties? */
 	    myflags = conn->props.security_flags;
-	    
-	    /* if there's an external layer this is no longer plaintext */
+
+	    /* if there's an external layer with a better SSF then this is no
+	     * longer considered a plaintext mechanism
+	     */
 	    if ((conn->props.min_ssf <= conn->external.ssf) && 
 		(conn->external.ssf > 1)) {
 		myflags &= ~SASL_SEC_NOPLAINTEXT;
 	    }
 
+	    /* Does it meet our security properties? */
 	    if (((myflags ^ m->m.plug->security_flags) & myflags) != 0) {
 		break;
 	    }

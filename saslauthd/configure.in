@@ -195,8 +195,9 @@ fi
 dnl Checks for library functions.
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS(gethostname mkdir socket strdup)
+dnl Only look for one or the other
 AC_CHECK_FUNCS(getspnam getuserpw, break)
-AC_CHECK_FUNCS(strlcat strlcpy)
+AC_CHECK_FUNCS(asprintf strlcat strlcpy)
 
 if test $ac_cv_func_getspnam = yes; then
 	AC_MSG_CHECKING(if getpwnam_r/getspnam_r take 5 arguments)
@@ -326,6 +327,9 @@ extern size_t saslauthd_strlcpy(char *dst, const char *src, size_t len);
 #ifndef HAVE_STRLCAT
 extern size_t saslauthd_strlcat(char *dst, const char *src, size_t len);
 #define strlcat(x,y,z) saslauthd_strlcat((x),(y),(z))
+#endif
+#ifndef HAVE_ASPRINTF
+extern int asprintf(char **str, const char *fmt, ...);
 #endif
 
 #endif

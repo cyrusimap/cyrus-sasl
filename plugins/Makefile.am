@@ -45,8 +45,9 @@
 ################################################################
 
 # Library version info - here at the top, for sanity
+# See <http://www.gnu.org/software/libtool/manual/libtool.html#Versioning>
 # CURRENT:REVISION:AGE
-plugin_version = 2:25:0
+sasl_version = 3:0:0
 
 INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/sasldb -I$(top_builddir)/include
 AM_LDFLAGS = -module -export-dynamic -rpath $(plugindir) -version-info $(plugin_version)

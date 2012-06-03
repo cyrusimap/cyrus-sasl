@@ -41,7 +41,9 @@
 #
 
 # Library version info - here at the top, for sanity
-sasl_version = 2:25:0
+# See <http://www.gnu.org/software/libtool/manual/libtool.html#Versioning>
+# CURRENT:REVISION:AGE
+sasl_version = 3:0:0
 
 INCLUDES=-DLIBSASL_EXPORTS=1 -I$(top_srcdir)/include -I$(top_srcdir)/plugins -I$(top_builddir)/include -I$(top_srcdir)/sasldb
 

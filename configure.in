@@ -1415,6 +1415,7 @@ inline static unsigned int sleep(unsigned int seconds) {
 AM_CONFIG_HEADER(config.h)
 
 AC_OUTPUT(Makefile
+libsasl2.pc
 include/Makefile
 sasldb/Makefile
 plugins/Makefile

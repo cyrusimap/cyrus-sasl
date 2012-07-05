@@ -3464,6 +3464,7 @@ static int make_client_response(context_t *text,
     
     
     resplen = 0;
+    if (text->out_buf) params->utils->free(text->out_buf);
     text->out_buf = NULL;
     text->out_buf_len = 0;
     if (add_to_challenge(params->utils,

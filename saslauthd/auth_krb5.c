@@ -338,7 +338,9 @@ static int k5support_verify_tgt(krb5_context context,
     /* all is good now */
     result = 1;
  fini:
-    krb5_free_data_contents(context, &packet);
+    if (!k5_retcode) {
+        krb5_free_data_contents(context, &packet);
+    }
     krb5_free_principal(context, server);
     
     return result;

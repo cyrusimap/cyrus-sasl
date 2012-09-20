@@ -1,8 +1,9 @@
 Rob Siemborski <rjs3+@andrew.cmu.edu> wrote and tested the conversion
 to the SASLv2 API.
 
-Ken Murchison <ken@oceana.com> worked on the OTP, NTLM, SRP and SQL
-plugins, as well as helping to track down bugs as they appear.
+Ken Murchison <murch@andrew.cmu.edu> worked on the OTP, NTLM, SRP and SQL
+plugins, as well as helping to track down bugs as they appear. He also
+added support for HTTP authentication.
 
 Rob Earhart <earhart@cmu.edu> wrote the build/installation procedure,
 wrote and tested some of the code, and provided general guidance and
@@ -33,7 +34,7 @@ most of the SASLv1 code.
 
 Larry Greenfield <leg+sasl@andrew.cmu.edu> complained. a lot.
 
-Chris Newman <chris.newman@sun.com> wrote the initial version of the
+Chris Newman <chris.newman@oracle.com> wrote the initial version of the
 SASL API, as well as the version 2 SASL API (documented in sasl.h,
 saslutil.h, saslplug.h, and prop.h).
 

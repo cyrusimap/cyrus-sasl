@@ -1,3 +1,42 @@
+New in 2.1.26
+-------------
+
+* Modernize SASL malloc/realloc callback prototypes
+* Added sasl_config_done() to plug a memory leak when using an application
+  specific config file
+* Fixed PLAIN/LOGIN authentication failure when using saslauthd
+  with no auxprop plugins (bug # 3590).
+* unlock the mutex in sasl_dispose if the context was freed by another thread
+* MINGW32 compatibility patches
+* Fixed broken logic in get_fqhostname() when abort_if_no_fqdn is 0
+* Fixed some memory leaks in libsasl
+* GSSAPI plugin:
+ - Fixed a segfault in gssapi.c introduced in 2.1.25.
+ - Code refactoring
+ - Added support for GSS-SPNEGO SASL mechanism (Unix only), which is also
+   HTTP capable
+* GS2 plugin:
+ - Updated GS2 plugin not to lose minor GSS-API status codes on errors
+* DIGEST-MD5 plugin:
+ - Correctly send "stale" directive to prevent clients from (re)promtping
+   for password
+ - Better handling of HTTP reauthentication cases
+ - fixed some memory leaks
+* SASLDB plugin:
+ - Added support for BerkleyDB 5.X or later
+* OTP plugin:
+ - Removed calling of EVP_cleanup() on plugin shutdown in order to prevent
+   TLS from failing in calling applications
+* SRP plugin:
+ - Removed calling of EVP_cleanup() on plugin shutdown in order to prevent
+   TLS from failing in calling applications
+* saslauthd:
+ - auth_rimap.c: qstring incorrectly appending the closing double quote,
+   which might be causing crashes
+ - auth_rimap.c: read the whole IMAP greeting
+ - better error reporting from some drivers
+ - fixed some memory leaks
+
 New in 2.1.25
 -------------
 

@@ -1,3 +1,73 @@
+2012-10-12  Alexey Melnikov <alexey.melnikov@isode.com>
+	* Getting ready for 2.1.25.
+
+2012-07-06  Alexey Melnikov <alexey.melnikov@isode.com>
+	* saslauthd/auth_krb5.c: Fixed a crash in the auth_krb5.c
+	  (bug # 2706). Patch by Nalin Dahyabhai.
+
+2012-07-03  Alexey Melnikov <alexey.melnikov@isode.com>
+	* config/ltconfig: Fixed incorrect Darwin version matching in ltconfig
+	  (bug # 3713). Patch by Joshua Root.
+
+2012-06-08  Alexey Melnikov <alexey.melnikov@isode.com>
+	* Fixed PLAIN/LOGIN authentication failure when using saslauthd
+	  with no auxprop plugins (bug # 3590).
+
+2012-06-08  Alexey Melnikov <alexey.melnikov@isode.com>
+	* Added generation of pkg-config .pc file for Cyrus SASL.
+	  Patch by Dilyan Palauzov.
+
+2012-06-03  Alexey Melnikov <alexey.melnikov@isode.com>
+	* Correctly updated libtool version for libsasl and its plugins due
+	  to ABI changes (bug # 3692).
+
+2012-06-02  Alexey Melnikov <alexey.melnikov@isode.com>
+	* Better error reporting from auth_getpwent.c/auth_shadow.c
+	  (bug # 3134). Based on a patch by Greg A. Woods.
+
+2012-06-02  Alexey Melnikov <alexey.melnikov@isode.com>
+	* Improved error logging on failure to load plugins.
+	  Patch by Greg A. Woods.
+
+2012-05-30  Alexey Melnikov <alexey.melnikov@isode.com>
+	* plugins/otp.c, plugins/srp.c: Removed calling of EVP_cleanup()
+	  on SRP/OTP plugin shutdown
+
+2012-05-30  Alexey Melnikov <alexey.melnikov@isode.com>
+	* saslauthd/auth_httpform.c: Encode the parameter values passed to
+	  auth_httpform, not the whole POST data.
+
+2012-05-30  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/config.c, saslauthd/cfile.c: Fixed file descriptor leaks
+	  throughout the code (bug # 3702). Slightly reformatted patch
+	  by Manfred Weichel.
+
+2012-05-29  Alexey Melnikov <alexey.melnikov@isode.com>
+	* bug in "saslauthd -a rimap" - not reading the whole IMAP greeting
+	  (bug # 3211). Patch from Lutz Mark (via Red Hat)
+
+2012-05-29  Alexey Melnikov <alexey.melnikov@isode.com>
+	* Modernize SASL malloc/realloc callback prototypes
+
+2012-05-29  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/saslutil.c: Fixed broken logic in get_fqhostname() when
+	  abort_if_no_fqdn is 0 (bug # 3589). Patch by baggins@pld-linux.org
+
+2012-05-28  Alexey Melnikov <alexey.melnikov@isode.com>
+	* sasldb/db_berkeley.c, utils/dbconverter-2.c: Added support for
+	  BerkleyDB 5.X or later (Patch by Howard Chu)
+
+2012-04-20  Alexey Melnikov <alexey.melnikov@isode.com>
+	* lib/client.c, lib/server.c, lib/saslint.h: Make server and client
+	  side global callbacks private to server.c/client.c respectively
+
+2012-02-10  Ken Murchison <murch@andrew.cmu.edu>
+	* plugins/digestmd5.c: better handling of HTTP reauth cases.
+
+2012-01-28  Ken Murchison <murch@andrew.cmu.edu>
+	* plugins/digestmd5.c: Correctly send "stale" directive to prevent
+	  clients from (re)promtping for password
+
 2011-11-25  Alexey Melnikov <alexey.melnikov@isode.com>
 	* plugins/gs2.c: Updated GS2 plugin not to lose minor GSS-API
 	  status codes on errors (based on a patch from Ralf Haferkamp

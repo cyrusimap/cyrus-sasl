@@ -15,7 +15,7 @@ To release:
 - run testsuite successfully
 - compile successfully without kerberos or gssapi support
 - compile successfully on all andrew systypes
-- increment version in configure.in
+- increment version in configure.in and saslauthd/configure.in
 - synchronize version with include/sasl.h, win32/common.mak and
   win32/include/config.h
 - increment version in saslauthd/configure.in as needed
@@ -24,7 +24,7 @@ To release:
 - add release notice to ChangeLog
 - add user visible changes to NEWS
 
-- tag the CVS repository with sasl-Major_Minor_Revision
+- tag the GIT repository with sasl-Major_Minor_Revision
 - check out the tag into a CLEAN repository
 - to make tarball: make distcheck (make sure you are on a machine that
   is not using GNU tar!  Solaris tar seems to not get along with it well.)

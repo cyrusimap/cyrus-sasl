@@ -76,7 +76,7 @@ CLEAN :
 
 $(libsasl_res): NTMakefile
 	rc /fo"$(libsasl_res)" <<
-#include "afxres.h"
+#include "windows.h"
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION $(SASL_VERSION_MAJOR),$(SASL_VERSION_MINOR),$(SASL_VERSION_STEP),0

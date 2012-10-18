@@ -288,7 +288,7 @@ CLEAN :
 
 $(generated_rc):
 	copy <<temp.rc $@
-#include "afxres.h"
+#include "windows.h"
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION $(SASL_VERSION_MAJOR),$(SASL_VERSION_MINOR),$(SASL_VERSION_STEP),0

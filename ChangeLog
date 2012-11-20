@@ -1,5 +1,5 @@
-2012-10-12  Alexey Melnikov <alexey.melnikov@isode.com>
-	* Getting ready for 2.1.25.
+2012-11-19  Alexey Melnikov <alexey.melnikov@isode.com>
+	* Final 2.1.26 tagged and released by Ken.
 
 2012-07-06  Alexey Melnikov <alexey.melnikov@isode.com>
 	* saslauthd/auth_krb5.c: Fixed a crash in the auth_krb5.c

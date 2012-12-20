@@ -91,7 +91,7 @@ typedef int		    intptr_t;
 /* #undef SASL_NDBM */
 #define SASL_BERKELEYDB 1
 
-/* which mechs can we link staticly? */
+/* which mechs can we link statically? */
 #define STATIC_ANONYMOUS 1
 #define STATIC_CRAMMD5 1
 #define STATIC_DIGESTMD5 1

@@ -121,6 +121,8 @@
 #ifndef SASL_H
 #define SASL_H 1
 
+#include <stddef.h>  /* For size_t */
+
 /* Keep in sync with win32/common.mak */
 #define SASL_VERSION_MAJOR 2
 #define SASL_VERSION_MINOR 1

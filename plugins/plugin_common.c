@@ -334,7 +334,7 @@ int _plug_get_simple(const sasl_utils_t *utils, unsigned int id, int required,
 	/* We prompted, and got.*/
 	
 	if (required && !prompt->result) {
-	    SETERROR(utils, "Unexpectedly missing a prompt result");
+	    SETERROR(utils, "Unexpectedly missing a prompt result in _plug_get_simple");
 	    return SASL_BADPARAM;
 	}
 
@@ -382,7 +382,7 @@ int _plug_get_password(const sasl_utils_t *utils, sasl_secret_t **password,
 	/* We prompted, and got.*/
 	
 	if (!prompt->result) {
-	    SETERROR(utils, "Unexpectedly missing a prompt result");
+	    SETERROR(utils, "Unexpectedly missing a prompt result in _plug_get_password");
 	    return SASL_BADPARAM;
 	}
       
@@ -441,7 +441,7 @@ int _plug_challenge_prompt(const sasl_utils_t *utils, unsigned int id,
 	/* We prompted, and got.*/
 	
 	if (!prompt->result) {
-	    SETERROR(utils, "Unexpectedly missing a prompt result");
+	    SETERROR(utils, "Unexpectedly missing a prompt result in _plug_challenge_prompt");
 	    return SASL_BADPARAM;
 	}
       
@@ -487,7 +487,7 @@ int _plug_get_realm(const sasl_utils_t *utils, const char **availrealms,
 	/* We prompted, and got.*/
 	
 	if (!prompt->result) {
-	    SETERROR(utils, "Unexpectedly missing a prompt result");
+	    SETERROR(utils, "Unexpectedly missing a prompt result in _plug_get_realm");
 	    return SASL_BADPARAM;
 	}
 

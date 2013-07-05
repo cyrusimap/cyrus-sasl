@@ -658,6 +658,20 @@ _sasl_cbinding_disp(sasl_client_params_t *cparams,
     return SASL_OK;
 }
 
+static int
+_sasl_are_current_security_flags_worse_then_best(unsigned best_security_flags,
+						 unsigned current_security_flags)
+{
+    /* We don't qualify SASL_SEC_PASS_CREDENTIALS as "secure" flag */
+    best_security_flags &= ~SASL_SEC_PASS_CREDENTIALS;
+
+    if ((current_security_flags ^ best_security_flags) & best_security_flags) {
+	return 1;
+    } else {
+	return 0;
+    }
+}
+
 /* select a mechanism for a connection
  *  mechlist      -- mechanisms server has available (punctuation ignored)
  *  secret        -- optional secret from previous session
@@ -823,8 +837,9 @@ int sasl_client_start(sasl_conn_t *conn,
 	     */
 
 	    if (bestm &&
-		((m->m.plug->security_flags ^ bestm->m.plug->security_flags) &
-		 bestm->m.plug->security_flags)) {
+		_sasl_are_current_security_flags_worse_then_best(
+		    bestm->m.plug->security_flags,
+		    m->m.plug->security_flags)) {
 		break;
 	    }
 

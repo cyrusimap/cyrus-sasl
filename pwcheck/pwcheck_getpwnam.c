@@ -32,6 +32,7 @@ char *userid;
 char *password;
 {
     char* r;
+    char* crpt_passwd;
     struct passwd *pwd;
 
     pwd = getpwnam(userid);
@@ -41,7 +42,7 @@ char *password;
     else if (pwd->pw_passwd[0] == '*') {
 	r = "Account disabled";
     }
-    else if (strcmp(pwd->pw_passwd, crypt(password, pwd->pw_passwd)) != 0) {
+    else if (!(crpt_passwd = crypt(password, pwd->pw_passwd)) || strcmp(pwd->pw_passwd, (const char *)crpt_passwd) != 0) {
 	r = "Incorrect password";
     }
     else {

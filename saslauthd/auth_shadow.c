@@ -210,8 +210,8 @@ auth_shadow (
 	RETURN("NO Insufficient permission to access NIS authentication database (saslauthd)");
     }
 
-    cpw = strdup((const char *)crypt(password, sp->sp_pwdp));
-    if (strcmp(sp->sp_pwdp, cpw)) {
+    cpw = crypt(password, sp->sp_pwdp);
+    if (!cpw || strcmp(sp->sp_pwdp, (const char *)cpw)) {
 	if (flags & VERBOSE) {
 	    /*
 	     * This _should_ reveal the SHADOW_PW_LOCKED prefix to an
@@ -221,10 +221,8 @@ auth_shadow (
 	    syslog(LOG_DEBUG, "DEBUG: auth_shadow: pw mismatch: '%s' != '%s'",
 		   sp->sp_pwdp, cpw);
 	}
-	free(cpw);
 	RETURN("NO Incorrect password");
     }
-    free(cpw);
 
     /*
      * The following fields will be set to -1 if:
@@ -286,7 +284,7 @@ auth_shadow (
 	RETURN("NO Invalid username");
     }
   
-    if (strcmp(upw->upw_passwd, crypt(password, upw->upw_passwd)) != 0) {
+    if (!(cpw = crypt(password, upw->upw_passwd)) || (strcmp(upw->upw_passwd, (const char *)cpw) != 0)) {
 	if (flags & VERBOSE) {
 	    syslog(LOG_DEBUG, "auth_shadow: pw mismatch: %s != %s",
 		   password, upw->upw_passwd);

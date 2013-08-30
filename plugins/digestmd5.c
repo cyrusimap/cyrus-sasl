@@ -2112,7 +2112,7 @@ digestmd5_server_mech_step1(server_context_t *stext,
 	return SASL_FAIL;
     }
 
-    if (text->http_mode &&
+    if (text->http_mode && text->reauth->timeout &&
 	sparams->utils->mutex_lock(text->reauth->mutex) == SASL_OK) { /* LOCK */
 
 	/* Create an initial cache entry for non-persistent HTTP connections */
@@ -2451,7 +2451,7 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 #endif
     }
 
-    if (!text->nonce) {
+    if (!text->nonce && text->reauth->timeout) {
 	unsigned val = hash((char *) nonce) % text->reauth->size;
 
 	/* reauth attempt or continuation of HTTP Digest on a

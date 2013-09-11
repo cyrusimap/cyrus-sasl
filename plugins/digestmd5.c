@@ -2758,7 +2758,7 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     /* if ok verified */
     if (strcmp(serverresponse, response) != 0) {
 	if (Try_8859_1) {
-	    
+            sparams->utils->free(serverresponse);
 	    serverresponse = create_response(text,
 					     sparams->utils,
 					     nonce,

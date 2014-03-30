@@ -2428,6 +2428,11 @@ int _sasl_is_equal_mech(const char *req_mech,
         *plus = 0;
     }
 
+    if (n < strlen(plug_mech)) {
+	/* Don't allow arbitrary prefix match */
+	return 0;
+    }
+
     return (strncasecmp(req_mech, plug_mech, n) == 0);
 }
 

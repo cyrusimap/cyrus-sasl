@@ -332,6 +332,26 @@ int sasl_client_init(const sasl_callback_t *callbacks)
   return ret;
 }
 
+/*
+ * If mech is in cmechlist->mech_list, return 1
+ * Otherwise, return 0
+ */
+static int mech_is_in_cmechlist(cmechanism_t *mech)
+{
+  cmechanism_t *m = cmechlist->mech_list;
+  if (NULL == mech) {
+    return 0;
+  }
+  
+  while (m && mech) {
+    if (m == mech) {
+      return 1;
+    }
+    m = m->next;
+  }
+  return 0;
+}
+
 static void client_dispose(sasl_conn_t *pconn)
 {
   sasl_client_conn_t *c_conn=(sasl_client_conn_t *) pconn;
@@ -360,6 +380,13 @@ static void client_dispose(sasl_conn_t *pconn)
       while (m) {
 	  prevm = m;
 	  m = m->next;
+	  if (mech_is_in_cmechlist(prevm)) {
+	    /*
+	     * If prevm exists in the global mech_list cmechlist->mech_list,
+	     * we should not free it as well as the rest of the list.
+	     */
+	    break;
+	  }
 	  sasl_FREE(prevm);    
       }
   }

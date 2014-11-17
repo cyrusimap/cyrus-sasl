@@ -4299,7 +4299,7 @@ digestmd5_client_mech_step1(client_context_t *ctext,
     *clientoutlen = (unsigned) strlen(text->out_buf);
     *clientout = text->out_buf;
 
-    text->state = 3;
+    /* check for next state (2 or 3) is done in digestmd5_client_mech_step() */
     return SASL_CONTINUE;
 }
 
@@ -4525,16 +4525,10 @@ static int digestmd5_client_mech_step(void *conn_context,
 		return SASL_CONTINUE;
 	    }
 	}
-	
-	/* fall through and respond to challenge */
-	
-    case 3:
-	if (serverin && !strncasecmp(serverin, "rspauth=", 8)) {
-	    return digestmd5_client_mech_step3(ctext, params,
-					       serverin, serverinlen,
-					       prompt_need,
-					       clientout, clientoutlen,
-					       oparams);
+	else if (!strncasecmp(serverin, "rspauth=", 8)) {
+	    /* server accepted fast reauth */
+	    text->state = 3;
+	    goto step3;
 	}
 
 	/* fall through and respond to challenge */
@@ -4556,6 +4550,14 @@ static int digestmd5_client_mech_step(void *conn_context,
     
     case 2:
 	return digestmd5_client_mech_step2(ctext, params,
+					   serverin, serverinlen,
+					   prompt_need,
+					   clientout, clientoutlen,
+					   oparams);
+
+    case 3:
+    step3:
+	return digestmd5_client_mech_step3(ctext, params,
 					   serverin, serverinlen,
 					   prompt_need,
 					   clientout, clientoutlen,

@@ -4583,6 +4583,8 @@ static void digestmd5_client_mech_dispose(void *conn_context,
 	       "DIGEST-MD5 client mech dispose");
 
     if (ctext->free_password) _plug_free_secret(utils, &ctext->password);
+    if (ctext->algorithm) utils->free(ctext->algorithm);
+    if (ctext->opaque) utils->free(ctext->opaque);
 
     digestmd5_common_mech_dispose(conn_context, utils);
 }

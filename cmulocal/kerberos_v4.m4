@@ -89,18 +89,18 @@ AC_DEFUN([SASL_KERBEROS_V4_CHK], [
     dnl if we were ambitious, we would look more aggressively for the
     dnl krb4 install
     if test -d ${krb4}; then
-       AC_CACHE_CHECK(for Kerberos includes, cyrus_krbinclude, [
+       AC_CACHE_CHECK(for Kerberos includes, cyrus_cv_krbinclude, [
          for krbhloc in include/kerberosIV include/kerberos include
          do
            if test -f ${krb4}/${krbhloc}/krb.h ; then
-             cyrus_krbinclude=${krb4}/${krbhloc}
+             cyrus_cv_krbinclude=${krb4}/${krbhloc}
              break
            fi
          done
          ])
 
-       if test -n "${cyrus_krbinclude}"; then
-         CPPFLAGS="$CPPFLAGS -I${cyrus_krbinclude}"
+       if test -n "${cyrus_cv_krbinclude}"; then
+         CPPFLAGS="$CPPFLAGS -I${cyrus_cv_krbinclude}"
        fi
        LDFLAGS="$LDFLAGS -L$krb4/lib"
     fi

@@ -2,6 +2,8 @@ NEW_AUTOTOOLS=yes
 export NEW_AUTOTOOLS
 
 if test ! -x configure; then
+  echo libtoolize
+  libtoolize
   echo aclocal -I cmulocal -I config
   aclocal -I cmulocal -I config
   echo autoheader

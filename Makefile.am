@@ -1,4 +1,5 @@
 AUTOMAKE_OPTIONS = 1.7
+ACLOCAL_AMFLAGS = -I config
 # Top-level Makefile.am for SASL
 # Rob Earhart
 #

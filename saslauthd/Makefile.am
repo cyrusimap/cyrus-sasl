@@ -15,7 +15,7 @@ saslauthd_SOURCES = mechanisms.c globals.h \
 EXTRA_saslauthd_sources = getaddrinfo.c getnameinfo.c
 saslauthd_DEPENDENCIES = saslauthd-main.o @LTLIBOBJS@
 saslauthd_LDADD	= @SASL_KRB_LIB@ \
-		  @GSSAPIBASE_LIBS@ @GSSAPI_LIBS@ @LIB_CRYPT@ @LIB_SIA@ \
+		  @GSSAPIBASE_LIBS@ @LIB_CRYPT@ @LIB_SIA@ \
 		  @LIB_SOCKET@ @SASL_DB_LIB@ @LIB_PAM@ @LDAP_LIBS@ @LTLIBOBJS@
 
 testsaslauthd_SOURCES = testsaslauthd.c utils.c

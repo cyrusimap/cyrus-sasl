@@ -1,0 +1,11 @@
+Makefile.in
+Makefile
+.deps
+.libs
+*.l[ao]
+*.o
+saslauthd
+saslauthd.8
+saslauthd.h*
+stamp-h1
+testsaslauthd

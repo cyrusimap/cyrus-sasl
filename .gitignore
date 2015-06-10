@@ -1,6 +1,6 @@
 autom4te*.cache
 stamp-h.in
-config.h.in
+config.h.in*
 Makefile.in
 aclocal.m4
 configure
@@ -9,5 +9,5 @@ config.h
 config.cache
 libtool
 config.status
-stamp-h
+stamp-h1
 Makefile

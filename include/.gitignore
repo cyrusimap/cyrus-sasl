@@ -3,5 +3,6 @@ Makefile
 .deps
 .libs
 *.l[ao]
+*.o
 makemd5
 md5global.h

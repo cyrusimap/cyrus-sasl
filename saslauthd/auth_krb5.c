@@ -127,6 +127,15 @@ form_principal_name (
     const char *forced_instance = 0;
 	int plen;
 
+    plen = strlcpy(pname, user, pnamelen);
+    user = pname;
+
+    if (config && cfile_getswitch(config, "krb5_conv_krb4_instance", 0)) {
+       char *krb4_instance;
+
+       if ((krb4_instance = strchr(pname, '.'))) *krb4_instance = '/';
+    }
+
     if (config) {
 	char keyname[1024];
 
@@ -149,8 +158,7 @@ form_principal_name (
     }
 
     /* form user[/instance][@realm] */
-    plen = snprintf(pname, pnamelen, "%s%s%s%s%s",
-	user,
+    plen += snprintf(pname+plen, pnamelen-plen, "%s%s%s%s",
 	(forced_instance ? "/" : ""),
 	(forced_instance ? forced_instance : ""),
 	((realm && realm[0]) ? "@" : ""),

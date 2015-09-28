@@ -1413,7 +1413,7 @@ inline static unsigned int sleep(unsigned int seconds) {
 #endif /* CONFIG_H */
 ])
 
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 
 AC_OUTPUT(Makefile
 libsasl2.pc

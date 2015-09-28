@@ -1362,6 +1362,7 @@ const char *sasl_errstring(int saslerr,
     case SASL_CONSTRAINT_VIOLAT: return "sasl_setpass can't store a property because "
 			        "of a constraint violation";
     case SASL_BADBINDING: return "channel binding failure";
+    case SASL_CONFIGERR:  return "error when parsing configuration file";
 
     default:   return "undefined error!";
     }

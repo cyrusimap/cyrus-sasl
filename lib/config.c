@@ -91,7 +91,7 @@ int sasl_config_init(const char *filename)
 	}
 	if (*p != ':') {
 	    fclose(infile);
-	    return SASL_FAIL;
+	    return SASL_CONFIGERR;
 	}
 	*p++ = '\0';
 
@@ -99,7 +99,7 @@ int sasl_config_init(const char *filename)
 	
 	if (!*p) {
 	    fclose(infile);
-	    return SASL_FAIL;
+	    return SASL_CONFIGERR;
 	}
 
 	/* Now strip trailing spaces, if any */

@@ -179,6 +179,7 @@
 				       because of some constrains/policy violation */
 
 #define SASL_BADBINDING -32  /* channel binding failure */
+#define SASL_CONFIGERR  -100 /* error when parsing configuration file */
 
 /* max size of a sasl mechanism name */
 #define SASL_MECHNAMEMAX 20

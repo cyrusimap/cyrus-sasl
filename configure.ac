@@ -1,7 +1,7 @@
-dnl configure.in for the SASL library
+dnl configure.ac for the SASL library
 dnl Rob Siemborski
 dnl Rob Earhart
-dnl $Id: configure.in,v 1.224 2011/09/22 14:44:15 mel Exp $
+dnl $Id: configure.ac,v 1.224 2011/09/22 14:44:15 mel Exp $
 dnl
 dnl Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
 dnl

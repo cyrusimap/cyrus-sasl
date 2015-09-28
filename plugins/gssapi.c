@@ -945,6 +945,12 @@ gssapi_server_mech_authneg(context_t *text,
     }
 
   cleanup:
+    if (text->server_creds != GSS_C_NO_CREDENTIAL) {
+	GSS_LOCK_MUTEX(params->utils);
+	maj_stat = gss_release_cred(&min_stat, &text->server_creds);
+	GSS_UNLOCK_MUTEX(params->utils);
+	text->server_creds = GSS_C_NO_CREDENTIAL;
+    }
     if (client_name_MN) {
 	GSS_LOCK_MUTEX(params->utils);
 	gss_release_name(&min_stat, &client_name_MN);

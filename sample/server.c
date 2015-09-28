@@ -227,6 +227,8 @@ int mysasl_negotiate(FILE *in, FILE *out, sasl_conn_t *conn)
 
     /* send capability list to client */
     send_string(out, data, len);
+    if (mech)
+	free(data);
 
     dprintf(1, "waiting for client mechanism...\n");
     len = recv_string(in, chosenmech, sizeof chosenmech);

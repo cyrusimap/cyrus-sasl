@@ -14,9 +14,8 @@ if test ! -x configure; then
   automake --add-missing --include-deps
   echo cd saslauthd
   cd saslauthd
-  mkdir config
-  echo aclocal -I ../cmulocal -I ../config -I config
-  aclocal -I ../cmulocal -I ../config -I config
+  echo aclocal -I ../cmulocal -I config -I ../config
+  aclocal -I ../cmulocal -I config -I ../config
   echo autoheader
   autoheader
   echo autoconf 

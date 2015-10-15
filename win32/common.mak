@@ -79,6 +79,20 @@ DB_LIBPATH=c:\work\isode\db\build_win32\Release_static
 !ENDIF
 !ENDIF
 
+!IF "$(LMDB_INCLUDE)" == ""
+DB_INCLUDE=c:\work\isode\lmdb\libraries\liblmdb
+!IF "$(VERBOSE)" != "0"
+!MESSAGE Defaulting LMDB include path to $(LMDB_INCLUDE).
+!ENDIF
+!ENDIF
+
+!IF "$(LMDB_LIBPATH)" == ""
+DB_LIBPATH=c:\work\isode\lmdb\libraries\liblmdb\Release
+!IF "$(VERBOSE)" != "0"
+!MESSAGE Defaulting LMDB library path to $(LMDB_LIBPATH).
+!ENDIF
+!ENDIF
+
 !IF "$(OPENSSL_INCLUDE)" == ""
 OPENSSL_INCLUDE="D:\openssl\engine-0.9.6g-md3\include"
 !IF "$(VERBOSE)" != "0"

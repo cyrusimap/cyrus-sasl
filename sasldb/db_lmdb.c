@@ -418,11 +418,13 @@ int _sasl_check_db(const sasl_utils_t *utils,
     }
 }
 
+#if defined(KEEP_DB_OPEN)
 void sasldb_auxprop_free (void *glob_context,
                           const sasl_utils_t *utils)
 {
     do_close();
 }
+#endif
 
 sasldb_handle _sasldb_getkeyhandle(const sasl_utils_t *utils,
 				   sasl_conn_t *conn)

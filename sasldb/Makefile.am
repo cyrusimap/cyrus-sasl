@@ -46,7 +46,7 @@ sasl_version = 1:25:0
 
 INCLUDES=-I$(top_srcdir)/include -I$(top_builddir)/include @SASL_DB_INC@
 
-extra_common_sources = db_none.c db_mdb.c db_ndbm.c db_gdbm.c db_berkeley.c
+extra_common_sources = db_none.c db_lmdb.c db_ndbm.c db_gdbm.c db_berkeley.c
 
 EXTRA_DIST = NTMakefile
 

@@ -6,7 +6,7 @@ dnl Figure out what database type we're using
 AC_DEFUN([SASL_DB_CHECK], [
 cmu_save_LIBS="$LIBS"
 AC_ARG_WITH(dblib,
-  [AC_HELP_STRING([--with-dblib={berkeley|gdbm|mdb|ndbm|none|auto_detect}],
+  [AC_HELP_STRING([--with-dblib={berkeley|gdbm|lmdb|ndbm|none|auto_detect}],
   [set the DB library to use [[berkeley]]])],
   dblib=$withval,
   dblib=auto_detect)
@@ -45,9 +45,9 @@ dnl named.  arg.
                fi
        esac
 	;;
-  mdb)
-    AC_CHECK_HEADER(mdb.h, [
-		AC_CHECK_LIB(mdb, mdb_env_create, SASL_DB_LIB="-lmdb"; enable_keep_db_open=yes, dblib="no")],
+  lmdb)
+    AC_CHECK_HEADER(lmdb.h, [
+		AC_CHECK_LIB(lmdb, mdb_env_create, SASL_DB_LIB="-llmdb"; enable_keep_db_open=yes, dblib="no")],
 		dblib="no")
 	;;
   ndbm)
@@ -63,8 +63,8 @@ dnl named.  arg.
 	CYRUS_BERKELEY_DB_CHK()
 	if test "$dblib" = no; then
 	  dnl How about OpenLDAP's mdb?
-      AC_CHECK_HEADER(mdb.h, [
-		AC_CHECK_LIB(mdb, mdb_env_create, SASL_DB_LIB="-lmdb"; enable_keep_db_open=yes, dblib="no")],
+      AC_CHECK_HEADER(lmdb.h, [
+		AC_CHECK_LIB(lmdb, mdb_env_create, SASL_DB_LIB="-llmdb"; enable_keep_db_open=yes, dblib="no")],
 		dblib="no")
 	fi
 	if test "$dblib" = no; then
@@ -99,7 +99,7 @@ dnl named.  arg.
 	;;
   *)
 	AC_MSG_WARN([Bad DB library implementation specified;])
-	AC_ERROR([Use either \"berkeley\", \"gdbm\", \"mdb\", \"ndbm\" or \"none\"])
+	AC_ERROR([Use either \"berkeley\", \"gdbm\", \"lmdb\", \"ndbm\" or \"none\"])
 	dblib=no
 	;;
 esac
@@ -119,9 +119,9 @@ case "$dblib" in
     SASL_MECHS="$SASL_MECHS libsasldb.la"
     AC_DEFINE(SASL_GDBM,[],[Use GDBM for SASLdb])
     ;;
-  mdb)
+  lmdb)
     SASL_MECHS="$SASL_MECHS libsasldb.la"
-    AC_DEFINE(SASL_MDB,[],[Use MDB for SASLdb])
+    AC_DEFINE(SASL_LMDB,[],[Use LMDB for SASLdb])
     ;;
   ndbm)
     SASL_MECHS="$SASL_MECHS libsasldb.la"

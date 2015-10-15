@@ -150,14 +150,14 @@ cached for a fast reauth.  A value of 0 will disable reauth.</TD>
 <TD>Path to sasldb file</TD><TD><tt>/etc/sasldb2</tt> (system dependant)</TD>
 </TR>
 <TR>
-<TD>sasldb_mapsize</TD><TD>sasldb with MDB</TD>
+<TD>sasldb_mapsize</TD><TD>sasldb with LMDB</TD>
 <TD>Size of the memory map used by the DB. This is also the maximum possible
 size of the database, so it must be set to a value large enough to contain
 all the desired user records.</TD>
 <TD>1048576 bytes</TD>
 </TR>
 <TR>
-<TD>sasldb_maxreaders</TD><TD>sasldb with MDB</TD>
+<TD>sasldb_maxreaders</TD><TD>sasldb with LMDB</TD>
 <TD>Maximum number of threads (or processes) that may concurrently read the
 database.</TD>
 <TD>126</TD>
@@ -356,17 +356,17 @@ sasl-regexp uid=(.*),cn=external,cn=auth
 
 </p>
 
-<h2>Notes on sasldb with MDB</h2>
+<h2>Notes on sasldb with LMDB</h2>
 
 <p>
 </p>
 
-<p>The OpenLDAP MDB library is an extremely compact, extremely high performance
+<p>The OpenLDAP LMDB library is an extremely compact, extremely high performance
 B+tree database. The code for it is available in the regular OpenLDAP source
 distributions and it is distributed under the terms of the OpenLDAP Public License.</p>
 
 <p>Full documentation, plus papers and presentations are available on
-<a href="http://highlandsun.com/hyc/mdb/">the MDB page</a>.</p>
+<a href="symas.com/mdb/">the LMDB page</a>.</p>
 
 <hr>
 Back to the <A href=index.html>index</a>

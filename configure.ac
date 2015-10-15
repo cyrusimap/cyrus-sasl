@@ -205,8 +205,8 @@ AC_ARG_ENABLE(keep_db_open, [  --enable-keep-db-open   keep handle to DB open fo
                 keep_db_open=$enableval,
                 keep_db_open=no)
 
-# Disable if Berkeley DB and MDB are not used
-if test "$dblib" != berkeley -a "$dblib" != mdb; then
+# Disable if Berkeley DB and LMDB are not used
+if test "$dblib" != berkeley -a "$dblib" != lmdb; then
   keep_db_open=no
 fi
 

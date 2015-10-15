@@ -1,4 +1,4 @@
-/* db_mdb.c--SASL OpenLDAP MDB interface
+/* db_lmdb.c--SASL OpenLDAP LMDB interface
  * Howard Chu
  * $Id$
  */
@@ -44,7 +44,7 @@
 
 #include <config.h>
 
-#include <mdb.h>
+#include <lmdb.h>
 
 #include <sys/stat.h>
 #include <stdlib.h>
@@ -211,7 +211,7 @@ int _sasldb_getdata(const sasl_utils_t *utils,
   /* check parameters */
   if (!auth_identity || !realm || !propName || !out || !max_out) {
       utils->seterror(context, 0,
-		      "Bad parameter in db_mdb.c: _sasldb_getdata");
+		      "Bad parameter in db_lmdb.c: _sasldb_getdata");
       return SASL_BADPARAM;
   }
 
@@ -300,7 +300,7 @@ int _sasldb_putdata(const sasl_utils_t *utils,
 
   if (!authid || !realm || !propName) {
       utils->seterror(context, 0,
-		      "Bad parameter in db_mdb.c: _sasldb_putdata");
+		      "Bad parameter in db_lmdb.c: _sasldb_putdata");
       return SASL_BADPARAM;
   }
 

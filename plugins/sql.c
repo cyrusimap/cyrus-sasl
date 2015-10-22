@@ -71,7 +71,7 @@ static void *_mysql_open(char *host, char *port, int usessl,
     MYSQL *mysql;
     
     if (!(mysql = mysql_init(NULL))) {
-	utils->log(NULL, SASL_LOG_ERR,
+	utils->log(utils->conn, SASL_LOG_ERR,
 		   "sql plugin: could not execute mysql_init()");
 	return NULL;
     }
@@ -108,7 +108,7 @@ static int _mysql_exec(void *conn, const char *cmd, char *value, size_t size,
     (void)mysql_real_query(conn, cmd, len);
 
     if(mysql_errno(conn)) {
-        utils->log(NULL, SASL_LOG_ERR, "sql query failed: %s",
+        utils->log(utils->conn, SASL_LOG_ERR, "sql query failed: %s",
 		   mysql_error(conn));
 	return -1;
     }
@@ -123,7 +123,7 @@ static int _mysql_exec(void *conn, const char *cmd, char *value, size_t size,
     result = mysql_store_result(conn);
     if (!result) {
 	/* umm nothing found */
-	utils->log(NULL, SASL_LOG_NOTE, "sql plugin: no result found");
+	utils->log(utils->conn, SASL_LOG_NOTE, "sql plugin: no result found");
 	return -1;
     }
 
@@ -132,11 +132,11 @@ static int _mysql_exec(void *conn, const char *cmd, char *value, size_t size,
     if (!row_count) {
 	/* umm nothing found */
 	mysql_free_result(result);
-	utils->log(NULL, SASL_LOG_NOTE, "sql plugin: no result found");
+	utils->log(utils->conn, SASL_LOG_NOTE, "sql plugin: no result found");
 	return -1;
     }
     if (row_count > 1) {
-	utils->log(NULL, SASL_LOG_WARN,
+	utils->log(utils->conn, SASL_LOG_WARN,
 		   "sql plugin: found duplicate row for query %s", cmd);
     }
     
@@ -145,7 +145,7 @@ static int _mysql_exec(void *conn, const char *cmd, char *value, size_t size,
     row = mysql_fetch_row(result);
     if (!row || !row[0]) {
 	/* umm nothing found */
-	utils->log(NULL, SASL_LOG_NOTE, "sql plugin: no result found");
+	utils->log(utils->conn, SASL_LOG_NOTE, "sql plugin: no result found");
 	mysql_free_result(result);
 	return -1;
     }
@@ -257,7 +257,8 @@ static void *_pgsql_open(char *host, char *port, int usessl,
     free(conninfo);
     
     if ((PQstatus(conn) != CONNECTION_OK)) {
-	utils->log(NULL, SASL_LOG_ERR, "sql plugin: %s", PQerrorMessage(conn));
+	utils->log(utils->conn, SASL_LOG_ERR, "sql plugin: %s",
+		   PQerrorMessage(conn));
 	return NULL;
     }
     
@@ -288,7 +289,7 @@ static int _pgsql_exec(void *conn, const char *cmd, char *value, size_t size,
     }
     else if (status != PGRES_TUPLES_OK) {
 	/* error */
-	utils->log(NULL, SASL_LOG_DEBUG, "sql plugin: %s ",
+	utils->log(utils->conn, SASL_LOG_DEBUG, "sql plugin: %s ",
 		   PQresStatus(status));
 	PQclear(result);
 	return -1;
@@ -298,12 +299,12 @@ static int _pgsql_exec(void *conn, const char *cmd, char *value, size_t size,
     row_count = PQntuples(result);
     if (!row_count) {
 	/* umm nothing found */
-	utils->log(NULL, SASL_LOG_NOTE, "sql plugin: no result found");
+	utils->log(utils->conn, SASL_LOG_NOTE, "sql plugin: no result found");
 	PQclear(result);
 	return -1;
     }
     if (row_count > 1) {
-	utils->log(NULL, SASL_LOG_WARN,
+	utils->log(utils->conn, SASL_LOG_WARN,
 		   "sql plugin: found duplicate row for query %s", cmd);
     }
     
@@ -357,14 +358,14 @@ static void *_sqlite_open(char *host __attribute__((unused)),
 
     db = sqlite_open(database, 0, &zErrMsg);
     if (db == NULL) {
-	utils->log(NULL, SASL_LOG_ERR, "sql plugin: %s", zErrMsg);
+	utils->log(utils->conn, SASL_LOG_ERR, "sql plugin: %s", zErrMsg);
 	sqlite_freemem (zErrMsg);
 	return NULL;
     }
 
     rc = sqlite_exec(db, "PRAGMA empty_result_callbacks = ON", NULL, NULL, &zErrMsg);
     if (rc != SQLITE_OK) {
-	utils->log(NULL, SASL_LOG_ERR, "sql plugin: %s", zErrMsg);
+	utils->log(utils->conn, SASL_LOG_ERR, "sql plugin: %s", zErrMsg);
 	sqlite_freemem (zErrMsg);
 	sqlite_close(db);
 	return NULL;
@@ -414,7 +415,7 @@ static int _sqlite_exec(void *db, const char *cmd, char *value, size_t size,
 
     rc = sqlite_exec((sqlite*)db, cmd, sqlite_my_callback, (void*)&result, &zErrMsg);
     if (rc != SQLITE_OK && rc != SQLITE_ABORT) {
-	utils->log(NULL, SASL_LOG_DEBUG, "sql plugin: %s ", zErrMsg);
+	utils->log(utils->conn, SASL_LOG_DEBUG, "sql plugin: %s ", zErrMsg);
 	sqlite_freemem (zErrMsg);
 	return -1;
     }
@@ -426,7 +427,7 @@ static int _sqlite_exec(void *db, const char *cmd, char *value, size_t size,
 
     if (result == NULL) {
 	/* umm nothing found */
-	utils->log(NULL, SASL_LOG_NOTE, "sql plugin: no result found");
+	utils->log(utils->conn, SASL_LOG_NOTE, "sql plugin: no result found");
 	return -1;
     }
 
@@ -485,9 +486,10 @@ static void *_sqlite3_open(char *host __attribute__((unused)),
     rc = sqlite3_open(database, &db);
     if (SQLITE_OK != rc) {
     	if (db)
-		utils->log(NULL, SASL_LOG_ERR, "sql plugin: %s", sqlite3_errmsg(db));
+		utils->log(utils->conn, SASL_LOG_ERR, "sql plugin: %s",
+			   sqlite3_errmsg(db));
 	else
-		utils->log(NULL, SASL_LOG_ERR, "sql plugin: %d", rc);
+		utils->log(utils->conn, SASL_LOG_ERR, "sql plugin: %d", rc);
 	sqlite3_close(db);
 	return NULL;
     }
@@ -495,10 +497,11 @@ static void *_sqlite3_open(char *host __attribute__((unused)),
     rc = sqlite3_exec(db, "PRAGMA empty_result_callbacks = ON", NULL, NULL, &zErrMsg);
     if (rc != SQLITE_OK) {
     	if (zErrMsg) {
-		utils->log(NULL, SASL_LOG_ERR, "sql plugin: %s", zErrMsg);
+		utils->log(utils->conn, SASL_LOG_ERR, "sql plugin: %s",
+			   zErrMsg);
 		sqlite3_free(zErrMsg);
 	} else
-		utils->log(NULL, SASL_LOG_DEBUG, "sql plugin: %d", rc);
+		utils->log(utils->conn, SASL_LOG_DEBUG, "sql plugin: %d", rc);
 	sqlite3_close(db);
 	return NULL;
     }
@@ -552,10 +555,10 @@ static int _sqlite3_exec(void *db,
     rc = sqlite3_exec((sqlite3*)db, cmd, sqlite3_my_callback, (void*)&result, &zErrMsg);
     if (rc != SQLITE_OK) {
     	if (zErrMsg) {
-	    utils->log(NULL, SASL_LOG_DEBUG, "sql plugin: %s", zErrMsg);
+	    utils->log(utils->conn, SASL_LOG_DEBUG, "sql plugin: %s", zErrMsg);
 	    sqlite3_free(zErrMsg);
 	} else {
-	    utils->log(NULL, SASL_LOG_DEBUG, "sql plugin: %d", rc);
+	    utils->log(utils->conn, SASL_LOG_DEBUG, "sql plugin: %d", rc);
 	}
 	return -1;
     }
@@ -567,7 +570,7 @@ static int _sqlite3_exec(void *db,
 
     if (result == NULL) {
 	/* umm nothing found */
-	utils->log(NULL, SASL_LOG_NOTE, "sql plugin: no result found");
+	utils->log(utils->conn, SASL_LOG_NOTE, "sql plugin: no result found");
 	return -1;
     }
 
@@ -719,7 +722,7 @@ static char *sql_create_statement(const char *statement, const char *prop,
 		buf_ptr += vlen;
 	    }
 	    else {
-		utils->log(NULL, SASL_LOG_ERR,
+		utils->log(utils->conn, SASL_LOG_ERR,
 			   "'%%v' shouldn't be in a SELECT or DELETE");
 	    }
 	    break;
@@ -769,7 +772,7 @@ static void sql_get_settings(const sasl_utils_t *utils, void *glob_context)
     }
 
     if (!e->name) {
-	utils->log(NULL, SASL_LOG_ERR, "SQL engine '%s' not supported",
+	utils->log(utils->conn, SASL_LOG_ERR, "SQL engine '%s' not supported",
 		   engine_name);
     }
 
@@ -845,7 +848,7 @@ static void *sql_connect(sql_settings_t *settings, const sasl_utils_t *utils)
      * it should probably save the connection but for 
      * now we will just disconnect everytime
      */
-    utils->log(NULL, SASL_LOG_DEBUG,
+    utils->log(utils->conn, SASL_LOG_DEBUG,
 	       "sql plugin try and connect to a host\n");
     
     /* create a working version of the hostnames */
@@ -861,7 +864,7 @@ static void *sql_connect(sql_settings_t *settings, const sasl_utils_t *utils)
 	    while (!isalnum(db_host[0])) db_host++;
 	}
 	
-	utils->log(NULL, SASL_LOG_DEBUG,
+	utils->log(utils->conn, SASL_LOG_DEBUG,
 		   "sql plugin trying to open db '%s' on host '%s'%s\n",
 		   settings->sql_database, cur_host,
 		   settings->sql_usessl ? " using SSL" : "");
@@ -877,7 +880,7 @@ static void *sql_connect(sql_settings_t *settings, const sasl_utils_t *utils)
 					      utils);
 	if (conn) break;
 	
-	utils->log(NULL, SASL_LOG_ERR,
+	utils->log(utils->conn, SASL_LOG_ERR,
 		   "sql plugin could not connect to host %s", cur_host);
 	
 	cur_host = db_host;
@@ -917,7 +920,7 @@ static int sql_auxprop_lookup(void *glob_context,
     /* setup the settings */
     settings = (sql_settings_t *) glob_context;
     
-    sparams->utils->log(NULL, SASL_LOG_DEBUG,
+    sparams->utils->log(sparams->utils->conn, SASL_LOG_DEBUG,
 			"sql plugin Parse the username %s\n", user);
     
     user_buf = sparams->utils->malloc(ulen + 1);
@@ -966,7 +969,7 @@ static int sql_auxprop_lookup(void *glob_context,
 
     conn = sql_connect(settings, sparams->utils);
     if (!conn) {
-	sparams->utils->log(NULL, SASL_LOG_ERR,
+	sparams->utils->log(sparams->utils->conn, SASL_LOG_ERR,
 			    "sql plugin couldn't connect to any host\n");
 	/* TODO: in the future we might want to extend the internal
 	   SQL driver API to return a more detailed error */
@@ -1014,14 +1017,15 @@ static int sql_auxprop_lookup(void *glob_context,
 
 	if (!do_txn) {
 	    do_txn = 1;
-	    sparams->utils->log(NULL, SASL_LOG_DEBUG, "begin transaction");
+	    sparams->utils->log(sparams->utils->conn, SASL_LOG_DEBUG,
+				"begin transaction");
 	    if (settings->sql_engine->sql_begin_txn(conn, sparams->utils)) {
-		sparams->utils->log(NULL, SASL_LOG_ERR, 
+		sparams->utils->log(sparams->utils->conn, SASL_LOG_ERR,
 				    "Unable to begin transaction\n");
 	    }
 	}
     
-	sparams->utils->log(NULL, SASL_LOG_DEBUG,
+	sparams->utils->log(sparams->utils->conn, SASL_LOG_DEBUG,
 			    "sql plugin create statement from %s %s %s\n",
 			    realname, escap_userid, escap_realm);
 	
@@ -1035,7 +1039,7 @@ static int sql_auxprop_lookup(void *glob_context,
 	    break;
 	}
 	
-	sparams->utils->log(NULL, SASL_LOG_DEBUG,
+	sparams->utils->log(sparams->utils->conn, SASL_LOG_DEBUG,
 			    "sql plugin doing query %s\n", query);
 	
 	value[0] = '\0';
@@ -1065,14 +1069,15 @@ static int sql_auxprop_lookup(void *glob_context,
 	       the userPassword attribute */
 	    if (!do_txn) {
 		do_txn = 1;
-		sparams->utils->log(NULL, SASL_LOG_DEBUG, "begin transaction");
+		sparams->utils->log(sparams->utils->conn, SASL_LOG_DEBUG,
+				    "begin transaction");
 		if (settings->sql_engine->sql_begin_txn(conn, sparams->utils)) {
-		    sparams->utils->log(NULL, SASL_LOG_ERR, 
+		    sparams->utils->log(sparams->utils->conn, SASL_LOG_ERR,
 					"Unable to begin transaction\n");
 		}
 	    }
 
-	    sparams->utils->log(NULL, SASL_LOG_DEBUG,
+	    sparams->utils->log(sparams->utils->conn, SASL_LOG_DEBUG,
 				"sql plugin create statement from %s %s %s\n",
 				SASL_AUX_PASSWORD_PROP,
 				escap_userid,
@@ -1088,7 +1093,7 @@ static int sql_auxprop_lookup(void *glob_context,
 	    if (query == NULL) {
 		ret = SASL_NOMEM;
 	    } else {
-		sparams->utils->log(NULL, SASL_LOG_DEBUG,
+		sparams->utils->log(sparams->utils->conn, SASL_LOG_DEBUG,
 				    "sql plugin doing query %s\n", query);
         	
 		value[0] = '\0';
@@ -1110,9 +1115,10 @@ static int sql_auxprop_lookup(void *glob_context,
 
 
     if (do_txn) {
-	sparams->utils->log(NULL, SASL_LOG_DEBUG, "commit transaction");
+	sparams->utils->log(sparams->utils->conn, SASL_LOG_DEBUG,
+			    "commit transaction");
 	if (settings->sql_engine->sql_commit_txn(conn, sparams->utils)) {
-	    sparams->utils->log(NULL, SASL_LOG_ERR, 
+	    sparams->utils->log(sparams->utils->conn, SASL_LOG_ERR,
 				"Unable to commit transaction\n");
 	    /* Failure of the commit is non fatal when reading values */
 	}
@@ -1160,7 +1166,7 @@ static int sql_auxprop_store(void *glob_context,
     /* make sure our input is okay */
     if (!glob_context || !sparams || !user) return SASL_BADPARAM;
     
-    sparams->utils->log(NULL, SASL_LOG_DEBUG,
+    sparams->utils->log(sparams->utils->conn, SASL_LOG_DEBUG,
 			"sql plugin Parse the username %s\n", user);
     
     user_buf = sparams->utils->malloc(ulen + 1);
@@ -1203,7 +1209,7 @@ static int sql_auxprop_store(void *glob_context,
 
     conn = sql_connect(settings, sparams->utils);
     if (!conn) {
-	sparams->utils->log(NULL, SASL_LOG_ERR,
+	sparams->utils->log(sparams->utils->conn, SASL_LOG_ERR,
 			    "sql plugin couldn't connect to any host\n");
 	goto done;
     }
@@ -1212,7 +1218,7 @@ static int sql_auxprop_store(void *glob_context,
     settings->sql_engine->sql_escape_str(escap_realm, realm);
     
     if (settings->sql_engine->sql_begin_txn(conn, sparams->utils)) {
-	sparams->utils->log(NULL, SASL_LOG_ERR, 
+	sparams->utils->log(sparams->utils->conn, SASL_LOG_ERR,
 			    "Unable to begin transaction\n");
     }
     for (cur = to_store; ret == SASL_OK && cur->name; cur++) {
@@ -1252,7 +1258,7 @@ static int sql_auxprop_store(void *glob_context,
 				     cur->values && cur->values[0] ?
 				     "<omitted>" : SQL_NULL_VALUE,
 				     sparams->utils);
-	    sparams->utils->log(NULL, SASL_LOG_DEBUG,
+	    sparams->utils->log(sparams->utils->conn, SASL_LOG_DEBUG,
 				"sql plugin doing statement %s\n",
 				log_statement);
 	    sparams->utils->free(log_statement);
@@ -1267,15 +1273,15 @@ static int sql_auxprop_store(void *glob_context,
 	sparams->utils->free(statement);
     }
     if (ret != SASL_OK) {
-	sparams->utils->log(NULL, SASL_LOG_ERR,
+	sparams->utils->log(sparams->utils->conn, SASL_LOG_ERR,
 			    "Failed to store auxprop; aborting transaction\n");
 	if (settings->sql_engine->sql_rollback_txn(conn, sparams->utils)) {
-	    sparams->utils->log(NULL, SASL_LOG_ERR, 
+	    sparams->utils->log(sparams->utils->conn, SASL_LOG_ERR,
 				"Unable to rollback transaction\n");
 	}
     }
     else if (settings->sql_engine->sql_commit_txn(conn, sparams->utils)) {
-	sparams->utils->log(NULL, SASL_LOG_ERR, 
+	sparams->utils->log(sparams->utils->conn, SASL_LOG_ERR,
 			    "Unable to commit transaction\n");
     }
     
@@ -1301,7 +1307,7 @@ static void sql_auxprop_free(void *glob_context, const sasl_utils_t *utils)
     
     if (!settings) return;
     
-    utils->log(NULL, SASL_LOG_DEBUG, "sql freeing memory\n");
+    utils->log(utils->conn, SASL_LOG_DEBUG, "sql freeing memory\n");
     
     utils->free(settings);
 }
@@ -1344,12 +1350,12 @@ int sql_auxprop_plug_init(const sasl_utils_t *utils,
     if (!settings->sql_engine->name) return SASL_NOMECH;
 
     if (!sql_exists(settings->sql_select)) {
-	utils->log(NULL, SASL_LOG_ERR, "sql_select option missing");
+	utils->log(utils->conn, SASL_LOG_ERR, "sql_select option missing");
 	utils->free(settings);	
 	return SASL_NOMECH;
     }
 
-    utils->log(NULL, SASL_LOG_DEBUG,
+    utils->log(utils->conn, SASL_LOG_DEBUG,
 	       "sql auxprop plugin using %s engine\n",
 	       settings->sql_engine->name);
     

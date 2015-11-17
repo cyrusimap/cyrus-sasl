@@ -24,7 +24,7 @@
 
 sbin_PROGRAMS = pwcheck
 
-INCLUDES = -I../include -I../lib
+AM_CPPFLAGS = -I../include -I../lib
 
 pwcheck_SOURCES = pwcheck.c
 EXTRA_pwcheck_SOURCES = pwcheck_getpwnam.c pwcheck_getspnam.c

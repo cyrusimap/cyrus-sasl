@@ -28,7 +28,7 @@ javasasl_version = 1:0:0
 javasasldir = $(prefix)/lib/java/classes/sasl/CyrusSasl
 javahtmldir = $(prefix)/html/sasl
 
-INCLUDES=-I$(top_srcdir)/include $(JAVA_INCLUDES)
+AM_CPPFLAGS=-I$(top_srcdir)/include $(JAVA_INCLUDES)
 
 javasasl_JAVA = Sasl.java GenericClient.java \
 		ClientFactory.java \

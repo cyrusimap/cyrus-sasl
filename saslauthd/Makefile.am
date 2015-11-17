@@ -25,7 +25,7 @@ saslcache_SOURCES = saslcache.c
 
 EXTRA_DIST	= saslauthd.8 saslauthd.mdoc config include \
 		  getnameinfo.c getaddrinfo.c LDAP_SASLAUTHD
-INCLUDES	= -I$(top_srcdir)/include -I$(top_builddir)/include -I$(top_srcdir)/../include
+AM_CPPFLAGS	= -I$(top_srcdir)/include -I$(top_builddir)/include -I$(top_srcdir)/../include
 DEFS            = @DEFS@ -DSASLAUTHD_CONF_FILE_DEFAULT=\"@sysconfdir@/saslauthd.conf\" -I. -I$(srcdir) -I..
 
 

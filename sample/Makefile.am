@@ -42,7 +42,7 @@
 #
 ################################################################
 
-INCLUDES=-I$(top_srcdir)/include
+AM_CPPFLAGS=-I$(top_srcdir)/include
 
 noinst_PROGRAMS = client server
 EXTRA_PROGRAMS = sample-client sample-server

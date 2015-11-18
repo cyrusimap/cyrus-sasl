@@ -46,6 +46,7 @@ AM_CPPFLAGS=-I$(top_srcdir)/include
 
 noinst_PROGRAMS = client server
 EXTRA_PROGRAMS = sample-client sample-server
+EXTRA_DIST = NTMakefile
 CLEANFILES=sample-client sample-server ./.libs/*sample-client ./.libs/*sample-server
 
 sample_client_SOURCES = sample-client.c

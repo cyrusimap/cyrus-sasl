@@ -41,8 +41,19 @@ dnl WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN
 dnl AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING
 dnl OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 dnl
-AC_INIT(lib/saslint.h)
-AC_PREREQ([2.54])
+
+AC_PREREQ(2.63.2)
+
+dnl
+dnl REMINDER: When changing the version number here, please also update
+dnl the values in win32/include/config.h and include/sasl.h as well.
+dnl
+AC_INIT([cyrus-sasl],
+        [2.1.26],
+        [https://git.cyrus.foundation/maniphest/],
+        [cyrus-sasl],
+        [https://docs.cyrus.foundation])
+
 AC_CONFIG_MACRO_DIR([config])
 
 dnl use ./config.cache as the default cache file.
@@ -56,11 +67,7 @@ AC_CONFIG_AUX_DIR(config)
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-dnl
-dnl REMINDER: When changing the version number here, please also update
-dnl the values in win32/include/config.h and include/sasl.h as well.
-dnl
-AM_INIT_AUTOMAKE(cyrus-sasl, 2.1.26)
+AM_INIT_AUTOMAKE([1.11 tar-ustar dist-xz no-dist-gzip -Wno-portability subdir-objects])
 CMU_INIT_AUTOMAKE
 
 # and include our config dir scripts

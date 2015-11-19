@@ -93,6 +93,7 @@ AC_ARG_ENABLE(obsolete_cram_attr,
               enable_obsolete_cram_attr=yes)
 
 AC_PROG_CC
+AX_PROG_CC_FOR_BUILD
 AC_PROG_CPP
 AC_PROG_AWK
 AC_PROG_LN_S

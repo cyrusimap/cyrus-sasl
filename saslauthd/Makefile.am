@@ -2,6 +2,9 @@ AUTOMAKE_OPTIONS = 1.7
 sbin_PROGRAMS	= saslauthd testsaslauthd
 EXTRA_PROGRAMS  = saslcache
 
+LTLIBOBJS = @LTLIBOBJS@
+LTLIBOBJS_FULL = $(addprefix ${top_srcdir}/lib/,${LTLIBOBJS})
+
 saslauthd_SOURCES = mechanisms.c globals.h \
 		    mechanisms.h auth_dce.c auth_dce.h auth_getpwent.c \
 		    auth_getpwent.h auth_krb5.c auth_krb5.h auth_krb4.c \
@@ -13,10 +16,10 @@ saslauthd_SOURCES = mechanisms.c globals.h \
                     ipc_unix.c ipc_doors.c saslauthd-main.c saslauthd-main.h \
 		    md5.c saslauthd_md5.h md5global.h 
 EXTRA_saslauthd_sources = getaddrinfo.c getnameinfo.c
-saslauthd_DEPENDENCIES = saslauthd-main.o @LTLIBOBJS@
+saslauthd_DEPENDENCIES = saslauthd-main.o $(LTLIBOBJS_FULL)
 saslauthd_LDADD	= @SASL_KRB_LIB@ \
 		  @GSSAPIBASE_LIBS@ @LIB_CRYPT@ @LIB_SIA@ \
-		  @LIB_SOCKET@ @SASL_DB_LIB@ @LIB_PAM@ @LDAP_LIBS@ @LTLIBOBJS@
+		  @LIB_SOCKET@ @SASL_DB_LIB@ @LIB_PAM@ @LDAP_LIBS@ $(LTLIBOBJS_FULL)
 
 testsaslauthd_SOURCES = testsaslauthd.c utils.c
 testsaslauthd_LDADD = @LIB_SOCKET@

@@ -12,16 +12,6 @@ if test ! -x configure; then
   autoconf
   echo automake --add-missing --include-deps
   automake --add-missing --include-deps
-  echo cd saslauthd
-  cd saslauthd
-  echo aclocal -I ../cmulocal -I config -I ../config
-  aclocal -I ../cmulocal -I config -I ../config
-  echo autoheader
-  autoheader
-  echo autoconf 
-  autoconf
-  echo automake --add-missing --include-deps
-  automake --add-missing --include-deps
 fi
 
 LIBS=""

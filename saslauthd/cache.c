@@ -37,7 +37,7 @@
 /****************************************
  * includes
  *****************************************/
-#include "saslauthd.h"
+#include <config.h>
 
 #include <sys/stat.h>
 #include <sys/types.h>

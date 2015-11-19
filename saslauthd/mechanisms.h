@@ -32,7 +32,7 @@
 #ifndef _MECHANISMS_H
 #define _MECHANISMS_H
 
-#include "saslauthd.h"
+#include <config.h>
 
 /* PUBLIC DEPENDENCIES */
 /* Authentication mechanism dispatch table definition */

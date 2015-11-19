@@ -45,8 +45,9 @@
 #ifndef _SASLAUTHDMAIN_H
 #define _SASLAUTHDMAIN_H
 
+#include <config.h>
+
 #include <sys/types.h>
-#include "saslauthd.h"
 
 /****************************************************************
  * Plug in some autoconf magic to determine what IPC method

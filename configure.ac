@@ -580,6 +580,68 @@ if test "$gssapi" != "no"; then
   AC_MSG_RESULT($use_gss_mutexes)
 fi
 
+SASL2_CRYPT_CHK
+
+AC_ARG_ENABLE(sia, [  --enable-sia            enable SIA authentication [no] ],
+  sia=$enableval,
+  sia=no)
+LIB_SIA=""
+if test "$sia" != no; then
+  if test -f /etc/sia/matrix.conf; then
+    AC_DEFINE(HAVE_SIA,[],[Include SIA Support])
+    LIB_SIA="-lsecurity -ldb -lm -laud"
+  else
+    AC_ERROR([No support for SIA found])
+  fi
+fi
+AC_SUBST(LIB_SIA)
+
+AC_ARG_ENABLE(auth-sasldb, [  --enable-auth-sasldb    enable experimental SASLdb authentication module [no] ],
+  authsasldb=$enableval,
+  authsasldb=no)
+if test "$authsasldb" != no; then
+  if test ! -d "../sasldb"; then
+     echo "ERROR: Cannot build sasldb module outside of the full SASL source tree."
+     exit 0;
+  fi
+  AC_DEFINE(AUTH_SASLDB,[],[Include SASLdb Support])
+  SASL_DB_PATH_CHECK()
+  SASL_DB_CHECK()
+  SASL_DB_LIB="$SASL_DB_LIB ../sasldb/.libs/libsasldb.al"
+fi
+
+AC_ARG_ENABLE(httpform, [  --enable-httpform       enable HTTP form authentication [[no]] ],
+  httpform=$enableval,
+  httpform=no)
+if test "$httpform" != no; then
+  AC_DEFINE(HAVE_HTTPFORM,[],[Include HTTP form Support])
+fi
+
+AC_ARG_WITH(pam, [  --with-pam=DIR          use PAM (rooted in DIR) [yes] ],
+	with_pam=$withval,
+	with_pam=yes)
+if test "$with_pam" != no; then
+  if test -d $with_pam; then
+    CPPFLAGS="$CPPFLAGS -I${with_pam}/include"
+    LDFLAGS="$LDFLAGS -L${with_pam}/lib"
+  fi
+  cmu_save_LIBS="$LIBS"
+  AC_CHECK_LIB(pam, pam_start, [
+  AC_CHECK_HEADER(security/pam_appl.h,,
+		  with_pam=no)],
+	with_pam=no, $SASL_DL_LIB)
+  LIBS="$cmu_save_LIBS"
+fi
+
+AC_MSG_CHECKING(for PAM support)
+AC_MSG_RESULT($with_pam)
+LIB_PAM=""
+if test "$with_pam" != no; then
+  AC_DEFINE(HAVE_PAM,[],[Support for PAM?])
+  LIB_PAM="-lpam"
+fi
+AC_SUBST(LIB_PAM)
+
 dnl PLAIN
 SASL_PLAIN_CHK
 
@@ -672,9 +734,26 @@ else
 fi
 
 
-# make the option show up so people don't whine that it is only in the
-# saslauthd configure script --help
-AC_ARG_WITH(ldap,   [  --with-ldap=DIR         use LDAP (in DIR) for saslauthd [no] ],,with_ldap=no)
+AC_MSG_CHECKING(to include LDAP support)
+AC_ARG_WITH(ldap, [  --with-ldap=DIR         use LDAP (in DIR) for saslauthd [no] ],
+	with_ldap=$withval,
+	with_ldap=no)
+AC_MSG_RESULT($with_ldap)
+
+if test -d $with_ldap; then
+    CPPFLAGS="$CPPFLAGS -I${with_ldap}/include"
+    CMU_ADD_LIBPATH(${with_ldap}/lib)
+fi
+
+LDAP_LIBS=""
+if test "$with_ldap" != no; then
+  AC_CHECK_LIB(ldap, ldap_initialize, [ AC_DEFINE(HAVE_LDAP,[],[Support for LDAP?])
+                                        LDAP_LIBS="-lldap -llber"
+					if test "$with_openssl" != "no"; then
+					    LDAP_LIBS="$LDAP_LIBS -lcrypto $LIB_RSAREF"
+					fi],,-llber)
+fi
+AC_SUBST(LDAP_LIBS)
 
 
 dnl SQL
@@ -1196,7 +1275,7 @@ AC_HEADER_TIME
 AC_HEADER_STDC
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(des.h dlfcn.h fcntl.h limits.h malloc.h paths.h strings.h sys/file.h sys/time.h syslog.h unistd.h inttypes.h sys/uio.h sys/param.h sysexits.h stdarg.h varargs.h)
+AC_CHECK_HEADERS(crypt.h des.h dlfcn.h fcntl.h limits.h malloc.h paths.h strings.h sys/file.h sys/time.h syslog.h unistd.h inttypes.h sys/uio.h sys/param.h sysexits.h stdarg.h varargs.h)
 
 IPv6_CHECK_SS_FAMILY()
 IPv6_CHECK_SA_LEN()
@@ -1204,7 +1283,7 @@ IPv6_CHECK_SOCKLEN_T()
 
 #AC_FUNC_MEMCMP
 #AC_FUNC_VPRINTF
-AC_CHECK_FUNCS(gethostname getdomainname getpwnam getspnam gettimeofday inet_aton memcpy mkdir select socket strchr strdup strerror strspn strstr strtol jrand48 getpassphrase)
+AC_CHECK_FUNCS(gethostname getdomainname getpwnam getspnam gettimeofday inet_aton memcpy mkdir select socket strchr strdup strerror strspn strstr strtol jrand48 getpassphrase asprintf strlcat strlcpy)
 
 if test $enable_cmulocal = yes; then
     AC_WARN([enabling CMU local kludges])
@@ -1216,8 +1295,6 @@ AC_EGREP_HEADER(sockaddr_storage, sys/socket.h, [
 		AC_DEFINE(HAVE_STRUCT_SOCKADDR_STORAGE,[],[Do we have struct sockaddr_stroage?])])
 
 AC_SUBST(DIRS)
-
-AC_CONFIG_SUBDIRS(saslauthd)
 
 AH_TOP([
 /* acconfig.h - autoheader configuration input */
@@ -1410,6 +1487,19 @@ inline static unsigned int sleep(unsigned int seconds) {
 }
 #endif
 
+/* handy string manipulation functions */
+#ifndef HAVE_STRLCPY
+extern size_t saslauthd_strlcpy(char *dst, const char *src, size_t len);
+#define strlcpy(x,y,z) saslauthd_strlcpy((x),(y),(z))
+#endif
+#ifndef HAVE_STRLCAT
+extern size_t saslauthd_strlcat(char *dst, const char *src, size_t len);
+#define strlcat(x,y,z) saslauthd_strlcat((x),(y),(z))
+#endif
+#ifndef HAVE_ASPRINTF
+extern int asprintf(char **str, const char *fmt, ...);
+#endif
+
 #endif /* CONFIG_H */
 ])
 
@@ -1418,6 +1508,7 @@ AC_CONFIG_HEADERS(config.h)
 AC_OUTPUT(Makefile
 libsasl2.pc
 include/Makefile
+saslauthd/Makefile
 sasldb/Makefile
 plugins/Makefile
 lib/Makefile

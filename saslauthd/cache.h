@@ -41,7 +41,7 @@
 
 
 /* constant includes */
-#include "saslauthd.h"
+#include <config.h>
 
 
 /****************************************************************

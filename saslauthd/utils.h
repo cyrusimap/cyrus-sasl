@@ -45,12 +45,11 @@
 #ifndef _UTILS_H
 #define _UTILS_H
 
+#include <config.h>
 
 #include <syslog.h>
 #include <sys/types.h>
 #include <sys/uio.h>
-#include "saslauthd.h"
-
 
 /* log prioities */
 #define L_ERR			LOG_ERR

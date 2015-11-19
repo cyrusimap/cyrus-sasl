@@ -57,6 +57,8 @@
 #ident "$Id: auth_httpform.c,v 1.2 2006/04/19 19:51:04 murch Exp $"
 #endif
 
+#include <config.h>
+
 /* PUBLIC DEPENDENCIES */
 #include <unistd.h>
 #include <stdlib.h>
@@ -73,6 +75,7 @@
 #include <arpa/inet.h>
 #include <signal.h>
 #include <netdb.h>
+#include <stdio.h>
 
 #include "mechanisms.h"
 #include "utils.h"

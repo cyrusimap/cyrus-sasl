@@ -31,6 +31,8 @@
 #ident "$Id: auth_shadow.c,v 1.12 2009/08/14 14:58:38 mel Exp $"
 #endif
 
+#include <config.h>
+
 /* PUBLIC DEPENDENCIES */
 #include "mechanisms.h"
 

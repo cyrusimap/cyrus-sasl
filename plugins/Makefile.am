@@ -71,11 +71,11 @@ EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la \
 
 libplain_la_SOURCES = plain.c plain_init.c $(common_sources)
 libplain_la_DEPENDENCIES = $(COMPAT_OBJS)
-libplain_la_LIBADD = $(PLAIN_LIBS) $(COMPAT_OBJS)
+libplain_la_LIBADD = $(PLAIN_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS)
 
 libanonymous_la_SOURCES = anonymous.c anonymous_init.c $(common_sources)
 libanonymous_la_DEPENDENCIES = $(COMPAT_OBJS)
-libanonymous_la_LIBADD = $(COMPAT_OBJS)
+libanonymous_la_LIBADD = $(LIB_SOCKET) $(COMPAT_OBJS)
 
 libkerberos4_la_SOURCES = kerberos4.c kerberos4_init.c $(common_sources)
 libkerberos4_la_DEPENDENCIES = $(COMPAT_OBJS)
@@ -91,7 +91,7 @@ libgssapiv2_la_LIBADD = $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET) $(COMPAT
 
 libcrammd5_la_SOURCES = cram.c crammd5_init.c $(common_sources)
 libcrammd5_la_DEPENDENCIES = $(COMPAT_OBJS)
-libcrammd5_la_LIBADD = $(COMPAT_OBJS)
+libcrammd5_la_LIBADD = $(LIB_SOCKET) $(COMPAT_OBJS)
 
 libdigestmd5_la_SOURCES = digestmd5.c digestmd5_init.c $(common_sources)
 libdigestmd5_la_DEPENDENCIES = $(COMPAT_OBJS)
@@ -99,32 +99,32 @@ libdigestmd5_la_LIBADD = $(LIB_DES) $(LIB_SOCKET) $(COMPAT_OBJS)
 
 libscram_la_SOURCES = scram.c scram_init.c $(common_sources)
 libscram_la_DEPENDENCIES = $(COMPAT_OBJS)
-libscram_la_LIBADD = $(SCRAM_LIBS) $(COMPAT_OBJS)
+libscram_la_LIBADD = $(SCRAM_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS)
 
 liblogin_la_SOURCES = login.c login_init.c $(common_sources)
 liblogin_la_DEPENDENCIES = $(COMPAT_OBJS)
-liblogin_la_LIBADD = $(PLAIN_LIBS) $(COMPAT_OBJS)
+liblogin_la_LIBADD = $(PLAIN_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS)
 
 libsrp_la_SOURCES = srp.c srp_init.c $(common_sources)
 libsrp_la_DEPENDENCIES = $(COMPAT_OBJS)
-libsrp_la_LIBADD = $(SRP_LIBS) $(COMPAT_OBJS)
+libsrp_la_LIBADD = $(SRP_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS)
 
 libotp_la_SOURCES = otp.c otp_init.c otp.h $(common_sources)
 libotp_la_DEPENDENCIES = $(COMPAT_OBJS)
-libotp_la_LIBADD = $(OTP_LIBS) $(COMPAT_OBJS)
+libotp_la_LIBADD = $(OTP_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS)
 
 libntlm_la_SOURCES = ntlm.c ntlm_init.c $(common_sources)
 libntlm_la_DEPENDENCIES = $(COMPAT_OBJS)
-libntlm_la_LIBADD = $(NTLM_LIBS) $(COMPAT_OBJS)
+libntlm_la_LIBADD = $(NTLM_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS)
 
 libpassdss_la_SOURCES = passdss.c passdss_init.c $(common_sources)
 libpassdss_la_DEPENDENCIES = $(COMPAT_OBJS)
-libpassdss_la_LIBADD = $(PASSDSS_LIBS) $(COMPAT_OBJS)
+libpassdss_la_LIBADD = $(PASSDSS_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS)
 
 # Auxprop Plugins
 libsasldb_la_SOURCES = sasldb.c sasldb_init.c $(common_sources)
 libsasldb_la_DEPENDENCIES = $(COMPAT_OBJS)
-libsasldb_la_LIBADD = ../sasldb/libsasldb.la $(SASL_DB_LIB) $(COMPAT_OBJS)
+libsasldb_la_LIBADD = ../sasldb/libsasldb.la $(SASL_DB_LIB) $(LIB_SOCKET) $(COMPAT_OBJS)
 
 libldapdb_la_SOURCES = ldapdb.c ldapdb_init.c $(common_sources)
 libldapdb_la_DEPENDENCIES = $(COMPAT_OBJS)

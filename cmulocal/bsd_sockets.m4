@@ -7,7 +7,26 @@ dnl It now puts everything required for sockets into LIB_SOCKET
 
 AC_DEFUN([CMU_SOCKETS], [
 	save_LIBS="$LIBS"
-	LIB_SOCKET=""
+	AC_CHECK_HEADERS([sys/socket.h ws2tcpip.h])
+	AC_CHECK_FUNC(socket, , [
+		AC_CHECK_LIB(socket, socket, [LIB_SOCKET=-lsocket], [
+			LIBS="$LIBS -lws2_32"
+			AC_LINK_IFELSE([
+				AC_LANG_PROGRAM([[
+					#ifdef HAVE_SYS_SOCKET_H
+					#	include <sys/socket.h>
+					#endif
+					#ifdef HAVE_WS2TCPIP_H
+					#	include <ws2tcpip.h>
+					#endif
+				]], [[return socket(0, 0, 0);]])
+			],
+			[LIB_SOCKET=-lws2_32
+			 AC_MSG_RESULT(yes)],
+			[AC_MSG_ERROR([socket not found])])
+		])
+	])
+	LIBS="$save_LIBS"
 	AC_CHECK_FUNC(connect, :,
 		[AC_CHECK_LIB(nsl, gethostbyname,
 			     LIB_SOCKET="-lnsl $LIB_SOCKET")

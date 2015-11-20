@@ -242,8 +242,8 @@ AC_CHECK_PROGS(NM, nm)
 
 AC_MSG_CHECKING(for underscore before symbols)
 AC_CACHE_VAL(sasl_cv_uscore,[
-    echo "main(){int i=1;}
-    foo(){int i=6;}" > conftest.c
+    echo "void main(){int i=1;}
+    void foo(){int i=6;}" > conftest.c
     ${CC} -o a.out conftest.c > /dev/null
     if (${NM} a.out | grep _foo) > /dev/null; then
       sasl_cv_uscore=yes
@@ -261,8 +261,8 @@ if test $sasl_cv_uscore = yes; then
 	AC_CACHE_VAL(sasl_cv_dlsym_adds_uscore,AC_TRY_RUN( [
 #include <dlfcn.h>
 #include <stdio.h>
-foo() { int i=0;}
-main() { void *self, *ptr1, *ptr2; self=dlopen(NULL,RTLD_LAZY);
+void foo() { int i=0;}
+void main() { void *self, *ptr1, *ptr2; self=dlopen(NULL,RTLD_LAZY);
     if(self) { ptr1=dlsym(self,"foo"); ptr2=dlsym(self,"_foo");
     if(ptr1 && !ptr2) exit(0); } exit(1); } 
 ], [sasl_cv_dlsym_adds_uscore=yes], sasl_cv_dlsym_adds_uscore=no

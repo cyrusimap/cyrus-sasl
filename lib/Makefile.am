@@ -64,7 +64,7 @@ LIB_DOOR= @LIB_DOOR@
 lib_LTLIBRARIES = libsasl2.la
 
 libsasl2_la_SOURCES = $(common_sources) $(common_headers)
-libsasl2_la_LDFLAGS = -version-info $(sasl_version)
+libsasl2_la_LDFLAGS = -version-info $(sasl_version) -no-undefined
 libsasl2_la_DEPENDENCIES = $(LTLIBOBJS)
 libsasl2_la_LIBADD = $(LTLIBOBJS) $(SASL_DL_LIB) $(LIB_SOCKET) $(LIB_DOOR)
 

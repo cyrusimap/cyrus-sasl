@@ -72,6 +72,10 @@
 #  include <shadow.h>
 # endif /* ! HAVE_GETUSERPW */
 
+# ifdef HAVE_CRYPT_H
+#  include <crypt.h>
+# endif
+
 # include "auth_shadow.h"
 # include "globals.h"
 /* END PUBLIC DEPENDENCIES */

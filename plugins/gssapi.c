@@ -212,7 +212,8 @@ sasl_gss_seterror_(const sasl_utils_t *utils, OM_uint32 maj, OM_uint32 min,
     OM_uint32 msg_ctx;
     int ret;
     char *out = NULL;
-    size_t len, curlen = 0;
+    size_t len;
+    unsigned curlen = 0;
     const char prefix[] = "GSSAPI Error: ";
 
     if (!utils) return SASL_OK;

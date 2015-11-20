@@ -577,7 +577,7 @@ auth_httpform (
               "Content-Type: application/x-www-form-urlencoded" CRLF
               "Content-Length: %d" TWO_CRLF
               "%s",
-              r_uri, r_host, r_port, strlen(req), req);
+              r_uri, r_host, r_port, (int)strlen(req), req);
 
     if (flags & VERBOSE) {
         syslog(LOG_DEBUG, "auth_httpform: sending %s %s %s",

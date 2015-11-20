@@ -22,6 +22,7 @@
 
 #include "plugin_common.h"
 
+#define LDAP_DEPRECATED 1
 #include <ldap.h>
 
 static char ldapdb[] = "ldapdb";

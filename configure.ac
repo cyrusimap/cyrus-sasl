@@ -1534,4 +1534,12 @@ java/javax/security/auth/callback/Makefile
 pwcheck/Makefile
 man/Makefile)
 
-echo Configuration Complete.  Type \'make\' to build.
+AC_MSG_NOTICE([
+
+cyrus-sasl - $VERSION
+
+• Prefix: $prefix
+• Plugins: $SASL_MECHS
+
+Now type 'make' to build $PACKAGE
+])

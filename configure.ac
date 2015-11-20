@@ -1123,6 +1123,7 @@ AC_ARG_ENABLE(macos-framework, [  --disable-macos-framework       disable buildi
         ;;
 esac
 AM_CONDITIONAL(MACOSX, test "$building_for_macosx" = yes)
+AM_CONDITIONAL(WINDOWS, test "$host_os" = "mingw32")
 
 dnl dmalloc tests
 AC_MSG_CHECKING(for dmalloc library)

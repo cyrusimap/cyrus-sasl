@@ -47,15 +47,21 @@ sasl_version = 3:0:0
 
 AM_CPPFLAGS=-DLIBSASL_EXPORTS=1 -I$(top_srcdir)/include -I$(top_srcdir)/plugins -I$(top_builddir)/include -I$(top_srcdir)/sasldb
 
-EXTRA_DIST = windlopen.c staticopen.h NTMakefile
+EXTRA_DIST = windlopen.c dlopen.c staticopen.h NTMakefile
 EXTRA_LIBRARIES = libsasl2.a
 noinst_LIBRARIES = @SASL_STATIC_LIBS@
 libsasl2_a_SOURCES=
 
 BUILT_SOURCES = $(SASL_STATIC_SRCS)
 
+if WINDOWS
+DLOPEN_C = windlopen.c
+else
+DLOPEN_C = dlopen.c
+endif
+
 common_headers = saslint.h
-common_sources = auxprop.c canonusr.c checkpw.c client.c common.c config.c external.c md5.c saslutil.c server.c seterror.c dlopen.c ../plugins/plugin_common.c
+common_sources = auxprop.c canonusr.c checkpw.c client.c common.c config.c external.c md5.c saslutil.c server.c seterror.c $(DLOPEN_C) ../plugins/plugin_common.c
 
 LTLIBOBJS = @LTLIBOBJS@
 LIBOBJS = @LIBOBJS@

@@ -52,7 +52,7 @@ plugin_version = 3:0:0
 AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/sasldb -I$(top_builddir)/include
 AM_LDFLAGS = -module -export-dynamic -rpath $(plugindir) -version-info $(plugin_version) -no-undefined
 
-COMPAT_OBJS = @LTGETADDRINFOOBJS@ @LTGETNAMEINFOOBJS@ @LTSNPRINTFOBJS@
+COMPAT_OBJS = $(top_builddir)/lib/libobj.la
 
 EXTRA_DIST = makeinit.sh NTMakefile
 noinst_SCRIPTS = makeinit.sh
@@ -148,11 +148,3 @@ CLEANFILES=$(init_src)
 
 ${init_src}: $(srcdir)/makeinit.sh
 	$(SHELL) $(srcdir)/makeinit.sh
-
-# Compatibility function build rules (they build in lib/)
-$(COMPAT_OBJS):
-	rm -f $(COMPAT_OBJS)
-	cd ../lib; $(MAKE) $(COMPAT_OBJS)
-	for file in $(COMPAT_OBJS); do ln -s ../lib/$$file .; done
-
-

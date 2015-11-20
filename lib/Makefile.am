@@ -64,15 +64,17 @@ common_headers = saslint.h
 common_sources = auxprop.c canonusr.c checkpw.c client.c common.c config.c external.c md5.c saslutil.c server.c seterror.c $(DLOPEN_C) ../plugins/plugin_common.c
 
 LTLIBOBJS = @LTLIBOBJS@
-LIBOBJS = @LIBOBJS@
 LIB_DOOR= @LIB_DOOR@
 
 lib_LTLIBRARIES = libsasl2.la
+noinst_LTLIBRARIES = libobj.la
+
+libobj_la_SOURCES =
+libobj_la_LIBADD = $(LTLIBOBJS)
 
 libsasl2_la_SOURCES = $(common_sources) $(common_headers)
 libsasl2_la_LDFLAGS = -version-info $(sasl_version) -no-undefined
-libsasl2_la_DEPENDENCIES = $(LTLIBOBJS)
-libsasl2_la_LIBADD = $(LTLIBOBJS) $(SASL_DL_LIB) $(LIB_SOCKET) $(LIB_DOOR)
+libsasl2_la_LIBADD = libobj.la $(SASL_DL_LIB) $(LIB_SOCKET) $(LIB_DOOR)
 
 if MACOSX
 framedir = /Library/Frameworks/SASL2.framework

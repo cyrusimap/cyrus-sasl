@@ -607,7 +607,7 @@ LOWERCASE:
     return (0);
 }
 
-#ifdef WIN32
+#if defined(WIN32) && !defined(__MINGW64_VERSION_MAJOR)
 /***************************************************************************** 
  * 
  *  MODULE NAME : GETOPT.C 

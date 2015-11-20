@@ -58,9 +58,12 @@
 #include <io.h>
 
 #include <saslutil.h>
+#if defined(__MINGW64_VERSION_MAJOR)
+#include <getopt.h>
+#else
 __declspec(dllimport) char *optarg;
 __declspec(dllimport) int optind;
-
+#endif
 /* perror can't be used on Windows system calls, so we define a new macro to underline this */
 void p_oserror (const char *string);
 #endif /*WIN32*/

@@ -57,8 +57,12 @@
 
 #ifdef WIN32
 #include <saslutil.h>
+#if defined(__MINGW64_VERSION_MAJOR)
+#include <getopt.h>
+#else
 __declspec(dllimport) char *optarg;
 __declspec(dllimport) int optind;
+#endif
 #endif
 
 /* Cheating to make the utils work out right */

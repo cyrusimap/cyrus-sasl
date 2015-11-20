@@ -1,5 +1,5 @@
 AUTOMAKE_OPTIONS = 1.7
-ACLOCAL_AMFLAGS = -I config
+ACLOCAL_AMFLAGS = -I m4
 # Top-level Makefile.am for SASL
 # Rob Earhart
 #
@@ -71,7 +71,7 @@ INSTALLOSX =
 endif
 
 SUBDIRS=include sasldb lib plugins utils doc man $(PWC) $(SAM) $(JAV) $(SAD)
-EXTRA_DIST=config cmulocal win32 mac dlcompat-20010505 NTMakefile INSTALL.TXT \
+EXTRA_DIST=config win32 mac dlcompat-20010505 NTMakefile INSTALL.TXT \
     libsasl2.pc.in
 
 pkgconfigdir = $(libdir)/pkgconfig

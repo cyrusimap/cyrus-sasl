@@ -54,7 +54,7 @@ AC_INIT([cyrus-sasl],
         [cyrus-sasl],
         [https://docs.cyrus.foundation])
 
-AC_CONFIG_MACRO_DIR([config])
+AC_CONFIG_MACRO_DIR([m4])
 
 dnl use ./config.cache as the default cache file.
 dnl we require a cache file to successfully configure our build.
@@ -68,10 +68,6 @@ AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
 AM_INIT_AUTOMAKE([1.11 tar-ustar dist-xz no-dist-gzip -Wno-portability subdir-objects])
-CMU_INIT_AUTOMAKE
-
-# and include our config dir scripts
-ACLOCAL="$ACLOCAL -I \$(top_srcdir)/config"
 
 DIRS=""
 

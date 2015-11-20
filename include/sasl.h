@@ -226,6 +226,8 @@ extern "C" {
  * they must be called before all other SASL functions:
  */
 
+#include <sys/types.h>
+
 /* memory allocation functions which may optionally be replaced:
  */
 typedef void *sasl_malloc_t(size_t);

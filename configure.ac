@@ -817,7 +817,18 @@ LIB_MYSQL=""
 
 case "$with_mysql" in
     no) true;;
-    notfound) AC_WARN([MySQL Library not found]); true;;
+    notfound)
+     save_LDFLAGS=$LDFLAGS
+     LIB_MYSQL=`mysql_config --libs`
+     LIB_MYSQL="-lmysqlclient"
+     LDFLAGS="$LDFLAGS $LIB_MYSQL"
+     # CPPFLAGS="${CPPFLAGS} `mysql_config --include`"
+     AC_CHECK_LIB(mysqlclient, mysql_select_db,
+           AC_DEFINE(HAVE_MYSQL, [], [Do we have mysql support?]),
+           [AC_WARN([MySQL library mysqlclient does not work])
+            with_mysql=no])
+     LDFLAGS=$save_LDFLAGS
+     ;;
     *)
      if test -d ${with_mysql}/lib/mysql; then
 	CMU_ADD_LIBPATH_TO(${with_mysql}/lib/mysql, LIB_MYSQL)
@@ -838,6 +849,8 @@ case "$with_mysql" in
          CPPFLAGS="${CPPFLAGS} -I${with_mysql}/mysql/include"
      elif test -d ${with_mysql}/include; then
          CPPFLAGS="${CPPFLAGS} -I${with_mysql}/include"
+     elif test -d ${prefix}/include/mysql; then
+         CPPFLAGS="${CPPFLAGS} -I${prefix}/include/mysql"
      else
          CPPFLAGS="${CPPFLAGS} -I${with_mysql}"
      fi
@@ -881,7 +894,17 @@ LIB_PGSQL=""
 
 case "$with_pgsql" in
     no) true;;
-    notfound) AC_WARN([PostgreSQL Library not found]); true;;
+    notfound)
+     LIB_PGSQL="-lpq"
+     # CPPFLAGS="${CPPFLAGS} -I`pg_config --includedir`"
+     save_LDFLAGS=$LDFLAGS
+     LDFLAGS="$LDFLAGS $LIB_PGSQL"
+     AC_CHECK_LIB(pq, PQsetdbLogin, AC_DEFINE(HAVE_PGSQL,[],
+         [Do we have Postgres support?]),
+         [AC_WARN([PostgreSQL Library pq does not work])
+          with_pgsql=no])
+     LDFLAGS=$save_LDFLAGS
+     ;;
     *)
      if test -d ${with_pgsql}/lib/pgsql; then
 	CMU_ADD_LIBPATH_TO(${with_pgsql}/lib/pgsql, LIB_PGSQL)
@@ -902,6 +925,8 @@ case "$with_pgsql" in
          CPPFLAGS="${CPPFLAGS} -I${with_pgsql}/pgsql/include"
      elif test -d ${with_pgsql}/include; then
          CPPFLAGS="${CPPFLAGS} -I${with_pgsql}/include"
+     elif test -d ${prefix}/include; then
+         CPPFLAGS="${CPPFLAGS} -I${prefix}/include"
      else
          CPPFLAGS="${CPPFLAGS} -I${with_pgsql}"
      fi

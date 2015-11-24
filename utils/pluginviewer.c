@@ -422,7 +422,7 @@ main(int argc, char *argv[])
         case 'b':
             options = optarg;
             while (*options != '\0') {
-	        switch(getsubopt(&options, (const char * const *)bit_subopts, &value)) {
+	        switch(getsubopt(&options, (char * const *)bit_subopts, &value)) {
 	        case OPT_MIN:
                     if (! value) {
 	                errflag = 1;
@@ -447,7 +447,7 @@ main(int argc, char *argv[])
         case 'e':
             options = optarg;
             while (*options != '\0') {
-	        switch(getsubopt(&options, (const char * const *)ext_subopts, &value)) {
+	        switch(getsubopt(&options, (char * const *)ext_subopts, &value)) {
 	        case OPT_EXT_SSF:
                     if (! value) {
 	                errflag = 1;
@@ -476,7 +476,7 @@ main(int argc, char *argv[])
         case 'f':
             options = optarg;
             while (*options != '\0') {
-	        switch(getsubopt(&options, (const char * const *)flag_subopts, &value)) {
+	        switch(getsubopt(&options, (char * const *)flag_subopts, &value)) {
 	        case OPT_NOPLAIN:
 	            secprops.security_flags |= SASL_SEC_NOPLAINTEXT;
 	            break;

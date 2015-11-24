@@ -248,7 +248,7 @@ static int sasldb_auxprop_store(void *glob_context __attribute__((unused)),
 
     ret = SASL_OK;
     for (cur = to_store; cur->name; cur++) {
-	char * value = (cur->values && cur->values[0]) ? cur->values[0] : NULL;
+	char * value = (char *) (cur->values && cur->values[0]) ? cur->values[0] : NULL;
 
 	if (cur->name[0] == '*') {
 	    continue;

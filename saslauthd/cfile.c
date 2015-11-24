@@ -76,7 +76,6 @@ cfile cfile_read(const char *filename, char *complaint, int complaint_len)
     int alloced = 0;
     char buf[BIG_ENOUGH];
     char *p, *key;
-    int result;
     struct cfile *cf;
 
 	if (complaint)

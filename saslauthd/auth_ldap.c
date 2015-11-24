@@ -96,12 +96,6 @@ auth_ldap_init (
   /* END PARAMETERS */
   )
 {
-    /* VARIABLES */
-    struct addrinfo hints;
-    int err;
-    char *c;				/* scratch pointer               */
-    /* END VARIABLES */
-
     if (mech_option != NULL) {
 	SASLAUTHD_CONF_FILE = mech_option;
     }

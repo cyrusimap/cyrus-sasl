@@ -42,6 +42,7 @@
 #include <pwd.h>
 #include <errno.h>
 #include <syslog.h>
+#include <stdio.h>
 
 #ifdef HAVE_CRYPT_H
 #include <crypt.h>

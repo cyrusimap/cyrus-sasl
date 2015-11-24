@@ -631,7 +631,6 @@ void detach_tty() {
     int		null_fd;
     int         exit_result;
     pid_t      	pid;
-    char       	pid_buf[100];
     struct flock	lockinfo;
     
     /**************************************************************
@@ -893,7 +892,6 @@ void handle_sigchld() {
  * Do some final cleanup here.
  **************************************************************/
 void server_exit() {
-	struct flock    lock_st;
 
 	/*********************************************************
 	 * If we're not the master process, don't do anything

@@ -376,7 +376,7 @@ int good_getopt(void *context __attribute__((unused)),
 }
 
 static struct sasl_callback goodsasl_cb[] = {
-    { SASL_CB_GETOPT, &good_getopt, NULL },
+    { SASL_CB_GETOPT, (int (*)(void))&good_getopt, NULL },
     { SASL_CB_LIST_END, NULL, NULL }
 };
 

@@ -232,7 +232,7 @@ void ipc_loop() {
 			continue;
 		}
 
-        	conn_fd = accept(sock_fd, (struct sockaddr *)&client, &len);
+        	conn_fd = accept(sock_fd, (struct sockaddr *)&client, (unsigned int *) &len);
 		rc = errno;
 
 		rel_accept_lock();

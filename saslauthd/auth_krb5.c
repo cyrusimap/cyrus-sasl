@@ -79,7 +79,6 @@ auth_krb5_init (
   )
 {
 #ifdef AUTH_KRB5
-    int rc;
     char *configname = 0;
 
     if (krbtf_init() == -1) {
@@ -102,7 +101,7 @@ auth_krb5_init (
     }
 
     if (config) {
-	keytabname = cfile_getstring(config, "krb5_keytab", keytabname);
+	keytabname = (char *) cfile_getstring(config, "krb5_keytab", keytabname);
 	verify_principal = cfile_getstring(config, "krb5_verify_principal", verify_principal);
     }
 

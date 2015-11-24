@@ -255,6 +255,7 @@ create_nonce(const sasl_utils_t * utils,
     return buffer;
 }
 
+#ifdef SCRAM_DEBUG
 /* Useful for debugging interop issues */
 static void
 print_hash (const char * func, const char * hash)
@@ -267,6 +268,7 @@ print_hash (const char * func, const char * hash)
     }
     printf ("\n");
 }
+#endif
 
 
 /* The result variable need to point to a buffer big enough for the [SHA-1] hash */
@@ -299,7 +301,7 @@ Hi (const sasl_utils_t * utils,
     if (HMAC(EVP_sha1(),
 	     (const unsigned char *) str,
 	     (int)str_len,
-	     initial_key,
+	     (const unsigned char *) initial_key,
 	     (int)salt_len + 4,
              (unsigned char *)result,
 	     &hash_len) == NULL) {
@@ -315,7 +317,7 @@ Hi (const sasl_utils_t * utils,
 	if (HMAC(EVP_sha1(),
 		 (const unsigned char *) str,
 		 (int)str_len,
-		 temp_result,
+		 (const unsigned char *) temp_result,
 		 SCRAM_HASH_SIZE,
 		 (unsigned char *)temp_result,
 		 &hash_len) == NULL) {
@@ -345,9 +347,10 @@ scram_server_user_salt(const sasl_utils_t * utils,
 		       size_t * p_salt_len)
 {
     char * result = utils->malloc(SCRAM_HASH_SIZE);
-    Hi(utils, username, strlen(username), g_salt_key, SALT_SIZE, 20 /* iterations */, result);
+    Hi(utils, username, strlen(username), (const char *) g_salt_key, SALT_SIZE,
+        20 /* iterations */, result);
     *p_salt_len = SCRAM_HASH_SIZE;
-    return result;
+    return (unsigned char *) result;
 }
 
 static int
@@ -386,7 +389,7 @@ GenerateScramSecrets (const sasl_utils_t * utils,
 
     /* SaltedPassword  := Hi(password, salt) */
     Hi (utils,
-	sec->data,
+	(const char *) sec->data,
 	sec->len,
 	salt,
 	salt_len,
@@ -397,7 +400,7 @@ GenerateScramSecrets (const sasl_utils_t * utils,
     if (HMAC(EVP_sha1(),
 	     (const unsigned char *) SaltedPassword,
 	     SCRAM_HASH_SIZE,
-	     CLIENT_KEY_CONSTANT,
+	     (const unsigned char *) CLIENT_KEY_CONSTANT,
 	     CLIENT_KEY_CONSTANT_LEN,
 	     (unsigned char *)ClientKey,
 	     &hash_len) == NULL) {
@@ -407,7 +410,8 @@ GenerateScramSecrets (const sasl_utils_t * utils,
     }
 
     /* StoredKey       := H(ClientKey) */
-    if (SHA1(ClientKey, SCRAM_HASH_SIZE, StoredKey) == NULL) {
+    if (SHA1((const unsigned char *) ClientKey, SCRAM_HASH_SIZE,
+        (unsigned char *) StoredKey) == NULL) {
 	*error_text = "SHA1 call failed";
 	result = SASL_SCRAM_INTERNAL;
 	goto cleanup;
@@ -418,7 +422,7 @@ GenerateScramSecrets (const sasl_utils_t * utils,
     if (HMAC(EVP_sha1(),
 	     (const unsigned char *) SaltedPassword,
 	     SCRAM_HASH_SIZE,
-	     SERVER_KEY_CONSTANT,
+	     (const unsigned char *) SERVER_KEY_CONSTANT,
 	     SERVER_KEY_CONSTANT_LEN,
 	     (unsigned char *)ServerKey,
 	     &hash_len) == NULL) {
@@ -509,7 +513,6 @@ scram_server_mech_step1(server_context_t *text,
 				       NULL };
     int canon_flags;
     struct propval auxprop_values[3];
-    unsigned int hash_len = 0;
     int result;
 
     if (clientinlen == 0) {
@@ -783,13 +786,13 @@ scram_server_mech_step1(server_context_t *text,
 	char * s_iteration_count;
 	char * end;
 
-	text->salt = scram_server_user_salt(sparams->utils, text->authentication_id, &text->salt_len);
+	text->salt = (char *) scram_server_user_salt(sparams->utils, text->authentication_id, &text->salt_len);
 
 	sparams->utils->getopt(sparams->utils->getopt_context,
 			       /* Different SCRAM hashes can have different strengh */
 			       SCRAM_SASL_MECH,
 			       "scram_iteration_counter",
-			       &s_iteration_count,
+			       (const char **) &s_iteration_count,
 			       NULL);
 
 	if (s_iteration_count != NULL) {
@@ -899,7 +902,7 @@ scram_server_mech_step1(server_context_t *text,
 					 (unsigned int)base64_salt_len,
 					 text->salt,
 					 (unsigned int)base64_salt_len,
-					 &text->salt_len) != SASL_OK) {
+					 (unsigned int *) &text->salt_len) != SASL_OK) {
 		SETERROR(sparams->utils, "Invalid base64 encoding of the salt in " SCRAM_SASL_MECH " stored value");
 		continue;
 	    }
@@ -1304,7 +1307,7 @@ scram_server_mech_step2(server_context_t *text,
     if (HMAC(EVP_sha1(),
 	     (const unsigned char *) text->StoredKey,
 	     SCRAM_HASH_SIZE,
-	     text->auth_message,
+	     (const unsigned char *)text->auth_message,
 	     (int)text->auth_message_len,
 	     (unsigned char *)ClientSignature,
 	     &hash_len) == NULL) {
@@ -1336,7 +1339,8 @@ scram_server_mech_step2(server_context_t *text,
     }
 
     /* StoredKey       := H(ClientKey) */
-    if (SHA1(ReceivedClientKey, SCRAM_HASH_SIZE, CalculatedStoredKey) == NULL) {
+    if (SHA1((const unsigned char *) ReceivedClientKey, SCRAM_HASH_SIZE,
+        (unsigned char *) CalculatedStoredKey) == NULL) {
 	sparams->utils->seterror(sparams->utils->conn,0,
 				 "SHA1 call failed");
 	result = SASL_SCRAM_INTERNAL;
@@ -1355,7 +1359,7 @@ scram_server_mech_step2(server_context_t *text,
     if (HMAC(EVP_sha1(),
 	     (const unsigned char *) text->ServerKey,
 	     SCRAM_HASH_SIZE,
-	     text->auth_message,
+	     (unsigned char *) text->auth_message,
 	     (int)text->auth_message_len,
 	     (unsigned char *)ServerSignature,
 	     &hash_len) == NULL) {
@@ -1572,7 +1576,7 @@ static int scram_setpass(void *glob_context __attribute__((unused)),
 			       /* Different SCRAM hashes can have different strengh */
 			       SCRAM_SASL_MECH,
 			       "scram_iteration_counter",
-			       &s_iteration_count,
+			       (const char **) &s_iteration_count,
 			       NULL);
 
 	if (s_iteration_count != NULL) {
@@ -1663,14 +1667,14 @@ static int scram_setpass(void *glob_context __attribute__((unused)),
 	    goto cleanup;
 	}
     	
-	sprintf(sec->data,
+	sprintf((char *) sec->data,
 		"%s$%u:%s$%s:%s",
 		SCRAM_SASL_MECH,
 		iteration_count,
 		base64_salt,
 		base64_StoredKey,
 		base64_ServerKey);
-	sec->len = (unsigned int) strlen(sec->data);
+	sec->len = (unsigned int) strlen((const char *) sec->data);
     }
     
     /* do the store */
@@ -1684,7 +1688,7 @@ static int scram_setpass(void *glob_context __attribute__((unused)),
     if (!r) {
 	r = sparams->utils->prop_set(propctx,
 				     "authPassword",
-				     (sec ? sec->data : NULL),
+				     (const char *) (sec ? sec->data : NULL),
 				     (sec ? sec->len : 0));
     }
     if (!r) {
@@ -1989,7 +1993,7 @@ scram_client_mech_step1(client_context_t *text,
 
     if (userid != NULL && *userid != '\0') {
 	result = encode_saslname (oparams->user,
-				  &encoded_authorization_id,
+				  (const char **) &encoded_authorization_id,
 				  &freeme2);
 
 	if (result != SASL_OK) {
@@ -2000,7 +2004,7 @@ scram_client_mech_step1(client_context_t *text,
     }
 
     result = encode_saslname (oparams->authid,
-			      &encoded_authcid,
+			      (const char **) &encoded_authcid,
 			      &freeme);
     if (result != SASL_OK) {
 	MEMERROR( params->utils );
@@ -2277,7 +2281,7 @@ scram_client_mech_step2(client_context_t *text,
 	    goto cleanup;
 	}
 
-	channel_binding_data = params->cbinding->data;
+	channel_binding_data = (const char *) params->cbinding->data;
 	channel_binding_data_len = params->cbinding->len;
     }
 
@@ -2368,7 +2372,7 @@ scram_client_mech_step2(client_context_t *text,
 
     /* SaltedPassword  := Hi(password, salt) */
     Hi (params->utils,
-	text->password->data,
+	(const char *) text->password->data,
 	text->password->len,
 	text->salt,
 	text->salt_len,
@@ -2381,7 +2385,7 @@ scram_client_mech_step2(client_context_t *text,
     if (HMAC(EVP_sha1(),
 	     (const unsigned char *) text->SaltedPassword,
 	     SCRAM_HASH_SIZE,
-	     CLIENT_KEY_CONSTANT,
+	     (const unsigned char *) CLIENT_KEY_CONSTANT,
 	     CLIENT_KEY_CONSTANT_LEN,
 	     (unsigned char *)ClientKey,
 	     &hash_len) == NULL) {
@@ -2394,7 +2398,8 @@ scram_client_mech_step2(client_context_t *text,
     PRINT_HASH ("ClientKey", ClientKey);
 
     /* StoredKey       := H(ClientKey) */
-    if (SHA1(ClientKey, SCRAM_HASH_SIZE, StoredKey) == NULL) {
+    if (SHA1((const unsigned char *) ClientKey, SCRAM_HASH_SIZE,
+        (unsigned char *) StoredKey) == NULL) {
 	params->utils->seterror(params->utils->conn,0,
 				"SHA1 call failed");
 	result = SASL_SCRAM_INTERNAL;
@@ -2407,7 +2412,7 @@ scram_client_mech_step2(client_context_t *text,
     if (HMAC(EVP_sha1(),
 	     (const unsigned char *)StoredKey,
 	     SCRAM_HASH_SIZE,
-	     text->auth_message,
+	     (const unsigned char *) text->auth_message,
 	     (int)text->auth_message_len,
 	     (unsigned char *)ClientSignature,
 	     &hash_len) == NULL) {
@@ -2535,7 +2540,7 @@ scram_client_mech_step3(client_context_t *text,
     if (HMAC(EVP_sha1(),
 	     (const unsigned char *)text->SaltedPassword,
 	     SCRAM_HASH_SIZE,
-	     SERVER_KEY_CONSTANT,
+	     (const unsigned char *) SERVER_KEY_CONSTANT,
 	     SERVER_KEY_CONSTANT_LEN,
 	     (unsigned char *)ServerKey,
 	     &hash_len) == NULL) {
@@ -2549,7 +2554,7 @@ scram_client_mech_step3(client_context_t *text,
     if (HMAC(EVP_sha1(),
 	     (const unsigned char *)ServerKey,
 	     SCRAM_HASH_SIZE,
-	     text->auth_message,
+	     (const unsigned char *) text->auth_message,
 	     (int)text->auth_message_len,
 	     (unsigned char *)ServerSignature,
 	     &hash_len) == NULL) {

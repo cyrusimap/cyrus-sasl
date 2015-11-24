@@ -35,6 +35,7 @@
 
 /* PUBLIC DEPENDENCIES */
 #include "mechanisms.h"
+#include <stdio.h>
 
 #ifdef AUTH_SHADOW
 
@@ -239,7 +240,7 @@ auth_shadow (
 
     if ((sp->sp_expire != -1) && (today > sp->sp_expire)) {
 	if (flags & VERBOSE) {
-	    syslog(LOG_DEBUG, "DEBUG: auth_shadow: account expired: %dl > %dl",
+	    syslog(LOG_DEBUG, "DEBUG: auth_shadow: account expired: %ld > %ld",
 		   today, sp->sp_expire);
 	}
 	RETURN("NO Account expired");

@@ -116,9 +116,9 @@ static int _sasl_make_plain_secret(const char *salt,
     }
 
     _sasl_MD5Init(&ctx);
-    _sasl_MD5Update(&ctx, salt, 16);
-    _sasl_MD5Update(&ctx, "sasldb", 6);
-    _sasl_MD5Update(&ctx, passwd, (unsigned int) passlen);
+    _sasl_MD5Update(&ctx, (const unsigned char *) salt, 16);
+    _sasl_MD5Update(&ctx, (const unsigned char *) "sasldb", 6);
+    _sasl_MD5Update(&ctx, (const unsigned char *) passwd, (unsigned int) passlen);
     memcpy((*secret)->data, salt, 16);
     (*secret)->data[16] = '\0';
     _sasl_MD5Final((*secret)->data + 17, &ctx);
@@ -368,8 +368,8 @@ int _sasl_auxprop_verify_apop(sasl_conn_t *conn,
     }
     
     _sasl_MD5Init(&ctx);
-    _sasl_MD5Update(&ctx, challenge, strlen(challenge));
-    _sasl_MD5Update(&ctx, auxprop_values[0].values[0],
+    _sasl_MD5Update(&ctx, (const unsigned char *) challenge, strlen(challenge));
+    _sasl_MD5Update(&ctx, (const unsigned char *) auxprop_values[0].values[0],
 		    strlen(auxprop_values[0].values[0]));
     _sasl_MD5Final(digest, &ctx);
 

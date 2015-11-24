@@ -3048,7 +3048,8 @@ static int digestmd5_server_mech_step(void *conn_context,
 	    memset(oparams, 0, sizeof(sasl_out_params_t));
 	    if (text->nonce) sparams->utils->free(text->nonce);
 	    if (text->realm) sparams->utils->free(text->realm);
-	    text->nonce = text->realm = NULL;
+	    text->realm = NULL;
+	    text->nonce = NULL;
 
 	    /* fall through and issue challenge */
 	}
@@ -3650,7 +3651,6 @@ static int parse_server_challenge(client_context_t *ctext,
     int saw_qop = 0;
     int ciphers = 0;
     int maxbuf_count = 0;
-    bool IsUTF8 = FALSE;
     int algorithm_count = 0;
     int opaque_count = 0;
 
@@ -3867,8 +3867,6 @@ SKIP_SPACES_IN_CIPHER:
 		params->utils->seterror(params->utils->conn, 0,
 					"Charset must be UTF-8");
 		goto FreeAllocatedMem;
-	    } else {
-		IsUTF8 = TRUE;
 	    }
 	} else if (strcasecmp(name,"algorithm")==0) {
 	    if (text->http_mode && strcasecmp(value, "md5") == 0) {

@@ -505,7 +505,6 @@ auth_httpform (
     int s=-1;                           /* socket to remote auth host   */
     struct addrinfo *r;                 /* remote socket address info   */
     char *req;                          /* request, with user and pw    */
-    char *c;                            /* scratch pointer              */
     int rc;                             /* return code scratch area     */
     char postbuf[RESP_LEN];             /* request buffer               */
     int postlen;                        /* length of post request       */

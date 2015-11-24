@@ -105,9 +105,7 @@ static int saslauthd_verify_password(const char *saslauthd_path,
     struct sockaddr_un srvaddr;
     int r;
     unsigned short count;
-    void *context;
     char pwpath[sizeof(srvaddr.sun_path)];
-    const char *p = NULL;
 #ifdef USE_DOORS
     door_arg_t arg;
 #endif
@@ -133,7 +131,6 @@ static int saslauthd_verify_password(const char *saslauthd_path,
      */
     {
  	unsigned short u_len, p_len, s_len, r_len;
- 	struct iovec iov[8];
  
  	u_len = htons(strlen(userid));
  	p_len = htons(strlen(passwd));
@@ -253,10 +250,7 @@ main(int argc, char *argv[])
   const char *realm = NULL, *service = NULL, *path = NULL;
   int c;
   int flag_error = 0;
-  unsigned passlen, verifylen;
-  const char *errstr = NULL;
-  int result;
-  char *user_domain = NULL;
+  int result = 0;
   int repeat = 0;
 
   while ((c = getopt(argc, argv, "p:u:r:s:f:R:")) != EOF)

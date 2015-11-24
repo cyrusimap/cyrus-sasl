@@ -1526,11 +1526,8 @@ _sasl_getsimple(void *context,
 		size_t *len)
 {
   const char *userid;
-  sasl_conn_t *conn;
 
   if (! context || ! result) return SASL_BADPARAM;
-
-  conn = (sasl_conn_t *)context;
 
   switch(id) {
   case SASL_CB_AUTHNAME:

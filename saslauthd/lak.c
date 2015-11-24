@@ -835,12 +835,12 @@ static int lak_connect(
 
 	rc = ldap_set_option(lak->ld, LDAP_OPT_NETWORK_TIMEOUT, &(lak->conf->timeout));
 	if (rc != LDAP_OPT_SUCCESS) {
-		syslog(LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_NETWORK_TIMEOUT %d.%d.", lak->conf->timeout.tv_sec, lak->conf->timeout.tv_usec);
+		syslog(LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_NETWORK_TIMEOUT %ld.%ld.", lak->conf->timeout.tv_sec, lak->conf->timeout.tv_usec);
 	}
 
 	rc = ldap_set_option(lak->ld, LDAP_OPT_TIMEOUT, &(lak->conf->timeout));
 	if (rc != LDAP_OPT_SUCCESS) {
-		syslog(LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_TIMEOUT %d.%d.", lak->conf->timeout.tv_sec, lak->conf->timeout.tv_usec);
+		syslog(LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_TIMEOUT %ld.%ld.", lak->conf->timeout.tv_sec, lak->conf->timeout.tv_usec);
 	}
 
 	rc = ldap_set_option(lak->ld, LDAP_OPT_TIMELIMIT, &(lak->conf->time_limit));
@@ -1727,13 +1727,13 @@ static int lak_base64_decode(
 		return LAK_NOMEM;
 
 	EVP_DecodeInit(&EVP_ctx);
-	rc = EVP_DecodeUpdate(&EVP_ctx, text, &i, (char *)src, strlen(src));
+	rc = EVP_DecodeUpdate(&EVP_ctx, (unsigned char *) text, &i, (const unsigned char *)src, strlen(src));
 	if (rc < 0) {
 		free(text);
 		return LAK_FAIL;
 	}
 	tlen += i;
-	EVP_DecodeFinal(&EVP_ctx, text, &i); 
+	EVP_DecodeFinal(&EVP_ctx, (unsigned char *) text, &i);
 
 	*ret = text;
 	if (rlen != NULL)

@@ -1192,19 +1192,18 @@ gssapi_server_mech_ssfreq(context_t *text,
     }
 
     layerchoice = (int)(((char *)(output_token->value))[0]);
-    if (layerchoice == LAYER_NONE &&
+    if (!(layerchoice & (LAYER_INTEGRITY | LAYER_CONFIDENTIALITY)) &&
 	(text->qop & LAYER_NONE)) { /* no encryption */
 	oparams->encode = NULL;
 	oparams->decode = NULL;
 	oparams->mech_ssf = 0;
-    } else if (layerchoice == LAYER_INTEGRITY &&
+    } else if ((layerchoice & LAYER_INTEGRITY) &&
 	       (text->qop & LAYER_INTEGRITY)) { /* integrity */
 	oparams->encode = &gssapi_integrity_encode;
 	oparams->decode = &gssapi_decode;
 	oparams->mech_ssf = 1;
-    } else if ((layerchoice == LAYER_CONFIDENTIALITY ||
-		/* For compatibility with broken clients setting both bits */
-		layerchoice == (LAYER_CONFIDENTIALITY|LAYER_INTEGRITY)) &&
+    } else if (/* For compatibility with broken clients setting both bits */
+		(layerchoice & (LAYER_CONFIDENTIALITY | LAYER_INTEGRITY)) &&
 	       (text->qop & LAYER_CONFIDENTIALITY)) { /* privacy */
 	oparams->encode = &gssapi_privacy_encode;
 	oparams->decode = &gssapi_decode;

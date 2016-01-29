@@ -571,10 +571,15 @@ SASL_GSSAPI_CHK
 
 if test "$gssapi" != "no"; then
   AC_DEFINE(STATIC_GSSAPIV2,[],[Link GSSAPI Statically])
+  AC_DEFINE(HAVE_GSSAPI,[],[Include GSSAPI/Kerberos 5 Support])
+
   mutex_default="no"
   if test "$gss_impl" = "mit"; then
      mutex_default="yes"
+  elif test "$gss_impl" = "heimdal"; then
+     AC_DEFINE(KRB5_HEIMDAL,[],[Using Heimdal]) 
   fi
+
   AC_MSG_CHECKING(to use mutexes aroung GSS calls)
   AC_ARG_ENABLE(gss_mutexes, [  --enable-gss_mutexes     use mutexes around calls to the GSS library],
                 use_gss_mutexes=$enableval,

@@ -659,7 +659,8 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 #endif
 
     /* check to see if the user configured a rundir */
-    if (_sasl_getcallback(conn, SASL_CB_GETOPT, (sasl_callback_ft *)&getopt, &context) == SASL_OK) {
+    if (_sasl_getcallback(conn, SASL_CB_GETOPT,
+                          (sasl_callback_ft *)&getopt, &context) == SASL_OK) {
 	getopt(context, NULL, "saslauthd_path", &p, NULL);
     }
     if (p) {
@@ -1041,7 +1042,8 @@ static int authdaemon_verify_password(sasl_conn_t *conn,
     int sock = -1;
 
     /* check to see if the user configured a rundir */
-    if (_sasl_getcallback(conn, SASL_CB_GETOPT, (sasl_callback_ft *)&getopt, &context) == SASL_OK) {
+    if (_sasl_getcallback(conn, SASL_CB_GETOPT,
+                          (sasl_callback_ft *)&getopt, &context) == SASL_OK) {
 	getopt(context, NULL, "authdaemond_path", &p, NULL);
     }
     if (!p) {

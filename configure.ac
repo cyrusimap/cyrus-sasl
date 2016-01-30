@@ -146,54 +146,6 @@ if test "$with_purify" = yes; then
   AC_CHECK_PROGS(PURIFY, purify)
 fi
 
-AC_ARG_ENABLE(java, [  --enable-java           compile Java support [[no]]],
-	enable_java=$enableval, enable_java=no)
-if test "$enable_java" = yes; then
-  AC_PATH_PROG(JAVAC, javac, no)
-  AC_PATH_PROGS(JAVAH, javah kaffeh, no)
-  AC_CHECK_PROGS(JAVADOC, javadoc, :)	
-  if test "$JAVAC" = "no" -o "$JAVAH" = "no"; then
-    AC_WARN([Disabling Java support])
-    enable_java=no
-  fi
-else
-# Make distcheck work
-  JAVAC="true"
-  JAVAH="true"
-  JAVADOC="true"
-fi
-AM_CONDITIONAL(JAVA, test "$enable_java" = yes)
-
-if test "$enable_java" = yes; then
-  AC_MSG_CHECKING([JNI cpp flags])
-  AC_CACHE_VAL(sasl_cv_java_includes,[
-  if test `echo $JAVAH | sed 's,.*/,,'` = "kaffeh"; then
-    sasl_cv_java_includes=-I`echo $JAVAH | sed -e 's,/bin.*,/include/kaffe,'`
-  else
-    java_base=`echo $JAVAC | sed 's,/bin.*,'','`
-
-    AC_ARG_WITH(javabase, [  --with-javabase=PATH    set path to find jni.h in [/usr/java/include] ],
-        java_base=$withval,)
-	
-
-    sasl_cv_java_includes=''
-    for dir in `find ${java_base}/include -follow -type d -print | grep -v green_threads`; do
-      sasl_cv_java_includes="${sasl_cv_java_includes} -I$dir"
-    done
-  fi
-
-  sasl_cv_java_includes="${sasl_cv_java_includes} -I$javapath/include"])
-
-  JAVA_INCLUDES=$sasl_cv_java_includes
-  AC_SUBST(JAVA_INCLUDES)
-  AC_MSG_RESULT(ok)
-
-  JAVAROOT=".."
-  AC_SUBST(JAVAROOT)
-  JAVAC=`echo "$JAVAC" | sed 's,.*/,,'`
-  JAVAH=`echo "$JAVAH" | sed 's,.*/,,'`
-fi
-
 AM_CONDITIONAL(SAMPLE, test "$enable_sample" = yes)
 
 dnl call before we do the berkeley DB checks
@@ -1551,13 +1503,6 @@ lib/Makefile
 utils/Makefile
 doc/Makefile
 sample/Makefile
-java/Makefile
-java/CyrusSasl/Makefile
-java/Test/Makefile
-java/javax/Makefile
-java/javax/security/Makefile
-java/javax/security/auth/Makefile
-java/javax/security/auth/callback/Makefile
 pwcheck/Makefile
 man/Makefile)
 

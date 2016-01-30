@@ -74,7 +74,7 @@ be useful for the time being.
 %setup
 
 %build
-./configure --prefix=/usr --disable-java
+./configure --prefix=/usr
 make
 
 %install

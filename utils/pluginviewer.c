@@ -209,8 +209,8 @@ getpath(void *context,
 
 static int
 plugview_sasl_getopt (
-    void *context,
-    const char *plugin_name,
+    void *context __attribute__((unused)),
+    const char *plugin_name __attribute__((unused)),
     const char *option,
     const char **result,
     unsigned *len

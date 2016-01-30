@@ -102,7 +102,7 @@ auth_krb5_init (
 
     if (config) {
 	keytabname = (char *) cfile_getstring(config, "krb5_keytab", keytabname);
-	verify_principal = cfile_getstring(config, "krb5_verify_principal", verify_principal);
+	verify_principal = (char *) cfile_getstring(config, "krb5_verify_principal", verify_principal);
     }
 
     return 0;
@@ -145,7 +145,7 @@ form_principal_name (
     if (forced_instance) {
 	char *user_specified;
 
-	if (user_specified = strchr(user, '/')) {
+	if ((user_specified = strchr(user, '/'))) {
 	    if (strcmp(user_specified + 1, forced_instance)) {
 		/* user not allowed to override sysadmin */
 		return -1;
@@ -424,9 +424,9 @@ auth_krb5 (
     krb5_get_init_creds_opt_init(&opts);
     /* 15 min should be more than enough */
     krb5_get_init_creds_opt_set_tkt_life(&opts, 900); 
-    if (code = krb5_get_init_creds_password(context, &creds, 
-				     auth_user, password, NULL, NULL, 
-				     0, NULL, &opts)) {
+    if ((code = krb5_get_init_creds_password(context, &creds, 
+                                             auth_user, password, NULL, NULL, 
+                                             0, NULL, &opts))) {
 	krb5_cc_destroy(context, ccache);
 	krb5_free_principal(context, auth_user);
 	krb5_free_context(context);

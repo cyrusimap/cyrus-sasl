@@ -56,6 +56,7 @@
 
 /* PUBLIC DEPENDENCIES */
 #include <unistd.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 
@@ -90,7 +91,7 @@ static char tf_dir[] = PATH_SASLAUTHD_RUNDIR "/.tf";
 static char *tfn_cookie = 0;
 static int tfn_cookie_len = 0;
 static char pidstring[80];
-int pidstring_len = 0;
+size_t pidstring_len = 0;
 /* END PRIVATE DEPENDENCIES */
 
 #endif /* WANT_KRBTF */

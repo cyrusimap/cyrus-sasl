@@ -275,7 +275,7 @@ gs2_common_mech_dispose(void *conn_context, const sasl_utils_t *utils)
 
 static void
 gs2_common_mech_free(void *global_context __attribute__((unused)),
-                     const sasl_utils_t *utils)
+                     const sasl_utils_t *utils __attribute__((unused)))
 {
     OM_uint32 minor;
 

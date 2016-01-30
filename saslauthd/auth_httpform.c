@@ -171,7 +171,7 @@ static char *url_escape(
     size_t length = strlen(string);
     size_t alloc = length+50;   /* add some reserve */
     char *out;
-    int outidx=0, inidx=0;
+    size_t outidx=0, inidx=0;
     /* END VARIABLES */
 
     out = malloc(alloc);
@@ -237,7 +237,8 @@ static char *create_post_data(
 {
     /* VARIABLES */
     const char *ptr, *line_ptr;
-    char *buf, *buf_ptr;
+    char *esc_user = NULL, *esc_password = NULL, *esc_realm = NULL;
+    char *buf = NULL, *buf_ptr;
     int filtersize;
     int ulen, plen, rlen;
     int numpercents=0;
@@ -245,28 +246,12 @@ static char *create_post_data(
     size_t i;
     /* END VARIABLES */
 
-    user = url_escape(user);
-    if (!user) {
+    user = esc_user = url_escape(user);
+    password = esc_password = url_escape(password);
+    realm = esc_realm = url_escape(realm);
+    if (!user || !password || !realm) {
         logger(LOG_ERR, "auth_httpform:create_post_data", "failed to allocate memory");
-        return NULL;
-    }
-
-    password = url_escape(password);
-    if (!password) {
-        memset(user, 0, strlen(user));
-        free(user);
-        logger(LOG_ERR, "auth_httpform:create_post_data", "failed to allocate memory");
-        return NULL;
-    }
-
-    realm = url_escape(realm);
-    if (!realm) {
-        memset(user, 0, strlen(user));
-        free(user);
-        memset(password, 0, strlen(password));
-        free(password);
-        logger(LOG_ERR, "auth_httpform:create_post_data", "failed to allocate memory");
-        return NULL;
+        goto CLEANUP;
     }
     
     /* calculate memory needed for creating the complete query string. */
@@ -335,12 +320,18 @@ static char *create_post_data(
     memcpy(buf_ptr, line_ptr, strlen(line_ptr)+1);
 
 CLEANUP:
-    memset(user, 0, strlen(user));
-    memset(password, 0, strlen(password));
-    memset(realm, 0, strlen(realm));
-    free(user);
-    free(password);
-    free(realm);
+    if (esc_user) {
+        memset(esc_user, 0, strlen(esc_user));
+        free(esc_user);
+    }
+    if (esc_password) {
+        memset(esc_password, 0, strlen(esc_password));
+        free(esc_password);
+    }
+    if (esc_realm) {
+        memset(esc_realm, 0, strlen(realm));
+        free(esc_realm);
+    }
 
     return buf;
 }
@@ -496,8 +487,8 @@ auth_httpform (
   /* PARAMETERS */
   const char *user,			/* I: plaintext authenticator */
   const char *password,			/* I: plaintext password */
-  const char *service,
-  const char *realm
+  const char *service __attribute__((unused)),
+  const char *realm                    /* I: user's realm */
   /* END PARAMETERS */
   )
 {

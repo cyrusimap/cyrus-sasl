@@ -119,7 +119,7 @@ static void otp_hash(const EVP_MD *md, char *in, size_t inlen,
 		     unsigned char *out, int swab)
 {
     EVP_MD_CTX mdctx;
-    char hash[EVP_MAX_MD_SIZE];
+    unsigned char hash[EVP_MAX_MD_SIZE];
     unsigned int i;
     int j;
     unsigned hashlen;
@@ -146,7 +146,8 @@ static void otp_hash(const EVP_MD *md, char *in, size_t inlen,
 
 static int generate_otp(const sasl_utils_t *utils,
 			algorithm_option_t *alg, unsigned seq, char *seed,
-			char *secret, char *otp)
+			unsigned char *secret, unsigned secret_len,
+                        unsigned char *otp)
 {
     const EVP_MD *md;
     char *key;
@@ -157,19 +158,18 @@ static int generate_otp(const sasl_utils_t *utils,
 	return SASL_FAIL;
     }
     
-    if ((key = utils->malloc(strlen(seed) + strlen(secret) + 1)) == NULL) {
+    if ((key = utils->malloc(strlen(seed) + secret_len + 1)) == NULL) {
 	SETERROR(utils, "cannot allocate OTP key");
 	return SASL_NOMEM;
     }
     
     /* initial step */
-    strcpy(key, seed);
-    strcat(key, secret);
+    sprintf(key, "%s%.*s", seed, secret_len, secret);
     otp_hash(md, key, strlen(key), otp, alg->swab);
     
     /* computation step */
     while (seq-- > 0)
-	otp_hash(md, otp, OTP_HASH_SIZE, otp, alg->swab);
+        otp_hash(md, (char *) otp, OTP_HASH_SIZE, otp, alg->swab);
     
     utils->free(key);
     
@@ -587,12 +587,12 @@ int hex2bin(char *hex, unsigned char *bin, int binlen)
     return (i < binlen) ? SASL_BADAUTH : SASL_OK;
 }
 
-static int make_secret(const sasl_utils_t *utils,
-		       const char *alg, unsigned seq, char *seed, char *otp,
+static int make_secret(const sasl_utils_t *utils, const char *alg,
+                       unsigned seq, char *seed, unsigned char *otp,
 		       time_t timeout, sasl_secret_t **secret)
 {
     size_t sec_len;
-    unsigned char *data;
+    char *data;
     char buf[2*OTP_HASH_SIZE+1];
     
     /*
@@ -610,7 +610,7 @@ static int make_secret(const sasl_utils_t *utils,
     }
     
     (*secret)->len = (unsigned) sec_len;
-    data = (*secret)->data;
+    data = (char *) (*secret)->data;
 
     bin2hex(otp, OTP_HASH_SIZE, buf);
     buf[2*OTP_HASH_SIZE] = '\0';
@@ -628,7 +628,7 @@ static int parse_secret(const sasl_utils_t *utils,
 			time_t *timeout)
 {
     if (strlen(secret) < seclen) {
-	unsigned char *c;
+        char *c;
 	
 	/*
 	 * old-style (binary) secret is stored as:
@@ -753,8 +753,8 @@ static int word2bin(const sasl_utils_t *utils,
 	/* alternate dictionary */
 	if (alt_dict) {
 	    EVP_MD_CTX mdctx;
-	    char hash[EVP_MAX_MD_SIZE];
-	    int hashlen;
+	    unsigned char hash[EVP_MAX_MD_SIZE];
+	    unsigned hashlen;
 	    
 	    EVP_DigestInit(&mdctx, md);
 	    EVP_DigestUpdate(&mdctx, word, strlen(word));
@@ -850,7 +850,7 @@ static int verify_response(server_context_t *text, const sasl_utils_t *utils,
     
     if (r == SASL_OK) {
 	/* do one more hash (previous otp) and compare to stored otp */
-	otp_hash(md, cur_otp, OTP_HASH_SIZE, prev_otp, text->alg->swab);
+	otp_hash(md, (char *) cur_otp, OTP_HASH_SIZE, prev_otp, text->alg->swab);
 	
 	if (!memcmp(prev_otp, text->otp, OTP_HASH_SIZE)) {
 	    /* update the secret with this seq/otp */
@@ -1071,7 +1071,7 @@ static int otp_server_mech_step1(server_context_t *text,
 	result = params->utils->prop_request(propctx, store_request);
     if (result == SASL_OK)
 	result = params->utils->prop_set(propctx, "cmusaslsecretOTP",
-					 sec->data, sec->len);
+					 (char *) sec->data, sec->len);
     if (result == SASL_OK)
 	result = params->utils->auxprop_store(params->utils->conn,
 					      propctx, text->authid);
@@ -1153,7 +1153,7 @@ otp_server_mech_step2(server_context_t *text,
 	result = params->utils->prop_request(propctx, store_request);
     if (result == SASL_OK)
 	result = params->utils->prop_set(propctx, "cmusaslsecretOTP",
-					 sec->data, sec->len);
+					 (char *) sec->data, sec->len);
     if (result == SASL_OK)
 	result = params->utils->auxprop_store(params->utils->conn,
 					      propctx, text->authid);
@@ -1244,7 +1244,7 @@ static void otp_server_mech_dispose(void *conn_context,
 	    r = utils->prop_request(propctx, store_request);
 	if (!r)
 	    r = utils->prop_set(propctx, "cmusaslsecretOTP",
-				(sec ? sec->data : NULL),
+				(sec ? (char *) sec->data : NULL),
 				(sec ? sec->len : 0));
 	if (!r)
 	    r = utils->auxprop_store(utils->conn, propctx, text->authid);
@@ -1269,8 +1269,7 @@ static void otp_server_mech_dispose(void *conn_context,
 static int otp_setpass(void *glob_context __attribute__((unused)),
 		       sasl_server_params_t *sparams,
 		       const char *userstr,
-		       const char *pass,
-		       unsigned passlen __attribute__((unused)),
+		       const char *pass, unsigned passlen,
 		       const char *oldpass __attribute__((unused)),
 		       unsigned oldpasslen __attribute__((unused)),
 		       unsigned flags)
@@ -1315,7 +1314,7 @@ static int otp_setpass(void *glob_context __attribute__((unused)),
 	unsigned int len;
 	unsigned short randnum;
 	char seed[OTP_SEED_MAX+1];
-	char otp[OTP_HASH_SIZE];
+	unsigned char otp[OTP_HASH_SIZE];
 	
 	sparams->utils->getopt(sparams->utils->getopt_context,
 			       "OTP", "otp_mda", &mda, &len);
@@ -1342,7 +1341,7 @@ static int otp_setpass(void *glob_context __attribute__((unused)),
 	sprintf(seed, "%.2s%04u", sparams->serverFQDN, (randnum % 9999) + 1);
 	
 	r = generate_otp(sparams->utils, algs, OTP_SEQUENCE_DEFAULT,
-			 seed, (char*) pass, otp);
+			 seed, (unsigned char *) pass, passlen, otp);
 	if (r != SASL_OK) {
 	    /* generate_otp() takes care of error message */
 	    goto cleanup;
@@ -1364,7 +1363,7 @@ static int otp_setpass(void *glob_context __attribute__((unused)),
 	r = sparams->utils->prop_request(propctx, store_request);
     if (!r)
 	r = sparams->utils->prop_set(propctx, "cmusaslsecretOTP",
-				     (sec ? sec->data : NULL),
+				     (sec ? (char *) sec->data : NULL),
 				     (sec ? sec->len : 0));
     if (!r)
 	r = sparams->utils->auxprop_store(sparams->utils->conn, propctx, user);
@@ -1670,7 +1669,7 @@ static int otp_client_mech_step2(client_context_t *text,
 	algorithm_option_t *alg;
 	unsigned seq;
 	char seed[OTP_SEED_MAX+1];
-	char otp[OTP_HASH_SIZE];
+	unsigned char otp[OTP_HASH_SIZE];
 	int init_done = 0;
 	
 	/* parse challenge */
@@ -1694,7 +1693,7 @@ static int otp_client_mech_step2(client_context_t *text,
 	
 	/* generate otp */
 	result = generate_otp(params->utils, alg, seq, seed,
-			      text->password->data, otp);
+			      text->password->data, text->password->len, otp);
 	if (result != SASL_OK) return result;
 	
 	result = _plug_buf_alloc(params->utils, &(text->out_buf),
@@ -1704,7 +1703,7 @@ static int otp_client_mech_step2(client_context_t *text,
 	if (seq < OTP_SEQUENCE_REINIT) {
 	    unsigned short randnum;
 	    char new_seed[OTP_SEED_MAX+1];
-	    char new_otp[OTP_HASH_SIZE];
+	    unsigned char new_otp[OTP_HASH_SIZE];
 	    
 	    /* try to reinitialize */
 	    
@@ -1717,7 +1716,7 @@ static int otp_client_mech_step2(client_context_t *text,
 	    } while (!strcasecmp(seed, new_seed));
 	    
 	    result = generate_otp(params->utils, alg, OTP_SEQUENCE_DEFAULT,
-				  new_seed, text->password->data, new_otp);
+				  new_seed, text->password->data, text->password->len, new_otp);
 	    
 	    if (result == SASL_OK) {
 		/* create an init-hex response */

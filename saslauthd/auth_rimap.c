@@ -393,7 +393,7 @@ auth_rimap (
         while( select (fds, &perm, NULL, NULL, &timeout ) >0 ) {
            if ( FD_ISSET(s, &perm) ) {
               ret = read(s, rbuf+rc, sizeof(rbuf)-rc);
-              if ( ret<0 ) {
+              if ( ret<=0 ) {
                  rc = ret;
                  break;
               } else {
@@ -506,7 +506,7 @@ auth_rimap (
         while( select (fds, &perm, NULL, NULL, &timeout ) >0 ) {
            if ( FD_ISSET(s, &perm) ) {
               ret = read(s, rbuf+rc, sizeof(rbuf)-rc);
-              if ( ret<0 ) {
+              if ( ret<=0 ) {
                  rc = ret;
                  break;
               } else {

@@ -99,7 +99,7 @@ endif
 
 libsasl2.a: libsasl2.la $(SASL_STATIC_OBJS)
 	@echo adding static plugins and dependencies
-	$(AR) cru .libs/$@ $(SASL_STATIC_OBJS)
+	$(AR) cru $@ $(SASL_STATIC_OBJS)
 	@for i in ./libsasl2.la ../common/libplugin_common.la ../sasldb/libsasldb.la ../plugins/lib*.la; do \
 	if test ! -f $$i; then continue; fi; . $$i; \
 	for j in $$dependency_libs foo; do \

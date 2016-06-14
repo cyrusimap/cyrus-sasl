@@ -4330,6 +4330,7 @@ static int digestmd5_client_mech_step2(client_context_t *ctext,
     
 	if (nrealm == 1) {
 	    /* only one choice! */
+	    if (text->realm) params->utils->free(text->realm);
 	    text->realm = realms[0];
 
 	    /* free realms */

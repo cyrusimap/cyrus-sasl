@@ -14,7 +14,7 @@ saslauthd_SOURCES = mechanisms.c globals.h \
 		    auth_ldap.c auth_ldap.h cache.c cache.h cfile.c cfile.h \
 		    krbtf.c krbtf.h utils.c utils.h \
                     ipc_unix.c ipc_doors.c saslauthd-main.c saslauthd-main.h \
-		    md5.c saslauthd_md5.h md5global.h 
+		    md5.c saslauthd_md5.h
 EXTRA_saslauthd_sources = getaddrinfo.c getnameinfo.c
 saslauthd_DEPENDENCIES = saslauthd-main.o $(LTLIBOBJS_FULL)
 saslauthd_LDADD	= @SASL_KRB_LIB@ \
@@ -40,3 +40,6 @@ saslauthd.8: saslauthd.mdoc
 install-data-local: saslauthd.8
 	$(mkinstalldirs) $(DESTDIR)$(mandir)/man8
 	$(INSTALL_DATA) $(srcdir)/saslauthd.8 $(DESTDIR)$(mandir)/man8/saslauthd.8
+
+uninstall-local:
+	-rm -rf $(DESTDIR)$(mandir)/man8/saslauthd.8

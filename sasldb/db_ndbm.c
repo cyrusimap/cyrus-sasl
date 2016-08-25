@@ -109,7 +109,9 @@ int _sasldb_getdata(const sasl_utils_t *utils,
   dkey.dsize = key_len;
   dvalue = dbm_fetch(db, dkey);
   if (! dvalue.dptr) {
-      utils->seterror(cntxt, 0, "no user in db");
+      utils->seterror(cntxt, SASL_NOLOG,
+		      "user: %s@%s property: %s not found in sasldb",
+		      authid, realm, propName);
       result = SASL_NOUSER;
       goto cleanup;
   }

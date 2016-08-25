@@ -188,6 +188,7 @@ int _sasldb_putdata(const sasl_utils_t *utils,
 		 "SASL error opening password file. "
 		 "Do you have write permissions?\n");
       utils->seterror(conn, 0, "Could not open db for write");
+      result = SASL_FAIL;
       goto cleanup;
   }
   dkey.dptr = key;

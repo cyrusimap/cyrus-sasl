@@ -1,3 +1,53 @@
+2016-10-18  Ken Murchison <murch@andrew.cmu.edu>
+	* Fixed potential DoS attack on saslauthd/doors (from Oracle)
+
+2016-06-30  Ken Murchison <murch@andrew.cmu.edu>
+	* plugins/ntlm.c, otp.c: support OpenSSL 1.1
+
+2016-06-14  Ken Murchison <murch@andrew.cmu.edu>
+	* plugins/digestmd5.c: Fix memory leak in client step 2
+
+2016-03-24  Ken Murchison <murch@andrew.cmu.edu>
+	* auth_rimap.c: Don't hang when IMAP server closes connection
+
+2016-01-29  Ken Murchison <murch@andrew.cmu.edu>
+	* Build fixes from Ignacio Casal Quinteiro
+
+2015-12-26  Ken Murchison <murch@andrew.cmu.edu>
+	* Build fixes from Ignacio Casal Quinteiro
+
+2015-11-16  Ken Murchison <murch@andrew.cmu.edu>
+	* Build fixes from Ignacio Casal Quinteiro
+
+2015-10-14  Ken Murchison <murch@andrew.cmu.edu>
+	* Build fixes from Ignacio Casal Quinteiro
+
+2015-07-17  Ken Murchison <murch@andrew.cmu.edu>
+	* auth_krb5.c: added krb5_conv_krb4_instance option
+
+2014-11-17  Ken Murchison <murch@andrew.cmu.edu>
+	* plugins/digestmd5.c: Fix memory leaks
+
+2014-11-17  Ken Murchison <murch@andrew.cmu.edu>
+	* plugins/digestmd5.c: prevent going from step 3 to step 2
+
+2013-09-13  Alexey Melnikov <alexey.melnikov@isode.com>
+	* Fix memory leaks in DIGEST
+
+2013-08-30  Ken Murchison <murch@andrew.cmu.edu>
+	* plugins/digestmd5.c: only locate reauth cache when reauth is
+	  enabled
+
+2013-07-11  Alexey Melnikov <alexey.melnikov@isode.com>
+	* Treat SCRAM and DIGEST as more secure than PLAIN when selecting
+	  client-side mechanism
+
+2013-07-11  Alexey Melnikov <alexey.melnikov@isode.com>
+	* Handle NULL return from crypt()
+
+2012-11-20  Alexey Melnikov <alexey.melnikov@isode.com>
+	* Added support for lmdb
+
 2012-11-19  Alexey Melnikov <alexey.melnikov@isode.com>
 	* Final 2.1.26 tagged and released by Ken.
 

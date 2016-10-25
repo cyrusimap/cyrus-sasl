@@ -875,7 +875,9 @@ case "$with_pgsql" in
      LIB_PGSQL_DIR=$LIB_PGSQL
      LIB_PGSQL="$LIB_PGSQL -lpq"
 
-     if test -d ${with_pgsql}/include/pgsql; then
+     if test -d ${with_pgsql}/include/postgresql/; then
+         CPPFLAGS="${CPPFLAGS} -I${with_pgsql}/include/postgresql"
+     elif test -d ${with_pgsql}/include/pgsql; then
          CPPFLAGS="${CPPFLAGS} -I${with_pgsql}/include/pgsql"
      elif test -d ${with_pgsql}/pgsql/include; then
          CPPFLAGS="${CPPFLAGS} -I${with_pgsql}/pgsql/include"

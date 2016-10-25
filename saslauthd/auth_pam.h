@@ -32,4 +32,4 @@
  * DAMAGE.
  * END COPYRIGHT */
 
-char *auth_pam(const char *, const char *, const char *, const char *);
+char *auth_pam(const char *, const char *, const char *, const char *, const char *);

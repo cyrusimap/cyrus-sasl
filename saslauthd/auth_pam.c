@@ -186,7 +186,8 @@ auth_pam (
   const char *login,			/* I: plaintext authenticator */
   const char *password,			/* I: plaintext password */
   const char *service,			/* I: service name */
-  const char *realm __attribute__((unused))
+  const char *realm __attribute__((unused)),
+  const char *remote                    /* I: remote host address */
   /* END PARAMETERS */
   )
 {
@@ -212,6 +213,14 @@ auth_pam (
     }
 
     my_appdata.pamh = pamh;
+
+    char * remote_host = strdup(remote);
+    if (remote_host) {
+	char * semicol = strchr(remote_host, ';');
+	if (semicol) * semicol = NULL; /* truncate remote_host at the ';' port separator */
+	pam_set_item(pamh, PAM_RHOST, remote_host);
+	free (remote_host);
+    }
 
     rc = pam_authenticate(pamh, PAM_SILENT);
     if (rc != PAM_SUCCESS) {
@@ -242,7 +251,8 @@ auth_pam(
   const char *login __attribute__((unused)),
   const char *password __attribute__((unused)),
   const char *service __attribute__((unused)),
-  const char *realm __attribute__((unused))
+  const char *realm __attribute__((unused)),
+  const char *remote __attribute__((unused))
   )
 {
     return NULL;

@@ -25,5 +25,5 @@
  * DAMAGE.
  * END COPYRIGHT */
 
-char *auth_rimap(const char *, const char *, const char *, const char *);
+char *auth_rimap(const char *, const char *, const char *, const char *, const char *);
 int auth_rimap_init(void);

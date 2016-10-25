@@ -25,5 +25,5 @@
  * DAMAGE.
  * END COPYRIGHT */
 
-char *auth_httpform(const char *, const char *, const char *, const char *);
+char *auth_httpform(const char *, const char *, const char *, const char *, const char *);
 int auth_httpform_init(void);

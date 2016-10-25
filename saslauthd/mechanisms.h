@@ -40,8 +40,8 @@ typedef struct {
     char *name;				/* name of the mechanism */
     int (*initialize)(void);		/* initialization function */
     char *(*authenticate)(const char *, const char *,
-			  const char *, const char *); /* authentication
-							  function */
+			  const char *, const char *,
+			  const char *); /* authentication function */
 } authmech_t;
 
 extern authmech_t mechanisms[];		/* array of supported auth mechs */

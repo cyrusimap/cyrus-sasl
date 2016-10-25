@@ -25,4 +25,4 @@
  * DAMAGE.
  * END COPYRIGHT */
 
-char *auth_shadow(const char *, const char *, const char *, const char *);
+char *auth_shadow(const char *, const char *, const char *, const char *, const char *);

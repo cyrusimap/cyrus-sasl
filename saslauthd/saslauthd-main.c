@@ -378,7 +378,7 @@ int main(int argc, char **argv) {
  * return a pointer to a string to send back to the client.
  * The caller is responsible for freeing the pointer. 
  **************************************************************/
-char *do_auth(const char *_login, const char *password, const char *service, const char *realm) {
+char *do_auth(const char *_login, const char *password, const char *service, const char *realm, const char *remote) {
 
 	struct cache_result	lkup_result;
 	char			*response;
@@ -407,7 +407,7 @@ char *do_auth(const char *_login, const char *password, const char *service, con
 		response = strdup("OK");
 		cached = 1;
 	} else {
-		response = auth_mech->authenticate(login, password, service, realm);
+		response = auth_mech->authenticate(login, password, service, realm, remote);
 
 		if (response == NULL) {
 			logger(L_ERR, L_FUNC, "internal mechanism failure: %s", auth_mech->name);
@@ -420,18 +420,18 @@ char *do_auth(const char *_login, const char *password, const char *service, con
 
 		if (flags & VERBOSE) {
 			if (cached) 
-				logger(L_DEBUG, L_FUNC, "auth success (cached): [user=%s] [service=%s] [realm=%s]", \
-					login, service, realm);
+				logger(L_DEBUG, L_FUNC, "auth success (cached): [user=%s] [service=%s] [realm=%s] [remote=%s]", \
+					login, service, realm, remote);
 			else
-				logger(L_DEBUG, L_FUNC, "auth success: [user=%s] [service=%s] [realm=%s] [mech=%s]", \
-					login, service, realm, auth_mech->name);
+				logger(L_DEBUG, L_FUNC, "auth success: [user=%s] [service=%s] [realm=%s] [remote=%s] [mech=%s]", \
+					login, service, realm, remote, auth_mech->name);
 		}
 		return response;
 	}
 
 	if (strncmp(response, "NO", 2) == 0) {
-		logger(L_INFO, L_FUNC, "auth failure: [user=%s] [service=%s] [realm=%s] [mech=%s] [reason=%s]", \
-			login, service, realm, auth_mech->name,
+		logger(L_INFO, L_FUNC, "auth failure: [user=%s] [service=%s] [realm=%s] [remote=%s] [mech=%s] [reason=%s]", \
+			login, service, realm, remote, auth_mech->name,
 		        strlen(response) >= 4 ? response+3 : "Unknown");
 
 		return response;

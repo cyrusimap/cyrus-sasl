@@ -25,4 +25,4 @@
  * DAMAGE.
  * END COPYRIGHT */
 
-char *auth_sasldb(const char *, const char *, const char *, const char *);
+char *auth_sasldb(const char *, const char *, const char *, const char *, const char *);

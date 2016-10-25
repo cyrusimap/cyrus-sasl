@@ -89,7 +89,8 @@
 
 /* saslauthd-main.c */
 extern char	*do_auth(const char *, const char *,
-			 const char *, const char *);
+			 const char *, const char *,
+			 const char *);
 extern void	set_auth_mech(const char *);
 extern void	set_max_procs(const char *);
 extern void	set_mech_option(const char *);

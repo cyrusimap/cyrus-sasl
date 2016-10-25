@@ -329,6 +329,7 @@ void do_request(int conn_fd) {
 	char			password[MAX_REQ_LEN + 1]; /* password for authentication            */
 	char			service[MAX_REQ_LEN + 1];  /* service name for authentication        */
 	char			realm[MAX_REQ_LEN + 1];    /* user realm for authentication          */
+	char			client_addr[MAX_REQ_LEN + 1];  /* client address and port            */
 
 
 	/**************************************************************
@@ -405,6 +406,23 @@ void do_request(int conn_fd) {
 
 	realm[count] = '\0';
 
+	/* client_addr */
+	if (rx_rec(conn_fd, (void *)&count, (size_t)sizeof(count)) != (ssize_t)sizeof(count))
+		return;
+
+	count = ntohs(count);
+
+	if (count > MAX_REQ_LEN) {
+		logger(L_ERR, L_FUNC, "client address exceeded MAX_REQ_LEN: %d", MAX_REQ_LEN);
+		send_no(conn_fd, "");
+		return;
+	}
+
+	if (rx_rec(conn_fd, (void *)&client_addr, (size_t)count) != (ssize_t)count)
+		return;
+
+	client_addr[count] = '\0';
+
 	/**************************************************************
  	 * We don't allow NULL passwords or login names
 	 **************************************************************/
@@ -423,7 +441,7 @@ void do_request(int conn_fd) {
 	/**************************************************************
 	 * Get the mechanism response from do_auth() and send it back.
 	 **************************************************************/
-	response = do_auth(login, password, service, realm);
+	response = do_auth(login, password, service, realm, client_addr);
 
 	memset(password, 0, strlen(password));
 

@@ -11,3 +11,6 @@ libtool
 config.status
 stamp-h1
 Makefile
+*.pyc
+docsrc/.doctrees/
+docsrc/build/

@@ -1378,8 +1378,8 @@ static int lak_group_member(
     }
 
 done:;
-	if (res)
-		ldap_msgfree(res);
+    if (res)
+        ldap_msgfree(res);
     if (group_dn)
         free(group_dn);
     if (group_filter)
@@ -1391,7 +1391,7 @@ done:;
     if (dn_bv)
         ber_bvfree(dn_bv);
 
-	return rc;
+    return rc;
 }
 
 static int lak_auth_custom(

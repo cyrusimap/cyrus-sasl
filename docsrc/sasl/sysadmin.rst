@@ -1,8 +1,8 @@
 .. _sysadmin:
 
-====================================
-Cyrus SASL for System Administrators
-====================================
+=====================
+System Administrators
+=====================
 
 This document covers configuring SASL for system administrators,
 specifically those administrators who are installing a server that

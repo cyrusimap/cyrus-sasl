@@ -51,18 +51,27 @@ be found within the source code.
     download
     sasl/quickstart
     sasl/installation
-    sasl/upgrading
-    sasl/appconvert
+    Contact Us <contribute>
 
 .. toctree::
     :maxdepth: 1
-    :caption: Management
+    :caption: Configuration
 
     sasl/concepts
     sasl/components
     sasl/options
     sasl/sysadmin
     sasl/advanced
+    sasl/upgrading
+    sasl/appconvert
+
+.. toctree::
+    :maxdepth: 1
+    :caption: Developers
+
+    sasl/developer/programming
+    sasl/developer/plugprog
+    sasl/developer/testing
 
 .. toctree::
     :maxdepth: 1
@@ -72,15 +81,4 @@ be found within the source code.
     sasl/authentication_mechanisms
     sasl/pwcheck
     sasl/faq
-    sasl/sasl_migration
     sasl/resources
-
-.. toctree::
-    :maxdepth: 1
-    :caption: Developers
-
-    contribute
-    developers
-    sasl/developer/programming
-    sasl/developer/plugprog
-    sasl/developer/testing

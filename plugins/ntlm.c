@@ -424,8 +424,8 @@ static HMAC_CTX *_plug_HMAC_CTX_new(const sasl_utils_t *utils)
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
     return HMAC_CTX_new();
 #else
-    return utils->malloc(sizeof(EVP_MD_CTX));
-#endif    
+    return utils->malloc(sizeof(HMAC_CTX));
+#endif
 }
 
 static void _plug_HMAC_CTX_free(HMAC_CTX *ctx, const sasl_utils_t *utils)
@@ -437,7 +437,7 @@ static void _plug_HMAC_CTX_free(HMAC_CTX *ctx, const sasl_utils_t *utils)
 #else
     HMAC_cleanup(ctx);
     utils->free(ctx);
-#endif    
+#endif
 }
 
 static unsigned char *V2(unsigned char *V2, sasl_secret_t *passwd,

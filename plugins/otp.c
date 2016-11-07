@@ -104,7 +104,7 @@ static EVP_MD_CTX *_plug_EVP_MD_CTX_new(const sasl_utils_t *utils)
     return EVP_MD_CTX_new();
 #else
     return utils->malloc(sizeof(EVP_MD_CTX));
-#endif    
+#endif
 }
 
 static void _plug_EVP_MD_CTX_free(EVP_MD_CTX *ctx, const sasl_utils_t *utils)
@@ -115,7 +115,7 @@ static void _plug_EVP_MD_CTX_free(EVP_MD_CTX *ctx, const sasl_utils_t *utils)
     EVP_MD_CTX_free(ctx);
 #else
     utils->free(ctx);
-#endif    
+#endif
 }
 
 /* Convert the binary data into ASCII hex */
@@ -180,13 +180,13 @@ static int generate_otp(const sasl_utils_t *utils,
 			"OTP algorithm %s is not available", alg->evp_name);
 	return SASL_FAIL;
     }
-    
+
     if ((mdctx = _plug_EVP_MD_CTX_new(utils)) == NULL) {
 	SETERROR(utils, "cannot allocate MD CTX");
 	r = SASL_NOMEM;
         goto done;
     }
-    
+
     if ((key = utils->malloc(strlen(seed) + secret_len + 1)) == NULL) {
 	SETERROR(utils, "cannot allocate OTP key");
 	r = SASL_NOMEM;
@@ -201,10 +201,10 @@ static int generate_otp(const sasl_utils_t *utils,
     while (seq-- > 0)
         otp_hash(md, (char *) otp, OTP_HASH_SIZE, otp, alg->swab, mdctx);
 
-  done:
+done:
     if (key) utils->free(key);
     if (mdctx) _plug_EVP_MD_CTX_free(mdctx, utils);
-    
+
     return r;
 }
 

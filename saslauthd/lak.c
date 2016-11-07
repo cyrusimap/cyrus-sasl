@@ -61,35 +61,6 @@
 #include <sasl.h>
 #include "lak.h"
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-static EVP_MD_CTX *EVP_MD_CTX_new(void)
-{
-	return EVP_MD_CTX_create();
-}
-static void EVP_MD_CTX_free(EVP_MD_CTX *ctx)
-{
-	if (ctx == NULL)
-		return;
-
-	EVP_MD_CTX_destroy(ctx);
-}
-
-static EVP_ENCODE_CTX *EVP_ENCODE_CTX_new(void)
-{
-	EVP_ENCODE_CTX *ctx = OPENSSL_malloc(sizeof(*ctx));
-
-	if (ctx != NULL) {
-		memset(ctx, 0, sizeof(*ctx));
-	}
-	return ctx;
-}
-static void EVP_ENCODE_CTX_free(EVP_ENCODE_CTX *ctx)
-{
-	OPENSSL_free(ctx);
-	return;
-}
-#endif
-
 typedef struct lak_auth_method {
 	int method;
 	int (*check) (LAK *lak, const char *user, const char *service, const char *realm, const char *password) ;
@@ -1740,6 +1711,21 @@ static int lak_check_password(
 }
 
 #ifdef HAVE_OPENSSL
+
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#define EVP_MD_CTX_new()      EVP_MD_CTX_create()
+#define EVP_MD_CTX_free(ctx)  EVP_MD_CTX_destroy((ctx))
+
+static EVP_ENCODE_CTX *EVP_ENCODE_CTX_new(void)
+{
+	return OPENSSL_zalloc(sizeof(EVP_ENCODE_CTX));
+}
+
+static void EVP_ENCODE_CTX_free(EVP_ENCODE_CTX *ctx)
+{
+	OPENSSL_free(ctx);
+}
+#endif /* OPENSSL_VERSION_NUMBER < 0x10100000L */
 
 static int lak_base64_decode(
 	const char *src,

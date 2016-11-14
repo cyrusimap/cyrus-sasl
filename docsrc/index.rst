@@ -1,3 +1,5 @@
+.. _sasl-index:
+
 ==========
 Cyrus SASL
 ==========
@@ -10,13 +12,13 @@ Simple Authentication and Security Layer (SASL_) is a specification that describ
 
 The latest stable version of Cyrus SASL is |sasl_current_stable_version|.
 
+:ref:`Cyrus IMAP <cyrusimap:imap-index>` uses Cyrus SASL to provide authentication support to the mail server, however it is just one project using Cyrus SASL.
+
 Features
 --------
 Cyrus SASL provides a number of authentication plugins out of the box.
 
     Berkeley DB, GDBM, or NDBM (sasldb), PAM, MySQL, PostgreSQL, SQLite, LDAP, Active Directory(LDAP), DCE, Kerberos 4 and 5, proxied IMAP auth, getpwent, shadow, SIA, Courier Authdaemon, httpform, APOP and SASL mechanisms: ANONYMOUS, CRAM-MD5, DIGEST-MD5, EXTERNAL, GSSAPI, LOGIN, NTLM, OTP, PASSDSS, PLAIN, SR
-
-Cyrus IMAP uses Cyrus SASL to provide authentication support to the mail server, however it is just one project using Cyrus SASL.
 
 .. _SASL: https://en.wikipedia.org/wiki/Simple_Authentication_and_Security_Layer
 
@@ -82,3 +84,8 @@ be found within the source code.
     sasl/pwcheck
     sasl/faq
     sasl/resources
+
+.. toctree::
+    :caption: IMAP
+
+    Cyrus IMAP <http://www.cyrusimap.org>

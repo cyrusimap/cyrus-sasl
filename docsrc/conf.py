@@ -131,6 +131,18 @@ pygments_style = 'sphinx'
 
 html_theme = 'cyrus'
 
+# This gets used to generate the 'Edit in Github' link in the breadcrumbs header
+# Used to form the url https://github.com/github_user/github_repo/blob/github_version/conf_py_path/<file>.source_suffix
+#
+html_context = {
+  "display_github": True, # Add 'Edit on Github' link instead of 'View page source'
+  "github_user": "cyrusimap",
+  "github_repo": "cyrus-sasl",
+  "github_version": "master",
+  "conf_py_path": "/docsrc/",
+  "source_suffix": source_suffix,
+}
+
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.

@@ -42,7 +42,7 @@ extensions = [
 
 extensions.append('sphinxlocal.builders.manpage')
 
-intersphinx_mapping = {'cyrusimap': ('https://www.cyrusimap.org/dev', None)}
+intersphinx_mapping = {'cyrusimap': ('http://www.cyrusimap.org/dev', None)}
 
 mathjax_path = 'https://cdn.mathjax.org/mathjax/latest/MathJax.js'
 

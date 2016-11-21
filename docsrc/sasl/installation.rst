@@ -6,8 +6,8 @@ Installation
 
 Are you looking for the:
 
-* :ref:`Quick install <installation_quick>` guide (for experts), or
-* :ref:`Detailed installation instructions <installation_detailed>`
+* :ref:`Quick install <installation_quick>` guide, or
+* :ref:`Detailed installation instructions for compiling from source <installation_detailed>`
 
 .. _installation_quick:
 
@@ -18,7 +18,9 @@ You can install Cyrus SASL via packages or via tarball.
 Tarball installation
 --------------------
 
-Assuming an installation from tarball::
+Fetch the latest Cyrus SASL tarball from ftp://ftp.cyrusimap.org/cyrus-sasl/
+
+Untar it then::
 
     cd (directory it was untarred into)
     ./configure
@@ -99,24 +101,25 @@ configuration of Cyrus SASL becomes easier.
 Requirements
 ------------
 
-You'll need `GNU make <ftp://ftp.gnu.org/pub/gnu/make/>`_.
+1. You'll need the source from https://github.com/cyrusimap/cyrus-sasl
 
-If you are using SASLdb, you will need to pick your backend.
-libsasl2 can use `gdbm <ftp://ftp.gnu.org/pub/gnu/gdbm/>`_, `Berkeley db <http://www.sleepycat.com/>`_, or ndbm to implement its
-user/password lookup. Most systems come with ndbm.
+2. You'll need `GNU make <ftp://ftp.gnu.org/pub/gnu/make/>`_.
 
-If you are using SQL, you'll need to properly configure your server/tables,
-and build the necessary client libraries on the system where you will be
-building and using SASL.  Currently we support `PostgreSQL <http://postgresql.org>`_ v7.2 (or higher)
-and `MySQL <http://mysql.org>`_.
+3. If you are using SASLdb, you will need to pick your backend.
+   libsasl2 can use `gdbm <ftp://ftp.gnu.org/pub/gnu/gdbm/>`_, `Berkeley db <http://www.sleepycat.com/>`_, or ndbm to implement its user/password lookup. Most systems come with ndbm.
 
-If you are using LDAPDB, you'll need SASL enabled `OpenLDAP <http://www.openldap.org>`_ libraries.
-v2.1.27 (or higher) or v2.2.6 (or higher) is supported.
+4. If you are using SQL, you'll need to properly configure your server/tables,
+   and build the necessary client libraries on the system where you will be
+   building and using SASL.  Currently we support `PostgreSQL <http://postgresql.org>`_ v7.2 (or higher)
+   and `MySQL <http://mysql.org>`_.
 
-For Kerberos support, you'll need the `kerberos <http://www.pdc.kth.se/kth-krb/>`_ libraries.
+5. If you are using LDAPDB, you'll need SASL enabled `OpenLDAP <http://www.openldap.org>`_ libraries.
+   v2.1.27 (or higher) or v2.2.6 (or higher) is supported.
 
-For GSSAPI support you will need either `MIT Kerberos 5 <http://web.mit.edu/kerberos/www/>`_,
-the `Heimdal <http://www.pdc.kth.se/heimdal>`_ or `CyberSafe <http://www.cybersafe.com/>`_.
+6. For Kerberos support, you'll need the `kerberos <http://www.pdc.kth.se/kth-krb/>`_ libraries.
+
+7. For GSSAPI support you will need either `MIT Kerberos 5 <http://web.mit.edu/kerberos/www/>`_,
+   the `Heimdal <http://www.pdc.kth.se/heimdal>`_ or `CyberSafe <http://www.cybersafe.com/>`_.
 
 Build Configuration
 -------------------

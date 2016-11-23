@@ -43,47 +43,24 @@
 #
 ################################################################
 
-EXTRA_DIST =	rfc1321.txt \
-		rfc1939.txt \
-		rfc2104.txt \
-		rfc2195.txt \
-		rfc2222.txt \
-		rfc2243.txt \
-		rfc2245.txt \
-		rfc2289.txt \
-		rfc2444.txt \
-		rfc2595.txt \
-		rfc2831.txt \
-		rfc2945.txt \
-		rfc3174.txt \
-		testing.txt \
-		server-plugin-flow.fig \
-		draft-burdis-cat-srp-sasl-xx.txt \
-		draft-ietf-sasl-anon-xx.txt \
-		draft-ietf-sasl-crammd5-xx.txt \
-		draft-ietf-sasl-gssapi-xx.txt \
-		draft-ietf-sasl-plain-xx.txt \
-		draft-ietf-sasl-rfc2222bis-xx.txt \
-		draft-ietf-sasl-rfc2831bis-xx.txt \
-		draft-ietf-sasl-saslprep-xx.txt \
-		draft-murchison-sasl-login-xx.txt \
-		draft-newman-sasl-c-api-xx.txt \
-		draft-newman-sasl-passdss-xx.txt \
-		programming.html \
-		sysadmin.html \
-		gssapi.html \
-		advanced.html \
-		options.html \
-		plugprog.html \
+EXTRA_DIST =	advanced.html \
 		appconvert.html \
-		macosx.html \
-		windows.html \
-		readme.html \
-		mechanisms.html \
-		upgrading.html \
-		index.html \
 		components.html \
+		gssapi.html \
+		index.html \
 		install.html \
-		TODO \
+		macosx.html \
+		mechanisms.html \
+		NTMakefile \
 		ONEWS \
-		NTMakefile
+		options.html \
+		os390.html \
+		plugprog.html \
+		programming.html \
+		readme.html \
+		server-plugin-flow.fig \
+		sysadmin.html \
+		testing.txt \
+		TODO \
+		upgrading.html \
+		windows.html

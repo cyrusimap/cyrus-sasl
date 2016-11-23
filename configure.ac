@@ -67,7 +67,7 @@ AC_CONFIG_AUX_DIR(config)
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE([1.11 tar-ustar dist-xz no-dist-gzip -Wno-portability subdir-objects])
+AM_INIT_AUTOMAKE([1.11 tar-ustar dist-bzip2 -Wno-portability subdir-objects])
 
 DIRS=""
 

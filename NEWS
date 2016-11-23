@@ -1,3 +1,17 @@
+New in 2.1.27
+-------------
+
+* Added support for lmdb
+* Added support for OpenSSL 1.1
+* Fixed potential DoS attack on saslauthd/doors (from Oracle)
+* DIGEST-MD5 plugin:
+ - Fixed memory leaks
+ - Fixed a segfault when looking for non-existent reauth cache
+ - Prevent client from going from step 3 back to step 2
+* Added krb5_conv_krb4_instance option to saslauthd/kerberos5
+* Treat SCRAM and DIGEST-MD5 as more secure than PLAIN when selecting client mech
+* Lots of build fixes (from Ignacio Casal Quinteiro)
+
 New in 2.1.26
 -------------
 

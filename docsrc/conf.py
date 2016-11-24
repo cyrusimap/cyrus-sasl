@@ -380,7 +380,7 @@ rst_prolog = """
 .. |imap_current_stable_branch| replace:: `cyrus-imapd-2.5`
 .. |imap_latest_development_version| replace:: 3.0.0-beta3
 .. |imap_latest_development_branch| replace:: master
-.. |sasl_current_stable_version| replace:: 2.1.27
+.. |sasl_current_stable_version| replace:: 2.1.26
 .. |imap_stable_release_notes| raw:: html
 
     <a href="2.5/x/2.5.10.html">2.5.10</a>

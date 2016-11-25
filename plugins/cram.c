@@ -65,8 +65,6 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: cram.c,v 1.87 2011/09/07 13:19:44 murch Exp $";
-
 /* convert a string of 8bit chars to it's representation in hex
  * using lowercase letters
  */

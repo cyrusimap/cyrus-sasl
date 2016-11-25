@@ -60,8 +60,6 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: anonymous.c,v 1.53 2009/02/13 14:46:47 mel Exp $";
-
 static const char anonymous_id[] = "anonymous";
 
 /*****************************  Server Section  *****************************/

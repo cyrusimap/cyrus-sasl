@@ -68,8 +68,6 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: otp.c,v 1.43 2011/09/01 14:12:18 mel Exp $";
-
 #define OTP_SEQUENCE_MAX	9999
 #define OTP_SEQUENCE_DEFAULT	499
 #define OTP_SEQUENCE_REINIT	490

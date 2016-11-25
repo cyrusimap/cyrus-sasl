@@ -57,8 +57,6 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: plain.c,v 1.67 2009/06/10 16:05:19 mel Exp $";
-
 /*****************************  Server Section  *****************************/
 
 static int plain_server_mech_new(void *glob_context __attribute__((unused)), 

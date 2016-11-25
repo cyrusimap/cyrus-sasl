@@ -101,8 +101,6 @@ typedef unsigned short uint32;
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: srp.c,v 1.59 2010/11/30 11:41:47 mel Exp $";
-
 /* Size limit of cipher block size */
 #define SRP_MAXBLOCKSIZE 16
 /* Size limit of SRP buffer */

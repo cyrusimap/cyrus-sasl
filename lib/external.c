@@ -57,8 +57,6 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: external.c,v 1.24 2009/03/10 16:27:52 mel Exp $";
-
 /*****************************  Server Section  *****************************/
 
 static int

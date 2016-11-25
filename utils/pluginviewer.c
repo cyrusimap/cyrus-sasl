@@ -88,9 +88,6 @@ int main(void)
 int getsubopt(char **optionp, const char * const *tokens, char **valuep);
 #endif
 
-static const char
-build_ident[] = "$Build: pluginviewer " PACKAGE "-" VERSION " $";
-
 static const char *progname = NULL;
 /* SASL authentication methods (client or server side). NULL means all. */
 static char *sasl_mech = NULL;

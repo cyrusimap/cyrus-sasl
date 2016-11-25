@@ -115,8 +115,6 @@ extern int gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: kerberos4.c,v 1.100 2009/03/10 16:27:52 mel Exp $";
-
 #ifndef KEYFILE
 #define KEYFILE "/etc/srvtab";
 #endif

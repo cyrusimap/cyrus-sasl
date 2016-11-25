@@ -87,9 +87,6 @@ int main(void)
 int getsubopt(char **optionp, const char * const *tokens, char **valuep);
 #endif
 
-static const char
-build_ident[] = "$Build: sample-client " PACKAGE "-" VERSION " $";
-
 static const char *progname = NULL;
 static int verbose;
 

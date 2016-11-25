@@ -70,9 +70,6 @@ __declspec(dllimport) int getsubopt(char **optionp, const char * const *tokens, 
 int getsubopt(char **optionp, const char * const *tokens, char **valuep);
 #endif
 
-static const char
-build_ident[] = "$Build: sample-server " PACKAGE "-" VERSION " $";
-
 static const char *progname = NULL;
 static int verbose;
 

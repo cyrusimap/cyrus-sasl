@@ -86,8 +86,6 @@ static char * _sasl_get_default_win_path(void *context __attribute__((unused)),
 #endif
 
 
-static const char build_ident[] = "$Build: libsasl " PACKAGE "-" VERSION " $";
-
 /* It turns out to be convenient to have a shared sasl_utils_t */
 const sasl_utils_t *sasl_global_utils = NULL;
 

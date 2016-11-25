@@ -85,8 +85,6 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: gssapi.c,v 1.115 2011/11/21 15:12:35 mel Exp $";
-
 static const char * GSSAPI_BLANK_STRING = "";
 
 static gss_OID_desc gss_spnego_oid = { 6, (void *) "\x2b\x06\x01\x05\x05\x02" };

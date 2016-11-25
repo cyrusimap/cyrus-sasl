@@ -122,8 +122,6 @@ extern int      gethostname(char *, int);
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: digestmd5.c,v 1.205 2011/05/13 19:18:37 murch Exp $";
-
 /* Definitions */
 #define NONCE_SIZE (32)		/* arbitrary */
 

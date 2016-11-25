@@ -54,8 +54,6 @@
 
 /*****************************  Common Section  *****************************/
 
-static const char plugin_id[] = "$Id: login.c,v 1.31 2010/11/30 11:41:47 mel Exp $";
-
 /*****************************  Server Section  *****************************/
 
 typedef struct context {

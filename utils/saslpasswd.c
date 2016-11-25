@@ -75,8 +75,6 @@ char myhostname[1025];
 
 #define PW_BUF_SIZE 2048
 
-static const char build_ident[] = "$Build: saslpasswd " PACKAGE "-" VERSION " $";
-
 const char *progname = NULL;
 char *sasldb_path = NULL;
 

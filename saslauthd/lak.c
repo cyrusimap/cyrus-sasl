@@ -1716,6 +1716,15 @@ static int lak_check_password(
 #define EVP_MD_CTX_new()      EVP_MD_CTX_create()
 #define EVP_MD_CTX_free(ctx)  EVP_MD_CTX_destroy((ctx))
 
+static void *OPENSSL_zalloc(size_t num)
+{
+    void *ret = OPENSSL_malloc(num);
+
+    if (ret != NULL)
+        memset(ret, 0, num);
+    return ret;
+}
+
 static EVP_ENCODE_CTX *EVP_ENCODE_CTX_new(void)
 {
 	return OPENSSL_zalloc(sizeof(EVP_ENCODE_CTX));

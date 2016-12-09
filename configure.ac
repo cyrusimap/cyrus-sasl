@@ -1321,6 +1321,28 @@ IPv6_CHECK_SOCKLEN_T()
 #AC_FUNC_VPRINTF
 AC_CHECK_FUNCS(gethostname getdomainname getpwnam getspnam gettimeofday inet_aton memcpy mkdir select socket strchr strdup strerror strspn strstr strtol jrand48 getpassphrase asprintf strlcat strlcpy)
 
+if test $ac_cv_func_getspnam = yes; then
+	AC_MSG_CHECKING(if getpwnam_r/getspnam_r take 5 arguments)
+	AC_TRY_COMPILE(
+		[
+#include <sys/types.h>
+#include <pwd.h>
+#include <shadow.h>
+		],
+		[
+struct passwd *pw;
+struct passwd pwbuf;
+char pwdata[512];
+(void) getpwnam_r("bin", &pwbuf, pwdata, sizeof(pwdata), &pw);
+		],
+		[AC_MSG_RESULT(yes)
+		 AC_DEFINE(GETXXNAM_R_5ARG, 1,
+			[Define if your getpwnam_r()/getspnam_r()
+			functions take 5 arguments])],
+		[AC_MSG_RESULT(no)]
+	)
+fi
+
 if test $enable_cmulocal = yes; then
     AC_WARN([enabling CMU local kludges])
     AC_DEFINE(KRB4_IGNORE_IP_ADDRESS,[],[Ignore IP Address in Kerberos 4 tickets?])

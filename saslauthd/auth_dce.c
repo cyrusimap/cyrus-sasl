@@ -31,10 +31,6 @@
  * Authenticate against DCE.
  * END SYNOPSIS */
 
-#ifdef __GNUC__
-#ident "$Id: auth_dce.c,v 1.3 2001/12/04 02:06:54 rjs3 Exp $"
-#endif
-
 /* PUBLIC DEPENDENCIES */
 #include <stdlib.h>
 #include <string.h>

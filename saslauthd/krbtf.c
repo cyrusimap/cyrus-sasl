@@ -1,6 +1,6 @@
 /* MODULE: krbtf */
 /* 
- * Copyright (c) 2001 Carnegie Mellon University.  All rights reserved.
+ * Copyright (c) 2001-2016 Carnegie Mellon University.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -18,12 +18,13 @@
  *    endorse or promote products derived from this software without
  *    prior written permission. For permission or any other legal
  *    details, please contact  
- *      Office of Technology Transfer
  *      Carnegie Mellon University
- *      5000 Forbes Avenue
- *      Pittsburgh, PA  15213-3890
- *      (412) 268-4387, fax: (412) 268-7395
- *      tech-transfer@andrew.cmu.edu
+ *      Center for Technology Transfer and Enterprise Creation
+ *      4615 Forbes Avenue
+ *      Suite 302
+ *      Pittsburgh, PA  15213
+ *      (412) 268-7393, fax: (412) 268-7395
+ *      innovation@andrew.cmu.edu
  *
  * 4. Redistributions of any form whatsoever must retain the following
  *    acknowledgment:
@@ -41,7 +42,6 @@
 
 /*
  * Dec  4, 2002 by Dave Eckhardt <davide+receptionist@cs.cmu.edu>
- * $Id: krbtf.c,v 1.2 2005/02/14 05:18:36 shadow Exp $
  * This is inspired by code which was identical in both
  * auth_krb4.c and auth_krb5.c.  This code is shared
  * between the two implementations, contains protection
@@ -49,10 +49,6 @@
  * Heimdal krb5's memory-only credential caches to avoid
  * needless disk i/o.
  */
-
-#ifdef __GNUC__
-#ident "$Id: krbtf.c,v 1.2 2005/02/14 05:18:36 shadow Exp $"
-#endif
 
 /* PUBLIC DEPENDENCIES */
 #include <unistd.h>

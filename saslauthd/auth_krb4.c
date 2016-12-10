@@ -27,10 +27,6 @@
  * DAMAGE.
  * END COPYRIGHT */
 
-#ifdef __GNUC__
-#ident "$Id: auth_krb4.c,v 1.12 2005/02/01 12:26:34 mel Exp $"
-#endif
-
 /* PUBLIC DEPENDENCIES */
 #include <unistd.h>
 #include "mechanisms.h"

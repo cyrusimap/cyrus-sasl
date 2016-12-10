@@ -31,10 +31,6 @@
  * crypt(3) based passwd file validation
  * END SYNOPSIS */
 
-#ifdef __GNUC__
-#ident "$Id: auth_getpwent.c,v 1.9 2009/02/13 14:23:26 mel Exp $"
-#endif
-
 /* PUBLIC DEPENDENCIES */
 #include "mechanisms.h"
 #include <unistd.h>

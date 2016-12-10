@@ -30,10 +30,6 @@
  * authentication drivers.
  * END SYNOPSIS */
 
-#ifdef __GNUC__
-#ident "$Id: mechanisms.c,v 1.8 2006/03/13 20:17:09 mel Exp $"
-#endif
-
 /* PUBLIC DEPENDENCIES */
 #include "mechanisms.h"
 

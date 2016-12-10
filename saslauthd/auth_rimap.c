@@ -53,10 +53,6 @@
  * Proxy authentication to a remote IMAP (or IMSP) server.
  * END SYNOPSIS */
 
-#ifdef __GNUC__
-#ident "$Id: auth_rimap.c,v 1.14 2011/09/22 14:39:03 mel Exp $"
-#endif
-
 /* PUBLIC DEPENDENCIES */
 #include "mechanisms.h"
 

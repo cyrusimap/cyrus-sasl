@@ -53,10 +53,6 @@
  * Proxy authentication to a remote HTTP server.
  * END SYNOPSIS */
 
-#ifdef __GNUC__
-#ident "$Id: auth_httpform.c,v 1.2 2006/04/19 19:51:04 murch Exp $"
-#endif
-
 #include <config.h>
 
 /* PUBLIC DEPENDENCIES */

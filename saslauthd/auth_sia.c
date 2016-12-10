@@ -27,10 +27,6 @@
  * DAMAGE.
  * END COPYRIGHT */
 
-#ifdef __GNUC__
-#ident "$Id: auth_sia.c,v 1.3 2001/12/04 02:06:55 rjs3 Exp $"
-#endif
-
 /* PUBLIC DEPENDENCIES */
 #include "mechanisms.h"
 

@@ -57,10 +57,6 @@
 
 #include "gs2_token.h"
 
-/*
- * $Id: gs2_token.c,v 1.2 2011/05/23 14:45:40 mel Exp $
- */
-
 #ifndef HAVE_GSS_ENCAPSULATE_TOKEN
 /* XXXX this code currently makes the assumption that a mech oid will
    never be longer than 127 bytes.  This assumption is not inherent in

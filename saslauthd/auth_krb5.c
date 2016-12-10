@@ -27,10 +27,6 @@
  * DAMAGE.
  * END COPYRIGHT */
 
-#ifdef __GNUC__
-#ident "$Id: auth_krb5.c,v 1.18 2008/01/23 15:39:34 murch Exp $"
-#endif
-
 /* ok, this is  wrong but the most convenient way of doing 
  * it for now. We assume (possibly incorrectly) that if GSSAPI exists then 
  * the Kerberos 5 headers and libraries exist.   

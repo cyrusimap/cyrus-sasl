@@ -31,10 +31,6 @@
  * crypt(3) based passwd file validation
  * END SYNOPSIS */
 
-#ifdef __GNUC__
-#ident "$Id: auth_sasldb.c,v 1.6 2009/02/20 22:08:56 mel Exp $"
-#endif
-
 /* PUBLIC DEPENDENCIES */
 #include "mechanisms.h"
 

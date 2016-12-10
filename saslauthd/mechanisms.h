@@ -25,10 +25,6 @@
  * DAMAGE.
  * END COPYRIGHT */
 
-#ifdef __GNUC__
-#ident "$Id: mechanisms.h,v 1.10 2006/03/13 20:17:09 mel Exp $"
-#endif
-
 #ifndef _MECHANISMS_H
 #define _MECHANISMS_H
 

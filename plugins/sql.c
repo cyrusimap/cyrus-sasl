@@ -7,7 +7,6 @@
 ** Simon Loader -- original mysql plugin
 ** Patrick Welche -- original pgsql plugin
 **
-** $Id: sql.c,v 1.38 2009/04/11 10:48:07 mel Exp $
 **
 */
 

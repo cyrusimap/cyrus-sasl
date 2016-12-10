@@ -94,7 +94,11 @@ static void sockaddr_unmapped(
     if (!IN6_IS_ADDR_V4MAPPED((&sin6->sin6_addr)))
 	return;
     sin4 = (struct sockaddr_in *)sa;
+#ifdef s6_addr32
     addr = *(uint32_t *)&sin6->sin6_addr.s6_addr32[3];
+#else
+    memcpy(&addr, &sin6->sin6_addr.s6_addr[12], 4);
+#endif
     port = sin6->sin6_port;
     memset(sin4, 0, sizeof(struct sockaddr_in));
     sin4->sin_addr.s_addr = addr;

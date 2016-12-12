@@ -1585,7 +1585,6 @@ sasldb/Makefile
 plugins/Makefile
 lib/Makefile
 utils/Makefile
-doc/Makefile
 sample/Makefile
 java/Makefile
 java/CyrusSasl/Makefile

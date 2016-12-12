@@ -70,17 +70,22 @@ else
 INSTALLOSX = 
 endif
 
-SUBDIRS=include sasldb lib plugins utils doc man $(PWC) $(SAM) $(JAV) $(SAD)
-EXTRA_DIST=config win32 mac dlcompat-20010505 NTMakefile INSTALL.TXT \
+SUBDIRS=include sasldb lib plugins utils man $(PWC) $(SAM) $(JAV) $(SAD)
+EXTRA_DIST=config doc win32 mac dlcompat-20010505 NTMakefile INSTALL.TXT \
     libsasl2.pc.in
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libsasl2.pc
 
+## define this unconditionally because dist-hook references it
+SPHINX_CACHE = docsrc/.doctrees
+
 dist-hook:
 	@find $(distdir) -exec chmod u+w {} ';'
 	@find $(distdir) -name CVS -print | xargs -t rm -rf
 	(cd $(distdir)/plugins && sh makeinit.sh)
+	find $(top_distdir) -type f -name .sphinx-build.stamp -delete
+	rm -rf $(top_distdir)/$(SPHINX_CACHE)
 
 framedir = /Library/Frameworks/SASL2.framework
 install-exec-local: $(INSTALLOSX)
@@ -109,3 +114,54 @@ install-exec-local-osx:
 	cd $(framedir) ; ln -fs Versions/A/Resources .
 	$(INSTALL_DATA) $(srcdir)/config/Info.plist $(framedir)/Versions/A/Resources
 
+## documentation generation
+.PHONY: clean-sphinx-cache clean-docsrc
+clean-sphinx-cache:
+	@$(RM) -r $(SPHINX_CACHE)
+
+if HAVE_SPHINX_BUILD
+GENERATED_RSTS =
+
+SPHINX_OPTS = -d $(SPHINX_CACHE) -n -q
+
+## detect when source directory is not build directory (i.e. VPATH
+## build), and clone the docsrc tree into the build directory, so
+## that we have a single "source directory" for sphinx-build to use.
+docsrc/.sphinx-build.stamp:
+	$(AM_V_GEN)test x"$(top_srcdir)" = x"$(top_builddir)" || \
+        (cd $(top_srcdir) && tar cf - --mode=gu+w docsrc) | tar xf -
+	@touch $@
+
+clean-docsrc:
+	test x"$(top_srcdir)" = x"$(top_builddir)" || \
+		$(RM) -r $(top_builddir)/docsrc
+
+## XXX doesn't detect if other rst sources are updated...
+doc/.sphinx-build.stamp: $(GENERATED_RSTS) docsrc/.sphinx-build.stamp
+	$(AM_V_GEN)$(SPHINX_BUILD) $(SPHINX_OPTS) -b html $(top_builddir)/docsrc $(top_builddir)/doc
+	@touch $@
+
+else
+clean-docsrc:
+
+doc/.sphinx-build.stamp:
+	@echo "error: missing documentation dependencies. cannot build html documentation" 1>&2
+	@false
+endif
+
+.PHONY: doc-html doc-html-force clean-doc-html
+doc-html-force:
+	@$(RM) docsrc/.sphinx-build.stamp doc/.sphinx-build.stamp
+
+doc-html: doc-html-force doc/.sphinx-build.stamp
+
+clean-doc-html:
+	@$(RM) -r doc/html
+
+.PHONY: doc clean-doc
+doc: doc-html
+
+clean-doc: clean-doc-html
+
+.PHONY: clean-local
+clean-local: clean-doc clean-sphinx-cache clean-docsrc

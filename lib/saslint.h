@@ -525,4 +525,11 @@ int get_fqhostname(
   int abort_if_no_fqdn
   );
 
+#ifndef HAVE_GETHOSTNAME
+#ifdef sun
+/* gotta define gethostname ourselves on suns */
+extern int gethostname(char *, int);
+#endif
+#endif /* HAVE_GETHOSTNAME */
+
 #endif /* SASLINT_H */

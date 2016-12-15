@@ -108,11 +108,6 @@ typedef struct krb_principal {
 #include <io.h>
 #endif /* WIN32 */
 
-#ifdef sun
-/* gotta define gethostname ourselves on suns */
-extern int gethostname(char *, int);
-#endif
-
 /*****************************  Common Section  *****************************/
 
 #ifndef KEYFILE

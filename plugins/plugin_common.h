@@ -132,7 +132,15 @@ typedef struct buffer_info
     unsigned curlen;   /* Current length of data in buffer */
     unsigned reallen;  /* total length of buffer (>= curlen) */
 } buffer_info_t;
+
+#ifndef HAVE_GETHOSTNAME
+#ifdef sun
+/* gotta define gethostname ourselves on suns */
+extern int gethostname(char *, int);
 #endif
+#endif /* HAVE_GETHOSTNAME */
+
+#endif /* SASLINT_H */
 
 #ifdef __cplusplus
 extern "C" {

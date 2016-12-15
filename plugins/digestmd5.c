@@ -101,11 +101,6 @@ extern int strcasecmp(const char *s1, const char *s2);
 
 /* external definitions */
 
-#ifdef sun
-/* gotta define gethostname ourselves on suns */
-extern int      gethostname(char *, int);
-#endif
-
 #define bool int
 
 #ifndef TRUE

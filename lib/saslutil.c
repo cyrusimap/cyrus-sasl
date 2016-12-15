@@ -80,11 +80,6 @@
  * sasl_erasebuffer
  */
 
-#ifdef sun
-/* gotta define gethostname ourselves on suns */
-extern int gethostname(char *, int);
-#endif
-
 char *encode_table;
 char *decode_table;
 

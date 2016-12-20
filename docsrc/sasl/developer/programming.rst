@@ -169,7 +169,7 @@ How does this look in code
 
 This is done once.
 
-.. code-block:: c
+.. code-block:: C
 
         int result;
 
@@ -188,7 +188,7 @@ This is done once.
 
 For every network connection, make a new SASL connection:
 
-.. code-block:: c
+.. code-block:: C
 
             /* The SASL context kept for the life of the connection */
             sasl_conn_t *conn;
@@ -220,7 +220,7 @@ usually done through a capability command. Format the list as a
 single string separated by spaces. Feed this string into SASL to
 begin the authentication process.
 
-.. code-block:: c
+.. code-block:: C
 
             sasl_interact_t *client_interact=NULL;
             const char *out, *mechusing;
@@ -303,7 +303,7 @@ Convert the continuation data to binary format (for example, this
 may include base64 decoding it). Perform another step in the
 authentication.
 
-.. code-block:: c
+.. code-block:: C
 
               do {
                 result=sasl_client_step(conn,  /* our context */
@@ -341,7 +341,7 @@ time to make sure the server isn't trying to fool us. Some
 protocols include data along with the last step. If so this data
 should be used here. If not use a length of zero.
 
-.. code-block:: c
+.. code-block:: C
 
                 result=sasl_client_step(conn,  /* our context */
                         in,    /* the data from the server */
@@ -365,7 +365,7 @@ encode and decode the data sent over the network.
 When you are finally done with connection to server, dispose of
 SASL connection.
 
-.. code-block:: c
+.. code-block:: C
 
                sasl_dispose(&conn);
 
@@ -373,13 +373,13 @@ SASL connection.
 If you are done with SASL forever (application quiting for
 example):
 
-.. code-block:: c
+.. code-block:: C
 
                 sasl_client_done();
 
 Or if your application is both a SASL client and a SASL server:
 
-.. code-block:: c
+.. code-block:: C
 
                 sasl_done();
 
@@ -388,7 +388,7 @@ But note that applications should be using sasl_client_done()/sasl_server_done()
 sasl_client_init
 ----------------
 
-.. code-block:: c
+.. code-block:: C
 
    int sasl_client_init(const sasl_callback_t *callbacks)
 
@@ -401,7 +401,7 @@ before any other SASL calls.
 sasl_client_new
 ---------------
 
-.. code-block:: c
+.. code-block:: C
 
    int sasl_client_new(const char *service,
                        const char *serverFQDN,
@@ -437,7 +437,7 @@ called once for every connection you want to authenticate for.
 sasl_client_start
 -----------------
 
-.. code-block:: c
+.. code-block:: C
 
    int sasl_client_start(sasl_conn_t *conn,
               const char *mechlist,
@@ -467,7 +467,7 @@ success clientout points at data to send to the server.
 sasl_client_step
 ----------------
 
-.. code-block:: c
+.. code-block:: C
 
    int sasl_client_step(sasl_conn_t *conn,
          const char *serverin,
@@ -519,7 +519,7 @@ Initialization
 This is done once. The application name is used for
 reading configuration information.
 
-.. code-block:: c
+.. code-block:: C
 
     int result;
 
@@ -527,11 +527,10 @@ reading configuration information.
     result=sasl_server_init(callbacks,      /* Callbacks supported */
                             "TestServer");  /* Name of the application */
 
-
 This should be called for each new connection. It probably should
 be called right when the socket is accepted.
 
-.. code-block:: c
+.. code-block:: C
 
     sasl_conn_t *conn;
     int result;
@@ -554,7 +553,7 @@ When a client requests the list of mechanisms supported by the
 server. This particular call might produce the string: ``{PLAIN,
 KERBEROS_V4, CRAM-MD5, DIGEST-MD5}``
 
-.. code-block:: c
+.. code-block:: C
 
     result=sasl_listmech(conn,  /* The context for this connection */
              NULL,  /* not supported */
@@ -569,28 +568,28 @@ KERBEROS_V4, CRAM-MD5, DIGEST-MD5}``
 
 When a client requests to authenticate:
 
-.. code-block:: c
+.. code-block:: C
 
     int result;
     const char *out;
     unsigned outlen;
 
-    result=sasl_server_start(conn, /* context */
-                             mechanism_client_chose,
-                             clientin,    /* the optional string the client gave us */
-                             clientinlen, /* and it's length */
-                             &out, /* The output of the library.
-                                      Might not be NULL terminated */
-                             &outlen);
+    result = sasl_server_start(conn, /* context */
+                 mechanism_client_chose,
+                 clientin,    /* the optional string the client gave us */
+                 clientinlen, /* and it's length */
+                 &out, /* The output of the library.
+                          Might not be NULL terminated */
+                 &outlen);
 
     if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
-      [failure. Send protocol specific message that says authentication failed]
+      /* failure. Send protocol specific message that says authentication failed */
     else if (result==SASL_OK)
-      [authentication succeeded. Send client the protocol specific message
-       to say that authentication is complete]
+      /* authentication succeeded. Send client the protocol specific message
+       to say that authentication is complete */
     else
-      [send data 'out' with length 'outlen' over the network in protocol
-       specific format]
+      /* send data 'out' with length 'outlen' over the network in protocol
+       specific format */
 
 When a response is returned by the client. ``clientin`` is the
 data from the client decoded from protocol specific format to a
@@ -598,7 +597,7 @@ string of bytes of length ``clientinlen``. This step may occur
 zero or more times. An application must be able to deal with it
 occurring an arbitrary number of times.
 
-.. code-block:: c
+.. code-block:: C
 
     int result;
 
@@ -610,13 +609,13 @@ occurring an arbitrary number of times.
                             &outlen);
 
     if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
-      [failure. Send protocol specific message that says authentication failed]
+      /* failure. Send protocol specific message that says authentication failed */
     else if (result==SASL_OK)
-      [authentication succeeded. Send client the protocol specific message
-       to say that authentication is complete]
+      /* authentication succeeded. Send client the protocol specific message
+       to say that authentication is complete */
     else
-      [send data 'out' with length 'outlen' over the network in protocol
-       specific format]
+      /* send data 'out' with length 'outlen' over the network in protocol
+       specific format */
 
 
 This continues until authentication succeeds. When the connection
@@ -626,7 +625,7 @@ client connection.
 sasl_server_init
 ----------------
 
-.. code-block:: c
+.. code-block:: C
 
    int sasl_server_init(const sasl_callback_t *callbacks,
                          const char *appname);
@@ -644,7 +643,7 @@ authentication mechanisms are loaded.
 sasl_server_new
 ---------------
 
-.. code-block:: c
+.. code-block:: C
 
    int sasl_server_new(const char *service,
             const char *serverFQDN,
@@ -686,7 +685,7 @@ pconn
 sasl_server_start
 -----------------
 
-.. code-block:: c
+.. code-block:: C
 
    int sasl_server_start(sasl_conn_t *conn,
                const char *mech,
@@ -723,7 +722,7 @@ of this.
 sasl_server_step
 ----------------
 
-.. code-block:: c
+.. code-block:: C
 
    int sasl_server_step(sasl_conn_t *conn,
                  const char *clientin,
@@ -755,7 +754,7 @@ authentication failed and the client should be notified of this.
 sasl_listmech
 -------------
 
-.. code-block:: c
+.. code-block:: C
 
    int sasl_listmech(sasl_conn_t *conn,
               const char *user,
@@ -790,7 +789,7 @@ a capability statement.
 sasl_checkpass
 --------------
 
-.. code-block:: c
+.. code-block:: C
 
    int sasl_checkpass(sasl_conn_t *conn,
                        const char *user,
@@ -878,7 +877,7 @@ SASL_CB_GETREALM
 
 An example of a way to handle callbacks:
 
-.. code-block:: c
+.. code-block:: C
 
    /* callbacks we support. This is a global variable at the
        top of the program */
@@ -925,7 +924,7 @@ An example of a way to handle callbacks:
 
 in the main program somewhere
 
-.. code-block:: c
+.. code-block:: C
 
    sasl_client_init(callbacks);
 
@@ -943,7 +942,7 @@ To set that you support a security layer, set a security
 property structure with ``max_ssf`` set to a non-zero
 number:
 
-.. code-block:: c
+.. code-block:: C
 
    sasl_security_properties_t secprops;
 
@@ -971,7 +970,7 @@ After authentication is successful, you can determine whether or
 not a security layer has been negotiated by looking at the SASL_SSF
 property:
 
-.. code-block:: c
+.. code-block:: C
 
    const int *ssfp;
 

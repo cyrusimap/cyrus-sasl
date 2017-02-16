@@ -648,10 +648,62 @@ static void gssapi_common_mech_free(void *global_context __attribute__((unused))
 #endif
 }
 
+/* The GSS-SPNEGO mechanism does not do SSF negotiation, instead it uses the
+ * flags negotiated by GSSAPI to determine If confidentiality or integrity are
+ * used. These flags are stored in text->qop transalated as layers by the
+ * caller */
+static int gssapi_spnego_ssf(context_t *text, const sasl_utils_t *utils,
+                             sasl_security_properties_t *props,
+                             sasl_out_params_t *oparams)
+{
+    OM_uint32 maj_stat = 0, min_stat = 0;
+    OM_uint32 max_input;
+
+    if (text->qop & LAYER_CONFIDENTIALITY) {
+        oparams->encode = &gssapi_privacy_encode;
+        oparams->decode = &gssapi_decode;
+        oparams->mech_ssf = K5_MAX_SSF;
+    } else if (text->qop & LAYER_INTEGRITY) {
+        oparams->encode = &gssapi_integrity_encode;
+        oparams->decode = &gssapi_decode;
+        oparams->mech_ssf = 1;
+    } else {
+        oparams->encode = NULL;
+        oparams->decode = NULL;
+        oparams->mech_ssf = 0;
+    }
+
+    if (oparams->mech_ssf) {
+        maj_stat = gss_wrap_size_limit(&min_stat,
+                                       text->gss_ctx,
+                                       1,
+                                       GSS_C_QOP_DEFAULT,
+                                       (OM_uint32)oparams->maxoutbuf,
+                                       &max_input);
+
+	if (max_input > oparams->maxoutbuf) {
+	    /* Heimdal appears to get this wrong */
+	    oparams->maxoutbuf -= (max_input - oparams->maxoutbuf);
+	} else {
+	    /* This code is actually correct */
+	    oparams->maxoutbuf = max_input;
+	}
+    }
+
+    text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
+
+    /* used by layers */
+    _plug_decode_init(&text->decode_context, text->utils,
+		      (props->maxbufsize > 0xFFFFFF) ? 0xFFFFFF :
+                      props->maxbufsize);
+
+    return SASL_OK;
+}
+
 /*****************************  Server Section  *****************************/
 
 static int 
-gssapi_server_mech_new(void *glob_context __attribute__((unused)), 
+gssapi_server_mech_new(void *glob_context,
 		       sasl_server_params_t *params,
 		       const char *challenge __attribute__((unused)), 
 		       unsigned challen __attribute__((unused)),
@@ -673,6 +725,7 @@ gssapi_server_mech_new(void *glob_context __attribute__((unused)),
     text->state = SASL_GSSAPI_STATE_AUTHNEG;
     
     text->http_mode = (params->flags & SASL_NEED_HTTP);
+    text->mech_type = (gss_OID) glob_context;
 
     *conn_context = text;
     
@@ -686,7 +739,7 @@ gssapi_server_mech_authneg(context_t *text,
 			   unsigned clientinlen,
 			   const char **serverout,
 			   unsigned *serveroutlen,
-			   sasl_out_params_t *oparams __attribute__((unused)))
+			   sasl_out_params_t *oparams)
 {
     gss_buffer_t input_token, output_token;
     gss_buffer_desc real_input_token, real_output_token;
@@ -965,8 +1018,9 @@ gssapi_server_mech_authneg(context_t *text,
 	/* HTTP doesn't do any ssf negotiation */
 	text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
 	ret = SASL_OK;
-    }
-    else {
+    } else if (text->mech_type && text->mech_type == &gss_spnego_oid) {
+        ret = gssapi_spnego_ssf(text, params->utils, &params->props, oparams);
+    } else {
 	/* Switch to ssf negotiation */
 	text->state = SASL_GSSAPI_STATE_SSFCAP;
 	ret = SASL_CONTINUE;
@@ -1391,7 +1445,7 @@ static sasl_server_plug_t gssapi_server_plugins[] =
 	| SASL_FEAT_ALLOWS_PROXY
 	| SASL_FEAT_DONTUSE_USERPASSWD
 	| SASL_FEAT_SUPPORTS_HTTP,	/* features */
-	NULL,				/* glob_context */
+	&gss_spnego_oid,		/* glob_context */
 	&gssapi_server_mech_new,	/* mech_new */
 	&gssapi_server_mech_step,	/* mech_step */
 	&gssapi_common_mech_dispose,	/* mech_dispose */
@@ -1769,7 +1823,11 @@ static int gssapi_client_mech_step(void *conn_context,
 		text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
 		oparams->doneflag = 1;
 		return SASL_OK;
-	    }
+	    } else if (text->mech_type && text->mech_type == &gss_spnego_oid) {
+		oparams->doneflag = 1;
+                return gssapi_spnego_ssf(text, params->utils, &params->props,
+                                         oparams);
+            }
 
 	    /* Switch to ssf negotiation */
 	    text->state = SASL_GSSAPI_STATE_SSFCAP;

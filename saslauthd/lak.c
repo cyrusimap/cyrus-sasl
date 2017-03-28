@@ -1453,8 +1453,25 @@ static int lak_auth_bind(
 	if ( rc == LAK_OK &&
 	    (ISSET(lak->conf->group_dn) ||
          ISSET(lak->conf->group_filter)) )
-		rc = lak_group_member(lak, user, service, realm, dn->value);
+	  {
+		/* restore config bind */
+                lak_unbind(lak);
+		rc = lak_user(<>
+		lak->conf->bind_dn,
+		lak->conf->id,
+		lak->conf->authz_id,
+		lak->conf->mech,
+		lak->conf->realm,
+		lak->conf->password,
+		&lu);
+		if (rc != LAK_OK)
+			goto done;
+		rc = lak_bind(lak, lu);
+		if (rc != LAK_OK)
+			goto done;
 
+		rc = lak_group_member(lak, user, service, realm, dn->value);
+	    }
 done:;
 	if (lu)
 		lak_user_free(lu);

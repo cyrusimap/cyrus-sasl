@@ -648,6 +648,32 @@ static void gssapi_common_mech_free(void *global_context __attribute__((unused))
 #endif
 }
 
+static int gssapi_wrap_sizes(context_t *text, sasl_out_params_t *oparams)
+{
+    OM_uint32 maj_stat = 0, min_stat = 0;
+    OM_uint32 max_input = 0;
+
+    maj_stat = gss_wrap_size_limit(&min_stat,
+                                   text->gss_ctx,
+                                   1,
+                                   GSS_C_QOP_DEFAULT,
+                                   (OM_uint32)oparams->maxoutbuf,
+                                   &max_input);
+   if (maj_stat != GSS_S_COMPLETE) {
+       return SASL_FAIL;
+   }
+
+    if (max_input > oparams->maxoutbuf) {
+        /* Heimdal appears to get this wrong */
+        oparams->maxoutbuf -= (max_input - oparams->maxoutbuf);
+    } else {
+        /* This code is actually correct */
+        oparams->maxoutbuf = max_input;
+    }
+
+    return SASL_OK;
+}
+
 /* The GSS-SPNEGO mechanism does not do SSF negotiation, instead it uses the
  * flags negotiated by GSSAPI to determine If confidentiality or integrity are
  * used. These flags are stored in text->qop transalated as layers by the
@@ -656,8 +682,7 @@ static int gssapi_spnego_ssf(context_t *text,
                              sasl_security_properties_t *props,
                              sasl_out_params_t *oparams)
 {
-    OM_uint32 maj_stat = 0, min_stat = 0;
-    OM_uint32 max_input;
+    int ret;
 
     if (text->qop & LAYER_CONFIDENTIALITY) {
         oparams->encode = &gssapi_privacy_encode;
@@ -674,20 +699,10 @@ static int gssapi_spnego_ssf(context_t *text,
     }
 
     if (oparams->mech_ssf) {
-        maj_stat = gss_wrap_size_limit(&min_stat,
-                                       text->gss_ctx,
-                                       1,
-                                       GSS_C_QOP_DEFAULT,
-                                       (OM_uint32)oparams->maxoutbuf,
-                                       &max_input);
-
-	if (max_input > oparams->maxoutbuf) {
-	    /* Heimdal appears to get this wrong */
-	    oparams->maxoutbuf -= (max_input - oparams->maxoutbuf);
-	} else {
-	    /* This code is actually correct */
-	    oparams->maxoutbuf = max_input;
-	}
+        ret = gssapi_wrap_sizes(text, oparams);
+        if (ret != SASL_OK) {
+            return ret;
+        }
     }
 
     text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
@@ -1208,7 +1223,6 @@ gssapi_server_mech_ssfreq(context_t *text,
     gss_buffer_t input_token, output_token;
     gss_buffer_desc real_input_token, real_output_token;
     OM_uint32 maj_stat = 0, min_stat = 0;
-    OM_uint32 max_input;
     int layerchoice;
 	
     input_token = &real_input_token;
@@ -1297,26 +1311,19 @@ gssapi_server_mech_ssfreq(context_t *text,
 	(((unsigned char *) output_token->value)[2] << 8) |
 	(((unsigned char *) output_token->value)[3] << 0);
 
-    if (oparams->mech_ssf) {
-	maj_stat = gss_wrap_size_limit( &min_stat,
-					text->gss_ctx,
-					1,
-					GSS_C_QOP_DEFAULT,
-					(OM_uint32) oparams->maxoutbuf,
-					&max_input);
-
-	if(max_input > oparams->maxoutbuf) {
-	    /* Heimdal appears to get this wrong */
-	    oparams->maxoutbuf -= (max_input - oparams->maxoutbuf);
-	} else {
-	    /* This code is actually correct */
-	    oparams->maxoutbuf = max_input;
-	}    
-    }
-	
     GSS_LOCK_MUTEX_CTX(params->utils, text);
     gss_release_buffer(&min_stat, output_token);
     GSS_UNLOCK_MUTEX_CTX(params->utils, text);
+
+    if (oparams->mech_ssf) {
+        int ret;
+
+        ret = gssapi_wrap_sizes(text, oparams);
+        if (ret != SASL_OK) {
+	    sasl_gss_free_context_contents(text);
+            return ret;
+        }
+    }
 
     text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
 
@@ -1569,7 +1576,6 @@ static int gssapi_client_mech_step(void *conn_context,
     gss_buffer_t input_token, output_token;
     gss_buffer_desc real_input_token, real_output_token;
     OM_uint32 maj_stat = 0, min_stat = 0;
-    OM_uint32 max_input;
     gss_buffer_desc name_token;
     int ret;
     OM_uint32 req_flags = 0, out_req_flags = 0;
@@ -1952,27 +1958,19 @@ static int gssapi_client_mech_step(void *conn_context,
             (((unsigned char *) output_token->value)[2] << 8) |
             (((unsigned char *) output_token->value)[3] << 0);
 
-	if (oparams->mech_ssf) {
-            maj_stat = gss_wrap_size_limit( &min_stat,
-                                            text->gss_ctx,
-                                            1,
-                                            GSS_C_QOP_DEFAULT,
-                                            (OM_uint32) oparams->maxoutbuf,
-                                            &max_input);
-
-	    if (max_input > oparams->maxoutbuf) {
-		/* Heimdal appears to get this wrong */
-		oparams->maxoutbuf -= (max_input - oparams->maxoutbuf);
-	    } else {
-		/* This code is actually correct */
-		oparams->maxoutbuf = max_input;
-	    }
-	}
-	
 	GSS_LOCK_MUTEX_CTX(params->utils, text);
 	gss_release_buffer(&min_stat, output_token);
 	GSS_UNLOCK_MUTEX_CTX(params->utils, text);
-	
+
+	if (oparams->mech_ssf) {
+            int ret;
+
+            ret = gssapi_wrap_sizes(text, oparams);
+            if (ret != SASL_OK) {
+	        sasl_gss_free_context_contents(text);
+                return ret;
+            }
+	}
 	/* oparams->user is always set, due to canon_user requirements.
 	 * Make sure the client actually requested it though, by checking
 	 * if our context was set.

@@ -290,6 +290,26 @@ if test "$gssapi" != no; then
 
   cmu_save_LIBS="$LIBS"
   LIBS="$LIBS $GSSAPIBASE_LIBS"
+  AC_CHECK_FUNCS(gss_inquire_sec_context_by_oid)
+  if test "$ac_cv_func_gss_inquire_sec_context_by_oid" = no ; then
+    if test "$ac_cv_header_gssapi_gssapi_ext_h" = "yes"; then
+      AC_CHECK_DECL(gss_inquire_sec_context_by_oid,
+                    [AC_DEFINE(HAVE_GSS_INQUIRE_SEC_CONTEXT_BY_OID,1,
+                               [Define if your GSSAPI implementation defines gss_inquire_sec_context_by_oid])],,
+                    [
+                    AC_INCLUDES_DEFAULT
+                    #include <gssapi/gssapi_ext.h>
+                    ])
+    fi
+  fi
+  if test "$ac_cv_header_gssapi_gssapi_ext_h" = "yes"; then
+    AC_EGREP_HEADER(GSS_C_SEC_CONTEXT_SASL_SSF, gssapi/gssapi_ext.h,
+                    [AC_DEFINE(HAVE_GSS_C_SEC_CONTEXT_SASL_SSF,,
+                               [Define if your GSSAPI implementation defines GSS_C_SEC_CONTEXT_SASL_SSF])])
+  fi
+  cmu_save_LIBS="$LIBS"
+  LIBS="$LIBS $GSSAPIBASE_LIBS"
+
   AC_MSG_CHECKING([for SPNEGO support in GSSAPI libraries])
   AC_TRY_RUN([
 #ifdef HAVE_GSSAPI_H

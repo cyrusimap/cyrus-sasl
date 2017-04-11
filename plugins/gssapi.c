@@ -652,7 +652,7 @@ static void gssapi_common_mech_free(void *global_context __attribute__((unused))
  * flags negotiated by GSSAPI to determine If confidentiality or integrity are
  * used. These flags are stored in text->qop transalated as layers by the
  * caller */
-static int gssapi_spnego_ssf(context_t *text, const sasl_utils_t *utils,
+static int gssapi_spnego_ssf(context_t *text,
                              sasl_security_properties_t *props,
                              sasl_out_params_t *oparams)
 {
@@ -1019,7 +1019,7 @@ gssapi_server_mech_authneg(context_t *text,
 	text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
 	ret = SASL_OK;
     } else if (text->mech_type && text->mech_type == &gss_spnego_oid) {
-        ret = gssapi_spnego_ssf(text, params->utils, &params->props, oparams);
+        ret = gssapi_spnego_ssf(text, &params->props, oparams);
     } else {
 	/* Switch to ssf negotiation */
 	text->state = SASL_GSSAPI_STATE_SSFCAP;
@@ -1825,8 +1825,7 @@ static int gssapi_client_mech_step(void *conn_context,
 		return SASL_OK;
 	    } else if (text->mech_type && text->mech_type == &gss_spnego_oid) {
 		oparams->doneflag = 1;
-                return gssapi_spnego_ssf(text, params->utils, &params->props,
-                                         oparams);
+                return gssapi_spnego_ssf(text, &params->props, oparams);
             }
 
 	    /* Switch to ssf negotiation */

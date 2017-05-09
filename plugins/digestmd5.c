@@ -2444,7 +2444,7 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 #endif
     }
 
-    if (!text->nonce && text->reauth->timeout) {
+    if (!text->nonce && text->reauth->timeout && text->reauth->size > 0) {
 	unsigned val = hash((char *) nonce) % text->reauth->size;
 
 	/* reauth attempt or continuation of HTTP Digest on a

@@ -51,7 +51,12 @@
 #include <gssapi/gssapi.h>
 #endif
 
+#ifdef HAVE_GSSAPI_GSSAPI_KRB5_H
 #include <gssapi/gssapi_krb5.h>
+#endif
+#ifdef HAVE_GSSAPI_GSSAPI_EXT_H
+#include <gssapi/gssapi_ext.h>
+#endif
 
 #ifdef WIN32
 #  include <winsock2.h>
@@ -98,18 +103,25 @@ extern gss_OID gss_nt_service_name;
 /* Check if CyberSafe flag is defined */
 #ifdef CSF_GSS_C_DES3_FLAG
 #define K5_MAX_SSF	112
+#define K5_MIN_SSF	112
 #endif
 
 /* Heimdal and MIT use the following */
 #ifdef GSS_KRB5_CONF_C_QOP_DES3_KD
 #define K5_MAX_SSF	112
+#define K5_MIN_SSF	112
 #endif
 
 #endif
 
 #ifndef K5_MAX_SSF
+/* All modern Kerberos implementations support AES */
+#define K5_MAX_SSF	256
+#endif
+
 /* All Kerberos implementations support DES */
-#define K5_MAX_SSF	56
+#ifndef K5_MIN_SSF
+#define K5_MIN_SSF      56
 #endif
 
 /* GSSAPI SASL Mechanism by Leif Johansson <leifj@matematik.su.se>
@@ -648,21 +660,90 @@ static void gssapi_common_mech_free(void *global_context __attribute__((unused))
 #endif
 }
 
+static int gssapi_wrap_sizes(context_t *text, sasl_out_params_t *oparams)
+{
+    OM_uint32 maj_stat = 0, min_stat = 0;
+    OM_uint32 max_input = 0;
+
+    maj_stat = gss_wrap_size_limit(&min_stat,
+                                   text->gss_ctx,
+                                   1,
+                                   GSS_C_QOP_DEFAULT,
+                                   (OM_uint32)oparams->maxoutbuf,
+                                   &max_input);
+   if (maj_stat != GSS_S_COMPLETE) {
+       return SASL_FAIL;
+   }
+
+    if (max_input > oparams->maxoutbuf) {
+        /* Heimdal appears to get this wrong */
+        oparams->maxoutbuf -= (max_input - oparams->maxoutbuf);
+    } else {
+        /* This code is actually correct */
+        oparams->maxoutbuf = max_input;
+    }
+
+    return SASL_OK;
+}
+
+#if !defined(HAVE_GSS_C_SEC_CONTEXT_SASL_SSF)
+gss_OID_desc gss_sasl_ssf = {
+    11, (void *)"\x2a\x86\x48\x86\xf7\x12\x01\x02\x02\x05\x0f"
+};
+gss_OID GSS_C_SEC_CONTEXT_SASL_SSF = &gss_sasl_ssf;
+#endif
+
+static int gssapi_get_ssf(context_t *text, sasl_ssf_t *mech_ssf)
+{
+#ifdef HAVE_GSS_INQUIRE_SEC_CONTEXT_BY_OID
+    OM_uint32 maj_stat = 0, min_stat = 0;
+    gss_buffer_set_t bufset = GSS_C_NO_BUFFER_SET;
+    gss_OID ssf_oid = GSS_C_SEC_CONTEXT_SASL_SSF;
+    uint32_t ssf;
+
+    maj_stat = gss_inquire_sec_context_by_oid(&min_stat, text->gss_ctx,
+                                              ssf_oid, &bufset);
+    switch (maj_stat) {
+    case GSS_S_UNAVAILABLE:
+        /* Not supported by the library, fallback to default */
+        goto fallback;
+    case GSS_S_COMPLETE:
+        if ((bufset->count != 1) || (bufset->elements[0].length != 4)) {
+            /* Malformed bufset, fail */
+            (void)gss_release_buffer_set(&min_stat, &bufset);
+            return SASL_FAIL;
+        }
+        memcpy(&ssf, bufset->elements[0].value, 4);
+        (void)gss_release_buffer_set(&min_stat, &bufset);
+        *mech_ssf = ntohl(ssf);
+        return SASL_OK;
+    default:
+        return SASL_FAIL;
+    }
+
+fallback:
+#endif
+    *mech_ssf = K5_MIN_SSF;
+    return SASL_OK;
+}
+
 /* The GSS-SPNEGO mechanism does not do SSF negotiation, instead it uses the
  * flags negotiated by GSSAPI to determine If confidentiality or integrity are
  * used. These flags are stored in text->qop transalated as layers by the
  * caller */
-static int gssapi_spnego_ssf(context_t *text, const sasl_utils_t *utils,
+static int gssapi_spnego_ssf(context_t *text,
                              sasl_security_properties_t *props,
                              sasl_out_params_t *oparams)
 {
-    OM_uint32 maj_stat = 0, min_stat = 0;
-    OM_uint32 max_input;
+    int ret;
 
     if (text->qop & LAYER_CONFIDENTIALITY) {
         oparams->encode = &gssapi_privacy_encode;
         oparams->decode = &gssapi_decode;
-        oparams->mech_ssf = K5_MAX_SSF;
+        ret = gssapi_get_ssf(text, &oparams->mech_ssf);
+        if (ret != SASL_OK) {
+            return ret;
+        }
     } else if (text->qop & LAYER_INTEGRITY) {
         oparams->encode = &gssapi_integrity_encode;
         oparams->decode = &gssapi_decode;
@@ -674,20 +755,10 @@ static int gssapi_spnego_ssf(context_t *text, const sasl_utils_t *utils,
     }
 
     if (oparams->mech_ssf) {
-        maj_stat = gss_wrap_size_limit(&min_stat,
-                                       text->gss_ctx,
-                                       1,
-                                       GSS_C_QOP_DEFAULT,
-                                       (OM_uint32)oparams->maxoutbuf,
-                                       &max_input);
-
-	if (max_input > oparams->maxoutbuf) {
-	    /* Heimdal appears to get this wrong */
-	    oparams->maxoutbuf -= (max_input - oparams->maxoutbuf);
-	} else {
-	    /* This code is actually correct */
-	    oparams->maxoutbuf = max_input;
-	}
+        ret = gssapi_wrap_sizes(text, oparams);
+        if (ret != SASL_OK) {
+            return ret;
+        }
     }
 
     text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
@@ -1019,7 +1090,7 @@ gssapi_server_mech_authneg(context_t *text,
 	text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
 	ret = SASL_OK;
     } else if (text->mech_type && text->mech_type == &gss_spnego_oid) {
-        ret = gssapi_spnego_ssf(text, params->utils, &params->props, oparams);
+        ret = gssapi_spnego_ssf(text, &params->props, oparams);
     } else {
 	/* Switch to ssf negotiation */
 	text->state = SASL_GSSAPI_STATE_SSFCAP;
@@ -1074,6 +1145,7 @@ gssapi_server_mech_ssfcap(context_t *text,
     gss_buffer_desc real_input_token, real_output_token;
     OM_uint32 maj_stat = 0, min_stat = 0;
     unsigned char sasldata[4];
+    sasl_ssf_t mech_ssf;
     int ret;
 
     input_token = &real_input_token;
@@ -1134,9 +1206,14 @@ gssapi_server_mech_ssfcap(context_t *text,
 	params->props.maxbufsize) {
 	sasldata[0] |= LAYER_INTEGRITY;
     }
+    ret = gssapi_get_ssf(text, &mech_ssf);
+    if (ret != SASL_OK) {
+	sasl_gss_free_context_contents(text);
+        return ret;
+    }
     if ((text->qop & LAYER_CONFIDENTIALITY) &&
-	text->requiressf <= K5_MAX_SSF &&
-	text->limitssf >= K5_MAX_SSF &&
+	text->requiressf <= mech_ssf &&
+	text->limitssf >= mech_ssf &&
 	params->props.maxbufsize) {
 	sasldata[0] |= LAYER_CONFIDENTIALITY;
     }
@@ -1208,7 +1285,6 @@ gssapi_server_mech_ssfreq(context_t *text,
     gss_buffer_t input_token, output_token;
     gss_buffer_desc real_input_token, real_output_token;
     OM_uint32 maj_stat = 0, min_stat = 0;
-    OM_uint32 max_input;
     int layerchoice;
 	
     input_token = &real_input_token;
@@ -1257,10 +1333,18 @@ gssapi_server_mech_ssfreq(context_t *text,
     } else if (/* For compatibility with broken clients setting both bits */
 		(layerchoice & (LAYER_CONFIDENTIALITY | LAYER_INTEGRITY)) &&
 	       (text->qop & LAYER_CONFIDENTIALITY)) { /* privacy */
+        int ret;
 	oparams->encode = &gssapi_privacy_encode;
 	oparams->decode = &gssapi_decode;
-	/* FIX ME: Need to extract the proper value here */
-	oparams->mech_ssf = K5_MAX_SSF;
+
+	ret = gssapi_get_ssf(text, &oparams->mech_ssf);
+        if (ret != SASL_OK) {
+	    GSS_LOCK_MUTEX_CTX(params->utils, text);
+	    gss_release_buffer(&min_stat, output_token);
+	    GSS_UNLOCK_MUTEX_CTX(params->utils, text);
+	    sasl_gss_free_context_contents(text);
+	    return ret;
+	}
     } else {
 	/* not a supported encryption layer */
 	SETERROR(text->utils,
@@ -1297,26 +1381,19 @@ gssapi_server_mech_ssfreq(context_t *text,
 	(((unsigned char *) output_token->value)[2] << 8) |
 	(((unsigned char *) output_token->value)[3] << 0);
 
-    if (oparams->mech_ssf) {
-	maj_stat = gss_wrap_size_limit( &min_stat,
-					text->gss_ctx,
-					1,
-					GSS_C_QOP_DEFAULT,
-					(OM_uint32) oparams->maxoutbuf,
-					&max_input);
-
-	if(max_input > oparams->maxoutbuf) {
-	    /* Heimdal appears to get this wrong */
-	    oparams->maxoutbuf -= (max_input - oparams->maxoutbuf);
-	} else {
-	    /* This code is actually correct */
-	    oparams->maxoutbuf = max_input;
-	}    
-    }
-	
     GSS_LOCK_MUTEX_CTX(params->utils, text);
     gss_release_buffer(&min_stat, output_token);
     GSS_UNLOCK_MUTEX_CTX(params->utils, text);
+
+    if (oparams->mech_ssf) {
+        int ret;
+
+        ret = gssapi_wrap_sizes(text, oparams);
+        if (ret != SASL_OK) {
+	    sasl_gss_free_context_contents(text);
+            return ret;
+        }
+    }
 
     text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
 
@@ -1569,7 +1646,6 @@ static int gssapi_client_mech_step(void *conn_context,
     gss_buffer_t input_token, output_token;
     gss_buffer_desc real_input_token, real_output_token;
     OM_uint32 maj_stat = 0, min_stat = 0;
-    OM_uint32 max_input;
     gss_buffer_desc name_token;
     int ret;
     OM_uint32 req_flags = 0, out_req_flags = 0;
@@ -1825,8 +1901,7 @@ static int gssapi_client_mech_step(void *conn_context,
 		return SASL_OK;
 	    } else if (text->mech_type && text->mech_type == &gss_spnego_oid) {
 		oparams->doneflag = 1;
-                return gssapi_spnego_ssf(text, params->utils, &params->props,
-                                         oparams);
+                return gssapi_spnego_ssf(text, &params->props, oparams);
             }
 
 	    /* Switch to ssf negotiation */
@@ -1840,6 +1915,8 @@ static int gssapi_client_mech_step(void *conn_context,
 	unsigned int alen, external = params->external_ssf;
 	sasl_ssf_t need, allowed;
 	char serverhas, mychoice;
+	sasl_ssf_t mech_ssf;
+	int ret;
 	
 	real_input_token.value = (void *) serverin;
 	real_input_token.length = serverinlen;
@@ -1874,8 +1951,17 @@ static int gssapi_client_mech_step(void *conn_context,
 	    return SASL_FAIL;
 	}
 
+	ret = gssapi_get_ssf(text, &mech_ssf);
+	if (ret != SASL_OK) {
+	    GSS_LOCK_MUTEX_CTX(params->utils, text);
+	    gss_release_buffer(&min_stat, output_token);
+	    GSS_UNLOCK_MUTEX_CTX(params->utils, text);
+	    sasl_gss_free_context_contents(text);
+	    return SASL_FAIL;
+	}
+
 	/* taken from kerberos.c */
-	if (secprops->min_ssf > (K5_MAX_SSF + external)) {
+	if (secprops->min_ssf > (mech_ssf + external)) {
 	    return SASL_TOOWEAK;
 	} else if (secprops->min_ssf > secprops->max_ssf) {
 	    return SASL_BADPARAM;
@@ -1899,8 +1985,8 @@ static int gssapi_client_mech_step(void *conn_context,
 	
 	/* use the strongest layer available */
 	if ((text->qop & LAYER_CONFIDENTIALITY) &&
-	    allowed >= K5_MAX_SSF &&
-	    need <= K5_MAX_SSF &&
+	    allowed >= mech_ssf &&
+	    need <= mech_ssf &&
 	    (serverhas & LAYER_CONFIDENTIALITY)) {
 	    
 	    const char *ad_compat;
@@ -1908,8 +1994,7 @@ static int gssapi_client_mech_step(void *conn_context,
 	    /* encryption */
 	    oparams->encode = &gssapi_privacy_encode;
 	    oparams->decode = &gssapi_decode;
-	    /* FIX ME: Need to extract the proper value here */
-	    oparams->mech_ssf = K5_MAX_SSF;
+	    oparams->mech_ssf = mech_ssf;
 	    mychoice = LAYER_CONFIDENTIALITY;
 
 	    if (serverhas & LAYER_INTEGRITY) {
@@ -1953,27 +2038,19 @@ static int gssapi_client_mech_step(void *conn_context,
             (((unsigned char *) output_token->value)[2] << 8) |
             (((unsigned char *) output_token->value)[3] << 0);
 
-	if (oparams->mech_ssf) {
-            maj_stat = gss_wrap_size_limit( &min_stat,
-                                            text->gss_ctx,
-                                            1,
-                                            GSS_C_QOP_DEFAULT,
-                                            (OM_uint32) oparams->maxoutbuf,
-                                            &max_input);
-
-	    if (max_input > oparams->maxoutbuf) {
-		/* Heimdal appears to get this wrong */
-		oparams->maxoutbuf -= (max_input - oparams->maxoutbuf);
-	    } else {
-		/* This code is actually correct */
-		oparams->maxoutbuf = max_input;
-	    }
-	}
-	
 	GSS_LOCK_MUTEX_CTX(params->utils, text);
 	gss_release_buffer(&min_stat, output_token);
 	GSS_UNLOCK_MUTEX_CTX(params->utils, text);
-	
+
+	if (oparams->mech_ssf) {
+            int ret;
+
+            ret = gssapi_wrap_sizes(text, oparams);
+            if (ret != SASL_OK) {
+	        sasl_gss_free_context_contents(text);
+                return ret;
+            }
+	}
 	/* oparams->user is always set, due to canon_user requirements.
 	 * Make sure the client actually requested it though, by checking
 	 * if our context was set.

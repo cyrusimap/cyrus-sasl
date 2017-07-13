@@ -419,8 +419,8 @@ int _sasl_check_db(const sasl_utils_t *utils,
 }
 
 #if defined(KEEP_DB_OPEN)
-void sasldb_auxprop_free (void *glob_context,
-                          const sasl_utils_t *utils)
+void sasldb_auxprop_free (void *glob_context __attribute__((unused)),
+                          const sasl_utils_t *utils __attribute__((unused)))
 {
     do_close();
 }

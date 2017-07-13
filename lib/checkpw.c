@@ -588,6 +588,7 @@ static int read_wait(int fd, unsigned delta)
 	    errno = ETIMEDOUT;
 	    return -1;
 	case +1:
+	case +2:
 	    if (FD_ISSET(fd, &rfds)) {
 		/* Success, file descriptor is readable. */
 		return 0;

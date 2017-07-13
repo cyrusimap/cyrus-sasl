@@ -47,7 +47,7 @@
 
 #ifdef HAVE_GSSAPI_H
 #include <gssapi.h>
-#else
+#elif defined(HAVE_GSSAPI_GSSAPI_H)
 #include <gssapi/gssapi.h>
 #endif
 

@@ -62,7 +62,7 @@ dnl named.  arg.
         dnl How about berkeley db?
 	CYRUS_BERKELEY_DB_CHK()
 	if test "$dblib" = no; then
-	  dnl How about OpenLDAP's mdb?
+	  dnl How about OpenLDAP's lmdb?
       AC_CHECK_HEADER(lmdb.h, [
 		AC_CHECK_LIB(lmdb, mdb_env_create, SASL_DB_LIB="-llmdb"; enable_keep_db_open=yes, dblib="no")],
 		dblib="no")

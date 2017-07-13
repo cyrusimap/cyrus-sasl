@@ -50,6 +50,7 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <errno.h>
 #include "sasldb.h"
 
 static int db_ok = 0;
@@ -101,7 +102,8 @@ int _sasldb_getdata(const sasl_utils_t *utils,
   }
   db = dbm_open(path, O_RDONLY, S_IRUSR | S_IWUSR);
   if (! db) {
-      utils->seterror(cntxt, 0, "Could not open db");
+      utils->seterror(cntxt, 0, "Could not open db `%s': %s",
+		      path, strerror(errno));
       result = SASL_FAIL;
       goto cleanup;
   }
@@ -184,10 +186,11 @@ int _sasldb_putdata(const sasl_utils_t *utils,
 		O_RDWR | O_CREAT,
 		S_IRUSR | S_IWUSR);
   if (! db) {
+      utils->seterror(conn, 0, "Could not open db `%s' for writing: %s",
+		      path, strerror(errno));
       utils->log(conn, SASL_LOG_ERR,
 		 "SASL error opening password file. "
 		 "Do you have write permissions?\n");
-      utils->seterror(conn, 0, "Could not open db for write");
       result = SASL_FAIL;
       goto cleanup;
   }
@@ -325,7 +328,8 @@ sasldb_handle _sasldb_getkeyhandle(const sasl_utils_t *utils,
     db = dbm_open(path, O_RDONLY, S_IRUSR | S_IWUSR);
 
     if(!db) {
-	utils->seterror(conn, 0, "Could not open db");
+	utils->seterror(conn, 0, "Could not open db `%s': %s",
+			path, strerror(errno));
 	return NULL;
     }
 

@@ -474,6 +474,7 @@ static unsigned char *V2(unsigned char *V2, sasl_secret_t *passwd,
 	HMAC(EVP_md5(), hash, MD4_DIGEST_LENGTH, (unsigned char *) *buf, 2 * len, hash, &len);
 
 	/* V2 = HMAC-MD5(NTLMv2hash, challenge + blob) + blob */
+        HMAC_CTX_init(ctx);
 	HMAC_Init_ex(ctx, hash, len, EVP_md5(), NULL);
 	HMAC_Update(ctx, challenge, NTLM_NONCE_LENGTH);
 	HMAC_Update(ctx, blob, bloblen);

@@ -313,22 +313,30 @@ static int login_client_mech_step(void *conn_context,
 				  sasl_out_params_t *oparams)
 {
     client_context_t *text = (client_context_t *) conn_context;
+    const char *user = NULL;
+    int auth_result = SASL_OK;
+    int pass_result = SASL_OK;
+    int result;
     
-    *clientout = NULL;
-    *clientoutlen = 0;
-    
+    if (!clientout) {
+        PARAMERROR( params->utils );
+        return SASL_BADPARAM;
+    }
+	
     switch (text->state) {
 
-    case 1: {
-	const char *user = NULL;
-	int auth_result = SASL_OK;
-	int pass_result = SASL_OK;
-	int result;
-	
+    case 1:
 	/* check if sec layer strong enough */
 	if (params->props.min_ssf > params->external_ssf) {
 	    SETERROR( params->utils, "SSF requested of LOGIN plugin");
 	    return SASL_TOOWEAK;
+	}
+	
+	/* server should have sent request for username - we ignore it */
+	if (!serverin) {
+	    SETERROR( params->utils,
+		      "Server didn't issue challenge for USERNAME");
+	    return SASL_BADPROT;
 	}
 	
 	/* try to get the userid */
@@ -341,6 +349,46 @@ static int login_client_mech_step(void *conn_context,
 	    
 	    if ((auth_result != SASL_OK) && (auth_result != SASL_INTERACT))
 		return auth_result;
+	}
+
+	/* free prompts we got */
+	if (prompt_need && *prompt_need) {
+	    params->utils->free(*prompt_need);
+	    *prompt_need = NULL;
+	}
+	
+	/* if there are prompts not filled in */
+	if (auth_result == SASL_INTERACT) {
+	    /* make the prompt list */
+	    result =
+		_plug_make_prompts(params->utils, prompt_need,
+				   NULL, NULL,
+				   "Please enter your authentication name", NULL,
+				   NULL, NULL,
+				   NULL, NULL, NULL,
+				   NULL, NULL, NULL);
+	    if (result != SASL_OK) return result;
+	    
+	    return SASL_INTERACT;
+	}
+
+	result = params->canon_user(params->utils->conn, user, 0,
+				    SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
+	if (result != SASL_OK) return result;
+	
+	if (clientoutlen) *clientoutlen = oparams->alen;
+	*clientout = oparams->authid;
+	
+	text->state = 2;
+	
+	return SASL_CONTINUE;
+
+    case 2:
+	/* server should have sent request for password - we ignore it */
+	if (!serverin) {
+	    SETERROR( params->utils,
+		      "Server didn't issue challenge for PASSWORD");
+	    return SASL_BADPROT;
 	}
 	
 	/* try to get the password */
@@ -359,16 +407,13 @@ static int login_client_mech_step(void *conn_context,
 	}
 	
 	/* if there are prompts not filled in */
-	if ((auth_result == SASL_INTERACT) || (pass_result == SASL_INTERACT)) {
+	if (pass_result == SASL_INTERACT) {
 	    /* make the prompt list */
 	    result =
 		_plug_make_prompts(params->utils, prompt_need,
 				   NULL, NULL,
-				   auth_result == SASL_INTERACT ?
-				   "Please enter your authentication name" : NULL,
-				   NULL,
-				   pass_result == SASL_INTERACT ?
-				   "Please enter your password" : NULL, NULL,
+				   NULL, NULL,
+				   "Please enter your password", NULL,
 				   NULL, NULL, NULL,
 				   NULL, NULL, NULL);
 	    if (result != SASL_OK) return result;
@@ -381,43 +426,6 @@ static int login_client_mech_step(void *conn_context,
 	    return SASL_BADPARAM;
 	}
     
-	result = params->canon_user(params->utils->conn, user, 0,
-				    SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
-	if (result != SASL_OK) return result;
-	
-	/* server should have sent request for username - we ignore it */
-	if (!serverin) {
-	    SETERROR( params->utils,
-		      "Server didn't issue challenge for USERNAME");
-	    return SASL_BADPROT;
-	}
-	
-	if (!clientout) {
-	    PARAMERROR( params->utils );
-	    return SASL_BADPARAM;
-	}
-	
-	if (clientoutlen) *clientoutlen = oparams->alen;
-	*clientout = oparams->authid;
-	
-	text->state = 2;
-	
-	return SASL_CONTINUE;
-    }
-
-    case 2:
-	/* server should have sent request for password - we ignore it */
-	if (!serverin) {
-	    SETERROR( params->utils,
-		      "Server didn't issue challenge for PASSWORD");
-	    return SASL_BADPROT;
-	}
-	
-	if (!clientout) {
-	    PARAMERROR(params->utils);
-	    return SASL_BADPARAM;
-	}
-	
 	if (clientoutlen) *clientoutlen = text->password->len;
 	*clientout = (char *) text->password->data;
 	
@@ -436,6 +444,10 @@ static int login_client_mech_step(void *conn_context,
     default:
 	params->utils->log(NULL, SASL_LOG_ERR,
 			   "Invalid LOGIN client step %d\n", text->state);
+
+	if (clientoutlen) *clientoutlen = 0;
+        *clientout = NULL;
+
 	return SASL_FAIL;
     }
 

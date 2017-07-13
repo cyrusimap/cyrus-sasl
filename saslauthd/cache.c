@@ -97,7 +97,7 @@ int cache_init(void) {
 	if (table_size == 0)
 		table_size = CACHE_DEFAULT_TABLE_SIZE;
 
-	bytes = (table_size * CACHE_MAX_BUCKETS_PER * sizeof(struct bucket)) \
+	bytes = (table_size * CACHE_MAX_BUCKETS_PER * sizeof(struct bucket))
 		+ sizeof(struct stats) + 256;
 
 
@@ -242,9 +242,10 @@ int cache_lookup(const char *user, const char *realm, const char *service, const
 	high_bucket = low_bucket + CACHE_MAX_BUCKETS_PER;
 
 	for (ref_bucket = low_bucket; ref_bucket < high_bucket; ref_bucket++) {
-		if (strcmp(user, ref_bucket->creds + ref_bucket->user_offt) == 0 && \
-		    strcmp (realm, ref_bucket->creds + ref_bucket->realm_offt) == 0 && \
-		    strcmp(service, ref_bucket->creds + ref_bucket->service_offt) == 0) {
+		if (strcmp(user, ref_bucket->creds + ref_bucket->user_offt) == 0 &&
+		    strcmp (realm, ref_bucket->creds + ref_bucket->realm_offt) == 0 &&
+		    strcmp(service, ref_bucket->creds + ref_bucket->service_offt) == 0 &&
+                    ref_bucket->created > epoch_timeout) {
 			read_bucket = ref_bucket;
 			break;
 		}
@@ -259,7 +260,7 @@ int cache_lookup(const char *user, const char *realm, const char *service, const
 	 * best bucket to place the new entry (CACHE_FLUSH_WITH_RESCAN).
 	 **************************************************************/
 
-	if (read_bucket != NULL && read_bucket->created > epoch_timeout) {
+	if (read_bucket != NULL) {
 
 		if (memcmp(pwd_digest, read_bucket->pwd_digest, 16) == 0) {
 

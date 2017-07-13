@@ -72,8 +72,10 @@ if test "$gssapi" != no; then
 fi
 
 if test "$gssapi" != no; then
-  if test "$ac_cv_header_gssapi_h" = "yes" -o "$ac_cv_header_gssapi_gssapi_h" = "yes"; then
+  if test "$ac_cv_header_gssapi_h" = "yes"; then
     AC_DEFINE(HAVE_GSSAPI_H,,[Define if you have the gssapi.h header file])
+  elif test "$ac_cv_header_gssapi_gssapi_h" = "yes"; then
+    AC_DEFINE(HAVE_GSSAPI_GSSAPI_H,,[Define if you have the gssapi/gssapi.h header file])
   fi
 
   # We need to find out which gssapi implementation we are

@@ -285,7 +285,7 @@ B+tree database. The code for it is available in the regular OpenLDAP source
 distributions and it is distributed under the terms of the OpenLDAP Public License.
 
 Full documentation, plus papers and presentations are available on
-`the LMDB page <symas.com/mdb/>`_.
+`the LMDB page <symas.com/lmdb/>`_.
 
 SQL Plugin
 ==========

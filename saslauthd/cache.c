@@ -265,7 +265,7 @@ int cache_lookup(const char *user, const char *realm, const char *service, const
 		if (memcmp(pwd_digest, read_bucket->pwd_digest, 16) == 0) {
 
 			if (flags & VERBOSE)
-				logger(L_DEBUG, L_FUNC, debug, user, realm, service, "found with valid passwd");
+				logger(L_DEBUG, L_FUNC, debug, user, service, realm, "found with valid passwd");
 
 			cache_un_lock(hash_offset);
 			table_stats->hits++;
@@ -273,14 +273,14 @@ int cache_lookup(const char *user, const char *realm, const char *service, const
 		}
 
 		if (flags & VERBOSE)
-			logger(L_DEBUG, L_FUNC, debug, user, realm, service, "found with invalid passwd, update pending");
+			logger(L_DEBUG, L_FUNC, debug, user, service, realm, "found with invalid passwd, update pending");
 
 		result->status = CACHE_FLUSH;
 
 	} else {
 
 		if (flags & VERBOSE)
-			logger(L_DEBUG, L_FUNC, debug, user, realm, service, "not found, update pending");
+			logger(L_DEBUG, L_FUNC, debug, user, service, realm, "not found, update pending");
 
 		result->status = CACHE_FLUSH_WITH_RESCAN;
 	}

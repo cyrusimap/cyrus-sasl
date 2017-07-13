@@ -1173,21 +1173,14 @@ gssapi_server_mech_ssfcap(context_t *text,
     }
 
     /* build up our security properties token */
-    if (text->requiressf != 0 &&
-	(text->qop & (LAYER_INTEGRITY|LAYER_CONFIDENTIALITY))) {
-	if (params->props.maxbufsize > 0xFFFFFF) {
-	    /* make sure maxbufsize isn't too large */
-	    /* maxbufsize = 0xFFFFFF */
-	    sasldata[1] = sasldata[2] = sasldata[3] = 0xFF;
-	} else {
-	    sasldata[1] = (params->props.maxbufsize >> 16) & 0xFF;
-	    sasldata[2] = (params->props.maxbufsize >> 8) & 0xFF;
-	    sasldata[3] = (params->props.maxbufsize >> 0) & 0xFF;
-	}
+    if (params->props.maxbufsize > 0xFFFFFF) {
+        /* make sure maxbufsize isn't too large */
+        /* maxbufsize = 0xFFFFFF */
+        sasldata[1] = sasldata[2] = sasldata[3] = 0xFF;
     } else {
-	/* From RFC 4752: "The client verifies that the server maximum buffer is 0
-	   if the server does not advertise support for any security layer." */
-	sasldata[1] = sasldata[2] = sasldata[3] = 0;
+        sasldata[1] = (params->props.maxbufsize >> 16) & 0xFF;
+        sasldata[2] = (params->props.maxbufsize >> 8) & 0xFF;
+        sasldata[3] = (params->props.maxbufsize >> 0) & 0xFF;
     }
 
     sasldata[0] = 0;
@@ -1216,6 +1209,12 @@ gssapi_server_mech_ssfcap(context_t *text,
 	text->limitssf >= mech_ssf &&
 	params->props.maxbufsize) {
 	sasldata[0] |= LAYER_CONFIDENTIALITY;
+    }
+
+    if ((sasldata[0] & ~LAYER_NONE) == 0) {
+	/* From RFC 4752: "The client verifies that the server maximum buffer is 0
+	   if the server does not advertise support for any security layer." */
+	sasldata[1] = sasldata[2] = sasldata[3] = 0;
     }
 
     /* Remember what we want and can offer */

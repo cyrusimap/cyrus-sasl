@@ -263,15 +263,15 @@ void *test_malloc(size_t size)
 void *test_realloc(void *ptr, size_t size)
 {
     void *out;
-    mem_info_t **prev, *cur;
+    mem_info_t *cur;
     
     out = realloc(ptr, size);
     
     if(DETAILED_MEMORY_DEBUGGING)
-	fprintf(stderr, "  %p = realloc(%p,%d)\n",
+	fprintf(stderr, "  %p = realloc(%p,%zd)\n",
 		out, ptr, size);
 
-    prev = &head; cur = head;
+    cur = head;
     
     while(cur) {
 	if(cur->addr == ptr) {
@@ -280,7 +280,6 @@ void *test_realloc(void *ptr, size_t size)
 	    return out;
 	}
 	
-	prev = &cur->next;
 	cur = cur->next;
     }
     
@@ -308,7 +307,7 @@ void *test_calloc(size_t nmemb, size_t size)
     out = calloc(nmemb, size);
 
     if(DETAILED_MEMORY_DEBUGGING)    
-	fprintf(stderr, "  %p = calloc(%d, %d)\n",
+	fprintf(stderr, "  %p = calloc(%zd, %zd)\n",
 		out, nmemb, size);
 
     if(out) {
@@ -370,7 +369,7 @@ int mem_stat()
     
     fprintf(stderr, "  Currently Still Allocated:\n");
     for(cur = head; cur; cur = cur->next) {
-	fprintf(stderr, "    %p (%5d)\t", cur->addr, cur->size);
+	fprintf(stderr, "    %p (%5zd)\t", cur->addr, cur->size);
 	for(data = (unsigned char *) cur->addr,
 		n = 0; n < (cur->size > 12 ? 12 : cur->size); n++) {
 	    if (isprint((int) data[n]))
@@ -481,6 +480,7 @@ static struct sasl_callback goodsasl_cb[] = {
     { SASL_CB_LIST_END, NULL, NULL }
 };
 
+#if defined(DO_DLOPEN) && (defined(PIC) || (!defined(PIC) && defined(TRY_DLOPEN_WHEN_STATIC)))
 int givebadpath(void * context __attribute__((unused)), 
 		char ** path)
 {
@@ -498,6 +498,7 @@ static struct sasl_callback withbadpathsasl_cb[] = {
     { SASL_CB_GETPATH, (sasl_callback_ft)&givebadpath, NULL },
     { SASL_CB_LIST_END, NULL, NULL }
 };
+#endif
 
 int giveokpath(void * context __attribute__((unused)), 
 		const char ** path)
@@ -2709,7 +2710,7 @@ void create_ids(void)
     const char challenge[] = "<1896.697170952@cyrus.andrew.cmu.edu>";
     MD5_CTX ctx;
     unsigned char digest[16];
-    char digeststr[32];
+    char digeststr[33];
 #endif
 
     if (sasl_server_init(goodsasl_cb,"TestSuite")!=SASL_OK)
@@ -2760,8 +2761,8 @@ void create_ids(void)
     /* Test sasl_checkapop */
 #ifdef DO_SASL_CHECKAPOP
     _sasl_MD5Init(&ctx);
-    _sasl_MD5Update(&ctx,challenge,strlen(challenge));
-    _sasl_MD5Update(&ctx,password,strlen(password));
+    _sasl_MD5Update(&ctx,(const unsigned char *)challenge,strlen(challenge));
+    _sasl_MD5Update(&ctx,(const unsigned char *)password,strlen(password));
     _sasl_MD5Final(digest, &ctx);
                             
     /* convert digest from binary to ASCII hex */
@@ -2986,7 +2987,7 @@ int main(int argc, char **argv)
 
     g_secret = malloc(sizeof(sasl_secret_t) + strlen(password));
     g_secret->len = (unsigned) strlen(password);
-    strcpy(g_secret->data, password);
+    strcpy((char *) g_secret->data, password);
 
     if(random_tests < 0) random_tests = 25;
 

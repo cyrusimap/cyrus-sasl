@@ -226,10 +226,10 @@ AC_SUBST(SASL_DL_LIB)
 
 dnl /dev/random ?
 
-AC_ARG_WITH(devrandom, [  --with-devrandom=PATH   set the path to /dev/random [[/dev/random]] ],
+AC_ARG_WITH(devrandom, [  --with-devrandom=PATH   set the path to pseudo random number generator [[/dev/urandom]] ],
   devrandom=$withval,
-  devrandom=/dev/random)
-AC_MSG_CHECKING(/dev/random to use)
+  devrandom=/dev/urandom)
+AC_MSG_CHECKING(PRNG to use)
 AC_MSG_RESULT($devrandom)
 AC_DEFINE_UNQUOTED(SASL_DEV_RANDOM, "$devrandom", [File to use for source of randomness])
 

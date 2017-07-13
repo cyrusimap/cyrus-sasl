@@ -151,6 +151,8 @@ decode_saslname (char *buf)
 	outp++;
     }
 
+    *outp = '\0';
+
     return SASL_OK;
 }
 
@@ -497,6 +499,7 @@ scram_server_mech_step1(server_context_t *text,
 			unsigned *serveroutlen,
 			sasl_out_params_t *oparams __attribute__((unused)))
 {
+    char * authorization_id;
     char * authentication_id;
     char * p;
     char * nonce;
@@ -602,12 +605,10 @@ scram_server_mech_step1(server_context_t *text,
     p++;
 
     if (p[0] == 'a' && p[1] == '=') {
-	text->authorization_id = p + 2;
+        authorization_id = p + 2;
 
-	p = strchr (text->authorization_id, ',');
+	p = strchr (authorization_id, ',');
 	if (p == NULL) {
-	    text->authorization_id = NULL;
-
 	    SETERROR(sparams->utils, "At least nonce is expected in " SCRAM_SASL_MECH " input");
 	    result = SASL_BADPROT;
 	    goto cleanup;
@@ -621,7 +622,7 @@ scram_server_mech_step1(server_context_t *text,
 	p++;
 
 	/* Make a read-write copy we can modify */
-	_plug_strdup(sparams->utils, text->authorization_id, &text->authorization_id, NULL);
+	_plug_strdup(sparams->utils, authorization_id, &text->authorization_id, NULL);
 
 	if (decode_saslname(text->authorization_id) != SASL_OK) {
 	    SETERROR(sparams->utils, "Invalid authorization identity encoding in " SCRAM_SASL_MECH " input");

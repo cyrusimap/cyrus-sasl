@@ -393,7 +393,7 @@ auth_krb5 (
 	return strdup("NO saslauthd principal name error");
     }
 
-    if (code = krb5_parse_name (context, principalbuf, &auth_user)) {
+    if ((code = krb5_parse_name (context, principalbuf, &auth_user))) {
 	k5support_log_err(LOG_ERR, context, code, "krb5_parse_name()");
 	krb5_free_context(context);
 	return strdup("NO saslauthd internal error");
@@ -404,14 +404,14 @@ auth_krb5 (
 	return strdup("NO saslauthd internal error");
     }
 
-    if (code = krb5_cc_resolve(context, tfname, &ccache)) {
+    if ((code = krb5_cc_resolve(context, tfname, &ccache))) {
 	k5support_log_err(LOG_ERR, context, code, "krb5_cc_resolve()");
 	krb5_free_principal(context, auth_user);
 	krb5_free_context(context);
 	return strdup("NO saslauthd internal error");
     }
     
-    if (code = krb5_cc_initialize (context, ccache, auth_user)) {
+    if ((code = krb5_cc_initialize (context, ccache, auth_user))) {
 	k5support_log_err(LOG_ERR, context, code, "krb5_cc_initialize()");
 	krb5_free_principal(context, auth_user);
 	krb5_free_context(context);
@@ -432,7 +432,7 @@ auth_krb5 (
     }
     
     /* at this point we should have a TGT. Let's make sure it is valid */
-    if (code = krb5_cc_store_cred(context, ccache, &creds)) {
+    if ((code = krb5_cc_store_cred(context, ccache, &creds))) {
 	k5support_log_err(LOG_ERR, context, code, "krb5_cc_store_cred()");
 	krb5_free_principal(context, auth_user);
 	krb5_cc_destroy(context, ccache);

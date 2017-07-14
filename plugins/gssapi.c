@@ -1751,10 +1751,10 @@ static int gssapi_client_mech_step(void *conn_context,
 	}
 
 	/* Setup req_flags properly */
-	req_flags = GSS_C_INTEG_FLAG;
+	req_flags = GSS_C_MUTUAL_FLAG | GSS_C_SEQUENCE_FLAG;
 	if (params->props.max_ssf > params->external_ssf) {
 	    /* We are requesting a security layer */
-	    req_flags |= GSS_C_MUTUAL_FLAG | GSS_C_SEQUENCE_FLAG;
+	    req_flags |= GSS_C_INTEG_FLAG;
 	    /* Any SSF bigger than 1 is confidentiality. */
 	    /* Let's check if the client of the API requires confidentiality,
 	       and it wasn't already provided by an external layer */

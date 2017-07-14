@@ -35,6 +35,7 @@
 
 #ifdef AUTH_SHADOW
 
+#define _XOPEN_SOURCE
 #define PWBUFSZ 256 /***SWB***/
 
 # include <unistd.h>

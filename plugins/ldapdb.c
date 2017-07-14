@@ -252,6 +252,8 @@ static int ldapdb_auxprop_lookup(void *glob_context,
 
 #if defined(LDAP_PROXY_AUTHZ_FAILURE)
 	case LDAP_PROXY_AUTHZ_FAILURE:
+#elif defined(LDAP_X_PROXY_AUTHZ_FAILURE)
+	case LDAP_X_PROXY_AUTHZ_FAILURE:
 #endif
 	case LDAP_INAPPROPRIATE_AUTH:
 	case LDAP_INVALID_CREDENTIALS:

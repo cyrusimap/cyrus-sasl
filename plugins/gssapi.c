@@ -399,6 +399,7 @@ sasl_gss_encode(void *context, const struct iovec *invec, unsigned numiov,
     }
     
     if (output_token->value && output) {
+	int len;
 	unsigned char * p;
 	
 	ret = _plug_buf_alloc(text->utils,
@@ -415,11 +416,8 @@ sasl_gss_encode(void *context, const struct iovec *invec, unsigned numiov,
 
 	p = (unsigned char *) text->encode_buf;
 	
-	p[0] = (output_token->length>>24) & 0xFF;
-	p[1] = (output_token->length>>16) & 0xFF;
-	p[2] = (output_token->length>>8) & 0xFF;
-	p[3] = output_token->length & 0xFF;
-
+	len = htonl(output_token->length);
+	memcpy(text->encode_buf, &len, 4);
 	memcpy(text->encode_buf + 4, output_token->value, output_token->length);
     }
     

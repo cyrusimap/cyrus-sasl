@@ -405,6 +405,7 @@ ldapdb_canon_server(void *glob_context,
 	if ( len > out_max )
 	    len = out_max;
 	memcpy(out, bvals[0]->bv_val, len);
+	out[len] = '\0';
 	*out_ulen = len;
 	ber_bvecfree(bvals);
     }

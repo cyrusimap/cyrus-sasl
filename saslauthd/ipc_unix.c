@@ -217,6 +217,7 @@ void ipc_loop() {
 
 	int		rc;
 	int		conn_fd;
+	unsigned char	dummy;
 
 
 	while(1) {
@@ -261,6 +262,8 @@ void ipc_loop() {
 		    }
 		    
 		    do_request(conn_fd);
+		    shutdown(conn_fd, SHUT_WR);
+		    while (read(conn_fd, &dummy, 1) > 0) { }
 		    close(conn_fd);
 
 		    if(flags & DETACH_TTY) {
@@ -275,6 +278,8 @@ void ipc_loop() {
 		 * Normal prefork mode.
 		 *************************************************************/
 		do_request(conn_fd);
+		shutdown(conn_fd, SHUT_WR);
+		while (read(conn_fd, &dummy, 1) > 0) { }
 		close(conn_fd);
 	}
 

@@ -1456,7 +1456,7 @@ static int lak_auth_bind(
 	  {
 		/* restore config bind */
                 lak_unbind(lak);
-		rc = lak_user(<>
+		rc = lak_user(
 		lak->conf->bind_dn,
 		lak->conf->id,
 		lak->conf->authz_id,

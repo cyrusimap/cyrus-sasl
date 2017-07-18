@@ -291,7 +291,7 @@ current = os.path.abspath(os.getcwd())
 for tuple in pathset:
     try:
         os.chdir(tuple[0])
-    except IOError as e:
+    except OSError as e:
         break
     for rstfile in glob.glob("*.rst"):
         author = [("The Cyrus Team")]

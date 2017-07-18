@@ -3,6 +3,7 @@
 
 /* COPYRIGHT
  * Copyright (c) 1998 Messaging Direct Ltd.
+ * Copyright (c) 2013 Sebastian Pipping <sebastian@pipping.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -96,6 +97,9 @@ static struct addrinfo *ai = NULL;	/* remote authentication host    */
 					   service we connect to.	 */
 #define TAG "saslauthd"			/* IMAP command tag */
 #define LOGIN_CMD (TAG " LOGIN ")	/* IMAP login command (with tag) */
+#define LOGIN_REPLY_GOOD (TAG " OK")	/* Expected IMAP login reply, good edition (with tag) */
+#define LOGIN_REPLY_BAD (TAG " NO")	/* Expected IMAP login reply, bad edition (with tag) */
+#define LOGIN_REPLY_CAP "* CAPABILITY"	/* Expected IMAP login reply, capabilities edition */
 #define NETWORK_IO_TIMEOUT 30		/* network I/O timeout (seconds) */
 #define RESP_LEN 1000			/* size of read response buffer  */
 
@@ -283,6 +287,109 @@ auth_rimap_init (
 
 /* END FUNCTION: auth_rimap_init */
 
+typedef enum _t_login_status {
+	LOGIN_STATUS_UNKNOWN,
+
+	LOGIN_STATUS_ACCEPTED,
+	LOGIN_STATUS_REJECTED,
+	LOGIN_STATUS_MALFORMED
+} t_login_status;
+
+/* FUNCTION: warn_malformed_imap_login_reply */
+void
+warn_malformed_imap_login_reply(
+		/* PARAMETERS */
+		const char * server_reply  /* I: plaintext server reply */
+		/* END PARAMETERS */
+		)
+{
+	syslog(LOG_WARNING, "auth_rimap: unexpected response to auth request: %s", server_reply);
+}
+
+/* END FUNCTION: warn_malformed_imap_login_reply */
+
+/* FUNCTION: process_login_reply */
+
+/* SYNOPSIS
+ * Classify IMAP server reply into accepted, rejected or malformed.
+ * END SYNOPSIS */
+
+t_login_status
+process_login_reply(
+		/* PARAMETERS */
+		char * server_reply,  /* I/O: plaintext server reply */
+		const char * login    /* I  : plaintext authenticator */
+		/* END PARAMETERS */
+		)
+{
+	/* VARIABLES */
+	t_login_status res = LOGIN_STATUS_UNKNOWN;
+	char * line_first = server_reply;
+	char * line_after_last;
+	/* END VARIABLES */
+
+	for (;;) {
+		/* find line boundary */
+		line_after_last = strpbrk(line_first, "\x0a\x0d");
+		if (line_after_last == NULL) {
+			warn_malformed_imap_login_reply(line_first);
+			return LOGIN_STATUS_MALFORMED;
+		}
+
+		/* handle single line */
+		{
+			/* terminate line (reverted later) */
+			const char backup = line_after_last[0];
+			line_after_last[0] = '\0';
+
+			/* classify current line */
+			if (strncmp(line_first, LOGIN_REPLY_GOOD, sizeof(LOGIN_REPLY_GOOD) - 1) == 0) {
+				res = LOGIN_STATUS_ACCEPTED;
+			} else if (strncmp(line_first, LOGIN_REPLY_BAD, sizeof(LOGIN_REPLY_BAD) - 1) == 0) {
+				res = LOGIN_STATUS_REJECTED;
+			} else if (strncmp(line_first, LOGIN_REPLY_CAP, sizeof(LOGIN_REPLY_CAP) - 1) == 0) {
+				/* keep looking for ".. OK" or ".. NO" */
+			} else {
+				res = LOGIN_STATUS_MALFORMED;
+			}
+
+			/* report current line */
+			if (res == LOGIN_STATUS_MALFORMED) {
+				warn_malformed_imap_login_reply(line_first);
+			} else if (flags & VERBOSE) {
+				syslog(LOG_DEBUG, "auth_rimap: [%s] %s", login, line_first);
+			}
+
+			/* revert termination */
+			line_after_last[0] = backup;
+		}
+
+		/* are we done? */
+		if (res != LOGIN_STATUS_UNKNOWN) {
+			return res;
+		}
+
+		/* forward to next line */
+		while ((line_after_last[0] == '\x0a')
+				|| (line_after_last[0] == '\x0d')) {
+			line_after_last++;
+		}
+
+		/* no more lines? */
+		if (line_after_last[0] == '\0') {
+			warn_malformed_imap_login_reply("");
+			return LOGIN_STATUS_MALFORMED;
+		}
+
+		/* prepare for next round */
+		line_first = line_after_last;
+	}
+
+	assert(! "cannot be reached");
+}
+
+/* END FUNCTION: process_login_reply */
+
 /* FUNCTION: auth_rimap */
 
 /* SYNOPSIS
@@ -321,6 +428,7 @@ auth_rimap (
     char hbuf[NI_MAXHOST], pbuf[NI_MAXSERV];
     int saved_errno;
     int niflags;
+    t_login_status login_status = LOGIN_STATUS_MALFORMED;
     /* END VARIABLES */
 
     /* sanity checks */
@@ -518,25 +626,14 @@ auth_rimap (
     }
 
     rbuf[rc] = '\0';			/* tie off response */
-    c = strpbrk(rbuf, "\r\n");
-    if (c != NULL) {
-	*c = '\0';			/* tie off line termination */
-    }
+    login_status = process_login_reply(rbuf, login);
 
-     if (!strncmp(rbuf, TAG " OK", sizeof(TAG " OK")-1)) {
-	if (flags & VERBOSE) {
-	    syslog(LOG_DEBUG, "auth_rimap: [%s] %s", login, rbuf);
-	}
+    if (login_status == LOGIN_STATUS_ACCEPTED) {
 	return strdup("OK remote authentication successful");
     }
-    if (!strncmp(rbuf, TAG " NO", sizeof(TAG " NO")-1)) {
-	if (flags & VERBOSE) {
-	    syslog(LOG_DEBUG, "auth_rimap: [%s] %s", login, rbuf);
-	}
+    if (login_status == LOGIN_STATUS_REJECTED) {
 	return strdup("NO remote server rejected your credentials");
     }
-    syslog(LOG_WARNING, "auth_rimap: unexpected response to auth request: %s",
-	   rbuf);
     return strdup(RESP_UNEXPECTED);
     
 }

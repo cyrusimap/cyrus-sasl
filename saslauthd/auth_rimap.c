@@ -97,6 +97,7 @@ static struct addrinfo *ai = NULL;	/* remote authentication host    */
 					   service we connect to.	 */
 #define TAG "saslauthd"			/* IMAP command tag */
 #define LOGIN_CMD (TAG " LOGIN ")	/* IMAP login command (with tag) */
+#define LOGOUT_CMD (TAG " LOGOUT")	/* IMAP logout command (with tag) */
 #define LOGIN_REPLY_GOOD (TAG " OK")	/* Expected IMAP login reply, good edition (with tag) */
 #define LOGIN_REPLY_BAD (TAG " NO")	/* Expected IMAP login reply, bad edition (with tag) */
 #define LOGIN_REPLY_CAP "* CAPABILITY"	/* Expected IMAP login reply, capabilities edition */
@@ -419,11 +420,11 @@ auth_rimap (
     /* VARIABLES */
     int	s=-1;				/* socket to remote auth host   */
     struct addrinfo *r;			/* remote socket address info   */
-    struct iovec iov[5];		/* for sending LOGIN command    */
+    struct iovec iov[5];		/* for sending IMAP commands    */
     char *qlogin;			/* pointer to "quoted" login    */
     char *qpass;			/* pointer to "quoted" password */
     char *c;				/* scratch pointer              */
-    int rc;				/* return code scratch area     */
+    int rc, rc2;			/* return code scratch area     */
     char rbuf[RESP_LEN];		/* response read buffer         */
     char hbuf[NI_MAXHOST], pbuf[NI_MAXSERV];
     int saved_errno;
@@ -574,21 +575,18 @@ auth_rimap (
     alarm(NETWORK_IO_TIMEOUT);
     rc = retry_writev(s, iov, 5);
     alarm(0);
-    if (rc == -1) {
-	syslog(LOG_WARNING, "auth_rimap: writev: %m");
-	memset(qlogin, 0, strlen(qlogin));
-	free(qlogin);
-	memset(qpass, 0, strlen(qpass));
-	free(qpass);
-	(void)close(s);
-	return strdup(RESP_IERROR);
-    }
 
     /* don't need these any longer */
     memset(qlogin, 0, strlen(qlogin));
     free(qlogin);
     memset(qpass, 0, strlen(qpass));
     free(qpass);
+
+    if (rc == -1) {
+        syslog(LOG_WARNING, "auth_rimap: writev %s: %m", LOGIN_CMD);
+	(void)close(s);
+	return strdup(RESP_IERROR);
+    }
 
     /* read and parse the LOGIN response */
 
@@ -619,6 +617,24 @@ auth_rimap (
            }
         }
     }
+
+    /* build the LOGOUT command */
+
+    iov[0].iov_base = LOGOUT_CMD;
+    iov[0].iov_len  = sizeof(LOGOUT_CMD) - 1;
+    iov[1].iov_base = "\r\n";
+    iov[1].iov_len  = sizeof("\r\n") - 1;
+
+    if (flags & VERBOSE) {
+	syslog(LOG_DEBUG, "auth_rimap: sending %s", LOGOUT_CMD);
+    }
+    alarm(NETWORK_IO_TIMEOUT);
+    rc2 = retry_writev(s, iov, 2);
+    alarm(0);
+    if (rc2 == -1) {
+      syslog(LOG_WARNING, "auth_rimap: writev %s: %m", LOGOUT_CMD);
+    }
+
     (void) close(s);			/* we're done with the remote */
     if (rc == -1) {
 	syslog(LOG_WARNING, "auth_rimap: read (response): %m");

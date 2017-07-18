@@ -41,8 +41,9 @@ extensions = [
 ]
 
 extensions.append('sphinxlocal.builders.manpage')
+extensions.append('sphinxlocal.roles.saslman')
 
-intersphinx_mapping = {'cyrusimap': ('http://www.cyrusimap.org/dev', None)}
+intersphinx_mapping = {'cyrusimap': ('https://www.cyrusimap.org/dev', None)}
 
 mathjax_path = 'https://cdn.mathjax.org/mathjax/latest/MathJax.js'
 
@@ -268,8 +269,52 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
+man_pages = []
+
+import glob, os, io
+
+# Which paths relate to which man page sections
+pathset = [
+    ("sasl/reference/manpages/systemcommands/", 8),
+    ("sasl/reference/manpages/library/", 3),
+    ("sasl/reference/manpages/usercommands/", 1),
+    ("sasl/reference/manpages/configs/", 5)
 ]
+
+# For each man page section/path,
+# look for all the rst files.
+# With each file, check if there's an '.. author: ' attribution (strict on
+# spacing and case sensitivity) and add to the author info.
+# Then add the file with all its details into the man_page array.
+# If the file is an :orphan:, then don't include it.
+current = os.path.abspath(os.getcwd())
+for tuple in pathset:
+    try:
+        os.chdir(tuple[0])
+    except OSError as e:
+        break
+    for rstfile in glob.glob("*.rst"):
+        author = [("The Cyrus Team")]
+        orphan = 'False';
+        with io.open(rstfile,'r',encoding="utf8") as f:
+            for line in f:
+                if line.startswith(':orphan:'):
+                    orphan = 'True';
+                    break;
+                if line.startswith('.. author: '):
+                    author.append(line[11: len(line.strip())])
+            f.close()
+        if orphan == 'False':
+            man_pages.append(
+                (os.path.splitext(os.path.join(tuple[0],rstfile))[0],
+                os.path.splitext(rstfile)[0],
+                u'Cyrus SASL documentation',
+                author,
+                tuple[1])
+                )
+
+    os.chdir(current)
+
 
 # If true, show URL addresses after external links.
 #man_show_urls = False

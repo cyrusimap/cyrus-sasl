@@ -84,6 +84,7 @@ be found within the source code.
     sasl/pwcheck
     sasl/faq
     sasl/resources
+    sasl/manpages
 
 .. toctree::
     :caption: IMAP

@@ -43,7 +43,7 @@ extensions = [
 extensions.append('sphinxlocal.builders.manpage')
 extensions.append('sphinxlocal.roles.saslman')
 
-intersphinx_mapping = {'cyrusimap': ('http://www.cyrusimap.org/dev', None)}
+intersphinx_mapping = {'cyrusimap': ('https://www.cyrusimap.org/dev', None)}
 
 mathjax_path = 'https://cdn.mathjax.org/mathjax/latest/MathJax.js'
 
@@ -289,7 +289,10 @@ pathset = [
 # If the file is an :orphan:, then don't include it.
 current = os.path.abspath(os.getcwd())
 for tuple in pathset:
-    os.chdir(tuple[0])
+    try:
+        os.chdir(tuple[0])
+    except IOError as e:
+        break
     for rstfile in glob.glob("*.rst"):
         author = [("The Cyrus Team")]
         orphan = 'False';

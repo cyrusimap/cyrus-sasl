@@ -71,8 +71,8 @@ INSTALLOSX =
 endif
 
 SUBDIRS=include sasldb lib plugins utils man $(PWC) $(SAM) $(JAV) $(SAD)
-EXTRA_DIST=config doc win32 mac dlcompat-20010505 NTMakefile INSTALL.TXT \
-    libsasl2.pc.in
+EXTRA_DIST=config doc docsrc win32 mac dlcompat-20010505 NTMakefile \
+    INSTALL.TXT libsasl2.pc.in
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libsasl2.pc

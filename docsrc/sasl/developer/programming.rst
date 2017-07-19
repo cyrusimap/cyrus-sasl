@@ -135,8 +135,7 @@ A typical interaction from the client's perspective
 ---------------------------------------------------
 
 
-* A client makes a few calls (explained later) to initialize
-  SASL.
+* A client makes a few calls to initialize SASL.
 
 * Every time the client application makes a new connection it
   should make a new context that is kept for the life of the
@@ -157,7 +156,7 @@ A typical interaction from the client's perspective
 
 * Application sends these bytes over the network
 
-* repeat the last 4 steps until the server tells you that the
+* Repeat the last 4 steps until the server tells you that the
   authentication is completed
 
 
@@ -167,7 +166,7 @@ How does this look in code
 1. Initialize the library
 #########################
 
-This is done once.
+This is done once, using :saslman:`sasl_client_init(3)`.
 
 .. code-block:: C
 
@@ -181,12 +180,13 @@ This is done once.
         result=sasl_client_init(callbacks);
 
             /* check to see if that worked */
-            if (result!=SASL_OK) [failure]
+            if (result!=SASL_OK) /* [failure] */
 
 2. Make a new SASL connection
 #############################
 
-For every network connection, make a new SASL connection:
+For every network connection, make a new SASL connection, using
+:saslman:`sasl_client_new(3)`:
 
 .. code-block:: C
 
@@ -209,7 +209,7 @@ For every network connection, make a new SASL connection:
                        &conn);     /* allocated on success */
 
             /* check to see if that worked */
-            if (result!=SASL_OK) [failure]
+            if (result!=SASL_OK) /* [failure] */
 
 
 3. Get the mechanism list
@@ -230,31 +230,31 @@ begin the authentication process.
 
               result=sasl_client_start(conn,      /* the same context from
                                                      above */
-                                       mechlist,  /* the list of mechanisms
-                                                     from the server */
-                                       &client_interact, /* filled in if an
-                                                            interaction is needed */
+                       mechlist,  /* the list of mechanisms
+                                     from the server */
+                       &client_interact, /* filled in if an
+                                            interaction is needed */
                        &out,      /* filled in on success */
-                                       &outlen,   /* filled in on success */
+                       &outlen,   /* filled in on success */
                        &mechusing);
 
               if (result==SASL_INTERACT)
               {
-                 [deal with the interactions. See interactions section below]
+                 /* [deal with the interactions. See interactions section below] */
               }
 
 
            } while (result==SASL_INTERACT); /* the mechanism may ask us to fill
                                                in things many times. result is
                                                SASL_CONTINUE on success */
-           if (result!=SASL_CONTINUE) [failure]
+           if (result!=SASL_CONTINUE) /* [failure] */
 
 
 Note that you do not need to worry about the allocation and freeing
-of the output buffer out. This is all handled inside of the
+of the output buffer `out`. This is all handled inside the
 mechanism. It is important to note, however, that the output buffer
-is not valid after the next call to ``sasl_client_start`` or
-``sasl_client_step``.
+is not valid after the next call to :saslman:`sasl_client_start(3)` or
+:saslman:`sasl_client_step(3)`.
 
 If this is successful send the protocol specific command to
 start the authentication process. This may or may not allow for
@@ -290,7 +290,8 @@ things:
 
 2. Authentication success. We're now successfully authenticated.
    This might look like ``A01 OK Authenticated successful`` in
-   IMAP or ``235 Authentication successful`` in SMTP. Go :ref:`here <client_authentication_success>`.
+   IMAP or ``235 Authentication successful`` in SMTP.
+   Go :ref:`here <client_authentication_success>`.
 
 3. Another step in the authentication process is necessary. This
    might look like ``+ HGHDS1HAFJ=`` in IMAP or ``334
@@ -301,28 +302,28 @@ things:
 
 Convert the continuation data to binary format (for example, this
 may include base64 decoding it). Perform another step in the
-authentication.
+authentication using :saslman:`sasl_client_step(3)`:
 
 .. code-block:: C
 
               do {
                 result=sasl_client_step(conn,  /* our context */
                         in,    /* the data from the server */
-                        inlen, /* it's length */
+                        inlen, /* its length */
                         &client_interact,  /* this should be
-                                                              unallocated and NULL */
+                                              unallocated and NULL */
                         &out,     /* filled in on success */
                         &outlen); /* filled in on success */
 
                 if (result==SASL_INTERACT)
                 {
-                   [deal with the interactions. See below]
+                   /* [deal with the interactions. See below] */
                 }
 
 
               } while (result==SASL_INTERACT || result == SASL_CONTINUE);
 
-              if (result!=SASL_OK) [failure]
+              if (result!=SASL_OK) /* [failure] */
 
 
 Format the output (variable out of length outlen) in the protocol
@@ -336,7 +337,7 @@ repeats until authentication either succeeds or fails.
 6. Authentication Successful
 ############################
 
-Before we're done we need to call sasl_client_step() one more
+Before we're done we need to call :saslman:`sasl_client_step(3)` one more
 time to make sure the server isn't trying to fool us. Some
 protocols include data along with the last step. If so this data
 should be used here. If not use a length of zero.
@@ -350,7 +351,7 @@ should be used here. If not use a length of zero.
                         &out,     /* filled in on success */
                         &outlen); /* filled in on success */
 
-                if (result!=SASL_OK) [failure]
+                if (result!=SASL_OK) /* [failure] */
 
 Congratulations. You have successfully authenticated to the
 server.
@@ -363,137 +364,29 @@ encode and decode the data sent over the network.
 ##############
 
 When you are finally done with connection to server, dispose of
-SASL connection.
+SASL connection using :saslman:`sasl_dispose(3)`:
 
 .. code-block:: C
 
                sasl_dispose(&conn);
 
 
-If you are done with SASL forever (application quiting for
-example):
+If you are done with SASL forever (application quitting for
+example), use :saslman:`sasl_client_done(3)`:
 
 .. code-block:: C
 
                 sasl_client_done();
 
-Or if your application is both a SASL client and a SASL server:
+Or if your application is both a SASL client and a SASL server,
+use :saslman:`sasl_done(3)`:
 
 .. code-block:: C
 
                 sasl_done();
 
-But note that applications should be using sasl_client_done()/sasl_server_done() whenever possible.
-
-sasl_client_init
-----------------
-
-.. code-block:: C
-
-   int sasl_client_init(const sasl_callback_t *callbacks)
-
-callbacks
-    List of :ref:`callbacks <callbacks>`
-
-This function initializes the SASL library. This must be called
-before any other SASL calls.
-
-sasl_client_new
----------------
-
-.. code-block:: C
-
-   int sasl_client_new(const char *service,
-                       const char *serverFQDN,
-                       const char *iplocalport,
-                       const char *ipremoteport,
-                       const sasl_callback_t *prompt_supp,
-                       unsigned secflags,
-                       sasl_conn_t **pconn)
-
-service
-    the service name being used. This usually is the
-    protocol name (e.g. "ldap")
-serverFQDN
-    Fully qualified domain name of server
-iplocalport and ipremoteport
-    a string of the format
-    "a.b.c.d;p" detailing the local or remote IP
-    and port, or NULL (which will disable
-    mechanisms that require this information)
-prompt_supp
-    List of :ref:`callbacks <callbacks>` specific to this
-    connection
-secflags
-    security flags ORed together requested (e.g.
-    SASL_SEC_NOPLAINTEXT)
-pconn
-   the SASL connection object allocated upon success
-
-This function creates a new SASL connection object. It should be
-called once for every connection you want to authenticate for.
-
-
-sasl_client_start
------------------
-
-.. code-block:: C
-
-   int sasl_client_start(sasl_conn_t *conn,
-              const char *mechlist,
-              sasl_interact_t **prompt_need,
-              const char **clientout,
-              unsigned *clientoutlen,
-              const char **mech);
-
-conn
-    the SASL connection object gotten from sasl_client_new()
-mechlist
-    the list of mechanisms to try (separated by spaces)
-prompt_need
-    filled in when a SASL_INTERACT is returned
-clientout
-    filled in upon success with data to send to server
-clientoutlen
-    length of that data
-mech
-    filled in with mechanism being used
-
-This function starts an authentication session. It takes a list of
-possible mechanisms (usually gotten from the server through a
-capability command) and chooses the "best" mechanism to try. Upon
-success clientout points at data to send to the server.
-
-sasl_client_step
-----------------
-
-.. code-block:: C
-
-   int sasl_client_step(sasl_conn_t *conn,
-         const char *serverin,
-         unsigned serverinlen,
-         sasl_interact_t **prompt_need,
-         const char **clientout,
-         unsigned *clientoutlen);
-
-conn
-    the SASL connection object gotten from sasl_client_new()
-serverin
-    data from the server
-serverinlen
-    length of data from the server
-prompt_need
-    filled in with a SASL_INTERACT is returned
-clientout
-    filled in upon success with data to send to server
-clientoutlen
-    length of that data
-
-This step preforms a step in the authentication process. It takes
-the data from the server (serverin) and outputs data to send to the
-server (clientout) upon success. SASL_CONTINUE is returned if
-another step in the authentication process is necessary. SASL_OK is
-returned if we're all done.
+But note that applications should be using
+:saslman:`sasl_client_done(3)`/:saslman:`sasl_server_done(3)` whenever possible.
 
 Server-only Section
 ===================
@@ -516,8 +409,8 @@ How does this look in code?
 Initialization
 ##############
 
-This is done once. The application name is used for
-reading configuration information.
+This is done once, using :saslman:`sasl_server_init(3)`.
+The application name is used for reading configuration information.
 
 .. code-block:: C
 
@@ -527,8 +420,8 @@ reading configuration information.
     result=sasl_server_init(callbacks,      /* Callbacks supported */
                             "TestServer");  /* Name of the application */
 
-This should be called for each new connection. It probably should
-be called right when the socket is accepted.
+:saslman:`sasl_server_new(3)` should be called for each new connection. It should
+be called when the socket is accepted.
 
 .. code-block:: C
 
@@ -537,21 +430,21 @@ be called right when the socket is accepted.
 
     /* Make a new context for this connection */
     result=sasl_server_new("smtp", /* Registered name of service */
-                   NULL, /* my fully qualified domain name;
-                        NULL says use gethostname() */
-                           NULL, /* The user realm used for password
-                        lookups; NULL means default to serverFQDN
-                                    Note: This does not affect Kerberos */
-                       NULL, NULL, /* IP Address information strings */
-                   NULL, /* Callbacks supported only for this connection */
-                       0, /* security flags (security layers are enabled
-                               * using security properties, separately)
-               &conn);
+            NULL, /* my fully qualified domain name;
+                    NULL says use gethostname() */
+            NULL, /* The user realm used for password
+                    lookups; NULL means default to serverFQDN
+                    Note: This does not affect Kerberos */
+            NULL, NULL, /* IP Address information strings */
+            NULL,   /* Callbacks supported only for this connection */
+            0,  /* security flags (security layers are enabled
+                   using security properties, separately) */
+            &conn);
 
 
 When a client requests the list of mechanisms supported by the
-server. This particular call might produce the string: ``{PLAIN,
-KERBEROS_V4, CRAM-MD5, DIGEST-MD5}``
+server, use :saslman:`sasl_listmech(3)`. This particular call might
+produce the string: ``{PLAIN, KERBEROS_V4, CRAM-MD5, DIGEST-MD5}``
 
 .. code-block:: C
 
@@ -566,7 +459,7 @@ KERBEROS_V4, CRAM-MD5, DIGEST-MD5}``
                                                 the string */
 
 
-When a client requests to authenticate:
+When a client requests to authenticate, use :saslman:`sasl_server_start(3)`:
 
 .. code-block:: C
 
@@ -595,7 +488,7 @@ When a response is returned by the client. ``clientin`` is the
 data from the client decoded from protocol specific format to a
 string of bytes of length ``clientinlen``. This step may occur
 zero or more times. An application must be able to deal with it
-occurring an arbitrary number of times.
+occurring an arbitrary number of times, using :saslman:`sasl_server_step(3)`:
 
 .. code-block:: C
 
@@ -609,208 +502,18 @@ occurring an arbitrary number of times.
                             &outlen);
 
     if ((result!=SASL_OK) && (result!=SASL_CONTINUE))
-      /* failure. Send protocol specific message that says authentication failed */
+        /* failure. Send protocol specific message that says authentication failed */
     else if (result==SASL_OK)
-      /* authentication succeeded. Send client the protocol specific message
-       to say that authentication is complete */
+        /* authentication succeeded. Send client the protocol specific message
+           to say that authentication is complete */
     else
-      /* send data 'out' with length 'outlen' over the network in protocol
-       specific format */
+        /* send data 'out' with length 'outlen' over the network in protocol
+            specific format */
 
 
 This continues until authentication succeeds. When the connection
-is concluded, make a call to ``sasl_dispose`` as with the
+is concluded, make a call to :saslman:`sasl_dispose(3)`, as with the
 client connection.
-
-sasl_server_init
-----------------
-
-.. code-block:: C
-
-   int sasl_server_init(const sasl_callback_t *callbacks,
-                         const char *appname);
-
-callbacks
-    A list of :ref:`callbacks <callbacks>` supported by the application
-appname
-    A string of the name of the application. This string
-    is what is used when loading configuration options.
-
-sasl_server_init() initializes the session. This should be the
-first function called. In this function the shared library
-authentication mechanisms are loaded.
-
-sasl_server_new
----------------
-
-.. code-block:: C
-
-   int sasl_server_new(const char *service,
-            const char *serverFQDN,
-            const char *user_realm,
-                        const char *iplocalport,
-                        const char *ipremoteport,
-            const sasl_callback_t *callbacks,
-            unsigned secflags,
-            sasl_conn_t **pconn);
-
-service
-    The name of the service you are supporting. This
-    might be "acap" or "smtp". This is used by Kerberos mechanisms and
-    possibly other mechanisms. It is also used for PAM
-    authentication.
-serverFQDN
-    This is the fully qualified domain name of the
-    server (i.e. your hostname); if NULL, the library calls
-    ``gethostbyname()``.
-user_realm
-    The realm the connected client is in. The Kerberos
-    mechanisms ignore this parameter and default to the local Kerberos
-    realm. A value of NULL makes the library default, usually to the
-    serverFQDN; a value of "" specifies that the client should specify
-    the realm; this also changes the semantics of "@" in a username for
-    mechanisms that don't support realms.
-iplocalport and ipremoteport
-    a string of the format
-    "a.b.c.d;p" detailing the local or remote IP and port, or NULL
-    (which will disable mechanisms that require this information)
-callbacks
-    Additional :ref:`callbacks <callbacks>` that you wish only to apply to
-    this connection.
-secflags
-    security flags.
-pconn
-    Context. Filled in on success.
-
-sasl_server_start
------------------
-
-.. code-block:: C
-
-   int sasl_server_start(sasl_conn_t *conn,
-               const char *mech,
-               const char *clientin,
-               unsigned clientinlen,
-               const char **serverout,
-               unsigned *serveroutlen);
-
-conn
-    The context for the connection
-mech
-    The authentication mechanism the client wishes to try
-    (e.g. ``KERBEROS_V4``)
-clientin
-    Initial client challenge bytes. Note: some protocols
-    do not allow this. If this is the case passing NULL is valid
-clientinlen
-    The length of the challenge. 0 if there is none.
-serverout
-    allocated and filled in by the function. These are
-    the bytes that should be encoded as per the protocol and sent over
-    the network back to the client.
-serveroutlen
-    length of bytes to send to client
-
-This function begins the authentication process with a client. If
-the program returns SASL_CONTINUE that means ``serverout``
-should be sent to the client. If SASL_OK is returned that means
-authentication is complete and the application should tell the
-client the authentication was successful. Any other return code
-means the authentication failed and the client should be notified
-of this.
-
-sasl_server_step
-----------------
-
-.. code-block:: C
-
-   int sasl_server_step(sasl_conn_t *conn,
-                 const char *clientin,
-                 unsigned clientinlen,
-                 const char **serverout,
-                 unsigned *serveroutlen);
-
-conn
-    The context for the connection
-clientin
-    Data sent by the client.
-clientinlen
-    The length of the client data. Note that this may be 0
-serverout
-    allocated and filled in by the function. These are
-    the bytes that should be encoded as per the protocol and sent over
-    the network back to the client.
-serveroutlen
-    length of bytes to send to client. Note that this may be 0
-
-This function preforms a step of the authentication. This may need
-to be called an arbitrary number of times. If the program returns
-SASL_CONTINUE that means ``serverout`` should be sent to the
-client. If SASL_OK is returned that means authentication is
-complete and the application should tell the client the
-authentication was successful. Any other return code means the
-authentication failed and the client should be notified of this.
-
-sasl_listmech
--------------
-
-.. code-block:: C
-
-   int sasl_listmech(sasl_conn_t *conn,
-              const char *user,
-              const char *prefix,
-              const char *sep,
-              const char *suffix,
-              const char **result,
-              unsigned *plen,
-              unsigned *pcount);
-
-conn
-    The context for this connection
-user
-    Currently not implemented
-prefix
-    The string to prepend
-sep
-    The string to separate mechanisms with
-suffix
-    The string to end with
-result
-    Resultant string
-plen
-    Number of characters in the result string
-pcount
-    Number of mechanisms listed in the result string
-
-This function is used to create a string with a list of SASL
-mechanisms supported by the server. This string is often needed for
-a capability statement.
-
-sasl_checkpass
---------------
-
-.. code-block:: C
-
-   int sasl_checkpass(sasl_conn_t *conn,
-                       const char *user,
-                       unsigned userlen,
-               const char *pass,
-               unsigned passlen);
-
-conn
-    The context for this connection
-user
-    The user trying to check the password for
-userlen
-    The user length
-pass
-    The password
-passlen
-    The password length
-
-This checks a plaintext password for a user.
-Some protocols have legacy systems for plaintext authentication
-where this might be used.
 
 Common Section
 ==============
@@ -820,7 +523,7 @@ Common Section
 Callbacks and Interactions
 --------------------------
 
-When the application starts and calls sasl_client_init() you must
+When the application starts and calls :saslman:`sasl_client_init(3)` you must
 specify for what data you support callbacks and/or interactions.
 
 These are for the library getting information needed for
@@ -834,22 +537,21 @@ start the authentication. The SASL library calls a function you
 specify and your function fills in the requested information. For
 example if you had the userid of the user already for some reason.
 
-An *interaction* is usually for things you support but will need to
-ask the user for (e.g. password). sasl_client_start() or
-sasl_client_step() will return SASL_INTERACT. This will be a list
-of sasl_interact_t's which contain a human readable string you can
-prompt the user with, a possible computer readable string, and a
-default result. The nice thing about interactions is you get them
-all at once so if you had a GUI application you could bring up a
-dialog box asking for authentication name and password together
-instead of one at a time.
+An *interaction* is usually for things you support but will need to ask the user
+for (e.g. password). :saslman:`sasl_client_start(3)` or
+:saslman:`sasl_client_step(3)` will return :c:macro:`SASL_INTERACT`.  This will
+be a list of sasl_interact_t's which contain a human readable string you can
+prompt the user with, a possible computer readable string, and a default result.
+The nice thing about interactions is you get them all at once so if you had a
+GUI application you could bring up a dialog box asking for authentication name
+and password together instead of one at a time.
 
 Any memory that is given to the SASL library for the purposes of
 callbacks and interactions must persist until the exchange
 completes in either success or failure. That is, the data must
-persist until ``sasl_client_start`` or
-``sasl_client_step`` returns something other than
-``SASL_INTERACT`` or ``SASL_CONTINUE``.
+persist until :saslman:`sasl_client_start(3)` or
+:saslman:`sasl_client_step(3)` returns something other than
+:c:macro:`SASL_INTERACT` or :c:macro:`SASL_CONTINUE`.
 
 Memory management
     As in the rest of the SASLv2 API,
@@ -902,9 +604,9 @@ An example of a way to handle callbacks:
       int id,
       sasl_secret_t **psecret)
     {
-       [ask the user for their secret]
+       /* [ask the user for their secret] */
 
-       [allocate psecret and insert the secret]
+       /* [allocate psecret and insert the secret] */
 
       return SASL_OK;
     }
@@ -916,7 +618,7 @@ An example of a way to handle callbacks:
     {
        if (id!=SASL_CB_AUTHNAME) return SASL_FAIL;
 
-       [fill in result and len]
+       /* [fill in result and len] */
 
        return SASL_OK;
      }
@@ -983,18 +685,18 @@ property:
    }
 
 If a security layer has been negotiated, your application must
-make use of the ``sasl_encode()`` and ``sasl_decode()``
-calls. All output must be passed through ``sasl_encode()``
+make use of the :saslman:`sasl_encode(3)` and :saslman:`sasl_decode(3)`
+calls. All output must be passed through :saslman:`sasl_encode(3)`
 before being written to the wire; all input must be passed through
-``sasl_decode()`` before being looked at by the application.
+:saslman:`sasl_decode(3)` before being looked at by the application.
 Your application must also be prepared to deal with
-``sasl_decode()`` not returning any data in the rare case that
+:saslman:`sasl_decode(3)` not returning any data in the rare case that
 the peer application did something strange (by splitting a single
 SASL blob into two seperate TCP packets).
 
 The only subtlety dealing with security layers is the maximum size
-of data that can be passed through ``sasl_encode()`` or
-``sasl_decode()``. This must be limited to make sure that only
+of data that can be passed through :saslman:`sasl_encode(3)` or
+:saslman:`sasl_decode(3)`. This must be limited to make sure that only
 a finite amount of data needs to be buffered. The simple rules to
 follow:
 
@@ -1003,18 +705,18 @@ follow:
   ``read()`` system call&mdash;that is, the amount of data
   you're prepared to read at any one time.
 
-* After authentication finishes, use ``sasl_getprop()`` to
+* After authentication finishes, use :saslman:`sasl_getprop(3)` to
   retrieve the ``SASL_MAXOUTBUF`` value, and call
-  ``sasl_encode()`` with chunks of data of that size or less.
-  ``sasl_encode()`` will throw an error if you call it with a
+  :saslman:`sasl_encode(3)` with chunks of data of that size or less.
+  :saslman:`sasl_encode(3)` will throw an error if you call it with a
   larger chunk of data, so be careful!
 
 Memory management
     As usual, whoever allocates the memory
     must free it. The SASL library will keep the data returned from
-    ``sasl_encode()`` until the next call to ``sasl_encode()``
-    on that connection. (``sasl_decode()`` results persist until the
-    next call to ``sasl_decode()`` on that connection.) The
+    :saslman:`sasl_encode(3)` until the next call to :saslman:`sasl_encode(3)`
+    on that connection. (:saslman:`sasl_decode(3)` results persist until the
+    next call to :saslman:`sasl_decode(3)` on that connection.) The
     application must not attempt to free the memory returned from either
     function.
 
@@ -1066,13 +768,16 @@ which should be of interest to many applications.
 `imtest`, from Cyrus 2.1.0 or later
 -------------------------------------
 
-``imtest`` is an application included with Cyrus imapd. It is
+:ref:`imtest(3) <cyrusimap:imap-reference-manpages-usercommands-imtest>`
+is an application included with Cyrus IMAPd. It is
 a very simple IMAP client, but should be of interest to those
 writing applications. It also uses the prot layer, but it is easy
 to incorporate similar support without using the prot layer.
 Likewise, there are other sample client applications that you can
-look at including ``smtptest`` and ``pop3test`` in the
-SASL distribution and the Cyrus IMAPd distribution, respectively.
+look at including
+:ref:`smtptest(3) <cyrusimap:imap-reference-manpages-usercommands-smtptest>`
+and :ref:`pop3test(3) <cyrusimap:imap-reference-manpages-usercommands-pop3test>`
+in the Cyrus IMAPd distribution, respectively.
 
 Miscellaneous Information
 =========================

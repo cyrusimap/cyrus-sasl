@@ -1,0 +1,20 @@
+language: c
+sudo: required
+dist: trusty
+group: edge
+
+os: linux
+compiler: gcc
+
+before_script:
+  - ccache --version
+  - ccache --zero-stats
+  - ./autogen.sh
+  - make
+script:
+  - make check
+branches:
+  only:
+    - master
+
+  

@@ -14,3 +14,11 @@ Makefile
 *.pyc
 docsrc/.doctrees/
 docsrc/build/
+.deps
+.dirstamp
+m4/libtool.m4
+m4/ltoptions.m4
+m4/ltsugar.m4
+m4/ltversion.m4
+m4/lt~obsolete.m4
+libsasl2.pc

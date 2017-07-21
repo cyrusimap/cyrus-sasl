@@ -56,8 +56,7 @@ This library is believed to be thread safe **if**:
 Typical Installation
 --------------------
 
-First, if you are upgrading from Cyrus SASLv1, please see <a
-href="upgrading.html">upgrading.html</a>.
+If you are upgrading from Cyrus SASLv1, please see :ref:`upgrade guide <upgrading-v1-v2>`.
 
 Please see the :ref:`installation guide <installation>` for instructions
 on how to install this package.

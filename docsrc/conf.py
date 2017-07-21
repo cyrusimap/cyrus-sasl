@@ -292,7 +292,7 @@ for tuple in pathset:
     try:
         os.chdir(tuple[0])
     except OSError as e:
-        break
+        continue
     for rstfile in glob.glob("*.rst"):
         author = [("The Cyrus Team")]
         orphan = 'False';

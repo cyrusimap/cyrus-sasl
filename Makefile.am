@@ -78,7 +78,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libsasl2.pc
 
 dist-hook:
-	@find $(distdir) -exec chmod o+w {} ';'
+	@find $(distdir) -exec chmod u+w {} ';'
 	@find $(distdir) -name CVS -print | xargs -t rm -rf
 	(cd $(distdir)/plugins && sh makeinit.sh)
 

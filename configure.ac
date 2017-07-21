@@ -96,7 +96,6 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
 AC_USE_SYSTEM_EXTENSIONS
-CMU_C___ATTRIBUTE__
 
 dnl check for -R, etc. switch
 CMU_GUESS_RUNPATH_SWITCH
@@ -1258,12 +1257,13 @@ AC_SUBST(GETSUBOPT)
 dnl Check for snprintf
 sasl_cv_snprintf=no
 SNPRINTFOBJS=""
+LTSNPRINTFOBJS=""
 AC_CHECK_FUNC(snprintf, [AC_DEFINE(HAVE_SNPRINTF,[],[Does the system have snprintf()?])], [sasl_cv_snprintf=yes])
 AC_CHECK_FUNC(vsnprintf, [AC_DEFINE(HAVE_VSNPRINTF,[],[Does the system have vsnprintf()?])], [sasl_cv_snprintf=yes])
-if test $sasl_cv_snprintf = yes; then
-	AC_LIBOBJ(snprintf)
-        SNPRINTFOBJS="snprintf.o"
-        LTSNPRINTFOBJS="snprintf.lo"
+if test $sasl_cv_snprintf = no; then
+       AC_LIBOBJ(snprintf)
+       SNPRINTFOBJS="snprintf.o"
+       LTSNPRINTFOBJS="snprintf.lo"
 fi
 AC_SUBST(SNPRINTFOBJS)
 AC_SUBST(LTSNPRINTFOBJS)
@@ -1460,11 +1460,6 @@ struct iovec {
 /* Make Linux happy... */
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
-#endif
-
-#ifndef HAVE___ATTRIBUTE__
-/* Can't use attributes... */
-#define __attribute__(foo)
 #endif
 
 #define SASL_PATH_ENV_VAR "SASL_PATH"

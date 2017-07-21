@@ -591,7 +591,7 @@ auth_httpform (
 
     /* read and parse the response */
     alarm(NETWORK_IO_TIMEOUT);
-    rc = read(s, rbuf, sizeof(rbuf));
+    rc = read(s, rbuf, RESP_LEN-1);
     alarm(0);
     
     close(s);                    /* we're done with the remote */

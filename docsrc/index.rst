@@ -37,54 +37,59 @@ these libraries in on platforms that support it (Solaris and Linux
 among them) but it does not.  It also doesn't always get the runpath
 of libraries correct.
 
-Note for Packagers
-------------------
-
-People considering doing binary distributions that include saslauthd
-should be aware that the code is covered by several slightly different
-(but compatible) licenses, due to how it was contributed.  Details can
-be found within the source code.
-
-
 .. toctree::
-    :maxdepth: 1
-    :caption: Overview
+    :maxdepth: 3
+    :caption: Cyrus SASL
 
     download
     sasl/quickstart
-    sasl/installation
-    Contact Us <contribute>
-
-.. toctree::
-    :maxdepth: 1
-    :caption: Configuration
-
     sasl/concepts
-    sasl/components
-    sasl/options
-    sasl/sysadmin
-    sasl/advanced
-    sasl/upgrading
-    sasl/appconvert
+    setup
+    operations
+    developer
+    support
 
-.. toctree::
-    :maxdepth: 1
-    :caption: Developers
+.. OLD INDEX
 
-    sasl/developer/programming
-    sasl/developer/plugprog
-    sasl/developer/testing
+    .. toctree::
+        :maxdepth: 1
+        :caption: Overview
 
-.. toctree::
-    :maxdepth: 1
-    :caption: Reference
+        getsasl
+        sasl/quickstart
+        sasl/installation
+        Contact Us <contribute>
 
-    sasl/auxiliary_properties
-    sasl/authentication_mechanisms
-    sasl/pwcheck
-    sasl/faq
-    sasl/resources
-    sasl/manpages
+    .. toctree::
+        :maxdepth: 1
+        :caption: Configuration
+
+        sasl/concepts
+        sasl/components
+        sasl/options
+        sasl/sysadmin
+        sasl/advanced
+        sasl/upgrading
+        sasl/appconvert
+
+    .. toctree::
+        :maxdepth: 1
+        :caption: Developers
+
+        sasl/developer/programming
+        sasl/developer/plugprog
+        sasl/developer/testing
+
+    .. toctree::
+        :maxdepth: 1
+        :caption: Reference
+
+        sasl/auxiliary_properties
+        sasl/authentication_mechanisms
+        sasl/pwcheck
+        sasl/faq
+        sasl/resources
+        sasl/manpages
 
 .. toctree::
     :caption: IMAP

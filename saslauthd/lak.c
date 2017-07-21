@@ -92,7 +92,9 @@ static int lak_auth_custom(LAK *, const char *, const char *, const char *, cons
 static int lak_auth_bind(LAK *, const char *, const char *, const char *, const char *);
 static int lak_auth_fastbind(LAK *, const char *, const char *, const char *, const char *);
 static int lak_group_member(LAK *, const char *, const char *, const char *, const char *);
+#if 0 /* unused */
 static char *lak_result_get(const LAK_RESULT *, const char *);
+#endif
 static int lak_result_add(const char *, const char *, LAK_RESULT **);
 static int lak_check_password(const char *, const char *, void *);
 static int lak_check_crypt(const char *, const char *, void *);
@@ -612,7 +614,7 @@ static int lak_expand_tokens(
 			case 'U':
 				if (ISSET(username)) {
 					user = strchr(username, '@');
-					rc=lak_escape(username, (user ? user - username : strlen(username)), &ebuf);
+					rc=lak_escape(username, (user ? user - username : (unsigned) strlen(username)), &ebuf);
 					if (rc == LAK_OK) {
 						strcat(buf,ebuf);
 						free(ebuf);
@@ -1622,6 +1624,7 @@ char *lak_error(
     }
 }
 
+#if 0 /* unused */
 static char *lak_result_get(
     const LAK_RESULT *lres, 
     const char *attr) 
@@ -1635,6 +1638,7 @@ static char *lak_result_get(
 
     return NULL;
 }
+#endif
 
 static int lak_result_add(
 	const char *attr,

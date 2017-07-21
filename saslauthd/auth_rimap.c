@@ -391,6 +391,43 @@ process_login_reply(
 
 /* END FUNCTION: process_login_reply */
 
+
+static int read_response(int s, char *rbuf, int buflen, const char *tag)
+{
+    int rc = 0;
+
+    do {
+        /* check if there is more to read */
+        fd_set         perm;
+        int            fds, ret;
+        struct timeval timeout;
+
+        FD_ZERO(&perm);
+        FD_SET(s, &perm);
+        fds = s +1;
+
+        timeout.tv_sec  = NETWORK_IO_TIMEOUT;
+        timeout.tv_usec = 0;
+        ret = select (fds, &perm, NULL, NULL, &timeout );
+        if ( ret<=0 ) {
+            rc = ret;
+            break;
+        }
+        if ( FD_ISSET(s, &perm) ) {
+            ret = read(s, rbuf+rc, buflen-rc);
+            if ( ret<=0 ) {
+                rc = ret;
+                break;
+            } else {
+                rc += ret;
+            }
+        }
+    } while (rc < buflen &&
+             ( rbuf[rc-1] != '\n' || !memmem(rbuf, rc, tag, strlen(tag)) ));
+
+    return rc;
+}
+
 /* FUNCTION: auth_rimap */
 
 /* SYNOPSIS
@@ -480,38 +517,18 @@ auth_rimap (
     
     /* read and parse the IMAP banner */
 
-    alarm(NETWORK_IO_TIMEOUT);
-    rc = read(s, rbuf, sizeof(rbuf));
-    alarm(0);
-    if ( rc>0 ) {
-        /* check if there is more to read */
-        fd_set         perm;
-        int            fds, ret;
-        struct timeval timeout;
-
-        FD_ZERO(&perm);
-        FD_SET(s, &perm);
-        fds = s +1;
-
-        timeout.tv_sec  = 1;
-        timeout.tv_usec = 0;
-        while( select (fds, &perm, NULL, NULL, &timeout ) >0 ) {
-           if ( FD_ISSET(s, &perm) ) {
-              ret = read(s, rbuf+rc, sizeof(rbuf)-rc);
-              if ( ret<=0 ) {
-                 rc = ret;
-                 break;
-              } else {
-                 rc += ret;
-              }
-           }
-        }
-    }
+    rc = read_response(s, rbuf, RESP_LEN, "*");
     if (rc == -1) {
 	syslog(LOG_WARNING, "auth_rimap: read (banner): %m");
 	(void) close(s);
 	return strdup("NO [ALERT] error synchronizing with remote authentication server");
     }
+    else if (rc >= RESP_LEN) {
+	syslog(LOG_WARNING, "auth_rimap: read (banner): buffer overflow");
+	(void) close(s);
+	return strdup("NO [ALERT] error synchronizing with remote authentication server");
+    }
+
     rbuf[rc] = '\0';			/* tie off response */
     c = strpbrk(rbuf, "\r\n");
     if (c != NULL) {
@@ -590,32 +607,16 @@ auth_rimap (
 
     /* read and parse the LOGIN response */
 
-    alarm(NETWORK_IO_TIMEOUT);
-    rc = read(s, rbuf, sizeof(rbuf));
-    alarm(0);
-    if ( rc>0 ) {
-        /* check if there is more to read */
-        fd_set         perm;
-        int            fds, ret;
-        struct timeval timeout;
-
-        FD_ZERO(&perm);
-        FD_SET(s, &perm);
-        fds = s +1;
-
-        timeout.tv_sec  = 1;
-        timeout.tv_usec = 0;
-        while( select (fds, &perm, NULL, NULL, &timeout ) >0 ) {
-           if ( FD_ISSET(s, &perm) ) {
-              ret = read(s, rbuf+rc, sizeof(rbuf)-rc);
-              if ( ret<=0 ) {
-                 rc = ret;
-                 break;
-              } else {
-                 rc += ret;
-              }
-           }
-        }
+    rc = read_response(s, rbuf, RESP_LEN, TAG);
+    if (rc == -1) {
+	(void) close(s);
+	syslog(LOG_WARNING, "auth_rimap: read (response): %m");
+	return strdup(RESP_IERROR);
+    }
+    else if (rc >= RESP_LEN) {
+	(void) close(s);
+	syslog(LOG_WARNING, "auth_rimap: read (response): buffer overflow");
+	return strdup(RESP_IERROR);
     }
 
     /* build the LOGOUT command */
@@ -636,10 +637,6 @@ auth_rimap (
     }
 
     (void) close(s);			/* we're done with the remote */
-    if (rc == -1) {
-	syslog(LOG_WARNING, "auth_rimap: read (response): %m");
-	return strdup(RESP_IERROR);
-    }
 
     rbuf[rc] = '\0';			/* tie off response */
     login_status = process_login_reply(rbuf, login);

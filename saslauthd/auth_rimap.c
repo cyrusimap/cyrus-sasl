@@ -168,36 +168,11 @@ qstring (
     register const char *p1;		/* scratch pointers		*/
     register char *p2;			/* scratch pointers             */
     int len;				/* length of array to malloc    */
-    int num_quotes;			/* number of '"' chars in string*/
 
-    /* see of we have to deal with any '"' characters */
-    num_quotes = 0;
-    p1 = s;
-    while ((p1 = strchr(p1, '"')) != NULL) {
-	p1++;
-	num_quotes++;
-    }
-    
-    if (!num_quotes) {
-	/*
-	 * no double-quotes to escape, so just wrap the input string
-	 * in double-quotes and return it.
-	 */
-	len = strlen(s) + 2 + 1;
-	c = malloc(len);
-	if (c == NULL) {
-	    return NULL;
-	}
-	*c = '"';
-        *(c+1) = '\0';
-	strcat(c, s);
-	strcat(c, "\"");
-	return c;
-    }
     /*
-     * Ugh, we have to escape double quotes ...
+     * Ugh, we have to escape quoted-specials ...
      */
-    len = strlen(s) + 2 + (2*num_quotes) + 1;
+    len = 2*strlen(s) + 3;		/* assume all chars are quoted-special */
     c = malloc(len);
     if (c == NULL) {
 	return NULL;
@@ -206,8 +181,8 @@ qstring (
     p2 = c;
     *p2++ = '"';
     while (*p1) {
-	if (*p1 == '"') {
-	    *p2++ = '\\';		/* escape the '"' */
+	if (*p1 == '"' || *p1 == '\\') {
+	    *p2++ = '\\';		/* escape the quoted-special */
 	}
 	*p2++ = *p1++;
     }

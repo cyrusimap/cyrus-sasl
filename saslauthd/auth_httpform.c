@@ -101,6 +101,7 @@ static struct addrinfo *ai = NULL;      /* remote host, as looked up    */
 #define SPACE " "
 
 #define HTTP_STATUS_SUCCESS "200"
+#define HTTP_STATUS_NOCONTENT "204"
 #define HTTP_STATUS_REFUSE "403"
 
 /* Common failure response strings for auth_httpform() */
@@ -357,6 +358,7 @@ static char *build_sasl_response(
     
     /* parse the response, just the first line */
     /* e.g. HTTP/1.1 200 OK */
+    /* e.g. HTTP/1.1 204 No Content */
     /* e.g. HTTP/1.1 403 User unknown */
     c = strpbrk(http_response, CRLF);
     if (c != NULL) {
@@ -368,7 +370,8 @@ static char *build_sasl_response(
     http_response_string = strpbrk(http_response_code, SPACE) + 1;
     *(http_response_string-1) = '\0';  /* replace space after code with 0 */
 
-    if (!strcmp(http_response_code, HTTP_STATUS_SUCCESS)) {
+    if (!strcmp(http_response_code, HTTP_STATUS_SUCCESS) ||
+        !strcmp(http_response_code, HTTP_STATUS_NOCONTENT)) {
         return strdup("OK remote authentication successful");
     }
     if (!strcmp(http_response_code, HTTP_STATUS_REFUSE)) {
@@ -470,7 +473,7 @@ auth_httpform_init (
  * Proxy authenticate to a remote HTTP server with a form POST.
  *
  * This mechanism takes the plaintext authenticator and password, forms
- * them into an HTTP POST request. If the HTTP server responds with a 200
+ * them into an HTTP POST request. If the HTTP server responds with a 200/204
  * status code, the credentials are considered valid. If it responds with
  * a 403 HTTP status code, the credentials are considered wrong. Any other
  * HTTP status code is treated like a network error.
@@ -558,6 +561,7 @@ auth_httpform (
     postlen = snprintf(postbuf, RESP_LEN-1,
               "POST %s HTTP/1.1" CRLF
               "Host: %s:%s" CRLF
+              "Connection: close" CRLF
               "User-Agent: saslauthd" CRLF
               "Accept: */*" CRLF
               "Content-Type: application/x-www-form-urlencoded" CRLF

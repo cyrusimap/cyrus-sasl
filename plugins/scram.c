@@ -2512,7 +2512,9 @@ scram_client_mech_step3(client_context_t *text,
 	return SASL_BADPROT;
     }
 
-    p = strchr (serverin + 2, ',');
+    /* Use memchr instead of the original strchr as there is no guarantee that
+       the input data is NUL terminated */
+    p = memchr (serverin + 2, ',', serverinlen - 2);
     if (p != NULL) {
 	server_proof_len = p - (serverin + 2) - 1;
     } else {

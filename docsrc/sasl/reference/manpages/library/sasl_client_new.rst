@@ -34,27 +34,27 @@ Description
     unsigned flags,
     sasl_conn_t ** pconn);
 
-    **sasl_client_new()** creates a new SASL context. This context will  be
-    used  for  all SASL calls for one connection. It handles both
-    authentication and integrity/encryption  layers after authentication.
+    **sasl_client_new()** creates a new SASL context. This context will be
+    used for all SASL calls for one connection. It handles both
+    authentication and integrity/encryption layers after authentication.
 
     :param service: the registered name of the service (usually the protocol name) using SASL (e.g. "imap").
-    :param serverFQDN: the  fully  qualified  domain  name  of  the server (e.g. "serverhost.example.com").
-    :param iplocalport:  the  IP and port of the local side of the
-        connection, or NULL.  If iplocalport is NULL it will  disable
+    :param serverFQDN: the fully qualified domain name of the server (e.g. "serverhost.example.com").
+    :param iplocalport:  the IP and port of the local side of the
+        connection, or NULL.  If iplocalport is NULL it will disable
         mechanisms that require IP address information.  This
-        string  must  be  in  one  of  the   following   formats:
+        string must be in one of the   following   formats:
         "a.b.c.d;port"  (IPv4),  "e:f:g:h:i:j:k:l;port" (IPv6), or
         "e:f:g:h:i:j:a.b.c.d;port" (IPv6)
-    :param ipremoteport:  the IP and port of the remote side of  the
+    :param ipremoteport:  the IP and port of the remote side of the
         connection, or NULL (see iplocalport)
-    :param prompt_supp: a  list  of client interactions supported
-        that is unique to this connection. If  this  parameter  is
-        NULL  the global callbacks (specified in :saslman:`sasl_client_init(3)`)
+    :param prompt_supp: a list of client interactions supported
+        that is unique to this connection. If this parameter is
+        NULL the global callbacks (specified in :saslman:`sasl_client_init(3)`)
         will be used. See :saslman:`sasl_callbacks(3)` for more information.
     :param flags: are connection flags (see below)
-    :param pconn: the connection context allocated by the  library.
-        This  structure will be used for all future SASL calls for
+    :param pconn: the connection context allocated by the library.
+        This structure will be used for all future SASL calls for
         this connection.
 
 Connection Flags
@@ -63,13 +63,13 @@ Connection Flags
 Flags that may be passed to **sasl_client_new()**:
 
 * `SASL_SUCCESS_DATA`: The protocol supports a server‐last send
-* `SASL_NEED_PROXY`: Force the use of  a  mechanism  that  supports  an
-        authorization  id  that  is not the authentication id.
+* `SASL_NEED_PROXY`: Force the use of a mechanism that supports an
+        authorization id that is not the authentication id.
 
 Return Value
 ============
 
-SASL  callback  functions should return SASL return codes.
+SASL callback functions should return SASL return codes.
 See sasl.h for a complete list. :c:macro:`SASL_OK` indicates success.
 
 The following return codes indicate errors and should either be handled or the authentication

@@ -1581,6 +1581,7 @@ libsasl2.pc
 include/Makefile
 saslauthd/Makefile
 sasldb/Makefile
+common/Makefile
 plugins/Makefile
 lib/Makefile
 utils/Makefile

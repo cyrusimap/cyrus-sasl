@@ -330,7 +330,7 @@ ldapdb_canon_server(void *glob_context,
 		    sasl_server_params_t *sparams,
 		    const char *user,
 		    unsigned ulen,
-		    unsigned flags,
+		    unsigned flags __attribute__((unused)),
 		    char *out,
 		    unsigned out_max,
 		    unsigned *out_ulen)
@@ -425,11 +425,11 @@ ldapdb_canon_server(void *glob_context,
 }
 
 static int
-ldapdb_canon_client(void *glob_context,
+ldapdb_canon_client(void *glob_context __attribute__((unused)),
 		    sasl_client_params_t *cparams,
 		    const char *user,
 		    unsigned ulen,
-		    unsigned flags,
+		    unsigned flags __attribute__((unused)),
 		    char *out,
 		    unsigned out_max,
 		    unsigned *out_ulen)

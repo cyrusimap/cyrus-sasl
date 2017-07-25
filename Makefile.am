@@ -66,8 +66,8 @@ JAV =
 endif
 if MACOSX
 INSTALLOSX = install-exec-local-osx
-else 
-INSTALLOSX = 
+else
+INSTALLOSX =
 endif
 
 SUBDIRS=include sasldb lib plugins utils $(PWC) $(SAM) $(JAV) $(SAD)

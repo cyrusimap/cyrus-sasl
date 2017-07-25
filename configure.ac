@@ -67,7 +67,7 @@ AC_CONFIG_AUX_DIR(config)
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE([1.11 tar-ustar dist-bzip2 foreign -Wno-portability subdir-objects])
+AM_INIT_AUTOMAKE([1.11 tar-ustar dist-bzip2 -Wno-portability subdir-objects foreign])
 
 DIRS=""
 
@@ -150,7 +150,7 @@ AC_ARG_ENABLE(java, [  --enable-java           compile Java support [[no]]],
 if test "$enable_java" = yes; then
   AC_PATH_PROG(JAVAC, javac, no)
   AC_PATH_PROGS(JAVAH, javah kaffeh, no)
-  AC_CHECK_PROGS(JAVADOC, javadoc, :)	
+  AC_CHECK_PROGS(JAVADOC, javadoc, :)
   if test "$JAVAC" = "no" -o "$JAVAH" = "no"; then
     AC_WARN([Disabling Java support])
     enable_java=no
@@ -173,7 +173,7 @@ if test "$enable_java" = yes; then
 
     AC_ARG_WITH(javabase, [  --with-javabase=PATH    set path to find jni.h in [/usr/java/include] ],
         java_base=$withval,)
-	
+
 
     sasl_cv_java_includes=''
     for dir in `find ${java_base}/include -follow -type d -print | grep -v green_threads`; do
@@ -181,7 +181,7 @@ if test "$enable_java" = yes; then
     done
   fi
 
-  sasl_cv_java_includes="${sasl_cv_java_includes} -I$javapath/include"])
+  sasl_cv_java_includes="${sasl_cv_java_includes} -I$java_base/include"])
 
   JAVA_INCLUDES=$sasl_cv_java_includes
   AC_SUBST(JAVA_INCLUDES)
@@ -1255,9 +1255,8 @@ fi
 AC_SUBST(GETSUBOPT)
 
 dnl Check for snprintf
-sasl_cv_snprintf=no
+sasl_cv_snprintf=yes
 SNPRINTFOBJS=""
-LTSNPRINTFOBJS=""
 AC_CHECK_FUNC(snprintf, [AC_DEFINE(HAVE_SNPRINTF,[],[Does the system have snprintf()?])], [sasl_cv_snprintf=yes])
 AC_CHECK_FUNC(vsnprintf, [AC_DEFINE(HAVE_VSNPRINTF,[],[Does the system have vsnprintf()?])], [sasl_cv_snprintf=yes])
 if test $sasl_cv_snprintf = no; then
@@ -1595,12 +1594,35 @@ java/javax/security/auth/Makefile
 java/javax/security/auth/callback/Makefile
 pwcheck/Makefile)
 
-AC_MSG_NOTICE([
-
-cyrus-sasl - $VERSION
-
-• Prefix: $prefix
-• Plugins: $SASL_MECHS
-
-Now type 'make' to build $PACKAGE
-])
+echo
+echo "$PACKAGE - $VERSION"
+echo
+echo "Prefix....................: $prefix"
+echo "Plugins...................: $SASL_MECHS"
+echo "saslauthd support.........: $with_saslauthd"
+echo "Java Support:.............: $enable_java"
+if test "$enable_java" = yes; then
+   echo "Java Base.................: $JAVA_INCLUDES"
+fi
+echo "OpenSSL...................: $with_openssl"
+echo "CRAM-MD5 Authentication...: $cram"
+echo "SCRAM Authentication......: $scram"
+echo "OTP Authentication........: $otp"
+echo "OPIE......................: $with_opie"
+echo "SRP Authentication........: $srp"
+echo "GSSAPI....................: $gssapi"
+echo "SIA Authentication........: $sia"
+echo "HTTP Form Authentication..: $httpform"
+echo "PAM.......................: $with_pam"
+echo "Anonymous.................: $anon"
+echo "LOGIN (Unsupported).......: $login"
+echo "NTLM (Unsupported)........: $ntlm"
+echo "passdss (Experimental)....: $passdss"
+echo "LDAP......................: $with_ldap"
+echo "MySQL.....................: $with_mysql"
+echo "PgSQL.....................: $with_pgsql"
+echo "SQLite....................: $with_sqlite"
+echo "SQLite 3..................: $with_sqlite3"
+echo
+echo "Now type 'make' to build $PACKAGE"
+echo

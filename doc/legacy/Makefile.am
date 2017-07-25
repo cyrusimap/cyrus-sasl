@@ -52,7 +52,6 @@ EXTRA_DIST =	advanced.html \
 		macosx.html \
 		mechanisms.html \
 		NTMakefile \
-		ONEWS \
 		options.html \
 		os390.html \
 		plugprog.html \

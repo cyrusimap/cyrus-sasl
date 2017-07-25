@@ -203,7 +203,9 @@ man/.sphinx-build.stamp: $(GENERATED_RSTS) docsrc/.sphinx-build.stamp
 	@touch $@
 
 clean-man:
-	@$(RM) -r man
+	@$(RM) man/*.[1358]
+# don't delete entire man/ directory while we still have man/legacy/
+#	@$(RM) -r man
 
 doc/html/.sphinx-build.stamp: $(GENERATED_RSTS) docsrc/.sphinx-build.stamp
 	$(AM_V_GEN)$(SPHINX_BUILD) $(SPHINX_OPTS) -b html $(top_builddir)/docsrc $(top_builddir)/doc/html

@@ -52,5 +52,5 @@ AM_CPPFLAGS=-fPIC -I$(top_srcdir)/include -I$(top_builddir)/include
 noinst_LTLIBRARIES = libplugin_common.la
 
 libplugin_common_la_SOURCES = plugin_common.c plugin_common.h
-libplugin_common__la_LDFLAGS = -version-info $(plugin_common_version) -no-undefined
-libsasl2_la_LIBADD = $(LIB_SOCKET)
+libplugin_common_la_LDFLAGS = -version-info $(plugin_common_version) -no-undefined
+libplugin_common_la_LIBADD = $(LIB_SOCKET)

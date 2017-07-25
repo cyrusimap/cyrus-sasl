@@ -191,6 +191,12 @@ getaddrinfo.c: ..\lib\getaddrinfo.c
 getnameinfo.c: ..\lib\getnameinfo.c
 	xcopy /D /Y ..\lib\getnameinfo.c .
 
+plugin_common.c: ..\common\plugin_common.c
+	xcopy /D /Y ..\common\plugin_common.c .
+
+plugin_common.h: ..\common\plugin_common.h
+	xcopy /D /Y ..\common\plugin_common.h .
+
 allockey.c: ..\sasldb\allockey.c
 	xcopy /D /Y ..\sasldb\allockey.c .
 
@@ -277,6 +283,8 @@ CLEAN :
 	-@erase db_berkeley.c
 	-@erase db_lmdb.c
 	-@erase getnameinfo.c
+	-@erase plugin_common.h
+	-@erase plugin_common.c
 	-@erase $(generated_rc)
 	-@erase "*.res"
 	-@erase $(all_out)

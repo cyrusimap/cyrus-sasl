@@ -47,6 +47,8 @@ sasl_version = 3:0:0
 
 AM_CPPFLAGS=-DLIBSASL_EXPORTS=1 -I$(top_srcdir)/include -I$(top_srcdir)/plugins -I$(top_builddir)/include -I$(top_srcdir)/sasldb
 
+PLUGIN_COMMON_OBJS = $(top_builddir)/common/libplugin_common.la
+
 EXTRA_DIST = windlopen.c dlopen.c staticopen.h NTMakefile
 EXTRA_LIBRARIES = libsasl2.a
 noinst_LIBRARIES = @SASL_STATIC_LIBS@
@@ -61,7 +63,7 @@ DLOPEN_C = dlopen.c
 endif
 
 common_headers = saslint.h
-common_sources = auxprop.c canonusr.c checkpw.c client.c common.c config.c external.c md5.c saslutil.c server.c seterror.c $(DLOPEN_C) ../plugins/plugin_common.c
+common_sources = auxprop.c canonusr.c checkpw.c client.c common.c config.c external.c md5.c saslutil.c server.c seterror.c $(DLOPEN_C)
 
 LTLIBOBJS = @LTLIBOBJS@
 LIB_DOOR= @LIB_DOOR@
@@ -74,7 +76,7 @@ libobj_la_LIBADD = $(LTLIBOBJS)
 
 libsasl2_la_SOURCES = $(common_sources) $(common_headers)
 libsasl2_la_LDFLAGS = -version-info $(sasl_version) -no-undefined
-libsasl2_la_LIBADD = libobj.la $(SASL_DL_LIB) $(LIB_SOCKET) $(LIB_DOOR)
+libsasl2_la_LIBADD = libobj.la $(SASL_DL_LIB) $(LIB_SOCKET) $(LIB_DOOR) $(PLUGIN_COMMON_OBJS)
 
 if MACOSX
 framedir = /Library/Frameworks/SASL2.framework
@@ -89,7 +91,7 @@ endif
 libsasl2.a: libsasl2.la $(SASL_STATIC_OBJS)
 	@echo adding static plugins and dependencies
 	$(AR) cru .libs/$@ $(SASL_STATIC_OBJS)
-	@for i in ./libsasl2.la ../sasldb/libsasldb.la ../plugins/lib*.la; do \
+	@for i in ./libsasl2.la ../common/libplugin_common.la ../sasldb/libsasldb.la ../plugins/lib*.la; do \
 	if test ! -f $$i; then continue; fi; . $$i; \
 	for j in $$dependency_libs foo; do \
 	case $$j in foo) ;; \

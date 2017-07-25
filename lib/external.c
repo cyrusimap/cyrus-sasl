@@ -53,7 +53,7 @@
 #include <saslplug.h>
 #include "saslint.h"
 
-#include "../plugins/plugin_common.h"
+#include "../common/plugin_common.h"
 
 /*****************************  Common Section  *****************************/
 

@@ -45,7 +45,8 @@
 # CURRENT:REVISION:AGE
 sasl_version = 3:0:0
 
-AM_CPPFLAGS=-DLIBSASL_EXPORTS=1 -I$(top_srcdir)/include -I$(top_srcdir)/plugins -I$(top_builddir)/include -I$(top_srcdir)/sasldb
+AM_CPPFLAGS=-DLIBSASL_EXPORTS=1 -I$(top_srcdir)/include -I$(top_srcdir)/plugins \
+            -I$(top_builddir)/include -I$(top_srcdir)/sasldb -I$(top_srcdir)/common
 
 PLUGIN_COMMON_OBJS = $(top_builddir)/common/libplugin_common.la
 

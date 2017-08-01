@@ -422,8 +422,8 @@ int sasl_server_add_plugin(const char *plugname,
 			   sasl_server_plug_init_t *p)
 {
     int plugcount;
-    sasl_server_plug_t *pluglist;
-    sasl_server_plug_init_t *entry_point;
+    sasl_server_plug_t *pluglist = NULL;
+    sasl_server_plug_init_t *entry_point = NULL;
     int result;
     int version;
     int lupe;
@@ -1426,9 +1426,9 @@ int sasl_server_start(sasl_conn_t *conn,
     }
 
     if (m->m.condition == SASL_CONTINUE) {
-	sasl_server_plug_init_t *entry_point;
+	sasl_server_plug_init_t *entry_point = NULL;
 	void *library = NULL;
-	sasl_server_plug_t *pluglist;
+	sasl_server_plug_t *pluglist = NULL;
 	int version, plugcount;
 	int l = 0;
 

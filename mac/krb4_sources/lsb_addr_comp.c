@@ -115,7 +115,7 @@ lsb_time(time_t t, struct sockaddr_in *src, struct sockaddr_in *dst)
 	    krb_warning("lsb_time: reversing direction: %d -> %d\n", dir, -dir);
 	dir = -dir;
     }   
- #ifdef RUBBISH   
+#ifdef RUBBISH   
     else if((fw = krb_get_config_string("firewall_address"))) {
 	struct in_addr fw_addr;
 	fw_addr.sin_addr.s_addr = inet_addr(fw);

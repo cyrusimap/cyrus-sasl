@@ -4539,6 +4539,8 @@ static int digestmd5_client_mech_step(void *conn_context,
 	text->realm = NULL;
 	text->nonce = text->cnonce = NULL;
 	ctext->cipher = NULL;
+
+        GCC_FALLTHROUGH
     
     case 2:
 	return digestmd5_client_mech_step2(ctext, params,

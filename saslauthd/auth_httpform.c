@@ -84,6 +84,10 @@
 #define MAX(p,q) ((p >= q) ? p : q)
 #endif
 
+#ifndef MIN
+#define MIN(p,q) ((p <= q) ? p : q)
+#endif
+
 /* PRIVATE DEPENDENCIES */
 static cfile config = NULL;
 static const char *r_host = "localhost";  /* remote host (mech_option) */
@@ -605,11 +609,13 @@ auth_httpform (
         return strdup(RESP_IERROR);
     }
 
+    rc = MIN(rc, RESP_LEN - 1);  /* don't write past rbuf */
+    rbuf[rc] = '\0';             /* make sure str-funcs find null */
+
     if (flags & VERBOSE) {
         syslog(LOG_DEBUG, "auth_httpform: [%s] %s", user, rbuf);
     }
 
-    rbuf[rc] = '\0';             /* make sure str-funcs find null */
     return build_sasl_response(rbuf);
 }
 

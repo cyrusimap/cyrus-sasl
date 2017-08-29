@@ -655,8 +655,9 @@ static int lak_expand_tokens(
 						strcat(buf,ebuf);
 						free(ebuf);
 					}
-					break;
-				} 
+				} else
+					syslog(LOG_DEBUG|LOG_AUTH, "Domain/Realm not available.");
+                                break;
 			case 'R':
 			case 'r':
 				if (ISSET(realm)) {
@@ -1573,6 +1574,9 @@ int lak_authenticate(
                                 syslog(LOG_INFO|LOG_AUTH, "Retrying authentication");
                                 break;
                             }
+
+                            GCC_FALLTHROUGH
+
                         default:
                             syslog(
                                 LOG_DEBUG|LOG_AUTH, 

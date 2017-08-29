@@ -1575,6 +1575,13 @@ extern int asprintf(char **str, const char *fmt, ...);
 #endif /* CONFIG_H */
 ])
 
+AH_BOTTOM([#if defined __GNUC__ &&  __GNUC__ > 6
+    #define GCC_FALLTHROUGH __attribute__((fallthrough));
+#else
+    #define GCC_FALLTHROUGH /* fall through */
+#endif
+])
+
 AC_CONFIG_HEADERS(config.h)
 
 AC_OUTPUT(Makefile

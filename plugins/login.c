@@ -122,7 +122,8 @@ static int login_server_mech_step(void *conn_context,
 
 	    return SASL_CONTINUE;
 	}
-	
+
+        GCC_FALLTHROUGH
 	
     case 2:
 	/* Catch really long usernames */

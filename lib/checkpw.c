@@ -434,6 +434,7 @@ static int write_wait(int fd, unsigned delta)
 	case -1:
 	    if (errno == EINTR || errno == EAGAIN)
 		continue;
+            return -1;
 	default:
 	    /* Error catch-all. */
 	    return -1;
@@ -597,6 +598,7 @@ static int read_wait(int fd, unsigned delta)
 	case -1:
 	    if (errno == EINTR || errno == EAGAIN)
 		continue;
+            return -1;
 	default:
 	    /* Error catch-all. */
 	    return -1;

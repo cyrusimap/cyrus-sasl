@@ -92,6 +92,9 @@
 	 DES_ecb_encrypt((i),(o),&(k),(e))
 #endif /* OpenSSL 0.9.7+ w/o old DES support */
 
+/* for legacy libcrypto support */
+#include "crypto-compat.h"
+
 #include <sasl.h>
 #define MD5_H  /* suppress internal MD5 */
 #include <saslplug.h>
@@ -471,10 +474,11 @@ static unsigned char *V2(unsigned char *V2, sasl_secret_t *passwd,
 	ucase(upper, len);
 	to_unicode((unsigned char *) *buf, upper, len);
 
-	HMAC(EVP_md5(), hash, MD4_DIGEST_LENGTH, (unsigned char *) *buf, 2 * len, hash, &len);
+	HMAC(EVP_md5(), hash, MD4_DIGEST_LENGTH,
+             (unsigned char *) *buf, 2 * len, hash, &len);
 
 	/* V2 = HMAC-MD5(NTLMv2hash, challenge + blob) + blob */
-        HMAC_CTX_init(ctx);
+        HMAC_CTX_reset(ctx);
 	HMAC_Init_ex(ctx, hash, len, EVP_md5(), NULL);
 	HMAC_Update(ctx, challenge, NTLM_NONCE_LENGTH);
 	HMAC_Update(ctx, blob, bloblen);

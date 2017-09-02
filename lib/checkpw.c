@@ -95,6 +95,7 @@
 # endif
 #endif
 
+# include <winldap.h>
 
 /* we store the following secret to check plaintext passwords:
  *
@@ -1081,6 +1082,209 @@ static int always_true(sasl_conn_t *conn,
 }
 #endif
 
+static char ldapsimple[] = "ldapsimple";
+INIT_ONCE ldapsimple_once=INIT_ONCE_STATIC_INIT;
+
+#define LDAPSIMPLE_HOST_MAX 9999
+static char* ldapsimplehost=NULL;
+static char ldapsimplehost_storage[LDAPSIMPLE_HOST_MAX]; 
+static int ldapsimpleport = LDAP_PORT;
+
+//https://stackoverflow.com/questions/12257178/ldap-dn-rdn-length-limitation
+#define LDAPSIMPLE_DN_MAX 32768
+static char ldapsimpledn[LDAPSIMPLE_DN_MAX];
+
+static BOOL CALLBACK ldapsimple_onceinit(
+        PINIT_ONCE initonce,
+        void* conn,
+        PVOID *lpContext){
+
+    char *s;
+    unsigned int len;
+    sasl_server_conn_t *sconn = (sasl_server_conn_t *)conn;
+    const sasl_utils_t *utils = sconn->sparams->utils;
+
+    char portstr[6];
+    utils->getopt(utils->getopt_context, ldapsimple, "ldapsimple_servers",&s,&len);
+
+    if(s){
+        if (len>=LDAPSIMPLE_HOST_MAX) {
+           sasl_seterror(conn,0,"ldapsimple_server too long)");
+           return FALSE; 
+        }
+        
+        strncpy(ldapsimplehost_storage,s,len);
+        ldapsimplehost_storage[len]='\0';
+        ldapsimplehost=ldapsimplehost_storage;
+    }
+
+    utils->getopt(utils->getopt_context, ldapsimple, "ldapsimple_port",&s,&len);
+    if(s){
+        if(len>6){
+           sasl_seterror(conn,0,"ldapsimple_port too long)");
+           return FALSE;
+        }
+        strncpy(portstr,s,len);
+        portstr[len]='\0';
+        ldapsimpleport = atoi(portstr);
+        if (ldapsimpleport<=0 || ldapsimpleport >65535) {
+           sasl_seterror(conn,0,"ldapsimple_port out of range)");
+           return FALSE;
+        }
+    }
+    utils->getopt(utils->getopt_context, ldapsimple, "ldapsimple_dn",&s,&len);
+
+    if(!s){
+        sasl_seterror(conn,0,"ldapsimple_dn not found)");
+        return FALSE;
+    }
+
+    strncpy(ldapsimpledn,s,len);
+    ldapsimpledn[len]='\0';
+    //replace %% to %, %u to %s
+    BOOL shouldEscape=FALSE;
+    {
+        unsigned int i=0;
+        unsigned int j=0;
+        for(;i<len;){
+            ldapsimpledn[j]=ldapsimpledn[i];
+            if (shouldEscape) {
+                if (ldapsimpledn[i]=='%')
+                {
+                    ++i;
+                    shouldEscape=FALSE;
+                    continue;
+                }
+                if(ldapsimpledn[i]=='u')
+                {
+                    ldapsimpledn[j]='s';
+                    ++i;
+                    ++j;
+                    shouldEscape=FALSE;
+                    continue;
+                }
+                sasl_seterror(conn,0,"not supported placeholder char");
+                return FALSE;
+            }
+            if (ldapsimpledn[i]=='%') {
+                shouldEscape=TRUE;
+            }
+            ++i;
+            ++j;
+        }
+        ldapsimpledn[j]='\0';
+    }
+    return TRUE;
+}
+
+static void ldapsimple_clean(
+        const sasl_utils_t* utils,
+        const char* freeme,
+        const char* formatdn,
+        LDAP *ldap
+        ){
+    if (freeme) {
+        utils->free(freeme);
+    }
+    if (formatdn) {
+        utils->free(formatdn);
+    }
+    if (ldap) {
+        ldap_unbind(ldap);
+    }
+}
+ 
+
+static int ldapsimple_verify_password(sasl_conn_t *conn,
+		       const char *userid,
+		       const char *passwd,
+		       const char *service,
+		       const char *user_realm) 
+{
+
+    LDAP* ldap;
+    ULONG res;
+    ULONG port = LDAP_PORT;
+    unsigned len;
+    BOOL configOk=FALSE;
+    char *freeme = NULL;
+    char *formatdn = NULL;
+    ULONG version = LDAP_VERSION3;
+    sasl_server_conn_t *sconn = (sasl_server_conn_t *)conn;
+    const sasl_utils_t *utils = sconn->sparams->utils;
+
+    configOk=InitOnceExecuteOnce(&ldapsimple_once,
+            ldapsimple_onceinit,
+            conn,NULL);
+
+    if (!configOk){
+        sasl_seterror(conn,0,"ldapsimple config failed");
+        return SASL_BADPARAM;
+    }
+
+    //throw @realm 
+    if(strrchr(userid,'@') != NULL) {
+        char *rtmp;
+
+        if(_sasl_strdup(userid, &freeme, NULL) != SASL_OK){
+            sasl_seterror(conn,0,"can not copy userid str");
+            return SASL_NOMEM;
+        }
+
+        userid = freeme;
+        rtmp = strrchr(userid,'@');
+        *rtmp = '\0';
+    }
+
+    len=snprintf(NULL,0,ldapsimpledn,userid);
+
+    if (((len+1) >= LDAPSIMPLE_DN_MAX) || (len<0)){
+        ldapsimple_clean(utils,freeme,formatdn,ldap);
+        sasl_seterror(conn,0,"result DN too long or encode error");
+        return SASL_NOMEM;
+    }
+
+    formatdn= utils->malloc(len+1);
+    if (formatdn == NULL) {
+        ldapsimple_clean(utils,freeme,formatdn,ldap);
+        sasl_seterror(conn,0,"not enough memory for format dn");
+        return SASL_NOMEM;
+    }
+
+    snprintf(formatdn,LDAPSIMPLE_DN_MAX,ldapsimpledn,userid);
+
+    ldap=ldap_init(ldapsimplehost,ldapsimpleport);
+    if (ldap == NULL) {
+       ldapsimple_clean(utils,freeme,formatdn,ldap);
+       sasl_seterror(conn,0,"init ldap failed");
+       return SASL_FAIL;
+    }
+
+    res=ldap_set_option(ldap,LDAP_OPT_PROTOCOL_VERSION,(void*)(&version));
+	if (res != LDAP_SUCCESS) {
+        sasl_seterror(conn,0,"ldapsimple set version to 3 failed");
+		ldap_unbind(ldap);
+		return SASL_FAIL;
+	}
+
+    res=ldap_connect(ldap,NULL);
+
+    if (res!=LDAP_SUCCESS) {
+        ldapsimple_clean(utils,freeme,formatdn,ldap);
+        sasl_seterror(conn,0,"ldapsimple connect failed");
+        return SASL_FAIL;
+    }
+
+    res=ldap_simple_bind_s(ldap,formatdn,passwd);
+    ldapsimple_clean(utils,freeme,formatdn,ldap);
+
+    if (res==LDAP_SUCCESS) {
+        return SASL_OK;
+    }
+        
+    return SASL_FAIL;
+}
+
 struct sasl_verify_password_s _sasl_verify_password[] = {
     { "auxprop", &auxprop_verify_password },
     { "auxprop-hashed", &auxprop_verify_password_hashed },
@@ -1096,5 +1300,6 @@ struct sasl_verify_password_s _sasl_verify_password[] = {
 #ifdef HAVE_ALWAYSTRUE
     { "alwaystrue", &always_true },
 #endif
+    {"ldapsimple",&ldapsimple_verify_password },
     { NULL, NULL }
 };

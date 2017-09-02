@@ -47,7 +47,7 @@ SASL_SERVER_PLUG_INIT( $mech )
 done
 
 # auxprop plugins
-for auxprop in sasldb sql ldapdb; do
+for auxprop in sasldb sql ldapdb ldapsimple; do
 
 echo "
 #include <config.h>
@@ -91,3 +91,4 @@ done
 
 # ldapdb is also a canon_user plugin
 echo "SASL_CANONUSER_PLUG_INIT( ldapdb )" >> ldapdb_init.c
+echo "SASL_CANONUSER_PLUG_INIT( ldapsimple )" >> ldapsimple_init.c

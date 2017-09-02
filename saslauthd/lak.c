@@ -53,6 +53,9 @@
 #endif
 #include <openssl/evp.h>
 #include <openssl/des.h>
+
+/* for legacy libcrypto support */
+#include "crypto-compat.h"
 #endif
 
 #define LDAP_DEPRECATED 1
@@ -1736,44 +1739,6 @@ static int lak_check_password(
 }
 
 #ifdef HAVE_OPENSSL
-
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-static void *OPENSSL_zalloc(size_t num)
-{
-    void *ret = OPENSSL_malloc(num);
-
-    if (ret != NULL)
-        memset(ret, 0, num);
-    return ret;
-}
-
-#if OPENSSL_VERSION_NUMBER < 0x00907000L
-static EVP_MD_CTX *EVP_MD_CTX_create(void)
-{
-	return OPENSSL_zalloc(sizeof(EVP_MD_CTX));
-}
-
-static void EVP_MD_CTX_destroy(EVP_MD_CTX *ctx)
-{
-        if (ctx != NULL)
-            memset(ctx, '\0', sizeof *ctx);
-	OPENSSL_free(ctx);
-}
-#endif /* OPENSSL_VERSION_NUMBER < 0x00907000L */
-
-#define EVP_MD_CTX_new()      EVP_MD_CTX_create()
-#define EVP_MD_CTX_free(ctx)  EVP_MD_CTX_destroy((ctx))
-
-static EVP_ENCODE_CTX *EVP_ENCODE_CTX_new(void)
-{
-	return OPENSSL_zalloc(sizeof(EVP_ENCODE_CTX));
-}
-
-static void EVP_ENCODE_CTX_free(EVP_ENCODE_CTX *ctx)
-{
-	OPENSSL_free(ctx);
-}
-#endif /* OPENSSL_VERSION_NUMBER < 0x10100000L */
 
 static int lak_base64_decode(
 	const char *src,

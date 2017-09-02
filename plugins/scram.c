@@ -103,18 +103,15 @@
 #define SCRAM_CB_FLAG_Y       0x02
 
 #ifdef SCRAM_DEBUG
-#define PRINT_HASH(func,hash)	    print_hash(func,hash)
+#define PRINT_HASH(func,hash,size)  print_hash(func,hash,size)
 #else
-#define PRINT_HASH(func,hash)
+#define PRINT_HASH(func,hash,size)
 #endif
 
 /* NB: A temporary mapping for "internal errors". It would be better to add
    a new SASL error code for that */
 #define SASL_SCRAM_INTERNAL	    SASL_NOMEM
 
-
-#define SCRAM_SASL_MECH		"SCRAM-SHA-1"
-#define SCRAM_SASL_MECH_LEN	11
 
 /* Holds the core salt to avoid regenerating salt each auth. */
 static unsigned char g_salt_key[SALT_SIZE];
@@ -258,12 +255,12 @@ create_nonce(const sasl_utils_t * utils,
 #ifdef SCRAM_DEBUG
 /* Useful for debugging interop issues */
 static void
-print_hash (const char * func, const char * hash)
+print_hash (const char * func, const char * hash, size_t hash_size)
 {
     int i;
 
     printf (" HASH in %s:", func);
-    for (i = 0; i < SCRAM_HASH_SIZE; i++) {
+    for (i = 0; i < hash_size; i++) {
 	printf (" %.2X", (unsigned char)hash[i]);
     }
     printf ("\n");
@@ -274,6 +271,7 @@ print_hash (const char * func, const char * hash)
 /* The result variable need to point to a buffer big enough for the [SHA-1] hash */
 static void
 Hi (const sasl_utils_t * utils,
+    const EVP_MD *md,
     const char * str,
     size_t str_len,
     const char * salt,
@@ -283,9 +281,9 @@ Hi (const sasl_utils_t * utils,
 {
     char * initial_key = NULL;
     unsigned int i;
-    int k;
     char * temp_result;
     unsigned int hash_len = 0;
+    size_t k, hash_size = EVP_MD_size(md);
 
     initial_key = utils->malloc(salt_len + 4);
     memcpy (initial_key, salt, salt_len);
@@ -294,11 +292,11 @@ Hi (const sasl_utils_t * utils,
     initial_key[salt_len+2] = 0;
     initial_key[salt_len+3] = 1;
 
-    temp_result = utils->malloc(SCRAM_HASH_SIZE);
+    temp_result = utils->malloc(hash_size);
 
     /* U1   := HMAC(str, salt || INT(1)) */
 
-    if (HMAC(EVP_sha1(),
+    if (HMAC(md,
 	     (const unsigned char *) str,
 	     (int)str_len,
 	     (const unsigned char *) initial_key,
@@ -307,29 +305,29 @@ Hi (const sasl_utils_t * utils,
 	     &hash_len) == NULL) {
     }
 
-    memcpy(temp_result, result, SCRAM_HASH_SIZE);
+    memcpy(temp_result, result, hash_size);
 
-    PRINT_HASH ("first HMAC in Hi()", temp_result);
+    PRINT_HASH ("first HMAC in Hi()", temp_result, hash_size);
 
     /* On each loop iteration j "temp_result" contains Uj,
        while "result" contains "U1 XOR ... XOR Uj" */
     for (i = 2; i <= iteration_count; i++) {
-	if (HMAC(EVP_sha1(),
+	if (HMAC(md,
 		 (const unsigned char *) str,
 		 (int)str_len,
 		 (const unsigned char *) temp_result,
-		 SCRAM_HASH_SIZE,
+		 hash_size,
 		 (unsigned char *)temp_result,
 		 &hash_len) == NULL) {
 	}
 
-	PRINT_HASH ("Hi() HMAC inside loop", temp_result);
+	PRINT_HASH ("Hi() HMAC inside loop", temp_result, hash_size);
 
-	for (k = 0; k < SCRAM_HASH_SIZE; k++) {
+	for (k = 0; k < hash_size; k++) {
 	    result[k] ^= temp_result[k];
 	}
 
-	PRINT_HASH ("Hi() - accumulated result inside loop", result);
+	PRINT_HASH ("Hi() - accumulated result inside loop", result, hash_size);
     }
 
     utils->free(initial_key);
@@ -343,18 +341,21 @@ Hi (const sasl_utils_t * utils,
  */
 static unsigned char *
 scram_server_user_salt(const sasl_utils_t * utils,
+                       const EVP_MD *md,
                        const char * username,
 		       size_t * p_salt_len)
 {
-    char * result = utils->malloc(SCRAM_HASH_SIZE);
-    Hi(utils, username, strlen(username), (const char *) g_salt_key, SALT_SIZE,
+    size_t hash_size = EVP_MD_size(md);
+    char * result = utils->malloc(hash_size);
+    Hi(utils, md, username, strlen(username), (const char *) g_salt_key, SALT_SIZE,
         20 /* iterations */, result);
-    *p_salt_len = SCRAM_HASH_SIZE;
+    *p_salt_len = hash_size;
     return (unsigned char *) result;
 }
 
 static int
 GenerateScramSecrets (const sasl_utils_t * utils,
+                      const EVP_MD *md,
 		      const char * password,
 		      size_t password_len,
 		      char * salt,
@@ -364,11 +365,12 @@ GenerateScramSecrets (const sasl_utils_t * utils,
 		      char * ServerKey,
 		      char ** error_text)
 {
-    char SaltedPassword[SCRAM_HASH_SIZE];
-    char ClientKey[SCRAM_HASH_SIZE];
+    char SaltedPassword[EVP_MAX_MD_SIZE];
+    char ClientKey[EVP_MAX_MD_SIZE];
     sasl_secret_t *sec = NULL;
     unsigned int hash_len = 0;
     int result;
+    size_t hash_size = EVP_MD_size(md);
 
     *error_text = NULL;
 
@@ -389,6 +391,7 @@ GenerateScramSecrets (const sasl_utils_t * utils,
 
     /* SaltedPassword  := Hi(password, salt) */
     Hi (utils,
+        md,
 	(const char *) sec->data,
 	sec->len,
 	salt,
@@ -397,36 +400,36 @@ GenerateScramSecrets (const sasl_utils_t * utils,
 	SaltedPassword);
 
     /* ClientKey       := HMAC(SaltedPassword, "Client Key") */
-    if (HMAC(EVP_sha1(),
+    if (HMAC(md,
 	     (const unsigned char *) SaltedPassword,
-	     SCRAM_HASH_SIZE,
+	     hash_size,
 	     (const unsigned char *) CLIENT_KEY_CONSTANT,
 	     CLIENT_KEY_CONSTANT_LEN,
 	     (unsigned char *)ClientKey,
 	     &hash_len) == NULL) {
-	*error_text = "HMAC-SHA1 call failed";
+	*error_text = "HMAC call failed";
 	result = SASL_SCRAM_INTERNAL;
 	goto cleanup;
     }
 
     /* StoredKey       := H(ClientKey) */
-    if (SHA1((const unsigned char *) ClientKey, SCRAM_HASH_SIZE,
-        (unsigned char *) StoredKey) == NULL) {
-	*error_text = "SHA1 call failed";
+    if (EVP_Digest((const unsigned char *) ClientKey, hash_size,
+                   (unsigned char *) StoredKey, NULL, md, NULL) == 0) {
+	*error_text = "Digest call failed";
 	result = SASL_SCRAM_INTERNAL;
 	goto cleanup;
 
     }
 
     /* ServerKey       := HMAC(SaltedPassword, "Server Key") */
-    if (HMAC(EVP_sha1(),
+    if (HMAC(md,
 	     (const unsigned char *) SaltedPassword,
-	     SCRAM_HASH_SIZE,
+	     hash_size,
 	     (const unsigned char *) SERVER_KEY_CONSTANT,
 	     SERVER_KEY_CONSTANT_LEN,
 	     (unsigned char *)ServerKey,
 	     &hash_len) == NULL) {
-	*error_text = "HMAC-SHA1 call failed";
+	*error_text = "HMAC call failed";
 	result = SASL_SCRAM_INTERNAL;
 	goto cleanup;
     }
@@ -445,6 +448,8 @@ cleanup:
 typedef struct server_context {
     int state;
 
+    const EVP_MD *md;		/* underlying MDA */
+
     char * authentication_id;
     char * authorization_id;
 
@@ -457,8 +462,8 @@ typedef struct server_context {
     char * salt;
     size_t salt_len;
     unsigned int iteration_count;
-    char StoredKey[SCRAM_HASH_SIZE + 1];
-    char ServerKey[SCRAM_HASH_SIZE + 1];
+    char StoredKey[EVP_MAX_MD_SIZE + 1];
+    char ServerKey[EVP_MAX_MD_SIZE + 1];
 
     int cb_flags;
     char *cbindingname;
@@ -467,11 +472,11 @@ typedef struct server_context {
 } server_context_t;
 
 static int
-scram_server_mech_new(void *glob_context __attribute__((unused)),
-			sasl_server_params_t *sparams,
-			const char *challenge __attribute__((unused)),
-			unsigned challen __attribute__((unused)),
-			void **conn_context)
+scram_server_mech_new(void *glob_context,
+                      sasl_server_params_t *sparams,
+                      const char *challenge __attribute__((unused)),
+                      unsigned challen __attribute__((unused)),
+                      void **conn_context)
 {
     server_context_t *text;
     
@@ -485,6 +490,8 @@ scram_server_mech_new(void *glob_context __attribute__((unused)),
     memset(text, 0, sizeof(server_context_t));
     /* text->state = 0; */
     
+    text->md = EVP_get_digestbyname((const char *) glob_context);
+
     *conn_context = text;
     
     return SASL_OK;
@@ -515,9 +522,13 @@ scram_server_mech_step1(server_context_t *text,
     int canon_flags;
     struct propval auxprop_values[3];
     int result;
+    size_t hash_size = EVP_MD_size(text->md);
+    const char *scram_sasl_mech =
+        (hash_size == 32) ? "SCRAM-SHA-256" : "SCRAM-SHA-1";
 
     if (clientinlen == 0) {
-	SETERROR(sparams->utils, SCRAM_SASL_MECH " input expected");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "%s input expected", scram_sasl_mech);
 	return SASL_BADPROT;
     }
 
@@ -525,7 +536,8 @@ scram_server_mech_step1(server_context_t *text,
 		   username "," nonce ["," extensions]' */
 
     if (clientinlen < 10) {
-	SETERROR(sparams->utils, "Invalid " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Invalid %s input", scram_sasl_mech);
 	return SASL_BADPROT;
     }
 
@@ -540,7 +552,8 @@ scram_server_mech_step1(server_context_t *text,
     inbuf[clientinlen] = 0;
 
     if (strlen(inbuf) != clientinlen) {
-	SETERROR(sparams->utils, "NULs found in " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "NULs found in %s input", scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -556,7 +569,9 @@ scram_server_mech_step1(server_context_t *text,
     switch (p[0]) {
 	case 'p':
 	    if (p[1] != '=') {
-		SETERROR(sparams->utils, "The initial 'p' needs to be followed by '=' in " SCRAM_SASL_MECH " input");
+		sparams->utils->seterror(sparams->utils->conn, 0,
+                                         "The initial 'p' needs to be followed by '=' in %s input",
+                                         scram_sasl_mech);
 		result = SASL_BADPROT;
 		goto cleanup;
 	    }
@@ -567,7 +582,9 @@ scram_server_mech_step1(server_context_t *text,
 	    if (p == NULL) {
 		text->cbindingname = NULL;
 
-		SETERROR(sparams->utils, "Channel binding name must be terminated by a comma in " SCRAM_SASL_MECH " input");
+		sparams->utils->seterror(sparams->utils->conn, 0,
+                                         "Channel binding name must be terminated by a comma in %s input",
+                                         scram_sasl_mech);
 		result = SASL_BADPROT;
 		goto cleanup;
 	    }
@@ -592,13 +609,16 @@ scram_server_mech_step1(server_context_t *text,
 	    break;
 
 	default:
-	    SETERROR(sparams->utils, "The initial " SCRAM_SASL_MECH " client response needs to start with 'y', 'n' or 'p'");
+	    sparams->utils->seterror(sparams->utils->conn, 0,
+                                     "The initial %s client response needs to start with 'y', 'n' or 'p'",
+                                     scram_sasl_mech);
 	    result = SASL_BADPROT;
 	    goto cleanup;
     }
 
     if (p[0] != ',') {
-	SETERROR(sparams->utils, "',' expected in " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "',' expected in %s input", scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -609,7 +629,9 @@ scram_server_mech_step1(server_context_t *text,
 
 	p = strchr (authorization_id, ',');
 	if (p == NULL) {
-	    SETERROR(sparams->utils, "At least nonce is expected in " SCRAM_SASL_MECH " input");
+	    sparams->utils->seterror(sparams->utils->conn, 0,
+                                     "At least nonce is expected in %s input",
+                                     scram_sasl_mech);
 	    result = SASL_BADPROT;
 	    goto cleanup;
 	}
@@ -625,12 +647,15 @@ scram_server_mech_step1(server_context_t *text,
 	_plug_strdup(sparams->utils, authorization_id, &text->authorization_id, NULL);
 
 	if (decode_saslname(text->authorization_id) != SASL_OK) {
-	    SETERROR(sparams->utils, "Invalid authorization identity encoding in " SCRAM_SASL_MECH " input");
+	    sparams->utils->seterror(sparams->utils->conn, 0,
+                                     "Invalid authorization identity encoding in %s input",
+                                     scram_sasl_mech);
 	    result = SASL_BADPROT;
 	    goto cleanup;
 	}
     } else if (p[0] != ',') {
-	SETERROR(sparams->utils, "',' expected in " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "',' expected in %s input", scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     } else {
@@ -657,19 +682,24 @@ scram_server_mech_step1(server_context_t *text,
 
 
     if (p[1] != '=') {
-	SETERROR(sparams->utils, "Invalid " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Invalid %s input", scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
 
     if (p[0] == 'm') {
-	SETERROR(sparams->utils, "Unsupported mandatory extension to " SCRAM_SASL_MECH);
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Unsupported mandatory extension to %s",
+                                 scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
 
     if (p[0] != 'n') {
-	SETERROR(sparams->utils, "Username (n=) expected in " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Username (n=) expected in %s input",
+                                 scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -679,7 +709,9 @@ scram_server_mech_step1(server_context_t *text,
 
     /* MUST be followed by a nonce */
     if (p == NULL) {
-	SETERROR(sparams->utils, "Nonce expected after the username in " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Nonce expected after the username in %s input",
+                                 scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -688,7 +720,9 @@ scram_server_mech_step1(server_context_t *text,
     p++;
 
     if (decode_saslname(authentication_id) != SASL_OK) {
-	SETERROR(sparams->utils, "Invalid username encoding in " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Invalid username encoding in %s input",
+                                 scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -696,7 +730,9 @@ scram_server_mech_step1(server_context_t *text,
     _plug_strdup(sparams->utils, authentication_id, &text->authentication_id, NULL);
 
     if (strncmp(p, "r=", 2) != 0) {
-	SETERROR(sparams->utils, "Nonce expected after the username in " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Nonce expected after the username in %s input",
+                                 scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -785,11 +821,11 @@ scram_server_mech_step1(server_context_t *text,
 	char * s_iteration_count;
 	char * end;
 
-	text->salt = (char *) scram_server_user_salt(sparams->utils, text->authentication_id, &text->salt_len);
+	text->salt = (char *) scram_server_user_salt(sparams->utils, text->md, text->authentication_id, &text->salt_len);
 
 	sparams->utils->getopt(sparams->utils->getopt_context,
 			       /* Different SCRAM hashes can have different strengh */
-			       SCRAM_SASL_MECH,
+			       scram_sasl_mech,
 			       "scram_iteration_counter",
 			       (const char **) &s_iteration_count,
 			       NULL);
@@ -810,6 +846,7 @@ scram_server_mech_step1(server_context_t *text,
 	}
 
 	result = GenerateScramSecrets (sparams->utils,
+                                       text->md,
 				       auxprop_values[0].values[0],
 				       strlen(auxprop_values[0].values[0]),
 				       text->salt,
@@ -833,6 +870,7 @@ scram_server_mech_step1(server_context_t *text,
 	const char * p_field;
 	char * end;
 	int i;
+        size_t scram_sasl_mech_len = strlen(scram_sasl_mech);
 
 	result = SASL_SCRAM_INTERNAL;
 
@@ -844,10 +882,10 @@ scram_server_mech_step1(server_context_t *text,
 		scram_hash++;
 	    }
 
-	    if (strncmp(scram_hash, SCRAM_SASL_MECH, SCRAM_SASL_MECH_LEN) != 0) {
+	    if (strncmp(scram_hash, scram_sasl_mech, scram_sasl_mech_len) != 0) {
 		continue;
 	    }
-	    scram_hash += SCRAM_SASL_MECH_LEN;
+	    scram_hash += scram_sasl_mech_len;
 
 	    /* Skip spaces */
 	    while (*scram_hash == ' ') {
@@ -873,7 +911,9 @@ scram_server_mech_step1(server_context_t *text,
 
 	    if ((p_field - scram_hash) > ITERATION_COUNTER_BUF_LEN) {
 		/* The iteration counter is too big for us */
-		SETERROR(sparams->utils, "Invalid iteration-count in " SCRAM_SASL_MECH " input: the value is too big");
+		sparams->utils->seterror(sparams->utils->conn, 0,
+                                         "Invalid iteration-count in %s input: the value is too big",
+                                         scram_sasl_mech);
 		continue;
 	    }
 
@@ -883,7 +923,9 @@ scram_server_mech_step1(server_context_t *text,
 	    errno = 0;
 	    text->iteration_count = strtoul(s_iteration_count, &end, 10);
 	    if (s_iteration_count == end || *end != '\0' || errno != 0) {
-		SETERROR(sparams->utils, "Invalid iteration-count in " SCRAM_SASL_MECH " input: not a number");
+		sparams->utils->seterror(sparams->utils->conn, 0,
+                                         "Invalid iteration-count in %s input: not a number",
+                                         scram_sasl_mech);
 		continue;
 	    }
 
@@ -902,7 +944,9 @@ scram_server_mech_step1(server_context_t *text,
 					 text->salt,
 					 (unsigned int)base64_salt_len,
 					 (unsigned int *) &text->salt_len) != SASL_OK) {
-		SETERROR(sparams->utils, "Invalid base64 encoding of the salt in " SCRAM_SASL_MECH " stored value");
+		sparams->utils->seterror(sparams->utils->conn, 0,
+                                         "Invalid base64 encoding of the salt in %s stored value",
+                                         scram_sasl_mech);
 		continue;
 	    }
 
@@ -937,16 +981,20 @@ scram_server_mech_step1(server_context_t *text,
 	    if (sparams->utils->decode64(scram_hash,
 					 (unsigned int)(p_field - scram_hash),
 					 text->StoredKey,
-					 SCRAM_HASH_SIZE + 1,
+					 hash_size + 1,
 					 &exact_key_len) != SASL_OK) {
-		SETERROR(sparams->utils, "Invalid base64 encoding of StoredKey in " SCRAM_SASL_MECH " per-user storage");
+		sparams->utils->seterror(sparams->utils->conn, 0,
+                                         "Invalid base64 encoding of StoredKey in %s per-user storage",
+                                         scram_sasl_mech);
 		sparams->utils->free(text->salt);
 		text->salt = NULL;
 		continue;
 	    }
 
-	    if (exact_key_len != SCRAM_HASH_SIZE) {
-		SETERROR(sparams->utils, "Invalid StoredKey in " SCRAM_SASL_MECH " per-user storage");
+	    if (exact_key_len != hash_size) {
+		sparams->utils->seterror(sparams->utils->conn, 0,
+                                         "Invalid StoredKey in %s per-user storage",
+                                         scram_sasl_mech);
 		sparams->utils->free(text->salt);
 		text->salt = NULL;
 		continue;
@@ -963,16 +1011,19 @@ scram_server_mech_step1(server_context_t *text,
 	    if (sparams->utils->decode64(scram_hash,
 					 (unsigned int)(p_field - scram_hash),
 					 text->ServerKey,
-					 SCRAM_HASH_SIZE + 1,
+					 hash_size + 1,
 					 &exact_key_len) != SASL_OK) {
-		SETERROR(sparams->utils, "Invalid base64 encoding of ServerKey in " SCRAM_SASL_MECH " per-user storage");
+		sparams->utils->seterror(sparams->utils->conn, 0,
+                                         "Invalid base64 encoding of ServerKey in %s per-user storage",
+                                         scram_sasl_mech);
 		sparams->utils->free(text->salt);
 		text->salt = NULL;
 		continue;
 	    }
 
-	    if (exact_key_len != SCRAM_HASH_SIZE) {
-		SETERROR(sparams->utils, "Invalid ServerKey in " SCRAM_SASL_MECH " per-user storage");
+	    if (exact_key_len != hash_size) {
+		sparams->utils->seterror(sparams->utils->conn, 0,
+                                         "Invalid ServerKey in %s per-user storage", scram_sasl_mech);
 		sparams->utils->free(text->salt);
 		text->salt = NULL;
 		continue;
@@ -984,8 +1035,8 @@ scram_server_mech_step1(server_context_t *text,
 
 	if (result != SASL_OK) {
 	    sparams->utils->seterror(sparams->utils->conn,
-				     0,
-				     "No valid " SCRAM_SASL_MECH " secret found");
+				     0, "No valid %s secret found",
+                                     scram_sasl_mech);
 	    goto cleanup;
 	}
 
@@ -1102,25 +1153,29 @@ scram_server_mech_step2(server_context_t *text,
     int result = SASL_FAIL;
     size_t proof_offset;
     char * full_auth_message;
-    char ReceivedClientKey[SCRAM_HASH_SIZE];
-    char DecodedClientProof[SCRAM_HASH_SIZE + 1];
-    char CalculatedStoredKey[SCRAM_HASH_SIZE];
-    char ClientSignature[SCRAM_HASH_SIZE];
-    char ServerSignature[SCRAM_HASH_SIZE];
+    char ReceivedClientKey[EVP_MAX_MD_SIZE];
+    char DecodedClientProof[EVP_MAX_MD_SIZE + 1];
+    char CalculatedStoredKey[EVP_MAX_MD_SIZE];
+    char ClientSignature[EVP_MAX_MD_SIZE];
+    char ServerSignature[EVP_MAX_MD_SIZE];
     char * nonce;
     size_t client_proof_len;
     size_t server_proof_len;
     unsigned exact_client_proof_len;
     unsigned int hash_len = 0;
-    int k;
+    size_t k, hash_size = EVP_MD_size(text->md);
+    const char *scram_sasl_mech =
+        (hash_size == 32) ? "SCRAM-SHA-256" : "SCRAM-SHA-1";
 
     if (clientinlen == 0) {
-	SETERROR(sparams->utils, SCRAM_SASL_MECH " input expected");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "%s input expected", scram_sasl_mech);
 	return SASL_BADPROT;
     }
 
     if (clientinlen < 3 || clientin[1] != '=') {
-	SETERROR(sparams->utils, "Invalid " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Invalid %s input", scram_sasl_mech);
 	return SASL_BADPROT;
     }
 
@@ -1135,7 +1190,8 @@ scram_server_mech_step2(server_context_t *text,
     inbuf[clientinlen] = 0;
 
     if (strlen(inbuf) != clientinlen) {
-	SETERROR(sparams->utils, "NULs found in " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "NULs found in %s input", scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1145,7 +1201,9 @@ scram_server_mech_step2(server_context_t *text,
     p = inbuf;
 
     if (strncmp(p, "c=", 2) != 0) {
-	SETERROR(sparams->utils, "Channel binding expected in " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Channel binding expected in %s input",
+                                 scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1154,7 +1212,9 @@ scram_server_mech_step2(server_context_t *text,
 
     p = strchr (channel_binding, ',');
     if (p == NULL) {
-	SETERROR(sparams->utils, "At least nonce is expected in " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "At least nonce is expected in %s input",
+                                 scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1172,7 +1232,9 @@ scram_server_mech_step2(server_context_t *text,
 				 binary_channel_binding,
 				 (unsigned int)channel_binding_len,
 				 &binary_channel_binding_len) != SASL_OK) {
-	SETERROR(sparams->utils, "Invalid base64 encoding of the channel bindings in " SCRAM_SASL_MECH);
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Invalid base64 encoding of the channel bindings in %s",
+                                 scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1181,9 +1243,8 @@ scram_server_mech_step2(server_context_t *text,
 	strncmp(binary_channel_binding, text->gs2_header, text->gs2_header_length) != 0) {
 	sparams->utils->seterror (sparams->utils->conn,
 				  0,
-				  "Channel bindings prefix doesn't match the one received in the GS2 header of "
-				  SCRAM_SASL_MECH ". Expected \"%s\"",
-				  text->gs2_header);
+				  "Channel bindings prefix doesn't match the one received in the GS2 header of %s. Expected \"%s\"",
+				  scram_sasl_mech, text->gs2_header);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1192,7 +1253,9 @@ scram_server_mech_step2(server_context_t *text,
     case SCRAM_CB_FLAG_P:
 	binary_channel_binding_len -= (unsigned)text->gs2_header_length;
 	if (binary_channel_binding_len == 0) {
-	    SETERROR(sparams->utils, "Channel bindings data expected in " SCRAM_SASL_MECH);
+	    sparams->utils->seterror(sparams->utils->conn, 0,
+                                     "Channel bindings data expected in %s",
+                                     scram_sasl_mech);
 	    result = SASL_BADPROT;
 	    goto cleanup;
 	}
@@ -1200,8 +1263,8 @@ scram_server_mech_step2(server_context_t *text,
 	if (strcmp(sparams->cbinding->name, text->cbindingname) != 0) {
 	    sparams->utils->seterror (sparams->utils->conn,
 				      0,
-				      "Unsupported channel bindings type received in " SCRAM_SASL_MECH
-				      ". Expected: %s, received: %s",
+				      "Unsupported channel bindings type received in %s. Expected: %s, received: %s",
+                                      scram_sasl_mech,
 				      sparams->cbinding->name,
 				      text->cbindingname);
 	    result = SASL_BADPROT;
@@ -1211,8 +1274,8 @@ scram_server_mech_step2(server_context_t *text,
 	if (binary_channel_binding_len != sparams->cbinding->len) {
 	    sparams->utils->seterror (sparams->utils->conn,
 				      0,
-				      "Unsupported channel bindings length received in " SCRAM_SASL_MECH
-				      ". Expected lenght: %d, received: %d",
+				      "Unsupported channel bindings length received in %s. Expected lenght: %d, received: %d",
+                                      scram_sasl_mech,
 				      sparams->cbinding->len,
 				      binary_channel_binding_len);
 	    result = SASL_BADPROT;
@@ -1222,7 +1285,9 @@ scram_server_mech_step2(server_context_t *text,
 	if (memcmp(binary_channel_binding + text->gs2_header_length,
 		   sparams->cbinding->data,
 		   binary_channel_binding_len) != 0) {
-	    SETERROR(sparams->utils, "Channel bindings mismatch in " SCRAM_SASL_MECH);
+	    sparams->utils->seterror(sparams->utils->conn, 0,
+                                     "Channel bindings mismatch in %s",
+                                     scram_sasl_mech);
 	    result = SASL_BADPROT;
 	    goto cleanup;
 	}
@@ -1230,7 +1295,9 @@ scram_server_mech_step2(server_context_t *text,
     }
 
     if (strncmp(p, "r=", 2) != 0) {
-	SETERROR(sparams->utils, "Nonce expected in " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Nonce expected in %s input",
+                                 scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1239,7 +1306,9 @@ scram_server_mech_step2(server_context_t *text,
 
     p = strchr (nonce, ',');
     if (p == NULL) {
-	SETERROR(sparams->utils, "At least proof is expected in " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "At least proof is expected in %s input",
+                                 scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1247,7 +1316,9 @@ scram_server_mech_step2(server_context_t *text,
     p++;
 
     if (strcmp(nonce, text->nonce) != 0) {
-	SETERROR(sparams->utils, "Nonce mismatch " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Nonce mismatch %s input",
+                                 scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1267,7 +1338,9 @@ scram_server_mech_step2(server_context_t *text,
     }
 
     if (client_proof == NULL) {
-	SETERROR(sparams->utils, "Client proof is expected in " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Client proof is expected in %s input",
+                                 scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1275,13 +1348,17 @@ scram_server_mech_step2(server_context_t *text,
     /* Check that no extension data exists after the proof */
     p = strchr (client_proof, ',');
     if (p != NULL) {
-	SETERROR(sparams->utils, "No extension data is allowed after the client proof in " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "No extension data is allowed after the client proof in %s input",
+                                 scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
 
-    if (strlen(client_proof) != (SCRAM_HASH_SIZE / 3 * 4 + (SCRAM_HASH_SIZE % 3 ? 4 : 0))) {
-	SETERROR(sparams->utils, "Invalid client proof length in " SCRAM_SASL_MECH " input");
+    if (strlen(client_proof) != (hash_size / 3 * 4 + (hash_size % 3 ? 4 : 0))) {
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Invalid client proof length in %s input",
+                                 scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -1303,15 +1380,15 @@ scram_server_mech_step2(server_context_t *text,
 
 
     /* ClientSignature := HMAC(StoredKey, AuthMessage) */
-    if (HMAC(EVP_sha1(),
+    if (HMAC(text->md,
 	     (const unsigned char *) text->StoredKey,
-	     SCRAM_HASH_SIZE,
+	     hash_size,
 	     (const unsigned char *)text->auth_message,
 	     (int)text->auth_message_len,
 	     (unsigned char *)ClientSignature,
 	     &hash_len) == NULL) {
-	sparams->utils->seterror(sparams->utils->conn,0,
-				 "HMAC-SHA1 call failed");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+				 "HMAC-%s call failed", scram_sasl_mech+6);
 	result = SASL_SCRAM_INTERNAL;
 	goto cleanup;
     }
@@ -1320,33 +1397,37 @@ scram_server_mech_step2(server_context_t *text,
     if (sparams->utils->decode64(client_proof,
 				 (unsigned int)client_proof_len,
 				 DecodedClientProof,
-				 SCRAM_HASH_SIZE + 1,
+				 hash_size + 1,
 				 &exact_client_proof_len) != SASL_OK) {
-	SETERROR(sparams->utils, "Invalid base64 encoding of the client proof in " SCRAM_SASL_MECH " input");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Invalid base64 encoding of the client proof in %s input",
+                                 scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
 
-    if (exact_client_proof_len != SCRAM_HASH_SIZE) {
-	SETERROR(sparams->utils, "Invalid client proof (truncated) in " SCRAM_SASL_MECH " input");
+    if (exact_client_proof_len != hash_size) {
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Invalid client proof (truncated) in %s input",
+                                 scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
 
-    for (k = 0; k < SCRAM_HASH_SIZE; k++) {
+    for (k = 0; k < hash_size; k++) {
 	ReceivedClientKey[k] = DecodedClientProof[k] ^ ClientSignature[k];
     }
 
     /* StoredKey       := H(ClientKey) */
-    if (SHA1((const unsigned char *) ReceivedClientKey, SCRAM_HASH_SIZE,
-        (unsigned char *) CalculatedStoredKey) == NULL) {
+    if (EVP_Digest((const unsigned char *) ReceivedClientKey, hash_size,
+                   (unsigned char *) CalculatedStoredKey, NULL, text->md, NULL) == 0) {
 	sparams->utils->seterror(sparams->utils->conn,0,
-				 "SHA1 call failed");
+				 "%s call failed", scram_sasl_mech+6);
 	result = SASL_SCRAM_INTERNAL;
 	goto cleanup;
     }
     
-    for (k = 0; k < SCRAM_HASH_SIZE; k++) {
+    for (k = 0; k < hash_size; k++) {
 	if (CalculatedStoredKey[k] != text->StoredKey[k]) {
 	    SETERROR(sparams->utils, "StoredKey mismatch");
 	    result = SASL_BADPROT;
@@ -1355,20 +1436,20 @@ scram_server_mech_step2(server_context_t *text,
     }
     
     /* ServerSignature := HMAC(ServerKey, AuthMessage) */
-    if (HMAC(EVP_sha1(),
+    if (HMAC(text->md,
 	     (const unsigned char *) text->ServerKey,
-	     SCRAM_HASH_SIZE,
+	     hash_size,
 	     (unsigned char *) text->auth_message,
 	     (int)text->auth_message_len,
 	     (unsigned char *)ServerSignature,
 	     &hash_len) == NULL) {
 	sparams->utils->seterror(sparams->utils->conn,0,
-				 "HMAC-SHA1 call failed");
+				 "HMAC-%s call failed", scram_sasl_mech+6);
 	result = SASL_SCRAM_INTERNAL;
 	goto cleanup;
     }
 
-    server_proof_len = (SCRAM_HASH_SIZE / 3 * 4 + (SCRAM_HASH_SIZE % 3 ? 4 : 0));
+    server_proof_len = (hash_size / 3 * 4 + (hash_size % 3 ? 4 : 0));
     result = _plug_buf_alloc(sparams->utils,
 			     &(text->out_buf),
 			     &(text->out_buf_len),
@@ -1384,7 +1465,7 @@ scram_server_mech_step2(server_context_t *text,
 
 
     if (sparams->utils->encode64(ServerSignature,
-				 SCRAM_HASH_SIZE,
+				 hash_size,
 				 text->out_buf+2,
 				 (unsigned int)server_proof_len + 1,
 				 NULL) != SASL_OK) {
@@ -1446,6 +1527,8 @@ static int scram_server_mech_step(void *conn_context,
 				  sasl_out_params_t *oparams)
 {
     server_context_t *text = (server_context_t *) conn_context;
+    const char *scram_sasl_mech =
+        (EVP_MD_size(text->md) == 32) ? "SCRAM-SHA-256" : "SCRAM-SHA-1";
     
     *serverout = NULL;
     *serveroutlen = 0;
@@ -1456,7 +1539,10 @@ static int scram_server_mech_step(void *conn_context,
 
     /* this should be well more than is ever needed */
     if (clientinlen > MAX_CLIENTIN_LEN) {
-	SETERROR(sparams->utils, SCRAM_SASL_MECH " input longer than " STRINGIZE((MAX_CLIENTIN_LEN)) " bytes");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "%s input longer than "
+                                 STRINGIZE((MAX_CLIENTIN_LEN)) " bytes",
+                                 scram_sasl_mech);
 	return SASL_BADPROT;
     }
     
@@ -1490,14 +1576,15 @@ static int scram_server_mech_step(void *conn_context,
 
     default: /* should never get here */
 	sparams->utils->log(NULL, SASL_LOG_ERR,
-			   "Invalid " SCRAM_SASL_MECH " server step %d\n", text->state);
+			   "Invalid %s server step %d\n",
+                            scram_sasl_mech, text->state);
 	return SASL_FAIL;
     }
     
     return SASL_FAIL; /* should never get here */
 }
 
-static int scram_setpass(void *glob_context __attribute__((unused)),
+static int scram_setpass(void *glob_context,
 			 sasl_server_params_t *sparams,
 			 const char *userstr,
 			 const char *pass,
@@ -1515,11 +1602,17 @@ static int scram_setpass(void *glob_context __attribute__((unused)),
     const char *store_request[] = { "authPassword",
 				    NULL };
     const char *generate_scram_secret;
+    const EVP_MD *md = EVP_get_digestbyname((const char *) glob_context);
+    size_t hash_size = EVP_MD_size(md);
+    const char *scram_sasl_mech =
+        (hash_size == 32) ? "SCRAM-SHA-256" : "SCRAM-SHA-1";
     
     /* Do we have a backend that can store properties? */
     if (!sparams->utils->auxprop_store ||
 	sparams->utils->auxprop_store(NULL, NULL, NULL) != SASL_OK) {
-	SETERROR(sparams->utils, SCRAM_SASL_MECH ": auxprop backend can't store properties");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "%s: auxprop backend can't store properties",
+                                 scram_sasl_mech);
 	return SASL_NOMECH;
     }
 
@@ -1546,7 +1639,8 @@ static int scram_setpass(void *glob_context __attribute__((unused)),
 			sparams->serverFQDN,
 			userstr);
     if (r) {
-	SETERROR(sparams->utils, SCRAM_SASL_MECH ": Error parsing user");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "%s: Error parsing user", scram_sasl_mech);
 	return r;
     }
 
@@ -1562,10 +1656,10 @@ static int scram_setpass(void *glob_context __attribute__((unused)),
 	char salt[SALT_SIZE + 1];
 	char base64_salt[BASE64_LEN(SALT_SIZE) + 1];
 	/* size_t salt_len = SALT_SIZE; */
-	char StoredKey[SCRAM_HASH_SIZE + 1];
-	char ServerKey[SCRAM_HASH_SIZE + 1];
-	char base64_StoredKey[BASE64_LEN(SCRAM_HASH_SIZE) + 1];
-	char base64_ServerKey[BASE64_LEN(SCRAM_HASH_SIZE) + 1];
+	char StoredKey[EVP_MAX_MD_SIZE + 1];
+	char ServerKey[EVP_MAX_MD_SIZE + 1];
+	char base64_StoredKey[BASE64_LEN(EVP_MAX_MD_SIZE) + 1];
+	char base64_ServerKey[BASE64_LEN(EVP_MAX_MD_SIZE) + 1];
 	size_t secret_len;
 	unsigned int iteration_count = DEFAULT_ITERATION_COUNTER;
 	char * s_iteration_count;
@@ -1573,7 +1667,7 @@ static int scram_setpass(void *glob_context __attribute__((unused)),
 
 	sparams->utils->getopt(sparams->utils->getopt_context,
 			       /* Different SCRAM hashes can have different strengh */
-			       SCRAM_SASL_MECH,
+			       scram_sasl_mech,
 			       "scram_iteration_counter",
 			       (const char **) &s_iteration_count,
 			       NULL);
@@ -1596,6 +1690,7 @@ static int scram_setpass(void *glob_context __attribute__((unused)),
 	sparams->utils->rand(sparams->utils->rpool, salt, SALT_SIZE);
 
 	r = GenerateScramSecrets (sparams->utils,
+                                  md,
 				  pass,
 				  passlen,
 				  salt,
@@ -1627,33 +1722,33 @@ static int scram_setpass(void *glob_context __attribute__((unused)),
 
 	/* Returns SASL_OK on success, SASL_BUFOVER if result won't fit */
 	if (sparams->utils->encode64(StoredKey,
-				     SCRAM_HASH_SIZE,
+				     hash_size,
 				     base64_StoredKey,
-				     BASE64_LEN(SCRAM_HASH_SIZE) + 1,
+				     BASE64_LEN(hash_size) + 1,
 				     NULL) != SASL_OK) {
 	    MEMERROR( sparams->utils );
 	    r = SASL_NOMEM;
 	    goto cleanup;
 	}
 
-	base64_StoredKey[BASE64_LEN(SCRAM_HASH_SIZE)] = '\0';
+	base64_StoredKey[BASE64_LEN(hash_size)] = '\0';
 
 
 
 	/* Returns SASL_OK on success, SASL_BUFOVER if result won't fit */
 	if (sparams->utils->encode64(ServerKey,
-				     SCRAM_HASH_SIZE,
+				     hash_size,
 				     base64_ServerKey,
-				     BASE64_LEN(SCRAM_HASH_SIZE) + 1,
+				     BASE64_LEN(hash_size) + 1,
 				     NULL) != SASL_OK) {
 	    MEMERROR( sparams->utils );
 	    r = SASL_NOMEM;
 	    goto cleanup;
 	}
 
-	base64_ServerKey[BASE64_LEN(SCRAM_HASH_SIZE)] = '\0';
+	base64_ServerKey[BASE64_LEN(hash_size)] = '\0';
 
-	secret_len = strlen(SCRAM_SASL_MECH ":$:") + 
+	secret_len = strlen(scram_sasl_mech) + strlen(":$:") + 
 		     ITERATION_COUNTER_BUF_LEN +
 		     sizeof(base64_salt) +
 		     sizeof(base64_StoredKey) +
@@ -1668,7 +1763,7 @@ static int scram_setpass(void *glob_context __attribute__((unused)),
     	
 	sprintf((char *) sec->data,
 		"%s$%u:%s$%s:%s",
-		SCRAM_SASL_MECH,
+		scram_sasl_mech,
 		iteration_count,
 		base64_salt,
 		base64_StoredKey,
@@ -1698,11 +1793,14 @@ static int scram_setpass(void *glob_context __attribute__((unused)),
     }
     
     if (r) {
-	SETERROR(sparams->utils, "Error putting " SCRAM_SASL_MECH " secret");
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Error putting %s secret",
+                                 scram_sasl_mech);
 	goto cleanup;
     }
     
-    sparams->utils->log(NULL, SASL_LOG_DEBUG, "Setpass for " SCRAM_SASL_MECH " successful\n");
+    sparams->utils->log(NULL, SASL_LOG_DEBUG, "Setpass for %s successful\n",
+                        scram_sasl_mech);
     
   cleanup:
     if (user) 	_plug_free_string(sparams->utils, &user);
@@ -1741,7 +1839,7 @@ static void scram_server_mech_dispose(void *conn_context,
 static sasl_server_plug_t scram_server_plugins[] = 
 {
     {
-	SCRAM_SASL_MECH,		/* mech_name */
+	"SCRAM-SHA-1",			/* mech_name */
 	0,				/* max_ssf */
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOACTIVE
@@ -1749,7 +1847,7 @@ static sasl_server_plug_t scram_server_plugins[] =
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
 	SASL_FEAT_ALLOWS_PROXY
 	| SASL_FEAT_CHANNEL_BINDING,	/* features */
-	NULL,				/* glob_context */
+	"SHA1",				/* glob_context */
 	&scram_server_mech_new,		/* mech_new */
 	&scram_server_mech_step,	/* mech_step */
 	&scram_server_mech_dispose,	/* mech_dispose */
@@ -1759,23 +1857,49 @@ static sasl_server_plug_t scram_server_plugins[] =
 	NULL,				/* idle */
 	NULL,				/* mech avail */
 	NULL				/* spare */
+#ifdef HAVE_SHA256
+    },
+    {
+	"SCRAM-SHA-256",		/* mech_name */
+	0,				/* max_ssf */
+	SASL_SEC_NOPLAINTEXT
+	| SASL_SEC_NOACTIVE
+	| SASL_SEC_NOANONYMOUS
+	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
+	SASL_FEAT_ALLOWS_PROXY
+	| SASL_FEAT_CHANNEL_BINDING,	/* features */
+	"SHA256",			/* glob_context */
+	&scram_server_mech_new,		/* mech_new */
+	&scram_server_mech_step,	/* mech_step */
+	&scram_server_mech_dispose,	/* mech_dispose */
+	NULL,				/* mech_free */
+	&scram_setpass,			/* setpass */
+	NULL,				/* user_query */
+	NULL,				/* idle */
+	NULL,				/* mech avail */
+	NULL				/* spare */
+#endif
     }
 };
 
 int scram_server_plug_init(const sasl_utils_t *utils,
-			     int maxversion,
-			     int *out_version,
-			     sasl_server_plug_t **pluglist,
-			     int *plugcount)
+                           int maxversion,
+                           int *out_version,
+                           sasl_server_plug_t **pluglist,
+                           int *plugcount)
 {
     if (maxversion < SASL_SERVER_PLUG_VERSION) {
-	SETERROR( utils, SCRAM_SASL_MECH " version mismatch");
+	SETERROR( utils, "SCRAM-SHA-* version mismatch");
 	return SASL_BADVERS;
     }
 
     *out_version = SASL_SERVER_PLUG_VERSION;
     *pluglist = scram_server_plugins;
+#ifdef HAVE_SHA256
+    *plugcount = 2;
+#else
     *plugcount = 1;
+#endif
     utils->rand(utils->rpool, (char *)g_salt_key, SALT_SIZE);
     
     return SASL_OK;
@@ -1785,6 +1909,8 @@ int scram_server_plug_init(const sasl_utils_t *utils,
 
 typedef struct client_context {
     int state;
+
+    const EVP_MD *md;		/* underlying MDA */
 
     sasl_secret_t *password;	/* user password */
     unsigned int free_password; /* set if we need to free the password */
@@ -1800,12 +1926,12 @@ typedef struct client_context {
     char * salt;
     size_t salt_len;
     unsigned int iteration_count;
-    char SaltedPassword[SCRAM_HASH_SIZE];
+    char SaltedPassword[EVP_MAX_MD_SIZE];
 
     int cb_flags;
 } client_context_t;
 
-static int scram_client_mech_new(void *glob_context __attribute__((unused)), 
+static int scram_client_mech_new(void *glob_context,
 				 sasl_client_params_t *params,
 				 void **conn_context)
 {
@@ -1819,6 +1945,8 @@ static int scram_client_mech_new(void *glob_context __attribute__((unused)),
     }
     
     memset(text, 0, sizeof(client_context_t));
+
+    text->md = EVP_get_digestbyname((const char *) glob_context);
 
     *conn_context = text;
     
@@ -1848,10 +1976,14 @@ scram_client_mech_step1(client_context_t *text,
     char channel_binding_state = 'n';
     const char * channel_binding_name = NULL;
     char * encoded_authorization_id = NULL;
+    const char *scram_sasl_mech =
+        (EVP_MD_size(text->md) == 32) ? "SCRAM-SHA-256" : "SCRAM-SHA-1";
 
     /* check if sec layer strong enough */
     if (params->props.min_ssf > params->external_ssf) {
-	SETERROR( params->utils, "SSF requested of " SCRAM_SASL_MECH " plugin");
+	params->utils->seterror(params->utils->conn, 0,
+                                "SSF requested of %s plugin",
+                                scram_sasl_mech);
 	return SASL_TOOWEAK;
     }
     
@@ -2099,34 +2231,42 @@ scram_client_mech_step2(client_context_t *text,
     char * cb_encoded = NULL;
     char * cb_bin = NULL;
     int result;
-    char ClientKey[SCRAM_HASH_SIZE];
-    char StoredKey[SCRAM_HASH_SIZE];
-    char ClientSignature[SCRAM_HASH_SIZE];
-    char ClientProof[SCRAM_HASH_SIZE];
+    char ClientKey[EVP_MAX_MD_SIZE];
+    char StoredKey[EVP_MAX_MD_SIZE];
+    char ClientSignature[EVP_MAX_MD_SIZE];
+    char ClientProof[EVP_MAX_MD_SIZE];
     char * client_proof = NULL;
     size_t client_proof_len;
-    int k;
     unsigned int hash_len = 0;
+    size_t k, hash_size = EVP_MD_size(text->md);
+    const char *scram_sasl_mech =
+        (hash_size == 32) ? "SCRAM-SHA-256" : "SCRAM-SHA-1";
 
     if (serverinlen == 0) {
-	SETERROR(params->utils, SCRAM_SASL_MECH " input expected");
+	params->utils->seterror(params->utils->conn, 0,
+                                "%s input expected", scram_sasl_mech);
 	return SASL_BADPROT;
     }
 
     /* [reserved-mext ","] nonce "," salt "," iteration-count ["," extensions] */
 
     if (serverinlen < 3 || serverin[1] != '=') {
-	SETERROR(params->utils, "Invalid " SCRAM_SASL_MECH " input");
+	params->utils->seterror(params->utils->conn, 0,
+                                "Invalid %s input", scram_sasl_mech);
 	return SASL_BADPROT;
     }
 
     if (serverin[0] == 'm') {
-	SETERROR(params->utils, "Unsupported mandatory extension to " SCRAM_SASL_MECH);
+	params->utils->seterror(params->utils->conn, 0,
+                                "Unsupported mandatory extension to %s",
+                                scram_sasl_mech);
 	return SASL_BADPROT;
     }
 
     if (serverin[0] != 'r') {
-	SETERROR(params->utils, "Nonce (r=) expected in " SCRAM_SASL_MECH " input");
+	params->utils->seterror(params->utils->conn, 0,
+                                "Nonce (r=) expected in %s input",
+                                scram_sasl_mech);
 	return SASL_BADPROT;
     }
 
@@ -2140,7 +2280,8 @@ scram_client_mech_step2(client_context_t *text,
     inbuf[serverinlen] = 0;
 
     if (strlen(inbuf) != serverinlen) {
-	SETERROR(params->utils, "NULs found in " SCRAM_SASL_MECH " input");
+	params->utils->seterror(params->utils->conn, 0,
+                                "NULs found in %s input", scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -2150,7 +2291,9 @@ scram_client_mech_step2(client_context_t *text,
 
     /* MUST be followed by a salt */
     if (p == NULL) {
-	SETERROR(params->utils, "Salt expected after the nonce in " SCRAM_SASL_MECH " input");
+	params->utils->seterror(params->utils->conn, 0,
+                                "Salt expected after the nonce in %s input",
+                                scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -2159,7 +2302,9 @@ scram_client_mech_step2(client_context_t *text,
     p++;
 
     if (strncmp(p, "s=", 2) != 0) {
-	SETERROR(params->utils, "Salt expected after the nonce in " SCRAM_SASL_MECH " input");
+	params->utils->seterror(params->utils->conn, 0,
+                                "Salt expected after the nonce in %s input",
+                                scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -2171,7 +2316,9 @@ scram_client_mech_step2(client_context_t *text,
 
     /* MUST be followed by an iteration-count */
     if (p == NULL) {
-	SETERROR(params->utils, "iteration-count expected after the salt in " SCRAM_SASL_MECH " input");
+	params->utils->seterror(params->utils->conn, 0,
+                                "iteration-count expected after the salt in %s input",
+                                scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -2180,7 +2327,9 @@ scram_client_mech_step2(client_context_t *text,
     p++;
 
     if (strncmp(p, "i=", 2) != 0) {
-	SETERROR(params->utils, "iteration-count expected after the salt in " SCRAM_SASL_MECH " input");
+	params->utils->seterror(params->utils->conn, 0,
+                                "iteration-count expected after the salt in %s input",
+                                scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -2198,7 +2347,9 @@ scram_client_mech_step2(client_context_t *text,
     errno = 0;
     text->iteration_count = strtoul(counter, &end, 10);
     if (counter == end || *end != '\0' || errno != 0) {
-	SETERROR(params->utils, "Invalid iteration-count in " SCRAM_SASL_MECH " input");
+	params->utils->seterror(params->utils->conn, 0,
+                                "Invalid iteration-count in %s input",
+                                scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -2264,7 +2415,9 @@ scram_client_mech_step2(client_context_t *text,
 				text->salt,
 				(unsigned int)text->salt_len + 1,
 				&exact_salt_len) != SASL_OK) {
-	SETERROR(params->utils, "Invalid base64 encoding of the salt in " SCRAM_SASL_MECH " input");
+	params->utils->seterror(params->utils->conn, 0,
+                                "Invalid base64 encoding of the salt in %s input",
+                                scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -2322,7 +2475,7 @@ scram_client_mech_step2(client_context_t *text,
 
     cb_encoded[cb_encoded_length] = '\0';
 
-    client_proof_len = SCRAM_HASH_SIZE / 3 * 4 + ((SCRAM_HASH_SIZE % 3) ? 4 : 0);
+    client_proof_len = hash_size / 3 * 4 + ((hash_size % 3) ? 4 : 0);
     estimated_response_len = strlen(cb_encoded)+
 			     strlen(text->nonce)+
 			     client_proof_len +
@@ -2371,6 +2524,7 @@ scram_client_mech_step2(client_context_t *text,
 
     /* SaltedPassword  := Hi(password, salt) */
     Hi (params->utils,
+        text->md,
 	(const char *) text->password->data,
 	text->password->len,
 	text->salt,
@@ -2378,57 +2532,57 @@ scram_client_mech_step2(client_context_t *text,
 	text->iteration_count,
 	text->SaltedPassword);
 
-    PRINT_HASH ("SaltedPassword", text->SaltedPassword);
+    PRINT_HASH ("SaltedPassword", text->SaltedPassword, hash_size);
 
     /* ClientKey       := HMAC(SaltedPassword, "Client Key") */
-    if (HMAC(EVP_sha1(),
+    if (HMAC(text->md,
 	     (const unsigned char *) text->SaltedPassword,
-	     SCRAM_HASH_SIZE,
+	     hash_size,
 	     (const unsigned char *) CLIENT_KEY_CONSTANT,
 	     CLIENT_KEY_CONSTANT_LEN,
 	     (unsigned char *)ClientKey,
 	     &hash_len) == NULL) {
 	params->utils->seterror(params->utils->conn,0,
-				"HMAC-SHA1 call failed");
+				"HMAC-%s call failed", scram_sasl_mech+6);
 	result = SASL_SCRAM_INTERNAL;
 	goto cleanup;
     }
 
-    PRINT_HASH ("ClientKey", ClientKey);
+    PRINT_HASH ("ClientKey", ClientKey, hash_size);
 
     /* StoredKey       := H(ClientKey) */
-    if (SHA1((const unsigned char *) ClientKey, SCRAM_HASH_SIZE,
-        (unsigned char *) StoredKey) == NULL) {
+    if (EVP_Digest((const unsigned char *) ClientKey, hash_size,
+                   (unsigned char *) StoredKey, NULL, text->md, NULL) == 0) {
 	params->utils->seterror(params->utils->conn,0,
-				"SHA1 call failed");
+				"%s call failed", scram_sasl_mech+6);
 	result = SASL_SCRAM_INTERNAL;
 	goto cleanup;
     }
 
-    PRINT_HASH ("StoredKey", StoredKey);
+    PRINT_HASH ("StoredKey", StoredKey, hash_size);
 
     /* ClientSignature := HMAC(StoredKey, AuthMessage) */
-    if (HMAC(EVP_sha1(),
+    if (HMAC(text->md,
 	     (const unsigned char *)StoredKey,
-	     SCRAM_HASH_SIZE,
+	     hash_size,
 	     (const unsigned char *) text->auth_message,
 	     (int)text->auth_message_len,
 	     (unsigned char *)ClientSignature,
 	     &hash_len) == NULL) {
 	params->utils->seterror(params->utils->conn,0,
-				"HMAC-SHA1 call failed");
+				"HMAC-% call failed", scram_sasl_mech+6);
 	result = SASL_SCRAM_INTERNAL;
 	goto cleanup;
     }
 
-    PRINT_HASH ("ClientSignature", ClientSignature);
+    PRINT_HASH ("ClientSignature", ClientSignature, hash_size);
 
     /* ClientProof     := ClientKey XOR ClientSignature */
-    for (k = 0; k < SCRAM_HASH_SIZE; k++) {
+    for (k = 0; k < hash_size; k++) {
 	ClientProof[k] = ClientKey[k] ^ ClientSignature[k];
     }
 
-    PRINT_HASH ("ClientProof", ClientProof);
+    PRINT_HASH ("ClientProof", ClientProof, hash_size);
 
     /* base64-encode ClientProof */
     client_proof = (char *) params->utils->malloc(client_proof_len + 1);
@@ -2439,7 +2593,7 @@ scram_client_mech_step2(client_context_t *text,
     }
 
     result = params->utils->encode64(ClientProof,
-				     SCRAM_HASH_SIZE,
+				     hash_size,
 				     client_proof,
 				     (unsigned int)client_proof_len + 1,
 				     NULL);
@@ -2494,21 +2648,27 @@ scram_client_mech_step3(client_context_t *text,
     int result;
     size_t server_proof_len;
     unsigned exact_server_proof_len;
-    char DecodedServerProof[SCRAM_HASH_SIZE + 1];
-    char ServerKey[SCRAM_HASH_SIZE];
-    char ServerSignature[SCRAM_HASH_SIZE];
-    int k;
+    char DecodedServerProof[EVP_MAX_MD_SIZE + 1];
+    char ServerKey[EVP_MAX_MD_SIZE];
+    char ServerSignature[EVP_MAX_MD_SIZE];
     unsigned int hash_len = 0;
+    size_t k, hash_size = EVP_MD_size(text->md);
+    const char *scram_sasl_mech =
+        (hash_size == 32) ? "SCRAM-SHA-256" : "SCRAM-SHA-1";
 
     if (serverinlen < 3) {
-	SETERROR(params->utils, "Invalid " SCRAM_SASL_MECH " input expected");
+	params->utils->seterror(params->utils->conn, 0,
+                                "Invalid %s input expected",
+                                scram_sasl_mech);
 	return SASL_BADPROT;
     }
 
     /* Expecting: 'verifier ["," extensions]' */
 
     if (strncmp(serverin, "v=", 2) != 0) {
-	SETERROR(params->utils, "ServerSignature expected in " SCRAM_SASL_MECH " input");
+	params->utils->seterror(params->utils->conn, 0,
+                                "ServerSignature expected in %s input",
+                                scram_sasl_mech);
 	return SASL_BADPROT;
     }
 
@@ -2524,48 +2684,52 @@ scram_client_mech_step3(client_context_t *text,
     if (params->utils->decode64(serverin + 2,	/* ServerProof */
 				(unsigned int)server_proof_len,
 				DecodedServerProof,
-				SCRAM_HASH_SIZE + 1,
+				hash_size + 1,
 				&exact_server_proof_len) != SASL_OK) {
-	SETERROR(params->utils, "Invalid base64 encoding of the server proof in " SCRAM_SASL_MECH " input");
+	params->utils->seterror(params->utils->conn, 0,
+                                "Invalid base64 encoding of the server proof in %s input",
+                                scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
 
-    if (exact_server_proof_len != SCRAM_HASH_SIZE) {
-	SETERROR(params->utils, "Invalid server proof (truncated) in " SCRAM_SASL_MECH " input");
+    if (exact_server_proof_len != hash_size) {
+	params->utils->seterror(params->utils->conn, 0,
+                                "Invalid server proof (truncated) in %s input",
+                                scram_sasl_mech);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
 
     /* ServerKey       := HMAC(SaltedPassword, "Server Key") */
-    if (HMAC(EVP_sha1(),
+    if (HMAC(text->md,
 	     (const unsigned char *)text->SaltedPassword,
-	     SCRAM_HASH_SIZE,
+	     hash_size,
 	     (const unsigned char *) SERVER_KEY_CONSTANT,
 	     SERVER_KEY_CONSTANT_LEN,
 	     (unsigned char *)ServerKey,
 	     &hash_len) == NULL) {
 	params->utils->seterror(params->utils->conn,0,
-				"HMAC-SHA1 call failed");
+				"HMAC-%s call failed", scram_sasl_mech+6);
 	result = SASL_SCRAM_INTERNAL;
 	goto cleanup;
     }
 
     /* ServerSignature := HMAC(ServerKey, AuthMessage) */
-    if (HMAC(EVP_sha1(),
+    if (HMAC(text->md,
 	     (const unsigned char *)ServerKey,
-	     SCRAM_HASH_SIZE,
+	     hash_size,
 	     (const unsigned char *) text->auth_message,
 	     (int)text->auth_message_len,
 	     (unsigned char *)ServerSignature,
 	     &hash_len) == NULL) {
 	params->utils->seterror(params->utils->conn,0,
-				"HMAC-SHA1 call failed");
+				"HMAC-%s call failed", scram_sasl_mech+6);
 	result = SASL_SCRAM_INTERNAL;
 	goto cleanup;
     }
 
-    for (k = 0; k < SCRAM_HASH_SIZE; k++) {
+    for (k = 0; k < hash_size; k++) {
 	if (DecodedServerProof[k] != ServerSignature[k]) {
 	    SETERROR(params->utils, "ServerSignature mismatch");
 	    result = SASL_BADAUTH;
@@ -2600,13 +2764,17 @@ static int scram_client_mech_step(void *conn_context,
 {
     int result = SASL_FAIL;
     client_context_t *text = (client_context_t *) conn_context;
+    const char *scram_sasl_mech =
+        (EVP_MD_size(text->md) == 32) ? "SCRAM-SHA-256" : "SCRAM-SHA-1";
 
     *clientout = NULL;
     *clientoutlen = 0;
 
     /* this should be well more than is ever needed */
     if (serverinlen > MAX_SERVERIN_LEN) {
-	SETERROR(params->utils, SCRAM_SASL_MECH " input longer than " STRINGIZE((MAX_SERVERIN_LEN)) " bytes");
+	params->utils->seterror(params->utils->conn, 0,
+                                "%s input longer than " STRINGIZE((MAX_SERVERIN_LEN)) " bytes",
+                                scram_sasl_mech);
 	return SASL_BADPROT;
     }
     
@@ -2646,7 +2814,8 @@ static int scram_client_mech_step(void *conn_context,
 
     default: /* should never get here */
 	params->utils->log(NULL, SASL_LOG_ERR,
-			   "Invalid " SCRAM_SASL_MECH " client step %d\n", text->state);
+			   "Invalid %s client step %d\n",
+                           scram_sasl_mech, text->state);
 	return SASL_FAIL;
     }
     
@@ -2689,7 +2858,7 @@ static void scram_client_mech_dispose(void *conn_context,
 static sasl_client_plug_t scram_client_plugins[] = 
 {
     {
-	SCRAM_SASL_MECH,		/* mech_name */
+	"SCRAM-SHA-1",			/* mech_name */
 	0,				/* max_ssf */
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOANONYMOUS
@@ -2698,7 +2867,7 @@ static sasl_client_plug_t scram_client_plugins[] =
 	SASL_FEAT_ALLOWS_PROXY
 	| SASL_FEAT_CHANNEL_BINDING, 	/* features */
 	NULL,				/* required_prompts */
-	NULL,				/* glob_context */
+	"SHA1",				/* glob_context */
 	&scram_client_mech_new,		/* mech_new */
 	&scram_client_mech_step,	/* mech_step */
 	&scram_client_mech_dispose,	/* mech_dispose */
@@ -2706,6 +2875,27 @@ static sasl_client_plug_t scram_client_plugins[] =
 	NULL,				/* idle */
 	NULL,				/* spare */
 	NULL				/* spare */
+#ifdef HAVE_SHA256
+    },
+    {
+	"SCRAM-SHA-256",		/* mech_name */
+	0,				/* max_ssf */
+	SASL_SEC_NOPLAINTEXT
+	| SASL_SEC_NOANONYMOUS
+	| SASL_SEC_NOACTIVE
+	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
+	SASL_FEAT_ALLOWS_PROXY
+	| SASL_FEAT_CHANNEL_BINDING, 	/* features */
+	NULL,				/* required_prompts */
+	"SHA256",			/* glob_context */
+	&scram_client_mech_new,		/* mech_new */
+	&scram_client_mech_step,	/* mech_step */
+	&scram_client_mech_dispose,	/* mech_dispose */
+	NULL,				/* mech_free */
+	NULL,				/* idle */
+	NULL,				/* spare */
+	NULL				/* spare */
+#endif
     }
 };
 
@@ -2716,13 +2906,17 @@ int scram_client_plug_init(const sasl_utils_t *utils,
 			     int *plugcount)
 {
     if (maxversion < SASL_CLIENT_PLUG_VERSION) {
-	SETERROR( utils, SCRAM_SASL_MECH " version mismatch");
+	SETERROR( utils, "SCRAM-SHA-* version mismatch");
 	return SASL_BADVERS;
     }
     
     *out_version = SASL_CLIENT_PLUG_VERSION;
     *pluglist = scram_client_plugins;
+#ifdef HAVE_SHA256
+    *plugcount = 2;
+#else
     *plugcount = 1;
+#endif
     
     return SASL_OK;
 }

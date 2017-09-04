@@ -6,17 +6,64 @@ New in 2.1.27
 -------------
 
 * Added support for OpenSSL 1.1
-* Fixed potential DoS attack on saslauthd/doors (from Oracle)
 * Added support for lmdb (from Howard Chu)
-* Lots of build fixes (from Ignacio Casal Quinteiro)
+* Lots of build fixes (from Ignacio Casal Quinteiro and others)
+* Treat SCRAM and DIGEST-MD5 as more secure than PLAIN when selecting client mech
 * DIGEST-MD5 plugin:
 
   - Fixed memory leaks
   - Fixed a segfault when looking for non-existent reauth cache
   - Prevent client from going from step 3 back to step 2
 
-* Added krb5_conv_krb4_instance option to saslauthd/kerberos5
-* Treat SCRAM and DIGEST-MD5 as more secure than PLAIN when selecting client mech
+* GSSAPI plugin:
+
+  - Added support for retrieving negotiated SSF
+  - Fixed GSS-SPNEGO to use flags negotiated by GSSAPI for SSF
+  - Properly compute maxbufsize AFTER security layers have been set
+
+* SCRAM plugin:
+  
+  - Added support for SCRAM-SHA-256
+    
+* LOGIN plugin:
+
+  - Don't prompt client for password until requested by server
+
+* NTLM plugin:
+
+  - Fixed crash due to uninitialized HMAC context
+
+* saslauthd:
+
+  - cache.c:
+
+    - Don't use cached credentials if timeout has expired
+    - Fixed debug logging output
+  
+  - ipc_doors.c:
+
+    - Fixed potential DoS attack (from Oracle)
+
+  - ipc_unix.c:
+
+    - Prevent premature closing of socket
+
+  - auth_rimap.c:
+
+    - Added support LOGOUT command
+    - Added support for unsolicited CAPABILITY responses in LOGIN reply
+    - Properly detect end of responses (don't needlessly wait)
+    - Properly handle backslash in passwords
+    
+  - auth_httpform:
+
+    - Fix off-by-one error in string termination
+    - Added support for 204 success response
+
+  - auth_krb5.c:
+
+    - Added krb5_conv_krb4_instance option
+    - Added more verbose error logging
 
 New in 2.1.26
 -------------

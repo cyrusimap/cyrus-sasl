@@ -76,11 +76,17 @@ NTLM
 OTP
 ---
 
+  * OTP-MD4
+  * OTP-MD5
+  * OTP-SHA1
+
 .. todo::
    Content needed here
 
 PASSDSS
 -------
+
+  * PASSDSS-3DES-1
 
 .. todo::
    Content needed here
@@ -94,11 +100,17 @@ PLAIN
 SCRAM
 -----
 
+  * SCRAM-SHA-1
+  * SCRAM-SHA-256
+
 .. todo::
    Content needed here
 
 SRP
 ---
+
+  * mda=sha1,rmd160,md5
+  * confidentiality=des-ofb,des-ede-ofb,aes-128-ofb,bf-ofb,cast5-ofb,idea-ofb
 
 .. todo::
    Content needed here

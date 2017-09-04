@@ -600,7 +600,7 @@ if test "$sia" != no; then
     AC_DEFINE(HAVE_SIA,[],[Include SIA Support])
     LIB_SIA="-lsecurity -ldb -lm -laud"
   else
-    AC_ERROR([No support for SIA found])
+    AC_MSG_ERROR([No support for SIA found])
   fi
 fi
 AC_SUBST(LIB_SIA)
@@ -610,8 +610,7 @@ AC_ARG_ENABLE(auth-sasldb, [  --enable-auth-sasldb    enable experimental SASLdb
   authsasldb=no)
 if test "$authsasldb" != no; then
   if test ! -d "../sasldb"; then
-     echo "ERROR: Cannot build sasldb module outside of the full SASL source tree."
-     exit 0;
+     AC_MSG_ERROR([Cannot build sasldb module outside of the full SASL source tree])
   fi
   AC_DEFINE(AUTH_SASLDB,[],[Include SASLdb Support])
   SASL_DB_PATH_CHECK()
@@ -1049,7 +1048,7 @@ esac
 AC_SUBST(LIB_SQLITE3)
 
 if test "$sql" = yes -a "$with_pgsql" = no -a "$with_mysql" = no -a "$with_sqlite" = no -a "$with_sqlite3" = no; then
-    AC_ERROR([--enable-sql chosen but neither Postgres nor MySQL nor SQLite nor SQLite3 found])
+    AC_MSG_ERROR([--enable-sql chosen but neither Postgres nor MySQL nor SQLite nor SQLite3 found])
 fi
 
 if test "$enable_shared" = yes; then

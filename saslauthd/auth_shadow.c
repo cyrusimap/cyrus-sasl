@@ -124,6 +124,8 @@ auth_shadow (
 
     struct spwd spbuf;
     char spdata[PWBUFSZ];		/* spbuf indirect data goes in here */
+
+    struct crypt_data cdata;
 #  endif /* _REENTRANT */
     /* END VARIABLES */
 
@@ -216,7 +218,12 @@ auth_shadow (
 	RETURN("NO Insufficient permission to access NIS authentication database (saslauthd)");
     }
 
+#  ifdef _REENTRANT
+    cdata.initialized = 0;
+    cpw = crypt_r(password, sp->sp_pwdp, &cdata);
+#  else
     cpw = crypt(password, sp->sp_pwdp);
+#  endif /* _REENTRANT */
     if (!cpw || strcmp(sp->sp_pwdp, (const char *)cpw)) {
 	if (flags & VERBOSE) {
 	    /*

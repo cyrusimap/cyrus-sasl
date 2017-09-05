@@ -2178,7 +2178,9 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 
     /* password prop_request */
     const char *password_request[] = { SASL_AUX_PASSWORD,
+#if defined(OBSOLETE_DIGEST_ATTR)
 				       "*cmusaslsecretDIGEST-MD5",
+#endif
 				       NULL };
     size_t len;
     struct propval auxprop_values[2];
@@ -2579,8 +2581,11 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
     result = sparams->utils->prop_getnames(sparams->propctx, password_request,
 					   auxprop_values);
     if (result < 0 ||
-       ((!auxprop_values[0].name || !auxprop_values[0].values) &&
-	(!auxprop_values[1].name || !auxprop_values[1].values))) {
+        ((!auxprop_values[0].name || !auxprop_values[0].values)
+#if defined(OBSOLETE_DIGEST_ATTR)
+         && (!auxprop_values[1].name || !auxprop_values[1].values)
+#endif
+         )) {
 	/* We didn't find this username */
 	sparams->utils->seterror(sparams->utils->conn, 0,
 				 "no secret in database");
@@ -2650,11 +2655,13 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	
 	/* We're done with sec now. Let's get rid of it */
 	_plug_free_secret(sparams->utils, &sec);
+#if defined(OBSOLETE_DIGEST_ATTR)
     } else if (auxprop_values[1].name && auxprop_values[1].values) {
         /* NB: This will most likely fail for clients that
 	   choose to ignore server-advertised realm */
 	memcpy(Secret, auxprop_values[1].values[0], HASHLEN);
 	Secret[HASHLEN] = '\0';
+#endif
     } else {
 	sparams->utils->seterror(sparams->utils->conn, 0,
 				 "Have neither type of secret");

@@ -143,7 +143,7 @@ libsasldb_objs = allockey.obj db_berkeley.obj
 
 CRAM_FLAGS=/DOBSOLETE_CRAM_ATTR=1
 
-DIGEST_FLAGS=/D "WITH_RC4"
+DIGEST_FLAGS=/D "WITH_RC4" /DOBSOLETE_DIGEST_ATTR=1
 
 saslSASLDB_sources = sasldb.c sasldb_init.c $(libsasldb_sources) $(common_sources)
 saslSASLDB_objs = sasldb.obj sasldb_init.obj $(libsasldb_objs) $(common_objs)

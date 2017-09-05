@@ -14,6 +14,7 @@ New in 2.1.27
   - Fixed memory leaks
   - Fixed a segfault when looking for non-existent reauth cache
   - Prevent client from going from step 3 back to step 2
+  - Allow cmusaslsecretDIGEST-MD5 property to be disabled
 
 * GSSAPI plugin:
 

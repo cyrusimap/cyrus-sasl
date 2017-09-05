@@ -88,6 +88,12 @@ AC_ARG_ENABLE(obsolete_cram_attr,
               enable_obsolete_cram_attr=$enableval,
               enable_obsolete_cram_attr=yes)
 
+AC_ARG_ENABLE(obsolete_digest_attr,
+              [AC_HELP_STRING([--enable-obsolete_digest_attr],
+                              [enable support for cmusaslsecretDIGEST-MD5 auxprop property [[yes]]])],
+              enable_obsolete_digest_attr=$enableval,
+              enable_obsolete_digest_attr=yes)
+
 AC_PROG_CC
 AX_PROG_CC_FOR_BUILD
 AC_PROG_CPP
@@ -431,6 +437,9 @@ AC_MSG_CHECKING(DIGEST-MD5)
 if test "$digest" != no; then
   AC_MSG_RESULT(enabled)
   SASL_MECHS="$SASL_MECHS libdigestmd5.la"
+  if test "$enable_obsolete_digest_attr" = yes; then
+    CPPFLAGS="$CPPFLAGS -DOBSOLETE_DIGEST_ATTR=1"
+  fi
   if test "$enable_static" = yes; then
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/digestmd5.c"
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS digestmd5.o"

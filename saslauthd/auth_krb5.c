@@ -54,6 +54,7 @@
 static cfile config = 0;
 static char *keytabname = NULL; /* "system default" */
 static char *verify_principal = "host"; /* a principal in the default keytab */
+static char *servername = NULL; /* server name to use in principal */
 #endif /* AUTH_KRB5 */
 
 #include <errno.h>
@@ -99,6 +100,7 @@ auth_krb5_init (
     if (config) {
 	keytabname = (char *) cfile_getstring(config, "krb5_keytab", keytabname);
 	verify_principal = (char *) cfile_getstring(config, "krb5_verify_principal", verify_principal);
+	servername = (char *) cfile_getstring(config, "krb5_servername", servername);
     }
 
     return 0;
@@ -284,8 +286,10 @@ static int k5support_verify_tgt(krb5_context context,
     
     memset(&packet, 0, sizeof(packet));
 
-    if ((k5_retcode = krb5_sname_to_principal(context, NULL, verify_principal,
-					      KRB5_NT_SRV_HST, &server))) {
+    if ((k5_retcode = krb5_sname_to_principal(context, servername,
+					      verify_principal,
+					      (servername ? KRB5_NT_UNKNOWN : KRB5_NT_SRV_HST),
+					      &server))) {
 	k5support_log_err(LOG_DEBUG, context, k5_retcode, "krb5_sname_to_principal()");
 	return 0;
     }
@@ -310,7 +314,9 @@ static int k5support_verify_tgt(krb5_context context,
     /* this duplicates work done in krb5_sname_to_principal
      * oh well.
      */
-    if (gethostname(thishost, BUFSIZ) < 0) {
+    if ( servername ) {
+        strncpy( thishost, servername, BUFSIZ );
+    } else if (gethostname(thishost, BUFSIZ) < 0) {
 	goto fini;
     }
     thishost[BUFSIZ-1] = '\0';

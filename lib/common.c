@@ -836,19 +836,20 @@ void sasl_dispose(sasl_conn_t **pconn)
 
   /* serialize disposes. this is necessary because we can't
      dispose of conn->mutex if someone else is locked on it */
+  if (!free_mutex) {
+      free_mutex = sasl_MUTEX_ALLOC();
+      if (!free_mutex) return;
+  }
+
   result = sasl_MUTEX_LOCK(free_mutex);
   if (result!=SASL_OK) return;
   
   /* *pconn might have become NULL by now */
-  if (! (*pconn))
-  {
-	sasl_MUTEX_UNLOCK(free_mutex);
-	return;
+  if (*pconn) {
+      (*pconn)->destroy_conn(*pconn);
+      sasl_FREE(*pconn);
+      *pconn=NULL;
   }
-
-  (*pconn)->destroy_conn(*pconn);
-  sasl_FREE(*pconn);
-  *pconn=NULL;
 
   sasl_MUTEX_UNLOCK(free_mutex);
 }

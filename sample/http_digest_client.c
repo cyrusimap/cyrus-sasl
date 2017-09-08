@@ -18,8 +18,8 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#include <sasl/sasl.h>
-   
+#include <sasl.h>
+
 #define SUCCESS 0
 #define ERROR   1
 

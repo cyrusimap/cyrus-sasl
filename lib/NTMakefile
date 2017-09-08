@@ -99,7 +99,7 @@ BEGIN
             VALUE "FileDescription", "CMU SASL API v2\0"
             VALUE "FileVersion", "$(SASL_VERSION_MAJOR).$(SASL_VERSION_MINOR).$(SASL_VERSION_STEP).0\0"
             VALUE "InternalName", "libsasl\0"
-            VALUE "LegalCopyright", "Copyright (c) Carnegie Mellon University 2002-2012\0"
+            VALUE "LegalCopyright", "Copyright (c) Carnegie Mellon University 2002-2017\0"
             VALUE "OriginalFilename", "libsasl.dll\0"
             VALUE "ProductName", "Carnegie Mellon University SASL\0"
             VALUE "ProductVersion", "$(SASL_VERSION_MAJOR).$(SASL_VERSION_MINOR).$(SASL_VERSION_STEP)-0"

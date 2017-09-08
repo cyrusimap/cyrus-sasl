@@ -618,13 +618,9 @@ AC_ARG_ENABLE(auth-sasldb, [  --enable-auth-sasldb    enable experimental SASLdb
   authsasldb=$enableval,
   authsasldb=no)
 if test "$authsasldb" != no; then
-  if test ! -d "../sasldb"; then
-     AC_MSG_ERROR([Cannot build sasldb module outside of the full SASL source tree])
-  fi
   AC_DEFINE(AUTH_SASLDB,[],[Include SASLdb Support])
   SASL_DB_PATH_CHECK()
   SASL_DB_CHECK()
-  SASL_DB_LIB="$SASL_DB_LIB ../sasldb/.libs/libsasldb.al"
 fi
 
 AC_ARG_ENABLE(httpform, [  --enable-httpform       enable HTTP form authentication [[no]] ],

@@ -27,14 +27,6 @@
  * DAMAGE.
  * END COPYRIGHT */
 
-/* ok, this is  wrong but the most convenient way of doing 
- * it for now. We assume (possibly incorrectly) that if GSSAPI exists then 
- * the Kerberos 5 headers and libraries exist.   
- * What really should be done is a configure.in check for krb5.h and use 
- * that since none of this code is GSSAPI but rather raw Kerberos5.
- */
-
-
 /* PUBLIC DEPENDENCIES */
 #include "mechanisms.h"
 #include "globals.h" /* mech_option */

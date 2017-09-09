@@ -35,14 +35,6 @@
  */
 
 
-/* Also, at some point one would hope it would be possible to
- * have less divergence between Heimdal and MIT Kerberos 5.
- *
- * As of the summer of 2003, the obvious issues are that
- * MIT doesn't have krb5_verify_opt_*() and Heimdal doesn't
- * have krb5_sname_to_principal().
- */
-
 /* PUBLIC DEPENDENCIES */
 #include "mechanisms.h"
 #include "globals.h" /* mech_option */
@@ -180,8 +172,6 @@ static void k5support_log_err(int priority,
     krb5_free_error_message(context, k5_msg);
 }
 
-#ifdef KRB5_HEIMDAL
-
 char *                                  /* R: allocated response string */
 auth_krb5 (
   /* PARAMETERS */
@@ -234,9 +224,11 @@ auth_krb5 (
         return strdup("NO saslauthd internal error");
     }
 
+#ifdef KRB5_HEIMDAL
     krb5_get_init_creds_opt_set_default_flags(context, NULL,
                                               krb5_principal_get_realm(context, auth_user),
                                               opt);
+#endif /* KRB5_HEIMDAL */
 
     rc = krb5_get_init_creds_password(context, &cred, auth_user, password, NULL,
                                  NULL, 0, NULL, opt);
@@ -290,208 +282,6 @@ auth_krb5 (
 
     return result;
 }
-
-#else /* !KRB5_HEIMDAL */
-
-/* returns 0 for failure, 1 for success */
-static int k5support_verify_tgt(krb5_context context, 
-				krb5_ccache ccache) 
-{
-    krb5_principal server;
-    krb5_data packet;
-    krb5_keyblock *keyblock = NULL;
-    krb5_auth_context auth_context = NULL;
-    krb5_error_code k5_retcode;
-    krb5_keytab kt = NULL;
-    char thishost[BUFSIZ];
-    int result = 0;
-    
-    memset(&packet, 0, sizeof(packet));
-
-    if ((k5_retcode = krb5_sname_to_principal(context, servername,
-					      verify_principal,
-					      (servername ? KRB5_NT_UNKNOWN : KRB5_NT_SRV_HST),
-					      &server))) {
-	k5support_log_err(LOG_DEBUG, context, k5_retcode, "krb5_sname_to_principal()");
-	return 0;
-    }
-
-    if (keytabname) {
-	if ((k5_retcode = krb5_kt_resolve(context, keytabname, &kt))) {
-	    k5support_log_err(LOG_DEBUG, context, k5_retcode, "krb5_kt_resolve()");
-	    goto fini;
-	}
-    }
-    
-    if ((k5_retcode = krb5_kt_read_service_key(context, kt, server, 0,
-					       0, &keyblock))) {
-	k5support_log_err(LOG_DEBUG, context, k5_retcode, "krb5_kt_read_service_key()");
-	goto fini;
-    }
-    
-    if (keyblock) {
-	krb5_free_keyblock(context, keyblock);
-    }
-    
-    /* this duplicates work done in krb5_sname_to_principal
-     * oh well.
-     */
-    if ( servername ) {
-        strncpy( thishost, servername, BUFSIZ );
-    } else if (gethostname(thishost, BUFSIZ) < 0) {
-	goto fini;
-    }
-    thishost[BUFSIZ-1] = '\0';
-    
-    if ((k5_retcode = krb5_mk_req(context, &auth_context, 0, verify_principal, 
-				  thishost, NULL, ccache, &packet))) {
-	k5support_log_err(LOG_DEBUG, context, k5_retcode, "krb5_mk_req()");
-    }
-    
-    if (auth_context) {
-	krb5_auth_con_free(context, auth_context);
-	auth_context = NULL;
-    }
-    
-    if (k5_retcode) {
-	goto fini;
-    }
-    
-    if ((k5_retcode = krb5_rd_req(context, &auth_context, &packet, 
-				  server, NULL, NULL, NULL))) {
-	k5support_log_err(LOG_DEBUG, context, k5_retcode, "krb5_rd_req()");
-	goto fini;
-    }
-
-    if (auth_context) {
-      krb5_auth_con_free(context, auth_context);
-      auth_context = NULL;
-    }
-    
-    /* all is good now */
-    result = 1;
- fini:
-    if (!k5_retcode) {
-        krb5_free_data_contents(context, &packet);
-    }
-    krb5_free_principal(context, server);
-    
-    return result;
-}
-
-/* FUNCTION: auth_krb5 */
-
-/* SYNOPSIS
- * Authenticate against Kerberos V.
- * END SYNOPSIS */
-
-char *					/* R: allocated response string */
-auth_krb5 (
-  /* PARAMETERS */
-  const char *user,			/* I: plaintext authenticator */
-  const char *password,			/* I: plaintext password */
-  const char *service,			/* I: service authenticating to */
-  const char *realm,			/* I: user's realm */
-  const char *remote                    /* I: remote host address */
-  /* END PARAMETERS */
-  )
-{
-    /* VARIABLES */
-    krb5_context context;
-    krb5_ccache ccache = NULL;
-    krb5_principal auth_user;
-    krb5_creds creds;
-    krb5_get_init_creds_opt opts;
-    char * result;
-    char tfname[2048];
-    char principalbuf[2048];
-    krb5_error_code code;
-    /* END VARIABLES */
-
-    if (!user|| !password) {
-	syslog(LOG_ERR, "auth_krb5: NULL password or username?");
-	return strdup("NO saslauthd internal error");
-    }
-
-    if (krb5_init_context(&context)) {
-	syslog(LOG_ERR, "auth_krb5: krb5_init_context");
-	return strdup("NO saslauthd internal error");
-    }
-
-    if (form_principal_name(user, service, realm, principalbuf, sizeof (principalbuf))) {
-	syslog(LOG_ERR, "auth_krb5: form_principal_name");
-	return strdup("NO saslauthd principal name error");
-    }
-
-    if ((code = krb5_parse_name (context, principalbuf, &auth_user))) {
-	k5support_log_err(LOG_ERR, context, code, "krb5_parse_name()");
-	krb5_free_context(context);
-	return strdup("NO saslauthd internal error");
-    }
-    
-    if (krbtf_name(tfname, sizeof (tfname)) != 0) {
-	syslog(LOG_ERR, "auth_krb5: could not generate ticket file name");
-	return strdup("NO saslauthd internal error");
-    }
-
-    if ((code = krb5_cc_resolve(context, tfname, &ccache))) {
-	k5support_log_err(LOG_ERR, context, code, "krb5_cc_resolve()");
-	krb5_free_principal(context, auth_user);
-	krb5_free_context(context);
-	return strdup("NO saslauthd internal error");
-    }
-    
-    if ((code = krb5_cc_initialize (context, ccache, auth_user))) {
-	k5support_log_err(LOG_ERR, context, code, "krb5_cc_initialize()");
-	krb5_free_principal(context, auth_user);
-	krb5_free_context(context);
-	return strdup("NO saslauthd internal error");
-    }
-    
-    krb5_get_init_creds_opt_init(&opts);
-    /* 15 min should be more than enough */
-    krb5_get_init_creds_opt_set_tkt_life(&opts, 900); 
-    if ((code = krb5_get_init_creds_password(context, &creds, 
-                                             auth_user, password, NULL, NULL, 
-                                             0, NULL, &opts))) {
-	k5support_log_err(LOG_ERR, context, code, "krb5_get_init_creds_password()");
-	krb5_cc_destroy(context, ccache);
-	krb5_free_principal(context, auth_user);
-	krb5_free_context(context);
-	return strdup("NO saslauthd internal error");
-    }
-    
-    /* at this point we should have a TGT. Let's make sure it is valid */
-    if ((code = krb5_cc_store_cred(context, ccache, &creds))) {
-	k5support_log_err(LOG_ERR, context, code, "krb5_cc_store_cred()");
-	krb5_free_principal(context, auth_user);
-	krb5_cc_destroy(context, ccache);
-	krb5_free_context(context);
-	return strdup("NO saslauthd internal error");
-    }
-    
-    if (!k5support_verify_tgt(context, ccache)) {
-	syslog(LOG_ERR, "auth_krb5: k5support_verify_tgt");
-	result = strdup("NO saslauthd internal error");
-	goto fini;
-    }
-    
-    /* 
-     * fall through -- user is valid beyond this point  
-     */
-    
-    result = strdup("OK");
- fini:
-/* destroy any tickets we had */
-    krb5_free_cred_contents(context, &creds);
-    krb5_free_principal(context, auth_user);
-    krb5_cc_destroy(context, ccache);
-    krb5_free_context(context);
-
-    return result;
-}
-
-#endif /* KRB5_HEIMDAL */
 
 #else /* ! AUTH_KRB5 */
 

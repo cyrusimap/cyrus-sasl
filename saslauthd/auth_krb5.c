@@ -169,13 +169,24 @@ form_principal_name (
     return 0;
 }
 
+static void k5support_log_err(int priority,
+                              krb5_context context,
+                              krb5_error_code code,
+                              char const *msg)
+{
+    const char *k5_msg = krb5_get_error_message(context, code);
+
+    syslog(priority, "auth_krb5: %s: %s (%d)\n", msg, k5_msg, code);
+    krb5_free_error_message(context, k5_msg);
+}
+
 #ifdef KRB5_HEIMDAL
 
-char *					/* R: allocated response string */
+char *                                  /* R: allocated response string */
 auth_krb5 (
   /* PARAMETERS */
-  const char *user,			/* I: plaintext authenticator */
-  const char *password,			/* I: plaintext password */
+  const char *user,                     /* I: plaintext authenticator */
+  const char *password,                 /* I: plaintext password */
   const char *service,                  /* I: service authenticating to */
   const char *realm,                    /* I: user's realm */
   const char *remote                    /* I: remote host address */
@@ -184,92 +195,103 @@ auth_krb5 (
 {
     /* VARIABLES */
     krb5_context context;
-    krb5_ccache ccache = NULL;
+    krb5_error_code rc;
     krb5_keytab kt = NULL;
     krb5_principal auth_user;
-    krb5_verify_opt opt;
+    krb5_principal server;
+    krb5_get_init_creds_opt *opt;
+    krb5_verify_init_creds_opt vopt;
+    krb5_creds cred;
     char * result;
-    char tfname[2048];
     char principalbuf[2048];
     /* END VARIABLES */
 
     if (!user || !password) {
-	syslog(LOG_ERR, "auth_krb5: NULL password or username?");
-	return strdup("NO saslauthd internal NULL password or username");
+        syslog(LOG_ERR, "auth_krb5: NULL password or username?");
+        return strdup("NO saslauthd NULL password or username");
     }
 
     if (krb5_init_context(&context)) {
-	syslog(LOG_ERR, "auth_krb5: krb5_init_context");
-	return strdup("NO saslauthd internal krb5_init_context error");
+        syslog(LOG_ERR, "auth_krb5: krb5_init_context");
+        return strdup("NO saslauthd internal error");
     }
 
     if (form_principal_name(user, service, realm, principalbuf, sizeof (principalbuf))) {
-	syslog(LOG_ERR, "auth_krb5: form_principal_name");
-	return strdup("NO saslauthd principal name error");
+        syslog(LOG_ERR, "auth_krb5: form_principal_name");
+        return strdup("NO saslauthd principal name error");
     }
 
-    if (krb5_parse_name (context, principalbuf, &auth_user)) {
-	krb5_free_context(context);
-	syslog(LOG_ERR, "auth_krb5: krb5_parse_name");
-	return strdup("NO saslauthd internal krb5_parse_name error");
+    if ((rc = krb5_parse_name(context, principalbuf, &auth_user))) {
+        k5support_log_err(LOG_ERR, context, rc, "krb5_parse_name");
+        krb5_free_context(context);
+        return strdup("NO saslauthd internal error");
     }
 
-    if (krbtf_name(tfname, sizeof (tfname)) != 0) {
-	syslog(LOG_ERR, "auth_krb5: could not generate ccache name");
-	return strdup("NO saslauthd internal error");
+    if ((rc = krb5_get_init_creds_opt_alloc(context, &opt))) {
+        k5support_log_err(LOG_ERR, context, rc, "krb5_get_init_creds_opt_alloc");
+        krb5_free_principal(context, auth_user);
+        krb5_free_context(context);
+        return strdup("NO saslauthd internal error");
     }
 
-    if (krb5_cc_resolve(context, tfname, &ccache)) {
-	krb5_free_principal(context, auth_user);
-	krb5_free_context(context);
-	syslog(LOG_ERR, "auth_krb5: krb5_cc_resolve");
-	return strdup("NO saslauthd internal error");
+    krb5_get_init_creds_opt_set_default_flags(context, NULL,
+                                              krb5_principal_get_realm(context, auth_user),
+                                              opt);
+
+    rc = krb5_get_init_creds_password(context, &cred, auth_user, password, NULL,
+                                 NULL, 0, NULL, opt);
+    krb5_get_init_creds_opt_free(context, opt);
+    if (rc) {
+        k5support_log_err(LOG_ERR, context, rc, "krb5_get_init_creds_password");
+        krb5_free_principal(context, auth_user);
+        krb5_free_context(context);
+        return strdup("NO krb5_get_init_creds_password failed");
     }
 
     if (keytabname) {
-	if (krb5_kt_resolve(context, keytabname, &kt)) {
-	    krb5_free_principal(context, auth_user);
-	    krb5_cc_destroy(context, ccache);
-	    krb5_free_context(context);
-	    syslog(LOG_ERR, "auth_krb5: krb5_kt_resolve");
-	    return strdup("NO saslauthd internal error");
-	}
+        if ((rc = krb5_kt_resolve(context, keytabname, &kt))) {
+            k5support_log_err(LOG_DEBUG, context, rc, "krb5_kt_resolve");
+            krb5_free_principal(context, auth_user);
+            krb5_free_cred_contents(context, &cred);
+            krb5_free_context(context);
+            return strdup("NO saslauthd internal error");
+        }
     }
-    
-    krb5_verify_opt_init(&opt);
-    krb5_verify_opt_set_secure(&opt, 1);
-    krb5_verify_opt_set_ccache(&opt, ccache);
-    if (kt)
-	krb5_verify_opt_set_keytab(&opt,  kt);
-    krb5_verify_opt_set_service(&opt, verify_principal);
-    
-    if (krb5_verify_user_opt(context, auth_user, password, &opt)) {
-	result = strdup("NO krb5_verify_user_opt failed");
+
+    if ((rc = krb5_sname_to_principal(context, servername, verify_principal,
+                                KRB5_NT_SRV_HST, &server))) {
+        k5support_log_err(LOG_DEBUG, context, rc, "krb5_sname_to_principal");
+        krb5_free_principal(context, auth_user);
+        krb5_free_cred_contents(context, &cred);
+        if (kt) {
+            krb5_kt_close(context, kt);
+        }
+        krb5_free_context(context);
+        return strdup("NO saslauthd internal error");
+    }
+
+    krb5_verify_init_creds_opt_init(&vopt);
+    krb5_verify_init_creds_opt_set_ap_req_nofail(&vopt, 1);
+
+    if ((rc = krb5_verify_init_creds(context, &cred, server, kt, NULL, &vopt))) {
+        result = strdup("NO krb5_verify_init_creds failed");
+        k5support_log_err(LOG_ERR, context, rc, "krb5_verify_init_creds");
     } else {
         result = strdup("OK");
     }
-    
+
     krb5_free_principal(context, auth_user);
-    krb5_cc_destroy(context, ccache);
-    if (kt)
-	krb5_kt_close(context, kt);
+    krb5_free_principal(context, server);
+    krb5_free_cred_contents(context, &cred);
+    if (kt) {
+        krb5_kt_close(context, kt);
+    }
     krb5_free_context(context);
 
     return result;
 }
 
 #else /* !KRB5_HEIMDAL */
-
-static void k5support_log_err(int priority,
-                              krb5_context context,
-			      krb5_error_code code,
-			      char const *msg)
-{
-    const char *k5_msg = krb5_get_error_message(context, code);
-
-    syslog(priority, "auth_krb5: %s: %s (%d)\n", msg, k5_msg, code);
-    krb5_free_error_message(context, k5_msg);
-}
 
 /* returns 0 for failure, 1 for success */
 static int k5support_verify_tgt(krb5_context context, 

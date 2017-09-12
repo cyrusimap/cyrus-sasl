@@ -150,6 +150,11 @@ static int mech_compare(const sasl_client_plug_t *a,
     /* XXX  the following is fairly arbitrary, but its independent
        of the order in which the plugins are loaded
     */
+#ifdef PREFER_MECH
+    if (!strcasecmp(a->mech_name, PREFER_MECH)) return 1;
+    if (!strcasecmp(b->mech_name, PREFER_MECH)) return -1;
+#endif
+
     sec_diff = a->security_flags ^ b->security_flags;
     if (sec_diff & a->security_flags & SASL_SEC_NOANONYMOUS) return 1;
     if (sec_diff & b->security_flags & SASL_SEC_NOANONYMOUS) return -1;
@@ -658,20 +663,6 @@ _sasl_cbinding_disp(sasl_client_params_t *cparams,
     return SASL_OK;
 }
 
-static int
-_sasl_are_current_security_flags_worse_then_best(unsigned best_security_flags,
-						 unsigned current_security_flags)
-{
-    /* We don't qualify SASL_SEC_PASS_CREDENTIALS as "secure" flag */
-    best_security_flags &= ~SASL_SEC_PASS_CREDENTIALS;
-
-    if ((current_security_flags ^ best_security_flags) & best_security_flags) {
-	return 1;
-    } else {
-	return 0;
-    }
-}
-
 /* select a mechanism for a connection
  *  mechlist      -- mechanisms server has available (punctuation ignored)
  *  secret        -- optional secret from previous session
@@ -708,7 +699,7 @@ int sasl_client_start(sasl_conn_t *conn,
     char *ordered_mechs = NULL, *name;
     cmechanism_t *m = NULL, *bestm = NULL;
     size_t i, list_len, name_len;
-    sasl_ssf_t bestssf = 0, minssf = 0;
+    sasl_ssf_t minssf = 0;
     int result, server_can_cb = 0;
     sasl_cbinding_disp_t cbindingdisp;
     sasl_cbinding_disp_t cur_cbindingdisp;
@@ -761,7 +752,7 @@ int sasl_client_start(sasl_conn_t *conn,
 	goto done;
 
     /* for each mechanism in client's list */
-    for (m = c_conn->mech_list; m != NULL; m = m->next) {
+    for (m = c_conn->mech_list; !bestm && m != NULL; m = m->next) {
 
         for (i = 0, name = ordered_mechs; i < list_len; i++, name += name_len + 1) {
             unsigned myflags;
@@ -818,61 +809,20 @@ int sasl_client_start(sasl_conn_t *conn,
 		break;
 	    }
 
-	    /* compare security flags, only take new mechanism if it has
-	     * all the security flags of the previous one.
-	     *
-	     * From the mechanisms we ship with, this yields the order:
-	     *
-	     * SRP
-	     * GSSAPI + KERBEROS_V4
-	     * DIGEST + OTP
-	     * CRAM + EXTERNAL
-	     * PLAIN + LOGIN + ANONYMOUS
-	     *
-	     * This might be improved on by comparing the numeric value of
-	     * the bitwise-or'd security flags, which splits DIGEST/OTP,
-	     * CRAM/EXTERNAL, and PLAIN/LOGIN from ANONYMOUS, but then we
-	     * are depending on the numeric values of the flags (which may
-	     * change, and their ordering could be considered dumb luck.
-	     */
-
-	    if (bestm &&
-		_sasl_are_current_security_flags_worse_then_best(
-		    bestm->m.plug->security_flags,
-		    m->m.plug->security_flags)) {
-		break;
-	    }
-
 	    if (SASL_CB_PRESENT(c_conn->cparams) && plus) {
 		cur_cbindingdisp = SASL_CB_DISP_USED;
 	    } else {
 		cur_cbindingdisp = cbindingdisp;
 	    }
 
-	    if (bestm && (best_cbindingdisp > cur_cbindingdisp)) {
-		break;
-	    }
-
-#ifdef PREFER_MECH
-	    if (strcasecmp(m->m.plug->mech_name, PREFER_MECH) &&
-		bestm && m->m.plug->max_ssf <= bestssf) {
-		/* this mechanism isn't our favorite, and it's no better
-		   than what we already have! */
-		break;
-	    }
-#else
-	    if (bestm && m->m.plug->max_ssf <= bestssf) {
-		/* this mechanism is no better than what we already have! */
-		break;
-	    }
-#endif
-
 	    if (mech) {
 		*mech = m->m.plug->mech_name;
 	    }
 
+            /* Since the list of client mechs is ordered by preference/strength,
+               the first mech in our list that is available on the server and
+               meets our security properties and features is the "best" */
 	    best_cbindingdisp = cur_cbindingdisp;
-	    bestssf = m->m.plug->max_ssf;
 	    bestm = m;
 	    break;
 	}

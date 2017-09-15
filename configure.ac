@@ -1673,9 +1673,26 @@ echo "Build Info"
 echo "   Shared libraries ......: $enable_shared"
 echo "   Static libraries ......: $enable_shared"
 echo "   CFLAGS ................: $CFLAGS"
-echo "   CXXFLAGS ..............: $CXXFLAGS"
 echo "   LIBS ..................: $LIBS"
 echo "   LDFLAGS ...............: $LDFLAGS"
 echo
+if test "$plugindir" != "$prefix/lib/sasl2"; then
+   echo "********************************************************"
+   echo "* WARNING:"
+   echo "* Plugins will be installed into $prefix/lib/sasl2,"
+   echo "* but the library will look for them in $plugindir."
+   echo "* You need to make sure that the plugins will eventually"
+   echo "* be in $plugindir -- the easiest way is to make a"
+   echo "* symbolic link from $plugindir to $prefix/lib/sasl2,"
+   echo "* but this may not be appropriate for your site, so"
+   echo "* 'make install' won't do it for you."
+   echo "*"
+   echo "* If you don't want to create a link for some reason,"
+   echo "* you canset the location where the library will look"
+   echo "* for plugins by setting the environment variable"
+   echo "* SASL_PATH to the path the library should use."
+   echo "********************************************************"
+   echo
+fi
 echo "Now type 'make' to build $PACKAGE"
 echo

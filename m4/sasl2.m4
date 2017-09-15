@@ -17,6 +17,7 @@ AC_ARG_WITH([gss_impl],
             [gss_impl=$withval],
             [gss_impl=auto])
 
+gs2="no"
 if test "$gssapi" != no; then
   platform=
   case "${host}" in
@@ -257,6 +258,7 @@ if test "$gssapi" != no; then
   SASL_STATIC_OBJS="$SASL_STATIC_OBJS gssapi.o"
   SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/gssapi.c"
   if test "$rfc5587" = "yes" -a "$rfc5801" = "yes"; then
+    gs2="yes"
     SASL_MECHS="$SASL_MECHS libgs2.la"
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS gs2.o"
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/gs2.c"

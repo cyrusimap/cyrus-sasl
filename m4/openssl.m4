@@ -20,6 +20,7 @@ case "$with_openssl" in
 	no)
 	  with_openssl="no";;
 	*) 
+	  with_openssl="yes"
 	  dnl if openssl has been compiled with the rsaref2 libraries,
 	  dnl we need to include the rsaref libraries in the crypto check
                 LIB_RSAREF=""
@@ -32,12 +33,11 @@ case "$with_openssl" in
 
 		AC_CHECK_HEADER(openssl/evp.h, [
 			AC_CHECK_LIB(crypto, EVP_DigestInit,
-					[with_openssl="yes",
-                                         AC_CHECK_LIB(crypto, SHA256,
+					[AC_CHECK_LIB(crypto, SHA256,
                                                       AC_DEFINE(HAVE_SHA256,[],
                                                       [Do we have SHA256?]))],
 					with_openssl="no", $LIB_RSAREF)],
-			with_openssl=no)
+			with_openssl="no")
 		;;
 esac
 

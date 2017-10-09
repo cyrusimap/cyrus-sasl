@@ -1274,7 +1274,7 @@ scram_server_mech_step2(server_context_t *text,
 	if (binary_channel_binding_len != sparams->cbinding->len) {
 	    sparams->utils->seterror (sparams->utils->conn,
 				      0,
-				      "Unsupported channel bindings length received in %s. Expected lenght: %d, received: %d",
+				      "Unsupported channel bindings length received in %s. Expected length: %lu, received: %d",
                                       scram_sasl_mech,
 				      sparams->cbinding->len,
 				      binary_channel_binding_len);
@@ -2570,7 +2570,7 @@ scram_client_mech_step2(client_context_t *text,
 	     (unsigned char *)ClientSignature,
 	     &hash_len) == NULL) {
 	params->utils->seterror(params->utils->conn,0,
-				"HMAC-% call failed", scram_sasl_mech+6);
+				"HMAC-%s call failed", scram_sasl_mech+6);
 	result = SASL_SCRAM_INTERNAL;
 	goto cleanup;
     }

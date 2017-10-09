@@ -54,12 +54,7 @@
 
 # include <string.h>
 # include <syslog.h>
-#ifdef HAVE_SECURITY_PAM_APPL_H
 # include <security/pam_appl.h>
-#elif defined(HAVE_PAM_PAM_APPL_H)
-# include <pam/pam_appl.h>
-#endif
-
 # include "auth_pam.h"
 /* END PUBLIC DEPENDENCIES */
 

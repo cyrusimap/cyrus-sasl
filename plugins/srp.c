@@ -107,7 +107,7 @@ typedef unsigned short uint32;
 /* Size limit of cipher block size */
 #define SRP_MAXBLOCKSIZE 16
 /* Size limit of SRP buffer */
-#define SRP_MAXBUFFERSIZE 2147483643
+#define SRP_MAXBUFFERSIZE 2147483643UL
 
 #define DEFAULT_MDA		"SHA-1"
 

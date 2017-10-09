@@ -1561,8 +1561,7 @@ int gssapiv2_server_plug_init(
     if (keytab != NULL) {
 	if (access(keytab, R_OK) != 0) {
 	    utils->log(NULL, SASL_LOG_ERR,
-		       "Could not find keytab file: %s: %m",
-		       keytab, errno);
+		       "Could not find keytab file: %s: %m", keytab);
 	    return SASL_FAIL;
 	}
 	

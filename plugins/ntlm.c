@@ -1082,7 +1082,7 @@ static int smb_negotiate_protocol(const sasl_utils_t *utils,
 	|| hdr.status				 /* no errors */
 	|| !(hdr.flags & SMB_FLAGS_SERVER_TO_REDIR)) { /* response */
 	utils->log(NULL, SASL_LOG_ERR,
-		   "NTLM: error in NEGPROT response header: %ld",
+		   "NTLM: error in NEGPROT response header: %u",
 		   hdr.status);
 	return SASL_FAIL;
     }
@@ -1311,7 +1311,7 @@ static int smb_session_setup(const sasl_utils_t *utils, server_context_t *text,
     /* check auth success */
     if (hdr.status) {
 	utils->log(NULL, SASL_LOG_ERR,
-		   "NTLM: auth failure: %ld", hdr.status);
+		   "NTLM: auth failure: %u", hdr.status);
 	return SASL_BADAUTH;
     }
 

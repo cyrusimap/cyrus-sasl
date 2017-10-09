@@ -112,8 +112,8 @@ int _sasldb_getdata(const sasl_utils_t *utils,
   dvalue = dbm_fetch(db, dkey);
   if (! dvalue.dptr) {
       utils->seterror(cntxt, SASL_NOLOG,
-		      "user: %s@%s property: %s not found in sasldb",
-		      authid, realm, propName);
+		      "user: %s@%s property: %s not found in sasldb %s",
+		      authid, realm, propName, path);
       result = SASL_NOUSER;
       goto cleanup;
   }
@@ -203,13 +203,17 @@ int _sasldb_putdata(const sasl_utils_t *utils,
     dvalue.dsize = data_len;
     if (dbm_store(db, dkey, dvalue, DBM_REPLACE)) {
 	utils->seterror(conn, 0,
-			"Couldn't update db");
+			"Couldn't update record for %s@%s property %s "
+			"in db %s: %s", authid, realm, propName, path,
+			strerror(errno));
 	result = SASL_FAIL;
     }
   } else {
       if (dbm_delete(db, dkey)) {
 	  utils->seterror(conn, 0,
-			  "Couldn't update db");
+			  "Couldn't delete record for %s@%s property %s "
+			  "in db %s: %s", authid, realm, propName, path,
+			  strerror(errno));
 	  result = SASL_NOUSER;
       }
   }

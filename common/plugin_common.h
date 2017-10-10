@@ -109,9 +109,12 @@ PLUG_API int sasl_canonuser_init(const sasl_utils_t *utils, \
                                      plug, plugname); \
 }
 
-/* note: msg cannot include additional variables, so if you want to
+/* Only set the error message if one is not already set. This prevents overwriting
+ * plugin-supplied error messages with library error messages.
+ * note: msg cannot include additional variables, so if you want to
  * do a printf-format string, then you need to call seterror yourself */
-#define SETERROR( utils, msg ) (utils)->seterror( (utils)->conn, 0, (msg) )
+#define SETERROR( utils, msg ) \
+    if (!sasl_errdetail((utils)->conn)) (utils)->seterror( (utils)->conn, 0, (msg) )
 
 #ifndef MEMERROR
 #define MEMERROR( utils ) \

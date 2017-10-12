@@ -316,7 +316,7 @@ static int ldapdb_auxprop_store(void *glob_context,
     sparams->utils->free(mods);
 
     if (i) {
-    	sparams->utils->seterror(sparams->utils->conn, 0,
+    	sparams->utils->seterror(sparams->utils->conn, 0, "%s",
 	    ldap_err2string(i));
 	if (i == LDAP_NO_MEMORY) i = SASL_NOMEM;
 	else i = SASL_FAIL;
@@ -416,7 +416,7 @@ ldapdb_canon_server(void *glob_context,
  done:
     if(cp.ld) ldap_unbind_ext(cp.ld, NULL, NULL);
     if (ret) {
-    	sparams->utils->seterror(sparams->utils->conn, 0,
+    	sparams->utils->seterror(sparams->utils->conn, 0, "%s",
 	    ldap_err2string(ret));
 	if (ret == LDAP_NO_MEMORY) ret = SASL_NOMEM;
 	else ret = SASL_FAIL;

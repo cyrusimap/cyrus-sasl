@@ -44,7 +44,31 @@ multi-user mode. When running against a protected authentication
 database (e.g. the
 .Li shadow
 mechanism),
-it must be run as the superuser.
+it must be run as the superuser. Otherwise it is recommended to run
+daemon unprivileged as saslauth:saslauth, requiring the runtime directory
+to have root:saslauthd owner. You can do so by following
+these steps in machines using
+.Xr systemd 1
+:
+
+.Bl -enum -compact
+.It
+create directory
+.Pa /etc/systemd/system/saslauthd.service.d/
+.It
+create file
+.Pa /etc/systemd/system/saslauthd.service.d/user.conf
+with content
+.Bd -literal
+[Service]
+User=saslauth
+Group=saslauth
+
+.Ed
+.It
+Reload systemd service file: run
+.Dq systemctl daemon-reload
+.El
 .Ss Options
 Options named by lower\-case letters configure the server itself.
 Upper\-case options control the behavior of specific authentication

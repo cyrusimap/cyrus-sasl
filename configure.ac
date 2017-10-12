@@ -945,9 +945,9 @@ case "$with_sqlite" in
     notfound) AC_WARN([SQLite Library not found]); true;;
     *)
      if test -d ${with_sqlite}/lib; then
-         LIB_SQLITE="-L${with_sqlite}/lib -R${with_sqlite}/lib"
+         CMU_ADD_LIBPATH_TO(${with_sqlite}/lib, LIB_SQLITE)
      else
-         LIB_SQLITE="-L${with_sqlite} -R${with_sqlite}"
+         CMU_ADD_LIBPATH_TO(${with_sqlite}, LIB_SQLITE)
      fi
 
      LIB_SQLITE_DIR=$LIB_SQLITE
@@ -997,9 +997,9 @@ case "$with_sqlite3" in
     notfound) AC_WARN([SQLite3 Library not found]); true;;
     *)
      if test -d ${with_sqlite3}/lib; then
-         LIB_SQLITE3="-L${with_sqlite3}/lib -R${with_sqlite3}/lib"
+         CMU_ADD_LIBPATH_TO(${with_sqlite3}/lib, LIB_SQLITE3)
      else
-         LIB_SQLITE3="-L${with_sqlite3} -R${with_sqlite3}"
+         CMU_ADD_LIBPATH_TO(${with_sqlite3}, LIB_SQLITE3)
      fi
 
      LIB_SQLITE3_DIR=$LIB_SQLITE3

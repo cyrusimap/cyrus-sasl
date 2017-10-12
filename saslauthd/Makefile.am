@@ -5,7 +5,11 @@ EXTRA_PROGRAMS  = saslcache
 LTLIBOBJS = @LTLIBOBJS@
 LTLIBOBJS_FULL = $(addprefix ${top_srcdir}/lib/,${LTLIBOBJS})
 CRYPTO_COMPAT_OBJS = $(top_builddir)/common/libcrypto_compat.la
+if AUTH_SASLDB
 LIBSASLDB_OBJS = $(top_builddir)/sasldb/libsasldb.la
+else
+LIBSASLDB_OBJS =
+endif
 
 saslauthd_SOURCES = mechanisms.c globals.h \
 		    mechanisms.h auth_dce.c auth_dce.h auth_getpwent.c \

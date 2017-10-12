@@ -857,7 +857,8 @@ scram_server_mech_step1(server_context_t *text,
 				       &error_text);
 	if (result != SASL_OK) {
 	    if (error_text != NULL) {
-		sparams->utils->seterror(sparams->utils->conn, 0, error_text);
+		sparams->utils->seterror(sparams->utils->conn, 0, "%s",
+					 error_text);
 	    }
 	    goto cleanup;
 	}
@@ -1701,7 +1702,8 @@ static int scram_setpass(void *glob_context,
 				  &error_text);
 	if (r != SASL_OK) {
 	    if (error_text != NULL) {
-		SETERROR(sparams->utils, error_text);
+		sparams->utils->seterror(sparams->utils->conn, 0, "%s",
+					 error_text);
 	    }
 	    goto cleanup;
 	}

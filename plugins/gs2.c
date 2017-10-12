@@ -1842,9 +1842,9 @@ sasl_gs2_seterror_(const sasl_utils_t *utils, OM_uint32 maj, OM_uint32 min,
     strcat(out, ")");
 
     if (logonly) {
-        utils->log(utils->conn, SASL_LOG_FAIL, out);
+        utils->log(utils->conn, SASL_LOG_FAIL, "%s", out);
     } else {
-        utils->seterror(utils->conn, 0, out);
+        utils->seterror(utils->conn, 0, "%s", out);
     }
     utils->free(out);
 

@@ -621,6 +621,7 @@ if test "$authsasldb" != no; then
   SASL_DB_PATH_CHECK()
   SASL_DB_CHECK()
 fi
+AM_CONDITIONAL(AUTH_SASLDB, test "$authsasldb" != no)
 
 AC_ARG_ENABLE(httpform, [  --enable-httpform       enable HTTP form authentication [[no]] ],
   httpform=$enableval,

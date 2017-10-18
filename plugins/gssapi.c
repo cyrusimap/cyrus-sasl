@@ -1360,8 +1360,9 @@ gssapi_server_mech_ssfreq(context_t *text,
 	ret = params->canon_user(params->utils->conn,
 				 ((char *) output_token->value) + 4,
 				 (output_token->length - 4) * sizeof(char),
-				 SASL_CU_AUTHZID, oparams);
-	
+				 SASL_CU_AUTHZID | SASL_CU_EXTERNALLY_VERIFIED,
+				 oparams);
+
 	if (ret != SASL_OK) {
 	    sasl_gss_free_context_contents(text);
 	    return ret;

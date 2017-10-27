@@ -72,6 +72,7 @@
 #include <sys/un.h>
 #else
 #include <string.h>
+#include <winldap.h>
 #endif
 
 #include <limits.h>
@@ -95,7 +96,6 @@
 # endif
 #endif
 
-# include <winldap.h>
 
 /* we store the following secret to check plaintext passwords:
  *
@@ -1082,6 +1082,8 @@ static int always_true(sasl_conn_t *conn,
 }
 #endif
 
+
+#ifdef WIN32
 static char ldapsimple[] = "ldapsimple";
 INIT_ONCE ldapsimple_once=INIT_ONCE_STATIC_INIT;
 
@@ -1284,6 +1286,7 @@ static int ldapsimple_verify_password(sasl_conn_t *conn,
         
     return SASL_FAIL;
 }
+#endif
 
 struct sasl_verify_password_s _sasl_verify_password[] = {
     { "auxprop", &auxprop_verify_password },
@@ -1300,6 +1303,8 @@ struct sasl_verify_password_s _sasl_verify_password[] = {
 #ifdef HAVE_ALWAYSTRUE
     { "alwaystrue", &always_true },
 #endif
+#ifdef WIN32
     {"ldapsimple",&ldapsimple_verify_password },
+#endif
     { NULL, NULL }
 };

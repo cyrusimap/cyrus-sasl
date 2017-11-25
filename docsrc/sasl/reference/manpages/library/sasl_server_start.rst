@@ -17,7 +17,7 @@ Synopsis
     int sasl_server_start(sasl_conn_t * conn,
                  const char * mech,
                  const char * clientin,
-                 unsigned * clientinlen,
+                 unsigned clientinlen,
                  const char ** serverout,
                  unsigned * serveroutlen);
 

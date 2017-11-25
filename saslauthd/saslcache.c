@@ -81,8 +81,6 @@ int main(int argc, char **argv) {
 	int		dump_stat_info = 0;
 	char   		*file = NULL;
 	int		file_fd;
-	int		shmid = 0;
-	char		shmid_buff[256];
 	char		cache_magic[64];
 	struct stat 	stat_buff;
 

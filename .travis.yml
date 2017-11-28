@@ -3,7 +3,9 @@ sudo: required
 dist: trusty
 group: edge
 
-os: linux
+os:
+  - linux
+  - osx
 compiler: gcc
 
 before_script:
@@ -16,5 +18,3 @@ script:
 branches:
   only:
     - master
-
-  

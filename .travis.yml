@@ -9,6 +9,7 @@ os:
 compiler: gcc
 
 before_script:
+  - if [ $TRAVIS_OS_NAME = osx ]; then brew install ccache; fi
   - ccache --version
   - ccache --zero-stats
   - ./autogen.sh

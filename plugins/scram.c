@@ -1849,6 +1849,7 @@ static sasl_server_plug_t scram_server_plugins[] =
 	| SASL_SEC_NOANONYMOUS
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
 	SASL_FEAT_ALLOWS_PROXY
+        | SASL_FEAT_SUPPORTS_HTTP
 	| SASL_FEAT_CHANNEL_BINDING,	/* features */
 	"SHA256",			/* glob_context */
 	&scram_server_mech_new,		/* mech_new */
@@ -1870,6 +1871,7 @@ static sasl_server_plug_t scram_server_plugins[] =
 	| SASL_SEC_NOANONYMOUS
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
 	SASL_FEAT_ALLOWS_PROXY
+        | SASL_FEAT_SUPPORTS_HTTP
 	| SASL_FEAT_CHANNEL_BINDING,	/* features */
 	"SHA1",				/* glob_context */
 	&scram_server_mech_new,		/* mech_new */
@@ -2868,6 +2870,7 @@ static sasl_client_plug_t scram_client_plugins[] =
 	| SASL_SEC_NOACTIVE
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
 	SASL_FEAT_ALLOWS_PROXY
+        | SASL_FEAT_SUPPORTS_HTTP
 	| SASL_FEAT_CHANNEL_BINDING, 	/* features */
 	NULL,				/* required_prompts */
 	"SHA256",			/* glob_context */
@@ -2888,6 +2891,7 @@ static sasl_client_plug_t scram_client_plugins[] =
 	| SASL_SEC_NOACTIVE
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
 	SASL_FEAT_ALLOWS_PROXY
+        | SASL_FEAT_SUPPORTS_HTTP
 	| SASL_FEAT_CHANNEL_BINDING, 	/* features */
 	NULL,				/* required_prompts */
 	"SHA1",				/* glob_context */

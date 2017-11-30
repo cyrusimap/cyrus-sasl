@@ -30,6 +30,8 @@ if test "$with_des" != no; then
                        with_des=no)],
         with_des=no, $LIB_RSAREF)
     fi
+  else
+    with_des=no
   fi
 
   if test "$with_des" = no; then

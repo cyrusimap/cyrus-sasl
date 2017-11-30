@@ -52,7 +52,9 @@ plugin_version = 3:0:0
 AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/sasldb -I$(top_srcdir)/common -I$(top_builddir)/include
 AM_LDFLAGS = -module -export-dynamic -rpath $(plugindir) -version-info $(plugin_version) -no-undefined
 
+if BUILD_LIBOBJ
 COMPAT_OBJS = $(top_builddir)/lib/libobj.la
+endif
 PLUGIN_COMMON_OBJS = $(top_builddir)/common/libplugin_common.la
 CRYPTO_COMPAT_OBJS = $(top_builddir)/common/libcrypto_compat.la
 

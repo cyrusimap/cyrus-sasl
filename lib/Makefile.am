@@ -70,14 +70,22 @@ LTLIBOBJS = @LTLIBOBJS@
 LIB_DOOR= @LIB_DOOR@
 
 lib_LTLIBRARIES = libsasl2.la
+if BUILD_LIBOBJ
 noinst_LTLIBRARIES = libobj.la
+else
+noinst_LTLIBRARIES =
+endif
 
 libobj_la_SOURCES =
 libobj_la_LIBADD = $(LTLIBOBJS)
 
 libsasl2_la_SOURCES = $(common_sources) $(common_headers)
 libsasl2_la_LDFLAGS = -version-info $(sasl_version) -no-undefined
-libsasl2_la_LIBADD = libobj.la $(SASL_DL_LIB) $(LIB_SOCKET) $(LIB_DOOR) $(PLUGIN_COMMON_OBJS)
+
+libsasl2_la_LIBADD = $(SASL_DL_LIB) $(LIB_SOCKET) $(LIB_DOOR) $(PLUGIN_COMMON_OBJS)
+if BUILD_LIBOBJ
+libsasl2_la_LIBADD += libobj.la
+endif
 
 if MACOSX
 framedir = /Library/Frameworks/SASL2.framework

@@ -38,6 +38,9 @@ if test "$gssapi" != no; then
 ###_AIX
       platform=__aix
       ;;
+    *-*-darwin*)
+      platform=__darwin
+      ;;
     *)
       AC_WARN([The system type is not recognized. If you believe that CyberSafe GSSAPI works on this platform, please update the configure script])
       if test "$gss_impl" = "cybersafe"; then

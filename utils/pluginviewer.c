@@ -287,6 +287,9 @@ list_installed_server_mechanisms (
 	} else {
 	    /* This is suboptimal, but works */
 	    new_list = malloc (strlen(*list_of_mechs) + strlen(m->plug->mech_name) + 2);
+	    if (new_list == NULL) {
+		return;
+	    }
 	    sprintf (new_list, "%s %s", *list_of_mechs, m->plug->mech_name);
 	    free (*list_of_mechs);
 	    *list_of_mechs = new_list;
@@ -315,6 +318,9 @@ list_installed_client_mechanisms (
 	} else {
 	    /* This is suboptimal, but works */
 	    new_list = malloc (strlen(*list_of_mechs) + strlen(m->plug->mech_name) + 2);
+	    if (new_list == NULL) {
+		return;
+	    }
 	    sprintf (new_list, "%s %s", *list_of_mechs, m->plug->mech_name);
 	    free (*list_of_mechs);
 	    *list_of_mechs = new_list;
@@ -342,6 +348,9 @@ list_installed_auxprop_mechanisms (
     } else {
 	/* This is suboptimal, but works */
 	new_list = malloc (strlen(*list_of_mechs) + strlen(m->name) + 2);
+	if (new_list == NULL) {
+	    return;
+	}
 	sprintf (new_list, "%s %s", *list_of_mechs, m->name);
 	free (*list_of_mechs);
 	*list_of_mechs = new_list;

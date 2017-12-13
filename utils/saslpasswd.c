@@ -265,7 +265,7 @@ main(int argc, char *argv[])
   int c;
   char *userid;
   char *password = NULL;
-  char *verify;
+  char *verify = NULL;
   unsigned passlen = 0;
   unsigned verifylen;
   const char *errstr = NULL;
@@ -406,10 +406,13 @@ main(int argc, char *argv[])
 		  &verifylen);
 	  if (passlen != verifylen
 	      || memcmp(password, verify, verifylen)) {
+	      free(verify);
+	      free(password);
 	      fprintf(stderr, "%s: passwords don't match; aborting\n", 
 		      progname);
 	      exit(-(SASL_BADPARAM));
 	  }
+	  free(verify);
       }
   }
 

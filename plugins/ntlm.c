@@ -1398,6 +1398,13 @@ static int ntlm_server_mech_new(void *glob_context __attribute__((unused)),
     unsigned int len;
     SOCKET sock = (SOCKET) -1;
 
+    /* holds state are in: allocate early */
+    text = sparams->utils->malloc(sizeof(server_context_t));
+    if (text == NULL) {
+	MEMERROR( sparams->utils );
+	return SASL_NOMEM;
+    }
+
     sparams->utils->getopt(sparams->utils->getopt_context,
 			   "NTLM", "ntlm_server", &serv, &len);
     if (serv) {
@@ -1426,13 +1433,6 @@ static int ntlm_server_mech_new(void *glob_context __attribute__((unused)),
 
 	sparams->utils->free(tmp);
 	if (sock == (SOCKET) -1) return SASL_UNAVAIL;
-    }
-    
-    /* holds state are in */
-    text = sparams->utils->malloc(sizeof(server_context_t));
-    if (text == NULL) {
-	MEMERROR( sparams->utils );
-	return SASL_NOMEM;
     }
     
     memset(text, 0, sizeof(server_context_t));

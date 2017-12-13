@@ -550,6 +550,8 @@ static int add_to_challenge(const sasl_utils_t *utils,
 	/* Check if the value needs quoting */
 	if (strpbrk ((char *)value, NEED_ESCAPING) != NULL) {
 	    char * quoted = quote ((char *) value);
+	    if (quoted == NULL)
+		MEMERROR(utils);
 	    valuesize = strlen(quoted);
 	    /* As the quoted string is bigger, make sure we have enough
 	       space now */
@@ -756,6 +758,9 @@ static char *quote (char *str)
     }
 
     result = malloc (strlen(str) + num_to_escape + 1);
+    if (result == NULL) {
+        return NULL;
+    }
     for (p = str, outp = result; *p; p++) {
 	if (*p == '"' || *p == '\\') {
 	    *outp = '\\';

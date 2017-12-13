@@ -303,6 +303,7 @@ static int _parse_la(const char *prefix, const char *in, char *out)
 	if(line[strlen(line) - 1] != '\n') {
 	    _sasl_log(NULL, SASL_LOG_WARN,
 		      "LA file has too long of a line: %s", in);
+	    fclose(file);
 	    return SASL_BUFOVER;
 	}
 	if(line[0] == '\n' || line[0] == '#') continue;
@@ -322,6 +323,7 @@ static int _parse_la(const char *prefix, const char *in, char *out)
 		if(ntmp == end) {
 		    _sasl_log(NULL, SASL_LOG_DEBUG,
 			      "dlname is empty in .la file: %s", in);
+		    fclose(file);
 		    return SASL_FAIL;
 		}
 		strcpy(out, prefix);

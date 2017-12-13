@@ -1383,7 +1383,9 @@ const char *sasl_errdetail(sasl_conn_t *conn)
 	     sasl_usererr(conn->error_code), errstr);
     
     need_len = (unsigned) (strlen(leader) + strlen(conn->error_buf) + 12);
-    _buf_alloc(&conn->errdetail_buf, &conn->errdetail_buf_len, need_len);
+    if (_buf_alloc(&conn->errdetail_buf, &conn->errdetail_buf_len, need_len) != SASL_OK) {
+        return NULL;
+    }
 
     snprintf(conn->errdetail_buf, need_len, "%s%s", leader, conn->error_buf);
    

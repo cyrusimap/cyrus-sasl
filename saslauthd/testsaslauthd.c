@@ -191,6 +191,7 @@ static int saslauthd_verify_password(const char *saslauthd_path,
 
     r = connect(s, (struct sockaddr *) &srvaddr, sizeof(srvaddr));
     if (r == -1) {
+        close(s);
         perror("connect() ");
 	return -1;
     }
@@ -202,9 +203,10 @@ static int saslauthd_verify_password(const char *saslauthd_path,
 	iov[0].iov_base = query;
 
 	if (retry_writev(s, iov, 1) == -1) {
-            fprintf(stderr,"write failed\n");
-  	    return -1;
-  	}
+	    close(s);
+	    fprintf(stderr,"write failed\n");
+	    return -1;
+	}
     }
   
     /*
@@ -213,8 +215,9 @@ static int saslauthd_verify_password(const char *saslauthd_path,
      * count result
      */
     if (retry_read(s, &count, sizeof(count)) < (int) sizeof(count)) {
+        close(s);
         fprintf(stderr,"size read failed\n");
-	return -1;
+        return -1;
     }
   
     count = ntohs(count);

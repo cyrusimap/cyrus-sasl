@@ -702,6 +702,9 @@ static int gssapi_get_ssf(context_t *text, sasl_ssf_t *mech_ssf)
     case GSS_S_UNAVAILABLE:
         /* Not supported by the library, fallback to default */
         goto fallback;
+    case GSS_S_FAILURE:
+        /* Not supported by Heimdal, fallback to default */
+        goto fallback;
     case GSS_S_COMPLETE:
         if ((bufset->count != 1) || (bufset->elements[0].length != 4)) {
             /* Malformed bufset, fail */

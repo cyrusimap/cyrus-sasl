@@ -117,7 +117,9 @@ typedef int		    intptr_t;
 /* Windows calls these functions something else
  */
 #define strcasecmp   stricmp
+#if defined (_MSC_VER) && (_MSC_VER < 1900)
 #define snprintf    _snprintf
+#endif
 #define strncasecmp  strnicmp
 
 #define MAXHOSTNAMELEN 1024

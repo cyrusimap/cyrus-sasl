@@ -281,9 +281,9 @@ int sasl_mkchal(sasl_conn_t *conn,
   time(&now);
 
   if (hostflag && conn->serverFQDN)
-    snprintf(buf,maxlen, "<%lu.%lu@%s>", randnum, now, conn->serverFQDN);
+    snprintf(buf,maxlen, "<%lu.%lu@%s>", randnum, (unsigned long)now, conn->serverFQDN); /* don't care much about time 32bit overlap */
   else
-    snprintf(buf,maxlen, "<%lu.%lu>", randnum, now);
+    snprintf(buf,maxlen, "<%lu.%lu>", randnum, (unsigned long)now);
 
   return (int) strlen(buf);
 }

@@ -50,6 +50,7 @@
    Note that we can't include both winsock.h and winsock2.h as
    they conflict */
 #include <winsock2.h>
+#include <tchar.h>
 
 /* Our package */
 #define PACKAGE "cyrus-sasl"
@@ -78,9 +79,9 @@ typedef int		    intptr_t;
 #endif
 
 /* Registry key that contains the locations of the plugins */
-#define SASL_ROOT_KEY "SOFTWARE\\Carnegie Mellon\\Project Cyrus\\SASL Library"
-#define SASL_PLUGIN_PATH_ATTR "SearchPath"
-#define SASL_CONF_PATH_ATTR "ConfFile"
+#define SASL_ROOT_KEY _T("SOFTWARE\\Carnegie Mellon\\Project Cyrus\\SASL Library")
+#define SASL_PLUGIN_PATH_ATTR _T("SearchPath")
+#define SASL_CONF_PATH_ATTR _T("ConfFile")
 
 /* : This should probably be replaced with a call to a function
    : that gets the proper value from Registry */
@@ -116,11 +117,12 @@ typedef int		    intptr_t;
 
 /* Windows calls these functions something else
  */
-#define strcasecmp   stricmp
+#define strcasecmp   _stricmp
 #if defined (_MSC_VER) && (_MSC_VER < 1900)
 #define snprintf    _snprintf
 #endif
-#define strncasecmp  strnicmp
+#define strncasecmp  _strnicmp
+#define strdup  _strdup
 
 #define MAXHOSTNAMELEN 1024
 

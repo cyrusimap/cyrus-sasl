@@ -82,7 +82,8 @@ static char * _sasl_get_default_unix_path(void *context __attribute__((unused)),
 #else
 /* NB: Always returned allocated value */
 static char * _sasl_get_default_win_path(void *context __attribute__((unused)),
-                            char * reg_attr_name, char * default_value);
+                            TCHAR * reg_attr_name, char * default_value);
+static char* _sasl_tchar_to_utf8(TCHAR *str);
 #endif
 
 
@@ -1550,10 +1551,12 @@ _sasl_getsimple(void *context,
 	DWORD i;
 	BOOL rval;
 	static char sender[128];
-	
-	i = sizeof(sender);
-	rval = GetUserName(sender, &i);
+
+    TCHAR tsender[128];
+	i = sizeof(tsender) / sizeof(tsender[0]);
+	rval = GetUserName(tsender, &i);
 	if ( rval) { /* got a userid */
+        WideCharToMultiByte(CP_UTF8, 0, tsender, -1, sender, sizeof(sender), NULL, NULL); /* -1 ensures null-terminated utf8 */
 		*result = sender;
 		if (len) *len = strlen(sender);
 		return SASL_OK;
@@ -2458,7 +2461,7 @@ _sasl_get_default_unix_path(void *context __attribute__((unused)),
 /* Return NULL on failure */
 static char *
 _sasl_get_default_win_path(void *context __attribute__((unused)),
-                           char * reg_attr_name,
+                           TCHAR * reg_attr_name,
                            char * default_value)
 {
     /* Open registry entry, and find all registered SASL libraries.
@@ -2478,12 +2481,12 @@ _sasl_get_default_win_path(void *context __attribute__((unused)),
     HKEY  hKey;
     DWORD ret;
     DWORD ValueType;		    /* value type */
-    DWORD cbData;		    /* value size */
-    BYTE * ValueData;		    /* value */
-    DWORD cbExpandedData;	    /* "expanded" value size */
-    BYTE * ExpandedValueData;	    /* "expanded" value */
-    char * return_value;	    /* function return value */
-    char * tmp;
+    DWORD cbData;		    /* value size in bytes and later number of wchars */
+    TCHAR * ValueData;		    /* value */
+    DWORD cbExpandedData;	    /* "expanded" value size in wchars */
+    TCHAR * ExpandedValueData;	    /* "expanded" value */
+    TCHAR * return_value;	    /* function return value */
+    TCHAR * tmp;
 
     /* Initialization */
     ExpandedValueData = NULL;
@@ -2499,8 +2502,9 @@ _sasl_get_default_win_path(void *context __attribute__((unused)),
 
     if (ret != ERROR_SUCCESS) { 
         /* no registry entry */
-        (void) _sasl_strdup (default_value, &return_value, NULL);
-        return return_value;
+        char *ret;
+        (void) _sasl_strdup (default_value, &ret, NULL);
+        return ret;
     }
 
     /* figure out value type and required buffer size */
@@ -2521,28 +2525,35 @@ _sasl_get_default_win_path(void *context __attribute__((unused)),
     }
 
     /* Any high water mark? */
-    ValueData = sasl_ALLOC(cbData);
+    ValueData = sasl_ALLOC(cbData + 2 * sizeof(TCHAR)); /* extra bytes to insert null-terminator if it's missed */
     if (ValueData == NULL) {
 	return_value = NULL;
 	goto CLEANUP;
     };
 
-    RegQueryValueEx (hKey,
-		     reg_attr_name,
-		     NULL,	    /* reserved */
-		     &ValueType,
-		     ValueData,
-		     &cbData);
+    if (RegQueryValueEx(hKey,
+        reg_attr_name,
+        NULL,	    /* reserved */
+        &ValueType,
+        (LPBYTE)ValueData,
+        &cbData) != ERROR_SUCCESS) {
+        return_value = NULL;
+        goto CLEANUP;
+    }
+    cbData /= sizeof(TCHAR); /* covert to number of symbols */
+    ValueData[cbData] = '\0'; /* MS docs say we have to to that */
+    ValueData[cbData + 1] = '\0'; /* for MULTI */
 
     switch (ValueType) {
     case REG_EXPAND_SZ:
         /* : A random starting guess */
         cbExpandedData = cbData + 1024;
-        ExpandedValueData = sasl_ALLOC(cbExpandedData);
+        ExpandedValueData = (TCHAR*)sasl_ALLOC(cbExpandedData * sizeof(TCHAR));
         if (ExpandedValueData == NULL) {
             return_value = NULL;
             goto CLEANUP;
         };
+
 
         cbExpandedData = ExpandEnvironmentStrings(
                                                   ValueData,
@@ -2558,7 +2569,7 @@ _sasl_get_default_win_path(void *context __attribute__((unused)),
         /* : Must retry expansion with the bigger buffer */
         if (cbExpandedData > cbData + 1024) {
             /* : Memory leak here if can't realloc */
-            ExpandedValueData = sasl_REALLOC(ExpandedValueData, cbExpandedData);
+            ExpandedValueData = sasl_REALLOC(ExpandedValueData, cbExpandedData * sizeof(TCHAR));
             if (ExpandedValueData == NULL) {
                 return_value = NULL;
                 goto CLEANUP;
@@ -2599,7 +2610,7 @@ _sasl_get_default_win_path(void *context __attribute__((unused)),
                 /* : Replace delimiting NUL with our delimiter characted */
                 tmp[0] = PATHS_DELIMITER;
             }
-            tmp += strlen(tmp);
+            tmp += (_tcslen(tmp) / sizeof(TCHAR));
         }
         break;
 
@@ -2612,15 +2623,34 @@ _sasl_get_default_win_path(void *context __attribute__((unused)),
         goto CLEANUP;
     }
 
-    return_value = ValueData;
+    return_value = ValueData; /* just to flag we have a result */
 
 CLEANUP:
     RegCloseKey(hKey);
     if (ExpandedValueData != NULL) sasl_FREE(ExpandedValueData);
     if (return_value == NULL) {
-	if (ValueData != NULL) sasl_FREE(ValueData);
+	    if (ValueData != NULL) sasl_FREE(ValueData);
+    }
+    else {
+        /* convert to utf-8 for compatibility with other OS' */
+        char *tmp = _sasl_tchar_to_utf8(return_value);
+        sasl_FREE(return_value);
+        return tmp;
     }
 
-    return (return_value);
+    return NULL;
+}
+
+static char* _sasl_tchar_to_utf8(TCHAR *str)
+{
+    size_t bufLen = _tcslen(str);
+    char *buf = sasl_ALLOC(bufLen); /* should be enough, but probably not that good for localized Chinese paths */
+    if (buf) {
+        if (WideCharToMultiByte(CP_UTF8, 0, str, -1, buf, bufLen, NULL, NULL) == 0) { /* -1 ensures null-terminated utf8 */
+            sasl_FREE(buf);
+            buf = NULL;
+        }
+    }
+    return buf;
 }
 #endif

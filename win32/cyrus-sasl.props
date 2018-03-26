@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros">
+    <InstallRoot>..\..\..\msvc</InstallRoot>
+    <SaslDependencyRoot>$(InstallRoot)</SaslDependencyRoot>
+    <SaslDependencyLibDir>$(SaslDependencyRoot)\lib\$(Platform)</SaslDependencyLibDir>
+  </PropertyGroup>
+  <PropertyGroup />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>_MBCS;GCC_FALLTHROUGH=;LIBSASL_EXPORTS;WIN32;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <BuildMacro Include="InstallRoot">
+      <Value>$(InstallRoot)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="SaslDependencyRoot">
+      <Value>$(SaslDependencyRoot)</Value>
+    </BuildMacro>
+    <BuildMacro Include="SaslDependencyLibDir">
+      <Value>$(SaslDependencyLibDir)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

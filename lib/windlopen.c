@@ -126,9 +126,9 @@ int _sasl_get_plugin(const char *file,
 		     void **libraryptr)
 {
     int r = 0;
-    HINSTANCE library;
+    HINSTANCE library = NULL;
     lib_list_t *newhead;
-    
+
     r = ((sasl_verifyfile_t *)(verifyfile_cb->proc))
 		    (verifyfile_cb->context, file, SASL_VRFY_PLUGIN);
     if (r != SASL_OK) return r;
@@ -136,7 +136,19 @@ int _sasl_get_plugin(const char *file,
     newhead = sasl_ALLOC(sizeof(lib_list_t));
     if (!newhead) return SASL_NOMEM;
 
-    if (!(library = LoadLibrary (file))) {
+    if (sizeof(TCHAR) == sizeof(char)) {
+        library = LoadLibrary((TCHAR*)file);
+    }
+    else {
+        size_t flen = strlen(file);
+        TCHAR *tfile = (TCHAR *)sasl_ALLOC(flen * sizeof(TCHAR));
+        if (tfile) {
+            swprintf(tfile, flen, L"%hs", file);
+            library = LoadLibrary(tfile);
+            sasl_FREE(tfile);
+        }
+    }
+    if (!library) {
 	_sasl_log(NULL, SASL_LOG_ERR,
 		  "unable to LoadLibrary %s: %s", file, GetLastError());
 	sasl_FREE(newhead);

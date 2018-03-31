@@ -94,17 +94,17 @@ typedef int		    intptr_t;
 
 /* which mechs can we link statically? */
 #define STATIC_ANONYMOUS 1
-#define STATIC_CRAMMD5 1
+/* #define STATIC_CRAMMD5 1 */
 #define STATIC_DIGESTMD5 1
 #define STATIC_SCRAM 1
-#define STATIC_GSSAPIV2 1
+/* #define STATIC_GSSAPIV2 1 */
 /* #undef STATIC_KERBEROS4 */
-#define STATIC_LOGIN 1
+/* #define STATIC_LOGIN 1 */
 /* #undef STATIC_MYSQL */
-#define STATIC_OTP 1
+/* #define STATIC_OTP 1 */
 #define STATIC_PLAIN 1
-#define STATIC_SASLDB 1
-#define STATIC_SRP 1
+/* #define STATIC_SASLDB 1 */
+/* #define STATIC_SRP 1 */
 
 /* ------------------------------------------------------------ */
 

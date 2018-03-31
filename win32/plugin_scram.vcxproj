@@ -19,11 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\plugins\digestmd5.c" />
+    <ClCompile Include="..\plugins\scram.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{6E87064B-9A5E-4F05-A8FB-09FC72E9E3CC}</ProjectGuid>
-    <RootNamespace>plugin_digestmd5</RootNamespace>
+    <ProjectGuid>{639D1C4B-ACC5-40A4-A96B-731E7FC21EA7}</ProjectGuid>
+    <RootNamespace>plugin_scram</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

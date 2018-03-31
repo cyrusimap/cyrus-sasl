@@ -6,10 +6,13 @@
     <SaslDependencyRoot>$(InstallRoot)</SaslDependencyRoot>
     <SaslDependencyLibDir>$(SaslDependencyRoot)\lib\$(Platform)</SaslDependencyLibDir>
   </PropertyGroup>
-  <PropertyGroup />
+  <PropertyGroup>
+    <IntDir>$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <PreprocessorDefinitions>_MBCS;GCC_FALLTHROUGH=;LIBSASL_EXPORTS;WIN32;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>include;..\include;..\lib;..\plugins;..\sasldb;..\common;$(SaslDependencyRoot)\include</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>

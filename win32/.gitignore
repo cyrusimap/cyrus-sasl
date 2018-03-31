@@ -1,0 +1,15 @@
+*.user
+*.filters
+*.VC.opendb
+*.VC.db
+.vs
+
+# build directories
+common/
+plugin_anonymous/
+plugin_digestmd5/
+plugin_plain/
+plugin_scram/
+plugins/
+sasl2/
+sasldb/

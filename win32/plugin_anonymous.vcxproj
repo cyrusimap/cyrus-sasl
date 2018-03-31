@@ -82,12 +82,10 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetExt>.lib</TargetExt>
     <TargetName>lib$(ProjectName)d</TargetName>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);..\win32\include;..\include;..\lib;..\common</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetExt>.lib</TargetExt>
     <TargetName>lib$(ProjectName)</TargetName>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);..\win32\include;..\include;..\lib;..\common</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

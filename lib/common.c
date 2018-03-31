@@ -83,7 +83,6 @@ static char * _sasl_get_default_unix_path(void *context __attribute__((unused)),
 /* NB: Always returned allocated value */
 static char * _sasl_get_default_win_path(void *context __attribute__((unused)),
                             TCHAR * reg_attr_name, char * default_value);
-static char* _sasl_tchar_to_utf8(TCHAR *str);
 #endif
 
 
@@ -1679,6 +1678,7 @@ _sasl_getconfpath_simple(void *context __attribute__((unused)),
     return SASL_OK;
 }
 
+
 static int
 _sasl_verifyfile(void *context __attribute__((unused)),
 		 char *file  __attribute__((unused)),
@@ -2457,7 +2457,7 @@ _sasl_get_default_unix_path(void *context __attribute__((unused)),
     return path;
 }
 
-#else
+#else /*WIN32*/
 /* Return NULL on failure */
 static char *
 _sasl_get_default_win_path(void *context __attribute__((unused)),
@@ -2610,7 +2610,7 @@ _sasl_get_default_win_path(void *context __attribute__((unused)),
                 /* : Replace delimiting NUL with our delimiter characted */
                 tmp[0] = PATHS_DELIMITER;
             }
-            tmp += (_tcslen(tmp) / sizeof(TCHAR));
+            tmp += (_tcslen(tmp));
         }
         break;
 
@@ -2630,21 +2630,24 @@ CLEANUP:
     if (ExpandedValueData != NULL) sasl_FREE(ExpandedValueData);
     if (return_value == NULL) {
 	    if (ValueData != NULL) sasl_FREE(ValueData);
+        return NULL;
     }
-    else {
-        /* convert to utf-8 for compatibility with other OS' */
-        char *tmp = _sasl_tchar_to_utf8(return_value);
+    if (sizeof(TCHAR) == sizeof(char)) {
+        return (char*)return_value;
+    }
+
+    /* convert to utf-8 for compatibility with other OS' */
+    {
+        char *tmp = _sasl_wchar_to_utf8(return_value);
         sasl_FREE(return_value);
         return tmp;
     }
-
-    return NULL;
 }
 
-static char* _sasl_tchar_to_utf8(TCHAR *str)
+char* _sasl_wchar_to_utf8(WCHAR *str)
 {
-    size_t bufLen = _tcslen(str);
-    char *buf = sasl_ALLOC(bufLen); /* should be enough, but probably not that good for localized Chinese paths */
+    size_t bufLen = WideCharToMultiByte(CP_UTF8, 0, str, -1, NULL, 0, NULL, NULL);
+    char *buf = sasl_ALLOC(bufLen);
     if (buf) {
         if (WideCharToMultiByte(CP_UTF8, 0, str, -1, buf, bufLen, NULL, NULL) == 0) { /* -1 ensures null-terminated utf8 */
             sasl_FREE(buf);
@@ -2653,4 +2656,18 @@ static char* _sasl_tchar_to_utf8(TCHAR *str)
     }
     return buf;
 }
-#endif
+
+WCHAR* _sasl_utf8_to_wchar(const char *str)
+{
+    size_t bufLen = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0);
+    WCHAR *buf = sasl_ALLOC(bufLen * sizeof(WCHAR));
+    if (buf) {
+        if (MultiByteToWideChar(CP_UTF8, 0, str, -1, buf, bufLen) == 0) { /* -1 ensures null-terminated utf8 */
+            sasl_FREE(buf);
+            buf = NULL;
+        }
+    }
+    return buf;
+}
+
+#endif /*WIN32*/

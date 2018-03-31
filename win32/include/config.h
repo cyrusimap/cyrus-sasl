@@ -111,6 +111,7 @@ typedef int		    intptr_t;
 /* Things that are fetched via autoconf under Unix
  */
 #define HAVE_MEMCPY 1
+#define HAVE_OPENSSL 1
 
 #define PLUGINDIR "C:\\CMU\\bin\\sasl2"
 #define CONFIGDIR "C:\\CMU\\bin\\sasl2"
@@ -123,6 +124,7 @@ typedef int		    intptr_t;
 #endif
 #define strncasecmp  _strnicmp
 #define strdup  _strdup
+#define sasl_getpid  GetCurrentThreadId
 
 #define MAXHOSTNAMELEN 1024
 

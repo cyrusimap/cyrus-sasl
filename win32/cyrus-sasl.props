@@ -8,12 +8,19 @@
   </PropertyGroup>
   <PropertyGroup>
     <IntDir>$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <PreprocessorDefinitions>_MBCS;GCC_FALLTHROUGH=;LIBSASL_EXPORTS;WIN32;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>include;..\include;..\lib;..\plugins;..\sasldb;..\common;$(SaslDependencyRoot)\include</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+    </Link>
+    <Lib>
+      <AdditionalLibraryDirectories>$(SaslDependencyLibDir)</AdditionalLibraryDirectories>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
     <BuildMacro Include="InstallRoot">

@@ -19,11 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\plugins\plain.c" />
+    <ClCompile Include="..\plugins\ntlm.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{B8C5499F-BCB8-409C-8446-0D92DE118020}</ProjectGuid>
-    <RootNamespace>plugin_plain</RootNamespace>
+    <ProjectGuid>{7D694002-B275-4895-A76E-A6ED345FD3C3}</ProjectGuid>
+    <RootNamespace>plugin_ntlm</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

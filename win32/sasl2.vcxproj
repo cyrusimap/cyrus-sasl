@@ -77,13 +77,10 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetExt>.dll</TargetExt>
-    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
     <IntDir>$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
     <TargetName>$(ProjectName)d</TargetName>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
-  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -119,8 +116,7 @@
       <PreprocessorDefinitions>STATIC_DIGESTMD5;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;libcommond.lib;libplugin_digestmd5d.lib;libplugin_scramd.lib;libplugin_anonymousd.lib;libplugin_plaind.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>plugins\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Ws2_32.lib;libcommond.lib;libplugin_digestmd5d.lib;libplugin_scramd.lib;libplugin_anonymousd.lib;libplugin_plaind.lib;libplugin_ntlmd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -129,8 +125,7 @@
       <PreprocessorDefinitions>STATIC_DIGESTMD5;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;libcommon.lib;libplugin_digestmd5.lib;libplugin_scram.lib;libplugin_anonymous.lib;libplugin_plain.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>plugins\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Ws2_32.lib;libcommon.lib;libplugin_digestmd5.lib;libplugin_scram.lib;libplugin_anonymous.lib;libplugin_plain.lib;libplugin_ntlm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

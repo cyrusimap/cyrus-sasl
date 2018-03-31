@@ -75,7 +75,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetExt>.lib</TargetExt>
     <TargetName>lib$(ProjectName)d</TargetName>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);..\win32\include;..\include</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetExt>.lib</TargetExt>

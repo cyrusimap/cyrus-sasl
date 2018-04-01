@@ -37,6 +37,11 @@ Pay attention to cyrus-sasl.props file and its SaslDependencyRoot property. It's
   exclude from build sasldb and plugin_sasldb projects
 * Finally build the solution
 
+#### Questions
+
+The Visual Studio solution, project files and property sheets were written by [Sergey Ilinykh](mailto:rion4ik@gmail.com).
+Feel free to mail and ask questions.
+
 ## nmake
 
 TBD

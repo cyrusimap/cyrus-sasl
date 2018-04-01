@@ -3,13 +3,16 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros">
     <InstallRoot>..\..\..\msvc</InstallRoot>
+    <InstallLibDir>$(InstallRoot)\lib\$(Platform)</InstallLibDir>
+    <InstallBinDir>$(InstallRoot)\bin\$(Platform)</InstallBinDir>
     <SaslDependencyRoot>$(InstallRoot)</SaslDependencyRoot>
-    <SaslDependencyLibDir>$(SaslDependencyRoot)\lib\$(Platform)</SaslDependencyLibDir>
+    <SaslDependencyLibDir>$(InstallLibDir)</SaslDependencyLibDir>
     <Krb5Dir>C:\Program Files\MIT\Kerberos</Krb5Dir>
+    <SaslIntermediateLibDir>$(SolutionDir)$(Platform)\$(Configuration)</SaslIntermediateLibDir>
   </PropertyGroup>
   <PropertyGroup>
     <IntDir>$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SaslIntermediateLibDir)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -17,7 +20,7 @@
       <AdditionalIncludeDirectories>include;..\include;..\lib;..\plugins;..\sasldb;..\common;$(SaslDependencyRoot)\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SaslIntermediateLibDir)</AdditionalLibraryDirectories>
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>$(SaslDependencyLibDir)</AdditionalLibraryDirectories>
@@ -26,6 +29,14 @@
   <ItemGroup>
     <BuildMacro Include="InstallRoot">
       <Value>$(InstallRoot)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="InstallLibDir">
+      <Value>$(InstallLibDir)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="InstallBinDir">
+      <Value>$(InstallBinDir)</Value>
       <EnvironmentVariable>true</EnvironmentVariable>
     </BuildMacro>
     <BuildMacro Include="SaslDependencyRoot">
@@ -37,6 +48,10 @@
     </BuildMacro>
     <BuildMacro Include="Krb5Dir">
       <Value>$(Krb5Dir)</Value>
+    </BuildMacro>
+    <BuildMacro Include="SaslIntermediateLibDir">
+      <Value>$(SaslIntermediateLibDir)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
     </BuildMacro>
   </ItemGroup>
 </Project>

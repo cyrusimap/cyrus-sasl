@@ -45,9 +45,6 @@
 #include <stdio.h>
 #include <io.h>
 #include <sys/stat.h>
-#ifdef WIN32
-#include <tchar.h>
-#endif
 
 #include <config.h>
 #include <sasl.h>
@@ -365,8 +362,8 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
 
 /* : Construct full name from prefix and name */
 
-	    _tcscpy (full_name, prefix);
-	    _tcscat (full_name, finddata.name);
+        _tcscpy (full_name, prefix);
+        _tcscat (full_name, finddata.name);
 		
 /* cut off .dll suffix -- this only need be approximate */
         if (sizeof(TCHAR) != sizeof(char)) {

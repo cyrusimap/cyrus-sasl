@@ -19,6 +19,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		..\include\hmac-md5.h = ..\include\hmac-md5.h
 		..\include\md5.h = ..\include\md5.h
 		..\include\prop.h = ..\include\prop.h
+		README.md = README.md
 		..\include\sasl.h = ..\include\sasl.h
 		..\include\saslplug.h = ..\include\saslplug.h
 		..\include\saslutil.h = ..\include\saslutil.h

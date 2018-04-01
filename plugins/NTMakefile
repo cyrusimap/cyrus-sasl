@@ -127,6 +127,20 @@ GSS_FLAGS=
 GSS_LIBS=
 !ENDIF
 
+!IF "$(SASLDB)" == "LMDB"
+DB_LIBS=/libpath:$(LMDB_LIBPATH) lmdb.lib
+
+# Auxprop Plugin
+libsasldb_sources = allockey.c db_lmdb.c
+libsasldb_objs = allockey.obj db_lmdb.obj
+!ELSE
+DB_LIBS=/libpath:$(DB_LIBPATH) $(DB_LIB)
+
+# Auxprop Plugin
+libsasldb_sources = allockey.c db_berkeley.c
+libsasldb_objs = allockey.obj db_berkeley.obj
+!ENDIF
+
 CRAM_FLAGS=/DOBSOLETE_CRAM_ATTR=1
 
 DIGEST_FLAGS=/D "WITH_RC4" /DOBSOLETE_DIGEST_ATTR=1
@@ -148,9 +162,9 @@ EXTRA_FLAGS = /D TARGET_WIN_SYSTEM=$(TARGET_WIN_SYSTEM) $(EXTRA_FLAGS)
 !ENDIF
 
 EXTRA_FLAGS=$(EXTRA_FLAGS) $(DB_FLAGS) $(OPENSSL_FLAGS) $(GSS_FLAGS) $(SRP_FLAGS) $(SQL_FLAGS) $(DIGEST_FLAGS) $(CRAM_FLAGS) $(SCRAM_FLAGS) $(LDAP_FLAGS)
-CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" /I "..\lib" /I "..\sasldb" /I "..\common" $(EXTRA_FLAGS) /D "WIN32" /D "_WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "GCC_FALLTHROUGH="
+CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" $(EXTRA_FLAGS) /D "WIN32" /D "_WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL"
 
-OPENSSL_LIBS=/libpath:$(OPENSSL_LIBPATH) crypto.lib ssl.lib
+OPENSSL_LIBS=/libpath:$(OPENSSL_LIBPATH) libeay32.lib ssleay32.lib
 
 # Where to install files from this directory
 libdir = $(prefix)\lib

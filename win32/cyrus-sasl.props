@@ -5,6 +5,7 @@
     <InstallRoot>..\..\..\msvc</InstallRoot>
     <SaslDependencyRoot>$(InstallRoot)</SaslDependencyRoot>
     <SaslDependencyLibDir>$(SaslDependencyRoot)\lib\$(Platform)</SaslDependencyLibDir>
+    <Krb5Dir>C:\Program Files\MIT\Kerberos</Krb5Dir>
   </PropertyGroup>
   <PropertyGroup>
     <IntDir>$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
@@ -33,6 +34,9 @@
     <BuildMacro Include="SaslDependencyLibDir">
       <Value>$(SaslDependencyLibDir)</Value>
       <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="Krb5Dir">
+      <Value>$(Krb5Dir)</Value>
     </BuildMacro>
   </ItemGroup>
 </Project>

@@ -7,7 +7,13 @@
 
 ## msbuild
 
-msbuild or regular Microsoft Visual Studio solutions / projects are represented as *.sln and *.vcxproj files. The solution file is capable to build release or debug version of sasl2.dll. Some plugins won't be compiled (see existing plugin*.vcxproj files), and the compiled ones will be statically linked into sasl2.dll. Even so, it's not a big deal to add support for the remaining plugins.
+msbuild or regular Microsoft Visual Studio solutions / projects are represented as 
+\*.sln and \*.vcxproj files. The solution file is capable to build release or debug 
+version of sasl2.dll. Some plugins won't be compiled (see existing plugin*.vcxproj files),
+and the compiled ones will be statically linked into sasl2.dll.
+Even so, it's not a big deal to add support for the remaining plugins.
+
+**IMPORTANT:** Only x64 configuration was tested with current Visual Studio projects.
 
 #### Dependencies
 
@@ -18,6 +24,8 @@ Pay attention to cyrus-sasl.props file and its SaslDependencyRoot property. It's
 * **LMDB** (One can try forked version https://github.com/Ri0n/lmdb till original master
  is fixed for Visual Studio. You will have to manually move lmdb.h and lib to dependency
  root directories after compilation. But you can just disable sasldb subproject.)
+* **MIT Kerberos for Windows** (http://web.mit.edu/kerberos/dist/index.html select full install.
+  required only for gssapiv2 plugin which may be disabled if not needed)
 
 #### Compilation
 
@@ -32,3 +40,5 @@ Pay attention to cyrus-sasl.props file and its SaslDependencyRoot property. It's
 ## nmake
 
 TBD
+
+nmake makefiles weren't updated for awhile and most likely won't build.

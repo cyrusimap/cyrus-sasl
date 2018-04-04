@@ -2,9 +2,9 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros">
-    <InstallRoot>..\..\..\msvc</InstallRoot>
-    <InstallLibDir>$(InstallRoot)\lib\$(Platform)</InstallLibDir>
-    <InstallBinDir>$(InstallRoot)\bin\$(Platform)</InstallBinDir>
+    <InstallRoot>..\..\..\msvc\$(Platform)\</InstallRoot>
+    <InstallLibDir>$(InstallRoot)\lib\</InstallLibDir>
+    <InstallBinDir>$(InstallRoot)\bin\</InstallBinDir>
     <SaslDependencyRoot>$(InstallRoot)</SaslDependencyRoot>
     <SaslDependencyLibDir>$(InstallLibDir)</SaslDependencyLibDir>
     <Krb5Dir>C:\Program Files\MIT\Kerberos</Krb5Dir>

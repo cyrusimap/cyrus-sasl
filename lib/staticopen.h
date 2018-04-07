@@ -167,6 +167,10 @@ _sasl_plug_rec _sasl_static_plugins[] = {
 	SPECIFIC_SERVER_PLUG_INIT( plain, "PLAIN" ),
 	SPECIFIC_CLIENT_PLUG_INIT( plain, "PLAIN" ),
 #endif
+#ifdef STATIC_SCRAM
+        SPECIFIC_SERVER_PLUG_INIT( scram, "SCRAM" ),
+        SPECIFIC_CLIENT_PLUG_INIT( scram, "SCRAM" ),
+#endif
 #ifdef STATIC_SRP
 	SPECIFIC_SERVER_PLUG_INIT( srp, "SRP" ),
 	SPECIFIC_CLIENT_PLUG_INIT( srp, "SRP" ),

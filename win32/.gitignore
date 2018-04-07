@@ -11,4 +11,4 @@ plugins/
 sasl2/
 sasldb/
 x64
-x86
+win32

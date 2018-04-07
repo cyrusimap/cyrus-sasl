@@ -25,30 +25,24 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
+    <ConfigurationType>Utility</ConfigurationType>
     <PlatformToolset>v140</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
+    <ConfigurationType>Utility</ConfigurationType>
     <PlatformToolset>v140</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -79,6 +73,20 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
+    <PostBuildEvent>
+      <Command>mkdir $(InstallLibDir)
+mkdir $(InstallBinDir)
+mkdir $(InstallRoot)\include\sasl
+
+for /f "usebackq delims=|" %%f in (`dir /b "$(SaslIntermediateLibDir)\*.dll"`) do (
+  xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.lib  $(InstallLibDir)
+  xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.dll  $(InstallBinDir)
+  xcopy /d /y /c $(SaslIntermediateLibDir)\%%~nf.pdb  $(InstallBinDir)
+)
+
+xcopy /d /y $(SolutionDir)..\include\*.h $(InstallRoot)\include\sasl\</Command>
+      <Message>Install dll/headers/pdb files to InstallRoot</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -92,9 +100,9 @@ mkdir $(InstallBinDir)
 mkdir $(InstallRoot)\include\sasl
 
 for /f "usebackq delims=|" %%f in (`dir /b "$(SaslIntermediateLibDir)\*.dll"`) do (
-xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.dll  $(InstallBinDir)
-xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.lib  $(InstallLibDir)
-xcopy /d /y /c $(SaslIntermediateLibDir)\%%~nf.pdb  $(InstallLibDir)
+  xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.lib  $(InstallLibDir)
+  xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.dll  $(InstallBinDir)
+  xcopy /d /y /c $(SaslIntermediateLibDir)\%%~nf.pdb  $(InstallBinDir)
 )
 
 xcopy /d /y $(SolutionDir)..\include\*.h $(InstallRoot)\include\sasl\</Command>
@@ -113,6 +121,20 @@ xcopy /d /y $(SolutionDir)..\include\*.h $(InstallRoot)\include\sasl\</Command>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
+    <PostBuildEvent>
+      <Command>mkdir $(InstallLibDir)
+mkdir $(InstallBinDir)
+mkdir $(InstallRoot)\include\sasl
+
+for /f "usebackq delims=|" %%f in (`dir /b "$(SaslIntermediateLibDir)\*.dll"`) do (
+  xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.lib  $(InstallLibDir)
+  xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.dll  $(InstallBinDir)
+  xcopy /d /y /c $(SaslIntermediateLibDir)\%%~nf.pdb  $(InstallBinDir)
+)
+
+xcopy /d /y $(SolutionDir)..\include\*.h $(InstallRoot)\include\sasl\</Command>
+      <Message>Install dll/headers/pdb files to InstallRoot</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -132,9 +154,9 @@ mkdir $(InstallBinDir)
 mkdir $(InstallRoot)\include\sasl
 
 for /f "usebackq delims=|" %%f in (`dir /b "$(SaslIntermediateLibDir)\*.dll"`) do (
-xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.dll  $(InstallBinDir)
-xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.lib  $(InstallLibDir)
-xcopy /d /y /c $(SaslIntermediateLibDir)\%%~nf.pdb  $(InstallLibDir)
+  xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.lib  $(InstallLibDir)
+  xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.dll  $(InstallBinDir)
+  xcopy /d /y /c $(SaslIntermediateLibDir)\%%~nf.pdb  $(InstallBinDir)
 )
 
 xcopy /d /y $(SolutionDir)..\include\*.h $(InstallRoot)\include\sasl\</Command>

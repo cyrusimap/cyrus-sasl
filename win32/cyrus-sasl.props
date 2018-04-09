@@ -7,7 +7,7 @@
     <InstallBinDir>$(InstallRoot)\bin\</InstallBinDir>
     <SaslDependencyRoot>$(InstallRoot)</SaslDependencyRoot>
     <SaslDependencyLibDir>$(InstallLibDir)</SaslDependencyLibDir>
-    <Krb5Dir>C:\Program Files\MIT\Kerberos</Krb5Dir>
+    <Krb5Dir>C:\msvc\krb</Krb5Dir>
     <SaslIntermediateLibDir>$(SolutionDir)$(Platform)\$(Configuration)</SaslIntermediateLibDir>
   </PropertyGroup>
   <PropertyGroup>
@@ -21,6 +21,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(SaslIntermediateLibDir)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>$(SaslDependencyLibDir)</AdditionalLibraryDirectories>
@@ -54,4 +55,30 @@
       <EnvironmentVariable>true</EnvironmentVariable>
     </BuildMacro>
   </ItemGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(ConfigurationType)'=='Debug|StaticLibrary'">
+    <TargetExt>.lib</TargetExt>
+    <TargetName>lib$(ProjectName)d</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(ConfigurationType)'=='Release|StaticLibrary'">
+    <TargetExt>.lib</TargetExt>
+    <TargetName>lib$(ProjectName)</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(ConfigurationType)'=='Debug|DynamicLibrary'">
+    <TargetExt>.dll</TargetExt>
+    <TargetName>$(ProjectName)d</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(ConfigurationType)'=='Release|DynamicLibrary'">
+    <TargetExt>.dll</TargetExt>
+    <TargetName>$(ProjectName)</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <ClCompile>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+	</ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+	</ClCompile>
+  </ItemDefinitionGroup>
 </Project>

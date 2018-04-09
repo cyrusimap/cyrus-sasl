@@ -57,33 +57,31 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="cyrus-sasl.props" />
+    <Import Project="conan.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="cyrus-sasl.props" />
+    <Import Project="conan.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="cyrus-sasl.props" />
+    <Import Project="conan.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="cyrus-sasl.props" />
+    <Import Project="conan.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <TargetName>$(ProjectName)d</TargetName>
-    <TargetExt>.dll</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <TargetExt>.dll</TargetExt>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <TargetExt>.dll</TargetExt>
-    <TargetName>$(ProjectName)d</TargetName>
-  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -98,7 +96,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>NotSet</SubSystem>
       <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
-      <AdditionalDependencies>Ws2_32.lib;libcommond.lib;libplugin_digestmd5d.lib;libplugin_scramd.lib;libplugin_anonymousd.lib;libplugin_plaind.lib;libplugin_ntlmd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcommond.lib;libplugin_digestmd5d.lib;libplugin_scramd.lib;libplugin_anonymousd.lib;libplugin_plaind.lib;libplugin_ntlmd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -114,16 +112,15 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Ws2_32.lib;libcommon.lib;libplugin_digestmd5.lib;libplugin_scram.lib;libplugin_anonymous.lib;libplugin_plain.lib;libplugin_ntlm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcommon.lib;libplugin_digestmd5.lib;libplugin_scram.lib;libplugin_anonymous.lib;libplugin_plain.lib;libplugin_ntlm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <ForcedIncludeFiles>%(ForcedIncludeFiles)</ForcedIncludeFiles>
-      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;libcommond.lib;libplugin_digestmd5d.lib;libplugin_scramd.lib;libplugin_anonymousd.lib;libplugin_plaind.lib;libplugin_ntlmd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcommond.lib;libplugin_digestmd5d.lib;libplugin_scramd.lib;libplugin_anonymousd.lib;libplugin_plaind.lib;libplugin_ntlmd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
       <SubSystem>NotSet</SubSystem>
@@ -132,10 +129,9 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <ForcedIncludeFiles>%(ForcedIncludeFiles)</ForcedIncludeFiles>
-      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;libcommon.lib;libplugin_digestmd5.lib;libplugin_scram.lib;libplugin_anonymous.lib;libplugin_plain.lib;libplugin_ntlm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcommon.lib;libplugin_digestmd5.lib;libplugin_scram.lib;libplugin_anonymous.lib;libplugin_plain.lib;libplugin_ntlm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -156,6 +152,26 @@
   <ItemGroup>
     <ClInclude Include="..\lib\saslint.h" />
     <ClInclude Include="..\lib\staticopen.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="common.vcxproj">
+      <Project>{528f3494-1c30-405f-9fdf-22fa4afe54f4}</Project>
+    </ProjectReference>
+    <ProjectReference Include="plugin_anonymous.vcxproj">
+      <Project>{666d9377-c82c-4391-96bb-b9a5794fb9dd}</Project>
+    </ProjectReference>
+    <ProjectReference Include="plugin_digestmd5.vcxproj">
+      <Project>{6e87064b-9a5e-4f05-a8fb-09fc72e9e3cc}</Project>
+    </ProjectReference>
+    <ProjectReference Include="plugin_ntlm.vcxproj">
+      <Project>{7d694002-b275-4895-a76e-a6ed345fd3c3}</Project>
+    </ProjectReference>
+    <ProjectReference Include="plugin_plain.vcxproj">
+      <Project>{b8c5499f-bcb8-409c-8446-0d92de118020}</Project>
+    </ProjectReference>
+    <ProjectReference Include="plugin_scram.vcxproj">
+      <Project>{639d1c4b-acc5-40a4-a96b-731e7fc21ea7}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

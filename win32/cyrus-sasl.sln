@@ -55,6 +55,13 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "plugin_gssapiv2", "plugin_gssapiv2.vcxproj", "{03AFF51B-3BBF-404C-ACE3-8ABCEE666A2E}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "install", "install.vcxproj", "{D0E8D7B3-5466-4BE2-B54B-80A0E1A55101}"
+	ProjectSection(ProjectDependencies) = postProject
+		{03AFF51B-3BBF-404C-ACE3-8ABCEE666A2E} = {03AFF51B-3BBF-404C-ACE3-8ABCEE666A2E}
+		{25B39566-623A-410B-B489-FEFE6B997A7E} = {25B39566-623A-410B-B489-FEFE6B997A7E}
+		{BAA833AE-8C05-4C1F-AE5A-739241E3765B} = {BAA833AE-8C05-4C1F-AE5A-739241E3765B}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "configure", "configure.vcxproj", "{B7216C60-1D76-4B8A-8767-433C1B012D27}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -153,6 +160,14 @@ Global
 		{D0E8D7B3-5466-4BE2-B54B-80A0E1A55101}.Release|x64.Build.0 = Release|x64
 		{D0E8D7B3-5466-4BE2-B54B-80A0E1A55101}.Release|x86.ActiveCfg = Release|Win32
 		{D0E8D7B3-5466-4BE2-B54B-80A0E1A55101}.Release|x86.Build.0 = Release|Win32
+		{B7216C60-1D76-4B8A-8767-433C1B012D27}.Debug|x64.ActiveCfg = Debug|x64
+		{B7216C60-1D76-4B8A-8767-433C1B012D27}.Debug|x64.Build.0 = Debug|x64
+		{B7216C60-1D76-4B8A-8767-433C1B012D27}.Debug|x86.ActiveCfg = Debug|Win32
+		{B7216C60-1D76-4B8A-8767-433C1B012D27}.Debug|x86.Build.0 = Debug|Win32
+		{B7216C60-1D76-4B8A-8767-433C1B012D27}.Release|x64.ActiveCfg = Release|x64
+		{B7216C60-1D76-4B8A-8767-433C1B012D27}.Release|x64.Build.0 = Release|x64
+		{B7216C60-1D76-4B8A-8767-433C1B012D27}.Release|x86.ActiveCfg = Release|Win32
+		{B7216C60-1D76-4B8A-8767-433C1B012D27}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

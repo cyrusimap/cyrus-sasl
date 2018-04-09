@@ -1,0 +1,8 @@
+[requires]
+OpenSSL/1.0.2o@conan/stable
+
+[generators]
+visual_studio
+
+[options]
+OpenSSL:shared=True

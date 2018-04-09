@@ -22,6 +22,11 @@
     <ClCompile Include="..\plugins\gssapi.c" />
     <ClCompile Include="..\plugins\gssapiv2_init.c" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="common.vcxproj">
+      <Project>{528f3494-1c30-405f-9fdf-22fa4afe54f4}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{03AFF51B-3BBF-404C-ACE3-8ABCEE666A2E}</ProjectGuid>
     <RootNamespace>plugin_gssapiv2</RootNamespace>
@@ -80,28 +85,17 @@
     <Import Project="plugins.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <TargetExt>.dll</TargetExt>
-    <TargetName>$(ProjectName)d</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <TargetExt>.dll</TargetExt>
-    <TargetName>$(ProjectName)</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <TargetExt>.dll</TargetExt>
-    <TargetName>$(ProjectName)d</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <TargetExt>.dll</TargetExt>
-  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(Krb5Dir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions);HAVE_GSSAPI_GSSAPI_H;HAVE_GSSAPI_GSSAPI_KRB5_H;HAVE_GSS_C_NT_HOSTBASED_SERVICE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);HAVE_GSSAPI_GSSAPI_H;HAVE_GSSAPI_GSSAPI_KRB5_H;HAVE_GSS_C_NT_HOSTBASED_SERVICE</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(Krb5Dir)\lib\$(ProcessorArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -112,7 +106,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions);HAVE_GSSAPI_GSSAPI_H;HAVE_GSSAPI_GSSAPI_KRB5_H;HAVE_GSS_C_NT_HOSTBASED_SERVICE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);HAVE_GSSAPI_GSSAPI_H;HAVE_GSSAPI_GSSAPI_KRB5_H;HAVE_GSS_C_NT_HOSTBASED_SERVICE</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(Krb5Dir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -128,7 +122,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(Krb5Dir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);HAVE_GSSAPI_GSSAPI_H;HAVE_GSSAPI_GSSAPI_KRB5_H;HAVE_GSS_C_NT_HOSTBASED_SERVICE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);HAVE_GSSAPI_GSSAPI_H;HAVE_GSSAPI_GSSAPI_KRB5_H;HAVE_GSS_C_NT_HOSTBASED_SERVICE</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -144,7 +138,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(Krb5Dir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);HAVE_GSSAPI_GSSAPI_H;HAVE_GSSAPI_GSSAPI_KRB5_H;HAVE_GSS_C_NT_HOSTBASED_SERVICE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);HAVE_GSSAPI_GSSAPI_H;HAVE_GSSAPI_GSSAPI_KRB5_H;HAVE_GSS_C_NT_HOSTBASED_SERVICE</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>

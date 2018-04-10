@@ -43,13 +43,12 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <config.h>
-#include <stdio.h>
-
 #if defined(WIN32)
 #define _CRT_RAND_S
 #endif
 
+#include <config.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>

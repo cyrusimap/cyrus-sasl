@@ -5,10 +5,12 @@
   <PropertyGroup />
   <ItemDefinitionGroup>
     <PostBuildEvent>
-      <Command>mkdir "$(SolutionDir)plugins\$(Platform)\$(Configuration)"
-copy $(OutDir)$(TargetName)$(TargetExt) "$(SolutionDir)plugins\$(Platform)\$(Configuration)"
-if exist  $(OutDir)$(TargetName).pdb (
-  copy $(OutDir)$(TargetName).pdb "$(SolutionDir)plugins\$(Platform)\$(Configuration)"
+      <Command>if $(TargetExt)==.dll (
+  mkdir "$(SolutionDir)plugins\$(Platform)"
+  copy $(OutDir)$(TargetName)$(TargetExt) "$(SolutionDir)plugins\$(Platform)"
+  if exist  $(OutDir)$(TargetName).pdb (
+    copy $(OutDir)$(TargetName).pdb "$(SolutionDir)plugins\$(Platform)"
+  )
 )</Command>
     </PostBuildEvent>
     <ClCompile>

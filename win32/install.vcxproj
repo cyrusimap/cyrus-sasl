@@ -74,17 +74,7 @@
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <PostBuildEvent>
-      <Command>mkdir $(InstallLibDir)
-mkdir $(InstallBinDir)
-mkdir $(InstallRoot)\include\sasl
-
-for /f "usebackq delims=|" %%f in (`dir /b "$(SaslIntermediateLibDir)\*.dll"`) do (
-  xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.lib  $(InstallLibDir)
-  xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.dll  $(InstallBinDir)
-  xcopy /d /y /c $(SaslIntermediateLibDir)\%%~nf.pdb  $(InstallBinDir)
-)
-
-xcopy /d /y $(SolutionDir)..\include\*.h $(InstallRoot)\include\sasl\</Command>
+      <Command>call vsinstall.cmd $(SaslIntermediateLibDir) $(InstallRoot) $(InstallLibDir) $(InstallBinDir)</Command>
       <Message>Install dll/headers/pdb files to InstallRoot</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -95,17 +85,7 @@ xcopy /d /y $(SolutionDir)..\include\*.h $(InstallRoot)\include\sasl\</Command>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <PostBuildEvent>
-      <Command>mkdir $(InstallLibDir)
-mkdir $(InstallBinDir)
-mkdir $(InstallRoot)\include\sasl
-
-for /f "usebackq delims=|" %%f in (`dir /b "$(SaslIntermediateLibDir)\*.dll"`) do (
-  xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.lib  $(InstallLibDir)
-  xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.dll  $(InstallBinDir)
-  xcopy /d /y /c $(SaslIntermediateLibDir)\%%~nf.pdb  $(InstallBinDir)
-)
-
-xcopy /d /y $(SolutionDir)..\include\*.h $(InstallRoot)\include\sasl\</Command>
+      <Command>call vsinstall.cmd $(SaslIntermediateLibDir) $(InstallRoot) $(InstallLibDir) $(InstallBinDir)</Command>
       <Message>Install dll/headers/pdb files to InstallRoot</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -122,17 +102,7 @@ xcopy /d /y $(SolutionDir)..\include\*.h $(InstallRoot)\include\sasl\</Command>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir $(InstallLibDir)
-mkdir $(InstallBinDir)
-mkdir $(InstallRoot)\include\sasl
-
-for /f "usebackq delims=|" %%f in (`dir /b "$(SaslIntermediateLibDir)\*.dll"`) do (
-  xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.lib  $(InstallLibDir)
-  xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.dll  $(InstallBinDir)
-  xcopy /d /y /c $(SaslIntermediateLibDir)\%%~nf.pdb  $(InstallBinDir)
-)
-
-xcopy /d /y $(SolutionDir)..\include\*.h $(InstallRoot)\include\sasl\</Command>
+      <Command>call vsinstall.cmd $(SaslIntermediateLibDir) $(InstallRoot) $(InstallLibDir) $(InstallBinDir)</Command>
       <Message>Install dll/headers/pdb files to InstallRoot</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -149,17 +119,7 @@ xcopy /d /y $(SolutionDir)..\include\*.h $(InstallRoot)\include\sasl\</Command>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir $(InstallLibDir)
-mkdir $(InstallBinDir)
-mkdir $(InstallRoot)\include\sasl
-
-for /f "usebackq delims=|" %%f in (`dir /b "$(SaslIntermediateLibDir)\*.dll"`) do (
-  xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.lib  $(InstallLibDir)
-  xcopy /d /y $(SaslIntermediateLibDir)\%%~nf.dll  $(InstallBinDir)
-  xcopy /d /y /c $(SaslIntermediateLibDir)\%%~nf.pdb  $(InstallBinDir)
-)
-
-xcopy /d /y $(SolutionDir)..\include\*.h $(InstallRoot)\include\sasl\</Command>
+      <Command>call vsinstall.cmd $(SaslIntermediateLibDir) $(InstallRoot) $(InstallLibDir) $(InstallBinDir)</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Install dll/headers/pdb files to InstallRoot</Message>

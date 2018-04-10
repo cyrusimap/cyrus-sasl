@@ -7,8 +7,8 @@
     <InstallBinDir>$(InstallRoot)\bin\</InstallBinDir>
     <SaslDependencyRoot>$(InstallRoot)</SaslDependencyRoot>
     <SaslDependencyLibDir>$(InstallLibDir)</SaslDependencyLibDir>
-    <Krb5Dir>C:\msvc\krb</Krb5Dir>
     <SaslIntermediateLibDir>$(SolutionDir)$(Platform)\$(Configuration)</SaslIntermediateLibDir>
+    <Krb5Dir>C:\msvc\krb</Krb5Dir>
   </PropertyGroup>
   <PropertyGroup>
     <IntDir>$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
@@ -47,12 +47,12 @@
       <Value>$(SaslDependencyLibDir)</Value>
       <EnvironmentVariable>true</EnvironmentVariable>
     </BuildMacro>
-    <BuildMacro Include="Krb5Dir">
-      <Value>$(Krb5Dir)</Value>
-    </BuildMacro>
     <BuildMacro Include="SaslIntermediateLibDir">
       <Value>$(SaslIntermediateLibDir)</Value>
       <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="Krb5Dir">
+      <Value>$(Krb5Dir)</Value>
     </BuildMacro>
   </ItemGroup>
   <PropertyGroup Condition="'$(Configuration)|$(ConfigurationType)'=='Debug|StaticLibrary'">
@@ -74,11 +74,11 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-	</ClCompile>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-	</ClCompile>
+    </ClCompile>
   </ItemDefinitionGroup>
 </Project>

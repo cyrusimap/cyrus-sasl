@@ -21,14 +21,11 @@ if not exist %InstallRoot%\include\sasl mkdir %InstallRoot%\include\sasl
 for /f "usebackq delims=|" %%f in (`dir /b "%SaslIntermediateLibDir%\*.dll"`) do (
   set libname=%%~nf
   set prefix=!libname:~0,6!
-  echo f=%%~nf libname=!libname! Prefix=!prefix!
-
   if !prefix!==plugin set outdir=%InstallRoot%\plugins\sasl
   if not !prefix!==plugin set outdir=%InstallBinDir%
   
   xcopy /d /y %SaslIntermediateLibDir%\%%~nf.dll  !outdir!
   xcopy /d /y /c %SaslIntermediateLibDir%\%%~nf.pdb  !outdir!
-  
   if not !prefix!==plugin xcopy /d /y %SaslIntermediateLibDir%\%%~nf.lib %InstallLibDir%
 )
 

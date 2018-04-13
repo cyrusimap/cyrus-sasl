@@ -180,7 +180,7 @@ static char *url_escape(
         return NULL;
 
     while (inidx < length) {
-        char in = string[inidx];
+        unsigned char in = string[inidx];
         if (!(in >= 'a' && in <= 'z') &&
             !(in >= 'A' && in <= 'Z') &&
             !(in >= '0' && in <= '9')) {

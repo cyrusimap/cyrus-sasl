@@ -1264,7 +1264,7 @@ SNPRINTFOBJS=""
 LTSNPRINTFOBJS=""
 AC_CHECK_FUNC(snprintf, [AC_DEFINE(HAVE_SNPRINTF,[],[Does the system have snprintf()?])], [sasl_cv_snprintf=yes])
 AC_CHECK_FUNC(vsnprintf, [AC_DEFINE(HAVE_VSNPRINTF,[],[Does the system have vsnprintf()?])], [sasl_cv_snprintf=yes])
-if test $sasl_cv_snprintf = no; then
+if test $sasl_cv_snprintf = yes; then
        AC_LIBOBJ(snprintf)
        SNPRINTFOBJS="snprintf.o"
        LTSNPRINTFOBJS="snprintf.lo"

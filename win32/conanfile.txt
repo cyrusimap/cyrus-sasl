@@ -1,8 +1,10 @@
 [requires]
 OpenSSL/1.0.2o@conan/stable
+lmdb/0.9.22@rion/stable
 
 [generators]
 visual_studio
 
 [options]
 OpenSSL:shared=True
+lmdb:shared=False

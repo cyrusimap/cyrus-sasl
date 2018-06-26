@@ -6,7 +6,7 @@ from conans import tools
 if __name__ == "__main__":
     runtimes = ["MD", "MDd"]
     for subdir in ["sasl2", "sasldb", "gssapiv2"]:
-        ref = os.environ["CONAN_REFERENCE", ""]
+        ref = os.environ.get("CONAN_REFERENCE", "")
         if ref:
             name, ver = ref.split("/", 1)
             os.environ["CONAN_REFERENCE"] = subdir + "/" + ver

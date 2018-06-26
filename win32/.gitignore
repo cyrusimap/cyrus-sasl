@@ -5,10 +5,10 @@
 .vs
 
 # build directories
-common/
-plugin_*/
-plugins/
-sasl2/
-sasldb/
-x64
-win32
+./common/
+./plugin_*/
+./plugins/
+./sasl2/
+./sasldb/
+./x64
+./win32

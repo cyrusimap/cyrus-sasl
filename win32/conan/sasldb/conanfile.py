@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..
 import conansaslbase
 
 class CyrusSaslSasldbConan(conansaslbase.CyrusSaslBaseConan):
-    name = "cyrus-sasl-saslsb"
+    name = "cyrus-sasl-sasldb"
     description = "Cyrus SASL SASLDB plugin"
     options = {"shared": [True]}
     default_options = "shared=True"

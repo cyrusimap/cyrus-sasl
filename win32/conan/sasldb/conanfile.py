@@ -1,16 +1,16 @@
 from conans import ConanFile, MSBuild
-from conans.tools import replace_in_file
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
-import conansaslbase
 
-class CyrusSaslSasldbConan(conansaslbase.CyrusSaslBaseConan):
+class CyrusSaslSasldbConan(ConanFile):
+    version = "2.1.26"
+    license = "BSD-with-attribution"
+    url = "https://github.com/Ri0n/cyrus-sasl.git"
+    settings = "os", "compiler", "build_type", "arch"
+    exports_sources="../../../*"
+
     name = "cyrus-sasl-sasldb"
     description = "Cyrus SASL SASLDB plugin"
     options = {"shared": [True]}
     default_options = "shared=True"
-    exports_sources="../../../*"
     build_requires = "OpenSSL/1.0.2o@conan/stable"
     requires = "lmdb/0.9.22@rion/stable"
 

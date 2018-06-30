@@ -1,16 +1,20 @@
 from conans import ConanFile, MSBuild
-from conans.tools import replace_in_file
 
 # This is a common library used in every other subproject of cyrus-sasl
 # Even though cyrus-sasl-core.sln builds its own copy of this library
 # making it possible to build static cyrus-sasl while this one is 
 # supposed to be used nly with dynamic runtimes (for dynamic plugins).
 class CyrusSaslCommonConan(ConanFile):
+    version = "2.1.26"
+    license = "BSD-with-attribution"
+    url = "https://github.com/Ri0n/cyrus-sasl.git"
+    settings = "os", "compiler", "build_type", "arch"
+    exports_sources="../../../*"
+
     name = "cyrus-sasl-common"
     description = "Cyrus SASL internal common library"
     options = {"shared": [False]}
     default_options = "shared=False"
-    exports_sources="../../../*"
     requires = "OpenSSL/1.0.2o@conan/stable"
 
     def build(self):

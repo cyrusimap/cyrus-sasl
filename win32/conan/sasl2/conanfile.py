@@ -1,16 +1,16 @@
 from conans import ConanFile, MSBuild
-from conans.tools import replace_in_file
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
-import conansaslbase
 
-class CyrusSaslConan(conansaslbase.CyrusSaslBaseConan):
+class CyrusSaslConan(ConanFile):
+    version = "2.1.26"
+    license = "BSD-with-attribution"
+    url = "https://github.com/Ri0n/cyrus-sasl.git"
+    settings = "os", "compiler", "build_type", "arch"
+    exports_sources="../../../*"
+
     name = "cyrus-sasl-sasl2"
     description = "Simple Authentication and Security Layer (SASL)"
     options = {"shared": [True, False]}
     default_options = "shared=True"
-    exports_sources="../../../*"
     requires = "OpenSSL/1.0.2o@conan/stable"
 
     def build(self):
@@ -27,4 +27,3 @@ class CyrusSaslConan(conansaslbase.CyrusSaslBaseConan):
 
     def package_info(self):
         self.cpp_info.libs = ["sasl2.lib"]
-

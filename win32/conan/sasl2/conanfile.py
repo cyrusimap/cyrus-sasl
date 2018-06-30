@@ -6,17 +6,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..
 import conansaslbase
 
 class CyrusSaslConan(conansaslbase.CyrusSaslBaseConan):
-    name = "cyrus-sasl"
-    version = "2.1.26"
-    license = "BSD-with-attribution"
-    url = "https://github.com/Ri0n/cyrus-sasl.git"
+    name = "cyrus-sasl-sasl2"
     description = "Simple Authentication and Security Layer (SASL)"
-    settings = "os", "compiler", "build_type", "arch"
     options = {"shared": [True, False]}
     default_options = "shared=True"
-    #generators = "visual_studio"
     exports_sources="../../../*"
-    requires = "OpenSSL/1.0.2o@conan/stable" #, "lmdb/0.9.22@rion/stable", "krb5-gssapi/1.16.1@rion/stable"
+    requires = "OpenSSL/1.0.2o@conan/stable"
 
     def build(self):
         msbuild = MSBuild(self)

@@ -7,14 +7,9 @@ from conans.tools import replace_in_file
 # supposed to be used nly with dynamic runtimes (for dynamic plugins).
 class CyrusSaslCommonConan(ConanFile):
     name = "cyrus-sasl-common"
-    version = "2.1.26"
-    license = "BSD-with-attribution"
-    url = "https://github.com/Ri0n/cyrus-sasl.git"
     description = "Cyrus SASL internal common library"
-    settings = "os", "compiler", "build_type", "arch"
     options = {"shared": [False]}
     default_options = "shared=False"
-    generators = "visual_studio"
     exports_sources="../../../*"
     requires = "OpenSSL/1.0.2o@conan/stable"
 

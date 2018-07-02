@@ -55,19 +55,11 @@
       <Value>$(Krb5Dir)</Value>
     </BuildMacro>
   </ItemGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(ConfigurationType)'=='Debug|StaticLibrary'">
+  <PropertyGroup Condition="'$(ConfigurationType)'=='StaticLibrary'">
     <TargetExt>.lib</TargetExt>
-    <TargetName>lib$(ProjectName)d</TargetName>
+    <TargetName>$(ProjectName)</TargetName>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(ConfigurationType)'=='Release|StaticLibrary'">
-    <TargetExt>.lib</TargetExt>
-    <TargetName>lib$(ProjectName)</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(ConfigurationType)'=='Debug|DynamicLibrary'">
-    <TargetExt>.dll</TargetExt>
-    <TargetName>$(ProjectName)d</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(ConfigurationType)'=='Release|DynamicLibrary'">
+  <PropertyGroup Condition="'$(ConfigurationType)'=='DynamicLibrary'">
     <TargetExt>.dll</TargetExt>
     <TargetName>$(ProjectName)</TargetName>
   </PropertyGroup>

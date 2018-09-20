@@ -80,6 +80,7 @@ AC_ARG_ENABLE(cmulocal,
 AC_ARG_ENABLE(sample,
               [AC_HELP_STRING([--enable-sample],
                               [compile sample code [[yes]]])],
+              [],
               enable_sample=yes)
 
 AC_ARG_ENABLE(obsolete_cram_attr,

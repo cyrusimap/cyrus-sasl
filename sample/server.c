@@ -85,7 +85,11 @@
 
 #ifdef HAVE_GSS_GET_NAME_ATTRIBUTE
 #include <gssapi/gssapi.h>
+#ifndef KRB5_HEIMDAL
+#ifdef HAVE_GSSAPI_GSSAPI_EXT_H
 #include <gssapi/gssapi_ext.h>
+#endif
+#endif
 #endif
 
 #include "common.h"

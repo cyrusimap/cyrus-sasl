@@ -149,4 +149,4 @@ passdss_init.c sasldb_init.c sql_init.c ldapdb_init.c
 CLEANFILES=$(init_src)
 
 ${init_src}: $(srcdir)/makeinit.sh
-	$(SHELL) $(srcdir)/makeinit.sh
+	$(SHELL) $(srcdir)/makeinit.sh $@

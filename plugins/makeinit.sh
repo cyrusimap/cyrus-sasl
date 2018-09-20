@@ -1,7 +1,9 @@
+plugin_init="$1"
 # mechanism plugins
 for mech in anonymous crammd5 digestmd5 scram gssapiv2 kerberos4 login ntlm otp passdss plain srp gs2; do
+    if [ ${plugin_init} = "${mech}_init.c" ];then
 
-echo "
+        echo "
 #include <config.h>
 
 #include <string.h>
@@ -43,13 +45,16 @@ BOOL APIENTRY DllMain( HANDLE hModule,
 
 SASL_CLIENT_PLUG_INIT( $mech )
 SASL_SERVER_PLUG_INIT( $mech )
-" > ${mech}_init.c
+"       > ${mech}_init.c
+        echo "generating $1"
+    fi # End of `if [ ${plugin_init} = "${mech}_init.c" ];then'
 done
 
 # auxprop plugins
 for auxprop in sasldb sql ldapdb; do
+    if [ ${plugin_init} = "${auxprop}_init.c" ];then
 
-echo "
+        echo "
 #include <config.h>
 
 #include <string.h>
@@ -86,8 +91,12 @@ BOOL APIENTRY DllMain( HANDLE hModule,
 #endif
 
 SASL_AUXPROP_PLUG_INIT( $auxprop )
-" > ${auxprop}_init.c
+"       > ${auxprop}_init.c
+        echo "generating $1"
+    fi # End of `if [ ${plugin_init} = "${auxprop}_init.c" ];then'
 done
 
 # ldapdb is also a canon_user plugin
-echo "SASL_CANONUSER_PLUG_INIT( ldapdb )" >> ldapdb_init.c
+if [ ${plugin_init} = "ldapdb_init.c" ];then
+    echo "SASL_CANONUSER_PLUG_INIT( ldapdb )" >> ldapdb_init.c
+fi

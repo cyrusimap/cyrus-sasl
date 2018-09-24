@@ -44,8 +44,8 @@ routines.
 
 The sample directory in the code contains two programs which provide a reference
 for using the library, as well as making it easy to test a mechanism
-on the command line.  See <a
-href="programming.html">programming.html</a> for more information.
+on the command line.  See
+the :ref:`Application Programmer's Guide <programming>` for more information.
 
 This library is believed to be thread safe **if**:
 
@@ -79,8 +79,8 @@ Configuration
 There are two main ways to configure the SASL library for a given
 application.  The first (and typically easiest) is to make use
 of the application's configuration files.  Provided the application supports it
-(via the ``SASL_CB_GETOPT`` callback), please refer to that documetation
-for how to supply <a href=options.html>SASL options</a>.
+(via the ``SASL_CB_GETOPT`` callback), please refer to the documentation
+for how to supply :ref:`SASL options <options>`.
 
 Alternatively, Cyrus SASL looks for configuration files in
 /usr/lib/sasl/Appname.conf where Appname is settable by the

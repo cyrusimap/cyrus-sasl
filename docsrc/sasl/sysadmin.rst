@@ -295,7 +295,7 @@ Different SASL applications can use different srvtab files.
 
 A SASL application must be able to read its srvtab or keytab file.
 
-You may want to consult the <a href="gssapi.html">GSSAPI Tutorial</a>.</p>
+You may want to consult the :ref:`GSSAPI Tutorial <gssapi>`.
 
 The OTP mechanism
 -----------------

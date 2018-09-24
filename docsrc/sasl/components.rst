@@ -9,7 +9,7 @@ authentication system, there are a lot of different components
 that often cause confusion to users of the library who are trying to
 configure it for use on their system.  This document will try to provide
 some structure to all of these components, though you will also need
-to read the :ref:`System Administration <sysadmin>` to have a full
+to read the guide for SASL :ref:`System Administrators <sysadmin>` to have a full
 understanding of how to install SASL on your system.
 
 The first thing to realize is that there is a difference between SASL,
@@ -34,8 +34,8 @@ on-the-wire representation of the SASL negotiation, however it performs no
 analysis of the exchange itself.  It relies on the judgment of the SASL
 library whether authentication has occurred or not.  The application is also
 responsible for determining if the authenticated user may authorize as another
-user id (For more details on authentication and authorization identities
-and their differences, see <a href=sysadmin.html>Cyrus SASL for System Administrators</a>)
+user id (for more details on authentication and authorization identities
+and their differences, see the guide for SASL :ref:`System Administrators <sysadmin>`).
 
 Examples of applications are Cyrus IMAPd, OpenLDAP, Sendmail, Mutt,
 sieveshell, cyradm, and many others.

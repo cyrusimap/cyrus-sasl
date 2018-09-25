@@ -302,7 +302,7 @@ int sasl_utf8verify(const char *str, unsigned len)
     if (seqlen == 1) return SASL_BADPROT; /* this shouldn't happen here */
     if (seqlen > 6) return SASL_BADPROT; /* illegal */
     while (--seqlen)
-      if ((str[++i] & 0xC0) != 0xF0) return SASL_BADPROT; /* needed a 10 octet */
+      if ((str[++i] & 0xC0) != 0x80) return SASL_BADPROT; /* needed a 10 octet */
   }
   return SASL_OK;
 }      

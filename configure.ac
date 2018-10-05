@@ -1125,17 +1125,15 @@ AC_SUBST(SASL_STATIC_OBJS)
 AC_SUBST(SASL_STATIC_LIBS)
 
 AC_ARG_WITH(plugindir, [  --with-plugindir=DIR    set the directory where plugins will
-                          be found [[/usr/lib/sasl2]] ],
+                          be found [[LIBDIR/sasl2]] ],
   plugindir=$withval,
-  plugindir=/usr/lib/sasl2)
-AC_DEFINE_UNQUOTED(PLUGINDIR, "$plugindir", [Runtime plugin location])
+  plugindir='${libdir}/sasl2')
 AC_SUBST(plugindir)
 
 AC_ARG_WITH(configdir, [   --with-configdir=DIR    set the directory where config files will
-                          be found [/usr/lib/sasl2] ],
+                          be found [PLUGINDIR:SYSCONFDIR/sasl2] ],
   configdir=$withval,
-  configdir=$plugindir:/etc/sasl2)
-AC_DEFINE_UNQUOTED(CONFIGDIR, "$configdir", [Runtime config file location])
+  configdir='${plugindir}:${sysconfdir}/sasl2')
 AC_SUBST(configdir)
 
 dnl look for rc4 libraries. we accept the CMU one or one from openSSL

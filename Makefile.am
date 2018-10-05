@@ -149,24 +149,6 @@ dist-hook:
 	rm -rf $(top_distdir)/$(SPHINX_CACHE)
 
 framedir = /Library/Frameworks/SASL2.framework
-install-exec-local: $(INSTALLOSX)
-	@if test "$(plugindir)" != "$(prefix)/lib/sasl2"; then \
-	  echo "********************************************************"; \
-	  echo "* WARNING:"; \
-	  echo "* Plugins are being installed into $(prefix)/lib/sasl2,"; \
-	  echo "* but the library will look for them in $(plugindir)."; \
-	  echo "* You need to make sure that the plugins will eventually"; \
-	  echo "* be in $(plugindir) -- the easiest way is to make a"; \
-	  echo "* symbolic link from $(plugindir) to $(prefix)/lib/sasl2,"; \
-	  echo "* but this may not be appropriate for your site, so this"; \
-	  echo "* installation procedure won't do it for you."; \
-	  echo "*"; \
-          echo "* If you don't want to do this for some reason, you can"; \
-          echo "* set the location where the library will look for plugins"; \
-	  echo "* by setting the environment variable SASL_PATH to the path"; \
-	  echo "* the library should use."; \
-	  echo "********************************************************"; \
-	fi
 install-exec-local-osx:
 	$(mkinstalldirs) $(framedir)/Versions/A/Headers
 	$(mkinstalldirs) $(framedir)/Versions/A/Resources

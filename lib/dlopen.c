@@ -157,9 +157,8 @@ char *dlerror()
 #else
 #define SO_SUFFIX	".sl"
 #endif /* __ia64 */
-#elif defined(__APPLE__)
-#define SO_SUFFIX	".plugin"
-#else /* __APPLE__ */
+
+#else /* __hpux */
 #define SO_SUFFIX	".so"
 #endif
 

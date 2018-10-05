@@ -65,7 +65,7 @@ LIB_MYSQL = @LIB_MYSQL@
 
 plugindir = @plugindir@
 
-sasldir = $(prefix)/lib/sasl2
+sasldir = $(plugindir)
 sasl_LTLIBRARIES = @SASL_MECHS@
 EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la \
 	libgs2.la libgssapiv2.la libdigestmd5.la liblogin.la libsrp.la libotp.la \

@@ -279,38 +279,6 @@ fi
 dnl See if we can provide a default logging function...
 AC_CHECK_FUNCS(syslog)
 
-AC_ARG_WITH(pam, [  --with-pam=DIR          use PAM (rooted in DIR) [[yes]] ],
-	with_pam=$withval,
-	with_pam=yes)
-if test "$with_pam" != no; then
-  if test -d $with_pam; then
-    CPPFLAGS="$CPPFLAGS -I${with_pam}/include"
-    LDFLAGS="$LDFLAGS -L${with_pam}/lib"
-  fi
-  AC_CHECK_HEADERS(security/pam_appl.h pam/pam_appl.h)
-  cmu_save_LIBS="$LIBS"
-  AC_CHECK_FUNC(pam_start, :,
-	LIBS="-lpam $LIBS"
-	AC_TRY_LINK([[
-#include <sys/types.h>
-#ifdef HAVE_PAM_PAM_APPL_H
-#include <pam/pam_appl.h>
-#endif
-#ifdef HAVE_SECURITY_PAM_H
-#include <security/pam_appl.h>
-#endif]],[[
-const char *service="foo";
-const char *user="bar";
-pam_handle_t *pamh;
-struct pam_conv *conv;
-int baz;
-baz = pam_start(service, user, conv, &pamh);
-return 0;
-]], LIBPAM="-lpam")
-)
-  LIBS="$cmu_save_LIBS $LIBPAM"
-fi
-
 AC_ARG_WITH(saslauthd, [  --with-saslauthd=DIR    enable use of the saslauth daemon using state dir DIR ],
 		with_saslauthd=$withval,
 		with_saslauthd=yes)
@@ -631,8 +599,7 @@ if test "$httpform" != no; then
   AC_DEFINE(HAVE_HTTPFORM,[],[Include HTTP form Support])
 fi
 
-AC_ARG_WITH(pam, [  --with-pam=DIR          use PAM (rooted in DIR) [yes] ],
-	with_pam=$withval,
+AC_ARG_WITH(pam, AC_HELP_STRING([--with-pam=DIR], [use PAM (rooted in DIR) [yes]]),,
 	with_pam=yes)
 if test "$with_pam" != no; then
   if test -d $with_pam; then

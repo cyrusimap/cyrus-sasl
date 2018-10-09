@@ -1028,7 +1028,7 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, const void **pvalue)
 	  *((const char **)pvalue) = conn->oparams.gss_peer_name;
       break;
   case SASL_GSS_LOCAL_NAME:
-      if(! conn->oparams.gss_peer_name)
+      if(! conn->oparams.gss_local_name)
 	  result = SASL_NOTDONE;
       else
 	  *((const char **)pvalue) = conn->oparams.gss_local_name;

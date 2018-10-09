@@ -532,4 +532,9 @@ extern int gethostname(char *, int);
 #endif
 #endif /* HAVE_GETHOSTNAME */
 
+#ifdef WIN32
+char* _sasl_wchar_to_utf8(WCHAR *str);
+WCHAR* _sasl_utf8_to_wchar(const char *str);
+#endif
+
 #endif /* SASLINT_H */

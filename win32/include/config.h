@@ -50,6 +50,7 @@
    Note that we can't include both winsock.h and winsock2.h as
    they conflict */
 #include <winsock2.h>
+#include <tchar.h>
 
 /* Our package */
 #define PACKAGE "cyrus-sasl"
@@ -78,9 +79,9 @@ typedef int		    intptr_t;
 #endif
 
 /* Registry key that contains the locations of the plugins */
-#define SASL_ROOT_KEY "SOFTWARE\\Carnegie Mellon\\Project Cyrus\\SASL Library"
-#define SASL_PLUGIN_PATH_ATTR "SearchPath"
-#define SASL_CONF_PATH_ATTR "ConfFile"
+#define SASL_ROOT_KEY _T("SOFTWARE\\Carnegie Mellon\\Project Cyrus\\SASL Library")
+#define SASL_PLUGIN_PATH_ATTR _T("SearchPath")
+#define SASL_CONF_PATH_ATTR _T("ConfFile")
 
 /* : This should probably be replaced with a call to a function
    : that gets the proper value from Registry */
@@ -93,34 +94,38 @@ typedef int		    intptr_t;
 
 /* which mechs can we link statically? */
 #define STATIC_ANONYMOUS 1
-#define STATIC_CRAMMD5 1
+/* #define STATIC_CRAMMD5 1 */
 #define STATIC_DIGESTMD5 1
-#define STATIC_SCRAM 1
-#define STATIC_GSSAPIV2 1
+/* #define STATIC_GSSAPIV2 1 */
 /* #undef STATIC_KERBEROS4 */
-#define STATIC_LOGIN 1
+/* #define STATIC_LOGIN 1 */
 /* #undef STATIC_MYSQL */
-#define STATIC_OTP 1
+#define STATIC_NTLM 1
+/* #define STATIC_OTP 1 */
 #define STATIC_PLAIN 1
-#define STATIC_SASLDB 1
-#define STATIC_SRP 1
+/* #define STATIC_SASLDB 1 */
+#define STATIC_SCRAM 1
+/* #define STATIC_SRP 1 */
 
 /* ------------------------------------------------------------ */
 
 /* Things that are fetched via autoconf under Unix
  */
 #define HAVE_MEMCPY 1
+#define HAVE_OPENSSL 1
 
 #define PLUGINDIR "C:\\CMU\\bin\\sasl2"
 #define CONFIGDIR "C:\\CMU\\bin\\sasl2"
 
 /* Windows calls these functions something else
  */
-#define strcasecmp   stricmp
+#define strcasecmp   _stricmp
 #if defined (_MSC_VER) && (_MSC_VER < 1900)
 #define snprintf    _snprintf
 #endif
-#define strncasecmp  strnicmp
+#define strncasecmp  _strnicmp
+#define strdup  _strdup
+#define sasl_getpid  GetCurrentThreadId
 
 #define MAXHOSTNAMELEN 1024
 

@@ -46,6 +46,7 @@
 #ifndef macintosh
 #ifdef WIN32
 # include <winsock2.h>
+# include <VersionHelpers.h>
 #else
 # include <sys/socket.h>
 # include <netinet/in.h>
@@ -824,91 +825,80 @@ char * _plug_get_error_message (const sasl_utils_t *utils,
 void _plug_snprintf_os_info (char * osbuf, int osbuf_len)
 {
 #ifdef WIN32
-    OSVERSIONINFOEX versioninfo;
     char *sysname;
-
-/* :
-  DWORD dwOSVersionInfoSize; 
-  DWORD dwMajorVersion; 
-  DWORD dwMinorVersion; 
-  DWORD dwBuildNumber; 
-  TCHAR szCSDVersion[ 128 ];
-//Only NT SP 6 and later
-  WORD wServicePackMajor;
-  WORD wServicePackMinor;
-  WORD wSuiteMask;
-  BYTE wProductType;
- */
-
-    versioninfo.dwOSVersionInfoSize = sizeof (versioninfo);
     sysname = "Unknown Windows";
 
-    if (GetVersionEx ((OSVERSIONINFO *) &versioninfo) == FALSE) {
+/* Let's suppose it's still compilable with win2k sdk. So define everythig missing */
+#ifndef _WIN32_WINNT_WINXP
+# define _WIN32_WINNT_WINXP                  0x0501
+#endif
+#ifndef _WIN32_WINNT_WS03
+# define _WIN32_WINNT_WS03                   0x0502
+#endif
+#ifndef _WIN32_WINNT_WIN6
+# define _WIN32_WINNT_WIN6                   0x0600
+#endif
+#ifndef _WIN32_WINNT_VISTA
+# define _WIN32_WINNT_VISTA                  0x0600
+#endif
+#ifndef _WIN32_WINNT_WS08
+# define _WIN32_WINNT_WS08                   0x0600
+#endif
+#ifndef _WIN32_WINNT_LONGHORN
+# define _WIN32_WINNT_LONGHORN               0x0600
+#endif
+#ifndef _WIN32_WINNT_WIN7
+# define _WIN32_WINNT_WIN7                   0x0601
+#endif
+#ifndef _WIN32_WINNT_WIN8
+# define _WIN32_WINNT_WIN8                   0x0602
+#endif
+#ifndef _WIN32_WINNT_WINBLUE
+# define _WIN32_WINNT_WINBLUE                0x0603
+#endif
+#ifndef _WIN32_WINNT_WIN10
+# define _WIN32_WINNT_WIN10                  0x0A00
+#endif
+
+    /* and use IsWindowsVersionOrGreater instead of convenient wrappers by the same reason */
+    if (IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN10), LOBYTE(_WIN32_WINNT_WIN10), 0)) {
+        sysname = "Windows 10 or greater";
+    } else
+    if (IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINBLUE), LOBYTE(_WIN32_WINNT_WINBLUE), 0)) {
+        sysname = "Windows 8.1";
+    } else
+    if (IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN8), LOBYTE(_WIN32_WINNT_WIN8), 0)) {
+        sysname = "Windows 8";
+    } else
+    if (IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN7), LOBYTE(_WIN32_WINNT_WIN7), 1)) {
+        sysname = "Windows 7 SP1";
+    } else
+    if (IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN7), LOBYTE(_WIN32_WINNT_WIN7), 0)) {
+        sysname = "Windows 7";
+    } else
+    if (IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_VISTA), LOBYTE(_WIN32_WINNT_VISTA), 2)) {
+        sysname = "Windows Vista SP2";
+    } else
+    if (IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_VISTA), LOBYTE(_WIN32_WINNT_VISTA), 1)) {
+        sysname = "Windows Vista SP1";
+    } else
+    if (IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_VISTA), LOBYTE(_WIN32_WINNT_VISTA), 0)) {
+        sysname = "Windows Vista";
+    } else
+    if (IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINXP), LOBYTE(_WIN32_WINNT_WINXP), 3)) {
+        sysname = "Windows XP SP3";
+    } else
+    if (IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINXP), LOBYTE(_WIN32_WINNT_WINXP), 2)) {
+        sysname = "Windows XP SP2";
+    } else
+    if (IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINXP), LOBYTE(_WIN32_WINNT_WINXP), 1)) {
+        sysname = "Windows XP SP1";
+    } else
+    if (IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINXP), LOBYTE(_WIN32_WINNT_WINXP), 0)) {
+        sysname = "Windows XP";
+    }
+
 	snprintf(osbuf, osbuf_len, "%s", sysname);
-	goto SKIP_OS_INFO;
-    }
-
-    switch (versioninfo.dwPlatformId) {
-	case VER_PLATFORM_WIN32s: /* Win32s on Windows 3.1 */
-	    sysname = "Win32s on Windows 3.1";
-/* I can't test if dwBuildNumber has any meaning on Win32s */
-	    break;
-
-	case VER_PLATFORM_WIN32_WINDOWS: /* 95/98/ME */
-	    switch (versioninfo.dwMinorVersion) {
-		case 0:
-		    sysname = "Windows 95";
-		    break;
-		case 10:
-		    sysname = "Windows 98";
-		    break;
-		case 90:
-		    sysname = "Windows Me";
-		    break;
-		default:
-		    sysname = "Unknown Windows 9X/ME series";
-		    break;
-	    }
-/* Clear the high order word, as it contains major/minor version */
-	    versioninfo.dwBuildNumber &= 0xFFFF;
-	    break;
-
-	case VER_PLATFORM_WIN32_NT: /* NT/2000/XP/.NET */
-	    if (versioninfo.dwMinorVersion > 99) {
-	    } else {
-		switch (versioninfo.dwMajorVersion * 100 + versioninfo.dwMinorVersion) {
-		    case 351:
-			sysname = "Windows NT 3.51";
-			break;
-		    case 400:
-			sysname = "Windows NT 4.0";
-			break;
-		    case 500:
-			sysname = "Windows 2000";
-			break;
-		    case 501:
-			sysname = "Windows XP/.NET"; /* or Windows .NET Server */
-			break;
-		    default:
-			sysname = "Unknown Windows NT series";
-			break;
-		}
-	    }
-	    break;
-
-	default:
-	    break;
-    }
-
-    snprintf(osbuf, osbuf_len,
-	     "%s %s (Build %u)",
-	     sysname,
-	     versioninfo.szCSDVersion,
-	     versioninfo.dwBuildNumber
-	     );
-
-SKIP_OS_INFO:
-    ;
 
 #else /* !WIN32 */
     struct utsname os;

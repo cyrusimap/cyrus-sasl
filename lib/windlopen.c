@@ -49,10 +49,11 @@
 #include <config.h>
 #include <sasl.h>
 #include "saslint.h"
+#include "staticopen.h"
 
-#define DLL_SUFFIX	".dll"
-#define DLL_MASK	"*" DLL_SUFFIX
-#define DLL_MASK_LEN	5
+#define DLL_SUFFIX	_T(".dll")
+#define DLL_MASK	_T("*") DLL_SUFFIX
+#define DLL_MASK_LEN	5 /* in symbols */
 
 const int _is_sasl_server_static = 0;
 
@@ -101,7 +102,7 @@ int _sasl_locate_entry(void *library,
     return SASL_OK;
 }
 
-static int _sasl_plugin_load(char *plugin, void *library,
+static int _sasl_plugin_load(const char *plugin, void *library,
 			     const char *entryname,
 			     int (*add_plugin)(const char *, void *)) 
 {
@@ -121,26 +122,42 @@ static int _sasl_plugin_load(char *plugin, void *library,
 }
 
 /* loads a plugin library */
-int _sasl_get_plugin(const char *file,
-		     const sasl_callback_t *verifyfile_cb,
-		     void **libraryptr)
+static int _tsasl_get_plugin(TCHAR *tfile,
+    const sasl_callback_t *verifyfile_cb,
+    void **libraryptr)
 {
-    int r = 0;
-    HINSTANCE library;
+    HINSTANCE library = NULL;
     lib_list_t *newhead;
-    
-    r = ((sasl_verifyfile_t *)(verifyfile_cb->proc))
+    char *file;
+    int retCode = SASL_OK;
+
+    if (sizeof(TCHAR) != sizeof(char)) {
+        file = _sasl_wchar_to_utf8(tfile);
+        if (!file) {
+            retCode = SASL_NOMEM;
+            goto cleanup;
+        }
+    }
+    else {
+        file = (char*)tfile;
+    }
+    retCode = ((sasl_verifyfile_t *)(verifyfile_cb->proc))
 		    (verifyfile_cb->context, file, SASL_VRFY_PLUGIN);
-    if (r != SASL_OK) return r;
+    if (retCode != SASL_OK)
+        goto cleanup;
 
     newhead = sasl_ALLOC(sizeof(lib_list_t));
-    if (!newhead) return SASL_NOMEM;
+    if (!newhead) {
+        retCode = SASL_NOMEM;
+        goto cleanup;
+    }
 
-    if (!(library = LoadLibrary (file))) {
-	_sasl_log(NULL, SASL_LOG_ERR,
-		  "unable to LoadLibrary %s: %s", file, GetLastError());
-	sasl_FREE(newhead);
-	return SASL_FAIL;
+    if (!(library = LoadLibrary(tfile))) {
+	    _sasl_log(NULL, SASL_LOG_ERR,
+		      "unable to LoadLibrary %s: %s", file, GetLastError());
+	    sasl_FREE(newhead);
+        retCode = SASL_FAIL;
+        goto cleanup;
     }
 
     newhead->library = library;
@@ -148,8 +165,33 @@ int _sasl_get_plugin(const char *file,
     lib_list_head = newhead;
 
     *libraryptr = library;
-    return SASL_OK;
+cleanup:
+    if (sizeof(TCHAR) != sizeof(char)) {
+        sasl_FREE(file);
+    }
+    return retCode;
 }
+
+int _sasl_get_plugin(const char *file,
+    const sasl_callback_t *verifyfile_cb,
+    void **libraryptr)
+{
+    if (sizeof(TCHAR) == sizeof(char)) {
+        return _tsasl_get_plugin((TCHAR*)file, verifyfile_cb, libraryptr);
+    }
+    else {
+        WCHAR *tfile = _sasl_utf8_to_wchar(file);
+        int ret = SASL_NOMEM;
+
+        if (tfile) {
+            ret = _tsasl_get_plugin(tfile, verifyfile_cb, libraryptr);
+            sasl_FREE(tfile);
+        }
+
+        return ret;
+    }
+}
+
 
 /* undoes actions done by _sasl_get_plugin */
 void _sasl_remove_last_plugin()
@@ -168,18 +210,25 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
 		       const sasl_callback_t *verifyfile_cb)
 {
     int result;
-    char cur_dir[PATH_MAX], full_name[PATH_MAX+2], prefix[PATH_MAX+2];
+    TCHAR cur_dir[PATH_MAX], full_name[PATH_MAX+2], prefix[PATH_MAX+2];
 				/* 1 for '\\' 1 for trailing '\0' */
-    char * pattern;
-    char c;
+    TCHAR * pattern;
+    TCHAR c;
     int pos;
-    const char *path=NULL;
+    int retCode = SASL_OK;
+    char *utf8path = NULL;
+    TCHAR *path=NULL;
     int position;
     const add_plugin_list_t *cur_ep;
-    struct stat statbuf;		/* filesystem entry information */
+    struct _stat statbuf;		/* filesystem entry information */
     intptr_t fhandle;			/* file handle for _findnext function */
-    struct _finddata_t finddata;	/* data returned by _findnext() */
+    struct _tfinddata_t finddata;	/* data returned by _findnext() */
     size_t prefix_len;
+    
+    /* for static plugins */
+    add_plugin_t *add_plugin;
+    _sasl_plug_type type;
+    _sasl_plug_rec *p;
 
     if (! entrypoints
 	|| ! getpath_cb
@@ -190,14 +239,54 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
 	|| ! verifyfile_cb->proc)
 	return SASL_BADPARAM;
 
+    /* do all the static plugins first */
+
+    for (cur_ep = entrypoints; cur_ep->entryname; cur_ep++) {
+
+        /* What type of plugin are we looking for? */
+        if (!strcmp(cur_ep->entryname, "sasl_server_plug_init")) {
+            type = SERVER;
+            add_plugin = (add_plugin_t *)sasl_server_add_plugin;
+        }
+        else if (!strcmp(cur_ep->entryname, "sasl_client_plug_init")) {
+            type = CLIENT;
+            add_plugin = (add_plugin_t *)sasl_client_add_plugin;
+        }
+        else if (!strcmp(cur_ep->entryname, "sasl_auxprop_plug_init")) {
+            type = AUXPROP;
+            add_plugin = (add_plugin_t *)sasl_auxprop_add_plugin;
+        }
+        else if (!strcmp(cur_ep->entryname, "sasl_canonuser_init")) {
+            type = CANONUSER;
+            add_plugin = (add_plugin_t *)sasl_canonuser_add_plugin;
+        }
+        else {
+            /* What are we looking for then? */
+            return SASL_FAIL;
+        }
+        for (p = _sasl_static_plugins; p->type; p++) {
+            if (type == p->type)
+                result = add_plugin(p->name, p->plug);
+        }
+    }
+
     /* get the path to the plugins */
     result = ((sasl_getpath_t *)(getpath_cb->proc))(getpath_cb->context,
-						    &path);
+						    &utf8path);
     if (result != SASL_OK) return result;
-    if (! path) return SASL_FAIL;
+    if (!utf8path) return SASL_FAIL;
 
-    if (strlen(path) >= PATH_MAX) { /* no you can't buffer overrun */
-	return SASL_FAIL;
+    if (sizeof(TCHAR) == sizeof(char)) {
+        path = (TCHAR*)utf8path;
+    }
+    else {
+        path = _sasl_utf8_to_wchar(utf8path);
+        if (!path) return SASL_FAIL;
+    }
+
+    if (_tcslen(path) >= PATH_MAX) { /* no you can't buffer overrun */
+	    retCode = SASL_FAIL;
+        goto cleanup;
     }
 
     position=0;
@@ -213,33 +302,33 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
 
 
 /* : check to make sure that a valid directory name was passed in */
-	if (stat (cur_dir, &statbuf) < 0) {
+	if (_tstat (cur_dir, &statbuf) < 0) {
 	    continue;
 	}
 	if ((statbuf.st_mode & S_IFDIR) == 0) {
 	    continue;
 	}
 
-	strcpy (prefix, cur_dir);
-	prefix_len = strlen (prefix);
+    _tcscpy(prefix, cur_dir);
+	prefix_len = _tcslen (prefix);
 
 /* : Don't append trailing \ unless required */
 	if (prefix[prefix_len-1] != '\\') {
-	    strcat (prefix,"\\");
+        _tcscat(prefix,_T("\\"));
 	    prefix_len++;
 	}
 
 	pattern = prefix;
 
 /* : Check that we have enough space for "*.dll" */
-	if ((prefix_len + DLL_MASK_LEN) > (sizeof(prefix) - 1)) {
+	if ((prefix_len + DLL_MASK_LEN) > (sizeof(prefix) / sizeof(TCHAR) - 1)) {
 	    _sasl_log(NULL, SASL_LOG_WARN, "plugin search mask is too big");
             continue;
 	}
 
-	strcat (prefix + prefix_len, "*" DLL_SUFFIX);
+	_tcscat (prefix + prefix_len, _T("*") DLL_SUFFIX);
 
-        fhandle = _findfirst (pattern, &finddata);
+        fhandle = _tfindfirst (pattern, &finddata);
         if (fhandle == -1) {	/* no matching files */
             continue;
         }
@@ -254,7 +343,7 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
 	    char plugname[PATH_MAX];
 	    int entries;
 
-	    length = strlen(finddata.name);
+	    length = _tcslen(finddata.name);
 	    if (length < 5) { /* At least <Ch>.dll */
 		continue; /* can not possibly be what we're looking for */
 	    }
@@ -262,7 +351,7 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
 /* : Check for overflow */
 	    if (length + prefix_len >= PATH_MAX) continue; /* too big */
 
-	    if (stricmp(finddata.name + (length - strlen(DLL_SUFFIX)), DLL_SUFFIX) != 0) {
+	    if (_tcscmp(finddata.name + (length - _tcslen(DLL_SUFFIX)), DLL_SUFFIX) != 0) {
 		continue;
 	    }
 
@@ -273,15 +362,22 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
 
 /* : Construct full name from prefix and name */
 
-	    strcpy (full_name, prefix);
-	    strcat (full_name, finddata.name);
+        _tcscpy (full_name, prefix);
+        _tcscat (full_name, finddata.name);
 		
 /* cut off .dll suffix -- this only need be approximate */
-	    strcpy (plugname, finddata.name);
-	    c = strrchr(plugname, '.');
+        if (sizeof(TCHAR) != sizeof(char)) {
+            if (WideCharToMultiByte(CP_UTF8, 0, finddata.name, -1, plugname, sizeof(plugname), NULL, NULL) == 0) { // in case of unicode use utf8
+                continue;
+            }
+        }
+        else {
+            _tcscpy((TCHAR*)plugname, finddata.name); // w/o unicode local enconding is fine
+        }
+	    c = strchr(plugname, '.');
 	    if (c != NULL) *c = '\0';
 
-	    result = _sasl_get_plugin (full_name, verifyfile_cb, &library);
+	    result = _tsasl_get_plugin (full_name, verifyfile_cb, &library);
 
 	    if (result != SASL_OK) {
 		continue;
@@ -302,13 +398,17 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
 		_sasl_remove_last_plugin();
 	    }
 
-	} while (_findnext (fhandle, &finddata) == 0);
+	} while (_tfindnext (fhandle, &finddata) == 0);
 	
 	_findclose (fhandle);
 
     } while ((c!='=') && (c!=0));
 
-    return SASL_OK;
+cleanup:
+    if (sizeof(TCHAR) != sizeof(char)) {
+        sasl_FREE(path); /* It's always allocated in coversion to wchar */
+    }
+    return retCode;
 }
 
 int

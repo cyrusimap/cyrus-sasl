@@ -73,6 +73,10 @@
   typedef int SOCKET;
 #endif /* WIN32 */
 
+#ifndef sasl_getpid /* for some reason VS doesn't like #define getpid */
+# define sasl_getpid getpid
+#endif
+
 #include <openssl/md4.h>
 #include <openssl/md5.h>
 #include <openssl/hmac.h>
@@ -996,7 +1000,7 @@ static int smb_negotiate_protocol(const sasl_utils_t *utils,
     hdr.flags2 = SMB_FLAGS2_ERR_STATUS;
     if (text->flags & NTLM_USE_UNICODE) hdr.flags2 |= SMB_FLAGS2_UNICODE;
 #endif
-    current_pid = getpid();
+    current_pid = sasl_getpid();
     if (sizeof(current_pid) <= 2) {
 	hdr.pid = (uint16) current_pid;
 	hdr.PidHigh = 0;
@@ -1187,7 +1191,7 @@ static int smb_session_setup(const sasl_utils_t *utils, server_context_t *text,
     hdr.flags2 = SMB_FLAGS2_ERR_STATUS;
     if (text->flags & NTLM_USE_UNICODE) hdr.flags2 |= SMB_FLAGS2_UNICODE;
 #endif
-    current_pid = getpid();
+    current_pid = sasl_getpid();
     if (sizeof(current_pid) <= 2) {
 	hdr.pid = (uint16) current_pid;
 	hdr.PidHigh = 0;

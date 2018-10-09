@@ -1,0 +1,14 @@
+*.user
+*.filters
+*.VC.opendb
+*.VC.db
+.vs
+
+# build directories
+./common/
+./plugin_*/
+./plugins/
+./sasl2/
+./sasldb/
+./x64
+./win32

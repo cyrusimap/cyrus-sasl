@@ -1828,7 +1828,7 @@ _sasl_log (sasl_conn_t *conn,
 	   const char *fmt,
 	   ...)
 {
-  char *out=(char *) sasl_ALLOC(250);
+  char *out = NULL;
   size_t alloclen=100; /* current allocated length */
   size_t outlen=0; /* current length of output buffer */
   size_t formatlen;
@@ -1842,9 +1842,11 @@ _sasl_log (sasl_conn_t *conn,
   char *cval;
   va_list ap; /* varargs thing */
 
-  if(!fmt) goto done;
-  if(!out) return;
+  if(!fmt) return;
   
+  out = (char *) sasl_ALLOC(250);
+  if(!out) return;
+
   formatlen = strlen(fmt);
 
   /* See if we have a logging callback... */
@@ -1981,12 +1983,11 @@ _sasl_log (sasl_conn_t *conn,
   if (result != SASL_OK) goto done;
   out[outlen]=0;
 
-  va_end(ap);    
-
   /* send log message */
   result = log_cb(log_ctx, level, out);
 
  done:
+  va_end(ap);
   if(out) sasl_FREE(out);
 }
 

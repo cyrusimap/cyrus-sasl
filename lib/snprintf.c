@@ -245,7 +245,7 @@ static void dopr (char *buffer, size_t maxlen, const char *format, va_list args)
       case 'd':
       case 'i':
 	if (cflags == DP_C_SHORT) 
-	  value = va_arg (args, short int);
+	  value = (short int) va_arg (args, int);
 	else if (cflags == DP_C_LONG)
 	  value = va_arg (args, long int);
 	else
@@ -255,7 +255,7 @@ static void dopr (char *buffer, size_t maxlen, const char *format, va_list args)
       case 'o':
 	flags |= DP_F_UNSIGNED;
 	if (cflags == DP_C_SHORT)
-	  value = va_arg (args, unsigned short int);
+	  value = (unsigned short int) va_arg (args, int);
 	else if (cflags == DP_C_LONG)
 	  value = va_arg (args, unsigned long int);
 	else
@@ -265,7 +265,7 @@ static void dopr (char *buffer, size_t maxlen, const char *format, va_list args)
       case 'u':
 	flags |= DP_F_UNSIGNED;
 	if (cflags == DP_C_SHORT)
-	  value = va_arg (args, unsigned short int);
+	  value = (unsigned short int) va_arg (args, int);
 	else if (cflags == DP_C_LONG)
 	  value = va_arg (args, unsigned long int);
 	else
@@ -274,10 +274,13 @@ static void dopr (char *buffer, size_t maxlen, const char *format, va_list args)
 	break;
       case 'X':
 	flags |= DP_F_UP;
+
+	GCC_FALLTHROUGH
+
       case 'x':
 	flags |= DP_F_UNSIGNED;
 	if (cflags == DP_C_SHORT)
-	  value = va_arg (args, unsigned short int);
+	  value = (unsigned short int) va_arg (args, int);
 	else if (cflags == DP_C_LONG)
 	  value = va_arg (args, unsigned long int);
 	else
@@ -294,6 +297,9 @@ static void dopr (char *buffer, size_t maxlen, const char *format, va_list args)
 	break;
       case 'E':
 	flags |= DP_F_UP;
+
+	GCC_FALLTHROUGH
+
       case 'e':
 	if (cflags == DP_C_LDOUBLE)
 	  fvalue = va_arg (args, long double);
@@ -302,6 +308,9 @@ static void dopr (char *buffer, size_t maxlen, const char *format, va_list args)
 	break;
       case 'G':
 	flags |= DP_F_UP;
+
+	GCC_FALLTHROUGH
+
       case 'g':
 	if (cflags == DP_C_LDOUBLE)
 	  fvalue = va_arg (args, long double);
@@ -509,7 +518,7 @@ static long double abs_val (long double value)
   return result;
 }
 
-static long double pow10 (int exp)
+static long double my_pow10 (int exp)
 {
   long double result = 1;
 
@@ -522,7 +531,7 @@ static long double pow10 (int exp)
   return result;
 }
 
-static long round (long double value)
+static long my_round (long double value)
 {
   long intpart;
 
@@ -583,12 +592,12 @@ static void fmtfp (char *buffer, size_t *currlen, size_t maxlen,
   /* We "cheat" by converting the fractional part to integer by
    * multiplying by a factor of 10
    */
-  fracpart = round ((pow10 (max)) * (ufvalue - intpart));
+  fracpart = my_round ((my_pow10 (max)) * (ufvalue - intpart));
 
-  if (fracpart >= pow10 (max))
+  if (fracpart >= my_pow10 (max))
   {
     intpart++;
-    fracpart -= pow10 (max);
+    fracpart -= my_pow10 (max);
   }
 
 #ifdef DEBUG_SNPRINTF

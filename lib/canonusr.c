@@ -333,7 +333,8 @@ int sasl_canonuser_add_plugin(const char *plugname,
     new_item = sasl_ALLOC(sizeof(canonuser_plug_list_t));
     if(!new_item) return SASL_NOMEM;
 
-    strncpy(new_item->name, plugname, PATH_MAX);
+    strncpy(new_item->name, plugname, PATH_MAX - 1);
+    new_item->name[strlen(plugname)] = '\0';
 
     new_item->plug = plug;
     new_item->next = canonuser_head;

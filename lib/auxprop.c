@@ -390,6 +390,10 @@ void prop_clear(struct propctx *ctx, int requests)
     /* We're going to need a new proppool once we reset things */
     new_pool = alloc_proppool(ctx->mem_base->size +
 			      (ctx->used_values+1) * sizeof(struct propval));
+    if (new_pool == NULL) {
+        _sasl_log(NULL, SASL_LOG_ERR, "failed to allocate memory\n");
+        exit(1);
+    }
 
     if(requests) {
 	/* We're wiping the whole shebang */

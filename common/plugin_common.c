@@ -256,12 +256,14 @@ int _plug_buf_alloc(const sasl_utils_t *utils, char **rwbuf,
 int _plug_strdup(const sasl_utils_t * utils, const char *in,
 		 char **out, int *outlen)
 {
-  size_t len = strlen(in);
+  size_t len = 0;
 
   if(!utils || !in || !out) {
       if(utils) PARAMERROR(utils);
       return SASL_BADPARAM;
   }
+
+  len = strlen(in);
 
   *out = utils->malloc(len + 1);
   if (!*out) {

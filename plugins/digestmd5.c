@@ -1961,6 +1961,8 @@ digestmd5_server_mech_step1(server_context_t *stext,
 		strcat(qop, "auth-conf");
 		added_conf = 1;
 	    }
+	    if (strlen(cipheropts) + strlen(cipher->name) + 1 >= 1024)
+		return SASL_FAIL;
 	    if (*cipheropts) strcat(cipheropts, ",");
 	    strcat(cipheropts, cipher->name);
 	}

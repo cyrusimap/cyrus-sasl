@@ -208,6 +208,8 @@ int main(int argc, char **argv)
 	*p = '_';
     }
     f = fopen(argv[1], "w");
+    if (f == NULL)
+      return 1;
   }
 
   print_pre(f);

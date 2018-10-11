@@ -94,8 +94,10 @@ int _sasl_canon_user(sasl_conn_t *conn,
 	return SASL_BADPARAM;
     }
     
-    if(conn->type == SASL_CONN_SERVER) sconn = (sasl_server_conn_t *)conn;
-    else if(conn->type == SASL_CONN_CLIENT) cconn = (sasl_client_conn_t *)conn;
+    if (conn->type == SASL_CONN_SERVER)
+      sconn = (sasl_server_conn_t *)conn;
+    else if (conn->type == SASL_CONN_CLIENT)
+      cconn = (sasl_client_conn_t *)conn;
     else return SASL_FAIL;
     
     if(!ulen) ulen = (unsigned int)strlen(user);
@@ -111,7 +113,7 @@ int _sasl_canon_user(sasl_conn_t *conn,
 			  user,
 			  ulen,
 			  flags,
-			  (conn->type == SASL_CONN_SERVER ?
+			  (sconn ?
 				sconn->user_realm :
 				NULL),
 			  user_buf,

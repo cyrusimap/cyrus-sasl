@@ -424,6 +424,7 @@ main(int argc, char *argv[])
 			(flag_create ? SASL_SET_CREATE : 0)
 			| (flag_disable ? SASL_SET_DISABLE : 0)
 			| (flag_nouserpass ? SASL_SET_NOPLAIN : 0));
+  free(password);
 
   if (result != SASL_OK && !flag_disable)
       exit_sasl(result, NULL);

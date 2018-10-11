@@ -1695,8 +1695,7 @@ static int gssapi_client_mech_step(void *conn_context,
 		/* make the prompt list */
 		int result =
 		    _plug_make_prompts(params->utils, prompt_need,
-				       user_result == SASL_INTERACT ?
-				       "Please enter your authorization name" : NULL, NULL,
+				       "Please enter your authorization name", NULL,
 				       NULL, NULL,
 				       NULL, NULL,
 				       NULL, NULL, NULL,

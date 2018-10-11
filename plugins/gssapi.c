@@ -1662,9 +1662,11 @@ static int gssapi_client_mech_step(void *conn_context,
     input_token->value = NULL; 
     input_token->length = 0;
     gss_cred_id_t client_creds = (gss_cred_id_t)params->gss_creds;
-    
-    *clientout = NULL;
-    *clientoutlen = 0;
+
+    if (clientout)
+        *clientout = NULL;
+    if (clientoutlen)
+        *clientoutlen = 0;
     
     params->utils->log(params->utils->conn, SASL_LOG_DEBUG,
 		       "GSSAPI client step %d", text->state);
@@ -1819,11 +1821,12 @@ static int gssapi_client_mech_step(void *conn_context,
 	    text->utils->seterror(text->utils->conn, SASL_LOG_WARN, "GSSAPI warning: no credentials were passed");
 	    /* not a fatal error */
 	}
-  	    
-	*clientoutlen = output_token->length;
+
+        if (clientoutlen)
+            *clientoutlen = output_token->length;
 	    
 	if (output_token->value) {
-	    if (clientout) {
+	    if (clientout && clientoutlen) {
 		ret = _plug_buf_alloc(text->utils, &(text->out_buf),
 				      &(text->out_buf_len), *clientoutlen);
 		if(ret != SASL_OK) {
@@ -2129,7 +2132,7 @@ static int gssapi_client_mech_step(void *conn_context,
 	    *clientoutlen = output_token->length;
 	}
 	if (output_token->value) {
-	    if (clientout) {
+	    if (clientout && clientoutlen) {
 		ret = _plug_buf_alloc(text->utils,
 				      &(text->out_buf),
 				      &(text->out_buf_len),

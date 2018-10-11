@@ -1528,8 +1528,7 @@ static int scram_server_mech_step(void *conn_context,
 				  sasl_out_params_t *oparams)
 {
     server_context_t *text = (server_context_t *) conn_context;
-    const char *scram_sasl_mech =
-        (EVP_MD_size(text->md) == 32) ? "SCRAM-SHA-256" : "SCRAM-SHA-1";
+    const char *scram_sasl_mech = NULL;
     
     *serverout = NULL;
     *serveroutlen = 0;
@@ -1537,6 +1536,9 @@ static int scram_server_mech_step(void *conn_context,
     if (text == NULL) {
 	return SASL_BADPROT;
     }
+
+    scram_sasl_mech =
+	(EVP_MD_size(text->md) == 32) ? "SCRAM-SHA-256" : "SCRAM-SHA-1";
 
     /* this should be well more than is ever needed */
     if (clientinlen > MAX_CLIENTIN_LEN) {

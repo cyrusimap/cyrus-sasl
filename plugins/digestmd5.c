@@ -1901,7 +1901,7 @@ static int digestmd5_server_mech_new(void *glob_context,
     text = sparams->utils->malloc(sizeof(server_context_t));
     if (text == NULL)
 	return SASL_NOMEM;
-    memset(text, 0, sizeof(server_context_t));
+    memset((server_context_t *)text, 0, sizeof(server_context_t));
     
     text->state = 1;
     text->i_am = SERVER;
@@ -4219,7 +4219,7 @@ static int digestmd5_client_mech_new(void *glob_context,
     text = params->utils->malloc(sizeof(client_context_t));
     if (text == NULL)
 	return SASL_NOMEM;
-    memset(text, 0, sizeof(client_context_t));
+    memset((client_context_t *)text, 0, sizeof(client_context_t));
     
     text->state = 1;
     text->i_am = CLIENT;

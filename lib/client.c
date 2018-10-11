@@ -479,7 +479,8 @@ int sasl_client_new(const char *service,
 		  conn->mech_list = new;
 		  tail = conn->mech_list;
 	      } else {
-		  tail->next = new;
+		  if (tail)
+                    tail->next = new;
 		  tail = new;
 	      }
 	      conn->mech_length++;

@@ -130,7 +130,7 @@ int _plug_ipfromstring(const sasl_utils_t *utils, const char *addr,
 
     /* Parse the address */
     for (i = 0; addr[i] != '\0' && addr[i] != ';'; i++) {
-	if (i >= NI_MAXHOST) {
+	if (i + 1 >= NI_MAXHOST) {
 	    if(utils) PARAMERROR( utils );
 	    return SASL_BADPARAM;
 	}

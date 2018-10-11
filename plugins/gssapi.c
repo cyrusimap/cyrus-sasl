@@ -497,7 +497,7 @@ gssapi_decode_packet(void *context,
     }
     
     if (output_token->value) {
-	if (output) {
+	if (output && outputlen) {
 	    result = _plug_buf_alloc(text->utils, &text->decode_once_buf,
 				     &text->decode_once_buf_len,
 				     *outputlen);
@@ -934,7 +934,7 @@ gssapi_server_mech_authneg(context_t *text,
 	*serveroutlen = output_token->length;
     }
     if (output_token->value) {
-	if (serverout) {
+	if (serverout && serveroutlen) {
 	    ret = _plug_buf_alloc(text->utils, &(text->out_buf),
 				  &(text->out_buf_len), *serveroutlen);
 	    if(ret != SASL_OK) {
@@ -950,7 +950,7 @@ gssapi_server_mech_authneg(context_t *text,
 	GSS_LOCK_MUTEX_CTX(params->utils, text);
 	gss_release_buffer(&min_stat, output_token);
 	GSS_UNLOCK_MUTEX_CTX(params->utils, text);
-    } else {
+    } else if (serverout && serveroutlen) {
 	/* No output token, send an empty string */
 	*serverout = GSSAPI_BLANK_STRING;
 	*serveroutlen = 0;
@@ -1256,7 +1256,7 @@ gssapi_server_mech_ssfcap(context_t *text,
     if (serveroutlen)
 	*serveroutlen = output_token->length;
     if (output_token->value) {
-	if (serverout) {
+	if (serverout && serveroutlen) {
 	    ret = _plug_buf_alloc(text->utils, &(text->out_buf),
 				  &(text->out_buf_len), *serveroutlen);
 	    if(ret != SASL_OK) {

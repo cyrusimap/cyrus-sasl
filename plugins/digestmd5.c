@@ -1392,7 +1392,7 @@ static int digestmd5_encode(void *context,
     struct buffer_info *inblob, bufinfo;
     
     if(!context || !invec || !numiov || !output || !outputlen) {
-	PARAMERROR(text->utils);
+	if (text) PARAMERROR(text->utils);
 	return SASL_BADPARAM;
     }
     

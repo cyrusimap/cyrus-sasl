@@ -85,6 +85,7 @@ static int ldapdb_connect(ldapctx *ctx, sasl_server_params_t *sparams,
     char *authzid;
 
     if((i=ldap_initialize(&cp->ld, ctx->uri))) {
+	cp->ld = NULL
 	return i;
     }
 
@@ -172,8 +173,7 @@ static int ldapdb_auxprop_lookup(void *glob_context,
     /* alloc an array of attr names for search, and index to the props */
     attrs = sparams->utils->malloc((n+1)*sizeof(char *)*2);
     if (!attrs) {
-	result = SASL_NOMEM;
-        goto done;
+	return SASL_NOMEM;
     }
 
     aindx = (int *)(attrs + n + 1);

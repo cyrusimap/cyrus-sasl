@@ -98,7 +98,7 @@ anonymous_server_mech_step(void *conn_context __attribute__((unused)),
 	|| !serverout
 	|| !serveroutlen
 	|| !oparams) {
-	PARAMERROR( sparams->utils );
+	if (sparams) PARAMERROR( sparams->utils );
 	return SASL_BADPARAM;
     }
     
@@ -242,7 +242,7 @@ anonymous_client_mech_step(void *conn_context,
 	|| !clientout
 	|| !clientoutlen
 	|| !oparams) {
-	PARAMERROR( cparams->utils );
+	if (cparams) PARAMERROR( cparams->utils );
 	return SASL_BADPARAM;
     }
     

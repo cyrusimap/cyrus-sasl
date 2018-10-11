@@ -281,8 +281,7 @@ anonymous_client_mech_step(void *conn_context,
 	/* make the prompt list */
 	result =
 	    _plug_make_prompts(cparams->utils, prompt_need,
-			       user_result == SASL_INTERACT ?
-			       "Please enter anonymous identification" : NULL,
+			       "Please enter anonymous identification",
 			       "",
 			       NULL, NULL,
 			       NULL, NULL,

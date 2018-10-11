@@ -222,7 +222,7 @@ int _plug_buf_alloc(const sasl_utils_t *utils, char **rwbuf,
 		    unsigned *curlen, unsigned newlen) 
 {
     if(!utils || !rwbuf || !curlen) {
-	PARAMERROR(utils);
+	if (utils) PARAMERROR(utils);
 	return SASL_BADPARAM;
     }
 

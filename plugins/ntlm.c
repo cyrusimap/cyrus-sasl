@@ -1145,7 +1145,7 @@ static int smb_negotiate_protocol(const sasl_utils_t *utils,
     /* if client asked for target, send domain */
     if (text->flags & NTLM_ASK_TARGET) {
 	*domain = utils->malloc(len);
-	if (domain == NULL) {
+	if (*domain == NULL) {
 	    MEMERROR(utils);
 	    return SASL_NOMEM;
 	}

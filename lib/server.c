@@ -1154,7 +1154,8 @@ int sasl_server_new(const char *service,
 		  tail = serverconn->mech_list;
 	      }
 	      else {
-		  tail->next = new;
+		  if (tail)
+                     tail->next = new;
 		  tail = new;
 	      }
 	      serverconn->mech_length++;

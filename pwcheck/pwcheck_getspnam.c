@@ -42,6 +42,7 @@
  */
 
 #include <shadow.h>
+#include <string.h>
 
 extern char *crypt();
 

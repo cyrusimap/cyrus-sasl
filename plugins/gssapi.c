@@ -1436,9 +1436,6 @@ gssapi_server_mech_step(void *conn_context,
 
     if (text == NULL) return SASL_BADPROT;
 
-    params->utils->log(params->utils->conn, SASL_LOG_DEBUG,
-		       "GSSAPI server step %d\n", text->state);
-
     switch (text->state) {
 
     case SASL_GSSAPI_STATE_AUTHNEG:
@@ -1488,6 +1485,9 @@ gssapi_server_mech_step(void *conn_context,
 	}
 
 	oparams->doneflag = 1;
+    } else {
+        params->utils->log(params->utils->conn, SASL_LOG_DEBUG,
+		           "GSSAPI server step failed: %d\n", text->state);
     }
     
     return ret;

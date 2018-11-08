@@ -85,7 +85,7 @@ static int ldapdb_connect(ldapctx *ctx, sasl_server_params_t *sparams,
     char *authzid;
 
     if((i=ldap_initialize(&cp->ld, ctx->uri))) {
-	cp->ld = NULL
+	cp->ld = NULL;
 	return i;
     }
 
@@ -270,7 +270,6 @@ static int ldapdb_auxprop_lookup(void *glob_context,
             break;
     }
 
- done:
     if(attrs) sparams->utils->free(attrs);
     if(cp.ld) ldap_unbind_ext(cp.ld, NULL, NULL);
 

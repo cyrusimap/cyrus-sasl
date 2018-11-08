@@ -46,7 +46,7 @@
 #ifndef macintosh
 #ifdef WIN32
 # include <winsock2.h>
-# include <VersionHelpers.h>
+# include <versionhelpers.h>
 #else
 # include <sys/socket.h>
 # include <netinet/in.h>

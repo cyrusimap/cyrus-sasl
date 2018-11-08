@@ -15,6 +15,7 @@
 #include <openssl/dh.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
+#include <openssl/bn.h>
 
 int RSA_set0_key(RSA *r, BIGNUM *n, BIGNUM *e, BIGNUM *d);
 int RSA_set0_factors(RSA *r, BIGNUM *p, BIGNUM *q);

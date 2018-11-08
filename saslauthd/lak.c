@@ -1462,6 +1462,7 @@ static int lak_auth_bind(
 	  {
 		/* restore config bind */
                 lak_unbind(lak);
+		lak_user_free(lu);
 		rc = lak_user(
 		lak->conf->bind_dn,
 		lak->conf->id,
@@ -1478,7 +1479,7 @@ static int lak_auth_bind(
 
 		rc = lak_group_member(lak, user, service, realm, dn->value);
 	    }
-done:;
+done:
 	if (lu)
 		lak_user_free(lu);
 	if (dn)

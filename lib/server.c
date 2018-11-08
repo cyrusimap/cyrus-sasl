@@ -573,12 +573,16 @@ static int server_done(void) {
 
 static int server_idle(sasl_conn_t *conn)
 {
-    sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;
+    sasl_server_conn_t *s_conn = NULL;
     mechanism_t *m;
 
     if (! mechlist) {
 	return 0;
     }
+
+    if (!conn)
+        return 1;
+    s_conn = (sasl_server_conn_t *) conn;
 
     for (m = s_conn->mech_list;
 	 m != NULL;
@@ -586,7 +590,7 @@ static int server_idle(sasl_conn_t *conn)
 	if (m->m.plug->idle
 	    &&  m->m.plug->idle(m->m.plug->glob_context,
 				conn,
-				conn ? ((sasl_server_conn_t *)conn)->sparams : NULL)) {
+				s_conn->sparams)) {
 	    return 1;
 	}
     }
@@ -1150,7 +1154,8 @@ int sasl_server_new(const char *service,
 		  tail = serverconn->mech_list;
 	      }
 	      else {
-		  tail->next = new;
+		  if (tail)
+                     tail->next = new;
 		  tail = new;
 	      }
 	      serverconn->mech_length++;

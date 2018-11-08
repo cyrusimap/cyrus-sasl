@@ -98,7 +98,7 @@ anonymous_server_mech_step(void *conn_context __attribute__((unused)),
 	|| !serverout
 	|| !serveroutlen
 	|| !oparams) {
-	PARAMERROR( sparams->utils );
+	if (sparams) PARAMERROR( sparams->utils );
 	return SASL_BADPARAM;
     }
     
@@ -242,7 +242,7 @@ anonymous_client_mech_step(void *conn_context,
 	|| !clientout
 	|| !clientoutlen
 	|| !oparams) {
-	PARAMERROR( cparams->utils );
+	if (cparams) PARAMERROR( cparams->utils );
 	return SASL_BADPARAM;
     }
     
@@ -281,8 +281,7 @@ anonymous_client_mech_step(void *conn_context,
 	/* make the prompt list */
 	result =
 	    _plug_make_prompts(cparams->utils, prompt_need,
-			       user_result == SASL_INTERACT ?
-			       "Please enter anonymous identification" : NULL,
+			       "Please enter anonymous identification",
 			       "",
 			       NULL, NULL,
 			       NULL, NULL,

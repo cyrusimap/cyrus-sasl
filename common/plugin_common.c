@@ -130,7 +130,7 @@ int _plug_ipfromstring(const sasl_utils_t *utils, const char *addr,
 
     /* Parse the address */
     for (i = 0; addr[i] != '\0' && addr[i] != ';'; i++) {
-	if (i >= NI_MAXHOST) {
+	if (i + 1 >= NI_MAXHOST) {
 	    if(utils) PARAMERROR( utils );
 	    return SASL_BADPARAM;
 	}
@@ -222,7 +222,7 @@ int _plug_buf_alloc(const sasl_utils_t *utils, char **rwbuf,
 		    unsigned *curlen, unsigned newlen) 
 {
     if(!utils || !rwbuf || !curlen) {
-	PARAMERROR(utils);
+	if (utils) PARAMERROR(utils);
 	return SASL_BADPARAM;
     }
 
@@ -256,12 +256,14 @@ int _plug_buf_alloc(const sasl_utils_t *utils, char **rwbuf,
 int _plug_strdup(const sasl_utils_t * utils, const char *in,
 		 char **out, int *outlen)
 {
-  size_t len = strlen(in);
+  size_t len = 0;
 
   if(!utils || !in || !out) {
       if(utils) PARAMERROR(utils);
       return SASL_BADPARAM;
   }
+
+  len = strlen(in);
 
   *out = utils->malloc(len + 1);
   if (!*out) {

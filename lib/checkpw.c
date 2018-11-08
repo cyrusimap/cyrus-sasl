@@ -667,7 +667,11 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 	getopt(context, NULL, "saslauthd_path", &p, NULL);
     }
     if (p) {
-	strncpy(pwpath, p, sizeof(pwpath));
+        if (strlen(p) >= sizeof(pwpath))
+            return SASL_FAIL;
+
+	strncpy(pwpath, p, sizeof(pwpath) - 1);
+        pwpath[strlen(p)] = '\0';
     } else {
 	if (strlen(PATH_SASLAUTHD_RUNDIR) + 4 + 1 > sizeof(pwpath))
 	    return SASL_FAIL;
@@ -786,7 +790,8 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 
     memset((char *)&srvaddr, 0, sizeof(srvaddr));
     srvaddr.sun_family = AF_UNIX;
-    strncpy(srvaddr.sun_path, pwpath, sizeof(srvaddr.sun_path));
+    strncpy(srvaddr.sun_path, pwpath, sizeof(srvaddr.sun_path) - 1);
+    srvaddr.sun_path[strlen(pwpath)] = '\0';
 
     {
 	int r = connect(s, (struct sockaddr *) &srvaddr, sizeof(srvaddr));

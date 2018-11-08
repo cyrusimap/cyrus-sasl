@@ -116,7 +116,7 @@ static int saslauthd_verify_password(const char *saslauthd_path,
     if(!userid || !passwd) return -1;
     
     if (saslauthd_path) {
-	strncpy(pwpath, saslauthd_path, sizeof(pwpath));
+	strlcpy(pwpath, saslauthd_path, sizeof(pwpath));
     } else {
 	if (strlen(PATH_SASLAUTHD_RUNDIR) + 4 + 1 > sizeof(pwpath))
 	    return -1;
@@ -187,7 +187,7 @@ static int saslauthd_verify_password(const char *saslauthd_path,
 
     memset((char *)&srvaddr, 0, sizeof(srvaddr));
     srvaddr.sun_family = AF_UNIX;
-    strncpy(srvaddr.sun_path, pwpath, sizeof(srvaddr.sun_path));
+    strlcpy(srvaddr.sun_path, pwpath, sizeof(srvaddr.sun_path));
 
     r = connect(s, (struct sockaddr *) &srvaddr, sizeof(srvaddr));
     if (r == -1) {

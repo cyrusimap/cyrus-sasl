@@ -334,7 +334,10 @@ int listusers(const char *path, listcb_t *cb)
     }
 
     result = cursor->c_close(cursor);
-    if (result!=0) result = SASL_FAIL;
+    if (result != 0) {
+        result = SASL_FAIL;
+        goto cleanup;
+    }
 
     result = SASL_OK;
 

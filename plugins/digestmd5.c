@@ -1392,7 +1392,7 @@ static int digestmd5_encode(void *context,
     struct buffer_info *inblob, bufinfo;
     
     if(!context || !invec || !numiov || !output || !outputlen) {
-	PARAMERROR(text->utils);
+	if (text) PARAMERROR(text->utils);
 	return SASL_BADPARAM;
     }
     
@@ -1901,7 +1901,7 @@ static int digestmd5_server_mech_new(void *glob_context,
     text = sparams->utils->malloc(sizeof(server_context_t));
     if (text == NULL)
 	return SASL_NOMEM;
-    memset(text, 0, sizeof(server_context_t));
+    memset((server_context_t *)text, 0, sizeof(server_context_t));
     
     text->state = 1;
     text->i_am = SERVER;
@@ -1961,6 +1961,8 @@ digestmd5_server_mech_step1(server_context_t *stext,
 		strcat(qop, "auth-conf");
 		added_conf = 1;
 	    }
+	    if (strlen(cipheropts) + strlen(cipher->name) + 1 >= 1024)
+		return SASL_FAIL;
 	    if (*cipheropts) strcat(cipheropts, ",");
 	    strcat(cipheropts, cipher->name);
 	}
@@ -4217,7 +4219,7 @@ static int digestmd5_client_mech_new(void *glob_context,
     text = params->utils->malloc(sizeof(client_context_t));
     if (text == NULL)
 	return SASL_NOMEM;
-    memset(text, 0, sizeof(client_context_t));
+    memset((client_context_t *)text, 0, sizeof(client_context_t));
     
     text->state = 1;
     text->i_am = CLIENT;

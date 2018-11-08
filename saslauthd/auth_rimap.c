@@ -473,6 +473,11 @@ auth_rimap (
 	       ai->ai_canonname ? ai->ai_canonname : r_host, hbuf, pbuf);
     }
     if (s < 0) {
+        if (!ai) {
+            syslog(LOG_WARNING, "auth_httpform: no address given");
+            return strdup("NO [ALERT] No address given");
+        }
+
 	if (getnameinfo(ai->ai_addr, ai->ai_addrlen, NULL, 0,
 			pbuf, sizeof(pbuf), NI_NUMERICSERV) != 0)
 	    strlcpy(pbuf, "unknown", sizeof(pbuf));

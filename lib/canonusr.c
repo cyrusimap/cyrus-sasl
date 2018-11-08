@@ -94,8 +94,10 @@ int _sasl_canon_user(sasl_conn_t *conn,
 	return SASL_BADPARAM;
     }
     
-    if(conn->type == SASL_CONN_SERVER) sconn = (sasl_server_conn_t *)conn;
-    else if(conn->type == SASL_CONN_CLIENT) cconn = (sasl_client_conn_t *)conn;
+    if (conn->type == SASL_CONN_SERVER)
+      sconn = (sasl_server_conn_t *)conn;
+    else if (conn->type == SASL_CONN_CLIENT)
+      cconn = (sasl_client_conn_t *)conn;
     else return SASL_FAIL;
     
     if(!ulen) ulen = (unsigned int)strlen(user);
@@ -111,7 +113,7 @@ int _sasl_canon_user(sasl_conn_t *conn,
 			  user,
 			  ulen,
 			  flags,
-			  (conn->type == SASL_CONN_SERVER ?
+			  (sconn ?
 				sconn->user_realm :
 				NULL),
 			  user_buf,
@@ -333,7 +335,8 @@ int sasl_canonuser_add_plugin(const char *plugname,
     new_item = sasl_ALLOC(sizeof(canonuser_plug_list_t));
     if(!new_item) return SASL_NOMEM;
 
-    strncpy(new_item->name, plugname, PATH_MAX);
+    strncpy(new_item->name, plugname, PATH_MAX - 1);
+    new_item->name[strlen(plugname)] = '\0';
 
     new_item->plug = plug;
     new_item->next = canonuser_head;

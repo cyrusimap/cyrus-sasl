@@ -270,6 +270,8 @@ static int _parse_la(const char *prefix, const char *in, char *out)
     if (strcmp(in + (length - strlen(LA_SUFFIX)), LA_SUFFIX)) {
 	if(!strcmp(in + (length - strlen(SO_SUFFIX)),SO_SUFFIX)) {
 	    /* check for a .la file */
+	    if (strlen(prefix) + strlen(in) + strlen(LA_SUFFIX) + 1 >= MAX_LINE)
+		return SASL_BADPARAM;
 	    strcpy(line, prefix);
 	    strcat(line, in);
 	    length = strlen(line);
@@ -282,11 +284,15 @@ static int _parse_la(const char *prefix, const char *in, char *out)
 		return SASL_FAIL;
 	    }
 	}
+        if (strlen(prefix) + strlen(in) + 1 >= PATH_MAX)
+            return SASL_BADPARAM;
 	strcpy(out, prefix);
 	strcat(out, in);
 	return SASL_OK;
     }
 
+    if (strlen(prefix) + strlen(in) + 1 >= MAX_LINE)
+        return SASL_BADPARAM;
     strcpy(line, prefix);
     strcat(line, in);
 

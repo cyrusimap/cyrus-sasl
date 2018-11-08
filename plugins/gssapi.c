@@ -497,7 +497,7 @@ gssapi_decode_packet(void *context,
     }
     
     if (output_token->value) {
-	if (output) {
+	if (output && outputlen) {
 	    result = _plug_buf_alloc(text->utils, &text->decode_once_buf,
 				     &text->decode_once_buf_len,
 				     *outputlen);
@@ -934,7 +934,7 @@ gssapi_server_mech_authneg(context_t *text,
 	*serveroutlen = output_token->length;
     }
     if (output_token->value) {
-	if (serverout) {
+	if (serverout && serveroutlen) {
 	    ret = _plug_buf_alloc(text->utils, &(text->out_buf),
 				  &(text->out_buf_len), *serveroutlen);
 	    if(ret != SASL_OK) {
@@ -950,7 +950,7 @@ gssapi_server_mech_authneg(context_t *text,
 	GSS_LOCK_MUTEX_CTX(params->utils, text);
 	gss_release_buffer(&min_stat, output_token);
 	GSS_UNLOCK_MUTEX_CTX(params->utils, text);
-    } else {
+    } else if (serverout && serveroutlen) {
 	/* No output token, send an empty string */
 	*serverout = GSSAPI_BLANK_STRING;
 	*serveroutlen = 0;
@@ -1256,7 +1256,7 @@ gssapi_server_mech_ssfcap(context_t *text,
     if (serveroutlen)
 	*serveroutlen = output_token->length;
     if (output_token->value) {
-	if (serverout) {
+	if (serverout && serveroutlen) {
 	    ret = _plug_buf_alloc(text->utils, &(text->out_buf),
 				  &(text->out_buf_len), *serveroutlen);
 	    if(ret != SASL_OK) {
@@ -1662,9 +1662,11 @@ static int gssapi_client_mech_step(void *conn_context,
     input_token->value = NULL; 
     input_token->length = 0;
     gss_cred_id_t client_creds = (gss_cred_id_t)params->gss_creds;
-    
-    *clientout = NULL;
-    *clientoutlen = 0;
+
+    if (clientout)
+        *clientout = NULL;
+    if (clientoutlen)
+        *clientoutlen = 0;
     
     params->utils->log(params->utils->conn, SASL_LOG_DEBUG,
 		       "GSSAPI client step %d", text->state);
@@ -1695,8 +1697,7 @@ static int gssapi_client_mech_step(void *conn_context,
 		/* make the prompt list */
 		int result =
 		    _plug_make_prompts(params->utils, prompt_need,
-				       user_result == SASL_INTERACT ?
-				       "Please enter your authorization name" : NULL, NULL,
+				       "Please enter your authorization name", NULL,
 				       NULL, NULL,
 				       NULL, NULL,
 				       NULL, NULL, NULL,
@@ -1820,11 +1821,12 @@ static int gssapi_client_mech_step(void *conn_context,
 	    text->utils->seterror(text->utils->conn, SASL_LOG_WARN, "GSSAPI warning: no credentials were passed");
 	    /* not a fatal error */
 	}
-  	    
-	*clientoutlen = output_token->length;
+
+        if (clientoutlen)
+            *clientoutlen = output_token->length;
 	    
 	if (output_token->value) {
-	    if (clientout) {
+	    if (clientout && clientoutlen) {
 		ret = _plug_buf_alloc(text->utils, &(text->out_buf),
 				      &(text->out_buf_len), *clientoutlen);
 		if(ret != SASL_OK) {
@@ -2130,7 +2132,7 @@ static int gssapi_client_mech_step(void *conn_context,
 	    *clientoutlen = output_token->length;
 	}
 	if (output_token->value) {
-	    if (clientout) {
+	    if (clientout && clientoutlen) {
 		ret = _plug_buf_alloc(text->utils,
 				      &(text->out_buf),
 				      &(text->out_buf_len),

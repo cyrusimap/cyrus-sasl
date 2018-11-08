@@ -147,7 +147,9 @@ cfile cfile_read(const char *filename, char *complaint, int complaint_len)
 	    !(cf->kvlist[cf->n_kv].value = strdup(p))) {
 	      if (complaint)
 	        snprintf(complaint, complaint_len, "cfile_read: no memory");
-	      cf->n_kv++; /* maybe one strdup() worked */
+	      /* maybe one strdup() worked */
+	      if (cf->kvlist[cf->n_kv].key)
+	          free(cf->kvlist[cf->n_kv].key);
 	      cfile_free(cf);
 	      fclose(infile);
 	      return 0;

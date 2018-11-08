@@ -716,12 +716,6 @@ static int gs2_client_mech_step(void *conn_context,
     }
 
     if (text->server_name == GSS_C_NO_NAME) { /* only once */
-        name_buf.length = strlen(params->service) + 1 + strlen(params->serverFQDN);
-        name_buf.value = params->utils->malloc(name_buf.length + 1);
-        if (name_buf.value == NULL) {
-            ret = SASL_NOMEM;
-            goto cleanup;
-        }
         if (params->serverFQDN == NULL ||
             strlen(params->serverFQDN) == 0) {
             SETERROR(text->utils, "GS2 Failure: no serverFQDN");
@@ -729,6 +723,12 @@ static int gs2_client_mech_step(void *conn_context,
             goto cleanup;
         }
 
+        name_buf.length = strlen(params->service) + 1 + strlen(params->serverFQDN);
+        name_buf.value = params->utils->malloc(name_buf.length + 1);
+        if (name_buf.value == NULL) {
+            ret = SASL_NOMEM;
+            goto cleanup;
+        }
         snprintf(name_buf.value, name_buf.length + 1,
                  "%s@%s", params->service, params->serverFQDN);
 

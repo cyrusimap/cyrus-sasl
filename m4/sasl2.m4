@@ -311,9 +311,10 @@ if test "$gssapi" != no; then
                     [AC_DEFINE(HAVE_GSS_C_SEC_CONTEXT_SASL_SSF,,
                                [Define if your GSSAPI implementation defines GSS_C_SEC_CONTEXT_SASL_SSF])])
   fi
+  LIBS="$cmu_save_LIBS"
+
   cmu_save_LIBS="$LIBS"
   LIBS="$LIBS $GSSAPIBASE_LIBS"
-
   AC_MSG_CHECKING([for SPNEGO support in GSSAPI libraries])
   AC_TRY_RUN([
 #ifdef HAVE_GSSAPI_H

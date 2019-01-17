@@ -367,6 +367,32 @@ process_login_reply(
 /* END FUNCTION: process_login_reply */
 
 
+#ifndef HAVE_MEMMEM
+static void *memmem(
+		const void *big, size_t big_len,
+		const void *little, size_t little_len)
+{
+	const char *bp = (const char *)big;
+	const char *lp = (const char *)little;
+	size_t l;
+
+	if (big_len < little_len || little_len == 0 || big_len == 0)
+		return NULL;
+
+	while (big_len > 0) {
+		for (l = 0; l < little_len; l++) {
+			if (bp[l] != lp[l])
+				break;
+		}
+		if (l == little_len)
+			return (void *)bp;
+		bp++;
+	}
+
+	return NULL;
+}
+#endif
+
 static int read_response(int s, char *rbuf, int buflen, const char *tag)
 {
     int rc = 0;

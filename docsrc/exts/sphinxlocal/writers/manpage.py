@@ -23,7 +23,6 @@ from sphinx.writers.manpage import (
 
 from sphinx import addnodes
 from sphinx.locale import admonitionlabels, _
-from sphinx.util.compat import docutils_version
 
 class CyrusManualPageWriter(ManualPageWriter):
 

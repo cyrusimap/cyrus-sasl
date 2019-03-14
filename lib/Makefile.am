@@ -51,7 +51,7 @@ PLUGIN_COMMON_OBJS = $(top_builddir)/common/libplugin_common.la
 
 EXTRA_DIST = windlopen.c dlopen.c staticopen.h NTMakefile
 EXTRA_LIBRARIES = libsasl2.a
-noinst_LIBRARIES = @SASL_STATIC_LIBS@
+noinst_LIBRARIES = @SASL_STATIC_LIB@
 libsasl2_a_SOURCES=
 
 BUILT_SOURCES = $(SASL_STATIC_SRCS)
@@ -67,6 +67,7 @@ common_sources = auxprop.c canonusr.c checkpw.c client.c common.c config.c exter
 
 LTLIBOBJS = @LTLIBOBJS@
 LIB_DOOR= @LIB_DOOR@
+SASL_STATIC_LIBS = @SASL_STATIC_LIBS@
 
 lib_LTLIBRARIES = libsasl2.la
 if BUILD_LIBOBJ
@@ -81,7 +82,7 @@ libobj_la_LIBADD = $(LTLIBOBJS)
 libsasl2_la_SOURCES = $(common_sources) $(common_headers)
 libsasl2_la_LDFLAGS = -version-info $(sasl_version) -no-undefined
 
-libsasl2_la_LIBADD = $(SASL_DL_LIB) $(LIB_SOCKET) $(LIB_DOOR) $(PLUGIN_COMMON_OBJS)
+libsasl2_la_LIBADD = $(SASL_DL_LIB) $(SASL_STATIC_LIBS) $(LIB_SOCKET) $(LIB_DOOR) $(PLUGIN_COMMON_OBJS)
 if BUILD_LIBOBJ
 libsasl2_la_LIBADD += libobj.la
 endif

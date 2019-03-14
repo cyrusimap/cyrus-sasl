@@ -126,10 +126,12 @@ AC_PROG_LIBTOOL
 target=$save_target
 
 if test "$enable_static" = yes; then
-	SASL_STATIC_LIBS=libsasl2.a
+	SASL_STATIC_LIB=libsasl2.a
 else
-	SASL_STATIC_LIBS=
+	SASL_STATIC_LIB=
 fi
+AC_SUBST(SASL_STATIC_LIB)
+SASL_STATIC_LIBS=
 
 AC_ARG_ENABLE(staticdlopen, [  --enable-staticdlopen   try dynamic plugins when we are a static libsasl [[no]] ],
                 enable_staticdlopen=$enableval,
@@ -364,6 +366,7 @@ if test "$digest" != no; then
   if test "$enable_static" = yes; then
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/digestmd5.c"
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS digestmd5.o"
+    SASL_STATIC_LIBS="$SASL_STATIC_LIBS $LIB_DES"
     AC_DEFINE(STATIC_DIGESTMD5, [], [Link DIGEST-MD5 Statically])
   fi
 else

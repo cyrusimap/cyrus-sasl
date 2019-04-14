@@ -7,14 +7,9 @@
     <Link>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
-	<ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
-	<Link>
-      <AdditionalDependencies>lmdb.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-	</ItemDefinitionGroup>
-	<ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
-	<Link>
-      <AdditionalDependencies>lmdbd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    <Link>
+	<AdditionalDependencies Condition="'$(Configuration)'=='Debug'">%(AdditionalDependencies);lmdbd.lib</AdditionalDependencies>
+	<AdditionalDependencies Condition="'$(Configuration)'=='Release'">%(AdditionalDependencies);lmdb.lib</AdditionalDependencies>
     </Link>
 	</ItemDefinitionGroup>
 </Project>

@@ -14,7 +14,7 @@
 )</Command>
     </PostBuildEvent>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\win32\include;..\include;..\lib;..\common;$(SaslDependencyRoot)\include%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\win32\include;..\include;..\lib;..\common;$(SaslDependencyRoot)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <PreBuildEvent>
       <Command>powershell  -executionpolicy bypass -nologo -File makeinit.ps1</Command>

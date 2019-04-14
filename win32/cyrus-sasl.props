@@ -17,14 +17,14 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <PreprocessorDefinitions>GCC_FALLTHROUGH=;LIBSASL_EXPORTS;WIN32;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>include;..\include;..\lib;..\plugins;..\sasldb;..\common;$(SaslDependencyRoot)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>include;..\include;..\lib;..\plugins;..\sasldb;..\common;$(SaslDependencyRoot)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(SaslIntermediateLibDir)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SaslIntermediateLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>$(SaslDependencyLibDir)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SaslDependencyLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>

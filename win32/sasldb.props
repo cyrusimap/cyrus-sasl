@@ -11,9 +11,10 @@
 	<Link>
       <AdditionalDependencies>lmdb.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+	</ItemDefinitionGroup>
 	<ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
 	<Link>
       <AdditionalDependencies>lmdbd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-  </ItemDefinitionGroup>
+	</ItemDefinitionGroup>
 </Project>

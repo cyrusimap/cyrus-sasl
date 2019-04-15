@@ -15,7 +15,6 @@ from sphinx.errors import SphinxError
 from docutils import nodes, utils
 from docutils.parsers.rst.roles import set_classes
 from string import Template
-import re
 
 def setup(app):
     app.info('Initializing saslman plugin')

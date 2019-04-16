@@ -1224,8 +1224,14 @@ static void free_rc4(context_t *text)
 {
     /* free rc4 context structures */
 
-    if(text->cipher_enc_context) text->utils->free(text->cipher_enc_context);
-    if(text->cipher_dec_context) text->utils->free(text->cipher_dec_context);
+    if (text->cipher_enc_context) {
+        text->utils->free(text->cipher_enc_context);
+        text->cipher_enc_context = NULL;
+    }
+    if (text->cipher_dec_context) {
+        text->utils->free(text->cipher_dec_context);
+        text->cipher_dec_context = NULL;
+    }
 }
 
 static int init_rc4(context_t *text, 

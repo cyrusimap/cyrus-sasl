@@ -676,8 +676,7 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 	if (strlen(PATH_SASLAUTHD_RUNDIR) + 4 + 1 > sizeof(pwpath))
 	    return SASL_FAIL;
 
-	strcpy(pwpath, PATH_SASLAUTHD_RUNDIR);
-	strcat(pwpath, "/mux");
+	strcpy(pwpath, PATH_SASLAUTHD_RUNDIR "/mux");
     }
 
     /* Split out username/realm if necessary */

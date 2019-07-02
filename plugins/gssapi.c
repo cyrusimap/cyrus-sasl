@@ -2248,16 +2248,55 @@ static sasl_client_plug_t gssapi_client_plugins[] =
 #endif
 };
 
-int gssapiv2_client_plug_init(const sasl_utils_t *utils __attribute__((unused)), 
+int gssapiv2_client_plug_init(
+#ifndef HAVE_GSSKRB5_REGISTER_ACCEPTOR_IDENTITY
+    const sasl_utils_t *utils __attribute__((unused)),
+#else
+    const sasl_utils_t *utils,
+#endif
 			      int maxversion,
 			      int *out_version, 
 			      sasl_client_plug_t **pluglist,
 			      int *plugcount)
 {
+#ifdef HAVE_GSSKRB5_REGISTER_ACCEPTOR_IDENTITY
+    const char *keytab = NULL;
+    char keytab_path[1024];
+    unsigned int rl;
+#endif
+
     if (maxversion < SASL_CLIENT_PLUG_VERSION) {
 	SETERROR(utils, "Version mismatch in GSSAPI");
 	return SASL_BADVERS;
     }
+
+#ifdef HAVE_GSSKRB5_REGISTER_ACCEPTOR_IDENTITY
+    /* unfortunately, we don't check for readability of keytab if it's
+       the standard one, since we don't know where it is */
+    
+    /* FIXME: This code is broken */
+    
+    utils->getopt(utils->getopt_context, "GSSAPI", "keytab", &keytab, &rl);
+    if (keytab != NULL) {
+	if (access(keytab, R_OK) != 0) {
+	    utils->log(NULL, SASL_LOG_ERR,
+		       "Could not find keytab file: %s: %m", keytab);
+	    return SASL_FAIL;
+	}
+	
+	if(strlen(keytab) > sizeof(keytab_path)) {
+	    utils->log(NULL, SASL_LOG_ERR,
+		       "path to keytab is > %zu characters",
+		       sizeof(keytab_path));
+	    return SASL_BUFOVER;
+	}
+	
+	strncpy(keytab_path, keytab, sizeof(keytab_path));
+	keytab_path[sizeof(keytab_path) - 1] = '\0';
+	
+	gsskrb5_register_acceptor_identity(keytab_path);
+    }
+#endif
     
     *out_version = SASL_CLIENT_PLUG_VERSION;
     *pluglist = gssapi_client_plugins;

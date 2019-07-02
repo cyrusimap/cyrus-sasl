@@ -1777,6 +1777,27 @@ static int gssapi_client_mech_step(void *conn_context,
 	    req_flags = req_flags |  GSS_C_DELEG_FLAG;
 	}
 
+	/* If caller didn't provide creds already */
+	if (client_creds == GSS_C_NO_CREDENTIAL) {
+	    GSS_LOCK_MUTEX_CTX(params->utils, text);
+	    maj_stat = gss_acquire_cred(&min_stat,
+					text->server_name,
+					GSS_C_INDEFINITE,
+					GSS_C_NO_OID_SET,
+					GSS_C_INITIATE,
+					&text->client_creds, 
+					NULL, 
+					NULL);
+	    GSS_UNLOCK_MUTEX_CTX(params->utils, text);
+
+	    if (GSS_ERROR(maj_stat)) {
+		sasl_gss_seterror(text->utils, maj_stat, min_stat);
+		sasl_gss_free_context_contents(text);
+		return SASL_FAIL;
+	    }
+	    client_creds = text->client_creds;
+	}
+
 	GSS_LOCK_MUTEX_CTX(params->utils, text);
 	maj_stat = gss_init_sec_context(&min_stat,
 					client_creds, /* GSS_C_NO_CREDENTIAL */

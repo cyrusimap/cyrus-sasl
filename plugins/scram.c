@@ -1845,7 +1845,7 @@ static sasl_server_plug_t scram_server_plugins[] =
 #ifdef HAVE_SHA256
     {
 	"SCRAM-SHA-256",		/* mech_name */
-	0,				/* max_ssf */
+	1,				/* max_ssf */
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOACTIVE
 	| SASL_SEC_NOANONYMOUS
@@ -2866,7 +2866,7 @@ static sasl_client_plug_t scram_client_plugins[] =
 #ifdef HAVE_SHA256
     {
 	"SCRAM-SHA-256",		/* mech_name */
-	0,				/* max_ssf */
+	1,				/* max_ssf */
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOANONYMOUS
 	| SASL_SEC_NOACTIVE

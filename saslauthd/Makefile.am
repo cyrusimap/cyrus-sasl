@@ -32,20 +32,19 @@ testsaslauthd_LDADD = @LIB_SOCKET@
 
 saslcache_SOURCES = saslcache.c
 
-EXTRA_DIST	= saslauthd.8 saslauthd.mdoc include \
+EXTRA_DIST	= testsaslauthd.8 saslauthd.mdoc include \
 		  getnameinfo.c getaddrinfo.c LDAP_SASLAUTHD
 AM_CPPFLAGS	= -I$(top_srcdir)/include -I$(top_builddir)/include -I$(top_builddir)/common -I$(top_srcdir)/common
 DEFS            = @DEFS@ -DSASLAUTHD_CONF_FILE_DEFAULT=\"@sysconfdir@/saslauthd.conf\" -I. -I$(srcdir) -I..
 
 
-dist-hook: saslauthd.8
+dist-hook: saslauthd.mdoc testsaslauthd.8
 
-saslauthd.8: saslauthd.mdoc
-	nroff -mdoc $(srcdir)/saslauthd.mdoc > $(srcdir)/saslauthd.8
-
-install-data-local: saslauthd.8
+install-data-local: saslauthd.mdoc testsaslauthd.8
 	$(mkinstalldirs) $(DESTDIR)$(mandir)/man8
-	$(INSTALL_DATA) $(srcdir)/saslauthd.8 $(DESTDIR)$(mandir)/man8/saslauthd.8
+	$(INSTALL_DATA) $(srcdir)/saslauthd.mdoc $(DESTDIR)$(mandir)/man8/saslauthd.8
+	$(INSTALL_DATA) $(srcdir)/testsaslauthd.8 $(DESTDIR)$(mandir)/man8/testsaslauthd.8
 
 uninstall-local:
 	-rm -rf $(DESTDIR)$(mandir)/man8/saslauthd.8
+	-rm -rf $(DESTDIR)$(mandir)/man8/testsaslauthd.8

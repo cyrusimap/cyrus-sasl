@@ -1117,6 +1117,111 @@ static void free_des(context_t *text)
 #endif /* WITH_DES */
 
 #ifdef WITH_RC4
+#ifdef HAVE_OPENSSL
+#include <openssl/evp.h>
+
+static void free_rc4(context_t *text)
+{
+    if (text->cipher_enc_context) {
+        EVP_CIPHER_CTX_free((EVP_CIPHER_CTX *)text->cipher_enc_context);
+        text->cipher_enc_context = NULL;
+    }
+    if (text->cipher_dec_context) {
+        EVP_CIPHER_CTX_free((EVP_CIPHER_CTX *)text->cipher_dec_context);
+        text->cipher_dec_context = NULL;
+    }
+}
+
+static int init_rc4(context_t *text,
+		    unsigned char enckey[16],
+		    unsigned char deckey[16])
+{
+    EVP_CIPHER_CTX *ctx;
+    int rc;
+
+    ctx = EVP_CIPHER_CTX_new();
+    if (ctx == NULL) return SASL_NOMEM;
+
+    rc = EVP_EncryptInit_ex(ctx, EVP_rc4(), NULL, enckey, NULL);
+    if (rc != 1) return SASL_FAIL;
+
+    text->cipher_enc_context = (void *)ctx;
+
+    ctx = EVP_CIPHER_CTX_new();
+    if (ctx == NULL) return SASL_NOMEM;
+
+    rc = EVP_DecryptInit_ex(ctx, EVP_rc4(), NULL, deckey, NULL);
+    if (rc != 1) return SASL_FAIL;
+
+    text->cipher_dec_context = (void *)ctx;
+
+    return SASL_OK;
+}
+
+static int dec_rc4(context_t *text,
+		   const char *input,
+		   unsigned inputlen,
+		   unsigned char digest[16] __attribute__((unused)),
+		   char *output,
+		   unsigned *outputlen)
+{
+    int len;
+    int rc;
+
+    /* decrypt the text part & HMAC */
+    rc = EVP_DecryptUpdate((EVP_CIPHER_CTX *)text->cipher_dec_context,
+                           (unsigned char *)output, &len,
+                           (const unsigned char *)input, inputlen);
+    if (rc != 1) return SASL_FAIL;
+
+    *outputlen = len;
+
+    rc = EVP_DecryptFinal_ex((EVP_CIPHER_CTX *)text->cipher_dec_context,
+                             (unsigned char *)output + len, &len);
+    if (rc != 1) return SASL_FAIL;
+
+    *outputlen += len;
+
+    /* subtract the HMAC to get the text length */
+    *outputlen -= 10;
+
+    return SASL_OK;
+}
+
+static int enc_rc4(context_t *text,
+		   const char *input,
+		   unsigned inputlen,
+		   unsigned char digest[16],
+		   char *output,
+		   unsigned *outputlen)
+{
+    int len;
+    int rc;
+    /* encrypt the text part */
+    rc = EVP_EncryptUpdate((EVP_CIPHER_CTX *)text->cipher_enc_context,
+                           (unsigned char *)output, &len,
+                           (const unsigned char *)input, inputlen);
+    if (rc != 1) return SASL_FAIL;
+
+    *outputlen = len;
+
+    /* encrypt the `MAC part */
+    rc = EVP_EncryptUpdate((EVP_CIPHER_CTX *)text->cipher_enc_context,
+                           (unsigned char *)output + *outputlen, &len,
+                           digest, 10);
+    if (rc != 1) return SASL_FAIL;
+
+    *outputlen += len;
+
+    rc = EVP_EncryptFinal_ex((EVP_CIPHER_CTX *)text->cipher_enc_context,
+                             (unsigned char *)output + *outputlen, &len);
+    if (rc != 1) return SASL_FAIL;
+
+    *outputlen += len;
+
+    return SASL_OK;
+}
+#else
 /* quick generic implementation of RC4 */
 struct rc4_context_s {
     unsigned char sbox[256];
@@ -1296,7 +1401,7 @@ static int enc_rc4(context_t *text,
     
     return SASL_OK;
 }
-
+#endif /* HAVE_OPENSSL */
 #endif /* WITH_RC4 */
 
 struct digest_cipher available_ciphers[] =

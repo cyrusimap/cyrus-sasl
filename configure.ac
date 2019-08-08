@@ -1289,7 +1289,7 @@ IPv6_CHECK_SOCKLEN_T()
 
 #AC_FUNC_MEMCMP
 #AC_FUNC_VPRINTF
-AC_CHECK_FUNCS(gethostname getdomainname getpwnam getspnam gettimeofday inet_aton memcpy mkdir select socket strchr strdup strerror strspn strstr strtol jrand48 getpassphrase asprintf strlcat strlcpy)
+AC_CHECK_FUNCS(gethostname getdomainname getpwnam getspnam gettimeofday inet_aton memcpy memmem mkdir select socket strchr strdup strerror strspn strstr strtol jrand48 getpassphrase asprintf strlcat strlcpy)
 
 if test $ac_cv_func_getspnam = yes; then
 	AC_MSG_CHECKING(if getpwnam_r/getspnam_r take 5 arguments)

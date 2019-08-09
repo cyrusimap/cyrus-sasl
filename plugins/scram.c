@@ -1431,7 +1431,7 @@ scram_server_mech_step2(server_context_t *text,
     for (k = 0; k < hash_size; k++) {
 	if (CalculatedStoredKey[k] != text->StoredKey[k]) {
 	    SETERROR(sparams->utils, "StoredKey mismatch");
-	    result = SASL_BADPROT;
+	    result = SASL_BADAUTH;
 	    goto cleanup;
 	}
     }

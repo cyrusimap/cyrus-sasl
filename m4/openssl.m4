@@ -33,9 +33,9 @@ case "$with_openssl" in
 
 		AC_CHECK_HEADER(openssl/evp.h, [
 			AC_CHECK_LIB(crypto, EVP_DigestInit,
-					[AC_CHECK_LIB(crypto, SHA256,
-                                                      AC_DEFINE(HAVE_SHA256,[],
-                                                      [Do we have SHA256?]))],
+					[AC_CHECK_LIB(crypto, SHA512,
+                                                      AC_DEFINE(HAVE_SHA512,[],
+                                                      [Do we have SHA512?]))],
 					with_openssl="no", $LIB_RSAREF)],
 			with_openssl="no")
 		;;

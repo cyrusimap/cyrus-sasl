@@ -1842,7 +1842,49 @@ static void scram_server_mech_dispose(void *conn_context,
 
 static sasl_server_plug_t scram_server_plugins[] = 
 {
-#ifdef HAVE_SHA256
+#ifdef HAVE_SHA512
+    {
+	"SCRAM-SHA-512",		/* mech_name */
+	0,				/* max_ssf */
+	SASL_SEC_NOPLAINTEXT
+	| SASL_SEC_NOACTIVE
+	| SASL_SEC_NOANONYMOUS
+	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
+	SASL_FEAT_ALLOWS_PROXY
+        | SASL_FEAT_SUPPORTS_HTTP
+	| SASL_FEAT_CHANNEL_BINDING,	/* features */
+	"SHA512",			/* glob_context */
+	&scram_server_mech_new,		/* mech_new */
+	&scram_server_mech_step,	/* mech_step */
+	&scram_server_mech_dispose,	/* mech_dispose */
+	NULL,				/* mech_free */
+	&scram_setpass,			/* setpass */
+	NULL,				/* user_query */
+	NULL,				/* idle */
+	NULL,				/* mech avail */
+	NULL				/* spare */
+    },
+    {
+	"SCRAM-SHA-384",		/* mech_name */
+	0,				/* max_ssf */
+	SASL_SEC_NOPLAINTEXT
+	| SASL_SEC_NOACTIVE
+	| SASL_SEC_NOANONYMOUS
+	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
+	SASL_FEAT_ALLOWS_PROXY
+        | SASL_FEAT_SUPPORTS_HTTP
+	| SASL_FEAT_CHANNEL_BINDING,	/* features */
+	"SHA384",			/* glob_context */
+	&scram_server_mech_new,		/* mech_new */
+	&scram_server_mech_step,	/* mech_step */
+	&scram_server_mech_dispose,	/* mech_dispose */
+	NULL,				/* mech_free */
+	&scram_setpass,			/* setpass */
+	NULL,				/* user_query */
+	NULL,				/* idle */
+	NULL,				/* mech avail */
+	NULL				/* spare */
+    },
     {
 	"SCRAM-SHA-256",		/* mech_name */
 	0,				/* max_ssf */
@@ -1854,6 +1896,27 @@ static sasl_server_plug_t scram_server_plugins[] =
         | SASL_FEAT_SUPPORTS_HTTP
 	| SASL_FEAT_CHANNEL_BINDING,	/* features */
 	"SHA256",			/* glob_context */
+	&scram_server_mech_new,		/* mech_new */
+	&scram_server_mech_step,	/* mech_step */
+	&scram_server_mech_dispose,	/* mech_dispose */
+	NULL,				/* mech_free */
+	&scram_setpass,			/* setpass */
+	NULL,				/* user_query */
+	NULL,				/* idle */
+	NULL,				/* mech avail */
+	NULL				/* spare */
+    },
+    {
+	"SCRAM-SHA-224",		/* mech_name */
+	0,				/* max_ssf */
+	SASL_SEC_NOPLAINTEXT
+	| SASL_SEC_NOACTIVE
+	| SASL_SEC_NOANONYMOUS
+	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
+	SASL_FEAT_ALLOWS_PROXY
+        | SASL_FEAT_SUPPORTS_HTTP
+	| SASL_FEAT_CHANNEL_BINDING,	/* features */
+	"SHA224",			/* glob_context */
 	&scram_server_mech_new,		/* mech_new */
 	&scram_server_mech_step,	/* mech_step */
 	&scram_server_mech_dispose,	/* mech_dispose */
@@ -1901,8 +1964,8 @@ int scram_server_plug_init(const sasl_utils_t *utils,
 
     *out_version = SASL_SERVER_PLUG_VERSION;
     *pluglist = scram_server_plugins;
-#ifdef HAVE_SHA256
-    *plugcount = 2;
+#ifdef HAVE_SHA512
+    *plugcount = 5;
 #else
     *plugcount = 1;
 #endif
@@ -2863,7 +2926,47 @@ static void scram_client_mech_dispose(void *conn_context,
 
 static sasl_client_plug_t scram_client_plugins[] = 
 {
-#ifdef HAVE_SHA256
+#ifdef HAVE_SHA512
+    {
+	"SCRAM-SHA-512",		/* mech_name */
+	0,				/* max_ssf */
+	SASL_SEC_NOPLAINTEXT
+	| SASL_SEC_NOANONYMOUS
+	| SASL_SEC_NOACTIVE
+	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
+	SASL_FEAT_ALLOWS_PROXY
+        | SASL_FEAT_SUPPORTS_HTTP
+	| SASL_FEAT_CHANNEL_BINDING, 	/* features */
+	NULL,				/* required_prompts */
+	"SHA512",			/* glob_context */
+	&scram_client_mech_new,		/* mech_new */
+	&scram_client_mech_step,	/* mech_step */
+	&scram_client_mech_dispose,	/* mech_dispose */
+	NULL,				/* mech_free */
+	NULL,				/* idle */
+	NULL,				/* spare */
+	NULL				/* spare */
+    },
+    {
+	"SCRAM-SHA-384",		/* mech_name */
+	0,				/* max_ssf */
+	SASL_SEC_NOPLAINTEXT
+	| SASL_SEC_NOANONYMOUS
+	| SASL_SEC_NOACTIVE
+	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
+	SASL_FEAT_ALLOWS_PROXY
+        | SASL_FEAT_SUPPORTS_HTTP
+	| SASL_FEAT_CHANNEL_BINDING, 	/* features */
+	NULL,				/* required_prompts */
+	"SHA384",			/* glob_context */
+	&scram_client_mech_new,		/* mech_new */
+	&scram_client_mech_step,	/* mech_step */
+	&scram_client_mech_dispose,	/* mech_dispose */
+	NULL,				/* mech_free */
+	NULL,				/* idle */
+	NULL,				/* spare */
+	NULL				/* spare */
+    },
     {
 	"SCRAM-SHA-256",		/* mech_name */
 	0,				/* max_ssf */
@@ -2876,6 +2979,26 @@ static sasl_client_plug_t scram_client_plugins[] =
 	| SASL_FEAT_CHANNEL_BINDING, 	/* features */
 	NULL,				/* required_prompts */
 	"SHA256",			/* glob_context */
+	&scram_client_mech_new,		/* mech_new */
+	&scram_client_mech_step,	/* mech_step */
+	&scram_client_mech_dispose,	/* mech_dispose */
+	NULL,				/* mech_free */
+	NULL,				/* idle */
+	NULL,				/* spare */
+	NULL				/* spare */
+    },
+    {
+	"SCRAM-SHA-224",		/* mech_name */
+	0,				/* max_ssf */
+	SASL_SEC_NOPLAINTEXT
+	| SASL_SEC_NOANONYMOUS
+	| SASL_SEC_NOACTIVE
+	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
+	SASL_FEAT_ALLOWS_PROXY
+        | SASL_FEAT_SUPPORTS_HTTP
+	| SASL_FEAT_CHANNEL_BINDING, 	/* features */
+	NULL,				/* required_prompts */
+	"SHA224",			/* glob_context */
 	&scram_client_mech_new,		/* mech_new */
 	&scram_client_mech_step,	/* mech_step */
 	&scram_client_mech_dispose,	/* mech_dispose */
@@ -2920,8 +3043,8 @@ int scram_client_plug_init(const sasl_utils_t *utils,
     
     *out_version = SASL_CLIENT_PLUG_VERSION;
     *pluglist = scram_client_plugins;
-#ifdef HAVE_SHA256
-    *plugcount = 2;
+#ifdef HAVE_SHA512
+    *plugcount = 5;
 #else
     *plugcount = 1;
 #endif

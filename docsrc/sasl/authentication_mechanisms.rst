@@ -101,7 +101,10 @@ SCRAM
 -----
 
   * SCRAM-SHA-1
+  * SCRAM-SHA-224
   * SCRAM-SHA-256
+  * SCRAM-SHA-384
+  * SCRAM-SHA-512
 
 .. todo::
    Content needed here

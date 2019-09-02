@@ -114,6 +114,30 @@
 /* Holds the core salt to avoid regenerating salt each auth. */
 static unsigned char g_salt_key[SALT_SIZE];
 
+/* Note that currently only SHA-* variants are supported! */
+static const char *
+scram_sasl_mech_name(size_t hash_size)
+{
+    switch (hash_size) {
+    case 64:
+	return "SCRAM-SHA-512";
+
+    case 48:
+	return "SCRAM-SHA-384";
+
+    case 32:
+	return "SCRAM-SHA-256";
+
+    case 28:
+	return "SCRAM-SHA-224";
+
+    case 20:
+	return "SCRAM-SHA-1";
+    }
+
+    return NULL;
+}
+
 /* Convert saslname = 1*(value-safe-char / "=2C" / "=3D") in place.
    Returns SASL_FAIL if the encoding is invalid, otherwise SASL_OK */
 static int
@@ -521,8 +545,7 @@ scram_server_mech_step1(server_context_t *text,
     struct propval auxprop_values[3];
     int result;
     size_t hash_size = EVP_MD_size(text->md);
-    const char *scram_sasl_mech =
-        (hash_size == 32) ? "SCRAM-SHA-256" : "SCRAM-SHA-1";
+    const char *scram_sasl_mech = scram_sasl_mech_name(hash_size);
 
     if (clientinlen == 0) {
 	sparams->utils->seterror(sparams->utils->conn, 0,
@@ -1163,8 +1186,7 @@ scram_server_mech_step2(server_context_t *text,
     unsigned exact_client_proof_len;
     unsigned int hash_len = 0;
     size_t k, hash_size = EVP_MD_size(text->md);
-    const char *scram_sasl_mech =
-        (hash_size == 32) ? "SCRAM-SHA-256" : "SCRAM-SHA-1";
+    const char *scram_sasl_mech = scram_sasl_mech_name(hash_size);
 
     if (clientinlen == 0) {
 	sparams->utils->seterror(sparams->utils->conn, 0,
@@ -1535,8 +1557,7 @@ static int scram_server_mech_step(void *conn_context,
 	return SASL_BADPROT;
     }
 
-    scram_sasl_mech =
-	(EVP_MD_size(text->md) == 32) ? "SCRAM-SHA-256" : "SCRAM-SHA-1";
+    scram_sasl_mech = scram_sasl_mech_name(EVP_MD_size(text->md));
 
     /* this should be well more than is ever needed */
     if (clientinlen > MAX_CLIENTIN_LEN) {
@@ -1605,8 +1626,7 @@ static int scram_setpass(void *glob_context,
     const char *generate_scram_secret;
     const EVP_MD *md = EVP_get_digestbyname((const char *) glob_context);
     size_t hash_size = EVP_MD_size(md);
-    const char *scram_sasl_mech =
-        (hash_size == 32) ? "SCRAM-SHA-256" : "SCRAM-SHA-1";
+    const char *scram_sasl_mech = scram_sasl_mech_name(hash_size);
     
     /* Do we have a backend that can store properties? */
     if (!sparams->utils->auxprop_store ||
@@ -2043,8 +2063,7 @@ scram_client_mech_step1(client_context_t *text,
     char channel_binding_state = 'n';
     const char * channel_binding_name = NULL;
     char * encoded_authorization_id = NULL;
-    const char *scram_sasl_mech =
-        (EVP_MD_size(text->md) == 32) ? "SCRAM-SHA-256" : "SCRAM-SHA-1";
+    const char *scram_sasl_mech = scram_sasl_mech_name(EVP_MD_size(text->md));
 
     /* check if sec layer strong enough */
     if (params->props.min_ssf > params->external_ssf) {
@@ -2306,8 +2325,7 @@ scram_client_mech_step2(client_context_t *text,
     size_t client_proof_len;
     unsigned int hash_len = 0;
     size_t k, hash_size = EVP_MD_size(text->md);
-    const char *scram_sasl_mech =
-        (hash_size == 32) ? "SCRAM-SHA-256" : "SCRAM-SHA-1";
+    const char *scram_sasl_mech = scram_sasl_mech_name(hash_size);
 
     if (serverinlen == 0) {
 	params->utils->seterror(params->utils->conn, 0,
@@ -2720,8 +2738,7 @@ scram_client_mech_step3(client_context_t *text,
     char ServerSignature[EVP_MAX_MD_SIZE];
     unsigned int hash_len = 0;
     size_t k, hash_size = EVP_MD_size(text->md);
-    const char *scram_sasl_mech =
-        (hash_size == 32) ? "SCRAM-SHA-256" : "SCRAM-SHA-1";
+    const char *scram_sasl_mech = scram_sasl_mech_name(hash_size);
 
     if (serverinlen < 3) {
 	params->utils->seterror(params->utils->conn, 0,
@@ -2831,8 +2848,7 @@ static int scram_client_mech_step(void *conn_context,
 {
     int result = SASL_FAIL;
     client_context_t *text = (client_context_t *) conn_context;
-    const char *scram_sasl_mech =
-        (EVP_MD_size(text->md) == 32) ? "SCRAM-SHA-256" : "SCRAM-SHA-1";
+    const char *scram_sasl_mech = scram_sasl_mech_name(EVP_MD_size(text->md));
 
     *clientout = NULL;
     *clientoutlen = 0;

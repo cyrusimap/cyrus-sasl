@@ -81,8 +81,6 @@
 /* maximum length of the iteration_counter (as a string). Assume it is 32bits */
 #define ITERATION_COUNTER_BUF_LEN   20
 
-#define SCRAM_HASH_SIZE		    20
-
 #define BASE64_LEN(size)	    (((size) / 3 * 4) + (((size) % 3) ? 4 : 0))
 
 #define MAX_CLIENTIN_LEN	    2048

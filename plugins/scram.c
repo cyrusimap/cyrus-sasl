@@ -1770,7 +1770,7 @@ static int scram_setpass(void *glob_context,
 
 	base64_ServerKey[BASE64_LEN(hash_size)] = '\0';
 
-	secret_len = strlen(scram_sasl_mech) + strlen(":$:") + 
+	secret_len = strlen(scram_sasl_mech) + strlen("$:$:") +
 		     ITERATION_COUNTER_BUF_LEN +
 		     sizeof(base64_salt) +
 		     sizeof(base64_StoredKey) +

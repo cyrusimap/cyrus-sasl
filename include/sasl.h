@@ -314,6 +314,13 @@ typedef unsigned sasl_ssf_t;
 #define SASL_SEC_MUTUAL_AUTH      0x0040
 #define SASL_SEC_MAXIMUM          0x00FF
 
+/* This is used when adding hash size to the security_flags field */
+/* NB: hash size is in bits */
+#define SASL_SET_HASH_STRENGTH_BITS(x)    (((x) / 8) << 8)
+
+/* NB: This value is in bytes */
+#define SASL_GET_HASH_STRENGTH(x)    ((x) >> 8)
+
 typedef struct sasl_security_properties 
 { 
     /* security strength factor

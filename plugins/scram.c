@@ -1864,6 +1864,7 @@ static sasl_server_plug_t scram_server_plugins[] =
     {
 	"SCRAM-SHA-512",		/* mech_name */
 	0,				/* max_ssf */
+	SASL_SET_HASH_STRENGTH_BITS(512) |
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOACTIVE
 	| SASL_SEC_NOANONYMOUS
@@ -1885,6 +1886,7 @@ static sasl_server_plug_t scram_server_plugins[] =
     {
 	"SCRAM-SHA-384",		/* mech_name */
 	0,				/* max_ssf */
+	SASL_SET_HASH_STRENGTH_BITS(384) |
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOACTIVE
 	| SASL_SEC_NOANONYMOUS
@@ -1906,6 +1908,7 @@ static sasl_server_plug_t scram_server_plugins[] =
     {
 	"SCRAM-SHA-256",		/* mech_name */
 	0,				/* max_ssf */
+	SASL_SET_HASH_STRENGTH_BITS(256) |
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOACTIVE
 	| SASL_SEC_NOANONYMOUS
@@ -1927,6 +1930,7 @@ static sasl_server_plug_t scram_server_plugins[] =
     {
 	"SCRAM-SHA-224",		/* mech_name */
 	0,				/* max_ssf */
+	SASL_SET_HASH_STRENGTH_BITS(224) |
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOACTIVE
 	| SASL_SEC_NOANONYMOUS
@@ -1949,6 +1953,7 @@ static sasl_server_plug_t scram_server_plugins[] =
     {
 	"SCRAM-SHA-1",			/* mech_name */
 	0,				/* max_ssf */
+	SASL_SET_HASH_STRENGTH_BITS(160) |
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOACTIVE
 	| SASL_SEC_NOANONYMOUS

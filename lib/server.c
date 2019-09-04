@@ -411,6 +411,9 @@ static int mech_compare(const sasl_server_plug_t *a,
     if (a->max_ssf > b->max_ssf) return 1;
     if (a->max_ssf < b->max_ssf) return -1;
 
+    if (SASL_GET_HASH_STRENGTH(a->security_flags) > SASL_GET_HASH_STRENGTH(b->security_flags)) return 1;
+    if (SASL_GET_HASH_STRENGTH(a->security_flags) < SASL_GET_HASH_STRENGTH(b->security_flags)) return -1;
+
     return 0;
 }
 

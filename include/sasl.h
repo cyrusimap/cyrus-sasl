@@ -312,14 +312,14 @@ typedef unsigned sasl_ssf_t;
 #define SASL_SEC_NOANONYMOUS      0x0010
 #define SASL_SEC_PASS_CREDENTIALS 0x0020
 #define SASL_SEC_MUTUAL_AUTH      0x0040
-#define SASL_SEC_MAXIMUM          0x00FF
+#define SASL_SEC_MAXIMUM          0xFFFF
 
 /* This is used when adding hash size to the security_flags field */
 /* NB: hash size is in bits */
-#define SASL_SET_HASH_STRENGTH_BITS(x)    (((x) / 8) << 8)
+#define SASL_SET_HASH_STRENGTH_BITS(x)    (((x) / 8) << 16)
 
 /* NB: This value is in bytes */
-#define SASL_GET_HASH_STRENGTH(x)    ((x) >> 8)
+#define SASL_GET_HASH_STRENGTH(x)    ((x) >> 16)
 
 typedef struct sasl_security_properties 
 { 

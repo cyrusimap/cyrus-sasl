@@ -15,7 +15,7 @@ contributions from Sam Hartman <hartmans@fundsxpress.com>.
 Leandro Santi <lesanti@sinectis.com.ar> added Courier authdaemon support.
 
 Alexey Melnikov <alexey.melnikov@isode.com> wrote the first pass of the
-DIGEST-MD5 plugin and continues to work on it.  He also wrote
+DIGEST-MD5 and SCRAM plugins and continues to work on them.  He also wrote
 a good deal of the current Windows support.
 
 Rainer Schoepf <schoepf@uni-mainz.de> contributed the LOGIN plugin,

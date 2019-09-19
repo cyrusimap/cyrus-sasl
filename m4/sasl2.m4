@@ -289,6 +289,19 @@ if test "$gssapi" != no; then
 
   cmu_save_LIBS="$LIBS"
   LIBS="$LIBS $GSSAPIBASE_LIBS"
+  if test "$ac_cv_header_gssapi_gssapi_krb5_h" = "yes"; then
+    AC_CHECK_DECL(GSS_KRB5_CRED_NO_CI_FLAGS_X,
+                  [AC_DEFINE(HAVE_GSS_KRB5_CRED_NO_CI_FLAGS_X,1,
+                             [Define if your GSSAPI implementation supports GSS_KRB5_CRED_NO_CI_FLAGS_X])],,
+                  [
+                    AC_INCLUDES_DEFAULT
+                    #include <gssapi/gssapi_krb5.h>
+                    ])
+  fi
+  LIBS="$cmu_save_LIBS"
+
+  cmu_save_LIBS="$LIBS"
+  LIBS="$LIBS $GSSAPIBASE_LIBS"
   AC_CHECK_FUNCS(gss_get_name_attribute)
   LIBS="$cmu_save_LIBS"
 

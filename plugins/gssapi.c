@@ -2123,7 +2123,50 @@ static int gssapi_client_mech_step(void *conn_context,
 		/* We want to try for privacy */
 		req_flags |= GSS_C_CONF_FLAG;
 	    }
-	}
+#ifdef HAVE_GSS_KRB5_CRED_NO_CI_FLAGS_X
+        /* The krb5 mechanism automatically adds INTEG and CONF flags even when
+         * not specified, this has the effect of rendering explicit requests
+         * of no confidentiality and integrity via setting maxssf 0 moot.
+         * However to interoperate with Windows machines it needs to be
+         * possible to unset these flags as Windows machines refuse to allow
+         * two layers (say TLS and GSSAPI) to both provide these services.
+         * So if we do not suppress these flags a SASL/GSS-SPNEGO negotiation
+         * over, say, LDAPS will fail against Windows Servers */
+	} else if (params->props.max_ssf == 0) {
+            gss_buffer_desc empty_buffer = GSS_C_EMPTY_BUFFER;
+            if (client_creds == GSS_C_NO_CREDENTIAL) {
+                gss_OID_set_desc mechs = { 0 };
+                gss_OID_set desired_mechs = GSS_C_NO_OID_SET;
+                if (text->mech_type != GSS_C_NO_OID) {
+                    mechs.count = 1;
+                    mechs.elements = text->mech_type;
+                    desired_mechs = &mechs;
+                }
+
+                maj_stat = gss_acquire_cred(&min_stat, GSS_C_NO_NAME,
+                                            GSS_C_INDEFINITE, desired_mechs,
+                                            GSS_C_INITIATE,
+                                            &text->client_creds, NULL, NULL);
+                if (GSS_ERROR(maj_stat)) {
+                    sasl_gss_seterror(text->utils, maj_stat, min_stat);
+                    sasl_gss_free_context_contents(text);
+                    return SASL_FAIL;
+                }
+                client_creds = text->client_creds;
+            }
+
+            maj_stat = gss_set_cred_option(&min_stat, &client_creds,
+                                           (gss_OID)GSS_KRB5_CRED_NO_CI_FLAGS_X,
+                                            &empty_buffer);
+            if (GSS_ERROR(maj_stat)) {
+                sasl_gss_seterror(text->utils, maj_stat, min_stat);
+                sasl_gss_free_context_contents(text);
+                return SASL_FAIL;
+            }
+#endif
+        }
+
+
 #ifdef GSS_USE_CCACHE_STORE
         /* TODO: This should maybe depend on "pass_credentials" (server-side), or Kerberos token attributes */
         params->props.security_flags |= SASL_SEC_PASS_CREDENTIALS;

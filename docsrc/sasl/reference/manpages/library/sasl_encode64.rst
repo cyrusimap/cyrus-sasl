@@ -16,7 +16,7 @@ Synopsis
 
     int sasl_encode64(const char * input,
                     unsigned inputlen,
-                    const char ** output,
+                    char * output,
                     unsigned outmax,
                     unsigned * outputlen);
 

@@ -100,11 +100,11 @@ PLAIN
 SCRAM
 -----
 
-  * SCRAM-SHA-1
-  * SCRAM-SHA-224
-  * SCRAM-SHA-256
-  * SCRAM-SHA-384
-  * SCRAM-SHA-512
+  * SCRAM-SHA-1(-PLUS)
+  * SCRAM-SHA-224(-PLUS)
+  * SCRAM-SHA-256(-PLUS)
+  * SCRAM-SHA-384(-PLUS)
+  * SCRAM-SHA-512(-PLUS)
 
 .. todo::
    Content needed here

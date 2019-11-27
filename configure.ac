@@ -507,8 +507,19 @@ if test "$gssapi" != "no"; then
   AC_DEFINE(HAVE_GSSAPI,[],[Include GSSAPI/Kerberos 5 Support])
 
   mutex_default="no"
+  cc_default="no"
+  load_from_default="no"
+
+  AC_CHECK_HEADERS(gssapi.h, [have_gss_header=y])
+  AC_SEARCH_LIBS(gss_acquire_cred_from, [gssapi_krb5 gssapi], [have_load_from=t])
+  if test x"${have_gss_header}" != x -a x"${have_load_from}" != x; then
+     load_from_defaults="yes"
+  fi
+
   if test "$gss_impl" = "mit"; then
      mutex_default="yes"
+     cc_default="yes"
+     load_from_default="yes"
   elif test "$gss_impl" = "heimdal"; then
      AC_DEFINE(KRB5_HEIMDAL,[],[Using Heimdal]) 
   fi
@@ -521,6 +532,26 @@ if test "$gssapi" != "no"; then
      AC_DEFINE(GSS_USE_MUTEXES, [], [should we mutex-wrap calls into the GSS library?])
   fi
   AC_MSG_RESULT($use_gss_mutexes)
+
+  AC_MSG_CHECKING(to use GSS delgation with ccpath)
+  AC_ARG_ENABLE(gss_cc, [  --enable-gss-cc         allow delegation of cached crdentials],
+                use_gss_cc=$enableval,
+                use_gss_cc=$cc_default)
+
+  if test $use_gss_cc = "yes"; then
+     AC_DEFINE(GSS_USE_CC, [], [should we allow storage of cached credentials?])
+  fi
+  AC_MSG_RESULT($use_gss_cc)
+
+  AC_MSG_CHECKING(to use GSS service keytab loading with gss_acquire_cred_from)
+  AC_ARG_ENABLE(gss_load_from, [  --enable-gss-load-from  allow GSSProxy friendly keytab load],
+                use_gss_load_from=$enableval,
+                use_gss_load_from=$load_from_default)
+
+  if test $use_gss_load_from = "yes"; then
+     AC_DEFINE(GSS_USE_LOAD_FROM, [], [should we use gss_acquire_cred_from?])
+  fi
+  AC_MSG_RESULT($use_gss_load_from)
 fi
 
 SASL2_CRYPT_CHK
@@ -1223,6 +1254,30 @@ if test $sasl_cv_getnameinfo = yes; then
 fi
 AC_SUBST(GETNAMEINFOOBJS)
 AC_SUBST(LTGETNAMEINFOOBJS)
+
+dnl check for getpwnam
+sasl_cv_getpwnam=no
+AC_CHECK_FUNC(getpwnam, [AC_DEFINE(HAVE_GETPWNAM,[],
+	[do we have getpwnam()?])], [sasl_cv_getpwnam=yes])
+AC_SUBST(GETPWNAM)
+
+dnl check for getuid
+sasl_cv_getuid=no
+AC_CHECK_FUNC(getuid, [AC_DEFINE(HAVE_GETUID,[],
+	[do we have getuid()?])], [sasl_cv_getuid=yes])
+AC_SUBST(GETUID)
+
+dnl check for getlogin_r
+sasl_cv_getlogin_r=no
+AC_CHECK_FUNC(getlogin_r, [AC_DEFINE(HAVE_GETLOGIN_R,[],
+	[do we have getlogin_r()?])], [sasl_cv_getlogin_r=yes])
+AC_SUBST(GETLOGIN_R)
+
+dnl check for getpid
+sasl_cv_getpid=no
+AC_CHECK_FUNC(getpid, [AC_DEFINE(HAVE_GETPID,[],
+	[do we have getpid()?])], [sasl_cv_getpid=yes])
+AC_SUBST(GETPID)
 
 LTLIBOBJS=`echo "$LIB@&t@OBJS" | sed 's,\.[[^.]]* ,.lo ,g;s,\.[[^.]]*$,.lo,'`
 AM_CONDITIONAL(BUILD_LIBOBJ, test "$LTLIBOBJS" != "")

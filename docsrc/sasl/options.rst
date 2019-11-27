@@ -96,6 +96,30 @@ GSSAPI
 
    Default: /etc/krb5.keytab (system dependant)
 
+.. option:: ccache [<path>]
+
+   Location where cached credentials are stored, For example this could
+   be FILE:/path/to/credstore/krb5cc_%U. Formatting options are:
+
+   %u UID of the logged in user (only valid for existing UNIX users)
+   %U username of the logged in user
+   %e EUID of the executing process user
+   %E username of the executing process user
+   %p PID process ID of the executing process
+
+   Note that not all formatting options may not be available for all target
+   environments. See the log files for indications in run-time. If this
+   option can not be parsed correctly credentials cache will fall-back to
+   the contents of the KRB5CCNAME environment variable.
+
+   If this option is omitted, credentials delegation will not be enabled.
+
+   See MIT Kerberos documentation on more informatino about credentials
+   cache storage.
+
+   Default: None, if omitted, no credentials cache/delegation and if left
+   empty or invalid KRB5CCNAME will be used.
+
 LDAPDB
 ======
 

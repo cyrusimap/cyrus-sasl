@@ -1,3 +1,6 @@
+Joakim Ekblad <cyrussasl@aio.nu> implemented improvements in GSSAPI
+and Kerberos features on behalf of Vricon Systems AB
+
 Rob Siemborski <rjs3+@andrew.cmu.edu> wrote and tested the conversion
 to the SASLv2 API.
 

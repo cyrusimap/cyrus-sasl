@@ -26,6 +26,7 @@ this distribution:
 *  NTLM (requires OpenSSL libcrypto)
 *  OTP (requires OpenSSL libcrypto)
 *  PLAIN
+*  SCRAM (requires OpenSSL libcrypto)
 *  SRP (work in progress; requires OpenSSL libcrypto)
 
 

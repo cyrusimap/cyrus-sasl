@@ -74,7 +74,7 @@ installation:
 
 
 1.  What mechanisms do you want to support?  Are they plaintext (LOGIN, PLAIN),
-shared secret (DIGEST-MD5, CRAM-MD5), or Kerberos (KERBEROS_V4, GSSAPI)?
+shared secret (SCRAM, DIGEST-MD5, CRAM-MD5), or Kerberos (KERBEROS_V4, GSSAPI)?
 Perhaps you will use some combination (generally plaintext with one of
 the other two types).
 2.  Given the answer to the previous question, how will the mechanisms
@@ -141,11 +141,11 @@ resources to load a given plugin, even if that plugin is otherwise unused
 (even when it is disabled via the :option:`mech_list` option).
 
 As of this writing, modules that are enabled by default but may not
-be applicable to all systems include CRAM-MD5, DIGEST-MD5, OTP, KERBEROS_V4,
-GSSAPI, PLAIN, and ANONYMOUS.  These can be disabled with::
+be applicable to all systems include CRAM-MD5, DIGEST-MD5, SCRAM, OTP,
+KERBEROS_V4, GSSAPI, PLAIN, and ANONYMOUS.  These can be disabled with::
 
-    ``--disable-cram``,
-    ``--disable-digest``, ``--disable-otp``,
+    ``--disable-cram``, ``--disable-digest``,
+    ``--disable-scram``, ``--disable-otp``,
     ``--disable-krb4``, ``--disable-gssapi``,
     ``--disable-plain``, and ``--disable-anon`` respecively.
 

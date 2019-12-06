@@ -99,7 +99,7 @@ Plugins: SASL Mechanisms
 ------------------------
 
 The simplest types of plugins to understand are those which provide
-SASL mechanisms, such as CRAM-MD5, DIGEST-MD5, GSSAPI, PLAIN, SRP, and so on.
+SASL mechanisms, such as CRAM-MD5, DIGEST-MD5, GSSAPI, PLAIN, SCRAM, SRP, and so on.
 These mechanisms take care of both server-side and client-side parts
 of the SASL negotiation.  If the given mechanism supports a security layer
 (that is, makes guarantees about privacy or integrity of data after the
@@ -123,7 +123,7 @@ Password Verification Mechanisms
     the server have access to a plaintext (or plaintext-equivalent) version
     of the password.
 Shared Secret Mechanisms
-    For these mechanisms, such as CRAM-MD5, DIGEST-MD5, and SRP, there is a shared secret between the server and client
+    For these mechanisms, such as CRAM-MD5, DIGEST-MD5, SCRAM, and SRP, there is a shared secret between the server and client
     (e.g. a password).  However, in this case the password itself does not travel
     on the wire.  Instead, the client passes a server a token that proves that
     it knows the secret (without actually sending the secret across the wire).

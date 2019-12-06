@@ -18,7 +18,8 @@ https://lists.andrew.cmu.edu/pipermail/cyrus-sasl/.
 If you are looking to port SASLv1 applications to SASLv2, please see
 doc/appconvert.html
 
-Bugs can be searched/reported [here](https://github.com/cyrusimap/cyrus-sasl/issues).
+Bugs can be searched/reported [on GitHub](https://github.com/cyrusimap/cyrus-sasl/issues),
+but please also notify the mailing list.
 
 ## DOCUMENTATION
 

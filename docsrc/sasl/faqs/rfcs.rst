@@ -14,6 +14,8 @@ RFCs and drafts
 * :rfc:`4752` - The Kerberos V5 ("GSSAPI") Simple Authentication and Security Layer (SASL) Mechanism
 * :rfc:`5801` - Using Generic Security Service Application Program Interface (GSS-API) Mechanisms in SASL: The GS2 Mechanism Family
 * :rfc:`5802` - Salted Challenge Response Authentication Mechanism (SCRAM) SASL and GSS-API Mechanisms
+* :rfc:`7677` - SCRAM-SHA-256 and SCRAM-SHA-256-PLUS: Simple Authentication and Security Layer (SASL) Mechanisms
+* :rfc:`7804` - Salted Challenge Response HTTP Authentication Mechanism
 * :rfc:`2444` - The One-Time-Password SASL Mechanism (OTP)
 * :rfc:`2808` - The SecurID(r) SASL Mechanism
 * :rfc:`2831` - Using Digest Authentication as a SASL Mechanism (historic: :rfc:`6331`)

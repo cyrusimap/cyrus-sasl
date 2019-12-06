@@ -1,4 +1,4 @@
-/* SCRAM-SHA-1 SASL plugin
+/* SCRAM-SHA-1/SHA-2 SASL plugin
  * Alexey Melnikov
  */
 /* 
@@ -290,7 +290,7 @@ print_hash (const char * func, const char * hash, size_t hash_size)
 #endif
 
 
-/* The result variable need to point to a buffer big enough for the [SHA-1] hash */
+/* The result variable need to point to a buffer big enough for the [SHA-*] hash */
 static void
 Hi (const sasl_utils_t * utils,
     const EVP_MD *md,

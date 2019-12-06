@@ -62,13 +62,11 @@ PLAIN is useful for transitioning to new security mechanisms, as this
 is the only mechanism which gives the server a copy of the user's
 password.
 
-%package plug-scrammd5
-%summary: SASL SCRAM-MD5 mechanism plugin
+%package plug-scram
+%summary: SASL SCRAM-SHA-1/SCRAM-SHA-2 mechanism plugin
 
-%description plug-scrammd5
-This plugin implements the SASL SCRAM-MD5 mechanism.  Although
-deprecated (this will be replaced by DIGEST-MD5 at some point), it may
-be useful for the time being.
+%description plug-scram
+This plugin implements the SASL SCRAM-SHA-1/SCRAM-SHA-2 mechanism.
 
 %prep
 %setup

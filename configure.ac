@@ -507,7 +507,7 @@ if test "$gssapi" != "no"; then
   AC_DEFINE(HAVE_GSSAPI,[],[Include GSSAPI/Kerberos 5 Support])
 
   mutex_default="no"
-  cc_default="no"
+  ccache_default="no"
   load_from_default="no"
 
   AC_CHECK_HEADERS(gssapi.h, [have_gss_header=y])
@@ -518,7 +518,7 @@ if test "$gssapi" != "no"; then
 
   if test "$gss_impl" = "mit"; then
      mutex_default="yes"
-     cc_default="yes"
+     ccache_default="yes"
      load_from_default="yes"
   elif test "$gss_impl" = "heimdal"; then
      AC_DEFINE(KRB5_HEIMDAL,[],[Using Heimdal]) 
@@ -533,15 +533,15 @@ if test "$gssapi" != "no"; then
   fi
   AC_MSG_RESULT($use_gss_mutexes)
 
-  AC_MSG_CHECKING(to use GSS delgation with ccpath)
-  AC_ARG_ENABLE(gss_cc, [  --enable-gss-cc         allow delegation of cached crdentials],
-                use_gss_cc=$enableval,
-                use_gss_cc=$cc_default)
+  AC_MSG_CHECKING(to use GSS delgation with ccache store)
+  AC_ARG_ENABLE(gss_ccache, [  --enable-gss-ccache       allow delegation of cached crdentials],
+                use_gss_ccache=$enableval,
+                use_gss_ccache=$ccache_default)
 
-  if test $use_gss_cc = "yes"; then
-     AC_DEFINE(GSS_USE_CC, [], [should we allow storage of cached credentials?])
+  if test $use_gss_ccache = "yes"; then
+     AC_DEFINE(GSS_USE_CCACHE_STORE, [], [should we allow storage of cached credentials?])
   fi
-  AC_MSG_RESULT($use_gss_cc)
+  AC_MSG_RESULT($use_gss_ccache)
 
   AC_MSG_CHECKING(to use GSS service keytab loading with gss_acquire_cred_from)
   AC_ARG_ENABLE(gss_load_from, [  --enable-gss-load-from  allow GSSProxy friendly keytab load],

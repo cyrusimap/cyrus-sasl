@@ -901,7 +901,7 @@ static char* resolve_ccache_store(context_t* text, const char* username, const c
             }
 #else
             text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
-                                  "GSSAPI error: %u is supported in ccache store format");
+                                  "GSSAPI error: %%u is unsupported in ccache store format");
             goto parsing_failed;
 #endif
             break;
@@ -920,7 +920,7 @@ static char* resolve_ccache_store(context_t* text, const char* username, const c
             }
 #else
             text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
-                                  "GSSAPI error: %%e is supported in ccache store format");
+                                  "GSSAPI error: %%e is unsupported in ccache store format");
             goto parsing_failed;
 #endif
             break;
@@ -934,7 +934,7 @@ static char* resolve_ccache_store(context_t* text, const char* username, const c
             }
 #else
             text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
-                                  "GSSAPI error: %%E is supported in ccache store format");
+                                  "GSSAPI error: %%E is unsupported in ccache store format");
             goto parsing_failed;
 #endif
             break;
@@ -950,7 +950,7 @@ static char* resolve_ccache_store(context_t* text, const char* username, const c
             }
 #else
             text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
-                                  "GSSAPI error: %%p is supported in ccache store format");
+                                  "GSSAPI error: %%p is unsupported in ccache store format");
             goto parsing_failed;
 #endif
             break;

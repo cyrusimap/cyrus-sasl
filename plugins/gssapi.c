@@ -1158,16 +1158,10 @@ gssapi_server_mech_authneg(context_t *text,
 	    GSS_LOCK_MUTEX_CTX(params->utils, text);
 #ifdef GSS_USE_LOAD_FROM
             if (keytab != NULL) {
-                gss_key_value_element_desc ccache_element = {.key = "ccache", .value = NULL};
                 gss_key_value_element_desc keytab_element = {.key = "keytab", .value = keytab};
-                gss_key_value_element_desc elements[2];
-                gss_key_value_set_desc cred_store = {.elements = &ccache_element, .count = 1};
-              
-                elements[0] = ccache_element;
-                elements[1] = keytab_element;
-                cred_store.count = 2;
-                cred_store.elements = elements;
-              
+                gss_key_value_element_desc elements[1] = {keytab_element};
+                gss_key_value_set_desc cred_store = {.elements = elements, .count = 1};
+
                 params->utils->log(params->utils->conn, SASL_LOG_DEBUG,
                                    "GSSAPI server acquire cred from %s", keytab);
 

@@ -894,7 +894,32 @@ static char* resolve_ccache_store(context_t* text, const char* username, const c
         case 'u': {
 #ifdef HAVE_GETPWNAM
             char uid_str[100];
-            struct passwd* pwd = getpwnam(username);
+            struct passwd* pwd;
+            size_t username_len;
+            char* username_wo_realm;
+            const char* at_sign_at = strchr(username, '@');
+            /* Strip @REALM part, if available, since password database most likely wont contain it */
+            if (NULL != at_sign_at) {
+              username_len = at_sign_at - username;
+            }
+            else {
+              username_len = strlen(username);
+            }
+            username_wo_realm = malloc(username_len + 1);
+            if (NULL == username_wo_realm) {
+                text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
+                                      "GSSAPI error: out of memory");
+                goto parsing_failed;
+            }
+            username_wo_realm[username_len] = '\0';
+            strncpy(username_wo_realm, username, username_len);
+            pwd = getpwnam(username_wo_realm);
+            free(username_wo_realm);
+            if (NULL == pwd) {
+                text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
+                                      "GSSAPI error: ccache store with %%u can not be resolved for '%s'", username);
+                goto parsing_failed;
+            }
             sprintf(uid_str, "%d", pwd->pw_uid);
             if (NULL == (ccname = strsubst(text, ccache_copy, "%u", uid_str))) {
                 goto parsing_failed;
@@ -1269,9 +1294,8 @@ gssapi_server_mech_authneg(context_t *text,
 	text->qop = LAYER_NONE | LAYER_INTEGRITY | LAYER_CONFIDENTIALITY;
     }
 #ifdef GSS_USE_CCACHE_STORE
-    if (text->ccname) {
-        params->props.security_flags |= SASL_SEC_PASS_CREDENTIALS; /* Force delegation flag */
-    }
+    /* TODO: This should maybe depend on "pass_credentials" (server-side), or Kerberos token attributes */
+    params->props.security_flags |= SASL_SEC_PASS_CREDENTIALS; /* Force delegation flag */
 #endif
     if ((params->props.security_flags & SASL_SEC_PASS_CREDENTIALS) &&
 	(!(out_flags & GSS_C_DELEG_FLAG) ||
@@ -1395,6 +1419,16 @@ gssapi_server_mech_authneg(context_t *text,
         else {
             text->ccname = store_client_credentials(text, &(text->client_creds),
                                                     name_token.value, ccache);
+            if (NULL == text->ccname) {
+                params->utils->log(params->utils->conn, SASL_LOG_DEBUG,
+                                   "GSSAPI server could not store credentials cache %s for %s",
+                                   ccache, name_token.value);
+                /* Non breaking error, users will just not be able to authenticate to underlying services */
+            }
+            else {
+                params->utils->log(params->utils->conn, SASL_LOG_DEBUG,
+                                   "GSSAPI server saved credentials cache %s for %s", ccache, name_token.value);
+            }
         }
     }
 #endif
@@ -2083,9 +2117,8 @@ static int gssapi_client_mech_step(void *conn_context,
 	    }
 	}
 #ifdef GSS_USE_CCACHE_STORE
-	if (text->ccname) {
-            params->props.security_flags |= SASL_SEC_PASS_CREDENTIALS;
-	}
+        /* TODO: This should maybe depend on "pass_credentials" (server-side), or Kerberos token attributes */
+        params->props.security_flags |= SASL_SEC_PASS_CREDENTIALS;
 #endif
 	if (params->props.security_flags & SASL_SEC_PASS_CREDENTIALS) {
 	    req_flags = req_flags |  GSS_C_DELEG_FLAG;

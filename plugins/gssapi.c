@@ -1420,13 +1420,12 @@ gssapi_server_mech_authneg(context_t *text,
                                                     name_token.value, ccache);
             if (NULL == text->ccname) {
                 params->utils->log(params->utils->conn, SASL_LOG_DEBUG,
-                                   "GSSAPI server could not store credentials cache %s for %s",
-                                   ccache, name_token.value);
+                                   "GSSAPI server could not store credentials cache %s", ccache);
                 /* Non breaking error, users will just not be able to authenticate to underlying services */
             }
             else {
                 params->utils->log(params->utils->conn, SASL_LOG_DEBUG,
-                                   "GSSAPI server saved credentials cache %s for %s", ccache, name_token.value);
+                                   "GSSAPI server saved credentials cache %s", ccache);
             }
         }
     }

@@ -506,15 +506,19 @@ if test "$gssapi" != "no"; then
   load_from_default="no"
 
   AC_CHECK_HEADERS(gssapi.h, [have_gss_header=y])
-  AC_SEARCH_LIBS(gss_acquire_cred_from, [gssapi_krb5 gssapi], [have_load_from=t])
-  if test x"${have_gss_header}" != x -a x"${have_load_from}" != x; then
-     load_from_defaults="yes"
+  AC_CHECK_HEADERS(gssapi/gssapi_ext.h, [have_gss_ext_header=y])
+  AC_SEARCH_LIBS(gss_acquire_cred_from, [gssapi_krb5], [have_load_from=t])
+  AC_SEARCH_LIBS(gss_store_cred_into, [gssapi_krb5], [have_store_into=t])
+
+  if test x"${have_gss_ext_header}" != x -a x"${have_load_from}" != x; then
+     load_from_default="yes"
+  fi
+  if test x"${have_gss_ext_header}" != x -a x"${have_store_into}" != x; then
+     ccache_default="yes"
   fi
 
   if test "$gss_impl" = "mit"; then
      mutex_default="yes"
-     ccache_default="yes"
-     load_from_default="yes"
   elif test "$gss_impl" = "heimdal"; then
      AC_DEFINE(KRB5_HEIMDAL,[],[Using Heimdal]) 
   fi

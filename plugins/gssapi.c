@@ -830,6 +830,17 @@ gssapi_server_mech_new(void *glob_context,
 }
 
 #ifdef GSS_USE_CCACHE_STORE
+static char* resolve_ccname_from_env(context_t* text) {
+    char* ccname = strdup(getenv("KRB5CCNAME"));
+    if (NULL == ccname) {
+        text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
+                              "GSSAPI error: out of memory, or KRB5CCNAME unset");
+    }
+    text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
+                          "GSSAPI warning: using KRB5CCNAME for ccache store");
+    return ccname;
+}
+
 static char* strsubst(context_t* text, const char* haystack, const char* needle, const char* subst) {
     const size_t haystack_len = strlen(haystack);
     const size_t needle_len = strlen(needle);
@@ -1017,13 +1028,7 @@ static char* resolve_ccache_store(context_t* text, const char* username, const c
     }
  noccache:
     if (NULL == ccname) {
-        ccname = strdup(getenv("KRB5CCNAME"));
-        if (NULL == ccname) {
-            text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
-                                  "GSSAPI error: out of memory, or KRB5CCNAME unset");
-        }
-        text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
-                              "GSSAPI warning: using KRB5CCNAME for ccache store");
+        ccache = resolve_ccname_from_env(text);
     }
  ok:
     if (NULL != ccache_copy) {

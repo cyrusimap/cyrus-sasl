@@ -96,7 +96,7 @@ GSSAPI
 
    Default: /etc/krb5.keytab (system dependant)
 
-.. option:: ccache [<path>]
+.. option:: ccache_store [<path>]
 
    Location where cached credentials are stored, For example this could
    be FILE:/path/to/credstore/krb5cc_%U. Formatting options are:

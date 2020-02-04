@@ -114,7 +114,7 @@ GSSAPI
 
    If this option is omitted, credentials delegation will not be enabled.
 
-   See MIT Kerberos documentation on more informatino about credentials
+   See MIT Kerberos documentation on more information about credentials
    cache storage.
 
    Default: None, if omitted, no credentials cache/delegation and if left

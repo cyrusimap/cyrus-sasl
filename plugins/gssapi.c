@@ -870,7 +870,8 @@ static char* strsubst(context_t* text, const char* haystack, const char* needle,
     return d;
 }
 
-static char* resolve_ccache_store(context_t* text, const char* username, const char* ccache) {
+static char* resolve_ccache_store(context_t* text, gss_buffer_desc* username_buf, const char* ccache) {
+    char* username = NULL;
     char* ccname = NULL;
     char* ccache_copy = NULL;
     char* needle;
@@ -884,11 +885,17 @@ static char* resolve_ccache_store(context_t* text, const char* username, const c
         goto noccache;
     }
 
-    if (NULL == username) {
+    if (NULL == username_buf) {
         goto sanity_check_failed;
     }
 
     if (NULL == (ccache_copy = strdup(ccache))) {
+        text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
+                              "GSSAPI error: out of memory");
+        goto malloc_failed;
+    }
+
+    if (NULL == (username = strndup(username_buf->value, username_buf->length))) {
         text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
                               "GSSAPI error: out of memory");
         goto malloc_failed;
@@ -1021,6 +1028,10 @@ static char* resolve_ccache_store(context_t* text, const char* username, const c
  malloc_failed:
  sanity_check_failed:
  parsing_failed:
+    if (NULL != username) {
+        free(username);
+        username = NULL;
+    }
     if (NULL != ccname) {
         free(ccname);
         ccname = NULL;
@@ -1037,14 +1048,14 @@ static char* resolve_ccache_store(context_t* text, const char* username, const c
     return ccname;
 }
 
-static char *store_client_credentials(context_t* text, gss_cred_id_t* client_credentials, const char* username, const char* ccache) {
+static char *store_client_credentials(context_t* text, gss_cred_id_t* client_credentials, gss_buffer_desc* username_buf, const char* ccache) {
     gss_key_value_element_desc element;
     gss_key_value_set_desc store;
     char* ccname = NULL;
     OM_uint32 maj_stat;
     OM_uint32 min_stat;
 
-    if (NULL == (ccname = resolve_ccache_store(text, username, ccache))) {
+    if (NULL == (ccname = resolve_ccache_store(text, username_buf, ccache))) {
         text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
                               "GSSAPI error: unable to generate krb5cc store name");
         goto resolve_ccache_store_failed;
@@ -1408,7 +1419,7 @@ gssapi_server_mech_authneg(context_t *text,
         }
         else {
             text->ccname = store_client_credentials(text, &(text->client_creds),
-                                                    name_token.value, ccache);
+                                                    &name_token, ccache);
             if (NULL == text->ccname) {
                 params->utils->log(params->utils->conn, SASL_LOG_DEBUG,
                                    "GSSAPI server could not store credentials cache %s", ccache);

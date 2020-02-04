@@ -904,26 +904,25 @@ static char* resolve_ccache_store(context_t* text, const char* username, const c
         switch (needle[1]) {
         case 'u': {
 #ifdef HAVE_GETPWNAM
+            OM_uint32 maj;
+            OM_uint32 min;
+            gss_buffer_desc local_name = GSS_C_EMPTY_BUFFER;
+            char* username_wo_realm;
             char uid_str[100];
             struct passwd* pwd;
-            size_t username_len;
-            char* username_wo_realm;
-            const char* at_sign_at = strchr(username, '@');
-            /* Strip @REALM part, if available, since password database most likely wont contain it */
-            if (NULL != at_sign_at) {
-              username_len = at_sign_at - username;
+            maj = gss_localname(&min, text->client_name, text->mech_type, &local_name);
+            if (GSS_S_COMPLETE != maj) {
+                text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
+                                      "GSSAPI error: ccache store with %%u can not be resolved for '%s' while stripping realm", username);
+                goto parsing_failed;
             }
-            else {
-              username_len = strlen(username);
-            }
-            username_wo_realm = malloc(username_len + 1);
+            username_wo_realm = strndup(local_name.value, local_name.length);
+            gss_release_buffer(&min, &local_name);
             if (NULL == username_wo_realm) {
                 text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
                                       "GSSAPI error: out of memory");
                 goto parsing_failed;
             }
-            username_wo_realm[username_len] = '\0';
-            strncpy(username_wo_realm, username, username_len);
             pwd = getpwnam(username_wo_realm);
             free(username_wo_realm);
             if (NULL == pwd) {

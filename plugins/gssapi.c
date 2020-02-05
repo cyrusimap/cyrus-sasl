@@ -2046,7 +2046,7 @@ static int gssapi_client_mech_step(void *conn_context,
 		
 		return SASL_INTERACT;
 	    }
-        }
+	}
 	    
 	if (text->server_name == GSS_C_NO_NAME) { /* only once */
 	    if (params->serverFQDN == NULL

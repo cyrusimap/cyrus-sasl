@@ -43,11 +43,8 @@
 /*
  * Dec  4, 2002 by Dave Eckhardt <davide+receptionist@cs.cmu.edu>
  * This is inspired by code which was identical in both
- * auth_krb4.c and auth_krb5.c.  This code is shared
- * between the two implementations, contains protection
- * against a race condition, and, when possible, uses
- * Heimdal krb5's memory-only credential caches to avoid
- * needless disk i/o.
+ * auth_krb4.c and auth_krb5.c. This code contains protection
+ * against a race condition.
  */
 
 /* PUBLIC DEPENDENCIES */
@@ -72,11 +69,6 @@
 #define WANT_KRBTF
 #endif /* WANT_KRBTF */
 
-#ifdef AUTH_KRB5
-#include <auth_krb5.h>
-#define WANT_KRBTF
-#endif /* WANT_KRBTF */
-
 #ifdef WANT_KRBTF
 
 /* PRIVATE DEPENDENCIES */
@@ -84,8 +76,6 @@
 
 /* privates */
 static char tf_dir[] = PATH_SASLAUTHD_RUNDIR "/.tf";
-static char *tfn_cookie = 0;
-static int tfn_cookie_len = 0;
 static char pidstring[80];
 size_t pidstring_len = 0;
 /* END PRIVATE DEPENDENCIES */
@@ -121,17 +111,6 @@ krbtf_init (
     /* END VARIABLES */
     authmech_t *authmech;
 
-#ifdef AUTH_KRB5
-    for (authmech = mechanisms; authmech->name != NULL; authmech++ ) {
-	    if (authmech->initialize != auth_krb5_init) continue;
-	    /* This execution is using krb5 */
-	    /* Both MIT krb5 and Heimdal support MEMORY: ccaches */
-	    tfn_cookie = "MEMORY:0";
-	    tfn_cookie_len = strlen(tfn_cookie);
-	    return 0;
-    }
-#endif /* AUTH_KRB5 */
-
     if (((rc = mkdir(tf_dir, 0700)) == 0) || (errno == EEXIST)) {
 	if ((rc = lstat(tf_dir, &sb)) == 0) {
 	    if (sb.st_mode & S_IFLNK) {
@@ -166,7 +145,6 @@ krbtf_init (
 /* SYNOPSIS
  * Spit a ticket-file/credentical-cache name into caller's array.
  *
- * If we can, emit the magic cookie for a memory-only krb5 ccname
  * END SYNOPSIS */
 
 int					/* R: -1 on failure, else 0 */
@@ -178,13 +156,6 @@ krbtf_name (
   )
 {
 #ifdef WANT_KRBTF
-    if (tfn_cookie_len) {
-	if (tfn_cookie_len + 1 > len) {
-	    syslog(LOG_ERR, "krbtf_name: cookie name (%s) too long", tfn_cookie);
-	    return -1;
-	}
-	strcpy(tfname, tfn_cookie);
-    } else {
 	int dir_len = sizeof (tf_dir) - 1; /* don't count the null */
 	int want_len = dir_len + 1 + pidstring_len + 1;
 
@@ -209,7 +180,6 @@ krbtf_name (
 	    return -1;
 	}
 #endif /* SASLAUTHD_THREADED */
-    }
 
     return 0;
 #else /* WANT_KRBTF */

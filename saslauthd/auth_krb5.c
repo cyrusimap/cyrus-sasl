@@ -31,7 +31,6 @@
 #include "mechanisms.h"
 #include "globals.h" /* mech_option */
 #include "cfile.h"
-#include "krbtf.h"
 
 #ifdef AUTH_KRB5
 # include <krb5.h>
@@ -61,11 +60,6 @@ auth_krb5_init (
 {
 #ifdef AUTH_KRB5
     char *configname = 0;
-
-    if (krbtf_init() == -1) {
-	syslog(LOG_ERR, "auth_krb5_init krbtf_init failed");
-	return -1;
-    }
 
     if (mech_option)
 	configname = mech_option;

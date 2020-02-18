@@ -107,9 +107,11 @@ int _sasldb_getdata(const sasl_utils_t *utils,
   gkey.dptr = key;
   gkey.dsize = key_len;
   gvalue = gdbm_fetch(db, gkey);
+  int fetch_errno = gdbm_errno;
+
   gdbm_close(db);
   if (! gvalue.dptr) {
-      if (gdbm_errno == GDBM_ITEM_NOT_FOUND) {
+      if (fetch_errno == GDBM_ITEM_NOT_FOUND) {
           utils->seterror(conn, SASL_NOLOG,
 			  "user: %s@%s property: %s not found in %s",
 			  authid, realm, propName, path);

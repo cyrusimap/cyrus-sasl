@@ -73,26 +73,22 @@ DIRS=""
 
 AC_ARG_ENABLE(cmulocal,
               [AC_HELP_STRING([--enable-cmulocal],
-                              [enable local mods for CMU [[no]]])],
-              [],
+                              [enable local mods for CMU])],,
               enable_cmulocal=no)
 
 AC_ARG_ENABLE(sample,
               [AC_HELP_STRING([--enable-sample],
-                              [compile sample code [[yes]]])],
-              [],
-              enable_sample=yes)
+                              [compile sample code])],,
+              enable_sample=no)
 
 AC_ARG_ENABLE(obsolete_cram_attr,
-              [AC_HELP_STRING([--enable-obsolete_cram_attr],
-                              [enable support for cmusaslsecretCRAM-MD5 auxprop property [[yes]]])],
-              enable_obsolete_cram_attr=$enableval,
+              [AC_HELP_STRING([--disable-obsolete_cram_attr],
+                              [disable support for cmusaslsecretCRAM-MD5 auxprop property])],,
               enable_obsolete_cram_attr=yes)
 
 AC_ARG_ENABLE(obsolete_digest_attr,
-              [AC_HELP_STRING([--enable-obsolete_digest_attr],
-                              [enable support for cmusaslsecretDIGEST-MD5 auxprop property [[yes]]])],
-              enable_obsolete_digest_attr=$enableval,
+              [AC_HELP_STRING([--disable-obsolete_digest_attr],
+                              [disable support for cmusaslsecretDIGEST-MD5 auxprop property])],,
               enable_obsolete_digest_attr=yes)
 
 AC_PROG_CC
@@ -131,9 +127,9 @@ else
 	SASL_STATIC_LIBS=
 fi
 
-AC_ARG_ENABLE(staticdlopen, [  --enable-staticdlopen   try dynamic plugins when we are a static libsasl [[no]] ],
-                enable_staticdlopen=$enableval,
-                enable_staticdlopen=no)
+AC_ARG_ENABLE(staticdlopen,
+              AC_HELP_STRING([--enable-staticdlopen], [try dynamic plugins when we are a static libsasl]),,
+              enable_staticdlopen=no)
 
 if test "$enable_staticdlopen" = yes; then
   AC_DEFINE(TRY_DLOPEN_WHEN_STATIC,[],[Should we try to dlopen() plugins while statically compiled?])
@@ -152,13 +148,13 @@ if test "$with_purify" = yes; then
   AC_CHECK_PROGS(PURIFY, purify)
 fi
 
-AC_ARG_ENABLE(java, [  --enable-java           compile Java support [[no]]],
-	enable_java=$enableval, enable_java=no)
+AC_ARG_ENABLE(java, AC_HELP_STRING([--enable-java], [compile Java support]),,
+	enable_java=no)
 if test "$enable_java" = yes; then
   AC_PATH_PROG(JAVAC, javac, no)
   AC_PATH_PROGS(JAVAH, javah kaffeh, no)
   AC_CHECK_PROGS(JAVADOC, javadoc, :)	
-  if test "$JAVAC" = "no" -o "$JAVAH" = "no"; then
+  if test "$JAVAC" = no -o "$JAVAH" = no; then
     AC_WARN([Disabling Java support])
     enable_java=no
   fi
@@ -212,9 +208,9 @@ SASL_DB_CHECK()
 # Do we not install the SASL DB man pages?
 AM_CONDITIONAL(NO_SASL_DB_MANS, test "x$SASL_DB_MANS" = "x")
 
-AC_ARG_ENABLE(keep_db_open, [  --enable-keep-db-open   keep handle to DB open for improved performance [[no]] ],
-                keep_db_open=$enableval,
-                keep_db_open=no)
+AC_ARG_ENABLE(keep_db_open,
+              AC_HELP_STRING([--enable-keep-db-open], [keep handle to DB open for improved performance]),,
+              keep_db_open=no)
 
 # Disable if Berkeley DB and LMDB are not used
 if test "$dblib" != berkeley -a "$dblib" != lmdb; then
@@ -337,9 +333,9 @@ if test "$with_ipctype" = "doors"; then
 fi
 AC_SUBST(LIB_DOOR)
 
-AC_ARG_ENABLE(alwaystrue, [  --enable-alwaystrue     enable the alwaystrue password verifier (discouraged)],
-		enable_alwaystrue=$enableval,
-		enable_alwaystrue=no)
+AC_ARG_ENABLE(alwaystrue,
+              AC_HELP_STRING([--enable-alwaystrue], [enable the alwaystrue password verifier (discouraged)]),,
+              enable_alwaystrue=no)
 if test "$enable_alwaystrue" = yes; then
   AC_DEFINE(HAVE_ALWAYSTRUE, [], [Enable 'alwaystrue' password verifier?])
 fi
@@ -347,26 +343,21 @@ AC_MSG_CHECKING(if I should include the alwaystrue verifier)
 AC_MSG_RESULT($enable_alwaystrue)
 
 dnl sasl_checkapop support
-AC_ARG_ENABLE(checkapop, [  --enable-checkapop      enable use of sasl_checkapop [[yes]] ],
-  checkapop=$enableval,
-  checkapop=yes)
+AC_ARG_ENABLE(checkapop, AC_HELP_STRING([--disable-checkapop], [disable use of sasl_checkapop]),,
+  enable_checkapop=yes)
 
 AC_MSG_CHECKING(if we should enable sasl_checkapop)
-if test "$checkapop" != no; then
-  AC_MSG_RESULT(enabled)
+if test "$enable_checkapop" != no; then
   AC_DEFINE(DO_SASL_CHECKAPOP, [], [should we support sasl_checkapop?])
-else
-  AC_MSG_RESULT(disabled)
 fi
+AC_MSG_RESULT($enable_checkapop)
 
 dnl CRAM-MD5
-AC_ARG_ENABLE(cram, [  --enable-cram           enable CRAM-MD5 authentication [[yes]] ],
-  cram=$enableval,
-  cram=yes)
+AC_ARG_ENABLE(cram, AC_HELP_STRING([--disable-cram],[disable CRAM-MD5 authentication]),,
+  enable_cram=yes)
 
 AC_MSG_CHECKING(CRAM-MD5)
-if test "$cram" != no; then
-  AC_MSG_RESULT(enabled)
+if test "$enable_cram" != no; then
   SASL_MECHS="$SASL_MECHS libcrammd5.la"
   if test "$enable_obsolete_cram_attr" = yes; then
     CPPFLAGS="$CPPFLAGS -DOBSOLETE_CRAM_ATTR=1"
@@ -376,9 +367,8 @@ if test "$cram" != no; then
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/cram.c"
     AC_DEFINE(STATIC_CRAMMD5, [], [Link CRAM-MD5 Statically])
   fi
-else
-  AC_MSG_RESULT(disabled)
 fi
+AC_MSG_RESULT($enable_cram)
 
 CMU_HAVE_OPENSSL
 AC_MSG_CHECKING(for OpenSSL)
@@ -387,15 +377,14 @@ AC_MSG_RESULT($with_openssl)
 SASL_DES_CHK
 
 dnl DIGEST-MD5
-AC_ARG_ENABLE(digest, [  --enable-digest         enable DIGEST-MD5 authentication [[yes]] ],
-  digest=$enableval,
-  digest=yes)
+AC_ARG_WITH(digest, AC_HELP_STRING([--with-digest=dir],[enable DIGEST-MD5 authentication [auto]]),,
+  with_digest=yes)
 
-if test "$digest" != no; then
+if test "$with_digest" != no; then
   dnl In order to compile digest, we should look for need libdes.
-  if test -d $digest; then
-    CPPFLAGS="$CPPFLAGS -I$digest/include"
-    LDFLAGS="$LDFLAGS -L$digest/lib"
+  if test -d $with_digest; then
+    CPPFLAGS="$CPPFLAGS -I${with_digest}/include"
+    LDFLAGS="$LDFLAGS -L${with_digest}/lib"
   fi
   if test "$with_des" = no; then
     AC_WARN(No DES support for DIGEST-MD5)
@@ -403,8 +392,7 @@ if test "$digest" != no; then
 fi
 
 AC_MSG_CHECKING(DIGEST-MD5)
-if test "$digest" != no; then
-  AC_MSG_RESULT(enabled)
+if test "$with_digest" != no; then
   SASL_MECHS="$SASL_MECHS libdigestmd5.la"
   if test "$enable_obsolete_digest_attr" = yes; then
     CPPFLAGS="$CPPFLAGS -DOBSOLETE_DIGEST_ATTR=1"
@@ -414,23 +402,20 @@ if test "$digest" != no; then
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS digestmd5.o"
     AC_DEFINE(STATIC_DIGESTMD5, [], [Link DIGEST-MD5 Statically])
   fi
-else
-  AC_MSG_RESULT(disabled)
 fi
+AC_MSG_RESULT($with_digest)
 
 dnl SCRAM
-AC_ARG_ENABLE(scram, [  --enable-scram            enable SCRAM authentication [[yes]] ],
-  scram=$enableval,
-  scram=yes)
+AC_ARG_ENABLE(scram, AC_HELP_STRING([--disable-scram], [disable SCRAM authentication]),,
+  enable_scram=yes)
 
 if test "$with_openssl" = no; then
   AC_WARN([OpenSSL not found -- SCRAM will be disabled])
-  scram=no
+  enable_scram=no
 fi
 
 AC_MSG_CHECKING(SCRAM)
-if test "$scram" != no; then
-  AC_MSG_RESULT(enabled)
+if test "$enable_scram" != no; then
   SCRAM_LIBS="-lcrypto $LIB_RSAREF"
 
   SASL_MECHS="$SASL_MECHS libscram.la"
@@ -441,22 +426,20 @@ if test "$scram" != no; then
   fi
 
   AC_SUBST(SCRAM_LIBS)
-else
-  AC_MSG_RESULT(disabled)
 fi
+AC_MSG_RESULT($enable_scram)
 
 dnl OTP
-AC_ARG_ENABLE(otp, [  --enable-otp            enable OTP authentication [[yes]] ],
-  otp=$enableval,
-  otp=yes)
+AC_ARG_ENABLE(otp, AC_HELP_STRING([--disable-otp], [disable OTP authentication]),,
+  enable_otp=yes)
 
 if test "$with_openssl" = no; then
   AC_WARN([OpenSSL not found -- OTP will be disabled])
-  otp=no
+  enable_otp=no
 fi
 
 AC_MSG_CHECKING(OTP)
-if test "$otp" != no; then
+if test "$enable_otp" != no; then
   AC_MSG_RESULT(enabled)
   OTP_LIBS="-lcrypto $LIB_RSAREF"
 
@@ -473,16 +456,16 @@ if test "$otp" != no; then
   case "$with_opie" in
 	""|yes) 
 		AC_CHECK_LIB(opie, opiechallenge, [
-			AC_CHECK_HEADER(opie.h, with_opie="yes",
-					with_opie="no")],
-			with_opie="no")
+			AC_CHECK_HEADER(opie.h, with_opie=yes,
+					with_opie=no)],
+			with_opie=no)
 		;;
 	*)
 		if test -d $with_opie; then
 		  CPPFLAGS="${CPPFLAGS} -I${with_opie}/include"
 		  LDFLAGS="${LDFLAGS} -L${with_opie}/lib"
 		else
-		  with_opie="no"
+		  with_opie=no
 		fi
 		;;
   esac
@@ -502,17 +485,16 @@ else
 fi
 
 dnl SRP
-AC_ARG_ENABLE(srp, [  --enable-srp            enable SRP authentication [[no]] ],
-  srp=$enableval,
-  srp=no)
+AC_ARG_ENABLE(srp, AC_HELP_STRING([--enable-srp], [enable SRP authentication]),,
+  enable_srp=no)
 
 if test "$with_openssl" = no; then
   AC_WARN([OpenSSL not found -- SRP will be disabled])
-  srp=no
+  enable_srp=no
 fi
 
 AC_MSG_CHECKING(SRP)
-if test "$srp" != no; then
+if test "$enable_srp" != no; then
   AC_MSG_RESULT(enabled)
   SRP_LIBS="-lcrypto $LIB_RSAREF"
 
@@ -524,17 +506,14 @@ if test "$srp" != no; then
   fi
 
 dnl srp_setpass support
-  AC_ARG_ENABLE(srp_setpass, [  --enable-srp-setpass    enable setting SRP secrets with saslpasswd [[no]]],
-      srp_setpass=$enableval,
-      srp_setpass=no)
+  AC_ARG_ENABLE(srp_setpass, AC_HELP_STRING([--enable-srp-setpass], [enable setting SRP secrets with saslpasswd]),,
+      enable_srp_setpass=no)
 
   AC_MSG_CHECKING(if we should enable setting SRP secrets with saslpasswd)
-  if test "$srp_setpass" != no; then
-    AC_MSG_RESULT(enabled)
+  if test "$enable_srp_setpass" != no; then
     AC_DEFINE(DO_SRP_SETPASS, [], [should we support setpass() for SRP?])
-  else
-    AC_MSG_RESULT(disabled)
   fi
+  AC_MSG_RESULT($enable_srp_setpass)
 
   AC_SUBST(SRP_LIBS)
 else
@@ -545,34 +524,32 @@ dnl Kerberos based Mechanisms
 SASL_KERBEROS_V4_CHK
 SASL_GSSAPI_CHK
 
-if test "$gssapi" != "no"; then
+if test "$gssapi" != no; then
   AC_DEFINE(STATIC_GSSAPIV2,[],[Link GSSAPI Statically])
   AC_DEFINE(HAVE_GSSAPI,[],[Include GSSAPI/Kerberos 5 Support])
 
-  mutex_default="no"
-  if test "$gss_impl" = "mit"; then
-     mutex_default="yes"
-  elif test "$gss_impl" = "heimdal"; then
+  mutex_default=no
+  if test "$gss_impl" = mit; then
+     mutex_default=yes
+  elif test "$gss_impl" = heimdal; then
      AC_DEFINE(KRB5_HEIMDAL,[],[Using Heimdal]) 
   fi
 
   AC_MSG_CHECKING(to use mutexes aroung GSS calls)
-  AC_ARG_ENABLE(gss_mutexes, [  --enable-gss_mutexes     use mutexes around calls to the GSS library],
-                use_gss_mutexes=$enableval,
-                use_gss_mutexes=$mutex_default)
-  if test $use_gss_mutexes = "yes"; then
+  AC_ARG_ENABLE(gss_mutexes, AC_HELP_STRING([--enable-gss_mutexes], [use mutexes around calls to the GSS library [yes for MIT]]),,
+                enable_gss_mutexes=$mutex_default)
+  if test $enable_gss_mutexes = yes; then
      AC_DEFINE(GSS_USE_MUTEXES, [], [should we mutex-wrap calls into the GSS library?])
   fi
-  AC_MSG_RESULT($use_gss_mutexes)
+  AC_MSG_RESULT($enable_gss_mutexes)
 fi
 
 SASL2_CRYPT_CHK
 
-AC_ARG_ENABLE(sia, [  --enable-sia            enable SIA authentication [no] ],
-  sia=$enableval,
-  sia=no)
+AC_ARG_ENABLE(sia, AC_HELP_STRING([--enable-sia], [enable SIA authentication]),,
+  enable_sia=no)
 LIB_SIA=""
-if test "$sia" != no; then
+if test "$enable_sia" != no; then
   if test -f /etc/sia/matrix.conf; then
     AC_DEFINE(HAVE_SIA,[],[Include SIA Support])
     LIB_SIA="-lsecurity -ldb -lm -laud"
@@ -582,20 +559,18 @@ if test "$sia" != no; then
 fi
 AC_SUBST(LIB_SIA)
 
-AC_ARG_ENABLE(auth-sasldb, [  --enable-auth-sasldb    enable experimental SASLdb authentication module [no] ],
-  authsasldb=$enableval,
-  authsasldb=no)
-if test "$authsasldb" != no; then
+AC_ARG_ENABLE(auth-sasldb, AC_HELP_STRING([--enable-auth-sasldb], [enable experimental SASLdb authentication module]),,
+  enable_auth_sasldb=no)
+if test "$enable_auth_sasldb" != no; then
   AC_DEFINE(AUTH_SASLDB,[],[Include SASLdb Support])
   SASL_DB_PATH_CHECK()
   SASL_DB_CHECK()
 fi
 AM_CONDITIONAL(AUTH_SASLDB, test "$authsasldb" != no)
 
-AC_ARG_ENABLE(httpform, [  --enable-httpform       enable HTTP form authentication [[no]] ],
-  httpform=$enableval,
-  httpform=no)
-if test "$httpform" != no; then
+AC_ARG_ENABLE(httpform, AC_HELP_STRING([--enable-httpform], [enable HTTP form authentication]),,
+  enable_httpform=no)
+if test "$enable_httpform" != no; then
   AC_DEFINE(HAVE_HTTPFORM,[],[Include HTTP form Support])
 fi
 
@@ -627,54 +602,46 @@ dnl PLAIN
 SASL_PLAIN_CHK
 
 dnl ANONYMOUS
-AC_ARG_ENABLE(anon, [  --enable-anon           enable ANONYMOUS authentication [[yes]] ],
-  anon=$enableval,
-  anon=yes)
+AC_ARG_ENABLE(anon, AC_HELP_STRING([--disable-anon], [disable ANONYMOUS authentication]),,
+  enable_anon=yes)
 
 AC_MSG_CHECKING(ANONYMOUS)
-if test "$anon" != no; then
-  AC_MSG_RESULT(enabled)
+if test "$enable_anon" != no; then
   SASL_MECHS="$SASL_MECHS libanonymous.la"
   if test "$enable_static" = yes; then
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS anonymous.o"
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/anonymous.c"
     AC_DEFINE(STATIC_ANONYMOUS, [], [Link ANONYMOUS Statically])
   fi
-else
-  AC_MSG_RESULT(disabled)
 fi
+AC_MSG_RESULT($enable_anon)
 
 dnl LOGIN
-AC_ARG_ENABLE(login, [  --enable-login          enable unsupported LOGIN authentication [[no]] ],
-  login=$enableval,
-  login=no)
+AC_ARG_ENABLE(login, AC_HELP_STRING([--enable-login], [enable unsupported LOGIN authentication]),,
+  enable_login=no)
 
 AC_MSG_CHECKING(LOGIN)
-if test "$login" != no; then
-  AC_MSG_RESULT(enabled)
+if test "$enable_login" != no; then
   SASL_MECHS="$SASL_MECHS liblogin.la"
   if test "$enable_static" = yes; then
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/login.c"
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS login.o"
     AC_DEFINE(STATIC_LOGIN,[],[Link LOGIN Statically])
   fi
-else
-  AC_MSG_RESULT(disabled)
 fi
+AC_MSG_RESULT($enable_login)
 
 dnl NTLM
-AC_ARG_ENABLE(ntlm, [  --enable-ntlm           enable unsupported NTLM authentication [[no]] ],
-  ntlm=$enableval,
-  ntlm=no)
+AC_ARG_ENABLE(ntlm, AC_HELP_STRING([--enable-ntlm], [enable unsupported NTLM authentication]),,
+  enable_ntlm=no)
 
 if test "$with_openssl" = no; then
   AC_WARN([OpenSSL not found -- NTLM will be disabled])
-  ntlm=no
+  enable_ntlm=no
 fi
 
 AC_MSG_CHECKING(NTLM)
-if test "$ntlm" != no; then
-  AC_MSG_RESULT(enabled)
+if test "$enable_ntlm" != no; then
   NTLM_LIBS="-lcrypto $LIB_RSAREF"
   AC_SUBST(NTLM_LIBS)
 
@@ -684,23 +651,20 @@ if test "$ntlm" != no; then
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS ntlm.o"
     AC_DEFINE(STATIC_NTLM,[],[Link NTLM Statically])
   fi
-else
-  AC_MSG_RESULT(disabled)
 fi
+AC_MSG_RESULT($enable_ntlm)
 
 dnl PASSDSS
-AC_ARG_ENABLE(passdss, [  --enable-passdss        enable PASSDSS authentication (experimental) [[no]] ],
-  passdss=$enableval,
-  passdss=no)
+AC_ARG_ENABLE(passdss, AC_HELP_STRING([--enable-passdss], [enable PASSDSS authentication (experimental)]),,
+  enable_passdss=no)
 
 if test "$with_openssl" = no; then
   AC_WARN([OpenSSL not found -- PASSDSS will be disabled])
-  passdss=no
+  enable_passdss=no
 fi
 
 AC_MSG_CHECKING(PASSDSS)
-if test "$passdss" != no; then
-  AC_MSG_RESULT(enabled)
+if test "$enable_passdss" != no; then
   PASSDSS_LIBS="-lcrypto $LIB_RSAREF"
   AC_SUBST(PASSDSS_LIBS)
 
@@ -710,9 +674,8 @@ if test "$passdss" != no; then
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/passdss.c"
     AC_DEFINE(STATIC_PASSDSS,[],[Link PASSDSS Statically])
   fi
-else
-  AC_MSG_RESULT(disabled)
 fi
+AC_MSG_RESULT($enable_passdss)
 
 
 AC_MSG_CHECKING(to include LDAP support)
@@ -730,7 +693,7 @@ LDAP_LIBS=""
 if test "$with_ldap" != no; then
   AC_CHECK_LIB(ldap, ldap_initialize, [ AC_DEFINE(HAVE_LDAP,[],[Support for LDAP?])
                                         LDAP_LIBS="-lldap -llber"
-					if test "$with_openssl" != "no"; then
+					if test "$with_openssl" != no; then
 					    LDAP_LIBS="$LDAP_LIBS -lcrypto $LIB_RSAREF"
 					fi],,-llber)
 fi
@@ -745,22 +708,18 @@ dnl
 dnl doesn't require mysql or postgres if --disable-sql is chosen
 dnl requires at least one (but not both) if --enable-sql is chosen
 
-AC_ARG_ENABLE(sql, [  --enable-sql            enable SQL auxprop [[no]] ],
-  sql=$enableval,
-  sql=no)
+AC_ARG_ENABLE(sql, AC_HELP_STRING([--enable-sql], [enable SQL auxprop]),,enable_sql=no)
 
 AC_MSG_CHECKING(SQL)
-if test "$sql" != no; then
-  AC_MSG_RESULT(enabled)
+if test "$enable_sql" != no; then
   SASL_MECHS="$SASL_MECHS libsql.la"
   if test "$enable_static" = yes; then
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/sql.c"
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS sql.o"
     AC_DEFINE(STATIC_SQL,[],[Link SQL plugin statically])
   fi
-else
-  AC_MSG_RESULT(disabled)
 fi
+AC_MSG_RESULT($enable_sql)
 
 dnl MySQL
 AC_ARG_WITH(mysql,  [  --with-mysql=PATH       use MySQL from PATH ],
@@ -769,7 +728,7 @@ AC_ARG_WITH(mysql,  [  --with-mysql=PATH       use MySQL from PATH ],
 
 # find location of library 
 # presuming if one given then correct
-if test "${with_mysql}" = "yes"; then
+if test "${with_mysql}" = yes; then
   with_mysql=notfound
   for mysqlloc in lib/mysql lib mysql/lib
   do
@@ -846,7 +805,7 @@ AC_ARG_WITH(pgsql,  [  --with-pgsql=PATH       use PostgreSQL from PATH ],
 
 # find location of library 
 # presuing if one given then correct
-if test "${with_pgsql}" = "yes"; then
+if test "${with_pgsql}" = yes; then
   with_pgsql=notfound
   for pgsqlloc in lib/pgsql lib pgsql/lib
   do
@@ -923,7 +882,7 @@ AC_ARG_WITH(sqlite,  [  --with-sqlite=PATH       use SQLite from PATH ],
 
 # find location of library
 # presuing if one given then correct
-if test "${with_sqlite}" = "yes"; then
+if test "${with_sqlite}" = yes; then
   with_sqlite=notfound
   for sqliteloc in lib
   do
@@ -975,7 +934,7 @@ AC_ARG_WITH(sqlite3,  [  --with-sqlite3=PATH       use SQLite3 from PATH ],
 
 # find location of library
 # we assume that if one given then it is correct
-if test "${with_sqlite3}" = "yes"; then
+if test "${with_sqlite3}" = yes; then
   with_sqlite3=notfound
   for sqlite3loc in lib
   do
@@ -1020,7 +979,7 @@ case "$with_sqlite3" in
 esac
 AC_SUBST(LIB_SQLITE3)
 
-if test "$sql" = yes -a "$with_pgsql" = no -a "$with_mysql" = no -a "$with_sqlite" = no -a "$with_sqlite3" = no; then
+if test "$enable_sql" = yes -a "$with_pgsql" = no -a "$with_mysql" = no -a "$with_sqlite" = no -a "$with_sqlite3" = no; then
     AC_MSG_ERROR([--enable-sql chosen but neither Postgres nor MySQL nor SQLite nor SQLite3 found])
 fi
 
@@ -1029,13 +988,11 @@ if test "$enable_shared" = yes; then
 fi
 
 dnl LDAPDB
-AC_ARG_ENABLE(ldapdb, [  --enable-ldapdb         enable LDAPDB plugin [no] ],
-  ldapdb=$enableval,
-  ldapdb=no)
+AC_ARG_ENABLE(ldapdb, AC_HELP_STRING([--enable-ldapdb], [enable LDAPDB plugin]),,
+  enable_ldapdb=no)
 AC_MSG_CHECKING(LDAPDB)
-if test "$ldapdb" != no; then
+if test "$enable_ldapdb" != no; then
     AC_MSG_RESULT(enabled)
-
     if test "$with_ldap" = no; then
         AC_MSG_ERROR([Cannot enable LDAPDB plugin: You need to specify --with-ldap])
     fi
@@ -1111,13 +1068,15 @@ if test "$with_rc4" != no; then
     AC_DEFINE(WITH_RC4,[],[Use RC4])
 fi
 
-building_for_macosx=no
+enable_macos_framework=no
 case "$host_os" in
         darwin*)
-AC_ARG_ENABLE(macos-framework, [  --disable-macos-framework       disable building and installing replacement SASL2 Framework for MacOS X-provided SASL Framework [[no]]],building_for_macosx=no,building_for_macosx=yes)
+AC_ARG_ENABLE(macos-framework,
+    AC_HELP_STRING([--disable-macos-framework], [disable building and installing replacement SASL2 Framework for MacOS X-provided SASL Framework]),,
+    enable_macos_framework=yes)
         ;;
 esac
-AM_CONDITIONAL(MACOSX, test "$building_for_macosx" = yes)
+AM_CONDITIONAL(MACOSX, test "$enable_macos_framework" = yes)
 AM_CONDITIONAL(WINDOWS, test "$host_os" = "mingw32")
 
 dnl dmalloc tests
@@ -1128,8 +1087,8 @@ AC_ARG_WITH(dmalloc, [  --with-dmalloc=DIR      with DMALLOC support (for test a
 
 DMALLOC_LIBS=""
 
-if test "$with_dmalloc" != "no"; then
-   if test "$with_dmalloc" = "yes"; then
+if test "$with_dmalloc" != no; then
+   if test "$with_dmalloc" = yes; then
 	with_dmalloc="/usr/local"
    fi
 
@@ -1156,8 +1115,8 @@ AC_ARG_WITH(sfio, [  --with-sfio=DIR         with SFIO support (for smtptest/lib
 	with_sfio=$withval,
 	with_sfio=no)
 
-if test "$with_sfio" != "no"; then
-   if test "$with_sfio" = "yes"; then
+if test "$with_sfio" != no; then
+   if test "$with_sfio" = yes; then
 	with_sfio="/usr/local"
    fi
 

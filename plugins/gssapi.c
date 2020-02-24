@@ -1777,17 +1777,7 @@ static int gssapi_client_mech_step(void *conn_context,
 	    req_flags = req_flags |  GSS_C_DELEG_FLAG;
 	}
 
-	/*
-	 * If caller didn't provide creds already.
-	 *
-	 * In the case of Kerberos, a client typically wants to use
-	 * a credential in either a keytab file or the credentials cache
-	 * of the current process context.  This code path will try to
-	 * find a credential in the specified keytab file,  then the
-	 * credentials cache.  The keytab file can be specified by
-	 * "keytab" option, and it is configured by using
-	 * gsskrb5_register_acceptor_identity() API when available.
-	 */
+	/* If caller didn't provide creds already */
 	if (client_creds == GSS_C_NO_CREDENTIAL) {
 	    GSS_LOCK_MUTEX_CTX(params->utils, text);
 	    maj_stat = gss_acquire_cred(&min_stat,
@@ -1800,16 +1790,14 @@ static int gssapi_client_mech_step(void *conn_context,
 					NULL);
 	    GSS_UNLOCK_MUTEX_CTX(params->utils, text);
 
-	    /*
-	     * Ignore the error intentionally.  The credential was
-	     * not found in the specified keytab file.
-	     */
-	    if (GSS_ERROR(maj_stat) == 0) {
-		client_creds = text->client_creds;
+	    if (GSS_ERROR(maj_stat)) {
+		sasl_gss_seterror(text->utils, maj_stat, min_stat);
+		sasl_gss_free_context_contents(text);
+		return SASL_FAIL;
 	    }
+	    client_creds = text->client_creds;
 	}
 
-	/* Try the credentials cache. */
 	GSS_LOCK_MUTEX_CTX(params->utils, text);
 	maj_stat = gss_init_sec_context(&min_stat,
 					client_creds, /* GSS_C_NO_CREDENTIAL */

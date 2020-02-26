@@ -398,6 +398,7 @@ static int lak_config(
 	conf->restart = 1;
 	conf->start_tls = 0;
 	conf->use_sasl = 0;
+	conf->tls_check_peer = -1;
 
 	strlcpy(conf->path, configfile, LAK_PATH_LEN);
 
@@ -783,7 +784,7 @@ static int lak_connect(
 		}
 	}
 
-	if (lak->conf->tls_check_peer != 0) {
+	if (lak->conf->tls_check_peer != -1) {
 		rc = ldap_set_option(NULL, LDAP_OPT_X_TLS_REQUIRE_CERT, &lak->conf->tls_check_peer);
 		if (rc != LDAP_SUCCESS) {
 			syslog (LOG_WARNING|LOG_AUTH, "Unable to set LDAP_OPT_X_TLS_REQUIRE_CERT (%s).", ldap_err2string (rc));

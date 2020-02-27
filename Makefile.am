@@ -59,18 +59,13 @@ SAM = sample
 else
 SAM =
 endif
-if JAVA
-JAV = java
-else
-JAV =
-endif
 if MACOSX
 INSTALLOSX = install-exec-local-osx
 else 
 INSTALLOSX = 
 endif
 
-SUBDIRS=include sasldb common lib plugins utils $(PWC) $(SAM) $(JAV) $(SAD)
+SUBDIRS=include sasldb common lib plugins utils $(PWC) $(SAM) $(SAD)
 EXTRA_DIST=config doc docsrc win32 mac dlcompat-20010505 NTMakefile \
     INSTALL.TXT libsasl2.pc.in
 

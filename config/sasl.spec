@@ -72,7 +72,7 @@ This plugin implements the SASL SCRAM-SHA-1/SCRAM-SHA-2 mechanism.
 %setup
 
 %build
-./configure --prefix=/usr --disable-java
+./configure --prefix=/usr
 make
 
 %install

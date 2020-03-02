@@ -52,7 +52,8 @@ auth_dce(
   const char *login,			/* I: plaintext authenticator */
   const char *password,			/* I: plaintext password */
   const char *service __attribute__((unused)),
-  const char *realm __attribute__((unused))
+  const char *realm __attribute__((unused)),
+  const char *remote __attribute__((unused))
   /* END PARAMETERS */
   )
 {
@@ -100,7 +101,8 @@ auth_dce(
   const char *login __attribute__((unused)),
   const char *password __attribute__((unused)),
   const char *service __attribute__((unused)),
-  const char *realm __attribute__((unused))
+  const char *realm __attribute__((unused)),
+  const char *remote __attribute__((unused))
   )
 {
      return NULL;

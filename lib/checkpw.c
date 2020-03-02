@@ -657,6 +657,8 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
     char pwpath[sizeof(srvaddr.sun_path)];
     const char *p = NULL;
     char *freeme = NULL;
+    char *freemetoo = NULL;
+    const char *client_addr = NULL;
 #ifdef USE_DOORS
     door_arg_t arg;
 #endif
@@ -692,13 +694,19 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 	user_realm = rtmp + 1;
     }
 
+    if (sasl_getprop(conn, SASL_IPREMOTEPORT, (const void **) & client_addr) == SASL_OK) {
+	if(_sasl_strdup(client_addr, &freemetoo, NULL) != SASL_OK)
+	    goto fail;
+	client_addr = freemetoo;
+    }
+
     /*
      * build request of the form:
      *
-     * count authid count password count service count realm
+     * count authid count password count service count realm client
      */
     {
- 	unsigned short max_len, req_len, u_len, p_len, s_len, r_len;
+	unsigned short max_len, req_len, u_len, p_len, s_len, r_len, c_len;
  
 	max_len = (unsigned short) sizeof(query);
 
@@ -706,7 +714,8 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 	if ((strlen(userid) > USHRT_MAX) ||
 	    (strlen(passwd) > USHRT_MAX) ||
 	    (strlen(service) > USHRT_MAX) ||
-	    (user_realm && (strlen(user_realm) > USHRT_MAX))) {
+	    (user_realm && (strlen(user_realm) > USHRT_MAX)) ||
+	    (client_addr && (strlen(client_addr) > USHRT_MAX))) {
 	    goto toobig;
 	}
 
@@ -714,6 +723,7 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
  	p_len = (strlen(passwd));
 	s_len = (strlen(service));
 	r_len = ((user_realm ? strlen(user_realm) : 0));
+	c_len = ((client_addr ? strlen(client_addr): 0));
 
 	/* prevent buffer overflow */
 	req_len = 30;
@@ -724,11 +734,14 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 	if (max_len - req_len < s_len) goto toobig;
 	req_len += s_len;
 	if (max_len - req_len < r_len) goto toobig;
+	req_len += r_len;
+	if (max_len - req_len < c_len) goto toobig;
 
 	u_len = htons(u_len);
 	p_len = htons(p_len);
 	s_len = htons(s_len);
 	r_len = htons(r_len);
+	c_len = htons(c_len);
 
 	memcpy(query_end, &u_len, sizeof(unsigned short));
 	query_end += sizeof(unsigned short);
@@ -745,6 +758,10 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 	memcpy(query_end, &r_len, sizeof(unsigned short));
 	query_end += sizeof(unsigned short);
 	if (user_realm) while (*user_realm) *query_end++ = *user_realm++;
+
+	memcpy(query_end, &c_len, sizeof(unsigned short));
+	query_end += sizeof(unsigned short);
+	if(client_addr) while (*client_addr) *query_end++ = *client_addr++;
     }
 
 #ifdef USE_DOORS
@@ -847,6 +864,7 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 #endif /* USE_DOORS */
   
     if(freeme) free(freeme);
+    if(freemetoo) free(freemetoo);
 
     if (!strncmp(response, "OK", 2)) {
 	return SASL_OK;
@@ -861,6 +879,7 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
 
  fail:
     if (freeme) free(freeme);
+    if (freemetoo) free(freemetoo);
     return SASL_FAIL;
 }
 

@@ -25,5 +25,5 @@
  * DAMAGE.
  * END COPYRIGHT */
 
-char *auth_krb4(const char *, const char *, const char *, const char *);
+char *auth_krb4(const char *, const char *, const char *, const char *, const char *);
 int auth_krb4_init(void);

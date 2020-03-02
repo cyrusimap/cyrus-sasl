@@ -97,7 +97,8 @@ static int saslauthd_verify_password(const char *saslauthd_path,
 				   const char *userid, 
 				   const char *passwd,
 				   const char *service,
-				   const char *user_realm)
+				   const char *user_realm,
+				   const char *client_addr)
 {
     char response[1024];
     char query[8192];
@@ -131,12 +132,13 @@ static int saslauthd_verify_password(const char *saslauthd_path,
      * count authid count password count service count realm
      */
     {
- 	unsigned short u_len, p_len, s_len, r_len;
+	unsigned short u_len, p_len, s_len, r_len, c_len;
  
  	u_len = htons(strlen(userid));
  	p_len = htons(strlen(passwd));
 	s_len = htons(strlen(service));
 	r_len = htons((user_realm ? strlen(user_realm) : 0));
+	c_len = htons(((client_addr ? strlen(client_addr): 0)));
 
 	memcpy(query_end, &u_len, sizeof(unsigned short));
 	query_end += sizeof(unsigned short);
@@ -153,6 +155,10 @@ static int saslauthd_verify_password(const char *saslauthd_path,
 	memcpy(query_end, &r_len, sizeof(unsigned short));
 	query_end += sizeof(unsigned short);
 	if (user_realm) while (*user_realm) *query_end++ = *user_realm++;
+
+	memcpy(query_end, &c_len, sizeof(unsigned short));
+	query_end += sizeof(unsigned short);
+	if (client_addr) while (*client_addr) *query_end++ = *client_addr++;
     }
 
 #ifdef USE_DOORS
@@ -252,13 +258,17 @@ main(int argc, char *argv[])
 {
   const char *user = NULL, *password = NULL;
   const char *realm = NULL, *service = NULL, *path = NULL;
+  const char *client_addr = NULL;
   int c;
   int flag_error = 0;
   int result = 0;
   int repeat = 0;
 
-  while ((c = getopt(argc, argv, "p:u:r:s:f:R:")) != EOF)
+  while ((c = getopt(argc, argv, "p:u:r:s:f:R:a:")) != EOF)
       switch (c) {
+      case 'a':
+	  client_addr = optarg;
+	  break;
       case 'R':
 	  repeat = atoi(optarg);
 	  break;
@@ -288,7 +298,7 @@ main(int argc, char *argv[])
   if (flag_error) {
     (void)fprintf(stderr,
 		  "%s: usage: %s -u username -p password\n"
-		  "              [-r realm] [-s servicename]\n"
+		  "              [-r realm] [-s servicename] [-a clientaddr]\n"
 		  "              [-f socket path] [-R repeatnum]\n",
 		  argv[0], argv[0]);
     exit(1);
@@ -298,7 +308,7 @@ main(int argc, char *argv[])
   for (c = 0; c < repeat; c++) {
       /* saslauthd-authenticated login */
       printf("%d: ", c);
-      result = saslauthd_verify_password(path, user, password, service, realm);
+      result = saslauthd_verify_password(path, user, password, service, realm, client_addr);
   }
   return result;
 }

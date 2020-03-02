@@ -26,4 +26,4 @@
  * END COPYRIGHT
  */
 
-char *auth_dce(const char *, const char *, const char *, const char *);
+char *auth_dce(const char *, const char *, const char *, const char *, const char *);

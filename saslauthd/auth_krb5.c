@@ -40,6 +40,7 @@ static char *verify_principal = "host"; /* a principal in the default keytab */
 static char *servername = NULL; /* server name to use in principal */
 #endif /* AUTH_KRB5 */
 
+#include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -142,7 +143,15 @@ form_principal_name (
     if ((plen <= 0) || (plen >= pnamelen))
 	return -1;
 
-    /* Perhaps we should uppercase the realm? */
+    /* Uppercase the realm. */
+    if (config && cfile_getswitch(config, "krb5_uppercase_realm", 0)) {
+        if (realm && realm[0]) {
+            char *at;
+            for (at = strrchr(pname, '@'); *at; at++) {
+                *at = toupper(*at);
+            }
+        }
+    }
 
     return 0;
 }

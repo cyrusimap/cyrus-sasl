@@ -212,9 +212,26 @@ auth_krb5 (
         return strdup("NO saslauthd internal error");
     }
 
+    if ((rc = krb5_sname_to_principal(context, servername, verify_principal,
+                                KRB5_NT_SRV_HST, &server))) {
+        k5support_log_err(LOG_DEBUG, context, rc, "krb5_sname_to_principal");
+        krb5_free_principal(context, auth_user);
+        krb5_free_context(context);
+        return strdup("NO saslauthd internal error");
+    }
+
+    if (!krb5_realm_compare(context, auth_user, server)) {
+        syslog(LOG_ERR, "auth_krb5: realm mismatch for %s", principalbuf);
+        krb5_free_principal(context, auth_user);
+        krb5_free_principal(context, server);
+        krb5_free_context(context);
+        return strdup("NO saslauthd realm mismatch");
+    }
+
     if ((rc = krb5_get_init_creds_opt_alloc(context, &opt))) {
         k5support_log_err(LOG_ERR, context, rc, "krb5_get_init_creds_opt_alloc");
         krb5_free_principal(context, auth_user);
+        krb5_free_principal(context, server);
         krb5_free_context(context);
         return strdup("NO saslauthd internal error");
     }
@@ -231,6 +248,7 @@ auth_krb5 (
     if (rc) {
         k5support_log_err(LOG_ERR, context, rc, "krb5_get_init_creds_password");
         krb5_free_principal(context, auth_user);
+        krb5_free_principal(context, server);
         krb5_free_context(context);
         return strdup("NO krb5_get_init_creds_password failed");
     }
@@ -239,22 +257,11 @@ auth_krb5 (
         if ((rc = krb5_kt_resolve(context, keytabname, &kt))) {
             k5support_log_err(LOG_DEBUG, context, rc, "krb5_kt_resolve");
             krb5_free_principal(context, auth_user);
+            krb5_free_principal(context, server);
             krb5_free_cred_contents(context, &cred);
             krb5_free_context(context);
             return strdup("NO saslauthd internal error");
         }
-    }
-
-    if ((rc = krb5_sname_to_principal(context, servername, verify_principal,
-                                KRB5_NT_SRV_HST, &server))) {
-        k5support_log_err(LOG_DEBUG, context, rc, "krb5_sname_to_principal");
-        krb5_free_principal(context, auth_user);
-        krb5_free_cred_contents(context, &cred);
-        if (kt) {
-            krb5_kt_close(context, kt);
-        }
-        krb5_free_context(context);
-        return strdup("NO saslauthd internal error");
     }
 
     krb5_verify_init_creds_opt_init(&vopt);

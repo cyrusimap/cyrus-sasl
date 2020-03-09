@@ -52,7 +52,7 @@ AC_INIT([cyrus-sasl],
         [2.1.27],
         [https://github.com/cyrusimap/cyrus-sasl/issues],
         [cyrus-sasl],
-        [http://cyrusimap.org])
+        [http://www.cyrusimap.org])
 
 AC_CONFIG_MACRO_DIR([m4])
 

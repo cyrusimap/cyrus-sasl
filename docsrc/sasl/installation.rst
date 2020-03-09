@@ -18,7 +18,8 @@ You can install Cyrus SASL via packages or via tarball.
 Tarball installation
 --------------------
 
-Fetch the latest Cyrus SASL tarball from ftp://ftp.cyrusimap.org/cyrus-sasl/
+Fetch the latest Cyrus SASL tarball from
+https://github.com/cyrusimap/cyrus-sasl/releases
 
 Untar it then::
 

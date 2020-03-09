@@ -52,7 +52,8 @@ can easily do so.
 Unpack from tarball
 ###################
 
-Cyrus SASL releases are available to download in tarball format from ftp://ftp.cyrusimap.org/cyrus-sasl/
+Cyrus SASL releases are available to download in tarball format from
+https://github.com/cyrusimap/cyrus-sasl/releases
 
 Dependencies
 ------------

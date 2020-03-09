@@ -7,7 +7,7 @@ or server side to provide authentication and authorization services.
 See RFC 4422 for more information.
 
 The latest version is available at:
-ftp://ftp.cyrusimap.org/cyrus-sasl/
+https://github.com/cyrusimap/cyrus-sasl/releases
 
 There's a mailing list for Cyrus SASL.  Subscribe by sending a message
 to majordomo@lists.andrew.cmu.edu with the body "subscribe

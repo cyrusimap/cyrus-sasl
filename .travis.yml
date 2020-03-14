@@ -1,12 +1,18 @@
 language: c
-sudo: required
-dist: trusty
 group: edge
 
 os:
   - linux
   - osx
 compiler: gcc
+
+addons:
+  apt:
+    packages:
+    - krb5-kdc
+    - krb5-admin-server
+    - libsocket-wrapper
+    - libnss-wrapper
 
 # For OS X, but shouldn't cause any problems on Linux
 cache:

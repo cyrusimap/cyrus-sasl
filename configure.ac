@@ -1516,7 +1516,8 @@ plugins/Makefile
 lib/Makefile
 utils/Makefile
 sample/Makefile
-pwcheck/Makefile)
+pwcheck/Makefile
+tests/Makefile)
 
 AC_MSG_NOTICE([
 

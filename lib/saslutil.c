@@ -525,7 +525,8 @@ int get_fqhostname(
     struct addrinfo hints;
     struct addrinfo *result;
 
-    return_value = gethostname (name, namelen);
+    return_value = gethostname (name, namelen -1);
+    name[namelen] = '\0'; /* insure string is always 0 terminated*/
     if (return_value != 0) {
 	return (return_value);
     }
@@ -557,7 +558,9 @@ int get_fqhostname(
 	}
     }
 
-    if (result == NULL || result->ai_canonname == NULL) {
+    if (result == NULL || result->ai_canonname == NULL
+        || strchr (result->ai_canonname, '.') == NULL
+        || strlen (result->ai_canonname) > namelen -1) {
 	freeaddrinfo (result);
         if (abort_if_no_fqdn) {
 #ifdef WIN32
@@ -573,24 +576,6 @@ int get_fqhostname(
 	}
     }
 
-    if (strchr (result->ai_canonname, '.') == NULL) {
-	freeaddrinfo (result);
-        if (abort_if_no_fqdn) {
-#ifdef WIN32
-	    WSASetLastError (WSANO_DATA);
-#elif defined(ENODATA)
-	    errno = ENODATA;
-#elif defined(EADDRNOTAVAIL)
-	    errno = EADDRNOTAVAIL;
-#endif
-	    return (-1);
-	} else {
-	    goto LOWERCASE;
-	}
-    }
-
-
-/* Do we need to check for buffer overflow and set errno? */
     strncpy (name, result->ai_canonname, namelen);
     freeaddrinfo (result);
 

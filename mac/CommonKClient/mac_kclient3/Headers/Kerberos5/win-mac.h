@@ -99,7 +99,6 @@ typedef unsigned short	u_short;
 typedef unsigned char	u_char;
 #endif /* KRB5_SYSTYPES__ */
 
-#define MAXHOSTNAMELEN  512
 #ifndef MAXPATHLEN
 #define MAXPATHLEN      256            /* Also for Windows temp files */
 #endif

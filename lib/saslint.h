@@ -112,6 +112,10 @@
 #define PATHS_DELIMITER	':'
 #endif
 
+/* A FQDN max len is 255 per RFC 1035,
+ * this means 253 chars max, we add one more for zero terminator */
+#define MAXFQDNLEN 254
+
 /* Datatype Definitions */
 typedef struct {
   const sasl_callback_t *callbacks;

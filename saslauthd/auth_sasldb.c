@@ -48,6 +48,7 @@
 #include "../include/sasl.h"
 #include "../include/saslplug.h"
 #include "../sasldb/sasldb.h"
+#include "../saslint.h"
 
 static int
 vf(void *context __attribute__((unused)),
@@ -137,7 +138,7 @@ auth_sasldb (
     int ret;
     size_t outsize;
     const char *use_realm;
-    char realm_buf[MAXHOSTNAMELEN];
+    char realm_buf[MAXFQDNLEN];
     /* END VARIABLES */
 
     init_lame_utils(&utils);
@@ -145,7 +146,7 @@ auth_sasldb (
     _sasl_check_db(&utils, (void *)0x1);
 
     if(!realm || !strlen(realm)) {
-	ret = gethostname(realm_buf,MAXHOSTNAMELEN);
+	ret = gethostname(realm_buf,MAXFQDNLEN);
 	if(ret) RETURN("NO");
 	use_realm = realm_buf;
     } else {

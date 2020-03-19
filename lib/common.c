@@ -773,9 +773,9 @@ int _sasl_conn_init(sasl_conn_t *conn,
       sasl_strlower (conn->serverFQDN);
   } else if (conn->type == SASL_CONN_SERVER) {
       /* We can fake it because we *are* the server */
-      char name[MAXHOSTNAMELEN];
+      char name[MAXFQDNLEN];
       memset(name, 0, sizeof(name));
-      if (get_fqhostname (name, MAXHOSTNAMELEN, 0) != 0) {
+      if (get_fqhostname (name, MAXFQDNLEN, 0) != 0) {
         return (SASL_FAIL);
       }
       

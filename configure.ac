@@ -1442,11 +1442,6 @@ struct sockaddr_storage {
 #define NI_NUMERICSERV  8
 #endif
 
-/* Defined in RFC 1035. max strlen is only 253 due to length bytes. */
-#ifndef MAXHOSTNAMELEN
-#define        MAXHOSTNAMELEN  255
-#endif
-
 #ifndef HAVE_SYSEXITS_H
 #include "exits.h"
 #else

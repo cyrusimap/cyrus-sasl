@@ -1,4 +1,5 @@
-/* TBD, add (C) */
+/* Copyright (C) Simo Sorce <simo@redhat.com>
+ * See COPYING file for License */
 
 #include <t_common.h>
 
@@ -12,9 +13,6 @@ void s_error(const char *hdr, ssize_t ret, ssize_t len, int err)
 void send_string(int sd, const char *s, unsigned int l)
 {
     ssize_t ret;
-
-fprintf(stderr, "s:%u ", l);
-fflush(stderr);
 
     ret = send(sd, &l, sizeof(l), 0);
     if (ret != sizeof(l)) s_error("send size", ret, sizeof(l), errno);
@@ -34,8 +32,6 @@ void recv_string(int sd, char *buf, unsigned int *buflen)
     if (ret != sizeof(l)) s_error("recv size", ret, sizeof(l), errno);
 
     if (l == 0) {
-fprintf(stderr, "r:0 ");
-fflush(stderr);
         *buflen = 0;
         return;
     }
@@ -45,8 +41,6 @@ fflush(stderr);
     ret = recv(sd, buf, l, 0);
     if (ret != l) s_error("recv data", ret, l, errno);
 
-fprintf(stderr, "r:%ld ", ret);
-fflush(stderr);
     *buflen = ret;
 }
 

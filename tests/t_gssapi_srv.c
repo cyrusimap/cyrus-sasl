@@ -1,4 +1,5 @@
-/* TBD, add (C) */
+/* Copyright (C) Simo Sorce <simo@redhat.com>
+ * See COPYING file for License */
 
 #include "t_common.h"
 

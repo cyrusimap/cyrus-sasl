@@ -830,7 +830,9 @@ gssapi_server_mech_authneg(context_t *text,
     gss_buffer_desc name_without_realm;
     gss_name_t client_name_MN = NULL, without = NULL;
     gss_OID mech_type;
-	
+    gss_channel_bindings_t bindings = GSS_C_NO_CHANNEL_BINDINGS;
+    struct gss_channel_bindings_struct cb = {0};
+
     input_token = &real_input_token;
     output_token = &real_output_token;
     output_token->value = NULL; output_token->length = 0;
@@ -902,6 +904,12 @@ gssapi_server_mech_authneg(context_t *text,
 	real_input_token.length = clientinlen;
     }
 
+    if (params->cbinding != NULL) {
+        cb.application_data.length = params->cbinding->len;
+        cb.application_data.value = params->cbinding->data;
+        bindings = &cb;
+    }
+
 
     GSS_LOCK_MUTEX_CTX(params->utils, text);
     maj_stat =
@@ -909,7 +917,7 @@ gssapi_server_mech_authneg(context_t *text,
 			       &(text->gss_ctx),
 			       server_creds,
 			       input_token,
-			       GSS_C_NO_CHANNEL_BINDINGS,
+			       bindings,
 			       &text->client_name,
 			       &mech_type,
 			       output_token,
@@ -1505,7 +1513,8 @@ static sasl_server_plug_t gssapi_server_plugins[] =
 	| SASL_SEC_PASS_CREDENTIALS,
 	SASL_FEAT_WANT_CLIENT_FIRST
 	| SASL_FEAT_ALLOWS_PROXY
-	| SASL_FEAT_DONTUSE_USERPASSWD,	/* features */
+	| SASL_FEAT_DONTUSE_USERPASSWD
+	| SASL_FEAT_CHANNEL_BINDING,	/* features */
 	NULL,				/* glob_context */
 	&gssapi_server_mech_new,	/* mech_new */
 	&gssapi_server_mech_step,	/* mech_step */
@@ -1529,6 +1538,7 @@ static sasl_server_plug_t gssapi_server_plugins[] =
 	SASL_FEAT_WANT_CLIENT_FIRST
 	| SASL_FEAT_ALLOWS_PROXY
 	| SASL_FEAT_DONTUSE_USERPASSWD
+	| SASL_FEAT_CHANNEL_BINDING
 	| SASL_FEAT_SUPPORTS_HTTP,	/* features */
 	&gss_spnego_oid,		/* glob_context */
 	&gssapi_server_mech_new,	/* mech_new */
@@ -1662,6 +1672,8 @@ static int gssapi_client_mech_step(void *conn_context,
     input_token->value = NULL; 
     input_token->length = 0;
     gss_cred_id_t client_creds = (gss_cred_id_t)params->gss_creds;
+    gss_channel_bindings_t bindings = GSS_C_NO_CHANNEL_BINDINGS;
+    struct gss_channel_bindings_struct cb = {0};
 
     if (clientout)
         *clientout = NULL;
@@ -1777,6 +1789,12 @@ static int gssapi_client_mech_step(void *conn_context,
 	    req_flags = req_flags |  GSS_C_DELEG_FLAG;
 	}
 
+        if (params->cbinding != NULL) {
+            cb.application_data.length = params->cbinding->len;
+            cb.application_data.value = params->cbinding->data;
+            bindings = &cb;
+        }
+
 	GSS_LOCK_MUTEX_CTX(params->utils, text);
 	maj_stat = gss_init_sec_context(&min_stat,
 					client_creds, /* GSS_C_NO_CREDENTIAL */
@@ -1785,7 +1803,7 @@ static int gssapi_client_mech_step(void *conn_context,
 					text->mech_type,
 					req_flags,
 					0,
-					GSS_C_NO_CHANNEL_BINDINGS,
+					bindings,
 					input_token,
 					NULL,
 					output_token,
@@ -2190,7 +2208,8 @@ static sasl_client_plug_t gssapi_client_plugins[] =
 	| SASL_SEC_PASS_CREDENTIALS,    /* security_flags */
 	SASL_FEAT_NEEDSERVERFQDN
 	| SASL_FEAT_WANT_CLIENT_FIRST
-	| SASL_FEAT_ALLOWS_PROXY,	/* features */
+	| SASL_FEAT_ALLOWS_PROXY
+	| SASL_FEAT_CHANNEL_BINDING,	/* features */
 	gssapi_required_prompts,	/* required_prompts */
 	GSS_C_NO_OID,			/* glob_context */
 	&gssapi_client_mech_new,	/* mech_new */
@@ -2213,6 +2232,7 @@ static sasl_client_plug_t gssapi_client_plugins[] =
 	SASL_FEAT_NEEDSERVERFQDN
 	| SASL_FEAT_WANT_CLIENT_FIRST
 	| SASL_FEAT_ALLOWS_PROXY
+	| SASL_FEAT_CHANNEL_BINDING
 	| SASL_FEAT_SUPPORTS_HTTP,	/* features */
 	gssapi_required_prompts,	/* required_prompts */
 	&gss_spnego_oid,		/* glob_context */

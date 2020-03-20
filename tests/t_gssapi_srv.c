@@ -44,15 +44,28 @@ static int setup_socket(void)
     return sd;
 }
 
-int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
+int main(int argc, char *argv[])
 {
     sasl_callback_t callbacks[2] = {};
     char buf[8192];
     sasl_conn_t *conn;
     const char *data;
     unsigned int len;
+    sasl_channel_binding_t cb = {0};
+    unsigned char cb_buf[256];
     int sd;
-    int r;
+    int c, r;
+
+    while ((c = getopt(argc, argv, "c:")) != EOF) {
+        switch (c) {
+        case 'c':
+            parse_cb(&cb, cb_buf, 256, optarg);
+            break;
+        default:
+            break;
+        }
+    }
+
 
     /* initialize the sasl library */
     callbacks[0].id = SASL_CB_GETPATH;
@@ -70,6 +83,10 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     if (r != SASL_OK) {
         saslerr(r, "allocating connection state");
         exit(-1);
+    }
+
+    if (cb.name) {
+        sasl_setprop(conn, SASL_CHANNEL_BINDING, &cb);
     }
 
     sd = setup_socket();

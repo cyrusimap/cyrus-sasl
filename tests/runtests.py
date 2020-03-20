@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import argparse
+import base64
 import os
 import shutil
 import signal
@@ -126,14 +127,7 @@ def setup_kdc(testdir, env):
 
     return kdc, env
 
-
-def gssapi_tests(testdir):
-    """ SASL/GSSAPI Tests """
-    env = setup_socket_wrappers(testdir)
-    kdc, kenv = setup_kdc(testdir, env)
-    #print("KDC: {}, ENV: {}".format(kdc, kenv))
-    kenv['KRB5_TRACE'] = os.path.join(testdir, 'trace.log')
-
+def gssapi_basic_test(kenv):
     try:
         srv = subprocess.Popen(["../tests/t_gssapi_srv"],
                                stdout=subprocess.PIPE,
@@ -155,10 +149,93 @@ def gssapi_tests(testdir):
                 srv.returncode, srv.stderr.read().decode('utf-8')))
     except Exception as e:
         print("FAIL: {}".format(e))
+        return
 
     print("PASS: CLI({}) SRV({})".format(
         cli.stdout.read().decode('utf-8').strip(),
         srv.stdout.read().decode('utf-8').strip()))
+
+def gssapi_channel_binding_test(kenv):
+    try:
+        bindings = base64.b64encode("MATCHING CBS".encode('utf-8'))
+        srv = subprocess.Popen(["../tests/t_gssapi_srv", "-c", bindings],
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, env=kenv)
+        srv.stdout.readline() # Wait for srv to say it is ready
+        cli = subprocess.Popen(["../tests/t_gssapi_cli", "-c", bindings],
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, env=kenv)
+        try:
+            cli.wait(timeout=5)
+            srv.wait(timeout=5)
+        except Exception as e:
+            print("Failed on {}".format(e));
+            cli.kill()
+            srv.kill()
+        if cli.returncode != 0 or srv.returncode != 0:
+            raise Exception("CLI ({}): {} --> SRV ({}): {}".format(
+                cli.returncode, cli.stderr.read().decode('utf-8'),
+                srv.returncode, srv.stderr.read().decode('utf-8')))
+    except Exception as e:
+        print("FAIL: {}".format(e))
+        return
+
+    print("PASS: CLI({}) SRV({})".format(
+        cli.stdout.read().decode('utf-8').strip(),
+        srv.stdout.read().decode('utf-8').strip()))
+
+def gssapi_channel_binding_mismatch_test(kenv):
+    result = "FAIL"
+    try:
+        bindings = base64.b64encode("SRV CBS".encode('utf-8'))
+        srv = subprocess.Popen(["../tests/t_gssapi_srv", "-c", bindings],
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, env=kenv)
+        srv.stdout.readline() # Wait for srv to say it is ready
+        bindings = base64.b64encode("CLI CBS".encode('utf-8'))
+        cli = subprocess.Popen(["../tests/t_gssapi_cli", "-c", bindings],
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, env=kenv)
+        try:
+            cli.wait(timeout=5)
+            srv.wait(timeout=5)
+        except Exception as e:
+            print("Failed on {}".format(e));
+            cli.kill()
+            srv.kill()
+        if cli.returncode != 0 or srv.returncode != 0:
+            cli_err = cli.stderr.read().decode('utf-8').strip()
+            srv_err = srv.stderr.read().decode('utf-8').strip()
+            if "authentication failure" in srv_err:
+                result = "PASS"
+            raise Exception("CLI ({}): {} --> SRV ({}): {}".format(
+                cli.returncode, cli_err, srv.returncode, srv_err))
+    except Exception as e:
+        print("{}: {}".format(result, e))
+        return
+
+    print("FAIL: This test should fail [CLI({}) SRV({})]".format(
+        cli.stdout.read().decode('utf-8').strip(),
+        srv.stdout.read().decode('utf-8').strip()))
+
+def gssapi_tests(testdir):
+    """ SASL/GSSAPI Tests """
+    env = setup_socket_wrappers(testdir)
+    kdc, kenv = setup_kdc(testdir, env)
+    #print("KDC: {}, ENV: {}".format(kdc, kenv))
+    kenv['KRB5_TRACE'] = os.path.join(testdir, 'trace.log')
+
+    print('GSSAPI BASIC:')
+    print('    ', end='')
+    gssapi_basic_test(kenv)
+
+    print('GSSAPI CHANNEL BINDING:')
+    print('    ', end='')
+    gssapi_channel_binding_test(kenv)
+
+    print('GSSAPI CHANNEL BINDING MISMTACH:')
+    print('    ', end='')
+    gssapi_channel_binding_mismatch_test(kenv)
 
     os.killpg(kdc.pid, signal.SIGTERM)
 

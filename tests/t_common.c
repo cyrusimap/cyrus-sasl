@@ -65,4 +65,18 @@ int getpath(void *context __attribute__((unused)), const char **path)
     return SASL_OK;
 }
 
+void parse_cb(sasl_channel_binding_t *cb, char *buf, unsigned max, char *in)
+{
+    unsigned len;
+    int r;
 
+    r = sasl_decode64(in, strlen(in), buf, max, &len);
+    if (r != SASL_OK) {
+        saslerr(r, "failed to parse channel bindings");
+        exit(-1);
+    }
+    cb->name = "TEST BINDINGS";
+    cb->critical = 0;
+    cb->data = (unsigned char *)buf;
+    cb->len = len;
+}

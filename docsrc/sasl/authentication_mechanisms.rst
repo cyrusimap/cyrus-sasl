@@ -174,7 +174,7 @@ Understanding this table:
 
 Security Properties:
 
-* **MAX SSF** - The maximum Security Strength Factor supported by the mechanism (roughly the number of bits of encryption provided, but may have other meanings, for example an SSF of 1 indicates integrity protection only, no encryption).
+* **MAX SSF** - The maximum Security Strength Factor supported by the mechanism (roughly the 2log of the search space for brute force attacks).
 * **NOPLAIN** - Mechanism is not susceptable to simple passive (eavesdropping) attack.
 * **NOACTIVE** - Protection from active (non-dictionary) attacks during authentication exchange. (Implies MUTUAL).
 * **NODICT** - Not susceptable to passive dictionary attack.

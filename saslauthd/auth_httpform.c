@@ -180,7 +180,7 @@ static char *url_escape(
         return NULL;
 
     while (inidx < length) {
-        char in = string[inidx];
+    	unsigned char in = (unsigned char)string[inidx];
         if (!(in >= 'a' && in <= 'z') &&
             !(in >= 'A' && in <= 'Z') &&
             !(in >= '0' && in <= '9')) {
@@ -208,7 +208,7 @@ static char *url_escape(
 
         inidx++;
     }
-    out[outidx] = 0; /* terminate it */
+    out[outidx] = '\0'; /* terminate it */
     return out;
 }
 
@@ -229,17 +229,17 @@ static char *url_escape(
 
 static char *create_post_data(
   /* PARAMETERS */
-  const char *formdata, 
-  const char *user,
-  const char *password,
-  const char *realm
+  const char *formdata,
+  const char *in_user,
+  const char *in_password,
+  const char *in_realm
   /* END PARAMETERS */
   )
 {
     /* VARIABLES */
-    const char *ptr, *line_ptr;
-    char *esc_user = NULL, *esc_password = NULL, *esc_realm = NULL;
-    char *buf = NULL, *buf_ptr;
+	const char *ptr, *line_ptr;
+	char *user = NULL, *password = NULL, *realm = NULL;
+	char *buf = NULL, *buf_ptr;
     int filtersize;
     int ulen, plen, rlen;
     int numpercents=0;
@@ -247,9 +247,9 @@ static char *create_post_data(
     size_t i;
     /* END VARIABLES */
 
-    user = esc_user = url_escape(user);
-    password = esc_password = url_escape(password);
-    realm = esc_realm = url_escape(realm);
+    user = url_escape(in_user);
+    password = url_escape(in_password);
+    realm = url_escape(in_realm);
     if (!user || !password || !realm) {
         logger(LOG_ERR, "auth_httpform:create_post_data", "failed to allocate memory");
         goto CLEANUP;
@@ -321,17 +321,17 @@ static char *create_post_data(
     memcpy(buf_ptr, line_ptr, strlen(line_ptr)+1);
 
 CLEANUP:
-    if (esc_user) {
-        memset(esc_user, 0, strlen(esc_user));
-        free(esc_user);
+    if (user) {
+        memset(user, 0, strlen(user));
+        free(user);
     }
-    if (esc_password) {
-        memset(esc_password, 0, strlen(esc_password));
-        free(esc_password);
+    if (password) {
+        memset(password, 0, strlen(password));
+        free(password);
     }
-    if (esc_realm) {
-        memset(esc_realm, 0, strlen(realm));
-        free(esc_realm);
+    if (realm) {
+        memset(realm, 0, strlen(realm));
+        free(realm);
     }
 
     return buf;

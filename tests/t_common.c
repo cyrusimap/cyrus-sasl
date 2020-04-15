@@ -23,20 +23,21 @@ void send_string(int sd, const char *s, unsigned int l)
     if (ret != l) s_error("send data", ret, l, errno);
 }
 
-void recv_string(int sd, char *buf, unsigned int *buflen)
+void recv_string(int sd, char *buf, unsigned int *buflen, bool allow_eof)
 {
+    unsigned int bufsize = *buflen;
     unsigned int l;
     ssize_t ret;
 
+    *buflen = 0;
+
     ret = recv(sd, &l, sizeof(l), MSG_WAITALL);
+    if (allow_eof && ret == 0) return;
     if (ret != sizeof(l)) s_error("recv size", ret, sizeof(l), errno);
 
-    if (l == 0) {
-        *buflen = 0;
-        return;
-    }
+    if (l == 0) return;
 
-    if (*buflen < l) s_error("recv len", l, *buflen, E2BIG);
+    if (bufsize < l) s_error("recv len", l, bufsize, E2BIG);
 
     ret = recv(sd, buf, l, 0);
     if (ret != l) s_error("recv data", ret, l, errno);

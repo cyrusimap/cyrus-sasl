@@ -101,8 +101,10 @@ int main(int argc, char *argv[])
     int c, r;
     const char *sasl_mech = "GSSAPI";
     int plain = 0;
+    bool spnego = false;
+    bool zeromaxssf = false;
 
-    while ((c = getopt(argc, argv, "c:P:")) != EOF) {
+    while ((c = getopt(argc, argv, "c:P:zN")) != EOF) {
         switch (c) {
         case 'c':
             parse_cb(&cb, cb_buf, 256, optarg);
@@ -110,6 +112,12 @@ int main(int argc, char *argv[])
         case 'P':
             plain = 1;
             testpass = optarg;
+            break;
+        case 'z':
+            zeromaxssf = true;
+            break;
+        case 'N':
+            spnego = true;
             break;
         default:
             break;
@@ -153,6 +161,16 @@ int main(int argc, char *argv[])
         sasl_setprop(conn, SASL_CHANNEL_BINDING, &cb);
     }
 
+    if (spnego) {
+        sasl_mech = "GSS-SPNEGO";
+    }
+
+    if (zeromaxssf) {
+        /* set all security properties to 0 including maxssf */
+        sasl_security_properties_t secprops = { 0 };
+        sasl_setprop(conn, SASL_SEC_PROPS, &secprops);
+    }
+
     r = sasl_client_start(conn, sasl_mech, NULL, &data, &len, &chosenmech);
     if (r != SASL_OK && r != SASL_CONTINUE) {
         saslerr(r, "starting SASL negotiation");
@@ -165,7 +183,7 @@ int main(int argc, char *argv[])
     while (r == SASL_CONTINUE) {
         send_string(sd, data, len);
         len = 8192;
-        recv_string(sd, buf, &len);
+        recv_string(sd, buf, &len, false);
 
         r = sasl_client_step(conn, buf, len, NULL, &data, &len);
         if (r != SASL_OK && r != SASL_CONTINUE) {

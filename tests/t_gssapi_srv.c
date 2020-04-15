@@ -92,8 +92,10 @@ int main(int argc, char *argv[])
     int c, r;
     const char *sasl_mech = "GSSAPI";
     int plain = 0;
+    bool spnego = false;
+    bool zeromaxssf = false;
 
-    while ((c = getopt(argc, argv, "c:P:")) != EOF) {
+    while ((c = getopt(argc, argv, "c:P:zN")) != EOF) {
         switch (c) {
         case 'c':
             parse_cb(&cb, cb_buf, 256, optarg);
@@ -101,6 +103,12 @@ int main(int argc, char *argv[])
         case 'P':
             plain = 1;
             sasldb_path = optarg;
+            break;
+        case 'z':
+            zeromaxssf = true;
+            break;
+        case 'N':
+            spnego = true;
             break;
         default:
             break;
@@ -136,10 +144,20 @@ int main(int argc, char *argv[])
         sasl_mech = "PLAIN";
     }
 
+    if (spnego) {
+        sasl_mech = "GSS-SPNEGO";
+    }
+
+    if (zeromaxssf) {
+        /* set all security properties to 0 including maxssf */
+        sasl_security_properties_t secprops = { 0 };
+        sasl_setprop(conn, SASL_SEC_PROPS, &secprops);
+    }
+
     sd = setup_socket();
 
     len = 8192;
-    recv_string(sd, buf, &len);
+    recv_string(sd, buf, &len, false);
 
     r = sasl_server_start(conn, sasl_mech, buf, len, &data, &len);
     if (r != SASL_OK && r != SASL_CONTINUE) {
@@ -151,7 +169,7 @@ int main(int argc, char *argv[])
     while (r == SASL_CONTINUE) {
         send_string(sd, data, len);
         len = 8192;
-        recv_string(sd, buf, &len);
+        recv_string(sd, buf, &len, true);
 
         r = sasl_server_step(conn, buf, len, &data, &len);
         if (r != SASL_OK && r != SASL_CONTINUE) {
@@ -159,7 +177,6 @@ int main(int argc, char *argv[])
             printf("\n%s\n", sasl_errdetail(conn));
             exit(-1);
         }
-
     }
 
     if (r != SASL_OK) exit(-1);

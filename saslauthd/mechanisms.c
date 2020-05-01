@@ -56,6 +56,9 @@
 #ifdef AUTH_HTTPFORM
 #include "auth_httpform.h"
 #endif
+#ifdef AUTH_HTPASSWD
+#include "auth_htpasswd.h"
+#endif
 /* END PUBLIC DEPENDENCIES */
 
 authmech_t mechanisms[] =
@@ -88,7 +91,10 @@ authmech_t mechanisms[] =
 #endif /* AUTH_LDAP */
 #ifdef AUTH_HTTPFORM
     {   "httpform",     auth_httpform_init,     auth_httpform },
-#endif /* AUTH_LDAP */
+#endif /* AUTH_HTTPFORM */
+#ifdef AUTH_HTPASSWD
+    {   "htpasswd",     0,     auth_htpasswd },
+#endif /* AUTH_HTPASSWD */
     {	0,		0,			0 }
 };
 

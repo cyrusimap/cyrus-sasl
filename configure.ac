@@ -551,6 +551,14 @@ if test "$httpform" != no; then
   AC_DEFINE(HAVE_HTTPFORM,[],[Include HTTP form Support])
 fi
 
+AC_ARG_ENABLE(htpasswd, [  --enable-htpasswd       enable htpasswd file authentication [[no]] ],
+  htpasswd=$enableval,
+  htpasswd=no)
+if test "htpasswd" != no; then
+  AC_DEFINE(HAVE_HTPASSWD,[],[Include htpasswd file support])
+fi
+AM_CONDITIONAL(AUTH_HTPASSWD, test "$htpasswd" != no)
+
 AC_ARG_WITH(pam, AC_HELP_STRING([--with-pam=DIR], [use PAM (rooted in DIR) [yes]]),,
 	with_pam=yes)
 if test "$with_pam" != no; then

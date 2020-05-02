@@ -93,7 +93,7 @@ authmech_t mechanisms[] =
     {   "httpform",     auth_httpform_init,     auth_httpform },
 #endif /* AUTH_HTTPFORM */
 #ifdef AUTH_HTPASSWD
-    {   "htpasswd",     0,     auth_htpasswd },
+    {   "htpasswd",     auth_htpasswd_init,     auth_htpasswd },
 #endif /* AUTH_HTPASSWD */
     {	0,		0,			0 }
 };

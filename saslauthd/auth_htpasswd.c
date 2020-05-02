@@ -43,6 +43,7 @@
 #include <pwd.h>
 #include <config.h>
 #include <unistd.h>
+#include <syslog.h>
 #include <apr-1.0/apr_strings.h>
 #include <apr-1.0/apr_md5.h>            /* for apr_password_validate */
 #include <apr-1.0/apr_file_io.h>
@@ -109,11 +110,16 @@ auth_htpasswd (
     int ret=-10;
     /* END VARIABLES */
 
-    if(!mech_option) RETURN("NO");
+    if(!mech_option) {
+        syslog(LOG_WARNING, "auth_htpasswd: no -O parameter provided with htpasswd file name!");
+        RETURN("NO");
+    }
 
     if (apr_file_open(&fpw, mech_option, APR_READ | APR_BUFFERED, APR_OS_DEFAULT, pool) != APR_SUCCESS) {
+        syslog(LOG_WARNING, "auth_htpasswd: couldn't open htpasswd '%s' file!", mech_option);
         RETURN("NO");   /* error opening htpasswd file*/
     }
+
     while (apr_file_gets(line, sizeof(line), fpw) == APR_SUCCESS) {
         char *colon;
 
@@ -152,6 +158,7 @@ auth_htpasswd (
             if (len == 0) {
                 /*apr_file_printf(errfile, "Empty hash for user %s" NL,
                                 user);*/
+                syslog(LOG_WARNING, "auth_htpasswd: invalid htpasswd '%s' file content!", mech_option);
                 ret=-2;
                 break;
             }

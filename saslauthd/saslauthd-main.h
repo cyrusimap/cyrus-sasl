@@ -82,7 +82,7 @@
 #define DOOR_FILE		"/mux"              
 
 /* login, pw, service, realm buffer size */
-#define MAX_REQ_LEN		256     
+#define MAX_REQ_LEN		65536
 
 /* socket backlog when supported */
 #define SOCKET_BACKLOG  	32

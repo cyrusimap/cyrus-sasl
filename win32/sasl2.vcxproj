@@ -163,6 +163,9 @@
     <ProjectReference Include="plugin_plain.vcxproj">
       <Project>{b8c5499f-bcb8-409c-8446-0d92de118020}</Project>
     </ProjectReference>
+    <ProjectReference Include="plugin_login.vcxproj">
+      <Project>{6f556f64-fb73-4e7d-9908-eeba78d1592e}</Project>
+    </ProjectReference>
     <ProjectReference Include="plugin_scram.vcxproj">
       <Project>{639d1c4b-acc5-40a4-a96b-731e7fc21ea7}</Project>
     </ProjectReference>

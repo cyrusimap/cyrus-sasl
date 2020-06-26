@@ -2113,9 +2113,15 @@ static int gssapi_client_mech_step(void *conn_context,
 
 	/* Setup req_flags properly */
 	req_flags = GSS_C_MUTUAL_FLAG | GSS_C_SEQUENCE_FLAG;
-	if (params->props.max_ssf > params->external_ssf) {
-	    /* We are requesting a security layer */
+        if (text->mech_type == NULL) {
+            /* in SASL/GSSAPI RFC4752 requires the INTEG flag MUST be set to
+             * TRUE in all cases */
 	    req_flags |= GSS_C_INTEG_FLAG;
+        }
+	/* We are requesting a security layer */
+	if (params->props.max_ssf > params->external_ssf) {
+            /* Add integrity if explicity requested */
+            req_flags |= GSS_C_INTEG_FLAG;
 	    /* Any SSF bigger than 1 is confidentiality. */
 	    /* Let's check if the client of the API requires confidentiality,
 	       and it wasn't already provided by an external layer */
@@ -2132,7 +2138,7 @@ static int gssapi_client_mech_step(void *conn_context,
          * two layers (say TLS and GSSAPI) to both provide these services.
          * So if we do not suppress these flags a SASL/GSS-SPNEGO negotiation
          * over, say, LDAPS will fail against Windows Servers */
-	} else if (params->props.max_ssf == 0) {
+	} else if (params->props.max_ssf <= 1) {
             gss_buffer_desc empty_buffer = GSS_C_EMPTY_BUFFER;
             if (client_creds == GSS_C_NO_CREDENTIAL) {
                 gss_OID_set_desc mechs = { 0 };

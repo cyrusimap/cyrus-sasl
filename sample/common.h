@@ -43,6 +43,13 @@ extern int send_string(FILE *f, const char *s, int l);
 extern int recv_string(FILE *f, char *buf, int buflen);
 
 extern int debuglevel;
+
+/*
+ *  For gcc < 4.3 and clang, glibc will implement dprintf using a
+ *  macro.  To ensure we use our own implementation of dprintf
+ *  rather than glibc's, we need to undef dprintf here.
+ */
+#undef dprintf
 extern int dprintf(int lvl, const char *fmt, ...);
 
 extern void saslerr(int why, const char *what);

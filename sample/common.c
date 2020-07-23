@@ -47,6 +47,8 @@
 
 #include <sasl.h>
 
+#include "common.h"
+
 /* send/recv library for IMAP4 style literals.
 
    really not important; just one way of doing length coded strings */

@@ -81,6 +81,7 @@ typedef struct lak_password_scheme {
 } LAK_PASSWORD_SCHEME;
 
 static int lak_config_read(LAK_CONF *, const char *);
+static void lak_config_error(const int, const char *, const char *);
 static int lak_config_int(const char *);
 static int lak_config_switch(const char *);
 static void lak_config_free(LAK_CONF *);
@@ -142,6 +143,18 @@ static const char *dn_attr = "dn";
 #define ISSET(x)  ((x != NULL) && (*(x) != '\0'))
 #define EMPTY(x)  ((x == NULL) || (*(x) == '\0'))
 
+static void lak_config_error(
+	const int lineno,
+	const char *key,
+	const char *value)
+{
+    syslog(LOG_ERR|LOG_AUTH,
+	   "Error in saslauthd config file on line %d: %s is not a valid value for %s",
+	   lineno,
+	   value,
+	   key);
+}
+
 static int lak_config_read(
 	LAK_CONF *conf,
 	const char *configfile)
@@ -153,10 +166,10 @@ static int lak_config_read(
 
 	infile = fopen(configfile, "r");
 	if (!infile) {
-	    syslog(LOG_ERR|LOG_AUTH,
-		   "Could not open saslauthd config file: %s (%m)",
-		   configfile);
-	    return LAK_FAIL;
+		syslog(LOG_ERR|LOG_AUTH,
+			"Could not open saslauthd config file: %s (%m)",
+			configfile);
+		return LAK_FAIL;
 	}
     
 	while (fgets(buf, sizeof(buf), infile)) {
@@ -176,6 +189,10 @@ static int lak_config_read(
 		}
 		if (*p != ':') {
 			fclose(infile);
+			syslog(LOG_ERR|LOG_AUTH,
+				"Error in saslauthd config file on line %d: %s does not have a value",
+				lineno,
+				key);
 			return LAK_FAIL;
 		}
 		
@@ -186,6 +203,10 @@ static int lak_config_read(
 
 		if (!*p) {
 			fclose(infile);
+			syslog(LOG_ERR|LOG_AUTH,
+				"Error in saslauthd config file on line %d: %s does not have a value",
+				lineno,
+				key);
 			return LAK_FAIL;
 		}
 
@@ -228,12 +249,20 @@ static int lak_config_read(
 				conf->group_scope = LDAP_SCOPE_ONELEVEL;
 			} else if (!strcasecmp(p, "base")) {
 				conf->group_scope = LDAP_SCOPE_BASE;
+			} else {
+				fclose(infile);
+				lak_config_error(lineno, key, p);
+				return LAK_FAIL;
 			}
 		} else if (!strcasecmp(key, "ldap_group_match_method")) {
 			if (!strcasecmp(p, "filter")) {
 				conf->group_match_method = LAK_GROUP_MATCH_METHOD_FILTER;
 			} else if (!strcasecmp(p, "attr")) {
 				conf->group_match_method = LAK_GROUP_MATCH_METHOD_ATTR;
+			} else {
+				fclose(infile);
+				lak_config_error(lineno, key, p);
+				return LAK_FAIL;
 			}
 		} else if (!strcasecmp(key, "ldap_default_realm") ||
 		         !strcasecmp(key, "ldap_default_domain"))
@@ -244,6 +273,10 @@ static int lak_config_read(
 				conf->auth_method = LAK_AUTH_METHOD_CUSTOM;
 			} else if (!strcasecmp(p, "fastbind")) {
 				conf->auth_method = LAK_AUTH_METHOD_FASTBIND;
+			} else {
+				fclose(infile);
+				lak_config_error(lineno, key, p);
+				return LAK_FAIL;
 			}
 		} else if (!strcasecmp(key, "ldap_timeout")) {
 			conf->timeout.tv_sec = lak_config_int(p);
@@ -263,6 +296,10 @@ static int lak_config_read(
 				conf->deref = LDAP_DEREF_ALWAYS;
 			} else if (!strcasecmp(p, "never")) {
 				conf->deref = LDAP_DEREF_NEVER;
+			} else {
+				fclose(infile);
+				lak_config_error(lineno, key, p);
+				return LAK_FAIL;
 			}
 		} else if (!strcasecmp(key, "ldap_referrals")) {
 			conf->referrals = lak_config_switch(p);
@@ -275,6 +312,10 @@ static int lak_config_read(
 				conf->scope = LDAP_SCOPE_ONELEVEL;
 			} else if (!strcasecmp(p, "base")) {
 				conf->scope = LDAP_SCOPE_BASE;
+			} else {
+				fclose(infile);
+				lak_config_error(lineno, key, p);
+				return LAK_FAIL;
 			}
 		} else if (!strcasecmp(key, "ldap_use_sasl")) {
 			conf->use_sasl = lak_config_switch(p);
@@ -321,6 +362,15 @@ static int lak_config_read(
 
 		else if (!strcasecmp(key, "ldap_debug"))
 			conf->debug = lak_config_int(p);
+
+		else {
+			fclose(infile);
+			syslog(LOG_ERR|LOG_AUTH,
+				"Error in saslauthd config file on line %d: Unknown key %s",
+				lineno,
+				key);
+			return LAK_FAIL;
+		}
 	}
 
 	if (conf->version != LDAP_VERSION3 && 

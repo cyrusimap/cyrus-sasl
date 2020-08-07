@@ -249,6 +249,8 @@ static int lak_config_read(
 				conf->group_scope = LDAP_SCOPE_ONELEVEL;
 			} else if (!strcasecmp(p, "base")) {
 				conf->group_scope = LDAP_SCOPE_BASE;
+			} else if (!strcasecmp(p, "sub")) {
+				conf->group_scope = LDAP_SCOPE_SUBTREE;
 			} else {
 				fclose(infile);
 				lak_config_error(lineno, key, p);
@@ -271,6 +273,8 @@ static int lak_config_read(
 		else if (!strcasecmp(key, "ldap_auth_method")) {
 			if (!strcasecmp(p, "custom")) {
 				conf->auth_method = LAK_AUTH_METHOD_CUSTOM;
+			} else if (!strcasecmp(p, "bind")) {
+				conf->auth_method = LAK_AUTH_METHOD_BIND;
 			} else if (!strcasecmp(p, "fastbind")) {
 				conf->auth_method = LAK_AUTH_METHOD_FASTBIND;
 			} else {
@@ -312,6 +316,8 @@ static int lak_config_read(
 				conf->scope = LDAP_SCOPE_ONELEVEL;
 			} else if (!strcasecmp(p, "base")) {
 				conf->scope = LDAP_SCOPE_BASE;
+			} else if (!strcasecmp(p, "sub")) {
+				conf->scope = LDAP_SCOPE_SUBTREE;
 			} else {
 				fclose(infile);
 				lak_config_error(lineno, key, p);

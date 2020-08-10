@@ -61,19 +61,20 @@ auth_ldap(
   /* END PARAMETERS */
   )
 {
-	static LAK *lak = NULL;
+	LAK *lak = NULL;
 	int rc = 0;
 
-	if (lak == NULL) {
-		rc = lak_init(SASLAUTHD_CONF_FILE, &lak);
-		if (rc != LAK_OK) {
-			lak = NULL;
-			RETURN("NO");
-		}
+	rc = lak_init(SASLAUTHD_CONF_FILE, &lak);
+	if (rc != LAK_OK) {
+		lak = NULL;
+		RETURN("NO");
 	}
 
 	rc = lak_authenticate(lak, login, service, realm, password);
-    	if (rc == LAK_OK) {
+
+	lak_close(lak);
+
+	if (rc == LAK_OK) {
 		RETURN("OK");
 	} else {
 		RETURN("NO");

@@ -192,10 +192,9 @@ static int lak_config_read(
 		}
 
 		if (!strcasecmp(key, "realm")) {
+			in_realm = 0;
 			if(!strcasecmp(p, configrealm)) {
 				in_realm = 1;
-			} else {
-				in_realm = 0;
 			}
 		}
 		if (!in_realm)

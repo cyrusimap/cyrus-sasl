@@ -1592,7 +1592,7 @@ int lak_authenticate(
 	if (EMPTY(realm))
 		realm = lak->conf->default_realm;
 
-	syslog(LOG_DEBUG|LOG_AUTH, "lak_authenticate for realm %s", realm);
+	syslog(LOG_DEBUG|LOG_AUTH, "lak_authenticate for realm %s, user %s", realm, user);
 	rc = lak_config_read(lak->conf, lak->conf->path, realm);
 	if (rc != LAK_OK) {
 		syslog(LOG_ERR|LOG_AUTH, "lak_authenticate error reading config for realm %s", realm);

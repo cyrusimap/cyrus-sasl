@@ -201,7 +201,8 @@ static int lak_config_read(
 			continue;
 
 		if (!strcasecmp(key, "realm")) {
-			/* ignore and skip */
+			/* take this as a default for ldap_realm, although it could be remapped */
+			strlcpy(conf->realm, p, LAK_BUF_LEN);
 		} else if (!strcasecmp(key, "ldap_servers"))
 			strlcpy(conf->servers, p, LAK_URL_LEN);
 

@@ -525,8 +525,8 @@ int get_fqhostname(
     struct addrinfo hints;
     struct addrinfo *result;
 
-    return_value = gethostname (name, namelen -1);
-    name[namelen] = '\0'; /* insure string is always 0 terminated*/
+    return_value = gethostname (name, namelen);
+    name[namelen-1] = '\0'; /* insure string is always 0 terminated*/
     if (return_value != 0) {
 	return (return_value);
     }
@@ -577,6 +577,7 @@ int get_fqhostname(
     }
 
     strncpy (name, result->ai_canonname, namelen);
+    name[namelen-1] = '\0'; /* insure string is always 0 terminated*/
     freeaddrinfo (result);
 
 LOWERCASE:

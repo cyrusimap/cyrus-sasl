@@ -46,6 +46,7 @@
 # See <http://www.gnu.org/software/libtool/manual/libtool.html#Versioning>
 # CURRENT:REVISION:AGE
 plugin_common_version = 3:0:0
+crypto_compat_version = 0:0:0
 
 AM_CPPFLAGS=-fPIC -I$(top_srcdir)/include -I$(top_builddir)/include
 

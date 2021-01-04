@@ -110,7 +110,7 @@ FQDN is assumed (likewise when specifying a realm for saslpasswd2).
 
 <h2><a name="saslhow">How SASL works</a></h2>
 
-How SASL works is governed by what mechanism the client and server 
+How SASL works is governed by what mechanism the client and server
 choose to use and the exact implementation of that mechanism.  This
 section describes the way these mechanisms act in the Cyrus SASL
 implementation.
@@ -131,7 +131,7 @@ authentication identifier and password are verified.  The Cyrus SASL
 library is flexible in this regard:
 
 <DL>
-<dt><i>auxprop</i> 
+<dt><i>auxprop</i>
 <dd> checks passwords agains the <tt>userPassword</tt> attribute
 supplied by an auxiliary property plugin.  For example, SASL ships
 with a sasldb auxiliary property plugin, that can be used to
@@ -175,14 +175,14 @@ are &quot;imap&quot;, &quot;sieve&quot;, and &quot;smtp&quot;.
 This daemon is simliar in functionality to <tt>saslauthd</tt>, and is shipped
 separately with the <a href="http://www.courier-mta.org">Courier</a> mail server.
 
-<p>Note: this feature is <b>not</b> compiled in the library by default, and its 
+<p>Note: this feature is <b>not</b> compiled in the library by default, and its
 provided for sites with custom/special requirements only (because the
 internal authentication protocol its not documented anywhere so it could
 change at any time).  We have tested against the authdaemond included with
 Courier-IMAP 2.2.1.
 
-<p>To enable <tt>authdaemond</tt> support, pass <tt>--with-authdaemon</tt> to the 
-configuration script, set pwcheck_method to ``authdaemond'' and point 
+<p>To enable <tt>authdaemond</tt> support, pass <tt>--with-authdaemon</tt> to the
+configuration script, set pwcheck_method to ``authdaemond'' and point
 authdaemond_path to <tt>authdaemond</tt>'s unix socket. Optionally, you can
 specify --with-authdaemond=PATH to the configure script so that
 authdaemond_path points to a default, static, location.
@@ -229,7 +229,7 @@ server must keep passwords or password equivalents in a database;
 if this database is compromised, it is the same as if all the
 passwords for the realm are compromised.
 
-<p>Put another way, <i>you cannot use saslauthd with these methods</i>.  
+<p>Put another way, <i>you cannot use saslauthd with these methods</i>.
 If you do not wish to advertise these methods for that reason (i.e. you
 are only using saslauthd for password verification), then either remove
 the non-plaintext plugins (those other than login and plain) from the
@@ -296,8 +296,8 @@ Different SASL applications can use different srvtab files.
 <h3>The OTP mechanism</h3>
 
 The Cyrus SASL library also supports the One-Time-Password (OTP)
-mechanism.  This mechanism is similar to CRAM-MD5, DIGEST-MD5 and SCRAM
-in that is uses a shared secret and a challenge/response exchange.
+mechanism.  This mechanism is similar to CRAM-MD5, DIGEST-MD5, SCRAM
+and SRP in that is uses a shared secret and a challenge/response exchange.
 However, OTP is more secure than the other shared secret mechanisms in
 that the secret is used to generate a sequence of one-time (single
 use) passwords which prevents reply attacks, and that secret need
@@ -310,8 +310,8 @@ database.
 For sites with an existing OTP infrastructure using OPIE, Cyrus SASL
 can be configured to use OPIE v2.4 instead of using its own database
 and server-side routines.
-OPIE should be configured with the <tt>--disable-user-locking</tt> 
-option if the SASL server application will not be running as "root". 
+OPIE should be configured with the <tt>--disable-user-locking</tt>
+option if the SASL server application will not be running as "root".
 
 <p>OPIE uses its own "opiekeys" database for storing the data necessary
 for generating the server challenges.  The location of the opiekeys
@@ -332,7 +332,7 @@ such as the SASLdb, LDAP or a SQL database.  Applications can look up arbitrary 
 Note that this means that if your password database is in a SASLdb, and
 you wish to use it for plaintext password lookups through the sasldb, you
 will need to set the sasl <a href=options.html>option</a>
-<tt>pwcheck_method</tt> to be <tt>auxprop</tt>. 
+<tt>pwcheck_method</tt> to be <tt>auxprop</tt>.
 
 <h2>How to set configuration options</h2>
 
@@ -349,7 +349,7 @@ configuration from "<tt>/usr/lib/sasl2/Sendmail.conf</tt>" and the
 sample server application included with the library looks in
 "<tt>/usr/lib/sasl2/sample.conf</tt>".
 
-<p>A standard Cyrus SASL configuration file looks like: 
+<p>A standard Cyrus SASL configuration file looks like:
 <pre>
 srvtab: /var/app/srvtab
 pwcheck_method: saslauthd
@@ -410,7 +410,7 @@ SRP, use random numbers only to generate nonces, so using
 <tt>/dev/urandom</tt> is safe if you aren't using OTP or SRP.
 
 <p>
-<dt><b>Q:</b> I've converted the sasldb database to the new format. 
+<dt><b>Q:</b> I've converted the sasldb database to the new format.
 Why can't anybody authenticate?
 <dd>
 <p><b>A:</b> sasldb is now a plugin module for the auxprop method.
@@ -454,7 +454,7 @@ variables before running <tt>configure</tt>, like so:
 <pre>
 env CPPFLAGS="-I/usr/local/BerkeleyDB.3.1/include" \
   LDFLAGS="-L/usr/local/BerkeleyDB.3.1/lib -R/usr/local/BerkeleyDB.3.1/lib" \
-  ./configure --with-dblib=berkeley 
+  ./configure --with-dblib=berkeley
 </pre>
 
 <p>
@@ -485,8 +485,8 @@ with the body of 'subscribe cyrus-sasl'.
  <li> anonymous IMAP at <a
 href="imap://cyrus.andrew.cmu.edu/archive.cyrus-sasl">imap://cyrus.andrew.cmu.edu/archive.cyrus-sasl</a>.
   <li> HTTP at <a
-href="http://asg.web.cmu.edu/archive/mailbox.php3?mailbox=archive.cyrus-sasl">
-http://asg.web.cmu.edu/archive/mailbox.php3?mailbox=archive.cyrus-sasl</a>
+href="http://lists.andrew.cmu.edu/pipermail/cyrus-sasl/">
+http://lists.andrew.cmu.edu/pipermail/cyrus-sasl/</a>
 </ul>
 
 <p>Note: If you are not subscribed, your posts go through human
@@ -499,4 +499,3 @@ Back to the <A href=index.html>index</a>
 
 </body>
 </html>
-

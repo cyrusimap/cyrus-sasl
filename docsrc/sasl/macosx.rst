@@ -194,9 +194,9 @@ Known Problems
   disables using ``libcrypto`` for DES as well. You will probably
   also need to specify ``--disable-digest`` since the digestmd5 plugin
   does not build against Kerberos v4's DES headers or library. Note that
-  this disables several features (digestmd5, NTLM, OTP) which require
-  OpenSSL. If both Kerberos v4 and functionality that requires OpenSSL are
-  needed, it is possible to build the Kerberos v4 plugin against
+  this disables several features (DIGEST-MD5, NTLM, OTP, PASSDSS, SCRAM, SRP)
+  which require OpenSSL. If both Kerberos v4 and functionality that requires
+  OpenSSL are needed, it is possible to build the Kerberos v4 plugin against
   the correct K4 DES libraries, and everything else against OpenSSL;
   however, we do not support that configuration.
 * Versions of Cyrus SASL prior to 2.1.14 with support for Carbon

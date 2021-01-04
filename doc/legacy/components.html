@@ -37,7 +37,7 @@ user id (For more details on authentication and authorization identities
 and their differences, see
 <a href=sysadmin.html>Cyrus SASL for System Administrators</a>)</p>
 
-<p>Examples of applications are Cyrus IMAPd, OpenLDAP, Sendmail, Mutt, 
+<p>Examples of applications are Cyrus IMAPd, OpenLDAP, Sendmail, Mutt,
 sieveshell, cyradm, and many others.</p>
 
 <h3>The SASL Glue Layer</h3>
@@ -110,17 +110,19 @@ standards such as PAM and LDAP to perform that verification)</p>
 
 <p>There are several types of mechanisms, in broad strokes we have:</p>
 <ul>
-<li><b>Password Verification Mechanisms</b> - For example, PLAIN.  These receive a raw password from the remote and then pass it into the glue code for
+<li><b>Password Verification Mechanisms</b> - For example, PLAIN.
+These receive a raw password from the remote and then pass it into the glue code for
 verification by a password verifier.  These require the existence of an
 outside security layer to hide the otherwise plaintext password from people
 who might be snooping on the wire.  These mechanisms do not require that
 the server have access to a plaintext (or plaintext-equivalent) version
 of the password.</li>
-<li><b>Shared Secret Mechanisms</b> - For these mechanisms, such as CRAM-MD5,
-DIGEST-MD5, SCRAM and SRP, there is a shared secret between the server and client
-(e.g. a password).  However, in this case the password itself does not travel
-on the wire.  Instead, the client passes a server a token that proves that
-it knows the secret (without actually sending the secret across the wire).
+<li><b>Shared Secret Mechanisms</b> - For these mechanisms,
+such as CRAM-MD5, DIGEST-MD5, OTP, SCRAM and SRP,
+there is a shared secret between the server and client (e.g. a password).
+However, in this case the password itself does not travel on the wire.
+Instead, the client passes a server a token that proves that it knows
+the secret (without actually sending the secret across the wire).
 For these mechanisms, the server generally needs a plaintext equivalent of
 the secret to be in local storage (not true for SRP).
 <li><b>Kerberos Mechanisms</b> - Kerberos mechanisms use a trusted
@@ -166,7 +168,7 @@ SASL option.  There are two main password verifiers provided with Cyrus SASL:</p
 compares it with the client-provided copy to make the determination.</li>
 <li><b>saslauthd</b> - This calls out to the <tt>saslauthd</tt> daemon, which
 also ships with the distribution.  The <tt>saslauthd</tt> daemon has a number
-of modules of its own, which allow it to do verification of passwords in 
+of modules of its own, which allow it to do verification of passwords in
 a variety of ways, including PAM, LDAP, against a Kerberos database, and so on.
 This is how you would want to, for example, use the data contained in
 <tt>/etc/shadow</tt> to authenticate users.</li>

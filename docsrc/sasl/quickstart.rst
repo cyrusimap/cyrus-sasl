@@ -18,16 +18,17 @@ this distribution:
 
 *  ANONYMOUS
 *  CRAM-MD5
-*  DIGEST-MD5
+*  DIGEST-MD5 (requires OpenSSL libcrypto)
 *  EXTERNAL
 *  GSSAPI (MIT Kerberos 5, Heimdal Kerberos 5 or CyberSafe)
-*  KERBEROS_V4
+*  KERBEROS_V4 (requires OpenSSL libcrypto)
 *  LOGIN
 *  NTLM (requires OpenSSL libcrypto)
 *  OTP (requires OpenSSL libcrypto)
+*  PASSDSS (requires OpenSSL libcrypto)
 *  PLAIN
 *  SCRAM (requires OpenSSL libcrypto)
-*  SRP (work in progress; requires OpenSSL libcrypto)
+*  SRP (requires OpenSSL libcrypto)
 
 
 The library also supports storing user secrets in either a hash

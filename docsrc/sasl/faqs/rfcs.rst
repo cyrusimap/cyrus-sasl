@@ -16,6 +16,7 @@ RFCs and drafts
 * :rfc:`4846#section-4` - Base64 Data Encoding
 * :rfc:`5801` - Using Generic Security Service Application Program Interface (GSS-API) Mechanisms in SASL: The GS2 Mechanism Family
 * :rfc:`5802` - Salted Challenge Response Authentication Mechanism (SCRAM) SASL and GSS-API Mechanisms
+* :rfc:`5803` - Lightweight Directory Access Protocol (LDAP) Schema for Storing Salted: Challenge Response Authentication Mechanism (SCRAM) Secrets
 * :rfc:`5929` - Channel Bindings for TLS
 * :rfc:`7613` - Preparation, Enforcement, and Comparison of Internationalized Strings Representing Usernames and Passwords
 * :rfc:`7677` - SCRAM-SHA-256 and SCRAM-SHA-256-PLUS: Simple Authentication and Security Layer (SASL) Mechanisms

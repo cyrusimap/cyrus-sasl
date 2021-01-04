@@ -33,7 +33,7 @@ SASL Library
    authentication.  When set to 'noplain', only non-plaintext secrets
    will be written.  *Note that the only mechanisms (as currently
    implemented) which don't use plaintext secrets are
-   OTP and SRP.*
+   OTP, SCRAM and SRP.*
 
    Default: no
 

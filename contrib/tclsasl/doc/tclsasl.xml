@@ -38,7 +38,7 @@ library.</t></abstract>
 ]]></artwork></figure>
 
 <t>Tcl SASL provides a Tcl interface to the
-<eref target='http://asg.web.cmu.edu/sasl/'>Cyrus SASLv2 library</eref>.</t>
+<eref target='https://www.cyrusimap.org/sasl/'>Cyrus SASLv2 library</eref>.</t>
 
 <t>This document won't tell you what 
 <xref target='RFC2222'>SASL</xref> is.

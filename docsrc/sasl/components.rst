@@ -116,17 +116,20 @@ standards such as PAM and LDAP to perform that verification)
 There are several types of mechanisms, in broad strokes we have:
 
 Password Verification Mechanisms
-    For example, PLAIN.  These receive a raw password from the remote and then pass it into the glue code for
+    For example, PLAIN.
+    These receive a raw password from the remote and then pass it into the glue code for
     verification by a password verifier.  These require the existence of an
     outside security layer to hide the otherwise plaintext password from people
     who might be snooping on the wire.  These mechanisms do not require that
     the server have access to a plaintext (or plaintext-equivalent) version
     of the password.
 Shared Secret Mechanisms
-    For these mechanisms, such as CRAM-MD5, DIGEST-MD5, SCRAM, and SRP, there is a shared secret between the server and client
-    (e.g. a password).  However, in this case the password itself does not travel
-    on the wire.  Instead, the client passes a server a token that proves that
-    it knows the secret (without actually sending the secret across the wire).
+    For these mechanisms,
+    such as CRAM-MD5, DIGEST-MD5, OTP, SCRAM, and SRP,
+    there is a shared secret between the server and client (e.g. a password).
+    However, in this case the password itself does not travel on the wire.
+    Instead, the client passes a server a token that proves that it knows
+    the secret (without actually sending the secret across the wire).
     For these mechanisms, the server generally needs a plaintext equivalent of
     the secret to be in local storage (not true for SRP).
 Kerberos Mechanisms

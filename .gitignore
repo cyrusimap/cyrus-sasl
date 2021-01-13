@@ -27,3 +27,12 @@ m4/ltversion.m4
 m4/lt~obsolete.m4
 .sphinx-build.stamp
 .tests
+*.o
+.libs
+*.lo
+*.la
+sample/client
+sample/http_digest_client
+sample/server
+tests/t_gssapi_cli
+tests/t_gssapi_srv

@@ -1281,8 +1281,18 @@ scram_server_mech_step2(server_context_t *text,
 	    goto cleanup;
 	}
 
-	if (strcmp(sparams->cbinding->name, text->cbindingname) != 0) {
+	if (sparams->cbinding == NULL) {
 	    sparams->utils->seterror (sparams->utils->conn,
+				      0,
+				      "Server does not support channel binding type received in %s. Received: %s",
+				      scram_sasl_mech,
+				      text->cbindingname);
+	    result = SASL_BADPROT;
+	    goto cleanup;
+	}
+
+	if (strcmp(sparams->cbinding->name, text->cbindingname) != 0) {
+		sparams->utils->seterror (sparams->utils->conn,
 				      0,
 				      "Unsupported channel bindings type received in %s. Expected: %s, received: %s",
                                       scram_sasl_mech,

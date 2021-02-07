@@ -294,7 +294,7 @@ for tuple in pathset:
     except OSError as e:
         continue
     for rstfile in glob.glob("*.rst"):
-        author = [("The Cyrus Team")]
+        author = "The Cyrus Team"
         orphan = 'False';
         with io.open(rstfile,'r',encoding="utf8") as f:
             for line in f:

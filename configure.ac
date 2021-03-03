@@ -216,6 +216,7 @@ if test $sasl_cv_uscore = yes; then
 	AC_CACHE_VAL(sasl_cv_dlsym_adds_uscore,AC_TRY_RUN( [
 #include <dlfcn.h>
 #include <stdio.h>
+#include <stdlib.h>
 void foo() { int i=0;}
 int main() { void *self, *ptr1, *ptr2; self=dlopen(NULL,RTLD_LAZY);
     if(self) { ptr1=dlsym(self,"foo"); ptr2=dlsym(self,"_foo");

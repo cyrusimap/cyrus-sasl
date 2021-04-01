@@ -213,7 +213,8 @@ if test $sasl_cv_uscore = yes; then
 	AC_MSG_CHECKING(whether dlsym adds the underscore for us)
 	cmu_save_LIBS="$LIBS"
 	LIBS="$LIBS $SASL_DL_LIB"
-	AC_CACHE_VAL(sasl_cv_dlsym_adds_uscore,AC_TRY_RUN( [
+	AC_CACHE_VAL([sasl_cv_dlsym_adds_uscore],
+	             [AC_TRY_RUN([
 #include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -221,8 +222,8 @@ void foo() { int i=0;}
 int main() { void *self, *ptr1, *ptr2; self=dlopen(NULL,RTLD_LAZY);
     if(self) { ptr1=dlsym(self,"foo"); ptr2=dlsym(self,"_foo");
     if(ptr1 && !ptr2) exit(0); } exit(1); } 
-], [sasl_cv_dlsym_adds_uscore=yes], sasl_cv_dlsym_adds_uscore=no,
-	AC_MSG_WARN(cross-compiler, we'll do our best)))
+], [sasl_cv_dlsym_adds_uscore=yes], [sasl_cv_dlsym_adds_uscore=no],
+	[AC_MSG_WARN(cross-compiler, we'll do our best)])])
 	LIBS="$cmu_save_LIBS"
       AC_MSG_RESULT($sasl_cv_dlsym_adds_uscore)
 

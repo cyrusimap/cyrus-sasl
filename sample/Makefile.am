@@ -42,7 +42,7 @@
 #
 ################################################################
 
-AM_CPPFLAGS=-I$(top_srcdir)/include -DPLUGINDIR='"${plugindir}"'
+AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_builddir)/include -DPLUGINDIR='"${plugindir}"'
 
 noinst_PROGRAMS = client server http_digest_client
 EXTRA_PROGRAMS = sample-client sample-server

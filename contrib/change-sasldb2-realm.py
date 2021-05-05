@@ -43,7 +43,7 @@ orig_db = bsddb.hashopen('/etc/sasldb2', 'r')
 new_db = bsddb.hashopen('/etc/sasldb2.new', 'n')
 
 # Loop over all the keys in the original sasldb2
-for orig_key in orig_db.keys():
+for orig_key in orig_db:
 	# Split the key into the three components
 	elements = orig_key.split('\x00')
 	if len(elements) != 3:

@@ -736,7 +736,7 @@ fallback:
 }
 
 /* The GSS-SPNEGO mechanism does not do SSF negotiation, instead it uses the
- * flags negotiated by GSSAPI to determine If confidentiality or integrity are
+ * flags negotiated by GSSAPI to determine if confidentiality or integrity are
  * used. These flags are stored in text->qop transalated as layers by the
  * caller */
 static int gssapi_spnego_ssf(context_t *text,

@@ -18,7 +18,6 @@ from string import Template
 import re
 
 def setup(app):
-    app.info('Initializing saslman plugin')
     app.add_crossref_type('saslman', 'saslman', '%s', nodes.generated)
     return
 

@@ -50,7 +50,7 @@ Extra information for :ref:`Windows installation <install-windows>`. This config
 Configuration
 -------------
 
-There are two main ways to configure the SASL library for a given application. The first (and typically easiest) is to make use of the application's configuration files. Provided the application supports it (via the `SASL_CB_GETOPT` callback), please refer to that documetation for how to supply SASL options.
+There are two main ways to configure the SASL library for a given application. The first (and typically easiest) is to make use of the application's configuration files. Provided the application supports it (via the `SASL_CB_GETOPT` callback), please refer to that documentation for how to supply SASL options.
 
 Alternatively, Cyrus SASL looks for configuration files in `/usr/lib/sasl/Appname.conf` where Appname is settable by the application (for example, Sendmail 8.10 and later set this to "Sendmail").
 
@@ -94,7 +94,7 @@ Kerberos?  PAM?
 5.  Also if you are using saslauthd, what communication (IPC) method do
 you want to use?  On most systems, the correct answer is the default
 (unix sockets), but on Solaris you can use IPC doors, which have proven
-to be more stable than equivilant Solaris systems using unix sockets.
+to be more stable than equivalent Solaris systems using unix sockets.
 
 Once you have answered these questions, properly configuring a working
 configuration of Cyrus SASL becomes easier.
@@ -165,7 +165,7 @@ build Cyrus SASL first without ldap support, then build OpenLDAP, and then come
 back to SASL and build LDAPDB.
 
 Given the myriad of ways that Berkeley DB can be installed on a system,
-people useing it may want to look at the ``--with-bdb-libdir`` and
+people using it may want to look at the ``--with-bdb-libdir`` and
 ``--with-bdb-incdir`` as alternatives to ``--with-dbbase`` for
 specifying the paths to the Berkeley DB Library and Include directories.
 
@@ -201,7 +201,7 @@ our platforms by looking at the "SMakefile".
 Application Configuration
 -------------------------
 
-Plesae read about the :ref:`SASL Options <options>` to learn what
+Please read about the :ref:`SASL Options <options>` to learn what
 needs to be configured so that applications can successfully use the SASL
 library.
 

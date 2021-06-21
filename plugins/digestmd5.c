@@ -254,6 +254,7 @@ typedef struct context {
     decode_context_t decode_context;
 
     /* if privacy mode is used use these functions for encode and decode */
+    char *cipher_name;
     cipher_function_t *cipher_enc;
     cipher_function_t *cipher_dec;
     cipher_init_t *cipher_init;
@@ -2821,6 +2822,7 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	}
 	
 	if (cptr->name) {
+	    text->cipher_name = cptr->name;
 	    text->cipher_enc = cptr->cipher_enc;
 	    text->cipher_dec = cptr->cipher_dec;
 	    text->cipher_init = cptr->cipher_init;
@@ -2964,7 +2966,10 @@ static int digestmd5_server_mech_step2(server_context_t *stext,
 	if (text->cipher_init) {
 	    if (text->cipher_init(text, enckey, deckey) != SASL_OK) {
 		sparams->utils->seterror(sparams->utils->conn, 0,
-					 "couldn't init cipher");
+					 "couldn't init cipher '%s'",
+                                         text->cipher_name);
+                result = SASL_FAIL;
+                goto FreeAllMem;
 	    }
 	}
     }
@@ -3515,6 +3520,7 @@ static int make_client_response(context_t *text,
 	oparams->mech_ssf = ctext->cipher->ssf;
 
 	nbits = ctext->cipher->n;
+	text->cipher_name = ctext->cipher->name;
 	text->cipher_enc = ctext->cipher->cipher_enc;
 	text->cipher_dec = ctext->cipher->cipher_dec;
 	text->cipher_free = ctext->cipher->cipher_free;
@@ -3739,7 +3745,13 @@ static int make_client_response(context_t *text,
 	
 	/* initialize cipher if need be */
 	if (text->cipher_init) {
-	    text->cipher_init(text, enckey, deckey);
+	    if (text->cipher_init(text, enckey, deckey) != SASL_OK) {
+	        params->utils->seterror(params->utils->conn, 0,
+		         "internal error: failed to init cipher '%s'",
+                         text->cipher_name);
+                result = SASL_FAIL;
+                goto FreeAllocatedMem;
+            }
 	}
     }
     

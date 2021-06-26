@@ -294,7 +294,7 @@ for tuple in pathset:
     except OSError as e:
         continue
     for rstfile in glob.glob("*.rst"):
-        author = [("The Cyrus Team")]
+        author = "The Cyrus Team"
         orphan = 'False';
         with io.open(rstfile,'r',encoding="utf8") as f:
             for line in f:
@@ -417,22 +417,22 @@ epub_exclude_files = ['search.html']
 # When this is updated, you may also need to update the version and release
 # definitions listed above to stay up to date.
 rst_prolog = """
-.. |imap_last_stable_version| replace:: 3.0.14
-.. |imap_last_stable_branch| replace:: `cyrus-imapd-3.0`
-.. |imap_last_stable_next_version| replace:: 3.0.13 + patches
-.. |imap_current_stable_version| replace:: 3.2.5
-.. |imap_current_stable_next_version| replace:: 3.2.5 + patches
-.. |imap_current_stable_branch| replace:: `cyrus-imapd-3.2`
-.. |imap_latest_development_version| replace:: 3.3.1
+.. |imap_last_stable_version| replace:: 3.2.7
+.. |imap_last_stable_branch| replace:: `cyrus-imapd-3.2`
+.. |imap_last_stable_next_version| replace:: 3.2.7 + patches
+.. |imap_current_stable_version| replace:: 3.4.1
+.. |imap_current_stable_next_version| replace:: 3.4.1 + patches
+.. |imap_current_stable_branch| replace:: `cyrus-imapd-3.4`
+.. |imap_latest_development_version| replace:: 3.5.0-alpha0
 .. |imap_latest_development_branch| replace:: master
 .. |sasl_current_stable_version| replace:: 2.1.27
 .. |imap_stable_release_notes| raw:: html
 
-    <a href="3.2/x/3.2.5.html">3.2.5</a>
+    <a href="3.4/x/3.4.1.html">3.4.1</a>
 
 .. |imap_development_release_notes| raw:: html
 
-    <a href="https://www.cyrusimap.org/dev/imap/download/release-notes/3.3/x/3.3.1.html">3.3.1</a>
+    <a href="https://www.cyrusimap.org/dev/imap/download/release-notes/3.5/x/3.5.0-alpha0.html">3.5.0-alpha0</a>
 
 """
 

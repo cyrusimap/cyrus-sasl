@@ -13,8 +13,9 @@
 """
 
 from docutils import nodes
+from time import strftime
+
 from sphinx.writers.manpage import (
-    MACRO_DEF,
     ManualPageWriter,
     ManualPageTranslator as BaseTranslator
 )
@@ -22,7 +23,6 @@ from sphinx.writers.manpage import (
 
 from sphinx import addnodes
 from sphinx.locale import admonitionlabels, _
-from sphinx.util.osutil import ustrftime
 from sphinx.util.compat import docutils_version
 
 class CyrusManualPageWriter(ManualPageWriter):
@@ -68,14 +68,11 @@ class CyrusManualPageTranslator(BaseTranslator):
         if builder.config.today:
             self._docinfo['date'] = builder.config.today
         else:
-            self._docinfo['date'] = ustrftime(builder.config.today_fmt
+            self._docinfo['date'] = strftime(builder.config.today_fmt
                                               or _('%B %d, %Y'))
         self._docinfo['copyright'] = builder.config.copyright
         self._docinfo['version'] = builder.config.version
         self._docinfo['manual_group'] = builder.config.project
-
-        # since self.append_header() is never called, need to do this here
-        self.body.append(MACRO_DEF)
 
         # overwritten -- don't wrap literal_block with font calls
         self.defs['literal_block'] = ('.sp\n.nf\n', '\n.fi\n')

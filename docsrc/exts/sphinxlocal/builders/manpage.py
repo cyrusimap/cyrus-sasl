@@ -21,7 +21,6 @@ from docutils.frontend import OptionParser
 from sphinx import addnodes
 from sphinx.errors import SphinxError
 from sphinx.builders import Builder
-from sphinx.environment import NoUri
 from sphinx.util.nodes import inline_all_toctrees
 from sphinx.util.console import bold, darkgreen
 from sphinx.writers.manpage import ManualPageWriter
@@ -56,8 +55,6 @@ class CyrusManualPageBuilder(ManualPageBuilder):
             components=(docwriter,),
             read_config_files=True).get_default_values()
 
-        self.info(bold('writing... '), nonl=True)
-
         for info in self.config.man_pages:
             docname, name, description, authors, section = info
             if isinstance(authors, string_types):
@@ -67,7 +64,6 @@ class CyrusManualPageBuilder(ManualPageBuilder):
                     authors = []
 
             targetname = '%s.%s' % (name, section)
-            self.info(darkgreen(targetname) + ' { ', nonl=True)
             destination = FileOutput(
                 destination_path=path.join(self.outdir, targetname),
                 encoding='utf-8')
@@ -76,7 +72,6 @@ class CyrusManualPageBuilder(ManualPageBuilder):
             docnames = set()
             largetree = inline_all_toctrees(self, docnames, docname, tree,
                                             darkgreen, [docname])
-            self.info('} ', nonl=True)
             self.env.resolve_references(largetree, docname, self)
             # remove pending_xref nodes
             for pendingnode in largetree.traverse(addnodes.pending_xref):
@@ -89,7 +84,6 @@ class CyrusManualPageBuilder(ManualPageBuilder):
             largetree.settings.section = section
 
             docwriter.write(largetree, destination)
-        self.info()
 
 def setup(app):
     app.add_builder(CyrusManualPageBuilder)

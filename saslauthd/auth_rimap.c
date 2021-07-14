@@ -379,7 +379,8 @@ static void *memmem(
 	if (big_len < little_len || little_len == 0 || big_len == 0)
 		return NULL;
 
-	while (big_len > 0) {
+    	size_t len_count = 0;
+	while (len_count < big_len) {
 		for (l = 0; l < little_len; l++) {
 			if (bp[l] != lp[l])
 				break;
@@ -387,6 +388,7 @@ static void *memmem(
 		if (l == little_len)
 			return (void *)bp;
 		bp++;
+		len_count++;
 	}
 
 	return NULL;

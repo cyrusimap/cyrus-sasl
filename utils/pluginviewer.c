@@ -528,7 +528,7 @@ main(int argc, char *argv[])
                 "\t-s\tlist server authentication (SASL) plugins\n"
                 "\t-c\tlist client authentication (SASL) plugins\n"
 	        "\t-b ...\t#bits to use for encryption\n"
-	        "\t\tmin=N\tminumum #bits to use (1 => integrity)\n"
+	        "\t\tmin=N\tminimum #bits to use (1 => integrity)\n"
 	        "\t\tmax=N\tmaximum #bits to use\n"
 	        "\t-e ...\tassume external encryption\n"
 	        "\t\tssf=N\texternal mech provides N bits of encryption\n"

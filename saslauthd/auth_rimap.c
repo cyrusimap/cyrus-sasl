@@ -459,7 +459,7 @@ auth_rimap (
     /* VARIABLES */
     int	s=-1;				/* socket to remote auth host   */
     struct addrinfo *r;			/* remote socket address info   */
-    struct iovec iov[5];		/* for sending IMAP commands    */
+    cyrus_sasl_iovec iov[5];		/* for sending IMAP commands    */
     char *qlogin;			/* pointer to "quoted" login    */
     char *qpass;			/* pointer to "quoted" password */
     char *c;				/* scratch pointer              */

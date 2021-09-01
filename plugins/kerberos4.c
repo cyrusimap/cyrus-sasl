@@ -203,7 +203,7 @@ static char *srvtab = NULL;
 static unsigned refcount = 0;
 
 static int kerberosv4_encode(void *context,
-			     const struct iovec *invec,
+			     const cyrus_sasl_iovec *invec,
 			     unsigned numiov,
 			     const char **output,
 			     unsigned *outputlen)

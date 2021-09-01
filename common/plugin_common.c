@@ -171,7 +171,7 @@ int _plug_ipfromstring(const sasl_utils_t *utils, const char *addr,
     return SASL_OK;
 }
 
-int _plug_iovec_to_buf(const sasl_utils_t *utils, const struct iovec *vec,
+int _plug_iovec_to_buf(const sasl_utils_t *utils, const cyrus_sasl_iovec *vec,
 		       unsigned numiov, buffer_info_t **output) 
 {
     unsigned i;

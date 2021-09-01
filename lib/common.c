@@ -287,7 +287,7 @@ int sasl_encode(sasl_conn_t *conn, const char *input,
 		const char **output, unsigned *outputlen)
 {
     int result;
-    struct iovec tmp;
+    cyrus_sasl_iovec tmp;
 
     if(!conn) return SASL_BADPARAM;
     if(!input || !inputlen || !output || !outputlen)
@@ -309,10 +309,10 @@ int sasl_encode(sasl_conn_t *conn, const char *input,
 /* Internal function that doesn't do any verification */
 static int
 _sasl_encodev (sasl_conn_t *conn,
-	       const struct iovec *invec,
+               const cyrus_sasl_iovec *invec,
                unsigned numiov,
                int * p_num_packets,     /* number of packets generated so far */
-	       const char **output,     /* previous output, if *p_num_packets > 0 */
+               const char **output,     /* previous output, if *p_num_packets > 0 */
                unsigned *outputlen)
 {
     int result;
@@ -342,7 +342,7 @@ _sasl_encodev (sasl_conn_t *conn,
                 conn->multipacket_encoded_data.reallen = 
                     conn->multipacket_encoded_data.curlen + SASL_ENCODEV_EXTRA;
 
-	        new_buf = sasl_REALLOC(conn->multipacket_encoded_data.data,
+                new_buf = sasl_REALLOC(conn->multipacket_encoded_data.data,
                             conn->multipacket_encoded_data.reallen + 1);
                 if (new_buf == NULL) {
                     MEMERROR(conn);
@@ -395,17 +395,17 @@ _sasl_encodev (sasl_conn_t *conn,
 /* security-encode an iovec */
 /* output is only valid until the next call to sasl_encode or sasl_encodev */
 int sasl_encodev(sasl_conn_t *conn,
-		 const struct iovec *invec,
+                 const cyrus_sasl_iovec *invec,
                  unsigned numiov,
-		 const char **output,
+                 const char **output,
                  unsigned *outputlen)
 {
     int result = SASL_OK;
     unsigned i;
     unsigned j;
     size_t total_size = 0;
-    struct iovec *cur_invec = NULL;
-    struct iovec last_invec;
+    cyrus_sasl_iovec *cur_invec = NULL;
+    cyrus_sasl_iovec last_invec;
     unsigned cur_numiov;
     char * next_buf = NULL;
     size_t remainder_len;
@@ -465,10 +465,10 @@ int sasl_encodev(sasl_conn_t *conn,
 
             /* +1 --- just in case we need the head record */
             if ((cur_numiov + 1) > allocated) {
-                struct iovec *new_invec;
+                cyrus_sasl_iovec *new_invec;
 
                 allocated = cur_numiov + 1;
-                new_invec = sasl_REALLOC (cur_invec, sizeof(struct iovec) * allocated);
+                new_invec = sasl_REALLOC (cur_invec, sizeof(cyrus_sasl_iovec) * allocated);
                 if (new_invec == NULL) {
                     if (cur_invec != NULL) {
                         sasl_FREE(cur_invec);
@@ -2207,7 +2207,7 @@ void _sasl_get_errorbuf(sasl_conn_t *conn, char ***bufhdl, size_t **lenhdl)
 }
 
 /* convert an iovec to a single buffer */
-int _iovec_to_buf(const struct iovec *vec,
+int _iovec_to_buf(const cyrus_sasl_iovec *vec,
 		  unsigned numiov, buffer_info_t **output) 
 {
     unsigned i;

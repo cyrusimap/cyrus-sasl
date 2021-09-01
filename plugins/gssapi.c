@@ -345,7 +345,7 @@ sasl_gss_seterror_(const sasl_utils_t *utils, OM_uint32 maj, OM_uint32 min,
 }
 
 static int 
-sasl_gss_encode(void *context, const struct iovec *invec, unsigned numiov,
+sasl_gss_encode(void *context, const cyrus_sasl_iovec *invec, unsigned numiov,
 		const char **output, unsigned *outputlen, int privacy)
 {
     context_t *text = (context_t *)context;
@@ -433,14 +433,14 @@ sasl_gss_encode(void *context, const struct iovec *invec, unsigned numiov,
     return SASL_OK;
 }
 
-static int gssapi_privacy_encode(void *context, const struct iovec *invec,
+static int gssapi_privacy_encode(void *context, const cyrus_sasl_iovec *invec,
 				 unsigned numiov, const char **output,
 				 unsigned *outputlen)
 {
     return sasl_gss_encode(context,invec,numiov,output,outputlen,1);
 }
 
-static int gssapi_integrity_encode(void *context, const struct iovec *invec,
+static int gssapi_integrity_encode(void *context, const cyrus_sasl_iovec *invec,
 				   unsigned numiov, const char **output,
 				   unsigned *outputlen) 
 {

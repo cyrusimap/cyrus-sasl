@@ -83,7 +83,7 @@
 extern void	logger(int, const char *, const char *, ...);
 extern ssize_t	tx_rec(int filefd, void *, size_t);
 extern ssize_t	rx_rec(int , void *, size_t);
-extern int	retry_writev(int, struct iovec *, int);
+extern int	retry_writev(int, cyrus_sasl_iovec *, int);
 
 
 #endif  /* _UTILS_H */

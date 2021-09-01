@@ -203,8 +203,8 @@ static int saslauthd_verify_password(const char *saslauthd_path,
     }
 
     {
- 	struct iovec iov[8];
- 
+	cyrus_sasl_iovec iov[8];
+
 	iov[0].iov_len = query_end - query;
 	iov[0].iov_base = query;
 
@@ -214,7 +214,7 @@ static int saslauthd_verify_password(const char *saslauthd_path,
 	    return -1;
 	}
     }
-  
+
     /*
      * read response of the form:
      *
@@ -225,14 +225,14 @@ static int saslauthd_verify_password(const char *saslauthd_path,
         fprintf(stderr,"size read failed\n");
         return -1;
     }
-  
+
     count = ntohs(count);
     if (count < 2) { /* MUST have at least "OK" or "NO" */
 	close(s);
         fprintf(stderr,"bad response from saslauthd\n");
 	return -1;
     }
-  
+
     count = (int)sizeof(response) < count ? sizeof(response) : count;
     if (retry_read(s, response, count) < count) {
 	close(s);

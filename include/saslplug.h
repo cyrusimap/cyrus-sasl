@@ -183,7 +183,7 @@ typedef struct sasl_out_params {
 	 		    * security layer was *attempted*, even if
 			    * the negotiation failed */
     void *encode_context;
-    int (*encode)(void *context, const struct iovec *invec, unsigned numiov,
+    int (*encode)(void *context, const cyrus_sasl_iovec *invec, unsigned numiov,
 		  const char **output, unsigned *outputlen);
     void *decode_context;
     int (*decode)(void *context, const char *input, unsigned inputlen,

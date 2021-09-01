@@ -186,15 +186,17 @@
 
 #ifdef _WIN32
 /* Define to have the same layout as a WSABUF */
-#ifndef STRUCT_IOVEC_DEFINED
-#define STRUCT_IOVEC_DEFINED 1
-struct iovec {
+#ifndef STRUCT_CYRUS_SASL_IOVEC_DEFINED
+#define STRUCT_CYRUS_SASL_IOVEC_DEFINED 1
+struct cyrus_sasl_iovec {
     long iov_len;
     char *iov_base;
 };
+typedef struct cyrus_sasl_iovec cyrus_sasl_iovec;
 #endif
 #else
 struct iovec;				     /* Defined in OS headers */
+typedef struct iovec cyrus_sasl_iovec;
 #endif
 
 
@@ -1307,7 +1309,7 @@ LIBSASL_API int sasl_encode(sasl_conn_t *conn,
  *		     or no security layer
  */
 LIBSASL_API int sasl_encodev(sasl_conn_t *conn,
-			     const struct iovec *invec, unsigned numiov,
+			     const cyrus_sasl_iovec *invec, unsigned numiov,
 			     const char **output, unsigned *outputlen);
 
 /* decode a block of data received using security layer

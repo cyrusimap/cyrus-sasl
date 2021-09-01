@@ -281,7 +281,7 @@ typedef struct context {
 } context_t;
 
 static int srp_encode(void *context,
-		      const struct iovec *invec,
+		      const cyrus_sasl_iovec *invec,
 		      unsigned numiov,
 		      const char **output,
 		      unsigned *outputlen)

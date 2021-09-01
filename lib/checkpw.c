@@ -448,7 +448,7 @@ static int write_wait(int fd, unsigned delta)
  * Keep calling the writev() system call with 'fd', 'iov', and 'iovcnt'
  * until all the data is written out or an error/timeout occurs.
  */
-static int retry_writev(int fd, struct iovec *iov, int iovcnt, unsigned delta)
+static int retry_writev(int fd, cyrus_sasl_iovec *iov, int iovcnt, unsigned delta)
 {
     int n;
     int i;
@@ -517,7 +517,7 @@ static int pwcheck_verify_password(sasl_conn_t *conn,
     int s;
     struct sockaddr_un srvaddr;
     int r;
-    struct iovec iov[10];
+    cyrus_sasl_iovec iov[10];
     static char response[1024];
     unsigned start, n;
     char pwpath[1024];
@@ -819,8 +819,8 @@ static int saslauthd_verify_password(sasl_conn_t *conn,
     }
 
     {
- 	struct iovec iov[8];
- 
+	cyrus_sasl_iovec iov[8];
+
 	iov[0].iov_len = query_end - query;
 	iov[0].iov_base = query;
 
@@ -1013,7 +1013,7 @@ static int authdaemon_read(int fd, void *buf0, unsigned sz)
 static int authdaemon_write(int fd, void *buf0, unsigned sz)
 {
     int nw;
-    struct iovec io;
+    cyrus_sasl_iovec io;
     io.iov_len = sz;
     io.iov_base = buf0;
     nw = retry_writev(fd, &io, 1, AUTHDAEMON_IO_TIMEOUT);

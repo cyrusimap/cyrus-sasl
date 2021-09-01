@@ -163,7 +163,7 @@ ssize_t rx_rec(int filefd, void *prebuff, size_t bytesrequested) {
  * data, without any guarantees. If the function returns 
  * -1, the vector wasn't completely written.
  **************************************************************/
-int retry_writev(int fd, struct iovec *iov, int iovcnt) {
+int retry_writev(int fd, cyrus_sasl_iovec *iov, int iovcnt) {
 	int n;               /* return value from writev() */
 	int i;               /* loop counter */
 	int written;         /* bytes written so far */

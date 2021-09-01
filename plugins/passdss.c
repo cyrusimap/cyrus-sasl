@@ -150,7 +150,7 @@ typedef struct context {
 
 
 static int passdss_encode(void *context,
-			  const struct iovec *invec,
+			  const cyrus_sasl_iovec *invec,
 			  unsigned numiov,
 			  const char **output,
 			  unsigned *outputlen)

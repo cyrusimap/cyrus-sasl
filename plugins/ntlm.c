@@ -108,9 +108,9 @@
 /*****************************  Common Section  *****************************/
 
 #ifdef WIN32
-static ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt);
+static ssize_t writev (SOCKET fd, const cyrus_sasl_iovec *iov, size_t iovcnt);
 
-ssize_t writev (SOCKET fd, const struct iovec *iov, size_t iovcnt)
+ssize_t writev (SOCKET fd, const cyrus_sasl_iovec *iov, size_t iovcnt)
 {
     ssize_t nwritten;		/* amount written */
     ssize_t nbytes;
@@ -707,7 +707,7 @@ static void unload_session_setup_resp(unsigned char buf[],
  * Keep calling the writev() system call with 'fd', 'iov', and 'iovcnt'
  * until all the data is written out or an error occurs.
  */
-static int retry_writev(SOCKET fd, struct iovec *iov, int iovcnt)
+static int retry_writev(SOCKET fd, cyrus_sasl_iovec *iov, int iovcnt)
 {
     int n;
     int i;
@@ -838,7 +838,7 @@ static SOCKET smb_connect_server(const sasl_utils_t *utils, const char *client,
 
     unsigned char called[34];
     unsigned char calling[34];
-    struct iovec iov[3];
+    cyrus_sasl_iovec iov[3];
     uint32 pkt;
     int rc;
 
@@ -986,7 +986,7 @@ static int smb_negotiate_protocol(const sasl_utils_t *utils,
     uint16 bytecount;
     uint32 len, nl;
     int n_dialects = N(SMB_DIALECTS);
-    struct iovec iov[4+N(SMB_DIALECTS)];
+    cyrus_sasl_iovec iov[4+N(SMB_DIALECTS)];
     int i, n;
     int rc;
     pid_t current_pid;
@@ -1171,7 +1171,7 @@ static int smb_session_setup(const sasl_utils_t *utils, server_context_t *text,
     unsigned char bc[sizeof(uint16)];
     uint16 bytecount;
     uint32 len, nl;
-    struct iovec iov[12];
+    cyrus_sasl_iovec iov[12];
     int i, n;
     int rc;
 #ifdef WIN32

@@ -148,7 +148,7 @@ extern "C" {
 
 int _plug_ipfromstring(const sasl_utils_t *utils, const char *addr,
 		       struct sockaddr *out, socklen_t outlen);
-int _plug_iovec_to_buf(const sasl_utils_t *utils, const struct iovec *vec,
+int _plug_iovec_to_buf(const sasl_utils_t *utils, const cyrus_sasl_iovec *vec,
 		       unsigned numiov, buffer_info_t **output);
 int _plug_buf_alloc(const sasl_utils_t *utils, char **rwbuf,
 		    unsigned *curlen, unsigned newlen);

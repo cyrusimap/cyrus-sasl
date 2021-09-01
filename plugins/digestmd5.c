@@ -1489,7 +1489,7 @@ static const unsigned short version = 1;
  * len, HMAC(ki, {SeqNum, msg})[0..9], x0001, SeqNum
  */
 static int digestmd5_encode(void *context,
-			    const struct iovec *invec,
+			    const cyrus_sasl_iovec *invec,
 			    unsigned numiov,
 			    const char **output,
 			    unsigned *outputlen)

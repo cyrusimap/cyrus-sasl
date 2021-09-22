@@ -190,12 +190,12 @@ int _sasl_add_string(char **out, size_t *alloclen,
 
   if (add==NULL) add = "(null)";
 
-  addlen=strlen(add)+1; /* only compute once */
-  if (_buf_alloc(out, alloclen, (*outlen)+addlen)!=SASL_OK)
+  addlen=strlen(add); /* only compute once */
+  if (_buf_alloc(out, alloclen, (*outlen)+addlen+1)!=SASL_OK)
     return SASL_NOMEM;
 
-  strncpy(*out + *outlen, add, addlen);
-  *outlen += addlen-1;
+  strcpy(*out + *outlen, add);
+  *outlen += addlen;
 
   return SASL_OK;
 }

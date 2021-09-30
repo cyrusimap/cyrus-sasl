@@ -1094,7 +1094,11 @@ AC_ARG_WITH(rc4, [  --with-rc4              use rc4 routines [[yes]] ],
 	with_rc4=yes)
 
 if test "$with_rc4" != no; then
-    AC_DEFINE(WITH_RC4,[],[Use RC4])
+    if test "$with_openssl" = no; then
+        AC_WARN([OpenSSL not found -- RC4 will be disabled])
+    else
+        AC_DEFINE(WITH_RC4,[],[Use RC4])
+    fi
 fi
 
 building_for_macosx=no

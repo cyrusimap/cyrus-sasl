@@ -80,6 +80,12 @@
 # endif
 #endif /* WITH_DES */
 
+/* legacy provider with openssl 3.0 */
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+#  include <openssl/provider.h>
+#  include <openssl/crypto.h>
+#endif
+
 #ifdef WIN32
 # include <winsock2.h>
 #else /* Unix */
@@ -170,6 +176,12 @@ enum Context_type { SERVER = 0, CLIENT = 1 };
 
 typedef struct cipher_context cipher_context_t;
 
+typedef struct crypto_context {
+    void *libctx;
+    cipher_context_t *enc_ctx;
+    cipher_context_t *dec_ctx;
+} crypto_context_t;
+
 /* cached auth info used for fast reauth */
 typedef struct reauth_entry {
     char *authid;
@@ -259,8 +271,7 @@ typedef struct context {
     cipher_function_t *cipher_dec;
     cipher_init_t *cipher_init;
     cipher_free_t *cipher_free;
-    struct cipher_context *cipher_enc_context;
-    struct cipher_context *cipher_dec_context;
+    crypto_context_t crypto;
 } context_t;
 
 struct digest_cipher {
@@ -889,7 +900,7 @@ static int dec_3des(context_t *text,
 		    char *output,
 		    unsigned *outputlen)
 {
-    des_context_t *c = (des_context_t *) text->cipher_dec_context;
+    des_context_t *c = (des_context_t *) text->crypto.dec_ctx;
     int padding, p;
     
     des_ede2_cbc_encrypt((void *) input,
@@ -926,7 +937,7 @@ static int enc_3des(context_t *text,
 		    char *output,
 		    unsigned *outputlen)
 {
-    des_context_t *c = (des_context_t *) text->cipher_enc_context;
+    des_context_t *c = (des_context_t *) text->crypto.enc_ctx;
     int len;
     int paddinglen;
     
@@ -974,7 +985,7 @@ static int init_3des(context_t *text,
 	return SASL_FAIL;
     memcpy(c->ivec, ((char *) enckey) + 8, 8);
 
-    text->cipher_enc_context = (cipher_context_t *) c;
+    text->crypto.enc_ctx = (cipher_context_t *) c;
 
     /* setup dec context */
     c++;
@@ -988,7 +999,7 @@ static int init_3des(context_t *text,
     
     memcpy(c->ivec, ((char *) deckey) + 8, 8);
 
-    text->cipher_dec_context = (cipher_context_t *) c;
+    text->crypto.dec_ctx = (cipher_context_t *) c;
     
     return SASL_OK;
 }
@@ -1007,7 +1018,7 @@ static int dec_des(context_t *text,
 		   char *output,
 		   unsigned *outputlen)
 {
-    des_context_t *c = (des_context_t *) text->cipher_dec_context;
+    des_context_t *c = (des_context_t *) text->crypto.dec_ctx;
     int p, padding = 0;
     
     des_cbc_encrypt((void *) input,
@@ -1047,7 +1058,7 @@ static int enc_des(context_t *text,
 		   char *output,
 		   unsigned *outputlen)
 {
-    des_context_t *c = (des_context_t *) text->cipher_enc_context;
+    des_context_t *c = (des_context_t *) text->crypto.enc_ctx;
     int len;
     int paddinglen;
   
@@ -1094,7 +1105,7 @@ static int init_des(context_t *text,
 
     memcpy(c->ivec, ((char *) enckey) + 8, 8);
     
-    text->cipher_enc_context = (cipher_context_t *) c;
+    text->crypto.enc_ctx = (cipher_context_t *) c;
 
     /* setup dec context */
     c++;
@@ -1103,16 +1114,18 @@ static int init_des(context_t *text,
 
     memcpy(c->ivec, ((char *) deckey) + 8, 8);
     
-    text->cipher_dec_context = (cipher_context_t *) c;
+    text->crypto.dec_ctx = (cipher_context_t *) c;
 
     return SASL_OK;
 }
 
 static void free_des(context_t *text)
 {
-    /* free des contextss. only cipher_enc_context needs to be free'd,
-       since cipher_dec_context was allocated at the same time. */
-    if (text->cipher_enc_context) text->utils->free(text->cipher_enc_context);
+    /* free des contextss. only enc_ctx needs to be free'd,
+       since dec_cxt was allocated at the same time. */
+    if (text->crypto.enc_ctx) {
+        text->utils->free(text->crypto.enc_ctx);
+    }
 }
 
 #endif /* WITH_DES */
@@ -1121,16 +1134,64 @@ static void free_des(context_t *text)
 #ifdef HAVE_OPENSSL
 #include <openssl/evp.h>
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+typedef struct ossl3_library_context {
+    OSSL_LIB_CTX *libctx;
+    OSSL_PROVIDER *legacy_provider;
+    OSSL_PROVIDER *default_provider;
+} ossl3_context_t;
+
+static int init_ossl3_ctx(context_t *text)
+{
+    ossl3_context_t *ctx = text->utils->malloc(sizeof(ossl3_context_t));
+    if (!ctx) return SASL_NOMEM;
+
+    ctx->libctx = OSSL_LIB_CTX_new();
+    if (!ctx->libctx) {
+        text->utils->free(ctx);
+        return SASL_FAIL;
+    }
+
+    /* Load both legacy and default provider as both may be needed */
+    /* if they fail keep going and an error will be raised when we try to
+     * fetch the cipher later */
+    ctx->legacy_provider = OSSL_PROVIDER_load(ctx->libctx, "legacy");
+    ctx->default_provider = OSSL_PROVIDER_load(ctx->libctx, "default");
+    text->crypto.libctx = (void *)ctx;
+
+    return SASL_OK;
+}
+
+static void free_ossl3_ctx(context_t *text)
+{
+    ossl3_context_t *ctx;
+
+    if (!text->crypto.libctx) return;
+
+    ctx = (ossl3_context_t *)text->crypto.libctx;
+
+    if (ctx->legacy_provider) OSSL_PROVIDER_unload(ctx->legacy_provider);
+    if (ctx->default_provider) OSSL_PROVIDER_unload(ctx->default_provider);
+    if (ctx->libctx) OSSL_LIB_CTX_free(ctx->libctx);
+
+    text->utils->free(ctx);
+    text->crypto.libctx = NULL;
+}
+#endif
+
 static void free_rc4(context_t *text)
 {
-    if (text->cipher_enc_context) {
-        EVP_CIPHER_CTX_free((EVP_CIPHER_CTX *)text->cipher_enc_context);
-        text->cipher_enc_context = NULL;
+    if (text->crypto.enc_ctx) {
+        EVP_CIPHER_CTX_free((EVP_CIPHER_CTX *)text->crypto.enc_ctx);
+        text->crypto.enc_ctx = NULL;
     }
-    if (text->cipher_dec_context) {
-        EVP_CIPHER_CTX_free((EVP_CIPHER_CTX *)text->cipher_dec_context);
-        text->cipher_dec_context = NULL;
+    if (text->crypto.dec_ctx) {
+        EVP_CIPHER_CTX_free((EVP_CIPHER_CTX *)text->crypto.dec_ctx);
+        text->crypto.dec_ctx = NULL;
     }
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    free_ossl3_ctx(text);
+#endif
 }
 
 static int init_rc4(context_t *text,
@@ -1140,23 +1201,56 @@ static int init_rc4(context_t *text,
     EVP_CIPHER_CTX *ctx;
     int rc;
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    ossl3_context_t *ossl3_ctx;
+    EVP_CIPHER *cipher;
+
+    rc = init_ossl3_ctx(text);
+    if (rc != SASL_OK) return rc;
+
+    ossl3_ctx = (ossl3_context_t *)text->crypto.libctx;
+    cipher = EVP_CIPHER_fetch(ossl3_ctx->libctx, "RC4", "");
+#else
+    const EVP_CIPHER *cipher;
+    cipher = EVP_rc4();
+#endif
+
     ctx = EVP_CIPHER_CTX_new();
-    if (ctx == NULL) return SASL_NOMEM;
+    if (ctx == NULL) {
+        rc = SASL_NOMEM;
+        goto done;
+    }
 
-    rc = EVP_EncryptInit_ex(ctx, EVP_rc4(), NULL, enckey, NULL);
-    if (rc != 1) return SASL_FAIL;
-
-    text->cipher_enc_context = (void *)ctx;
+    rc = EVP_EncryptInit_ex(ctx, cipher, NULL, enckey, NULL);
+    if (rc != 1) {
+        rc = SASL_FAIL;
+        goto done;
+    }
+    text->crypto.enc_ctx = (void *)ctx;
 
     ctx = EVP_CIPHER_CTX_new();
-    if (ctx == NULL) return SASL_NOMEM;
+    if (ctx == NULL) {
+        rc = SASL_NOMEM;
+        goto done;
+    }
 
-    rc = EVP_DecryptInit_ex(ctx, EVP_rc4(), NULL, deckey, NULL);
-    if (rc != 1) return SASL_FAIL;
+    rc = EVP_DecryptInit_ex(ctx, cipher, NULL, deckey, NULL);
+    if (rc != 1) {
+        rc = SASL_FAIL;
+        goto done;
+    }
+    text->crypto.dec_ctx = (void *)ctx;
 
-    text->cipher_dec_context = (void *)ctx;
+    rc = SASL_OK;
 
-    return SASL_OK;
+done:
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    EVP_CIPHER_free(cipher);
+#endif
+    if (rc != SASL_OK) {
+        free_rc4(text);
+    }
+    return rc;
 }
 
 static int dec_rc4(context_t *text,
@@ -1170,14 +1264,14 @@ static int dec_rc4(context_t *text,
     int rc;
 
     /* decrypt the text part & HMAC */
-    rc = EVP_DecryptUpdate((EVP_CIPHER_CTX *)text->cipher_dec_context,
+    rc = EVP_DecryptUpdate((EVP_CIPHER_CTX *)text->crypto.dec_ctx,
                            (unsigned char *)output, &len,
                            (const unsigned char *)input, inputlen);
     if (rc != 1) return SASL_FAIL;
 
     *outputlen = len;
 
-    rc = EVP_DecryptFinal_ex((EVP_CIPHER_CTX *)text->cipher_dec_context,
+    rc = EVP_DecryptFinal_ex((EVP_CIPHER_CTX *)text->crypto.dec_ctx,
                              (unsigned char *)output + len, &len);
     if (rc != 1) return SASL_FAIL;
 
@@ -1199,7 +1293,7 @@ static int enc_rc4(context_t *text,
     int len;
     int rc;
     /* encrypt the text part */
-    rc = EVP_EncryptUpdate((EVP_CIPHER_CTX *)text->cipher_enc_context,
+    rc = EVP_EncryptUpdate((EVP_CIPHER_CTX *)text->crypto.enc_ctx,
                            (unsigned char *)output, &len,
                            (const unsigned char *)input, inputlen);
     if (rc != 1) return SASL_FAIL;
@@ -1207,14 +1301,14 @@ static int enc_rc4(context_t *text,
     *outputlen = len;
 
     /* encrypt the `MAC part */
-    rc = EVP_EncryptUpdate((EVP_CIPHER_CTX *)text->cipher_enc_context,
+    rc = EVP_EncryptUpdate((EVP_CIPHER_CTX *)text->crypto.enc_ctx,
                            (unsigned char *)output + *outputlen, &len,
                            digest, 10);
     if (rc != 1) return SASL_FAIL;
 
     *outputlen += len;
 
-    rc = EVP_EncryptFinal_ex((EVP_CIPHER_CTX *)text->cipher_enc_context,
+    rc = EVP_EncryptFinal_ex((EVP_CIPHER_CTX *)text->crypto.enc_ctx,
                              (unsigned char *)output + *outputlen, &len);
     if (rc != 1) return SASL_FAIL;
 
@@ -1330,13 +1424,13 @@ static void free_rc4(context_t *text)
 {
     /* free rc4 context structures */
 
-    if (text->cipher_enc_context) {
-        text->utils->free(text->cipher_enc_context);
-        text->cipher_enc_context = NULL;
+    if (text->crypto.enc_ctx) {
+        text->utils->free(text->crypto.enc_ctx);
+        text->crypto.enc_ctx = NULL;
     }
-    if (text->cipher_dec_context) {
-        text->utils->free(text->cipher_dec_context);
-        text->cipher_dec_context = NULL;
+    if (text->crypto.dec_ctx) {
+        text->utils->free(text->crypto.dec_ctx);
+        text->crypto.dec_ctx = NULL;
     }
 }
 
@@ -1345,18 +1439,18 @@ static int init_rc4(context_t *text,
 		    unsigned char deckey[16])
 {
     /* allocate rc4 context structures */
-    text->cipher_enc_context=
+    text->crypto.enc_ctx=
 	(cipher_context_t *) text->utils->malloc(sizeof(rc4_context_t));
-    if (text->cipher_enc_context == NULL) return SASL_NOMEM;
+    if (text->crypto.enc_ctx == NULL) return SASL_NOMEM;
     
-    text->cipher_dec_context=
+    text->crypto.dec_ctx=
 	(cipher_context_t *) text->utils->malloc(sizeof(rc4_context_t));
-    if (text->cipher_dec_context == NULL) return SASL_NOMEM;
+    if (text->crypto.dec_ctx == NULL) return SASL_NOMEM;
     
     /* initialize them */
-    rc4_init((rc4_context_t *) text->cipher_enc_context,
+    rc4_init((rc4_context_t *) text->crypto.enc_ctx,
              (const unsigned char *) enckey, 16);
-    rc4_init((rc4_context_t *) text->cipher_dec_context,
+    rc4_init((rc4_context_t *) text->crypto.dec_ctx,
              (const unsigned char *) deckey, 16);
     
     return SASL_OK;
@@ -1370,7 +1464,7 @@ static int dec_rc4(context_t *text,
 		   unsigned *outputlen)
 {
     /* decrypt the text part & HMAC */
-    rc4_decrypt((rc4_context_t *) text->cipher_dec_context, 
+    rc4_decrypt((rc4_context_t *) text->crypto.dec_ctx,
                 input, output, inputlen);
 
     /* no padding so we just subtract the HMAC to get the text length */
@@ -1390,13 +1484,13 @@ static int enc_rc4(context_t *text,
     *outputlen = inputlen+10;
     
     /* encrypt the text part */
-    rc4_encrypt((rc4_context_t *) text->cipher_enc_context,
+    rc4_encrypt((rc4_context_t *) text->crypto.enc_ctx,
                 input,
                 output,
                 inputlen);
     
     /* encrypt the HMAC part */
-    rc4_encrypt((rc4_context_t *) text->cipher_enc_context, 
+    rc4_encrypt((rc4_context_t *) text->crypto.enc_ctx,
                 (const char *) digest, 
 		(output)+inputlen, 10);
     

@@ -57,59 +57,45 @@ generated_rc=saslANONYMOUS.rc saslPLAIN.rc saslCRAMMD5.rc saslDIGESTMD5.rc saslL
 # emulation on Windows, so there is no need to build getaddrinfo.c
 
 !IF "$(VCVER)" == "6"
-compat_sources = getaddrinfo.c getnameinfo.c
 compat_objs = getaddrinfo.obj getnameinfo.obj
 !ENDIF
 
-common_sources = plugin_common.c plugin_common.h
 common_objs = plugin_common.obj $(compat_objs)
 
-saslANONYMOUS_sources = anonymous.c anonymous_init.c $(common_sources)
 saslANONYMOUS_objs = anonymous.obj anonymous_init.obj $(common_objs)
 saslANONYMOUS_out = saslANONYMOUS.dll saslANONYMOUS.exp saslANONYMOUS.lib
 
-saslPLAIN_sources = plain.c plain_init.c $(common_sources)
 saslPLAIN_objs = plain.obj plain_init.obj $(common_objs)
 saslPLAIN_out = saslPLAIN.dll saslPLAIN.exp saslPLAIN.lib
 
-saslCRAMMD5_sources = cram.c crammd5_init.c $(common_sources)
 saslCRAMMD5_objs = cram.obj crammd5_init.obj $(common_objs)
 saslCRAMMD5_out = saslCRAMMD5.dll saslCRAMMD5.exp saslCRAMMD5.lib
 
-saslDIGESTMD5_sources = digestmd5.c digestmd5_init.c $(common_sources)
 saslDIGESTMD5_objs = digestmd5.obj digestmd5_init.obj $(common_objs)
 saslDIGESTMD5_out = saslDIGESTMD5.dll saslDIGESTMD5.exp saslDIGESTMD5.lib
 
-saslLOGIN_sources = login.c login_init.c $(common_sources)
 saslLOGIN_objs = login.obj login_init.obj $(common_objs)
 saslLOGIN_out = saslLOGIN.dll saslLOGIN.exp saslLOGIN.lib
 
-saslSCRAM_sources = scram.c scram_init.c $(common_sources)
 saslSCRAM_objs = scram.obj scram_init.obj $(common_objs)
 saslSCRAM_out = saslSCRAM.dll saslSCRAM.exp saslSCRAM.lib
 
-saslNTLM_sources = ntlm.c ntlm_init.c $(common_sources)
 saslNTLM_objs = ntlm.obj ntlm_init.obj $(common_objs)
 saslNTLM_out = saslNTLM.dll saslNTLM.exp saslNTLM.lib
 
-saslGSSAPI_sources = gssapi.c gssapiv2_init.c $(common_sources)
 saslGSSAPI_objs = gssapi.obj gssapiv2_init.obj $(common_objs)
 saslGSSAPI_out = saslGSSAPI.dll saslGSSAPI.exp saslGSSAPI.lib
 
-saslSRP_sources = srp.c srp_init.c $(common_sources)
 saslSRP_objs = srp.obj srp_init.obj $(common_objs)
 saslSRP_out = saslSRP.dll saslSRP.exp saslSRP.lib
 
-saslOTP_sources = otp.c otp_init.c $(common_sources)
 saslOTP_objs = otp.obj otp_init.obj $(common_objs)
 saslOTP_out = saslOTP.dll saslOTP.exp saslOTP.lib
 
-saslSQL_sources = sql.c sql_init.c $(common_sources)
 saslSQL_objs = sql.obj sql_init.obj $(common_objs)
 # saslSQL_out is an agregation of all generated files for all SQL plugins
 saslSQL_out = saslSQLITE.dll saslSQLITE.exp saslSQLITE.lib
 
-saslLDAPDB_sources = ldapdb.c $(common_sources)
 saslLDAPDB_objs = ldapdb.obj $(common_objs)
 saslLDAPDB_out = saslLDAPDB.dll saslLDAPDB.exp saslLDAPDB.lib
 
@@ -138,13 +124,11 @@ GSS_LIBS=
 DB_LIBS=/libpath:$(LMDB_LIBPATH) lmdb.lib
 
 # Auxprop Plugin
-libsasldb_sources = allockey.c db_lmdb.c
 libsasldb_objs = allockey.obj db_lmdb.obj
 !ELSE
 DB_LIBS=/libpath:$(DB_LIBPATH) $(DB_LIB)
 
 # Auxprop Plugin
-libsasldb_sources = allockey.c db_berkeley.c
 libsasldb_objs = allockey.obj db_berkeley.obj
 !ENDIF
 
@@ -154,7 +138,6 @@ DIGEST_FLAGS=/D "WITH_RC4" /DOBSOLETE_DIGEST_ATTR=1
 
 SCRAM_FLAGS=/DHAVE_SHA512=1
 
-saslSASLDB_sources = sasldb.c sasldb_init.c $(libsasldb_sources) $(common_sources)
 saslSASLDB_objs = sasldb.obj sasldb_init.obj $(libsasldb_objs) $(common_objs)
 saslSASLDB_out = saslSASLDB.dll saslSASLDB.exp saslSASLDB.lib
 

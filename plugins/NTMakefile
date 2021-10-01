@@ -286,16 +286,6 @@ CLEAN :
    $(CPP_PROJ) $< 
 <<
 
-.cpp.obj::
-   $(CPP) @<<
-   $(CPP_PROJ) $< 
-<<
-
-.cxx.obj::
-   $(CPP) @<<
-   $(CPP_PROJ) $< 
-<<
-
 .rc.res:
 	rc $<
 

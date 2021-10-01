@@ -56,5 +56,5 @@ all clean: $(SUBDIRS)
 	!cd $? && $(MAKE) /f NTMakefile /$(MAKEFLAGS) VERBOSE=0 $@
 
 install: $(INCSUBDIRS) $(SUBDIRS) $(DOCSUBDIRS)
-	!cd $? && $(MAKE) /f NTMakefile /$(MAKEFLAGS) prefix=$(prefix) $@
+	!cd $? && $(MAKE) /f NTMakefile /$(MAKEFLAGS) "prefix=$(prefix)" $@
 

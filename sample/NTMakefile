@@ -18,7 +18,7 @@ common_objs = $(common_objs) $(compat_objs)
 all_objs = $(common_objs) $(server_objs) $(client_objs) $(sample_client_objs) $(sample_server_objs)
 all_out = $(sample_apps) $(sample_out)
 
-DB_FLAGS = /I $(DB_INCLUDE)
+DB_FLAGS = /I "$(DB_INCLUDE)"
 CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" $(DB_FLAGS) $(COMMON_CPPFLAGS)
 CPPFLAGS = $(CPPFLAGS) /DNEED_GETOPT
 
@@ -47,7 +47,7 @@ all : all-recursive
 # us to copy optionally built executables, which might not be in $(sample_apps). The latter is a feature.
 #
 install: $(sample_apps)
-	@xcopy *.exe $(bindir) /I /F /Y
+	@xcopy *.exe "$(bindir)" /I /F /Y
 
 all-recursive : $(sample_apps)
 

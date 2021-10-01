@@ -15,11 +15,11 @@ all: all-recursive
 # instead of libsasl.lib. Ugly, but works!
 #
 install:
-	@xcopy *.txt $(docdir) /I /F /Y
-	@xcopy *.fig $(docdir) /I /F /Y
-	@xcopy *.html $(docdir) /I /F /Y
-	@xcopy TODO $(docdir) /I /F /Y
-	@xcopy ONEWS $(docdir) /I /F /Y
+	@xcopy *.txt "$(docdir)" /I /F /Y
+	@xcopy *.fig "$(docdir)" /I /F /Y
+	@xcopy *.html "$(docdir)" /I /F /Y
+	@xcopy TODO "$(docdir)" /I /F /Y
+	@xcopy ONEWS "$(docdir)" /I /F /Y
 
 all-recursive:
 	@echo Nothing to build for target all

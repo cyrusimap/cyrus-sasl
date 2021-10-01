@@ -40,8 +40,8 @@ install: libsasl.dll
 	@echo libsasl.dll.manifest >> $(exclude_list)
 # .lib is excluded only because it is copied separately below
 	@echo libsasl.lib >> $(exclude_list)
-	@xcopy libsasl.* $(bindir) /I /F /Y /EXCLUDE:$(exclude_list)
-	@xcopy libsasl.l* $(libdir) /I /F /Y
+	@xcopy libsasl.* "$(bindir)" /I /F /Y /EXCLUDE:$(exclude_list)
+	@xcopy libsasl.l* "$(libdir)" /I /F /Y
 
 all-recursive: libsasl.dll
 

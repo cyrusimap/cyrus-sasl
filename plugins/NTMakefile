@@ -34,12 +34,12 @@ LDAP_LIBS = $(LDAP_LIB_BASE)\olber32.lib $(LDAP_LIB_BASE)\oldap32.lib ..\lib\lib
 !IF "$(SQL)" == "SQLITE"
 PLUGINS_EXT=$(PLUGINS_EXT) saslSQLITE.dll
 SQL_FLAGS= $(SQLITE_INCLUDES) /DHAVE_SQLITE=1
-SQLITE_LIBS = /libpath:$(SQLITE_LIBPATH) libsqlite.lib
+SQLITE_LIBS = "/libpath:$(SQLITE_LIBPATH)" libsqlite.lib
 !ENDIF
 !IF "$(SQL)" == "SQLITE3"
 PLUGINS_EXT=$(PLUGINS_EXT) saslSQLITE.dll
 SQL_FLAGS= $(SQLITE_INCLUDES3) /DHAVE_SQLITE3=1
-SQLITE_LIBS = /libpath:$(SQLITE_LIBPATH3) libsqlite3.lib
+SQLITE_LIBS = "/libpath:$(SQLITE_LIBPATH3)" libsqlite3.lib
 !ENDIF
 
 PLUGINS=saslANONYMOUS.dll \
@@ -100,7 +100,7 @@ saslLDAPDB_objs = ldapdb.obj $(common_objs)
 saslLDAPDB_out = saslLDAPDB.dll saslLDAPDB.exp saslLDAPDB.lib
 
 !IF "$(NTLM)" == "1" || "$(SRP)" == "1" || "$(OTP)" == "1" || "$(SCRAM)" == "1"
-OPENSSL_FLAGS= /I $(OPENSSL_INCLUDE)
+OPENSSL_FLAGS= /I "$(OPENSSL_INCLUDE)"
 !ELSE 
 OPENSSL_FLAGS=
 !ENDIF 
@@ -114,23 +114,23 @@ GSSAPILIB=gssapi32.lib
 !ENDIF
 
 !IF "$(GSSAPI)" == "CyberSafe"
-GSS_FLAGS= /I $(GSSAPI_INCLUDE) /D "HAVE_GSS_C_NT_HOSTBASED_SERVICE" /D "HAVE_GSS_C_NT_USER_NAME"
-GSS_LIBS=/libpath:$(GSSAPI_LIBPATH) $(GSSAPILIB)
+GSS_FLAGS= /I "$(GSSAPI_INCLUDE)" /D "HAVE_GSS_C_NT_HOSTBASED_SERVICE" /D "HAVE_GSS_C_NT_USER_NAME"
+GSS_LIBS="/libpath:$(GSSAPI_LIBPATH)" $(GSSAPILIB)
 !ELSE IF "$(GSSAPI)" == "MITKerberos"
-GSS_FLAGS= /I $(GSSAPI_INCLUDE) /D "HAVE_GSS_C_NT_HOSTBASED_SERVICE" /D "HAVE_GSS_C_NT_USER_NAME"
-GSS_LIBS=/libpath:$(GSSAPI_LIBPATH) $(GSSAPILIB)
+GSS_FLAGS= /I "$(GSSAPI_INCLUDE)" /D "HAVE_GSS_C_NT_HOSTBASED_SERVICE" /D "HAVE_GSS_C_NT_USER_NAME"
+GSS_LIBS="/libpath:$(GSSAPI_LIBPATH)" $(GSSAPILIB)
 !ELSE 
 GSS_FLAGS=
 GSS_LIBS=
 !ENDIF
 
 !IF "$(SASLDB)" == "LMDB"
-DB_LIBS=/libpath:$(LMDB_LIBPATH) lmdb.lib
+DB_LIBS="/libpath:$(LMDB_LIBPATH)" lmdb.lib
 
 # Auxprop Plugin
 libsasldb_objs = allockey.obj db_lmdb.obj
 !ELSE
-DB_LIBS=/libpath:$(DB_LIBPATH) $(DB_LIB)
+DB_LIBS="/libpath:$(DB_LIBPATH)" "$(DB_LIB)"
 
 # Auxprop Plugin
 libsasldb_objs = allockey.obj db_berkeley.obj
@@ -149,7 +149,7 @@ all_objs = $(saslANONYMOUS_objs) $(saslPLAIN_objs) $(saslCRAMMD5_objs) $(saslDIG
 all_out = $(saslANONYMOUS_out) $(saslPLAIN_out) $(saslCRAMMD5_out) $(saslDIGESTMD5_out) $(saslLOGIN_out) $(saslSCRAM_out) $(saslNTLM_out) $(saslGSSAPI_out) $(saslSRP_out) $(saslOTP_out) $(saslSASLDB_out) $(saslSQL_out) $(saslLDAPDB_out)
 
 # LIBSASL_EXPORTS is required to export additional DB routines from sasldb
-DB_FLAGS = /I $(DB_INCLUDE) /I "..\sasldb" /D "LIBSASL_EXPORTS" /D "KEEP_DB_OPEN"
+DB_FLAGS = /I "$(DB_INCLUDE)" /I "..\sasldb" /D "LIBSASL_EXPORTS" /D "KEEP_DB_OPEN"
 
 !IF $(TARGET_WIN_SYSTEM) >= 51
 EXTRA_FLAGS = /D TARGET_WIN_SYSTEM=$(TARGET_WIN_SYSTEM) $(EXTRA_FLAGS)
@@ -158,7 +158,7 @@ EXTRA_FLAGS = /D TARGET_WIN_SYSTEM=$(TARGET_WIN_SYSTEM) $(EXTRA_FLAGS)
 EXTRA_FLAGS=$(EXTRA_FLAGS) $(DB_FLAGS) $(OPENSSL_FLAGS) $(GSS_FLAGS) $(SRP_FLAGS) $(SQL_FLAGS) $(DIGEST_FLAGS) $(CRAM_FLAGS) $(SCRAM_FLAGS) $(LDAP_FLAGS)
 CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" /I "..\common" $(EXTRA_FLAGS) /D "_WIN32" $(COMMON_CPPFLAGS)
 
-OPENSSL_LIBS=/libpath:$(OPENSSL_LIBPATH) libeay32.lib ssleay32.lib
+OPENSSL_LIBS="/libpath:$(OPENSSL_LIBPATH)" libeay32.lib ssleay32.lib
 
 # Where to install files from this directory
 libdir = $(prefix)\lib
@@ -177,7 +177,7 @@ all : all-recursive
 # us to copy GSSAPI plugin, which might not be in $(PLUGINS).
 #
 install: $(PLUGINS)
-	@xcopy *.dll $(bindir) /I /F /Y
+	@xcopy *.dll "$(bindir)" /I /F /Y
 
 all-recursive : $(PLUGINS)
 

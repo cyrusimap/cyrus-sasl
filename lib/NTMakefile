@@ -4,12 +4,10 @@
 # emulation on Windows, so there is no need to build getaddrinfo.c
 
 !IF "$(VCVER)" == "6"
-compat_sources = getaddrinfo.c getnameinfo.c
 compat_objs = getaddrinfo.obj getnameinfo.obj
 !ENDIF
 
 
-libsasl_sources = auxprop.c canonusr.c checkpw.c client.c common.c config.c external.c md5.c saslutil.c server.c seterror.c windlopen.c getsubopt.c plugin_common.c plugin_common.h $(compat_sources)
 libsasl_objs = auxprop.obj canonusr.obj checkpw.obj client.obj common.obj config.obj external.obj md5.obj saslutil.obj server.obj seterror.obj windlopen.obj getsubopt.obj plugin_common.obj $(compat_objs)
 libsasl_res = libsasl.res
 libsasl_out = libsasl.dll libsasl.exp libsasl.lib $(libsasl_res)

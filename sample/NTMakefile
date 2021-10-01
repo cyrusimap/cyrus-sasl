@@ -4,12 +4,6 @@
 sample_apps=sample-client.exe sample-server.exe
 sample_out=sample-client.pdb sample-server.pdb client.pdb server.pdb
 
-server_SOURCES = server.c common.c common.h
-client_SOURCES = client.c common.c common.h
-compat_sources = getaddrinfo.c getnameinfo.c
-sample_client_SOURCES = sample-client.c
-sample_server_SOURCES = sample-server.c
-
 common_objs = common.obj
 server_objs = server.obj
 client_objs = client.obj
@@ -19,7 +13,7 @@ sample_server_objs = sample-server.obj
 
 !IF $(TARGET_WIN_SYSTEM) < 51
 common_objs = $(common_objs) $(compat_objs)
-!ENDIF 
+!ENDIF
 
 all_objs = $(common_objs) $(server_objs) $(client_objs) $(sample_client_objs) $(sample_server_objs)
 all_out = $(sample_apps) $(sample_out)
@@ -30,7 +24,7 @@ CPPFLAGS = $(CPPFLAGS) /DNEED_GETOPT
 
 !IF $(TARGET_WIN_SYSTEM) >= 51
 CPPFLAGS = /D TARGET_WIN_SYSTEM=$(TARGET_WIN_SYSTEM) $(CPPFLAGS)
-!ENDIF 
+!ENDIF
 
 SASL_LIB=/libpath:"..\lib" libsasl.lib
 
@@ -94,7 +88,7 @@ CLEAN :
 
 .c.obj::
    $(CPP) @<<
-   $(CPP_PROJ) $< 
+   $(CPP_PROJ) $<
 <<
 
 .cpp.obj::

@@ -27,7 +27,7 @@ LINK32EXE=$(LINK32)
 LINK32LIB=link.exe /lib /nologo
 
 SYS_LIBS=ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib
-COMMON_CPPFLAGS=/D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL"
+COMMON_CPPFLAGS=/D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "GCC_FALLTHROUGH="
 
 # Disable all static plugins (this is not supported yet)
 COMMON_CPPFLAGS = $(COMMON_CPPFLAGS) /D "NO_STATIC_PLUGINS"

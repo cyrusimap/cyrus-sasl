@@ -90,13 +90,3 @@ CLEAN :
    $(CPP) @<<
    $(CPP_PROJ) $<
 <<
-
-.cpp.obj::
-   $(CPP) @<<
-   $(CPP_PROJ) $< 
-<<
-
-.cxx.obj::
-   $(CPP) @<<
-   $(CPP_PROJ) $< 
-<<

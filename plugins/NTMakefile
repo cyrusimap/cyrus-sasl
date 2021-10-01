@@ -106,7 +106,11 @@ OPENSSL_FLAGS=
 !ENDIF 
 
 !IF "$(GSSAPILIB)" == ""
+!IF EXISTS($(GSSAPI_LIBPATH)\gssapi64.lib)
+GSSAPILIB=gssapi64.lib
+!ELSE
 GSSAPILIB=gssapi32.lib
+!ENDIF
 !ENDIF
 
 !IF "$(GSSAPI)" == "CyberSafe"

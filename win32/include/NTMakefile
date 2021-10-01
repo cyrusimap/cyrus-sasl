@@ -61,5 +61,5 @@ all:
 # /I flag to xcopy tells to treat the last parameter as directory and create all missing levels
 #
 install: $(saslinclude_HEADERS)
-	!xcopy md5global*.h $(saslincludedir) /I /F /Y
-	!xcopy $? $(saslincludedir) /I /F /Y
+	!xcopy md5global*.h "$(saslincludedir)" /I /F /Y
+	!xcopy $? "$(saslincludedir)" /I /F /Y

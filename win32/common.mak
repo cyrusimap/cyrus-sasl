@@ -98,28 +98,28 @@ LMDB_LIBPATH=c:\work\isode\lmdb\libraries\liblmdb\Release
 !ENDIF
 
 !IF "$(OPENSSL_INCLUDE)" == ""
-OPENSSL_INCLUDE="D:\openssl\engine-0.9.6g-md3\include"
+OPENSSL_INCLUDE=D:\openssl\engine-0.9.6g-md3\include
 !IF "$(VERBOSE)" != "0"
 !MESSAGE Defaulting OpenSSL Include path to $(OPENSSL_INCLUDE).
 !ENDIF
 !ENDIF
 
 !IF "$(OPENSSL_LIBPATH)" == ""
-OPENSSL_LIBPATH="D:\openssl\engine-0.9.6g-md3\lib"
+OPENSSL_LIBPATH=D:\openssl\engine-0.9.6g-md3\lib
 !IF "$(VERBOSE)" != "0"
 !MESSAGE Defaulting OpenSSL library path to $(OPENSSL_LIBPATH).
 !ENDIF
 !ENDIF
 
 !IF "$(GSSAPI_INCLUDE)" == ""
-GSSAPI_INCLUDE="C:\Program Files\CyberSafe\Developer Pack\ApplicationSecuritySDK\include"
+GSSAPI_INCLUDE=C:\Program Files\CyberSafe\Developer Pack\ApplicationSecuritySDK\include
 !IF "$(VERBOSE)" != "0"
 !MESSAGE Defaulting GSSAPI Include path to $(GSSAPI_INCLUDE).
 !ENDIF
 !ENDIF
 
 !IF "$(GSSAPI_LIBPATH)" == ""
-GSSAPI_LIBPATH="C:\Program Files\CyberSafe\Developer Pack\ApplicationSecuritySDK\lib"
+GSSAPI_LIBPATH=C:\Program Files\CyberSafe\Developer Pack\ApplicationSecuritySDK\lib
 !IF "$(VERBOSE)" != "0"
 !MESSAGE Defaulting GSSAPI library path to $(GSSAPI_LIBPATH).
 !ENDIF
@@ -133,7 +133,7 @@ SQLITE_INCLUDES=/I"C:\work\open_source\sqllite\sqlite\src" /I"C:\work\open_sourc
 !ENDIF
 
 !IF "$(SQLITE_LIBPATH)" == ""
-SQLITE_LIBPATH="C:\work\open_source\sqllite\sqlite\objs"
+SQLITE_LIBPATH=C:\work\open_source\sqllite\sqlite\objs
 !IF "$(VERBOSE)" != "0"
 !MESSAGE Defaulting SQLITE library path to $(SQLITE_LIBPATH).
 !ENDIF
@@ -147,7 +147,7 @@ SQLITE_INCLUDES3=/I"c:\work\sqlite\generated"
 !ENDIF
 
 !IF "$(SQLITE_LIBPATH3)" == ""
-SQLITE_LIBPATH3="c:\work\sqlite\objs.NT"
+SQLITE_LIBPATH3=c:\work\sqlite\objs.NT
 !IF "$(VERBOSE)" != "0"
 !MESSAGE Defaulting SQLITE library path to $(SQLITE_LIBPATH3).
 !ENDIF

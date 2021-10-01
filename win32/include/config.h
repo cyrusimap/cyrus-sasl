@@ -92,6 +92,8 @@ typedef int		    intptr_t;
 /* #undef SASL_NDBM */
 #define SASL_BERKELEYDB 1
 
+/* static plugins are not yet compatible with building via NTMakeFile */
+#ifndef NO_STATIC_PLUGINS
 /* which mechs can we link statically? */
 #define STATIC_ANONYMOUS 1
 /* #define STATIC_CRAMMD5 1 */
@@ -106,6 +108,7 @@ typedef int		    intptr_t;
 /* #define STATIC_SASLDB 1 */
 #define STATIC_SCRAM 1
 /* #define STATIC_SRP 1 */
+#endif
 
 /* ------------------------------------------------------------ */
 

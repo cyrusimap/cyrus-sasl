@@ -152,7 +152,7 @@ EXTRA_FLAGS = /D TARGET_WIN_SYSTEM=$(TARGET_WIN_SYSTEM) $(EXTRA_FLAGS)
 !ENDIF
 
 EXTRA_FLAGS=$(EXTRA_FLAGS) $(DB_FLAGS) $(OPENSSL_FLAGS) $(GSS_FLAGS) $(SRP_FLAGS) $(SQL_FLAGS) $(DIGEST_FLAGS) $(CRAM_FLAGS) $(SCRAM_FLAGS) $(LDAP_FLAGS)
-CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" $(EXTRA_FLAGS) /D "WIN32" /D "_WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL"
+CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" /I "..\common" $(EXTRA_FLAGS) /D "WIN32" /D "_WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL"
 
 OPENSSL_LIBS=/libpath:$(OPENSSL_LIBPATH) libeay32.lib ssleay32.lib
 
@@ -176,27 +176,6 @@ install: $(PLUGINS)
 	@xcopy *.dll $(bindir) /I /F /Y
 
 all-recursive : $(PLUGINS)
-
-getaddrinfo.c: ..\lib\getaddrinfo.c
-	xcopy /D /Y ..\lib\getaddrinfo.c .
-
-getnameinfo.c: ..\lib\getnameinfo.c
-	xcopy /D /Y ..\lib\getnameinfo.c .
-
-plugin_common.c: ..\common\plugin_common.c
-	xcopy /D /Y ..\common\plugin_common.c .
-
-plugin_common.h: ..\common\plugin_common.h
-	xcopy /D /Y ..\common\plugin_common.h .
-
-allockey.c: ..\sasldb\allockey.c
-	xcopy /D /Y ..\sasldb\allockey.c .
-
-db_berkeley.c: ..\sasldb\db_berkeley.c
-	xcopy /D /Y ..\sasldb\db_berkeley.c .
-
-db_lmdb.c: ..\sasldb\db_lmdb.c
-	xcopy /D /Y ..\sasldb\db_lmdb.c .
 
 #Add /pdb: option?
 
@@ -282,6 +261,21 @@ CLEAN :
 	-@erase $(all_out)
 
 .c.obj::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+{..\lib}.c.obj::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+{..\common}.c.obj::
+   $(CPP) @<<
+   $(CPP_PROJ) $< 
+<<
+
+{..\sasldb}.c.obj::
    $(CPP) @<<
    $(CPP_PROJ) $< 
 <<

@@ -210,7 +210,7 @@ saslCRAMMD5.dll: $(saslCRAMMD5_objs) saslCRAMMD5.res
 	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 
 saslDIGESTMD5.dll: $(saslDIGESTMD5_objs) saslDIGESTMD5.res
-	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"saslDIGESTMD5.dll" /implib:"saslDIGESTMD5.lib" $(saslDIGESTMD5_objs) saslDIGESTMD5.res
+	$(LINK32DLL) @<< $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslDIGESTMD5.dll" /implib:"saslDIGESTMD5.lib" $(saslDIGESTMD5_objs) saslDIGESTMD5.res
 <<
 	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 

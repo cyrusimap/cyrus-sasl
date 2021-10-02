@@ -24,12 +24,6 @@ SleepyCat
     SleepyCat's include files and libraries are required to buil SASLDB plugin,
     saslpasswd2.exe and sasldblistusers2.exe. We have tested SleepyCat 4.1.X-4.4.X.
 
-Cygwin (for building from GIT)
-    The `Cygwin <http://www.cygwin.com/>`_ Unix-compatibility
-    environment to create the ``_init.c`` files needed for dynamic
-    loading. Cygwin is *not* required for building from our tar
-    distribution.
-
 Step by step
 ============
 
@@ -39,10 +33,10 @@ and the sources are in ``C:\SASL``.
 Preparing to build (GIT only!)
 ------------------------------
 
-Start a cygwin shell and create the dynamic loading stubs::
+Create the dynamic loading stubs::
 
-    % cd /cygdrive/c/sasl/plugins
-    % sh makeinit.sh
+    % cd win32
+    % PowerShell.exe -ExecutionPolicy Bypass -File makeinit.ps1
 
 Building using NMake
 --------------------

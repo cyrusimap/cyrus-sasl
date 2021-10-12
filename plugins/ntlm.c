@@ -78,6 +78,9 @@
 #endif
 
 #include <openssl/md4.h>
+#ifdef OPENSSL_NO_MD4
+#error No MD4 support in OpenSSL
+#endif
 #include <openssl/md5.h>
 #include <openssl/hmac.h>
 #include <openssl/des.h>
@@ -478,7 +481,7 @@ static unsigned char *V2(unsigned char *V2, sasl_secret_t *passwd,
 	ucase(upper, len);
 	to_unicode((unsigned char *) *buf, upper, len);
 
-	HMAC(EVP_md5(), hash, MD4_DIGEST_LENGTH,
+	HMAC(EVP_md5(), hash, MD5_DIGEST_LENGTH,
              (unsigned char *) *buf, 2 * len, hash, &len);
 
 	/* V2 = HMAC-MD5(NTLMv2hash, challenge + blob) + blob */

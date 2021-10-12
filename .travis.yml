@@ -3,9 +3,11 @@ group: edge
 
 os:
   - linux
+    compiler: gcc
+
   - osx
     osx_image: xcode12.5
-compiler: gcc
+    compiler: gcc
 
 addons:
   apt:

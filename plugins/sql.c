@@ -156,6 +156,7 @@ static int _mysql_exec(void *conn, const char *cmd, char *value, size_t size,
     
     /* free result */
     mysql_free_result(result);
+    mysql_next_result(conn);
     
     return 0;
 }

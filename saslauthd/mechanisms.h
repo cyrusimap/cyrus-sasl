@@ -95,4 +95,10 @@ extern authmech_t *authmech;		/* auth mech daemon is using */
 # endif
 #endif
 
+#ifndef AUTH_HTPASSWD
+# ifdef HAVE_HTPASSWD
+#  define AUTH_HTPASSWD
+# endif
+#endif
+
 #endif  /* _MECHANISMS_H */

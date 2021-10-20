@@ -658,27 +658,27 @@ int _plug_decode(decode_context_t *text,
 	    if (!text->needsize) { /* we have the entire 4-byte size */
 		memcpy(&(text->size), text->sizebuf, 4);
 		text->size = ntohl(text->size);
-	
-		if (!text->size) /* should never happen */
-		    return SASL_FAIL;
-	    
-		if (text->size > text->in_maxbuf) {
-		    text->utils->log(NULL, SASL_LOG_ERR, 
-				     "encoded packet size too big (%d > %d)",
-				     text->size, text->in_maxbuf);
-		    return SASL_FAIL;
-		}
-	    
-		if (!text->buffer)
-		    text->buffer = text->utils->malloc(text->in_maxbuf);
-		if (text->buffer == NULL) return SASL_NOMEM;
-
 		text->cursize = 0;
 	    } else {
 		/* We do NOT have the entire 4-byte size...
 		 * wait for more data */
 		return SASL_OK;
 	    }
+	}
+
+	if (!text->size) /* should never happen */
+	    return SASL_FAIL;
+
+	if (text->size > text->in_maxbuf) {
+	    text->utils->log(NULL, SASL_LOG_ERR,
+			     "encoded packet size too big (%d > %d)",
+			     text->size, text->in_maxbuf);
+	    return SASL_FAIL;
+	}
+
+	if (!text->buffer) {
+	    text->buffer = text->utils->malloc(text->in_maxbuf);
+	    if (text->buffer == NULL) return SASL_NOMEM;
 	}
 
 	diff = text->size - text->cursize; /* bytes needed for full packet */

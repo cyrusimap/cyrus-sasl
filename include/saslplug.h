@@ -5,7 +5,7 @@
 #define SASLPLUG_H 1
 
 #ifndef MD5GLOBAL_H
-#include <md5global.h>
+#include "md5global.h"
 #endif
 #ifndef MD5_H
 #include "md5.h"

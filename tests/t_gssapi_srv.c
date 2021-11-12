@@ -18,7 +18,13 @@
 
 const char *sasldb_path = NULL,
       *auxprop_plugin = "sasldb",
-      *pwcheck_method = "auxprop-hashed";
+      *pwcheck_method =
+#if 0	/* totally undocumented. See issue#374 */
+	  "auxprop-hashed"
+#else
+	  "auxprop"
+#endif
+	  ;
 
 static int setup_socket(void)
 {

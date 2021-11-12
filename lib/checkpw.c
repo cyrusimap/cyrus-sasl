@@ -233,6 +233,7 @@ static int auxprop_verify_password(sasl_conn_t *conn,
     return ret;
 }
 
+#if 0
 /* Verify user password using auxprop plugins. Allow verification against a hashed password,
  * or non-retrievable password. Don't use cmusaslsecretPLAIN attribute.
  *
@@ -328,6 +329,7 @@ static int auxprop_verify_password_hashed(sasl_conn_t *conn,
      * may want it */
     return ret;
 }
+#endif
 
 #ifdef DO_SASL_CHECKAPOP
 int _sasl_auxprop_verify_apop(sasl_conn_t *conn,
@@ -1108,7 +1110,9 @@ static int always_true(sasl_conn_t *conn,
 
 struct sasl_verify_password_s _sasl_verify_password[] = {
     { "auxprop", &auxprop_verify_password },
+#if 0	/* totally undocumented. wtf is this? */
     { "auxprop-hashed", &auxprop_verify_password_hashed },
+#endif
 #ifdef HAVE_PWCHECK
     { "pwcheck", &pwcheck_verify_password },
 #endif

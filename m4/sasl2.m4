@@ -313,10 +313,10 @@ if test "$gssapi" != no; then
   fi
   LIBS="$cmu_save_LIBS"
 
-  cmu_save_LIBS="$LIBS"
-  LIBS="$LIBS $GSSAPIBASE_LIBS"
-  AC_MSG_CHECKING([for SPNEGO support in GSSAPI libraries])
-  AC_TRY_RUN([
+  AC_CACHE_CHECK([for SPNEGO support in GSSAPI libraries],[ac_cv_gssapi_supports_spnego],[
+    cmu_save_LIBS="$LIBS"
+    LIBS="$LIBS $GSSAPIBASE_LIBS"
+    AC_TRY_RUN([
 #ifdef HAVE_GSSAPI_H
 #include <gssapi.h>
 #else
@@ -337,11 +337,12 @@ int main(void)
 
     return (!have_spnego);  // 0 = success, 1 = failure
 }
-],	
-	[ AC_DEFINE(HAVE_GSS_SPNEGO,,[Define if your GSSAPI implementation supports SPNEGO])
-	AC_MSG_RESULT(yes) ],
-	AC_MSG_RESULT(no))
-  LIBS="$cmu_save_LIBS"
+],[ac_cv_gssapi_supports_spnego=yes],[ac_cv_gssapi_supports_spnego=no])
+    LIBS="$cmu_save_LIBS"
+  ])
+  AS_IF([test "$ac_cv_gssapi_supports_spnego" = yes],[
+    AC_DEFINE(HAVE_GSS_SPNEGO,,[Define if your GSSAPI implementation supports SPNEGO])
+  ])
 
 else
   AC_MSG_RESULT([disabled])

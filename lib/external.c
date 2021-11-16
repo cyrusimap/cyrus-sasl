@@ -125,7 +125,7 @@ external_server_mech_step(void *conn_context __attribute__((unused)),
 	/* The user's trying to authorize as someone they didn't
 	 * authenticate as */
 	result = sparams->canon_user(sparams->utils->conn,
-				     clientin, 0,
+				     clientin, clientinlen,
 				     SASL_CU_AUTHZID, oparams);
 	if(result != SASL_OK) return result;
 	

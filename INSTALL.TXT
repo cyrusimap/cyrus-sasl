@@ -1,1 +1,1 @@
-For installation instructions, see doc/install.html.
+For installation instructions, see doc/legacy/install.html.

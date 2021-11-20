@@ -41,6 +41,7 @@
 #include <unistd.h>
 /* END PUBLIC DEPENDENCIES */
 
+#include "../lib/saslint.h"
 #define RETURN(x) return strdup(x)
 
 
@@ -48,7 +49,6 @@
 #include "../include/sasl.h"
 #include "../include/saslplug.h"
 #include "../sasldb/sasldb.h"
-#include "../saslint.h"
 
 static int
 vf(void *context __attribute__((unused)),

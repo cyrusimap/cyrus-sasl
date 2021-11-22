@@ -23,5 +23,5 @@ but please also notify the mailing list.
 
 ## DOCUMENTATION
 
-Please see doc/index.html for detailed documentation.
+Please see doc/legacy/index.html for detailed documentation.
 

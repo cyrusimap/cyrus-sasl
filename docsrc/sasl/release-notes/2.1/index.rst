@@ -23,9 +23,9 @@ New in 2.1.27
   - Properly compute maxbufsize AFTER security layers have been set
 
 * SCRAM plugin:
-  
+
   - Added support for SCRAM-SHA-256
-    
+
 * LOGIN plugin:
 
   - Don't prompt client for password until requested by server
@@ -40,7 +40,7 @@ New in 2.1.27
 
     - Don't use cached credentials if timeout has expired
     - Fixed debug logging output
-  
+
   - ipc_doors.c:
 
     - Fixed potential DoS attack (from Oracle)
@@ -55,7 +55,7 @@ New in 2.1.27
     - Added support for unsolicited CAPABILITY responses in LOGIN reply
     - Properly detect end of responses (don't needlessly wait)
     - Properly handle backslash in passwords
-    
+
   - auth_httpform:
 
     - Fix off-by-one error in string termination

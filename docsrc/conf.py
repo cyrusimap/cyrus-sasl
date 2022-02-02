@@ -417,22 +417,22 @@ epub_exclude_files = ['search.html']
 # When this is updated, you may also need to update the version and release
 # definitions listed above to stay up to date.
 rst_prolog = """
-.. |imap_last_stable_version| replace:: 3.2.8
+.. |imap_last_stable_version| replace:: 3.2.9
 .. |imap_last_stable_branch| replace:: `cyrus-imapd-3.2`
-.. |imap_last_stable_next_version| replace:: 3.2.8 + patches
-.. |imap_current_stable_version| replace:: 3.4.2
-.. |imap_current_stable_next_version| replace:: 3.4.2 + patches
+.. |imap_last_stable_next_version| replace:: 3.2.9 + patches
+.. |imap_current_stable_version| replace:: 3.4.3
+.. |imap_current_stable_next_version| replace:: 3.4.3 + patches
 .. |imap_current_stable_branch| replace:: `cyrus-imapd-3.4`
-.. |imap_latest_development_version| replace:: 3.5.0-alpha0
+.. |imap_latest_development_version| replace:: 3.7.0-alpha0
 .. |imap_latest_development_branch| replace:: master
 .. |sasl_current_stable_version| replace:: 2.1.28
 .. |imap_stable_release_notes| raw:: html
 
-    <a href="3.4/x/3.4.2.html">3.4.2</a>
+    <a href="3.4/x/3.4.3.html">3.4.3</a>
 
 .. |imap_development_release_notes| raw:: html
 
-    <a href="https://www.cyrusimap.org/dev/imap/download/release-notes/3.5/x/3.5.0-alpha0.html">3.5.0-alpha0</a>
+    <a href="https://www.cyrusimap.org/dev/imap/download/release-notes/3.7/x/3.7.0-alpha0.html">3.7.0-alpha0</a>
 
 """
 

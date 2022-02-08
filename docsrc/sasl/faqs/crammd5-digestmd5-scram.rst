@@ -1,5 +1,5 @@
 Why do CRAM-MD5, DIGEST-MD5 and SCRAM not work with CyrusSaslauthd?
-------------------------------------------------------------
+-------------------------------------------------------------------
 
 Saslauthd is only capable of verifying plaintext passwords (it takes a 
 plaintext password and a username and responds with "yes" or "no", 

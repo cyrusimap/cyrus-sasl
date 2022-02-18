@@ -72,6 +72,8 @@ New in 2.1.28
 
     - Finish reading residual return data (#639)
 
+    - CVE-2022-24407 Escape password for SQL insert/update commands.
+
 * sasldb:
 
   - db_gdbm.c:

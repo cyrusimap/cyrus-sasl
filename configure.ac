@@ -1290,7 +1290,7 @@ AC_CHECK_HEADERS_ONCE([sys/time.h])
 
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(crypt.h des.h dlfcn.h fcntl.h limits.h malloc.h paths.h strings.h sys/file.h sys/time.h syslog.h unistd.h inttypes.h sys/uio.h sys/param.h sysexits.h stdarg.h varargs.h krb5.h)
+AC_CHECK_HEADERS(crypt.h des.h dlfcn.h fcntl.h limits.h malloc.h paths.h strings.h sys/file.h sys/time.h syslog.h time.h unistd.h inttypes.h sys/uio.h sys/param.h sysexits.h stdarg.h varargs.h krb5.h)
 
 IPv6_CHECK_SS_FAMILY()
 IPv6_CHECK_SA_LEN()

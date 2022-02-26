@@ -155,9 +155,6 @@ dnl we extracted this to config/sasldb.m4
 SASL_DB_PATH_CHECK()
 SASL_DB_CHECK()
 
-# Do we not install the SASL DB man pages?
-AM_CONDITIONAL(NO_SASL_DB_MANS, test "x$SASL_DB_MANS" = "x")
-
 AC_ARG_ENABLE(keep_db_open, [  --enable-keep-db-open   keep handle to DB open for improved performance [[no]] ],
                 keep_db_open=$enableval,
                 keep_db_open=no)

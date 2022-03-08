@@ -398,7 +398,7 @@ int sasl_client_new(const char *service,
 		    sasl_conn_t **pconn)
 {
   int result;
-  char name[MAXFQDNLEN];
+  char name[256];
   sasl_client_conn_t *conn;
   sasl_utils_t *utils;
   sasl_getopt_t *getopt;
@@ -515,9 +515,8 @@ int sasl_client_new(const char *service,
   
   /* get the clientFQDN (serverFQDN was set in _sasl_conn_init) */
   memset(name, 0, sizeof(name));
-  if (get_fqhostname (name, MAXFQDNLEN, 0) != 0) {
-      return (SASL_FAIL);
-  }
+  gethostname(name, sizeof(name));
+  name[sizeof(name)-1] = '\0';
 
   result = _sasl_strdup(name, &conn->clientFQDN, NULL);
 

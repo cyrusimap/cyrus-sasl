@@ -233,7 +233,6 @@ anonymous_client_mech_step(void *conn_context,
 {
     client_context_t *text = (client_context_t *) conn_context;
     size_t userlen;
-    char hostname[256];
     const char *user = NULL;
     int user_result = SASL_OK;
     int result;
@@ -302,11 +301,7 @@ anonymous_client_mech_step(void *conn_context,
 				 SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
     if (result != SASL_OK) return result;
     
-    memset(hostname, 0, sizeof(hostname));
-    gethostname(hostname, sizeof(hostname));
-    hostname[sizeof(hostname)-1] = '\0';
-    
-    *clientoutlen = (unsigned) (userlen + strlen(hostname) + 1);
+    *clientoutlen = (unsigned) (userlen + cparams->clen + 1);
     
     result = _plug_buf_alloc(cparams->utils, &text->out_buf,
 			     &text->out_buf_len, *clientoutlen);
@@ -316,7 +311,7 @@ anonymous_client_mech_step(void *conn_context,
     strcpy(text->out_buf, user);
     text->out_buf[userlen] = '@';
     /* use memcpy() instead of strcpy() so we don't add the NUL */
-    memcpy(text->out_buf + userlen + 1, hostname, strlen(hostname));
+    memcpy(text->out_buf + userlen + 1, cparams->clientFQDN, cparams->clen);
     
     *clientout = text->out_buf;
     

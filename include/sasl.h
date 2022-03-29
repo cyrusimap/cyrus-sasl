@@ -304,6 +304,8 @@ typedef unsigned sasl_ssf_t;
  *			   credentials to do so
  * MUTUAL_AUTH          -- require mechanisms which provide mutual
  *			   authentication
+ * NONSTD_CBIND         -- enable channel binding on mechs that aren't
+ *			   supposed to support them but do anyway (e.g. GSSAPI)
  */
 #define SASL_SEC_NOPLAINTEXT      0x0001
 #define SASL_SEC_NOACTIVE         0x0002
@@ -312,6 +314,7 @@ typedef unsigned sasl_ssf_t;
 #define SASL_SEC_NOANONYMOUS      0x0010
 #define SASL_SEC_PASS_CREDENTIALS 0x0020
 #define SASL_SEC_MUTUAL_AUTH      0x0040
+#define SASL_SEC_NONSTD_CBIND     0x0080
 #define SASL_SEC_MAXIMUM          0xFFFF
 
 /* This is used when adding hash size to the security_flags field */

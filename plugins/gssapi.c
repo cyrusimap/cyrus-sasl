@@ -1216,7 +1216,7 @@ gssapi_server_mech_authneg(context_t *text,
 	real_input_token.length = clientinlen;
     }
 
-    if (params->cbinding != NULL) {
+    if ((params->props.security_flags & SASL_SEC_NONSTD_CBIND) && params->cbinding != NULL) {
         cb.application_data.length = params->cbinding->len;
         cb.application_data.value = params->cbinding->data;
         bindings = &cb;
@@ -2181,7 +2181,7 @@ static int gssapi_client_mech_step(void *conn_context,
 	    req_flags = req_flags |  GSS_C_DELEG_FLAG;
 	}
 
-        if (params->cbinding != NULL) {
+	if ((params->props.security_flags & SASL_SEC_NONSTD_CBIND) && params->cbinding != NULL) {
             cb.application_data.length = params->cbinding->len;
             cb.application_data.value = params->cbinding->data;
             bindings = &cb;

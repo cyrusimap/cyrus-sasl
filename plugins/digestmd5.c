@@ -1762,9 +1762,6 @@ static void digestmd5_common_mech_free(void *glob_context,
     reauth_cache_t *reauth_cache = my_glob_context->reauth;
     size_t n;
 
-    utils->log(utils->conn, SASL_LOG_DEBUG,
-	       "DIGEST-MD5 common mech free");
- 
     /* Prevent anybody else from freeing this as well */
     my_glob_context->reauth = NULL;
 

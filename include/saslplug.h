@@ -305,7 +305,7 @@ typedef struct sasl_client_params {
     int (*spare_fptr1)(void);
 
     unsigned int cbindingdisp;
-    int spare_int2;
+    int log_level;
     int spare_int3;
 
     /* flags field as passed to sasl_client_new */

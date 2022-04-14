@@ -1480,12 +1480,17 @@ static int _sasl_syslog(void *context,
 			const char *message)
 {
     int syslog_priority;
-    sasl_server_conn_t *sconn;
 
     if (context) {
 	if (((sasl_conn_t *)context)->type == SASL_CONN_SERVER) {
+	    sasl_server_conn_t *sconn;
 	    sconn = (sasl_server_conn_t *)context;
 	    if (sconn->sparams->log_level < priority) 
+		return SASL_OK;
+	} else {
+	    sasl_client_conn_t *conn;
+	    conn = (sasl_client_conn_t *)context;
+	    if (conn->cparams->log_level < priority)
 		return SASL_OK;
 	}
     }

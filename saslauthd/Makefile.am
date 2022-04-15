@@ -31,7 +31,7 @@ testsaslauthd_LDADD = @LIB_SOCKET@
 saslcache_SOURCES = saslcache.c
 
 EXTRA_DIST	= testsaslauthd.8 saslauthd.mdoc include \
-		  LDAP_SASLAUTHD
+		  LDAP_SASLAUTHD README.cache README.ipc
 AM_CPPFLAGS	= -I$(top_srcdir)/include -I$(top_builddir)/include -I$(top_builddir)/common -I$(top_srcdir)/common
 DEFS            = @DEFS@ -DSASLAUTHD_CONF_FILE_DEFAULT=\"@sysconfdir@/saslauthd.conf\" -I. -I$(srcdir) -I..
 

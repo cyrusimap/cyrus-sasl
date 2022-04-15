@@ -44,7 +44,7 @@
  */
 
 /*
- * Copyright (c) 1997, 1998 Kungliga Tekniska Högskolan
+ * Copyright (c) 1997 - 1999 Kungliga Tekniska Högskolan
  * (Royal Institute of Technology, Stockholm, Sweden). 
  * All rights reserved. 
  *
@@ -59,12 +59,7 @@
  *    notice, this list of conditions and the following disclaimer in the 
  *    documentation and/or other materials provided with the distribution. 
  *
- * 3. All advertising materials mentioning features or use of this software 
- *    must display the following acknowledgement: 
- *      This product includes software developed by Kungliga Tekniska 
- *      Högskolan and its contributors. 
- *
- * 4. Neither the name of the Institute nor the names of its contributors 
+ * 3. Neither the name of the Institute nor the names of its contributors
  *    may be used to endorse or promote products derived from this software 
  *    without specific prior written permission. 
  *
@@ -94,8 +89,8 @@ my_strupr(char *s)
 {
     char *p = s;
     while(*p){
-	if(islower((int) *p))
-	    *p = toupper((int) *p);
+	if(islower((unsigned char)*p))
+	    *p = toupper((unsigned char)*p);
 	p++;
     }	
 }
@@ -204,7 +199,7 @@ int main(int argc, char **argv)
     hb = malloc(strlen(fn) + 5);
     sprintf(hb, "__%s__", fn);
     for(p = hb; *p; p++){
-      if(!isalnum((int) *p))
+      if(!isalnum((unsigned char)*p))
 	*p = '_';
     }
     f = fopen(argv[1], "w");
@@ -244,5 +239,5 @@ int main(int argc, char **argv)
   
     fclose(f);
 
-    return 0;  
+    return 0;
 }

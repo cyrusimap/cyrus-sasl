@@ -46,7 +46,7 @@ Description
 
     :param passlen: length of the password
 
-    :param propctx: Auxilliary Properties (not stored)
+    :param propctx: Auxiliary Properties (not stored)
 
     :param flags: These  are  the  same  flags  that  are  passed  to
         :saslman:`sasl_setpass(3)`, and are documented on that man page.

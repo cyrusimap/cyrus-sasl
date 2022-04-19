@@ -330,7 +330,7 @@ opiekeys file.
 Auxiliary Properties
 ====================
 
-SASLv2 introduces the concept of Auxilliary Properties.  That is, the ability
+SASLv2 introduces the concept of Auxiliary Properties.  That is, the ability
 for information related to authentication and authorization to all be looked
 up at once from a directory during the authentication process.  SASL Plugins
 internally take advantage of this to do password lookups in directories

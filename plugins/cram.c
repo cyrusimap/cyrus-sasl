@@ -176,7 +176,7 @@ crammd5_server_mech_step1(server_context_t *text,
 	    
     /* we shouldn't have received anything */
     if (clientinlen != 0) {
-	SETERROR(sparams->utils, "CRAM-MD5 does not accept inital data");
+	SETERROR(sparams->utils, "CRAM-MD5 does not accept initial data");
 	return SASL_BADPROT;
     }
     

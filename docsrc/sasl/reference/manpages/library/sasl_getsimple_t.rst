@@ -40,7 +40,7 @@ Description
         * SASL_CB_LANGUAGE ‐ Comma‐separated list of :rfc:`1766` languages
         * SASL_CB_CNONCE   ‐ Client‐nonce (for testing mostly)
     :param result: value of the item requested
-    :param len: lenth of the result
+    :param len: length of the result
 
 Return Value
 ============

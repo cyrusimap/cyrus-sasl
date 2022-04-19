@@ -622,9 +622,9 @@ main(int argc, char *argv[])
 	result=sasl_decode(conn,buf,len,&recv_data,&recv_len);
  	if (result != SASL_OK)
       saslfail(result, "sasl_encode", NULL);
-    printf("recieved decoded message '%s'\n",recv_data);
+    printf("received decoded message '%s'\n",recv_data);
     if(strcmp(recv_data,CLIENT_MSG1)!=0)
-    	saslfail(1,"recive decoded server message",NULL);
+        saslfail(1,"receive decoded server message",NULL);
  }
 
 #ifdef WIN32

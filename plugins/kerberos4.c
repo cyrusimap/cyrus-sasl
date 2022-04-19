@@ -959,7 +959,7 @@ static int kerberosv4_client_mech_step(void *conn_context,
     switch (text->state) {
 
     case 1: {
-	/* We should've just recieved a 32-bit number in network byte order.
+	/* We should've just received a 32-bit number in network byte order.
 	 * We want to reply with an authenticator. */
 	int result;
 	KTEXT_ST ticket;

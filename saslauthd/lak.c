@@ -1629,7 +1629,7 @@ char *lak_error(
         case LAK_CONNECT_FAIL:
             return "Cannot connect to ldap server (configuration error)";
         default:
-            return "Unknow error";
+            return "Unknown error";
     }
 }
 

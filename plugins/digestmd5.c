@@ -2093,7 +2093,7 @@ digestmd5_server_mech_step1(server_context_t *stext,
     
     nonce = create_nonce(sparams->utils);
     if (nonce == NULL) {
-	SETERROR(sparams->utils, "internal erorr: failed creating a nonce");
+	SETERROR(sparams->utils, "internal error: failed creating a nonce");
 	return SASL_FAIL;
     }
     

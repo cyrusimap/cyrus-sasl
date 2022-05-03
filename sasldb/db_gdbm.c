@@ -119,7 +119,7 @@ int _sasldb_getdata(const sasl_utils_t *utils,
       } else {
 	  utils->seterror(conn, 0,
 			  "Couldn't fetch entry from %s: gdbm_errno=%d",
-			  path, gdbm_errno);
+			  path, fetch_errno);
 	  result = SASL_FAIL;
       }
       goto cleanup;

@@ -9,11 +9,10 @@ See RFC 4422 for more information.
 The latest version is available at:
 https://github.com/cyrusimap/cyrus-sasl/releases
 
-There's a mailing list for Cyrus SASL.  Subscribe by sending a message
-to majordomo@lists.andrew.cmu.edu with the body "subscribe
-cyrus-sasl". The mailing list is available via anonymous IMAP at
-imap://cyrus.andrew.cmu.edu/archive.cyrus-sasl or via the web at
-https://lists.andrew.cmu.edu/pipermail/cyrus-sasl/.
+There are mailing lists for Cyrus SASL. The lists are now hosted at
+https://cyrus.topicbox.com/groups/. Subscriptions and archives from the
+old lists.andrew.cmu.edu list manager have all been migrated over to
+topicbox.
 
 If you are looking to port SASLv1 applications to SASLv2, please see
 doc/appconvert.html

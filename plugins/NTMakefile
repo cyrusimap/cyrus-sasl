@@ -23,6 +23,10 @@ SRP_FLAGS=/DDO_SRP_SETPASS=1
 PLUGINS_EXT=$(PLUGINS_EXT) saslOTP.dll
 !ENDIF
 
+!IF "$(PASSDSS)" == "1"
+PLUGINS_EXT=$(PLUGINS_EXT) saslPASSDSS.dll
+!ENDIF
+
 !IF "$(LDAP)" == "1"
 PLUGINS_EXT=$(PLUGINS_EXT) saslLDAPDB.dll
 
@@ -51,7 +55,7 @@ PLUGINS=saslANONYMOUS.dll \
 	$(PLUGINS_EXT) \
 	saslSASLDB.dll
 
-generated_rc=saslANONYMOUS.rc saslPLAIN.rc saslCRAMMD5.rc saslDIGESTMD5.rc saslLOGIN.rc saslNTLM.rc saslSCRAM.rc saslGSSAPI.rc saslSRP.rc saslOTP.rc saslSASLDB.rc saslSQLITE.rc saslLDAPDB.rc
+generated_rc=saslANONYMOUS.rc saslPLAIN.rc saslCRAMMD5.rc saslDIGESTMD5.rc saslLOGIN.rc saslNTLM.rc saslSCRAM.rc saslGSSAPI.rc saslSRP.rc saslOTP.rc saslPASSDSS.rc saslSASLDB.rc saslSQLITE.rc saslLDAPDB.rc
 
 # WS2tcpip.h included in Visual Studio 7 provides getaddrinfo, ...
 # emulation on Windows, so there is no need to build getaddrinfo.c
@@ -80,23 +84,26 @@ saslLOGIN_out = saslLOGIN.dll saslLOGIN.exp saslLOGIN.lib
 saslSCRAM_objs = scram.obj scram_init.obj $(common_objs)
 saslSCRAM_out = saslSCRAM.dll saslSCRAM.exp saslSCRAM.lib
 
-saslNTLM_objs = ntlm.obj ntlm_init.obj $(common_objs)
+saslNTLM_objs = ntlm.obj ntlm_init.obj $(openssl_compat_objs) $(common_objs)
 saslNTLM_out = saslNTLM.dll saslNTLM.exp saslNTLM.lib
 
 saslGSSAPI_objs = gssapi.obj gssapiv2_init.obj $(common_objs)
 saslGSSAPI_out = saslGSSAPI.dll saslGSSAPI.exp saslGSSAPI.lib
 
-saslSRP_objs = srp.obj srp_init.obj $(common_objs)
+saslSRP_objs = srp.obj srp_init.obj $(openssl_compat_objs) $(common_objs)
 saslSRP_out = saslSRP.dll saslSRP.exp saslSRP.lib
 
 saslOTP_objs = otp.obj otp_init.obj $(common_objs)
 saslOTP_out = saslOTP.dll saslOTP.exp saslOTP.lib
 
+saslPASSDSS_objs = passdss.obj passdss_init.obj $(openssl_compat_objs) $(common_objs)
+saslPASSDSS_out = saslPASSDSS.dll saslPASSDSS.exp saslPASSDSS.lib
+
 saslSQL_objs = sql.obj sql_init.obj $(common_objs)
 # saslSQL_out is an agregation of all generated files for all SQL plugins
 saslSQL_out = saslSQLITE.dll saslSQLITE.exp saslSQLITE.lib
 
-saslLDAPDB_objs = ldapdb.obj $(common_objs)
+saslLDAPDB_objs = ldapdb.obj ldapdb_init.obj $(common_objs)
 saslLDAPDB_out = saslLDAPDB.dll saslLDAPDB.exp saslLDAPDB.lib
 
 !IF "$(NTLM)" == "1" || "$(SRP)" == "1" || "$(OTP)" == "1" || "$(SCRAM)" == "1"
@@ -145,8 +152,8 @@ SCRAM_FLAGS=/DHAVE_SHA512=1
 saslSASLDB_objs = sasldb.obj sasldb_init.obj $(libsasldb_objs) $(common_objs)
 saslSASLDB_out = saslSASLDB.dll saslSASLDB.exp saslSASLDB.lib
 
-all_objs = $(saslANONYMOUS_objs) $(saslPLAIN_objs) $(saslCRAMMD5_objs) $(saslDIGESTMD5_objs) $(saslLOGIN_objs) $(saslSCRAM_objs) $(saslNTLM_objs) $(saslGSSAPI_objs) $(saslSRP_objs) $(saslOTP_objs) $(saslSASLDB_objs) $(saslSQL_objs) $(saslLDAPDB_objs)
-all_out = $(saslANONYMOUS_out) $(saslPLAIN_out) $(saslCRAMMD5_out) $(saslDIGESTMD5_out) $(saslLOGIN_out) $(saslSCRAM_out) $(saslNTLM_out) $(saslGSSAPI_out) $(saslSRP_out) $(saslOTP_out) $(saslSASLDB_out) $(saslSQL_out) $(saslLDAPDB_out)
+all_objs = $(saslANONYMOUS_objs) $(saslPLAIN_objs) $(saslCRAMMD5_objs) $(saslDIGESTMD5_objs) $(saslLOGIN_objs) $(saslSCRAM_objs) $(saslNTLM_objs) $(saslGSSAPI_objs) $(saslSRP_objs) $(saslOTP_objs) $(saslPASSDSS_objs) $(saslSASLDB_objs) $(saslSQL_objs) $(saslLDAPDB_objs) $(openssl_compat_objs)
+all_out = $(saslANONYMOUS_out) $(saslPLAIN_out) $(saslCRAMMD5_out) $(saslDIGESTMD5_out) $(saslLOGIN_out) $(saslSCRAM_out) $(saslNTLM_out) $(saslGSSAPI_out) $(saslSRP_out) $(saslOTP_out) $(saslPASSDSS_out) $(saslSASLDB_out) $(saslSQL_out) $(saslLDAPDB_out)
 
 # LIBSASL_EXPORTS is required to export additional DB routines from sasldb
 DB_FLAGS = /I "$(DB_INCLUDE)" /I "..\sasldb" /D "LIBSASL_EXPORTS" /D "KEEP_DB_OPEN"
@@ -165,6 +172,7 @@ OPENSSL_LIBS=$(OPENSSL_LIBS) libcrypto.lib
 !ELSE IF EXISTS($(OPENSSL_LIBPATH)\libeay32.lib)
 # OpenSSL <= 1.0
 OPENSSL_LIBS=$(OPENSSL_LIBS) libeay32.lib
+openssl_compat_objs=crypto-compat.obj
 !ELSE
 # Don't error out because during 'nmake install', variable 'OPENSSL_LIBS'
 # can be missing but it's not used anyway.
@@ -241,6 +249,11 @@ saslSRP.dll: $(saslSRP_objs) saslSRP.res
 
 saslOTP.dll: $(saslOTP_objs) saslOTP.res
 	$(LINK32DLL) @<< $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslOTP.dll" /implib:"saslOTP.lib" $(saslOTP_objs) saslOTP.res
+<<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
+
+saslPASSDSS.dll: $(saslPASSDSS_objs) saslPASSDSS.res
+	$(LINK32DLL) @<< $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslPASSDSS.dll" /implib:"saslPASSDSS.lib" $(saslPASSDSS_objs) saslPASSDSS.res
 <<
 	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 

@@ -211,6 +211,8 @@ int _sasl_locate_entry(void *library, const char *entryname,
     *entry_point = NULL;
     *entry_point = dlsym(library, adj_entryname);
     if (*entry_point == NULL) {
+	/* clear error from dlsym() */
+	dlerror();
 #if 0 /* This message appears to confuse people */
 	_sasl_log(NULL, SASL_LOG_DEBUG,
 		  "unable to get entry point %s: %s", adj_entryname,

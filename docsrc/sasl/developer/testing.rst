@@ -90,6 +90,6 @@ Running the Testsuite application
 
 The Testsuite application in the utils directory tries out all the
 functionality of libsasl against itself. When you run the application
-it displays some requirments for running, such as being able to read
+it displays some requirements for running, such as being able to read
 and write to the sasldb file. If this program is set up correctly and
 still fails we'd like to hear about it at cyrus-bugs@andrew.cmu.edu.

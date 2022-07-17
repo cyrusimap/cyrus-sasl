@@ -1,7 +1,7 @@
 How do I configure OpenLDAP +SASL+GSSAPI?
 -----------------------------------------
 
-This article assumes that you have read and followed the SASL chapter of the `OpenLDAP Administrator's Guide <http://www.openldap.org/doc/admin24/sasl.html>`_. You should have a Kerberos server installed (such as Heimdal or MIT), and created all the appropriate principals (client and service) necessary.
+This article assumes that you have read and followed the SASL chapter of the `OpenLDAP Administrator's Guide <https://www.openldap.org/doc/admin24/sasl.html>`_. You should have a Kerberos server installed (such as Heimdal or MIT), and created all the appropriate principals (client and service) necessary.
 
 To verify that you have the Cyrus :ref:`GSSAPI <gssapi>` mechanism properly installed, use the pluginviewer command. For instance::
 
@@ -25,7 +25,7 @@ On your client system, search the Root DSE of the server to view advertised mech
     supportedSASLMechanisms: OTP
     supportedSASLMechanisms: CRAM-MD5
 
-If you received a No Such Object error, you may have an `ACL misconfiguration on your server <http://www.openldap.org/doc/admin24/appendix-common-errors.html#ldap_sasl_interactive_bind_s>`_.
+If you received a No Such Object error, you may have an `ACL misconfiguration on your server <https://www.openldap.org/doc/admin24/appendix-common-errors.html#ldap_sasl_interactive_bind_s>`_.
 
 If you do not see GSSAPI listed, verify that the server can read the appropriate keytab. The default is ``/etc/krb5.keytab`` and is typically only readable by the root user. If your Kerberos library supports it, you can create a keytab in an alternate location, such as ``/etc/krb5.keytab-ldap``, with only your LDAP service principal, and read permissions for your OpenLDAP user.
 

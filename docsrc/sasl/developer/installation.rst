@@ -5,7 +5,7 @@ Cyrus SASL Developer Guide
 ===========================
 
 .. todo:
-    This is all available at http://www.cyrusimap.org/docs/cyrus-sasl/2.1.25/install.php
+    This is all available at https://www.cyrusimap.org/imap/installing.html
 
 Compile from source
 ===================

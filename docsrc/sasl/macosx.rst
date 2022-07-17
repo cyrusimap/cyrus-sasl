@@ -62,7 +62,7 @@ then pretend it's a real Unix ``libdl``, and link against it.
 Since there are, at this point, newer and far more complex versions of
 dlcompat, you may prefer to use those instead if other software requires
 their functionality. The dlcompat homepage is located on the `OpenDarwin <http://www.opendarwin.org/projects/dlcompat>`_
-site. Many users may want to install the ``/sw`` tree from `the Fink project <http://fink.sourceforge.net>`_ to get this, as
+site. Many users may want to install the ``/sw`` tree from `the Fink project <https://www.finkproject.org>`_ to get this, as
 well as possibly newer autotools and other software.
 
 As of version 2.1.16, SASL uses and requires a recent version of GNU
@@ -165,7 +165,7 @@ Changes to the Mac OS 9 projects to support Carbon
   filetypes of the generated source files (see above).
 * There is a new folder in ``CommonKClient`` called ``mac_kclient3``
   which contains code compatible with MIT's new `KClient
-  3.0 <http://web.mit.edu/macdev/Development/MITKerberos/MITKerberosLib/KClient/Documentation/index.html>`_
+  3.0 <https://web.mit.edu/macdev/Development/MITKerberos/MITKerberosLib/KClient/Documentation/index.html>`_
   API. This folder must be in your CodeWarrior access paths, the
   old ``mac_kclient`` folder must not, and it must precede the
   project's main folder.

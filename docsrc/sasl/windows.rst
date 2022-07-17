@@ -4,7 +4,7 @@
 Building Cyrus SASL on Windows
 ==============================
 
-Note, that Cyrus SASL on Windows is still laregely a "work in progress".
+Note, that Cyrus SASL on Windows is still largely a "work in progress".
 So far only the main library, plugins (SASLDB using SleepyCat, no MySQL)
 and several applications (see the list below) can be built. In particular,
 saslauthd doesn't compile on Windows.
@@ -44,7 +44,7 @@ Building using NMake
 Open a "Windows 2000 build environment" from the SDK's Start Menu and
 use ``nmake /f NTMakefile`` to build.
 
-To build a debug verison, use ``nmake /f NTMakefile
+To build a debug version, use ``nmake /f NTMakefile
 CFG=Debug``. For a production version, ``nmake /f NTMakefile
 CFG=Release``. If you don't specify CFG parameter, production
 version will be built by default.

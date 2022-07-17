@@ -107,20 +107,20 @@ Requirements
 2. You'll need `GNU make <ftp://ftp.gnu.org/pub/gnu/make/>`_.
 
 3. If you are using SASLdb, you will need to pick your backend.
-   libsasl2 can use `gdbm <ftp://ftp.gnu.org/pub/gnu/gdbm/>`_, `Berkeley db <http://www.sleepycat.com/>`_, or ndbm to implement its user/password lookup. Most systems come with ndbm.
+   libsasl2 can use `gdbm <ftp://ftp.gnu.org/pub/gnu/gdbm/>`_, `Berkeley db <https://www.oracle.com/database/technologies/related/berkeleydb-downloads.html>`_, or ndbm to implement its user/password lookup. Most systems come with ndbm.
 
 4. If you are using SQL, you'll need to properly configure your server/tables,
    and build the necessary client libraries on the system where you will be
-   building and using SASL.  Currently we support `PostgreSQL <http://postgresql.org>`_ v7.2 (or higher)
-   and `MySQL <http://mysql.org>`_.
+   building and using SASL.  Currently we support `PostgreSQL <https://www.postgresql.org>`_ v7.2 (or higher)
+   and `MySQL <https://www.mysql.com>`_.
 
-5. If you are using LDAPDB, you'll need SASL enabled `OpenLDAP <http://www.openldap.org>`_ libraries.
+5. If you are using LDAPDB, you'll need SASL enabled `OpenLDAP <https://www.openldap.org>`_ libraries.
    v2.1.27 (or higher) or v2.2.6 (or higher) is supported.
 
-6. For Kerberos support, you'll need the `kerberos <http://www.pdc.kth.se/kth-krb/>`_ libraries.
+6. For Kerberos support, you'll need the `kerberos <https://www-local.pdc.kth.se/kth-krb/>`_ libraries.
 
-7. For GSSAPI support you will need either `MIT Kerberos 5 <http://web.mit.edu/kerberos/www/>`_,
-   the `Heimdal <http://www.pdc.kth.se/heimdal>`_ or `CyberSafe <http://www.cybersafe.com/>`_.
+7. For GSSAPI support you will need either `MIT Kerberos 5 <https://web.mit.edu/kerberos/www/>`_,
+   the `Heimdal <https://www-local.pdc.kth.se/heimdal/>`_ or `CyberSafe <https://cybersafe.com>`_.
 
 Build Configuration
 -------------------
@@ -148,7 +148,7 @@ KERBEROS_V4, GSSAPI, PLAIN, and ANONYMOUS.  These can be disabled with::
     ``--disable-cram``, ``--disable-digest``,
     ``--disable-scram``, ``--disable-otp``,
     ``--disable-krb4``, ``--disable-gssapi``,
-    ``--disable-plain``, and ``--disable-anon`` respecively.
+    ``--disable-plain``, and ``--disable-anon`` respectively.
 
 If you are using an SQL auxprop plugin, you may want to specify one or more
 of ``--enable-sql``, ``--with-mysql=PATH``, and
@@ -156,7 +156,7 @@ of ``--enable-sql``, ``--with-mysql=PATH``, and
 with the path where you installed the necessary client libraries.
 
 If you are using LDAPDB auxprop plugin, you will need to specify
-``--enable-ldapdb`` and ``--with-ldap=PATH``.  <b>Warning:</b> LDAPDB
+``--enable-ldapdb`` and ``--with-ldap=PATH``.  **Warning:** LDAPDB
 auxprop plugin (and LDAP enabled saslauthd) introduces a circular dependency
 between OpenLDAP and SASL.  I.e., you must have OpenLDAP already built when
 building LDAPDB in SASL.  In order for LDAPDB to work at runtime, you must have

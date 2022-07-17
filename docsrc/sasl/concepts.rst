@@ -13,7 +13,7 @@ SASL Authentication Mechanisms
 
 SASL mechanisms are plugable authentication methods that are developed independently of server protocols. For example, the Generic Security Service Application Program Interface (GSSAPI) mechanism, defined in RFC 4752, defines a network oriented protocol for authenticating a client to a server, using Kerberos version 5, a trusted 3rd party ticket based system. The GSSAPI mechanism should work with all clients and servers which implement support for it, regardless of the actual server protocol used (such as IMAP), given the protocol was designed for use with the SASL framework.
 
-A list of developed SASL mechanisms can be found at the `IANA registered SASL mechanisms <http://www.iana.org/assignments/sasl-mechanisms/sasl-mechanisms.xml>`__ page. A more detailed discussion of these mechanisms can be found in :doc:`Authentication Mechanisms<authentication_mechanisms>`.
+A list of developed SASL mechanisms can be found at the `IANA registered SASL mechanisms <https://www.iana.org/assignments/sasl-mechanisms/sasl-mechanisms.xml>`__ page. A more detailed discussion of these mechanisms can be found in :doc:`Authentication Mechanisms<authentication_mechanisms>`.
 
 Security Layers
 ---------------

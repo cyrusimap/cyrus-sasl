@@ -21,9 +21,9 @@ Compile Cyrus SASL with GSSAPI
 
 Compile the Cyrus-SASL distribution with the GSSAPI plugin
 for your favorite GSS-API mechanism.  I personally use the GSSAPI
-libraries included with the `MIT Kerberos 5 distribution <http://web.mit.edu/kerberos/www/>`_;
-`Heimdal <http://www.pdc.kth.se/heimdal/>`_
-and `CyberSafe <http://www.cybersafe.com>`_ work as well.
+libraries included with the `MIT Kerberos 5 distribution <https://web.mit.edu/kerberos/www/>`_;
+`Heimdal <https://www-local.pdc.kth.se/heimdal/>`_
+and `CyberSafe <https://cybersafe.com>`_ work as well.
 
 Start sample server
 ===================

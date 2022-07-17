@@ -60,7 +60,7 @@ run an initialization function.  If the initialization function
 succeeds, and the versions match, then the glue code determines
 that the load was successful and the plugin is available for use.
 
-There are serveral types of plugins (note that a given plugin library
+There are several types of plugins (note that a given plugin library
 may contain any or all of the following in combination, though
 such a plugin would be a beast!):
 
@@ -74,7 +74,7 @@ User Canonicalization Plugins
     These plugins enable differing
     ways of canonicalizing authentication and authorization IDs.
 Auxiliary Property Plugins
-    These plugins allow auxilliary
+    These plugins allow auxiliary
     properties about user accounts to be looked up, such as passwords.
     Cyrus SASL includes a plugin to read sasldb files, for example.
 

@@ -20,9 +20,9 @@ SASL, the Simple Authentication and Security Layer, is a generic
 mechanism for protocols to accomplish authentication.  Since protocols
 (such as SMTP or IMAP) use SASL, it is a natural place for code
 sharing between applications.  Some notable applications that use the
-Cyrus SASL library include `Sendmail <http://www.sendmail.org>`_,
-`Cyrus imapd <http://www.cyrusimap.org>`_,
-and `OpenLDAP <http://www.openldap.org>`_.
+Cyrus SASL library include `Sendmail <https://www.sendmail.org>`_,
+`Cyrus imapd <https://www.cyrusimap.org>`_,
+and `OpenLDAP <https://www.openldap.org>`_.
 
 Applications use the SASL library to tell them how to accomplish
 the SASL protocol exchange, and what the results were.
@@ -111,7 +111,7 @@ however the way each saslauthd module deals with the situation is
 different (for example, the LDAP plugin allows you to use the realm
 to query the server, while the rimap and PAM plugins ignore it entirely).
 
-Realms are represented in a username string by any text followinhg
+Realms are represented in a username string by any text following
 the '@' sign.  So, usernames like rjs3@ANDREW.CMU.EDU, is user 'rjs3'
 in the realm 'ANDREW.CMU.EDU'.  If no realm is provided, the server's
 FQDN is assumed (likewise when specifying a realm for saslpasswd2).
@@ -180,7 +180,7 @@ saslauthd
 Courier-IMAP authdaemond
     contacts Courier-IMAP's ``authdaemond`` daemon to check passwords.
     This daemon is simliar in functionality to ``saslauthd``, and is shipped
-    separately with the `Courier <http://www.courier-mta.org>`_ mail server.
+    separately with the `Courier <https://www.courier-mta.org>`_ mail server.
 
     Note: this feature is **not** compiled in the library by default, and is
     provided for sites with custom/special requirements only (because the

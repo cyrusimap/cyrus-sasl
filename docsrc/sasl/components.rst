@@ -88,7 +88,7 @@ Plugins
 Plugins: General
 ----------------
 
-The Cyrus SASL architechure is very modular, using loadable modules for
+The Cyrus SASL architecture is very modular, using loadable modules for
 things such as the mechanism profiles and the database access done by the
 auxillary property plugins.  This means that it is easy to limit what
 parts are loaded by a given application, and that third parties can write

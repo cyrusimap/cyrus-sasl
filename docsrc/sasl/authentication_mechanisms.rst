@@ -168,16 +168,16 @@ of the mechanisms provided by the Cyrus SASL Library.
 | SRP         | 128     | X       | X        | X      | X       | X      |      | X      | X         |              | X        | X     |      |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 
-..  Helpfully generated  from http://www.tablesgenerator.com/text_tables#
+..  Helpfully generated  from https://www.tablesgenerator.com/text_tables
 
 Understanding this table:
 
 Security Properties:
 
 * **MAX SSF** - The maximum Security Strength Factor supported by the mechanism (roughly the number of bits of encryption provided, but may have other meanings, for example an SSF of 1 indicates integrity protection only, no encryption).
-* **NOPLAIN** - Mechanism is not susceptable to simple passive (eavesdropping) attack.
+* **NOPLAIN** - Mechanism is not susceptible to simple passive (eavesdropping) attack.
 * **NOACTIVE** - Protection from active (non-dictionary) attacks during authentication exchange. (Implies MUTUAL).
-* **NODICT** - Not susceptable to passive dictionary attack.
+* **NODICT** - Not susceptible to passive dictionary attack.
 * **NOFORWARD** - Breaking one session won't help break the next.
 * **NOANON** - Don't permit anonymous logins.
 * **CRED** - Mechanism can pass client credentials.

@@ -365,7 +365,7 @@ optional and are only needed if you wish to allow the SASL library
 SQL server.  If used, both statements MUST be provided so that
 properties can be added, changed and deleted.
 
-NOTE: The columns for writable properites MUST accept NULL values.
+NOTE: The columns for writable properties MUST accept NULL values.
 
 The SQL statements provided in the sql_select,
 sql_insert and sql_update options can contain

@@ -66,7 +66,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Cyrus SASL'
-copyright = u'1993-2016, The Cyrus Team'
+copyright = u'1993-2022, The Cyrus Team'
 
 
 # The version info for the project you're documenting, acts as replacement for
@@ -350,7 +350,7 @@ texinfo_documents = [
 epub_title = u'Cyrus'
 epub_author = u'The Cyrus Team'
 epub_publisher = u'The Cyrus Team'
-epub_copyright = u'2016, The Cyrus Team'
+epub_copyright = u'2022, The Cyrus Team'
 
 # The basename for the epub file. It defaults to the project name.
 epub_basename = u'Cyrus'

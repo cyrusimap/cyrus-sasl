@@ -5,10 +5,13 @@ RFCs and drafts
 ===============
 
 * :rfc:`1939#page-15` - Post Office Protocol - Version 3 (APOP/sasl_checkapop)
+* :rfc:`2195` - The CRAM-MD5 SASL Mechanism (CRAM-MD5)
 * :rfc:`2222#section-7.1` - Simple Authentication and Security Layer (SASL) (KERBEROS_V4)
 * :rfc:`2444` - The One-Time-Password SASL Mechanism (OTP)
 * :rfc:`2808` - The SecurID(r) SASL Mechanism
 * :rfc:`2831` - Using Digest Authentication as a SASL Mechanism (historic: :rfc:`6331`)
+* :rfc:`4120` - The Kerberos Network Authentication Service (V5)
+* :rfc:`4178` - The Simple and Protected GSS-API Negotiation (SPNEGO) mechanism
 * :rfc:`4422` - Simple Authentication and Security Layer (SASL)
 * :rfc:`4505` - Anonymous Simple Authentication and Security Layer (SASL) Mechanism
 * :rfc:`4616` - The PLAIN Simple Authentication and Security Layer (SASL) Mechanism

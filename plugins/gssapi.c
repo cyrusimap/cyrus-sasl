@@ -2020,9 +2020,6 @@ static int gssapi_client_mech_step(void *conn_context,
     if (clientoutlen)
         *clientoutlen = 0;
     
-    params->utils->log(params->utils->conn, SASL_LOG_DEBUG,
-		       "GSSAPI client step %d", text->state);
-
     switch (text->state) {
 
     case SASL_GSSAPI_STATE_AUTHNEG:

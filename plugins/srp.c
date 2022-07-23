@@ -2296,7 +2296,7 @@ static int srp_setpass(void *glob_context __attribute__((unused)),
 	
 	r = MakeBuffer(text->utils, &text->out_buf, &text->out_buf_len,
 		       &bufferlen, "%s%m%o",
-		       server_mda->name, &v, saltlen, salt);
+		       server_mda->name, v, saltlen, salt);
 	
 	if (r) {
 	    sparams->utils->seterror(sparams->utils->conn, 0, 

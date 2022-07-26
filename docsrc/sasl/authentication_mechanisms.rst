@@ -78,14 +78,6 @@ This is a Microsoft specific customization of GSSAPI.
 
 Described in the `Microsoft documentation <https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/e1cbe214-d73b-4c58-aad2-bee399ccdfb8>`_ and :rfc:`4178`
 
-KERBEROS_V4
------------
-
-Kerberos 4 is an old and `obsolete protocol <https://web.mit.edu/Kerberos/krb4-end-of-life.html>`_ that is now replaced by Kerberos 5.
-
-.. warning::
-   This mechanism is obsolete and was `removed in 2.2.0 release <https://github.com/cyrusimap/cyrus-sasl/pull/736>`_.
-
 LOGIN
 -----
 
@@ -97,17 +89,6 @@ Documented in a `RFC Draft: draft-murchison-sasl-login <https://tools.ietf.org/h
 The LOGIN SASL mechanism does not provide a security layer.
 This mechanism must not be used without adequate security protection as
 the mechanism affords no integrity nor confidentiality protection itself.
-
-NTLM
-----
-
-NTLM is a proprietary protocol developed by Microsoft.
-Documented in this `article <http://davenport.sourceforge.net/ntlm.html>`_
-
-NTLM is a suite of authentication and session security protocols used in various Microsoft network protocol implementations and supported by the NTLM Security Support Provider (`NTLMSSP`).
-
-.. warning::
-   This mechanism is obsolete and was `removed in 2.2.0 release <https://github.com/cyrusimap/cyrus-sasl/pull/736>`_.
 
 OTP
 ---
@@ -202,11 +183,7 @@ of the mechanisms provided by the Cyrus SASL Library.
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 | GSS-SPNEGO  | 56      | X       | X        |        |         | X      | X    | X      | X         |              |          | X     |      | X    |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
-| KERBEROS_V4 | 56      | X       | X        |        |         | X      |      | X      |           | X            |          | X     |      |      |
-+-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 | LOGIN       | 0       |         |          |        |         | X      | X    |        |           | X            |          |       |      |      |
-+-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
-| NTLM        | 0       | X       |          |        |         | X      |      |        | X         |              |          |       |      | X    |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 | OTP         | 0       | X       |          |        | X       | X      |      |        | X         |              |          | X     |      |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+

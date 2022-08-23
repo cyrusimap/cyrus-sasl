@@ -50,7 +50,7 @@
 plugin_version = 3:0:0
 
 AM_CPPFLAGS=-DLIBSASL_EXPORTS=1 -I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/sasldb -I$(top_srcdir)/common -I$(top_builddir)/include
-AM_LDFLAGS = -module -export-dynamic -rpath $(plugindir) -version-info $(plugin_version) -no-undefined
+AM_LDFLAGS = -module -export-dynamic -rpath $(libdir) -version-info $(plugin_version) -no-undefined
 
 if BUILD_LIBOBJ
 COMPAT_OBJS = $(top_builddir)/lib/libobj.la
@@ -125,7 +125,7 @@ libpassdss_la_LIBADD = $(PASSDSS_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COM
 # Auxprop Plugins
 libsasldb_la_SOURCES = sasldb.c sasldb_init.c
 libsasldb_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
-libsasldb_la_LIBADD = ../sasldb/libsasldb.la $(SASL_DB_LIB) $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
+libsasldb_la_LIBADD = ../sasldb/$(SASL_DB_BACKEND) ../sasldb/allockey.lo $(SASL_DB_LIB) $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
 
 libldapdb_la_SOURCES = ldapdb.c ldapdb_init.c
 libldapdb_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)

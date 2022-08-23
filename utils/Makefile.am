@@ -54,11 +54,15 @@ man_MANS = $(SASL_DB_MANS) pluginviewer.8
 
 saslpasswd2_LDADD = ../sasldb/libsasldb.la $(all_sasl_libs)
 saslpasswd2_SOURCES = saslpasswd.c
+saslpasswd2_LDFLAGS = -rpath $(libdir)
 sasldblistusers2_LDADD = ../sasldb/libsasldb.la $(all_sasl_libs)
 sasldblistusers2_SOURCES = sasldblistusers.c
+sasldblistusers2_LDFLAGS = -rpath $(libdir)
 dbconverter_2_LDADD = ../sasldb/libsasldb.la $(all_sasl_libs)
+dbconverter_2_LDFLAGS = -rpath $(libdir)
 pluginviewer_LDADD = $(all_sasl_libs)
 pluginviewer_SOURCES = pluginviewer.c
+pluginviewer_LDFLAGS = -rpath $(libdir)
 
 testsuite_LDADD = $(all_sasl_libs) @DMALLOC_LIBS@
 

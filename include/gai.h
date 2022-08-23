@@ -73,6 +73,10 @@
 #ifndef AI_PASSIVE
 #define AI_PASSIVE	1
 #define AI_CANONNAME	2
+#define AI_NUMERICHOST 4
+#define NI_NUMERICHOST 2
+#define NI_NAMEREQD    4
+#define NI_NUMERICSERV 8
 struct addrinfo {
 	int	ai_flags;	/* AI_PASSIVE, AI_CANONNAME */
 	int	ai_family;	/* PF_xxx */

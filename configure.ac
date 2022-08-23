@@ -1231,8 +1231,8 @@ IPv6_CHECK_FUNC(getaddrinfo, [IPv6_CHECK_FUNC(gai_strerror,
                 sasl_cv_getaddrinfo=no])])
 if test $sasl_cv_getaddrinfo = yes; then
     AC_LIBOBJ(getaddrinfo)
-    GETADDRINFOOBJS="getaddrinfo.o"
-    LTGETADDRINFOOBJS="getaddrinfo.lo"
+    GETADDRINFOOBJS="../lib/getaddrinfo.o"
+    LTGETADDRINFOOBJS="../lib/getaddrinfo.lo"
 fi
 AC_SUBST(GETADDRINFOOBJS)
 AC_SUBST(LTGETADDRINFOOBJS)
@@ -1244,8 +1244,8 @@ IPv6_CHECK_FUNC(getnameinfo,
 		[AC_DEFINE(HAVE_GETNAMEINFO,[],[Do we have a getnameinfo() function?])], [sasl_cv_getnameinfo=yes])
 if test $sasl_cv_getnameinfo = yes; then
 	AC_LIBOBJ(getnameinfo)
-        GETNAMEINFOOBJS="getnameinfo.o"
-        LTGETNAMEINFOOBJS="getnameinfo.lo"
+        GETNAMEINFOOBJS="../lib/getnameinfo.o"
+        LTGETNAMEINFOOBJS="../lib/getnameinfo.lo"
 fi
 AC_SUBST(GETNAMEINFOOBJS)
 AC_SUBST(LTGETNAMEINFOOBJS)

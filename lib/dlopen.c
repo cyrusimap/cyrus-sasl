@@ -43,6 +43,8 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#ifndef WIN32
+
 #include <config.h>
 #ifdef HAVE_DLFCN_H
 #include <dlfcn.h>
@@ -569,3 +571,9 @@ _sasl_done_with_plugins(void)
 #endif /* DO_DLOPEN */
     return SASL_OK;
 }
+
+#else /*WIN32*/
+
+#include "windlopen.c"
+
+#endif /*WIN32*/

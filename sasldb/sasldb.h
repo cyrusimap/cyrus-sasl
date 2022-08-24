@@ -73,7 +73,7 @@ int _sasldb_putdata(const sasl_utils_t *utils,
 		    const char *data, size_t data_len);
 
 /* Should be run before any db access is attempted */
-LIBSASL_API int _sasl_check_db(const sasl_utils_t *utils,
+int _sasl_check_db(const sasl_utils_t *utils,
 		   sasl_conn_t *conn);
 
 /* These allow iterating through the keys of the database */
@@ -84,15 +84,15 @@ typedef int (* sasldb_list_callback_t) (const char *authid,
 					const char *property,
 					void *rock);
 
-LIBSASL_API sasldb_handle _sasldb_getkeyhandle(const sasl_utils_t *utils,
+sasldb_handle _sasldb_getkeyhandle(const sasl_utils_t *utils,
 				   sasl_conn_t *conn);
-LIBSASL_API int _sasldb_getnextkey(const sasl_utils_t *utils,
+int _sasldb_getnextkey(const sasl_utils_t *utils,
 		       sasldb_handle handle, char *out,
 		       const size_t max_out, size_t *out_len);
-LIBSASL_API int _sasldb_releasekeyhandle(const sasl_utils_t *utils,
+int _sasldb_releasekeyhandle(const sasl_utils_t *utils,
 			     sasldb_handle handle);
 
-LIBSASL_API int _sasldb_listusers(const sasl_utils_t *utils,
+int _sasldb_listusers(const sasl_utils_t *utils,
 				  sasl_conn_t *context,
 				  sasldb_list_callback_t callback,
 				  void *callback_rock);
@@ -118,7 +118,7 @@ int _sasldb_putsecret(const sasl_utils_t *utils,
 		      const char *realm,
 		      const sasl_secret_t * secret);
 
-LIBSASL_API int _sasldb_parse_key(const char *key, const size_t key_len,
+int _sasldb_parse_key(const char *key, const size_t key_len,
 		      char *authid, const size_t max_authid,
 		      char *realm, const size_t max_realm,
 		      char *propName, const size_t max_propname);

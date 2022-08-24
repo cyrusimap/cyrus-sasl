@@ -1295,7 +1295,7 @@ AC_CHECK_HEADERS_ONCE([sys/time.h])
 
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(crypt.h des.h dlfcn.h fcntl.h limits.h malloc.h paths.h strings.h sys/file.h sys/time.h syslog.h time.h unistd.h inttypes.h sys/uio.h sys/param.h sysexits.h stdarg.h varargs.h krb5.h)
+AC_CHECK_HEADERS(crypt.h des.h dlfcn.h fcntl.h limits.h malloc.h paths.h strings.h sys/file.h sys/time.h syslog.h time.h unistd.h inttypes.h sys/uio.h sys/param.h sysexits.h stdarg.h varargs.h krb5.h netinet/in.h netdb.h sys/un.h string.h termios.h getopt.h arpa/inet.h sys/socket.h)
 
 IPv6_CHECK_SS_FAMILY()
 IPv6_CHECK_SA_LEN()
@@ -1411,7 +1411,9 @@ struct iovec {
 };
 #else
 #include <sys/types.h>
+#ifdef HAVE_SYS_UIO_H
 #include <sys/uio.h>
+#endif /* HAVE_SYS_UIO_H */
 #endif
 #endif
 
@@ -1447,9 +1449,13 @@ struct iovec {
 #include <stdlib.h>
 #include <sys/types.h>
 #ifndef WIN32
+# ifdef HAVE_SYS_SOCKET_H
 # include <sys/socket.h>
+# endif /* HAVE_SYS_SOCKET_H */
 # include <netdb.h>
+# ifdef HAVE_NETINET_IN_H
 # include <netinet/in.h>
+# endif /* HAVE_NETINET_IN_H */
 # ifdef HAVE_SYS_PARAM_H
 #  include <sys/param.h>
 # endif

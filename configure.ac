@@ -1528,15 +1528,21 @@ struct sockaddr_storage {
 #endif
 
 #ifdef WIN32
-#define SASL_ROOT_KEY "SOFTWARE\\Carnegie Mellon\\Project Cyrus\\SASL Library"
-#define SASL_PLUGIN_PATH_ATTR "SearchPath"
-#define SASL_CONF_PATH_ATTR "ConfFile"
+#define SASL_ROOT_KEY "SOFTWARE\\Project Cyrus\\SASL Library"
+#define SASL_PLUGIN_PATH_ATTR "PluginDir"
+#define SASL_CONF_PATH_ATTR "ConfDir"
+#define SASL_DB_PATH_ATTR "SaslDBName"
 
 #include <windows.h>
 inline static unsigned int sleep(unsigned int seconds) {
        Sleep(seconds * 1000);
        return 0;
 }
+#else
+#define SASL_ROOT_KEY         NULL
+#define SASL_PLUGIN_PATH_ATTR "SASL_PLUGINDIR"
+#define SASL_CONF_PATH_ATTR   "SASL_CONFDIR"
+#define SASL_DB_PATH_ATTR     "SASL_DBNAME"
 #endif
 
 /* handy string manipulation functions */

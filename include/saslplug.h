@@ -43,7 +43,7 @@ typedef int sasl_getcallback_t(sasl_conn_t *conn,
  * the SASL_*_PLUG_VERSION is changed incompatibly
  * higher SASL_UTILS_VERSION numbers indicate more functions are available
  */
-#define SASL_UTILS_VERSION 4
+#define SASL_UTILS_VERSION 5
 
 /* utility function set for plug-ins
  */
@@ -153,7 +153,10 @@ typedef struct sasl_utils {
     void (*prop_erase)(struct propctx *ctx, const char *name);
     int (*auxprop_store)(sasl_conn_t *conn,
 			 struct propctx *ctx, const char *user);
-
+    /* Registry value functions */
+    int (*get_registry_value)(void *context __attribute__((unused)),
+			      const char *attrname, char **value, const char *def_value);
+    void(*free_registry_value)( void *value );
     /* for additions which don't require a version upgrade; set to 0 */
     int (*spare_fptr1)(void);
     int (*spare_fptr2)(void);

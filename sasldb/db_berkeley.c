@@ -75,7 +75,7 @@ static int berkeleydb_open(const sasl_utils_t *utils,
 			   sasl_conn_t *conn,
 			   int rdwr, DB **mbdb)
 {
-    const char *path = SASL_DB_PATH;
+    const char *path;
     const char *p;
     int ret;
     int flags;
@@ -88,6 +88,9 @@ static int berkeleydb_open(const sasl_utils_t *utils,
 	return SASL_OK;
     }
 #endif
+
+    ret = _sasldb_getpath(utils, &path);
+    if (ret) return ret;
 
     if (utils->getcallback(conn, SASL_CB_GETOPT,
 			   (sasl_callback_ft *)&getopt, &cntxt) == SASL_OK) {
@@ -134,7 +137,7 @@ static int berkeleydb_open(const sasl_utils_t *utils,
 		   "unable to open Berkeley db %s: %s",
 		   path, db_strerror(ret));
 	utils->seterror(conn, SASL_NOLOG, "Unable to open DB");
-	utils->free_registry_value(path);
+	SASLDB_FREEPATH(utils, path);
 	return SASL_FAIL;
     }
 
@@ -142,7 +145,7 @@ static int berkeleydb_open(const sasl_utils_t *utils,
     /* Save the DB handle for later use */
     g_db = *mbdb;
 #endif
-    utils->free_registry_value(path);
+    SASLDB_FREEPATH(utils, path);
     return SASL_OK;
 }
 

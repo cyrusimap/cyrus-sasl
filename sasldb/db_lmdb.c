@@ -65,7 +65,7 @@ static int do_open(const sasl_utils_t *utils,
 			 sasl_conn_t *conn,
 			 int rdwr, MDB_txn **mtxn)
 {
-    const char *path = SASL_DB_PATH;
+    char *path;
     void *cntxt;
     MDB_env *env;
     MDB_txn *txn;
@@ -76,6 +76,9 @@ static int do_open(const sasl_utils_t *utils,
     int flags;
 
     if (!db_env) {
+
+	ret = _sasldb_getpath(utils, &path);
+	if (ret) return ret;
 
 	if (utils->getcallback(conn, SASL_CB_GETOPT,
 			       (sasl_callback_ft *)&getopt, &cntxt) == SASL_OK) {
@@ -101,7 +104,8 @@ static int do_open(const sasl_utils_t *utils,
 		       "unable to create MDB environment: %s",
 		       mdb_strerror(ret));
 	    utils->seterror(conn, SASL_NOLOG, "Unable to create MDB environment");
-	    return SASL_FAIL;
+	    ret = SASL_FAIL;
+	    goto cleanup;
 	}
 
 	if (readers) {
@@ -111,7 +115,8 @@ static int do_open(const sasl_utils_t *utils,
 		       "unable to set MDB maxreaders: %s",
 		       mdb_strerror(ret));
 		utils->seterror(conn, SASL_NOLOG, "Unable to set MDB maxreaders");
-		return SASL_FAIL;
+		ret = SASL_FAIL;
+		goto cleanup;
 	    }
 	}
 
@@ -122,7 +127,8 @@ static int do_open(const sasl_utils_t *utils,
 		       "unable to set MDB mapsize: %s",
 		       mdb_strerror(ret));
 		utils->seterror(conn, SASL_NOLOG, "Unable to set MDB mapsize");
-		return SASL_FAIL;
+		ret = SASL_FAIL;
+		goto cleanup;
 	    }
 	}
 
@@ -134,13 +140,15 @@ static int do_open(const sasl_utils_t *utils,
 	    if (!rdwr && ret == ENOENT) {
 		/* File not found and we are only reading the data.
 		   Treat as SASL_NOUSER. */
-		return SASL_NOUSER;
+		ret = SASL_NOUSER;
+		goto cleanup;
 	    }
 	    utils->log(conn, SASL_LOG_ERR,
 		       "unable to open MDB environment %s: %s",
 		       path, mdb_strerror(ret));
 	    utils->seterror(conn, SASL_NOLOG, "Unable to open MDB environment");
-	    return SASL_FAIL;
+	    ret = SASL_FAIL;
+	    goto cleanup;
 	}
     } else {
     	env = db_env;
@@ -153,7 +161,8 @@ static int do_open(const sasl_utils_t *utils,
 		   "unable to open MDB transaction: %s",
 		   mdb_strerror(ret));
 	utils->seterror(conn, SASL_NOLOG, "Unable to open MDB transaction");
-	return SASL_FAIL;
+	ret = SASL_FAIL;
+	goto cleanup;
     }
 
     if (!db_dbi) {
@@ -165,15 +174,19 @@ static int do_open(const sasl_utils_t *utils,
 		       "unable to open MDB database: %s",
 		       mdb_strerror(ret));
 	    utils->seterror(conn, SASL_NOLOG, "Unable to open MDB database");
-	    return SASL_FAIL;
+	    ret = SASL_FAIL;
+	    goto cleanup;
 	}
     }
 
     if (!db_env)
 	db_env = env;
     *mtxn = txn;
+    ret = SASL_OK;
 
-    return SASL_OK;
+cleanup:
+    SASLDB_FREEPATH(utils, path);
+    return ret;
 }
 
 /*
@@ -381,13 +394,16 @@ int _sasldb_putdata(const sasl_utils_t *utils,
 int _sasl_check_db(const sasl_utils_t *utils,
 		   sasl_conn_t *conn)
 {
-    const char *path = SASL_DB_PATH;
+    char *path;
     int ret;
     void *cntxt;
     sasl_getopt_t *getopt;
     sasl_verifyfile_t *vf;
 
     if (!utils) return SASL_BADPARAM;
+
+    ret = _sasldb_getpath(utils, &path);
+    if (ret) return ret;
 
     if (utils->getcallback(conn, SASL_CB_GETOPT,
 			   (sasl_callback_ft *)&getopt, &cntxt) == SASL_OK) {
@@ -402,7 +418,7 @@ int _sasl_check_db(const sasl_utils_t *utils,
 			     (sasl_callback_ft *)&vf, &cntxt);
     if (ret != SASL_OK) {
 	utils->seterror(conn, 0, "verifyfile failed");
-	return ret;
+	goto cleanup;
     }
 
     ret = vf(cntxt, path, SASL_VRFY_PASSWD);
@@ -412,10 +428,12 @@ int _sasl_check_db(const sasl_utils_t *utils,
     }
 
     if (ret == SASL_OK || ret == SASL_CONTINUE) {
-	return SASL_OK;
-    } else {
-	return ret;
+	ret = SASL_OK;
     }
+
+cleanup:
+    SASLDB_FREEPATH(utils, path);
+    return ret;
 }
 
 #if defined(KEEP_DB_OPEN)

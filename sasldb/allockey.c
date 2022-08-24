@@ -274,3 +274,11 @@ int _sasldb_listusers (const sasl_utils_t *utils,
 
     return _sasldb_releasekeyhandle(utils, dbh);
 }
+
+/* Simple helper for getting DB path. The path must be freed after use,
+ * using utils->free_registry_value().
+ */
+int _sasldb_getpath (const sasl_utils_t *utils, char **path)
+{
+	return utils->get_registry_value (NULL, SASL_DB_PATH_ATTR, path, SASL_DB_PATH);
+}

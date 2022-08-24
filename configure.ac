@@ -113,7 +113,7 @@ fi
 
 # new libtool
 AC_DISABLE_STATIC([])
-LT_INIT
+LT_INIT([win32-dll])
 
 target=$save_target
 
@@ -1102,6 +1102,14 @@ AC_ARG_ENABLE(macos-framework, [  --disable-macos-framework       disable buildi
 esac
 AM_CONDITIONAL(MACOSX, test "$building_for_macosx" = yes)
 AM_CONDITIONAL(WINDOWS, test "$host_os" = "mingw32")
+if test "$host_os" = "mingw32"; then
+   AC_DEFINE(HAVE_WINSOCK2, 1, [define if you have winsock2])
+   ac_cv_func_socket=yes
+   ac_cv_func_select=yes
+   ac_cv_func_closesocket=yes
+   ac_cv_func_gethostname=yes
+   LIB_SOCKET="$LIB_SOCKET -lws2_32"
+fi
 
 dnl dmalloc tests
 AC_MSG_CHECKING(for dmalloc library)

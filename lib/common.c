@@ -65,6 +65,7 @@
 #endif
 
 static const char *implementation_string = "Cyrus SASL";
+static const char *sasl_root_key = SASL_ROOT_KEY;
 
 #define	VSTR0(maj, min, step)	#maj "." #min "." #step
 #define	VSTR(maj, min, step)	VSTR0(maj, min, step)
@@ -76,15 +77,11 @@ static int _sasl_getpath_simple(void *context __attribute__((unused)), const cha
 static int _sasl_getconfpath(void *context __attribute__((unused)), char ** path);
 static int _sasl_getconfpath_simple(void *context __attribute__((unused)), const char **path);
 
-#if !defined(WIN32)
-static char * _sasl_get_default_unix_path(void *context __attribute__((unused)),
-                            char * env_var_name, char * default_value);
-#else
-/* NB: Always returned allocated value */
-static char * _sasl_get_default_win_path(void *context __attribute__((unused)),
-                            TCHAR * reg_attr_name, char * default_value);
-#endif
-
+static int _sasl_get_default_path(void *context __attribute__((unused)),
+			    const char * reg_key_name,
+                            const char * reg_attr_name,
+			    char ** value,
+                            const char * default_value);
 
 /* It turns out to be convenient to have a shared sasl_utils_t */
 const sasl_utils_t *sasl_global_utils = NULL;
@@ -421,7 +418,8 @@ int sasl_encodev(sasl_conn_t *conn,
 
     if (!conn->props.maxbufsize) {
 	sasl_seterror(conn, 0,
-		      "called sasl_encode[v] with application that does not support security layers");
+		"called sasl_encode[v] with application "
+		"that does not support security layers");
 	return SASL_TOOWEAK;
     }
 
@@ -1573,13 +1571,21 @@ _sasl_getsimple(void *context,
   }
 }
 
+/*
+ * Get the path to the plugin directory.
+ * Parameters:
+ *  context   - The SASL context.
+ *  path_dest - Address of the pointer in which to store the
+ *		 address of the plugin directory string.
+ *
+ * Return Values:
+ *  SASL_OK   - Success.
+ *  SASL_FAIL - Something happened.
+ */
 static int
 _sasl_getpath(void *context __attribute__((unused)),
               const char ** path_dest)
 {
-#if !defined(WIN32)
-    char *path;
-#endif
     int res = SASL_OK;
 
     if (! path_dest) {
@@ -1587,23 +1593,13 @@ _sasl_getpath(void *context __attribute__((unused)),
     }
 
     /* Only calculate the path once. */
-    if (default_plugin_path == NULL) {
-
-#if defined(WIN32)
-        /* NB: On Windows platforms this value is always allocated */
-        default_plugin_path = _sasl_get_default_win_path(context,
+    if ( ! default_plugin_path) {
+    	res = _sasl_get_default_path(context,
+				sasl_root_key,
                                                          SASL_PLUGIN_PATH_ATTR,
+				&default_plugin_path,
                                                          PLUGINDIR);
-#else
-        /* NB: On Unix platforms this value is never allocated */
-        path = _sasl_get_default_unix_path(context,
-                                           SASL_PATH_ENV_VAR,
-                                           PLUGINDIR);
-
-        res = _sasl_strdup(path, &default_plugin_path, NULL);
-#endif
     }
-
     if (res == SASL_OK) {
         *path_dest = default_plugin_path;
     }
@@ -1628,13 +1624,71 @@ _sasl_getpath_simple(void *context __attribute__((unused)),
     return SASL_OK;
 }
 
+/*
+ * Get a value from the "registry". On UNIX systems this is the process's
+ * environment. On Windows, it's the registry key defined by SASL_ROOT_KEY.
+ * It is incumbent on the caller to call _sasl_free_registry_value() when
+ * done with the value, or a memory leak could result.
+ * 
+ * Parameters:
+ *	context      - Pointer to the SASL context structure.
+ *	attrname     - Pointer to the name of the environment variable
+ *			or the name of the registry attribute.
+ *	value        - Address of the pointer where the value is to be
+ *			returned.
+ *	default      - Pointer to the default value. Note that a supplied
+ *			default string is copied to an allocated buffer,
+ *			so it is always necessary to call the
+ *			_sasl_free_registry_value() function.
+ *
+ * Return Values:
+ *	SASL_OK	      - Success
+ *	SASL_BADPARAM - A bad parameter was passed
+ *      SASL_FAIL     - The call failed (likely out of memory)
+ *
+ */
+int _sasl_get_registry_value(void *context __attribute__((unused)),
+		const char *attrname, char **value, const char *def_value)
+{
+	if( ! value || ! attrname )
+		return SASL_BADPARAM;
+
+	return _sasl_get_default_path(context,
+				      sasl_root_key,
+				      attrname,
+				      value,
+				      def_value);
+}
+
+/*
+ * Free the memory for a _sasl_get_registry_value call.
+ * Call this function to free the memory that was passed back from
+ * a call to _sasl_get_registry_value() call.
+ */
+void _sasl_free_registry_value( void *value )
+{
+	if( value )
+		sasl_FREE(value);
+
+	return;
+}
+
+/*
+ * Get the path to the configuration file directory.
+ * Parameters:
+ * context       - Pointer to the SASL context.
+ * path_dest     - Address of the pointer in which to store the
+ *                 pointer to the returned path.
+ *
+ * Return Values:
+ * SASL_OK       - Success
+ * SASL_BADPARAM - The path_dest parameter was null
+ * SASL_NOMEM    - Out of memory
+ */
 static int
 _sasl_getconfpath(void *context __attribute__((unused)),
                   char ** path_dest)
 {
-#if !defined(WIN32)
-    char *path;
-#endif
     int res = SASL_OK;
 
     if (! path_dest) {
@@ -1642,23 +1696,12 @@ _sasl_getconfpath(void *context __attribute__((unused)),
     }
 
   /* Only calculate the path once. */
-    if (default_conf_path == NULL) {
-
-#if defined(WIN32)
-        /* NB: On Windows platforms this value is always allocated */
-        default_conf_path = _sasl_get_default_win_path(context,
+    if ( ! default_conf_path ) {
+	res = _sasl_get_default_path(context, sasl_root_key,
                                                        SASL_CONF_PATH_ATTR,
+				    &default_conf_path,
                                                        CONFIGDIR);
-#else
-        /* NB: On Unix platforms this value is never allocated */
-        path = _sasl_get_default_unix_path(context,
-                                           SASL_CONF_PATH_ENV_VAR,
-                                           CONFIGDIR);
-
-        res = _sasl_strdup(path, &default_conf_path, NULL);
-#endif
     }
-
     if (res == SASL_OK) {
         *path_dest = default_conf_path;
     }
@@ -2076,6 +2119,10 @@ _sasl_alloc_utils(sasl_conn_t *conn,
   utils->auxprop_store=&sasl_auxprop_store;
 #endif
 
+  /* Registry functions */
+  utils->get_registry_value=&_sasl_get_registry_value;
+  utils->free_registry_value=&_sasl_free_registry_value;
+
   /* Spares */
   utils->spare_fptr = NULL;
   utils->spare_fptr1 = utils->spare_fptr2 = NULL;
@@ -2445,75 +2492,93 @@ int _sasl_is_equal_mech(const char *req_mech,
     return (strncasecmp(req_mech, plug_mech, n) == 0);
 }
 
+/*
+ * Open the specified registry entry and return the requested value. 
+ * On Windows this function will expand REG_EXPAND_SZ type strings
+ * and will convert REG_MULTI_SZ strings into ';' separated search
+ * path strings.
+ * On non-Windows platforms reg_key_name is ignored and the process's
+ * environment is examined for the requested value.
+ *
+ * Parameters:
+ * context       - Pointer to the SASL context.
+ * reg_key_name  - Pointer to the name of the registry key in which to
+ *                 look. Ignored on non-windows platforms.
+ * reg_attr_name - Pointer to the name of the attribute value to return.
+ * value	 - Address of the pointer in which to store the address
+ *                 of the attribute value. This pointer is set to NULL
+ *                 on failure.
+ * 
+ * Return Codes:
+ * SASL_OK       - Success
+ * SASL_NOMEM    - Out of memory
+ * SASL_BADPARAM - reg_key_name, reg_attr_name or value are NULL.
+ *
+ * value is left undisturbed in the event of failure.
+ *
+ */
+static int
+_sasl_get_default_path(void *context __attribute__((unused)),
+			    const char * reg_key_name,
+                            const char * reg_attr_name,
+			    char ** value,
+                            const char * default_value)
 #ifndef WIN32
-static char *
-_sasl_get_default_unix_path(void *context __attribute__((unused)),
-                            char * env_var_name,
-                            char * default_value)
 {
     char *path = NULL;
+    int res = SASL_OK;
+
+    if( ! reg_attr_name || ! value )
+	return SASL_BADPARAM;
 
     /* Honor external variable only in a safe environment */
     if (getuid() == geteuid() && getgid() == getegid()) {
-        path = getenv(env_var_name);
+        path = getenv(reg_attr_name);
     }
     if (! path) {
-        path = default_value;
+	path = default_value;
     }
+    if ( path )
+	res = _sasl_strdup( path, value, NULL );
+    else
+	*value = NULL;
 
-    return path;
+    return res;
 }
 
 #else /*WIN32*/
-/* Return NULL on failure */
-static char *
-_sasl_get_default_win_path(void *context __attribute__((unused)),
-                           TCHAR * reg_attr_name,
-                           char * default_value)
 {
-    /* Open registry entry, and find all registered SASL libraries.
-     *
-     * Registry location:
-     *
-     *     SOFTWARE\\Carnegie Mellon\\Project Cyrus\\SASL Library
-     *
-     * Key - value:
-     *
-     *     "SearchPath" - value: PATH like (';' delimited) list
-     *                    of directories where to search for plugins
-     *                    The list may contain references to environment
-     *                    variables (e.g. %PATH%).
-     *
-     */
     HKEY  hKey;
-    DWORD ret;
+    DWORD res = SASL_OK;
     DWORD ValueType;		    /* value type */
     DWORD cbData;		    /* value size in bytes and later number of wchars */
-    TCHAR * ValueData;		    /* value */
+    TCHAR * ValueData = NULL;	    /* value */
     DWORD cbExpandedData;	    /* "expanded" value size in wchars */
-    TCHAR * ExpandedValueData;	    /* "expanded" value */
-    TCHAR * return_value;	    /* function return value */
+    TCHAR * ExpandedValueData = NULL;	/* "expanded" value */
     TCHAR * tmp;
 
-    /* Initialization */
-    ExpandedValueData = NULL;
-    ValueData = NULL;
-    return_value = NULL;
-
-    /* Open the registry */
-    ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE,
-		       SASL_ROOT_KEY,
-		       0,
-		       KEY_READ,
-		       &hKey);
-
-    if (ret != ERROR_SUCCESS) { 
-        /* no registry entry */
-        char *ret;
-        (void) _sasl_strdup (default_value, &ret, NULL);
-        return ret;
+    /* Validatation */
+    if( ! reg_key_name || ! reg_attr_name || ! value ) {
+	return SASL_BADPARAM;
     }
 
+    /* Open the registry */
+    if( RegOpenKeyEx(HKEY_LOCAL_MACHINE,
+		       reg_key_name,
+		       0,
+		       KEY_READ,
+		       &hKey) != ERROR_SUCCESS ) {
+
+	/* no registry key */
+	if( ! default_value ) {
+	    /* no default value */
+	    *value = NULL;
+	    return SASL_OK;
+	}
+	return _sasl_strdup( default_value, value, NULL );
+    }
+
+    /* registry key found */
     /* figure out value type and required buffer size */
     /* the size will include space for terminating NUL if required */
     RegQueryValueEx (hKey,
@@ -2527,16 +2592,16 @@ _sasl_get_default_win_path(void *context __attribute__((unused)),
     if (ValueType != REG_EXPAND_SZ &&
 	ValueType != REG_MULTI_SZ &&
 	ValueType != REG_SZ) {
-	return_value = NULL;
+	res = SASL_FAIL;
 	goto CLEANUP;
     }
 
     /* Any high water mark? */
     ValueData = sasl_ALLOC(cbData + 2 * sizeof(TCHAR)); /* extra bytes to insert null-terminator if it's missed */
     if (ValueData == NULL) {
-	return_value = NULL;
+	res = SASL_NOMEM;
 	goto CLEANUP;
-    };
+    }
 
     if (RegQueryValueEx(hKey,
         reg_attr_name,
@@ -2544,11 +2609,11 @@ _sasl_get_default_win_path(void *context __attribute__((unused)),
         &ValueType,
         (LPBYTE)ValueData,
         &cbData) != ERROR_SUCCESS) {
-        return_value = NULL;
+        res = SASL_FAIL;
         goto CLEANUP;
     }
-    cbData /= sizeof(TCHAR); /* covert to number of symbols */
-    ValueData[cbData] = '\0'; /* MS docs say we have to to that */
+    cbData /= sizeof(TCHAR); /* convert to number of symbols */
+    ValueData[cbData] = '\0'; /* MS docs say we have to do that */
     ValueData[cbData + 1] = '\0'; /* for MULTI */
 
     switch (ValueType) {
@@ -2557,9 +2622,9 @@ _sasl_get_default_win_path(void *context __attribute__((unused)),
         cbExpandedData = cbData + 1024;
         ExpandedValueData = (TCHAR*)sasl_ALLOC(cbExpandedData * sizeof(TCHAR));
         if (ExpandedValueData == NULL) {
-            return_value = NULL;
+	    res = SASL_NOMEM;
             goto CLEANUP;
-        };
+        }
 
 
         cbExpandedData = ExpandEnvironmentStrings(
@@ -2568,19 +2633,19 @@ _sasl_get_default_win_path(void *context __attribute__((unused)),
                                                   cbExpandedData);
 
         if (cbExpandedData == 0) {
+	    res = SASL_FAIL;
             /* : GetLastError() contains the reason for failure */
-            return_value = NULL;
             goto CLEANUP;
         }
 
         /* : Must retry expansion with the bigger buffer */
         if (cbExpandedData > cbData + 1024) {
-            /* : Memory leak here if can't realloc */
-            ExpandedValueData = sasl_REALLOC(ExpandedValueData, cbExpandedData * sizeof(TCHAR));
-            if (ExpandedValueData == NULL) {
-                return_value = NULL;
+	    tmp = sasl_REALLOC(ExpandedValueData, cbExpandedData * sizeof(TCHAR));
+            if (tmp == NULL) {
+	        res = SASL_NOMEM;
                 goto CLEANUP;
-            };
+            }
+	    ExpandedValueData = tmp;
 
             cbExpandedData = ExpandEnvironmentStrings(
                                                       ValueData,
@@ -2590,14 +2655,14 @@ _sasl_get_default_win_path(void *context __attribute__((unused)),
             /* : This should not happen */
             if (cbExpandedData == 0) {
                 /* : GetLastError() contains the reason for failure */
-                return_value = NULL;
+                res = SASL_FAIL;
                 goto CLEANUP;
             }
         }
 
         sasl_FREE(ValueData);
         ValueData = ExpandedValueData;
-        /* : This is to prevent automatical freeing of this block on cleanup */
+        /* : This is to prevent automatic freeing of this block on cleanup */
         ExpandedValueData = NULL;
 
         break;
@@ -2605,11 +2670,12 @@ _sasl_get_default_win_path(void *context __attribute__((unused)),
     case REG_MULTI_SZ:
         tmp = ValueData;
 
-        /* : We shouldn't overflow here, as the buffer is guarantied
+        /* : We shouldn't overflow here, as the buffer is guaranteed
            : to contain at least two consequent NULs */
         while (1) {
             if (tmp[0] == '\0') {
-                /* : Stop the process if we found the end of the string (two consequent NULs) */
+                /* : Stop the process if we found the end of the string
+		   (two consecutive NULs) */
                 if (tmp[1] == '\0') {
                     break;
                 }
@@ -2635,20 +2701,18 @@ _sasl_get_default_win_path(void *context __attribute__((unused)),
 CLEANUP:
     RegCloseKey(hKey);
     if (ExpandedValueData != NULL) sasl_FREE(ExpandedValueData);
-    if (return_value == NULL) {
+    if (res != SASL_OK) {
 	    if (ValueData != NULL) sasl_FREE(ValueData);
-        return NULL;
+        return res;
     }
-    if (sizeof(TCHAR) == sizeof(char)) {
-        return (char*)return_value;
-    }
-
+    if (sizeof(TCHAR) != sizeof(char)) {
     /* convert to utf-8 for compatibility with other OS' */
-    {
-        char *tmp = _sasl_wchar_to_utf8(return_value);
-        sasl_FREE(return_value);
-        return tmp;
+        char *tmp = _sasl_wchar_to_utf8(ValueData);
+        sasl_FREE(ValueData);
+	ValueData = tmp;
     }
+    *value = ValueData;
+    return res;
 }
 
 char* _sasl_wchar_to_utf8(WCHAR *str)

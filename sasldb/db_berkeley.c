@@ -61,13 +61,22 @@ static DB * g_db = NULL;
 #endif
 
 /*
- * Open the database
+ * Open the database. The pathname for the database can come from 
+ * one of three places:
+ * 
+ * 1) The value of SASL_DB_PATH.
+ * 2) The registry value of the string SASL_DB_PATH_ATTR. See
+ *    _sasl_get_registry_value() for a desciption of the semantics.
+ * 3) The value returned from the sasldb_path callback function.
+ *
+ * The last value provided wins.
  */
 static int berkeleydb_open(const sasl_utils_t *utils,
 			   sasl_conn_t *conn,
 			   int rdwr, DB **mbdb)
 {
     const char *path = SASL_DB_PATH;
+    const char *p;
     int ret;
     int flags;
     void *cntxt;
@@ -82,7 +91,6 @@ static int berkeleydb_open(const sasl_utils_t *utils,
 
     if (utils->getcallback(conn, SASL_CB_GETOPT,
 			   (sasl_callback_ft *)&getopt, &cntxt) == SASL_OK) {
-	const char *p;
 	if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK 
 	    && p != NULL && *p != 0) {
 	    path = p;
@@ -126,6 +134,7 @@ static int berkeleydb_open(const sasl_utils_t *utils,
 		   "unable to open Berkeley db %s: %s",
 		   path, db_strerror(ret));
 	utils->seterror(conn, SASL_NOLOG, "Unable to open DB");
+	utils->free_registry_value(path);
 	return SASL_FAIL;
     }
 
@@ -133,6 +142,7 @@ static int berkeleydb_open(const sasl_utils_t *utils,
     /* Save the DB handle for later use */
     g_db = *mbdb;
 #endif
+    utils->free_registry_value(path);
     return SASL_OK;
 }
 

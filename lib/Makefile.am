@@ -43,7 +43,7 @@
 # Library version info - here at the top, for sanity
 # See <http://www.gnu.org/software/libtool/manual/libtool.html#Versioning>
 # CURRENT:REVISION:AGE
-sasl_version = 3:0:0
+sasl_version = 4:0:1
 
 AM_CPPFLAGS=-DLIBSASL_EXPORTS=1 -I$(top_srcdir)/include -I$(top_srcdir)/plugins \
                -I$(top_builddir)/include -I$(top_srcdir)/sasldb -I$(top_srcdir)/common -DCONFIGDIR='"${configdir}"' -DPLUGINDIR='"${plugindir}"'

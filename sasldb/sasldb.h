@@ -131,4 +131,10 @@ int _sasldb_alloc_key(const sasl_utils_t *utils,
 		      char **key,
 		      size_t *key_len);
 
+/* Internal function for retrieving SASL DB path */
+int _sasldb_getpath(const sasl_utils_t *utils, char **path);
+
+/* Helper macro for freeing DB path */
+#define SASLDB_FREEPATH(utils, path)	utils->free_registry_value(path)
+
 #endif /* SASLDB_H */

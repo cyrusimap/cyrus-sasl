@@ -157,9 +157,7 @@ typedef struct sasl_utils {
     int (*get_registry_value)(void *context __attribute__((unused)),
 			      const char *attrname, char **value, const char *def_value);
     void(*free_registry_value)( void *value );
-    /* for additions which don't require a version upgrade; set to 0 */
-    int (*spare_fptr1)(void);
-    int (*spare_fptr2)(void);
+    /* New function pointers should just be appended to this struct */
 } sasl_utils_t;
 
 /*

@@ -213,9 +213,10 @@ def gssapi_channel_binding_mismatch_test(kenv):
                 result = "PASS"
             raise Exception("CLI ({}): {} --> SRV ({}): {}".format(
                 cli.returncode, cli_err, srv.returncode, srv_err))
+        return 0
     except Exception as e:
         print("{}: {}".format(result, e))
-        return 0
+        return 1
 
     print("FAIL: This test should fail [CLI({}) SRV({})]".format(
         cli.stdout.read().decode('utf-8').strip(),

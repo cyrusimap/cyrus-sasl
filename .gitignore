@@ -27,3 +27,6 @@ m4/ltversion.m4
 m4/lt~obsolete.m4
 .sphinx-build.stamp
 .tests
+*.o
+*.lo
+.libs/

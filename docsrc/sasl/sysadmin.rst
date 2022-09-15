@@ -375,6 +375,31 @@ configuration file, ``/etc/imapd.conf``, by prepending all SASL
 options with ``sasl_``: the SASL option "pwcheck_method" is set
 by changing "sasl_pwcheck_method" in ``/etc/imapd.conf``.
 
+Default pathnames
+-----------------
+
+Some pathnames hardcoded into the SASL libraries can be overridden
+at runtime using environment variables or, on Windows, in the
+system registry. The Windows registry key is
+    ``HKLM\SOFTWARE\Project Cyrus\SASL Library``.
+The attributes used in this key are:
+
+ConfDir
+    the pathname of the directory containing the configuration files
+PluginDir
+    the pathname of the directory containing SASL plugins
+SaslDBName
+	the pathname of the ``sasldb`` file
+
+On POSIX systems the values can be set using environment variables:
+
+SASL_CONFDIR
+    the pathname of the directory containing the configuration files
+SASL_PLUGINDIR
+    the pathname of the directory containing SASL plugins
+SASL_DBNAME
+	the pathname of the ``sasldb`` file
+
 Troubleshooting
 ===============
 

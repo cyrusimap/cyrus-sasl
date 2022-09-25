@@ -1858,7 +1858,7 @@ _sasl_log (sasl_conn_t *conn,
   result = _sasl_getcallback(conn, SASL_CB_LOG, (sasl_callback_ft *)&log_cb, &log_ctx);
   if (result == SASL_OK && ! log_cb)
     result = SASL_FAIL;
-  if (result != SASL_OK) goto done;
+  if (result != SASL_OK) goto cbfail;
   
   va_start(ap, fmt); /* start varargs */
 
@@ -1993,6 +1993,7 @@ _sasl_log (sasl_conn_t *conn,
 
  done:
   va_end(ap);
+ cbfail:
   if(out) sasl_FREE(out);
 }
 

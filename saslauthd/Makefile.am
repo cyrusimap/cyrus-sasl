@@ -21,7 +21,6 @@ saslauthd_SOURCES = mechanisms.c globals.h \
 		    krbtf.c krbtf.h utils.c utils.h \
                     ipc_unix.c ipc_doors.c saslauthd-main.c saslauthd-main.h \
 		    md5.c saslauthd_md5.h
-EXTRA_saslauthd_sources = getaddrinfo.c getnameinfo.c
 saslauthd_DEPENDENCIES = saslauthd-main.o $(LTLIBOBJS_FULL)
 saslauthd_LDADD	= @SASL_KRB_LIB@ \
 		  @GSSAPIBASE_LIBS@ @LIB_CRYPT@ @LIB_SIA@ \
@@ -33,7 +32,7 @@ testsaslauthd_LDADD = @LIB_SOCKET@
 saslcache_SOURCES = saslcache.c
 
 EXTRA_DIST	= testsaslauthd.8 saslauthd.mdoc include \
-		  getnameinfo.c getaddrinfo.c LDAP_SASLAUTHD
+		  LDAP_SASLAUTHD
 AM_CPPFLAGS	= -I$(top_srcdir)/include -I$(top_builddir)/include -I$(top_builddir)/common -I$(top_srcdir)/common
 DEFS            = @DEFS@ -DSASLAUTHD_CONF_FILE_DEFAULT=\"@sysconfdir@/saslauthd.conf\" -I. -I$(srcdir) -I..
 

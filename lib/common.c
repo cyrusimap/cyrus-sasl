@@ -2125,7 +2125,6 @@ _sasl_alloc_utils(sasl_conn_t *conn,
 
   /* Spares */
   utils->spare_fptr = NULL;
-  utils->spare_fptr1 = utils->spare_fptr2 = NULL;
   
   return utils;
 }

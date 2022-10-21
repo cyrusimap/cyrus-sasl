@@ -71,7 +71,7 @@ Not sure how to get GSSAPI going? Check out our :ref:`GSSAPI configuration guide
    Content needed here
 
 
-GSS-SPEGNO
+GSS-SPNEGO
 ----------
 
 This is a Microsoft specific customization of GSSAPI.

@@ -1,7 +1,7 @@
 # sasl2.m4--sasl2 libraries and includes
 # Rob Siemborski
 
-# SASL2_CRYPT_CHK
+# SASL_GSSAPI_CHK
 # ---------------
 AC_DEFUN([SASL_GSSAPI_CHK],
 [AC_REQUIRE([SASL2_CRYPT_CHK])

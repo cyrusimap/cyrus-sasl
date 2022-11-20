@@ -72,7 +72,7 @@ EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la \
 
 libplain_la_SOURCES = plain.c plain_init.c
 libplain_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
-libplain_la_LIBADD = $(PLAIN_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
+libplain_la_LIBADD = $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
 
 libanonymous_la_SOURCES = anonymous.c anonymous_init.c
 libanonymous_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
@@ -104,7 +104,7 @@ libscram_la_LIBADD = $(SCRAM_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_
 
 liblogin_la_SOURCES = login.c login_init.c
 liblogin_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
-liblogin_la_LIBADD = $(PLAIN_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
+liblogin_la_LIBADD = $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
 
 libsrp_la_SOURCES = srp.c srp_init.c
 libsrp_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS) $(CRYPTO_COMPAT_OBJS)

@@ -2938,7 +2938,7 @@ void usage(void)
 
 int main(int argc, char **argv)
 {
-    char c;
+    int c;
     int random_tests = -1;
     int do_all = 0;
     int skip_do_correct = 0;

@@ -697,6 +697,54 @@ else
   AC_MSG_RESULT(disabled)
 fi
 
+dnl OPAQUE
+AC_CHECK_LIB(libopaque, opaque_CreateCredentialRequest, [AC_SUBST([LIB_OPAQUE], ["-lopaque"]) AC_DEFINE([HAVE_LIBOPAQUE], [1],[opaque library])],have_libopaque="no",-lopaque)
+
+AC_ARG_ENABLE(opaque, [  --enable-opaque            enable OPAQUE authentication [[yes]] ],
+  opaque=$enableval,
+  opaque=yes)
+
+if test "$have_libopaque" = no; then
+  AC_CHECK_LIB(sodium, crypto_core_ristretto255_scalar_invert, [AC_SUBST([LIB_SODIUM], ["-lsodium"]) AC_DEFINE([HAVE_LIBSODIUM], [1],[sodium library])],have_sodium="no",-lsodium)
+  AC_CHECK_LIB(sodium, crypto_kdf_hkdf_sha512_expand,need_internal_hkdf="no",need_internal_hkdf="yes",-lsodium)
+
+  if test "$have_sodium" = no; then
+    AC_MSG_WARN(neither libopaque nor libsodium found -- OPAQUE will be disabled)
+    opaque=no
+  else
+    opaque=internal
+  fi
+else
+  opaque=yes
+fi
+
+AC_MSG_CHECKING(OPAQUE)
+if test "$opaque" != no; then
+  AM_CONDITIONAL(OPAQUE_INTERNAL,test "$opaque" = internal)
+  AM_CONDITIONAL(INTERNAL_HKDF,test "$need_internal_hkdf" = yes)
+  if test "$opaque" = internal; then
+    AC_MSG_RESULT(internal)
+    OPAQUE_LIBS="-lsodium"
+    if test "$enable_static" = yes; then
+        SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/opaque.c \$(top_srcdir)/plugins/opaque_impl.c"
+        SASL_STATIC_OBJS="$SASL_STATIC_OBJS opaque.o opaque_impl.o kdf_hkdf_sha512."
+        AC_DEFINE(STATIC_OPAQUE, [], [Link OPAQUE Statically])
+    fi
+  else
+    AC_MSG_RESULT(enabled)
+    OPAQUE_LIBS="-lopaque"
+
+    if test "$enable_static" = yes; then
+        SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/opaque.c"
+        SASL_STATIC_OBJS="$SASL_STATIC_OBJS opaque.o kdf_hkdf_sha512.o"
+        AC_DEFINE(STATIC_OPAQUE, [], [Link OPAQUE Statically])
+    fi
+  fi
+  SASL_MECHS="$SASL_MECHS libopaque.la"
+  AC_SUBST(OPAQUE_LIBS)
+else
+  AC_MSG_RESULT(disabled)
+fi
 
 AC_MSG_CHECKING(to include LDAP support)
 AC_ARG_WITH(ldap, [  --with-ldap=DIR         use LDAP (in DIR) for saslauthd [no] ],

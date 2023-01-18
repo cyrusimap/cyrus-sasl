@@ -215,7 +215,7 @@ if test $sasl_cv_uscore = yes; then
 void foo() { int i=0;}
 int main() { void *self, *ptr1, *ptr2; self=dlopen(NULL,RTLD_LAZY);
     if(self) { ptr1=dlsym(self,"foo"); ptr2=dlsym(self,"_foo");
-    if(ptr1 && !ptr2) exit(0); } exit(1); } 
+    if(ptr1 && !ptr2) return 0; } return 1; } 
 ]])],[sasl_cv_dlsym_adds_uscore=yes],[sasl_cv_dlsym_adds_uscore=no],[AC_MSG_WARN(cross-compiler, we'll do our best)])])
 	LIBS="$cmu_save_LIBS"
       AC_MSG_RESULT($sasl_cv_dlsym_adds_uscore)

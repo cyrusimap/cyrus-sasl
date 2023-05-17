@@ -17,6 +17,7 @@
 #include <saslutil.h>
 
 const char *testpass = NULL;
+const char *testhost = NULL;
 
 static int setup_socket(void)
 {
@@ -104,11 +105,14 @@ int main(int argc, char *argv[])
     bool spnego = false;
     bool zeromaxssf = false;
 
-    while ((c = getopt(argc, argv, "c:P:zN")) != EOF) {
+    while ((c = getopt(argc, argv, "c:h:P:zN")) != EOF) {
         switch (c) {
         case 'c':
             parse_cb(&cb, cb_buf, 256, optarg);
             break;
+	case 'h':
+	    testhost = optarg;
+	    break;
         case 'P':
             plain = 1;
             testpass = optarg;
@@ -151,7 +155,7 @@ int main(int argc, char *argv[])
     r = sasl_client_init(callbacks);
     if (r != SASL_OK) exit(-1);
 
-    r = sasl_client_new("test", "host.realm.test", NULL, NULL, NULL, 0, &conn);
+    r = sasl_client_new("test", testhost ? testhost : "host.realm.test", NULL, NULL, NULL, 0, &conn);
     if (r != SASL_OK) {
         saslerr(r, "allocating connection state");
         exit(-1);

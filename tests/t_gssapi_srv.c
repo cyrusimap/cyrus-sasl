@@ -17,6 +17,8 @@
 #include <saslplug.h>
 
 const char *sasldb_path = NULL,
+      *keytab = NULL,
+      *service_principal = NULL,
       *auxprop_plugin = "sasldb",
       *pwcheck_method =
 #if 0	/* totally undocumented. See issue#374 */
@@ -69,6 +71,20 @@ static int test_getopt(void *context __attribute__((unused)),
         return SASL_OK;
     }
 
+    if (service_principal && !strcmp(option, "service_principal")) {
+        *result = service_principal;
+        if (len)
+            *len = (unsigned) strlen(service_principal);
+        return SASL_OK;
+    }
+
+    if (keytab && !strcmp(option, "keytab")) {
+        *result = keytab;
+        if (len)
+            *len = (unsigned) strlen(keytab);
+        return SASL_OK;
+    }
+
     if (sasldb_path && !strcmp(option, "auxprop_plugin")) {
         *result = auxprop_plugin;
         if (len)
@@ -101,10 +117,16 @@ int main(int argc, char *argv[])
     bool spnego = false;
     bool zeromaxssf = false;
 
-    while ((c = getopt(argc, argv, "c:P:zN")) != EOF) {
+    while ((c = getopt(argc, argv, "ac:k:p:P:zN")) != EOF) {
         switch (c) {
         case 'c':
             parse_cb(&cb, cb_buf, 256, optarg);
+            break;
+        case 'k':
+            keytab = optarg;
+            break;
+        case 'p':
+            service_principal = optarg;
             break;
         case 'P':
             plain = 1;

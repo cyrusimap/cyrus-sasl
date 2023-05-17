@@ -120,6 +120,22 @@ GSSAPI
    Default: None, if omitted, no credentials cache/delegation and if left
    empty or invalid KRB5CCNAME will be used.
 
+.. option:: ad_compat [yes | no]
+
+   When set to 'yes', 'on', '1' or 'true', a client will request both
+   confidentiality and integrity when required by Active Directory.
+
+   Default: no
+
+.. option:: service_principal [<GSS_C_NT_HOSTBASED_SERVICE> | *]
+
+   Service principal to use when accepting a connection as a server. The
+   principal name must be in GSS_C_NT_HOSTBASED_SERVICE form, e.g.
+   "someservice@someinstance" or "someservice", or the string "*", which
+   causes the server to accept any valid principal present in its keytab.
+
+   Default: <SASL Service Name>@<Server FQDN>
+
 LDAPDB
 ======
 

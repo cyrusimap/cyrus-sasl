@@ -1114,59 +1114,80 @@ gssapi_server_mech_authneg(context_t *text,
     gss_OID mech_type;
     gss_channel_bindings_t bindings = GSS_C_NO_CHANNEL_BINDINGS;
     struct gss_channel_bindings_struct cb = {0};
+    unsigned int rl; /* Required storage by getopt() */
+    const char *service_principal_opt = NULL; /* The configured service principal name */
+    unsigned char accept_any = 0;
+    const sasl_utils_t *utils = text->utils;
+#ifdef GSS_USE_LOAD_FROM
+    char* keytab = NULL; /* The configured credentials cache file path */
+
+    utils->getopt(utils->getopt_context, "GSSAPI", "keytab", (const char**)&keytab, &rl);
+#endif
 
     input_token = &real_input_token;
     output_token = &real_output_token;
     output_token->value = NULL; output_token->length = 0;
     input_token->value = NULL; input_token->length = 0;
-    
+
     if (text->server_name == GSS_C_NO_NAME) { /* only once */
-	if (params->serverFQDN == NULL
-	    || strlen(params->serverFQDN) == 0) {
-	    SETERROR(text->utils, "GSSAPI Failure: no serverFQDN");
-	    sasl_gss_free_context_contents(text);
-	    return SASL_FAIL;
+	utils->getopt(utils->getopt_context,
+		      "GSSAPI", "service_principal", (const char**) &service_principal_opt, &rl);
+	if (service_principal_opt &&
+	    strlen(service_principal_opt) == 1 &&
+	    service_principal_opt[0] == '*') {
+	    accept_any = 1;
 	}
-	name_token.length = strlen(params->service) + 1 + strlen(params->serverFQDN);
-	name_token.value = (char *)params->utils->malloc((name_token.length + 1) * sizeof(char));
-	if (name_token.value == NULL) {
-	    MEMERROR(text->utils);
-	    sasl_gss_free_context_contents(text);
-	    return SASL_NOMEM;
-	}
-	sprintf(name_token.value,"%s@%s", params->service, params->serverFQDN);
+	if (!accept_any && text->server_name == GSS_C_NO_NAME) {
+	    if (service_principal_opt) {
+		name_token.length = strlen(service_principal_opt);
+	    } else {
+		if (params->serverFQDN == NULL
+		    || strlen(params->serverFQDN) == 0) {
+		    SETERROR(text->utils, "GSSAPI Failure: no serverFQDN");
+		    sasl_gss_free_context_contents(text);
+		    return SASL_FAIL;
+		}
+		name_token.length = strlen(params->service) + 1 + strlen(params->serverFQDN);
+	    }
 
-	GSS_LOCK_MUTEX_CTX(params->utils, text);
-	maj_stat = gss_import_name (&min_stat,
-				    &name_token,
-				    GSS_C_NT_HOSTBASED_SERVICE,
-				    &text->server_name);
-	GSS_UNLOCK_MUTEX_CTX(params->utils, text);
+	    name_token.value = (char *)params->utils->malloc((name_token.length + 1) * sizeof(char));
+	    if (name_token.value == NULL) {
+		MEMERROR(text->utils);
+		sasl_gss_free_context_contents(text);
+		return SASL_NOMEM;
+	    }
 
-	params->utils->free(name_token.value);
-	name_token.value = NULL;
+	    if (service_principal_opt) {
+		strncpy(name_token.value, service_principal_opt, name_token.length + 1);
+	    } else {
+		sprintf(name_token.value,"%s@%s", params->service, params->serverFQDN);
+	    }
 
-	if (GSS_ERROR(maj_stat)) {
-	    sasl_gss_seterror(text->utils, maj_stat, min_stat);
-	    sasl_gss_free_context_contents(text);
-	    return SASL_FAIL;
-	}
-
-	if ( text->server_creds != GSS_C_NO_CREDENTIAL) {
 	    GSS_LOCK_MUTEX_CTX(params->utils, text);
-	    maj_stat = gss_release_cred(&min_stat, &text->server_creds);
+	    maj_stat = gss_import_name (&min_stat,
+					&name_token,
+					GSS_C_NT_HOSTBASED_SERVICE,
+					&text->server_name);
 	    GSS_UNLOCK_MUTEX_CTX(params->utils, text);
-	    text->server_creds = GSS_C_NO_CREDENTIAL;
-	}
 
+	    params->utils->free(name_token.value);
+	    name_token.value = NULL;
+
+	    if (GSS_ERROR(maj_stat)) {
+		sasl_gss_seterror(text->utils, maj_stat, min_stat);
+		sasl_gss_free_context_contents(text);
+		return SASL_FAIL;
+	    }
+
+	    if ( text->server_creds != GSS_C_NO_CREDENTIAL) {
+		GSS_LOCK_MUTEX_CTX(params->utils, text);
+		maj_stat = gss_release_cred(&min_stat, &text->server_creds);
+		GSS_UNLOCK_MUTEX_CTX(params->utils, text);
+		text->server_creds = GSS_C_NO_CREDENTIAL;
+	    }
+	}
 	/* If caller didn't provide creds already */
 	if ( server_creds == GSS_C_NO_CREDENTIAL) {
-#ifdef GSS_USE_LOAD_FROM
-            const sasl_utils_t *utils = text->utils;
-            unsigned int rl; /* Required storage by getopt() */
-            char* keytab = NULL; /* The configured credentials cache file path */
-            utils->getopt(utils->getopt_context, "GSSAPI", "keytab", (const char**)&keytab, &rl);
-#endif
 	    GSS_LOCK_MUTEX_CTX(params->utils, text);
 #ifdef GSS_USE_LOAD_FROM
             if (keytab != NULL) {
@@ -1178,7 +1199,7 @@ gssapi_server_mech_authneg(context_t *text,
                                    "GSSAPI server acquire cred from %s", keytab);
 
                 maj_stat = gss_acquire_cred_from(&min_stat,
-                                                 text->server_name,
+                                                 accept_any ? GSS_C_NO_NAME : text->server_name,
                                                  GSS_C_INDEFINITE,
                                                  GSS_C_NO_OID_SET,
                                                  GSS_C_ACCEPT,
@@ -1189,7 +1210,7 @@ gssapi_server_mech_authneg(context_t *text,
             }
             else
 #endif
-            {
+            if (! accept_any) {
                 maj_stat = gss_acquire_cred(&min_stat,
                                             text->server_name,
                                             GSS_C_INDEFINITE,
@@ -1202,12 +1223,18 @@ gssapi_server_mech_authneg(context_t *text,
 
 	    GSS_UNLOCK_MUTEX_CTX(params->utils, text);
 
-	    if (GSS_ERROR(maj_stat)) {
-		sasl_gss_seterror(text->utils, maj_stat, min_stat);
-		sasl_gss_free_context_contents(text);
-		return SASL_FAIL;
+#ifdef GSS_USE_LOAD_FROM
+	    if (keytab != NULL || ! accept_any) {
+#else
+	    if (! accept_any) {
+#endif
+		if (GSS_ERROR(maj_stat)) {
+		    sasl_gss_seterror(text->utils, maj_stat, min_stat);
+		    sasl_gss_free_context_contents(text);
+		    return SASL_FAIL;
+		}
+		server_creds = text->server_creds;
 	    }
-	    server_creds = text->server_creds;
 	}
     }
 	
@@ -2073,16 +2100,16 @@ static int gssapi_client_mech_step(void *conn_context,
 		sasl_gss_free_context_contents(text);
 		return SASL_NOMEM;
 	    }
-	    
+
 	    sprintf(name_token.value,"%s@%s", params->service, params->serverFQDN);
-	    
+
 	    GSS_LOCK_MUTEX_CTX(params->utils, text);
 	    maj_stat = gss_import_name (&min_stat,
 					&name_token,
 					GSS_C_NT_HOSTBASED_SERVICE,
 					&text->server_name);
 	    GSS_UNLOCK_MUTEX_CTX(params->utils, text);
-	    
+
 	    params->utils->free(name_token.value);
 	    name_token.value = NULL;
 	    

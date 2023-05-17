@@ -119,10 +119,18 @@ def setup_kdc(testdir, env):
         "kadmin.local", "-q",
         "addprinc -randkey test/host.realm.test"
         ], stdout=log, stderr=log, env=kenv, timeout=5)
+    subprocess.check_call([
+        "kadmin.local", "-q",
+        "addprinc -randkey test/random.realm.test"
+        ], stdout=log, stderr=log, env=kenv, timeout=5)
 
     subprocess.check_call([
         "kadmin.local", "-q",
         "ktadd -k {} test/host.realm.test".format(keytab)
+        ], stdout=log, stderr=log, env=kenv, timeout=5)
+    subprocess.check_call([
+        "kadmin.local", "-q",
+        "ktadd -k {} test/random.realm.test".format(keytab)
         ], stdout=log, stderr=log, env=kenv, timeout=5)
     env['KRB5_KTNAME'] = keytab
 
@@ -165,6 +173,95 @@ def gssapi_channel_binding_test(kenv):
                                stderr=subprocess.PIPE, env=kenv)
         srv.stdout.readline() # Wait for srv to say it is ready
         cli = subprocess.Popen(["../tests/t_gssapi_cli", "-c", bindings],
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, env=kenv)
+        try:
+            cli.wait(timeout=5)
+            srv.wait(timeout=5)
+        except Exception as e:
+            print("Failed on {}".format(e));
+            cli.kill()
+            srv.kill()
+        if cli.returncode != 0 or srv.returncode != 0:
+            raise Exception("CLI ({}): {} --> SRV ({}): {}".format(
+                cli.returncode, cli.stderr.read().decode('utf-8'),
+                srv.returncode, srv.stderr.read().decode('utf-8')))
+    except Exception as e:
+        print("FAIL: {}".format(e))
+        return 1
+
+    print("PASS: CLI({}) SRV({})".format(
+        cli.stdout.read().decode('utf-8').strip(),
+        srv.stdout.read().decode('utf-8').strip()))
+    return 0
+
+def gssapi_accept_any_test(kenv):
+    try:
+        srv = subprocess.Popen(["../tests/t_gssapi_srv", "-p", "*"],
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, env=kenv)
+        srv.stdout.readline() # Wait for srv to say it is ready
+        cli = subprocess.Popen(["../tests/t_gssapi_cli", "-h", "random.realm.test"],
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, env=kenv)
+        try:
+            cli.wait(timeout=5)
+            srv.wait(timeout=5)
+        except Exception as e:
+            print("Failed on {}".format(e));
+            cli.kill()
+            srv.kill()
+        if cli.returncode != 0 or srv.returncode != 0:
+            raise Exception("CLI ({}): {} --> SRV ({}): {}".format(
+                cli.returncode, cli.stderr.read().decode('utf-8'),
+                srv.returncode, srv.stderr.read().decode('utf-8')))
+    except Exception as e:
+        print("FAIL: {}".format(e))
+        return 1
+
+    print("PASS: CLI({}) SRV({})".format(
+        cli.stdout.read().decode('utf-8').strip(),
+        srv.stdout.read().decode('utf-8').strip()))
+    return 0
+
+def gssapi_service_principal_test(kenv):
+    try:
+        srv = subprocess.Popen(["../tests/t_gssapi_srv", "-p", "test@random.realm.test"],
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, env=kenv)
+        srv.stdout.readline() # Wait for srv to say it is ready
+        cli = subprocess.Popen(["../tests/t_gssapi_cli", "-h", "random.realm.test"],
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, env=kenv)
+        try:
+            cli.wait(timeout=10)
+            srv.wait(timeout=10)
+        except Exception as e:
+            print("Failed on {}".format(e));
+            cli.kill()
+            srv.kill()
+        if cli.returncode != 0 or srv.returncode != 0:
+            raise Exception("CLI ({}): {} --> SRV ({}): {}".format(
+                cli.returncode, cli.stderr.read().decode('utf-8'),
+                srv.returncode, srv.stderr.read().decode('utf-8')))
+    except Exception as e:
+        print("FAIL: {}".format(e))
+        return 1
+
+    print("PASS: CLI({}) SRV({})".format(
+        cli.stdout.read().decode('utf-8').strip(),
+        srv.stdout.read().decode('utf-8').strip()))
+    return 0
+
+def gssapi_keytab_test(kenv):
+    try:
+        newkenv = dict(kenv)
+        del newkenv['KRB5_KTNAME']
+        srv = subprocess.Popen(["../tests/t_gssapi_srv", "-k", kenv['KRB5_KTNAME']],
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, env=newkenv)
+        srv.stdout.readline() # Wait for srv to say it is ready
+        cli = subprocess.Popen(["../tests/t_gssapi_cli"],
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE, env=kenv)
         try:
@@ -292,6 +389,18 @@ def gssapi_tests(testdir):
     print('GSSAPI BASIC:')
     print('    ', end='')
     err += gssapi_basic_test(kenv)
+
+    print('GSSAPI ACCEPT ANY:')
+    print('    ', end='')
+    err += gssapi_accept_any_test(kenv)
+
+    print('GSSAPI SERVICE PRINCIPAL:')
+    print('    ', end='')
+    err += gssapi_service_principal_test(kenv)
+
+    print('GSSAPI KEYTAB:')
+    print('    ', end='')
+    err += gssapi_keytab_test(kenv)
 
     print('GSSAPI CHANNEL BINDING:')
     print('    ', end='')

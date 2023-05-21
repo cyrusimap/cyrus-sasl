@@ -238,89 +238,45 @@ void prop_dispose(struct propctx **ctx)
  * NOTE: may clear values from context as side-effect
  * returns -1 on error
  */
-int prop_request(struct propctx *ctx, const char **names) 
-{
-    unsigned i, new_values, total_values;
-
-    if(!ctx || !names) return SASL_BADPARAM;
-
-    /* Count how many we need to add */
-    for(new_values=0; names[new_values]; new_values++);
-
-    /* Do we need to add ANY? */
-    if(!new_values) return SASL_OK;
-
-    /* We always want at least one extra to mark the end of the array */
-    total_values = new_values + ctx->used_values + 1;
-
-    /* Do we need to increase the size of our propval table? */
-    if(total_values > ctx->allocated_values) {
-	unsigned max_in_pool;
-
-	/* Do we need a larger base pool? */
-	max_in_pool = (unsigned) (ctx->mem_base->size / sizeof(struct propval));
-	
-	if(total_values <= max_in_pool) {
-	    /* Don't increase the size of the base pool, just use what
-	       we need */
-	    ctx->allocated_values = total_values;
-	    ctx->mem_base->unused =
-		ctx->mem_base->size - (sizeof(struct propval)
-				       * ctx->allocated_values);
-      	} else {
-	    /* We need to allocate more! */
-	    unsigned new_alloc_length;
-	    size_t new_size;
-
-	    new_alloc_length = 2 * ctx->allocated_values;
-	    while(total_values > new_alloc_length) {
-		new_alloc_length *= 2;
-	    }
-
-	    new_size = new_alloc_length * sizeof(struct propval);
-	    ctx->mem_base = resize_proppool(ctx->mem_base, new_size);
-
-	    if(!ctx->mem_base) {
-		ctx->values = NULL;
-		ctx->allocated_values = ctx->used_values = 0;
-		return SASL_NOMEM;
-	    }
-
-	    /* It worked! Update the structure! */
-	    ctx->values = (struct propval *)ctx->mem_base->data;
-	    ctx->allocated_values = new_alloc_length;
-	    ctx->mem_base->unused = ctx->mem_base->size
-		- sizeof(struct propval) * ctx->allocated_values;
-	}
-
-	/* Clear out new propvals */
-	memset(&(ctx->values[ctx->used_values]), 0,
-	       sizeof(struct propval) * (ctx->allocated_values - ctx->used_values));
-
-        /* Finish updating the context -- we've extended the list! */
-	/* ctx->list_end = (char **)(ctx->values + ctx->allocated_values); */
-	/* xxx test here */
-	ctx->list_end = (char **)(ctx->values + total_values);
+int prop_request(struct propctx *ctx, const char **names) {
+    if (!ctx || !names) {
+        return SASL_BADPARAM;
     }
 
-    /* Now do the copy, or referencing rather */
-    for(i=0;i<new_values;i++) {
-	unsigned j, flag;
+    unsigned new_values = 0;
+    for (; names[new_values]; new_values++);
 
-	flag = 0;
+    if (new_values == 0) {
+        return SASL_OK;
+    }
 
-	/* Check for dups */
-	for(j=0;j<ctx->used_values;j++) {
-	    if(!strcmp(ctx->values[j].name, names[i])) {
-		flag = 1;
-		break;
-	    }
-	}
+    unsigned total_values = new_values + ctx->used_values + 1;
+    if (total_values > ctx->allocated_values) {
+        unsigned new_alloc_length = ctx->allocated_values * 2;
+        while (total_values > new_alloc_length) {
+            new_alloc_length *= 2;
+        }
 
-	/* We already have it... skip! */
-	if(flag) continue;
+        size_t new_size = new_alloc_length * sizeof(struct propval);
+        struct proppool *new_pool = resize_proppool(ctx->mem_base, new_size);
+        if (!new_pool) {
+            ctx->values = NULL;
+            ctx->allocated_values = ctx->used_values = 0;
+            return SASL_NOMEM;
+        }
 
-	ctx->values[ctx->used_values++].name = names[i];
+        ctx->values = (struct propval *)new_pool->data;
+        ctx->allocated_values = new_alloc_length;
+        ctx->mem_base->unused = new_pool->size - (sizeof(struct propval) * ctx->allocated_values);
+    }
+
+    for (unsigned i = 0; i < new_values; i++) {
+        struct propval *existing_prop = prop_get_by_name(ctx, names[i]);
+        if (existing_prop) {
+            continue;  // Skip if property already exists
+        }
+
+        ctx->values[ctx->used_values++].name = names[i];
     }
 
     prop_clear(ctx, 0);
@@ -347,31 +303,24 @@ const struct propval *prop_get(struct propctx *ctx)
  *  if a name requested here was never requested by a prop_request, then
  *  the name field of the associated vals entry will be set to NULL
  */
-int prop_getnames(struct propctx *ctx, const char **names,
-		  struct propval *vals) 
-{
+int prop_getnames(struct propctx *ctx, const char **names, struct propval *vals) {
+    if (!ctx || !names || !vals) {
+        return SASL_BADPARAM;
+    }
+
     int found_names = 0;
-    
     struct propval *cur = vals;
-    const char **curname;
 
-    if(!ctx || !names || !vals) return SASL_BADPARAM;
-    
-    for(curname = names; *curname; curname++) {
-	struct propval *val;
-	for(val = ctx->values; val->name; val++) {
-	    if(!strcmp(*curname,val->name)) { 
-		found_names++;
-		memcpy(cur, val, sizeof(struct propval));
-		goto next;
-	    }
-	}
+    for (const char **curname = names; *curname; curname++) {
+        struct propval *val = prop_get_by_name(ctx, *curname);
+        if (val) {
+            memcpy(cur, val, sizeof(struct propval));
+            found_names++;
+        } else {
+            memset(cur, 0, sizeof(struct propval));
+        }
 
-	/* If we are here, we didn't find it */
-	memset(cur, 0, sizeof(struct propval));
-	
-	next:
-	cur++;
+        cur++;
     }
 
     return found_names;
@@ -382,88 +331,63 @@ int prop_getnames(struct propctx *ctx, const char **names,
  *  ctx      -- property context
  *  requests -- 0 = don't clear requests, 1 = clear requests
  */
-void prop_clear(struct propctx *ctx, int requests) 
-{
+void prop_clear(struct propctx *ctx, int requests) {
     struct proppool *new_pool, *tmp;
-    unsigned i;
 
-    /* We're going to need a new proppool once we reset things */
-    new_pool = alloc_proppool(ctx->mem_base->size +
-			      (ctx->used_values+1) * sizeof(struct propval));
+    size_t new_size = ctx->mem_base->size + (ctx->used_values + 1) * sizeof(struct propval);
+    new_pool = alloc_proppool(new_size);
     if (new_pool == NULL) {
         _sasl_log(NULL, SASL_LOG_ERR, "failed to allocate memory\n");
         exit(1);
     }
 
-    if(requests) {
-	/* We're wiping the whole shebang */
-	ctx->used_values = 0;
+    if (requests) {
+        ctx->used_values = 0;
     } else {
-	/* Need to keep around old requets */
-	struct propval *new_values = (struct propval *)new_pool->data;
-	for(i=0; i<ctx->used_values; i++) {
-	    new_values[i].name = ctx->values[i].name;
-	}
+        struct propval *new_values = (struct propval *)new_pool->data;
+        memcpy(new_values, ctx->values, ctx->used_values * sizeof(struct propval));
     }
 
-    while(ctx->mem_base) {
-	tmp = ctx->mem_base;
-	ctx->mem_base = tmp->next;
-	sasl_FREE(tmp);
+    while (ctx->mem_base) {
+        tmp = ctx->mem_base;
+        ctx->mem_base = tmp->next;
+        sasl_FREE(tmp);
     }
-    
-    /* Update allocation-related metadata */
-    ctx->allocated_values = ctx->used_values+1;
-    new_pool->unused =
-	new_pool->size - (ctx->allocated_values * sizeof(struct propval));
 
-    /* Setup pointers for the values array */
+    ctx->allocated_values = ctx->used_values + 1;
+    new_pool->unused = new_pool->size - (ctx->allocated_values * sizeof(struct propval));
+
     ctx->values = (struct propval *)new_pool->data;
     ctx->prev_val = NULL;
 
-    /* Setup the pools */
     ctx->mem_base = ctx->mem_cur = new_pool;
 
-    /* Reset list_end and data_end for the new memory pool */
-    ctx->list_end =
-	(char **)((char *)ctx->mem_base->data + ctx->allocated_values * sizeof(struct propval));
+    ctx->list_end = (char **)((char *)ctx->mem_base->data + ctx->allocated_values * sizeof(struct propval));
     ctx->data_end = (char *)ctx->mem_base->data + ctx->mem_base->size;
-
-    return;
 }
 
-/*
- * erase the value of a property
- */
-void prop_erase(struct propctx *ctx, const char *name)
-{
-    struct propval *val;
-    int i;
-
-    if(!ctx || !name) return;
-
-    for(val = ctx->values; val->name; val++) {
-	if(!strcmp(name,val->name)) {
-	    if(!val->values) break;
-
-	    /*
-	     * Yes, this is casting away the const, but
-	     * we should be okay because the only place this
-	     * memory should be is in the proppool's
-	     */
-	    for(i=0;val->values[i];i++) {
-		memset((void *)(val->values[i]),0,strlen(val->values[i]));
-		val->values[i] = NULL;
-	    }
-
-	    val->values = NULL;
-	    val->nvalues = 0;
-	    val->valsize = 0;
-	    break;
-	}
+void prop_erase(struct propctx *ctx, const char *name) {
+    if (!ctx || !name) {
+        return;
     }
-    
-    return;
+
+    struct propval *val;
+    for (val = ctx->values; val->name; val++) {
+        if (strcmp(name, val->name) == 0) {
+            if (val->values) {
+                for (int i = 0; val->values[i]; i++) {
+                    memset(val->values[i], 0, strlen(val->values[i]));
+                    sasl_FREE(val->values[i]);
+                    val->values[i] = NULL;
+                }
+                sasl_FREE(val->values);
+                val->values = NULL;
+            }
+            val->nvalues = 0;
+            val->valsize = 0;
+            break;
+        }
+    }
 }
 
 /****fetcher interfaces****/

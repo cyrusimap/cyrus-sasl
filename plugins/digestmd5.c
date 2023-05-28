@@ -1118,7 +1118,6 @@ static void free_des(context_t *text)
 #endif /* WITH_DES */
 
 #ifdef WITH_RC4
-#ifdef HAVE_OPENSSL
 #include <openssl/evp.h>
 
 static void free_rc4(context_t *text)
@@ -1402,7 +1401,6 @@ static int enc_rc4(context_t *text,
     
     return SASL_OK;
 }
-#endif /* HAVE_OPENSSL */
 #endif /* WITH_RC4 */
 
 struct digest_cipher available_ciphers[] =

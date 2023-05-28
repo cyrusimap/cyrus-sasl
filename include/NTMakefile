@@ -51,7 +51,7 @@ includedir = $(prefix)\include
 
 saslincludedir = $(includedir)\sasl\
 
-saslinclude_HEADERS = hmac-md5.h md5.h sasl.h saslplug.h saslutil.h prop.h
+saslinclude_HEADERS = hmac-md5.h sasl.h saslplug.h saslutil.h prop.h
 
 # The first target get executed by default. We don't want this to be "install"
 all:

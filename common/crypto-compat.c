@@ -9,7 +9,7 @@
 
 #include "crypto-compat.h"
 
-#if defined(HAVE_OPENSSL) && (OPENSSL_VERSION_NUMBER < 0x10100000L)
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 
 #include <string.h>
 
@@ -442,4 +442,4 @@ int HMAC_CTX_reset(HMAC_CTX *ctx)
 }
 
 
-#endif /* HAVE_OPENSSL && OPENSSL_VERSION_NUMBER */
+#endif /* OPENSSL_VERSION_NUMBER */

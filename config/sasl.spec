@@ -101,7 +101,6 @@ fi
 /usr/include/saslplug.h
 /usr/include/saslutil.h
 /usr/include/md5global.h
-/usr/include/md5.h
 /usr/include/hmac-md5.h
 
 %files plug-anonymous

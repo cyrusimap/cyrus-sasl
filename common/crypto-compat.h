@@ -3,8 +3,6 @@
 
 #include <config.h>
 
-#ifdef HAVE_OPENSSL
-
 #include <openssl/opensslv.h>
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -68,7 +66,5 @@ int HMAC_CTX_reset(HMAC_CTX *ctx);
 
 
 #endif /* OPENSSL_VERSION_NUMBER */
-
-#endif /* HAVE_OPENSSL */
 
 #endif /* LIBCRYPTO_COMPAT_H */

@@ -4,6 +4,8 @@
 #ifndef HMAC_MD5_H
 #define HMAC_MD5_H 1
 
+#include <openssl/md5.h>
+
 #define HMAC_MD5_SIZE 16
 
 /* intermediate MD5 context */
@@ -44,8 +46,6 @@ void _sasl_hmac_md5_precalc(HMAC_MD5_STATE *hmac,
 /* initialize context from intermediate state
  */
 void _sasl_hmac_md5_import(HMAC_MD5_CTX *hmac, HMAC_MD5_STATE *state);
-
-#define _sasl_hmac_md5_update(hmac, text, text_len) _sasl_MD5Update(&(hmac)->ictx, (text), (text_len))
 
 /* finish hmac from intermediate result.  Intermediate result is zeroed.
  */

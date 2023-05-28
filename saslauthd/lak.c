@@ -47,7 +47,6 @@
 #include <crypt.h>
 #endif
 
-#ifdef HAVE_OPENSSL
 #ifndef OPENSSL_DISABLE_OLD_DES_SUPPORT
 #define OPENSSL_DISABLE_OLD_DES_SUPPORT
 #endif
@@ -56,7 +55,6 @@
 
 /* for legacy libcrypto support */
 #include "crypto-compat.h"
-#endif
 
 #define LDAP_DEPRECATED 1
 #include <ldap.h>
@@ -101,10 +99,8 @@ static char *lak_result_get(const LAK_RESULT *, const char *);
 static int lak_result_add(const char *, const char *, LAK_RESULT **);
 static int lak_check_password(const char *, const char *, void *);
 static int lak_check_crypt(const char *, const char *, void *);
-#ifdef HAVE_OPENSSL
 static int lak_base64_decode(const char *, char **, int *);
 static int lak_check_hashed(const char *, const char *, void *);
-#endif
 static int lak_sasl_interact(LDAP *, unsigned, void *, void *);
 static int lak_user(const char *, const char *, const char *, const char *, const char *, const char *, LAK_USER **);
 static int lak_user_copy(LAK_USER **, const LAK_USER *);
@@ -128,12 +124,10 @@ static LAK_HASH_ROCK hash_rock[] = {
 static LAK_PASSWORD_SCHEME password_scheme[] = {
 	{ "{CRYPT}", lak_check_crypt, NULL },
 	{ "{UNIX}", lak_check_crypt, NULL },
-#ifdef HAVE_OPENSSL
 	{ "{MD5}", lak_check_hashed, &hash_rock[0] },
 	{ "{SMD5}", lak_check_hashed, &hash_rock[1] },
 	{ "{SHA}", lak_check_hashed, &hash_rock[2] },
 	{ "{SSHA}", lak_check_hashed, &hash_rock[3] },
-#endif
 	{ NULL, NULL, NULL }
 };
 
@@ -736,9 +730,7 @@ int lak_init(
 		return rc;
 	}
 
-#ifdef HAVE_OPENSSL
 	OpenSSL_add_all_digests();
-#endif
 
 	*ret=lak;
 	return LAK_OK;
@@ -757,9 +749,7 @@ void lak_close(
 
 	free(lak);
 
-#ifdef HAVE_OPENSSL
 	EVP_cleanup();
-#endif
 
 	return;
 }
@@ -1740,7 +1730,6 @@ static int lak_check_password(
 	return strcmp(hash, passwd) ? LAK_INVALID_PASSWORD : LAK_OK;
 }
 
-#ifdef HAVE_OPENSSL
 
 static int lak_base64_decode(
 	const char *src,
@@ -1837,8 +1826,6 @@ done:
 	free(cred);
 	return rc;
 }
-
-#endif /* HAVE_OPENSSL */
 
 static int lak_check_crypt(
 	const char *hash,

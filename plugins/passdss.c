@@ -75,7 +75,6 @@
 #include "crypto-compat.h"
 
 #include <sasl.h>
-#define MD5_H  /* suppress internal MD5 */
 #include <saslplug.h>
 
 #include "plugin_common.h"

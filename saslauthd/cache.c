@@ -54,8 +54,7 @@
 #include "cache.h"
 #include "utils.h"
 #include "globals.h"
-#include "md5global.h"
-#include "saslauthd_md5.h"
+#include <openssl/evp.h>
 
 /****************************************
  * module globals
@@ -164,7 +163,7 @@ int cache_lookup(const char *user, const char *realm, const char *service, const
 	int			service_length = 0;
 	int			hash_offset;
 	unsigned char		pwd_digest[16];
-	MD5_CTX			md5_context;
+	EVP_MD_CTX		*mdctx = EVP_MD_CTX_new();
 	time_t			epoch;
 	time_t			epoch_timeout;
 	struct bucket		*ref_bucket;
@@ -211,9 +210,9 @@ int cache_lookup(const char *user, const char *realm, const char *service, const
 
 	hash_offset = cache_pjwhash(userrealmserv);
 
-	_saslauthd_MD5Init(&md5_context);
-	_saslauthd_MD5Update(&md5_context, password, strlen(password));
-	_saslauthd_MD5Final(pwd_digest, &md5_context);
+	EVP_DigestInit(mdctx, EVP_md5());
+	EVP_DigestUpdate(mdctx, password, strlen(password));
+	EVP_DigestFinal(mdctx, pwd_digest, NULL);
 
 	/**************************************************************
 	 * Loop through the bucket chain to try and find a hit.

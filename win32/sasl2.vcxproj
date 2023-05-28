@@ -137,7 +137,6 @@
     <ClCompile Include="..\lib\config.c" />
     <ClCompile Include="..\lib\external.c" />
     <ClCompile Include="..\lib\getsubopt.c" />
-    <ClCompile Include="..\lib\md5.c" />
     <ClCompile Include="..\lib\saslutil.c" />
     <ClCompile Include="..\lib\server.c" />
     <ClCompile Include="..\lib\seterror.c" />

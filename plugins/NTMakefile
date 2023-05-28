@@ -99,11 +99,7 @@ saslSQL_out = saslSQLITE.dll saslSQLITE.exp saslSQLITE.lib
 saslLDAPDB_objs = ldapdb.obj $(common_objs)
 saslLDAPDB_out = saslLDAPDB.dll saslLDAPDB.exp saslLDAPDB.lib
 
-!IF "$(NTLM)" == "1" || "$(SRP)" == "1" || "$(OTP)" == "1" || "$(SCRAM)" == "1"
 OPENSSL_FLAGS= /I "$(OPENSSL_INCLUDE)"
-!ELSE 
-OPENSSL_FLAGS=
-!ENDIF 
 
 !IF "$(GSSAPILIB)" == ""
 !IF EXISTS($(GSSAPI_LIBPATH)\gssapi64.lib)

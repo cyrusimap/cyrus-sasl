@@ -330,6 +330,9 @@ fi
 CMU_HAVE_OPENSSL
 AC_MSG_CHECKING(for OpenSSL)
 AC_MSG_RESULT($with_openssl)
+if test "$with_openssl" = no; then
+  AC_MSG_ERROR(OpenSSL not found)
+fi
 
 SASL_DES_CHK
 
@@ -371,11 +374,6 @@ AC_ARG_ENABLE(scram, [  --enable-scram            enable SCRAM authentication [[
   scram=$enableval,
   scram=yes)
 
-if test "$with_openssl" = no; then
-  AC_MSG_WARN(OpenSSL not found -- SCRAM will be disabled)
-  scram=no
-fi
-
 AC_MSG_CHECKING(SCRAM)
 if test "$scram" != no; then
   AC_MSG_RESULT(enabled)
@@ -397,11 +395,6 @@ dnl OTP
 AC_ARG_ENABLE(otp, [  --enable-otp            enable OTP authentication [[yes]] ],
   otp=$enableval,
   otp=yes)
-
-if test "$with_openssl" = no; then
-  AC_MSG_WARN(OpenSSL not found -- OTP will be disabled)
-  otp=no
-fi
 
 AC_MSG_CHECKING(OTP)
 if test "$otp" != no; then
@@ -453,11 +446,6 @@ dnl SRP
 AC_ARG_ENABLE(srp, [  --enable-srp            enable SRP authentication [[no]] ],
   srp=$enableval,
   srp=no)
-
-if test "$with_openssl" = no; then
-  AC_MSG_WARN(OpenSSL not found -- SRP will be disabled)
-  srp=no
-fi
 
 AC_MSG_CHECKING(SRP)
 if test "$srp" != no; then
@@ -650,11 +638,6 @@ AC_ARG_ENABLE(ntlm, [  --enable-ntlm           enable unsupported NTLM authentic
   ntlm=$enableval,
   ntlm=no)
 
-if test "$with_openssl" = no; then
-  AC_MSG_WARN(OpenSSL not found -- NTLM will be disabled)
-  ntlm=no
-fi
-
 AC_MSG_CHECKING(NTLM)
 if test "$ntlm" != no; then
   AC_MSG_RESULT(enabled)
@@ -675,11 +658,6 @@ dnl PASSDSS
 AC_ARG_ENABLE(passdss, [  --enable-passdss        enable PASSDSS authentication (experimental) [[no]] ],
   passdss=$enableval,
   passdss=no)
-
-if test "$with_openssl" = no; then
-  AC_MSG_WARN(OpenSSL not found -- PASSDSS will be disabled)
-  passdss=no
-fi
 
 AC_MSG_CHECKING(PASSDSS)
 if test "$passdss" != no; then
@@ -712,10 +690,8 @@ fi
 LDAP_LIBS=""
 if test "$with_ldap" != no; then
   AC_CHECK_LIB(ldap, ldap_initialize, [ AC_DEFINE(HAVE_LDAP,[],[Support for LDAP?])
-                                        LDAP_LIBS="-lldap -llber"
-					if test "$with_openssl" != "no"; then
-					    LDAP_LIBS="$LDAP_LIBS -lcrypto $LIB_RSAREF"
-					fi],,-llber)
+                                        LDAP_LIBS="-lldap -llber -lcrypto $LIB_RSAREF"
+					],,-llber)
 fi
 AC_SUBST(LDAP_LIBS)
 

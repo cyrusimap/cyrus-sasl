@@ -115,7 +115,6 @@ typedef int		    intptr_t;
 /* Things that are fetched via autoconf under Unix
  */
 #define HAVE_MEMCPY 1
-#define HAVE_OPENSSL 1
 
 #define PLUGINDIR "C:\\CMU\\bin\\sasl2"
 #define CONFIGDIR "C:\\CMU\\bin\\sasl2"

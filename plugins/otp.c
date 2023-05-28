@@ -57,7 +57,6 @@
 #include <openssl/md5.h> /* XXX hack for OpenBSD/OpenSSL cruftiness */
 
 #include <sasl.h>
-#define MD5_H  /* suppress internal MD5 */
 #include <saslplug.h>
 
 #include "plugin_common.h"

@@ -26,15 +26,16 @@ documentation and/or software.
 */
 
 #include <config.h>
-#include "md5global.h"
 #include "hmac-md5.h"
 
 #ifndef WIN32
 # include <arpa/inet.h>
 #endif
 
-static void MD5_memcpy PROTO_LIST ((POINTER, POINTER, unsigned int));
-static void MD5_memset PROTO_LIST ((POINTER, int, unsigned int));
+typedef unsigned char *POINTER;
+
+static void MD5_memcpy (POINTER, POINTER, unsigned int);
+static void MD5_memset (POINTER, int, unsigned int);
 
 /* Note: Replace "for loop" with standard memcpy if possible.
 

@@ -235,7 +235,7 @@ crammd5_server_mech_step2(server_context_t *text,
     HMAC_MD5_STATE md5state;
     int clear_md5state = 0;
     char *digest_str = NULL;
-    UINT4 digest[4];
+    uint32_t digest[4];
     
     /* extract userid; everything before last space */
     pos = clientinlen-1;

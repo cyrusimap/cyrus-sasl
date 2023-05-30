@@ -67,6 +67,8 @@
 #include <saslutil.h>
 #include <prop.h>
 
+#include <openssl/evp.h>
+
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -2708,7 +2710,7 @@ void create_ids(void)
 #ifdef DO_SASL_CHECKAPOP
     int i;
     const char challenge[] = "<1896.697170952@cyrus.andrew.cmu.edu>";
-    MD5_CTX ctx;
+    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
     unsigned char digest[16];
     char digeststr[33];
 #endif
@@ -2760,10 +2762,10 @@ void create_ids(void)
 
     /* Test sasl_checkapop */
 #ifdef DO_SASL_CHECKAPOP
-    _sasl_MD5Init(&ctx);
-    _sasl_MD5Update(&ctx,(const unsigned char *)challenge,strlen(challenge));
-    _sasl_MD5Update(&ctx,(const unsigned char *)password,strlen(password));
-    _sasl_MD5Final(digest, &ctx);
+    EVP_DigestInit(ctx, EVP_md5());
+    EVP_DigestUpdate(ctx,(const unsigned char *)challenge,strlen(challenge));
+    EVP_DigestUpdate(ctx,(const unsigned char *)password,strlen(password));
+    EVP_DigestFinal(ctx, digest, NULL);
                             
     /* convert digest from binary to ASCII hex */
     for (i = 0; i < 16; i++)

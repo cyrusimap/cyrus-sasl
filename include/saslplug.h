@@ -71,7 +71,6 @@ typedef struct sasl_utils {
     void (*hmac_md5)(const unsigned char *text, int text_len,
 		     const unsigned char *key, int key_len,
 		     unsigned char [16]);
-    void (*hmac_md5_init)(HMAC_MD5_CTX *, const unsigned char *key, int len);
     /* hmac_md5_update() is just a call to MD5Update on inner context */
     void (*hmac_md5_final)(unsigned char [16], HMAC_MD5_CTX *);
     void (*hmac_md5_precalc)(HMAC_MD5_STATE *,

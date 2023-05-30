@@ -1,7 +1,17 @@
-/* MD5C.C - RSA Data Security, Inc., MD5 message-digest algorithm
+/* MD5C.C - HMAC based on MD5 message-digest algorithm
  */
 
-/* Function names changed to avoid namespace collisions: Rob Siemborski */
+/* The following RSA-MD license grant stems from RSA's MD5 implementation
+that is contained in RFC 1321. All of that code is gone and the only 3rd
+party code that is contained in this module is the HMAC MD5 implementation
+by Pau-Chen Cheng and Jeff Kraemer that is contained in RFC 2104's Appendix.
+Rob Earhart made changes to the code that are possibly copyrightable.
+
+The module should be relicensed, taking into account a possible RFC 2104
+license (no restrictions mentioned in the document), and Rob Earhart's consent.
+Eliminating this would be a huge benefit for combining cyrus-sasl with GPL
+licensed software.
+*/
 
 /* Copyright (C) 1991-2, RSA Data Security, Inc. Created 1991. All
 rights reserved.

@@ -27,6 +27,7 @@ documentation and/or software.
 
 #include <config.h>
 #include "hmac-md5.h"
+#include <openssl/crypto.h>
 
 #ifndef WIN32
 # include <arpa/inet.h>
@@ -35,7 +36,6 @@ documentation and/or software.
 typedef unsigned char *POINTER;
 
 static void MD5_memcpy (POINTER, POINTER, unsigned int);
-static void MD5_memset (POINTER, int, unsigned int);
 
 /* Note: Replace "for loop" with standard memcpy if possible.
 
@@ -50,20 +50,6 @@ unsigned int len;
 
        for (i = 0; i < len; i++) 
 	      output[i] = input[i]; 
-}
-
-/* Note: Replace "for loop" with standard memset if possible.
-*/
-
-static void MD5_memset (output, value, len)
-POINTER output;
-int value;
-unsigned int len;
-{
-       unsigned int i; 
-
-       for (i = 0; i < len; i++) 
-       ((char *)output)[i] = (char)value; 
 }
 
 void _sasl_hmac_md5_init(HMAC_MD5_CTX *hmac,
@@ -103,8 +89,8 @@ void _sasl_hmac_md5_init(HMAC_MD5_CTX *hmac,
    */
 
   /* start out by storing key in pads */
-  MD5_memset((POINTER)k_ipad, '\0', sizeof k_ipad);
-  MD5_memset((POINTER)k_opad, '\0', sizeof k_opad);
+  OPENSSL_cleanse(k_ipad, sizeof(k_ipad));
+  OPENSSL_cleanse(k_opad, sizeof(k_opad));
   MD5_memcpy( k_ipad, (POINTER)key, key_len);
   MD5_memcpy( k_opad, (POINTER)key, key_len);
 
@@ -121,9 +107,9 @@ void _sasl_hmac_md5_init(HMAC_MD5_CTX *hmac,
   MD5_Update(&hmac->octx, k_opad, 64);     /* apply outer pad */
 
   /* scrub the pads and key context (if used) */
-  MD5_memset((POINTER)&k_ipad, 0, sizeof(k_ipad));
-  MD5_memset((POINTER)&k_opad, 0, sizeof(k_opad));
-  MD5_memset((POINTER)&tk, 0, sizeof(tk));
+  OPENSSL_cleanse(&k_ipad, sizeof(k_ipad));
+  OPENSSL_cleanse(&k_opad, sizeof(k_opad));
+  OPENSSL_cleanse(&tk, sizeof(tk));
 
   /* and we're done. */
 }
@@ -154,14 +140,14 @@ void _sasl_hmac_md5_precalc(HMAC_MD5_STATE *state,
   state->ostate[2] = htonl(hmac.octx.C);
   state->ostate[3] = htonl(hmac.octx.D);
 
-  MD5_memset((POINTER)&hmac, 0, sizeof(hmac));
+  OPENSSL_cleanse(&hmac, sizeof(hmac));
 }
 
 
 void _sasl_hmac_md5_import(HMAC_MD5_CTX *hmac,
 		     HMAC_MD5_STATE *state)
 {
-  MD5_memset((POINTER)hmac, 0, sizeof(HMAC_MD5_CTX));
+  OPENSSL_cleanse(hmac, sizeof(HMAC_MD5_CTX));
 
   hmac->ictx.A = ntohl(state->istate[0]);
   hmac->ictx.B = ntohl(state->istate[1]);
@@ -230,8 +216,8 @@ unsigned char *digest; /* caller digest to be filled in */
    */
 
   /* start out by storing key in pads */
-  MD5_memset(k_ipad, '\0', sizeof k_ipad);
-  MD5_memset(k_opad, '\0', sizeof k_opad);
+  OPENSSL_cleanse(k_ipad, sizeof(k_ipad));
+  OPENSSL_cleanse(k_opad, sizeof(k_opad));
   MD5_memcpy( k_ipad, (POINTER)key, key_len);
   MD5_memcpy( k_opad, (POINTER)key, key_len);
 

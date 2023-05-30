@@ -183,7 +183,7 @@ void _sasl_hmac_md5_final(unsigned char digest[HMAC_MD5_SIZE],
 			  HMAC_MD5_CTX *hmac)
 {
   MD5_Final(digest, &hmac->ictx);  /* Finalize inner md5 */
-  MD5_Update(&hmac->octx, digest, 16); /* Update outer ctx */
+  MD5_Update(&hmac->octx, digest, HMAC_MD5_SIZE); /* Update outer ctx */
   MD5_Final(digest, &hmac->octx); /* Finalize outer md5 */
 }
 

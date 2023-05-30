@@ -95,6 +95,8 @@
 
 #include <ctype.h>
 
+#include <openssl/evp.h>
+
 #ifdef HAVE_PWD_H
 #include <pwd.h>
 #endif /* HAVE_PWD_H */
@@ -120,7 +122,7 @@ static int _sasl_make_plain_secret(const char *salt,
 				   const char *passwd, size_t passlen,
 				   sasl_secret_t **secret)
 {
-    MD5_CTX ctx;
+    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
     unsigned sec_len = 16 + 1 + 16; /* salt + "\0" + hash */
 
     *secret = (sasl_secret_t *) sasl_ALLOC(sizeof(sasl_secret_t) +
@@ -129,13 +131,13 @@ static int _sasl_make_plain_secret(const char *salt,
 	return SASL_NOMEM;
     }
 
-    _sasl_MD5Init(&ctx);
-    _sasl_MD5Update(&ctx, (const unsigned char *) salt, 16);
-    _sasl_MD5Update(&ctx, (const unsigned char *) "sasldb", 6);
-    _sasl_MD5Update(&ctx, (const unsigned char *) passwd, (unsigned int) passlen);
+    EVP_DigestInit(ctx, EVP_md5());
+    EVP_DigestUpdate(ctx, (const unsigned char *) salt, 16);
+    EVP_DigestUpdate(ctx, (const unsigned char *) "sasldb", 6);
+    EVP_DigestUpdate(ctx, (const unsigned char *) passwd, (unsigned int) passlen);
     memcpy((*secret)->data, salt, 16);
     (*secret)->data[16] = '\0';
-    _sasl_MD5Final((*secret)->data + 17, &ctx);
+    EVP_DigestFinal(ctx, (*secret)->data + 17, NULL);
     (*secret)->len = sec_len;
     
     return SASL_OK;
@@ -360,7 +362,7 @@ int _sasl_auxprop_verify_apop(sasl_conn_t *conn,
     const char *password_request[] = { SASL_AUX_PASSWORD, NULL };
     struct propval auxprop_values[2];
     sasl_server_conn_t *sconn = (sasl_server_conn_t *)conn;
-    MD5_CTX ctx;
+    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
     int i;
 
     if (!conn || !userstr || !challenge || !response)
@@ -383,11 +385,11 @@ int _sasl_auxprop_verify_apop(sasl_conn_t *conn,
 	goto done;
     }
     
-    _sasl_MD5Init(&ctx);
-    _sasl_MD5Update(&ctx, (const unsigned char *) challenge, strlen(challenge));
-    _sasl_MD5Update(&ctx, (const unsigned char *) auxprop_values[0].values[0],
+    EVP_DigestInit(ctx, EVP_md5());
+    EVP_DigestUpdate(ctx, (const unsigned char *) challenge, strlen(challenge));
+    EVP_DigestUpdate(ctx, (const unsigned char *) auxprop_values[0].values[0],
 		    strlen(auxprop_values[0].values[0]));
-    _sasl_MD5Final(digest, &ctx);
+    EVP_DigestFinal(ctx, digest, NULL);
 
     /* erase the plaintext password */
     sconn->sparams->utils->prop_erase(sconn->sparams->propctx,

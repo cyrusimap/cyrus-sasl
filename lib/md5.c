@@ -33,25 +33,6 @@ documentation and/or software.
 # include <arpa/inet.h>
 #endif
 
-typedef unsigned char *POINTER;
-
-static void MD5_memcpy (POINTER, POINTER, unsigned int);
-
-/* Note: Replace "for loop" with standard memcpy if possible.
-
-        */
-
-static void MD5_memcpy (output, input, len)
-POINTER output;
-POINTER input;
-unsigned int len;
-{
-       unsigned int i; 
-
-       for (i = 0; i < len; i++) 
-	      output[i] = input[i]; 
-}
-
 void _sasl_hmac_md5_init(HMAC_MD5_CTX *hmac,
 			 const unsigned char *key,
 			 int key_len)
@@ -91,8 +72,8 @@ void _sasl_hmac_md5_init(HMAC_MD5_CTX *hmac,
   /* start out by storing key in pads */
   OPENSSL_cleanse(k_ipad, sizeof(k_ipad));
   OPENSSL_cleanse(k_opad, sizeof(k_opad));
-  MD5_memcpy( k_ipad, (POINTER)key, key_len);
-  MD5_memcpy( k_opad, (POINTER)key, key_len);
+  memcpy(k_ipad, key, key_len);
+  memcpy(k_opad, key, key_len);
 
   /* XOR key with ipad and opad values */
   for (i=0; i<64; i++) {
@@ -218,8 +199,8 @@ unsigned char *digest; /* caller digest to be filled in */
   /* start out by storing key in pads */
   OPENSSL_cleanse(k_ipad, sizeof(k_ipad));
   OPENSSL_cleanse(k_opad, sizeof(k_opad));
-  MD5_memcpy( k_ipad, (POINTER)key, key_len);
-  MD5_memcpy( k_opad, (POINTER)key, key_len);
+  memcpy(k_ipad, key, key_len);
+  memcpy(k_opad, key, key_len);
 
   /* XOR key with ipad and opad values */
   for (i=0; i<64; i++) {

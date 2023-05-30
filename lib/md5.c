@@ -33,7 +33,7 @@ documentation and/or software.
 # include <arpa/inet.h>
 #endif
 
-void _sasl_hmac_md5_init(HMAC_MD5_CTX *hmac,
+static void _sasl_hmac_md5_init(HMAC_MD5_CTX *hmac,
 			 const unsigned char *key,
 			 int key_len)
 {

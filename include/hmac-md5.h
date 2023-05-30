@@ -33,11 +33,6 @@ void _sasl_hmac_md5(const unsigned char *text, int text_len,
 		    const unsigned char *key, int key_len,
 		    unsigned char digest[HMAC_MD5_SIZE]);
 
-/* create context from key
- */
-void _sasl_hmac_md5_init(HMAC_MD5_CTX *hmac,
-			 const unsigned char *key, int key_len);
-
 /* precalculate intermediate state from key
  */
 void _sasl_hmac_md5_precalc(HMAC_MD5_STATE *hmac,

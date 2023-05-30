@@ -318,14 +318,14 @@ crammd5_server_mech_step2(server_context_t *text,
 
     /* ok this is annoying:
        so we have this half-way hmac transform instead of the plaintext
-       that means we half to:
+       that means we have to:
        -import it back into a md5 context
        -do an md5update with the nonce 
        -finalize it
     */
     sparams->utils->hmac_md5_import(&tmphmac, (HMAC_MD5_STATE *) &md5state);
-    sparams->utils->MD5Update(&(tmphmac.ictx),
-			      (const unsigned char *) text->challenge,
+    sparams->utils->hmac_md5_update(&tmphmac,
+			      text->challenge,
 			      (unsigned) strlen(text->challenge));
     sparams->utils->hmac_md5_final((unsigned char *) &digest, &tmphmac);
     

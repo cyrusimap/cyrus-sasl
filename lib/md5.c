@@ -156,6 +156,15 @@ void _sasl_hmac_md5_import(HMAC_MD5_CTX *hmac,
   hmac->ictx.Nl = hmac->octx.Nl = 0x200;
 }
 
+/* hmac_md5_update() is just a call to MD5Update on inner context.
+   Returns 1 for success, 0 otherwise. */
+int _sasl_hmac_md5_update(HMAC_MD5_CTX *hmac,
+			  const void *data,
+			  unsigned long len)
+{
+  return MD5_Update(&(hmac)->ictx, data, len);
+}
+
 void _sasl_hmac_md5_final(unsigned char digest[HMAC_MD5_SIZE],
 			  HMAC_MD5_CTX *hmac)
 {

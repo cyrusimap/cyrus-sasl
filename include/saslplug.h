@@ -65,13 +65,10 @@ typedef struct sasl_utils {
     sasl_mutex_free_t *mutex_free;
 
     /* MD5 hash and HMAC functions */
-    void (*MD5Init)(MD5_CTX *);
-    void (*MD5Update)(MD5_CTX *, const unsigned char *text, unsigned int len);
-    void (*MD5Final)(unsigned char [16], MD5_CTX *);
     void (*hmac_md5)(const unsigned char *text, int text_len,
 		     const unsigned char *key, int key_len,
 		     unsigned char [16]);
-    /* hmac_md5_update() is just a call to MD5Update on inner context */
+    void (*hmac_md5_update)(HMAC_MD5_CTX *, const void *data, unsigned long len);
     void (*hmac_md5_final)(unsigned char [16], HMAC_MD5_CTX *);
     void (*hmac_md5_precalc)(HMAC_MD5_STATE *,
 			     const unsigned char *key, int len);

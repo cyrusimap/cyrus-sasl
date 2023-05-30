@@ -42,6 +42,10 @@ void _sasl_hmac_md5_precalc(HMAC_MD5_STATE *hmac,
  */
 void _sasl_hmac_md5_import(HMAC_MD5_CTX *hmac, HMAC_MD5_STATE *state);
 
+int _sasl_hmac_md5_update(HMAC_MD5_CTX *hmac,
+			  const void *data,
+			  unsigned long len);
+
 /* finish hmac from intermediate result.  Intermediate result is zeroed.
  */
 void _sasl_hmac_md5_final(unsigned char digest[HMAC_MD5_SIZE],

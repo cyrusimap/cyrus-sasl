@@ -64,6 +64,7 @@ typedef struct sasl_utils {
     sasl_mutex_unlock_t *mutex_unlock;
     sasl_mutex_free_t *mutex_free;
 
+#ifdef HAVE_MD5
     /* MD5 hash and HMAC functions */
     void (*hmac_md5)(const unsigned char *text, int text_len,
 		     const unsigned char *key, int key_len,
@@ -73,6 +74,7 @@ typedef struct sasl_utils {
     void (*hmac_md5_precalc)(HMAC_MD5_STATE *,
 			     const unsigned char *key, int len);
     void (*hmac_md5_import)(HMAC_MD5_CTX *, HMAC_MD5_STATE *);
+#endif
 
     /* mechanism utility functions (same as above): */
     int (*mkchal)(sasl_conn_t *conn, char *buf, unsigned maxlen,

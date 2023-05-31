@@ -306,13 +306,20 @@ else
   AC_MSG_RESULT(disabled)
 fi
 
+CMU_HAVE_OPENSSL
+AC_MSG_CHECKING(for OpenSSL)
+AC_MSG_RESULT($with_openssl)
+if test "$with_openssl" = no; then
+  AC_MSG_ERROR(OpenSSL not found)
+fi
+
 dnl CRAM-MD5
 AC_ARG_ENABLE(cram, [  --enable-cram           enable CRAM-MD5 authentication [[yes]] ],
   cram=$enableval,
   cram=yes)
 
 AC_MSG_CHECKING(CRAM-MD5)
-if test "$cram" != no; then
+if test "$cram" != no -a $ac_cv_lib_crypto_MD5_Init = yes; then
   AC_MSG_RESULT(enabled)
   SASL_MECHS="$SASL_MECHS libcrammd5.la"
   if test "$enable_obsolete_cram_attr" = yes; then
@@ -325,13 +332,6 @@ if test "$cram" != no; then
   fi
 else
   AC_MSG_RESULT(disabled)
-fi
-
-CMU_HAVE_OPENSSL
-AC_MSG_CHECKING(for OpenSSL)
-AC_MSG_RESULT($with_openssl)
-if test "$with_openssl" = no; then
-  AC_MSG_ERROR(OpenSSL not found)
 fi
 
 SASL_DES_CHK
@@ -353,7 +353,7 @@ if test "$digest" != no; then
 fi
 
 AC_MSG_CHECKING(DIGEST-MD5)
-if test "$digest" != no; then
+if test "$digest" != no -a $ac_cv_lib_crypto_MD5_Init = yes; then
   AC_MSG_RESULT(enabled)
   SASL_MECHS="$SASL_MECHS libdigestmd5.la"
   if test "$enable_obsolete_digest_attr" = yes; then

@@ -39,6 +39,7 @@ documentation and/or software.
 #include "hmac-md5.h"
 #include <openssl/crypto.h>
 
+#ifdef HAVE_MD5
 #ifndef WIN32
 # include <arpa/inet.h>
 #endif
@@ -247,3 +248,4 @@ unsigned char *digest; /* caller digest to be filled in */
   MD5_Final(digest, &context);          /* finish up 2nd pass */
 
 }
+#endif /* HAVE_MD5 */

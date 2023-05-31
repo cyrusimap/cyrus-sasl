@@ -4,6 +4,7 @@
 #ifndef HMAC_MD5_H
 #define HMAC_MD5_H 1
 
+#ifdef HAVE_MD5
 #include <openssl/md5.h>
 
 #define HMAC_MD5_SIZE 16
@@ -55,4 +56,5 @@ void _sasl_hmac_md5_final(unsigned char digest[HMAC_MD5_SIZE],
 }
 #endif
 
+#endif /* HAVE_MD5 */
 #endif /* HMAC_MD5_H */

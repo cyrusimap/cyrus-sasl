@@ -2411,8 +2411,7 @@ int srp_server_plug_init(const sasl_utils_t *utils,
 			 int maxversion,
 			 int *out_version,
 			 const sasl_server_plug_t **pluglist,
-			 int *plugcount,
-			 const char *plugname __attribute__((unused)))
+			 int *plugcount)
 {
     const char *mda;
     unsigned int len;
@@ -3150,8 +3149,7 @@ int srp_client_plug_init(const sasl_utils_t *utils __attribute__((unused)),
 			 int maxversion,
 			 int *out_version,
 			 const sasl_client_plug_t **pluglist,
-			 int *plugcount,
-			 const char *plugname __attribute__((unused)))
+			 int *plugcount)
 {
     layer_option_t *opts;
     

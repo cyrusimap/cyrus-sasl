@@ -2144,15 +2144,6 @@ const sasl_security_properties_t force_des = {
     NULL	    
 };
 
-const sasl_security_properties_t force_rc4_56 = {
-    0,
-    56,
-    8192,
-    0,
-    NULL,
-    NULL	    
-};
-
 const sasl_security_properties_t force_3des = {
     0,
     112,
@@ -2292,7 +2283,6 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
     const sasl_security_properties_t *test_props[7] =
                                           { &security_props,
 					    &force_3des,
-					    &force_rc4_56,
 					    &force_des,
 					    &int_only,
 					    &no_int,

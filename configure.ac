@@ -1054,14 +1054,6 @@ AC_ARG_WITH(configdir, [   --with-configdir=DIR    set the directory where confi
   configdir='${plugindir}:${sysconfdir}/sasl2')
 AC_SUBST(configdir)
 
-AC_ARG_WITH(rc4, [  --with-rc4              use rc4 routines [[yes]] ],
-	with_rc4=$withval,
-	with_rc4=yes)
-
-if test "$with_rc4" != no; then
-    AC_DEFINE(WITH_RC4,[],[Use RC4])
-fi
-
 building_for_macosx=no
 case "$host_os" in
         darwin*)

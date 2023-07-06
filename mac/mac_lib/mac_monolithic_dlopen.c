@@ -57,10 +57,6 @@
 #undef sasl_server_plug_init
 #undef sasl_client_plug_init
 
-#include <sasl_md5_plugin_decl.h>
-#undef sasl_server_plug_init
-#undef sasl_client_plug_init
-
 #include <sasl_scram_plugin_decl.h>
 #undef sasl_server_plug_init
 #undef sasl_client_plug_init
@@ -82,14 +78,12 @@ int _sasl_get_mech_list(const char *entryname,
 		(*add_plugin)(anonymous_sasl_client_plug_init,(void*)1);
 		(*add_plugin)(cram_sasl_client_plug_init,(void*)1);
 		(*add_plugin)(scram_sasl_client_plug_init,(void*)1);
-		(*add_plugin)(md5_sasl_client_plug_init,(void*)1);
 		(*add_plugin)(plain_sasl_client_plug_init,(void*)1);
 	} else if(strcmp(entryname,"sasl_server_plug_init")==0) {
 		(*add_plugin)(kerberos4_sasl_server_plug_init,(void*)1);
 		(*add_plugin)(anonymous_sasl_server_plug_init,(void*)1);
 		(*add_plugin)(cram_sasl_server_plug_init,(void*)1);
 		(*add_plugin)(scram_sasl_server_plug_init,(void*)1);
-		(*add_plugin)(md5_sasl_server_plug_init,(void*)1);
 		(*add_plugin)(plain_sasl_server_plug_init,(void*)1);
 	} else
 		return SASL_BADPARAM;

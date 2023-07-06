@@ -51,7 +51,7 @@ array set client [list \
     silent              0                               \
     service             example                         \
     fqdn                example.com                     \
-    mechanisms          digest-md5                      \
+    mechanisms          cram-md5                        \
     user                ""                              \
     language            en-US                           \
     authname            fred                            \

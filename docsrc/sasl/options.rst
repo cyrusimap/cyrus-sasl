@@ -209,7 +209,7 @@ Examples
    ldapdb_uri: ldap://ldap.example.com
    ldapdb_id: root
    ldapdb_pw: secret
-   ldapdb_mech: DIGEST-MD5
+   ldapdb_mech: SCRAM
    ldapdb_canon_attr: uid
 
 The LDAP server must be configured to map the SASL authcId "root" into a DN
@@ -250,16 +250,6 @@ OTP
    (Without opie) Message digest algorithm for one-time passwords, used by sasl_setpass
 
    Default: md5
-
-Digest-md5
-==========
-
-.. option:: reauth_timeout [<minutes>]
-
-   Length in time (in minutes) that authentication info will be
-   cached for a fast reauth.  A value of 0 will disable reauth.
-
-   Default: 0 - reauth disabled.
 
 SASLDB
 ======

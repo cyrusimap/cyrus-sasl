@@ -431,7 +431,6 @@ main(int argc, char *argv[])
   else {
       struct propctx *propctx = NULL;
       const char *delete_request[] = { "cmusaslsecretCRAM-MD5",
-				       "cmusaslsecretDIGEST-MD5",
 				       "cmusaslsecretPLAIN",
 				       NULL };
       int ret = SASL_OK;
@@ -445,7 +444,6 @@ main(int argc, char *argv[])
       if (!ret) ret = prop_request(propctx, delete_request);
       if (!ret) {
 	  ret = prop_set(propctx, "cmusaslsecretCRAM-MD5", NULL, 0);
-	  ret = prop_set(propctx, "cmusaslsecretDIGEST-MD5", NULL, 0);
 	  ret = prop_set(propctx, "cmusaslsecretPLAIN", NULL, 0);
 	  ret = sasl_auxprop_store(conn, propctx, userid);
       }

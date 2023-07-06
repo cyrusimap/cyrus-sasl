@@ -256,7 +256,7 @@ SASL bind should be used with the 'fastbind' auth_method:
 
 ldap_servers: ldaps://10.1.1.2/
 ldap_use_sasl: yes
-ldap_mech: DIGEST_MD5
+ldap_mech: CRAM-MD5
 ldap_auth_method: fastbind
 
 At this time this is not the best performing solution because openldap (2.1.x)

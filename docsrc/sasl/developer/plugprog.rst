@@ -143,7 +143,7 @@ SASL_FEAT_SERVER_FIRST
 
 If neither flag is set, the mechanism will handle the client-send
 first situation internally, because the client may or may not send
-first.  (e.g. DIGEST-MD5).  In this case, the plugin must
+first.  In this case, the plugin must
 intelligently check for the presence (or absence) of clientin/serverin
 data.  Note that the optional client send-first is only possible when the
 protocol permits an initial response.
@@ -154,7 +154,7 @@ setting \*serverout when the step function returns SASL_OK.
 * For mechanisms
   which never send last (e.g. PLAIN), \*serverout must be set to NULL.
 * For
-  mechanisms which always send last (e.g. DIGEST-MD5), \*serverout must
+  mechanisms which always send last, \*serverout must
   point to the success data.
 * For mechanisms in which the server may or
   may not send last (e.g. SRP), \*serverout must be set accordingly.

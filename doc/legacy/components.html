@@ -94,7 +94,7 @@ in <tt>saslplug.h</tt>.</p>
 <h3>Plugins (SASL Mechanisms)</h3>
 
 <p>The simplest types of plugins to understand are those which provide
-SASL mechanisms, such as CRAM-MD5, DIGEST-MD5, GSSAPI, PLAIN, SCRAM, SRP, and so on.
+SASL mechanisms, such as CRAM-MD5, GSSAPI, PLAIN, SCRAM, SRP, and so on.
 These mechanisms take care of both server-side and client-side parts
 of the SASL negotiation.  If the given mechanism supports a security layer
 (that is, makes guarantees about privacy or integrity of data after the
@@ -118,7 +118,7 @@ who might be snooping on the wire.  These mechanisms do not require that
 the server have access to a plaintext (or plaintext-equivalent) version
 of the password.</li>
 <li><b>Shared Secret Mechanisms</b> - For these mechanisms,
-such as CRAM-MD5, DIGEST-MD5, OTP, SCRAM and SRP,
+such as CRAM-MD5, OTP, SCRAM and SRP,
 there is a shared secret between the server and client (e.g. a password).
 However, in this case the password itself does not travel on the wire.
 Instead, the client passes a server a token that proves that it knows

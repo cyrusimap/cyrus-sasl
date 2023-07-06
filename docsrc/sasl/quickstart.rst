@@ -18,7 +18,6 @@ this distribution:
 
 *  ANONYMOUS
 *  CRAM-MD5
-*  DIGEST-MD5 (requires OpenSSL libcrypto)
 *  EXTERNAL
 *  GSSAPI (MIT Kerberos 5, Heimdal Kerberos 5 or CyberSafe)
 *  LOGIN

@@ -44,7 +44,7 @@
 
 AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_builddir)/include -DPLUGINDIR='"${plugindir}"'
 
-noinst_PROGRAMS = client server http_digest_client
+noinst_PROGRAMS = client server
 EXTRA_PROGRAMS = sample-client sample-server
 EXTRA_DIST = NTMakefile
 CLEANFILES=sample-client sample-server ./.libs/*sample-client ./.libs/*sample-server
@@ -54,11 +54,9 @@ sample_server_SOURCES = sample-server.c
 
 server_SOURCES = server.c common.c common.h
 client_SOURCES = client.c common.c common.h
-http_digest_client_SOURCES = http_digest_client.c
 
 server_LDADD = ../lib/libsasl2.la $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET)
 client_LDADD = ../lib/libsasl2.la $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET)
-http_digest_client_LDADD = ../lib/libsasl2.la $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET)
 
 sample_client_LDADD = ../lib/libsasl2.la $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET)
 sample_server_LDADD = ../lib/libsasl2.la $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET)

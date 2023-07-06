@@ -458,7 +458,6 @@ static sasl_interact_t *find_prompt(sasl_interact_t **promptlist,
 
 /*
  * Somehow retrieve the userid
- * This is the same as in digest-md5 so change both
  */
 static int get_userid(sasl_client_params_t *params,
 		      const char **userid,

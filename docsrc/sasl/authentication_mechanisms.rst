@@ -31,15 +31,6 @@ Documented in a `RFC Draft: draft-ietf-sasl-crammd5 <https://tools.ietf.org/html
 .. warning::
    The CRAM-MD5 SASL mechanism is obsolete. It has been moved to Historic in `draft-ietf-sasl-crammd5-to-historic <https://tools.ietf.org/html/draft-ietf-sasl-crammd5-to-historic-00>`_
 
-DIGEST-MD5
-----------
-
-This mechanism improves upon the :ref:`MECH-CRAM-MD5` mechanism by avoiding the need for the server to store plaintext passwords.
-With digest authentication the server needs to store the **MD5 digest** of the users password which helps to make the system more secure.
-As in :ref:`MECH-CRAM-MD5` the password is hashed with a server nonce and other data before being transmitted across the network.
-
-Defined in :rfc:`2831`
-
 EXTERNAL
 --------
 
@@ -172,8 +163,6 @@ of the mechanisms provided by the Cyrus SASL Library.
 | ANONYMOUS   | 0       | X       |          |        |         |        |      |        | X         |              |          |       |      |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 | CRAM-MD5    | 0       | X       |          |        |         | X      |      |        |           | X            |          |       |      |      |
-+-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
-| DIGEST-MD5  | 128     | X       |          |        |         | X      |      | X      | reauth    | initial auth | X        | X     |      | X    |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 | EXTERNAL    | 0       | X       |          | X      |         | X      |      |        | X         |              |          | X     |      |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+

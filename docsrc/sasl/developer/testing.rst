@@ -43,7 +43,7 @@ chance these will need to be escaped for proper interpretation by the shell):
     > ./sample-client -i local=128.2.121.162;23,remote=128.2.121.162;23 -s rcmd -n SPOOKY.ANDREW.CMU.EDU
     Waiting for mechanism list from server...
     S: UExBSU4gQU5PTllNT1VTIEtFUkJFUk9TX1Y0IERJR0VTVC1NRDUgQ1JBTS1NRDUgAAAAAED5EEA=
-    Choosing best mechanism from: PLAIN ANONYMOUS GSSAPI DIGEST-MD5 CRAM-MD5
+    Choosing best mechanism from: PLAIN ANONYMOUS GSSAPI CRAM-MD5
     Using mechanism GSSAPI
     Preparing initial.
     Sending initial response...

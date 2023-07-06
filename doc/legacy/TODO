@@ -27,11 +27,6 @@ OTP
 ) Checking edge cases
 ) Testing
 
-Digest-MD5
-~~~~~~~~~~
-) Checking wacko cases or even not so wacko cases
-) Testing
-
 Kerberos_V4
 ~~~~~~~~~~~
 ) client-side should set realm

@@ -37,15 +37,6 @@ CRAM-MD5 is the mandatory-to-implement authentication mechanism for a
 number of protocols; it uses MD5 with a challenge/response system to
 authenticate the user.
 
-%package plug-digestmd5
-%summary: SASL DIGEST-MD5 mechanism plugin
-
-%description plug-digestmd5
-This plugin implements the latest draft of the SASL DIGEST-MD5
-mechanism.  Although not yet finalized, this is likely to become the
-new mandatory-to-implement authentication system in all new protocols.
-It's based on the digest md5 authentication system designed for HTTP.
-
 %package plug-plain
 %summary: SASL PLAIN mechanism plugin
 
@@ -104,11 +95,6 @@ fi
 %doc doc/rfc1321.txt doc/rfc2095.txt doc/rfc2104.txt
 /usr/lib/sasl/libcrammd5.so.1.0.1
 /usr/lib/sasl/libcrammd5.so
-
-%files plug-digestmd5
-%doc doc/draft-leach-digest-sasl-01.txt 
-/usr/lib/sasl/libdigestmd5.so.0.0.1
-/usr/lib/sasl/libdigestmd5.so
 
 %files plug-plain
 /usr/lib/sasl/libplain.so.1.0.1

@@ -222,7 +222,7 @@ Shared secrets mechanisms
 -------------------------
 
 The Cyrus SASL library also supports some "shared secret"
-authentication methods: CRAM-MD5, DIGEST-MD5 and its successor SCRAM.
+authentication methods: CRAM-MD5 and SCRAM.
 These methods rely on the client and the server sharing a "secret",
 usually a password.  The server generates a challenge and the client a
 response proving that it knows the shared secret.  This is much more
@@ -295,7 +295,7 @@ The OTP mechanism
 -----------------
 
 The Cyrus SASL library also supports the One-Time-Password (OTP)
-mechanism.  This mechanism is similar to CRAM-MD5, DIGEST-MD5, SCRAM
+mechanism.  This mechanism is similar to CRAM-MD5, SCRAM
 and SRP in that is uses a shared secret and a challenge/response exchange.
 However, OTP is more secure than the other shared secret mechanisms in
 that the secret is used to generate a sequence of one-time (single
@@ -403,7 +403,7 @@ Why doesn't OTP doesn't appear as an available mechanism?
     be readable by the Cyrus user.  By default, the library looks for the
     opiekeys in ``/etc/opiekeys``, but it's configurable using the
     :option:`opiekeys` option.
-Why don't CRAM-MD5, DIGEST-MD5 and SCRAM work with my old sasldb?
+Why don't CRAM-MD5 and SCRAM work with my old sasldb?
     Because sasldb now stores plaintext passwords only, the old
     sasldb is incompatible.
 I'm having performance problems on each authentication, there is a noticeable slowdown when sasl initializes, what can I do?

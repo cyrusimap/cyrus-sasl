@@ -84,10 +84,6 @@ extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( anonymous );
 extern SPECIFIC_SERVER_PLUG_INIT_PROTO( crammd5 );
 extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( crammd5 );
 #endif
-#ifdef STATIC_DIGESTMD5
-extern SPECIFIC_SERVER_PLUG_INIT_PROTO( digestmd5 );
-extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( digestmd5 );
-#endif
 #ifdef STATIC_SCRAM
 extern SPECIFIC_SERVER_PLUG_INIT_PROTO( scram );
 extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( scram );
@@ -130,10 +126,6 @@ _sasl_plug_rec _sasl_static_plugins[] = {
 #ifdef STATIC_CRAMMD5
 	SPECIFIC_SERVER_PLUG_INIT( crammd5, "CRAM-MD5" ),
 	SPECIFIC_CLIENT_PLUG_INIT( crammd5, "CRAM-MD5" ),
-#endif
-#ifdef STATIC_DIGESTMD5
-	SPECIFIC_SERVER_PLUG_INIT( digestmd5, "DIGEST-MD5" ),
-	SPECIFIC_CLIENT_PLUG_INIT( digestmd5, "DIGEST-MD5" ),
 #endif
 #ifdef STATIC_GSSAPIV2
 	SPECIFIC_SERVER_PLUG_INIT( gssapiv2, "GSSAPI" ),

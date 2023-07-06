@@ -135,12 +135,6 @@ and 'alwaystrue' [if compiled with <tt>--enable-alwaystrue</tt>])
 </TD><TD>auxprop</TD>
 </TR>
 <TR>
-<TD>reauth_timeout</TD><TD>DIGEST-MD5</TD>
-<TD>Length in time (in minutes) that authentication info will be
-cached for a fast reauth.  A value of 0 will disable reauth.</TD>
-<TD>0</TD>
-</TR>
-<TR>
 <TD>saslauthd_path</TD><TD>SASL Library</TD>
 <TD>Path to saslauthd run directory (<b>including</b> the "/mux" named pipe)</TD>
 <TD>system dependant (generally won't need to be changed)</TD>
@@ -325,7 +319,7 @@ which will force the SASL library to ignore all other auxprop modules.</p>
 ldapdb_uri: ldap://ldap.example.com
 ldapdb_id: root
 ldapdb_pw: secret
-ldapdb_mech: DIGEST-MD5
+ldapdb_mech: SCRAM
 ldapdb_canon_attr: uid
 </pre>
 

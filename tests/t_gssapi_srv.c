@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
     const char *data;
     unsigned int len;
     sasl_channel_binding_t cb = {0};
-    unsigned char cb_buf[256];
+    char cb_buf[256];
     int sd;
     int c, r;
     const char *sasl_mech = "GSSAPI";

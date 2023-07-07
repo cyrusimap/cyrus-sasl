@@ -374,19 +374,18 @@ static int lak_config_read(
 	}
 
 	if (conf->version != LDAP_VERSION3 && 
-	    (conf->use_sasl ||
-	     conf->start_tls))
-	    conf->version = LDAP_VERSION3;
+	    (conf->use_sasl || conf->start_tls))
+		conf->version = LDAP_VERSION3;
 
-    if (conf->use_sasl &&
-        conf->auth_method == LAK_AUTH_METHOD_BIND)
-        conf->auth_method = LAK_AUTH_METHOD_FASTBIND;
+	if (conf->use_sasl &&
+	    conf->auth_method == LAK_AUTH_METHOD_BIND)
+		conf->auth_method = LAK_AUTH_METHOD_FASTBIND;
 
-    if ( ISSET(conf->group_filter) &&
-         ISSET(conf->search_base) &&
-         EMPTY(conf->group_search_base) )
-        strlcpy(conf->group_search_base, conf->search_base, LAK_DN_LEN);
-        
+	if (ISSET(conf->group_filter) &&
+	    ISSET(conf->search_base) &&
+	    EMPTY(conf->group_search_base))
+		strlcpy(conf->group_search_base, conf->search_base, LAK_DN_LEN);
+
 	fclose(infile);
 
 	return LAK_OK;

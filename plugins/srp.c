@@ -86,7 +86,6 @@ typedef unsigned short uint32;
 
 /* for digest and cipher support */
 #include <openssl/evp.h>
-#include <openssl/hmac.h>
 #include <openssl/md5.h>
 
 /* for legacy libcrypto support */
@@ -168,7 +167,7 @@ typedef struct layer_option_s {
     unsigned enabled;		/* enabled?  determined at run-time */
     unsigned bit;		/* unique bit in bitmask */
     sasl_ssf_t ssf;		/* ssf of layer */
-    const char *evp_name;	/* name used for lookup in EVP table */
+    char *evp_name;		/* name used for lookup in EVP table */
 } layer_option_t;
 
 static layer_option_t digest_options[] = {
@@ -258,9 +257,8 @@ typedef struct context {
     
     /* Layer foo */
     unsigned layer;		/* bitmask of enabled layers */
-    const EVP_MD *hmac_md;	/* HMAC for integrity */
-    HMAC_CTX *hmac_send_ctx;
-    HMAC_CTX *hmac_recv_ctx;
+    EVP_MAC_CTX *hmac_send_ctx;
+    EVP_MAC_CTX *hmac_recv_ctx;
 
     const EVP_CIPHER *cipher;	/* cipher for confidentiality */
     EVP_CIPHER_CTX *cipher_enc_ctx;
@@ -347,24 +345,24 @@ static int srp_encode(void *context,
     }
 
     if (text->layer & BIT_INTEGRITY) {
-	unsigned hashlen;
+	size_t hashlen;
 
 	/* hash the content */
-	HMAC_Update(text->hmac_send_ctx,
+	EVP_MAC_update(text->hmac_send_ctx,
                     (unsigned char *) text->encode_buf+4, *outputlen-4);
 	
 	if (text->layer & BIT_REPLAY_DETECTION) {
 	    /* hash the sequence number */
 	    tmpnum = htonl(text->seqnum_out);
-	    HMAC_Update(text->hmac_send_ctx, (unsigned char *) &tmpnum, 4);
+	    EVP_MAC_update(text->hmac_send_ctx, (unsigned char *) &tmpnum, 4);
 	    
 	    text->seqnum_out++;
 	}
 
 	/* append the HMAC into the output buffer */
-	HMAC_Final(text->hmac_send_ctx,
+	EVP_MAC_final(text->hmac_send_ctx,
                    (unsigned char *) text->encode_buf + *outputlen,
-		   &hashlen);
+		   &hashlen, EVP_MAC_CTX_get_mac_size(text->hmac_send_ctx));
 	*outputlen += hashlen;
     }
 
@@ -391,15 +389,15 @@ static int srp_decode_packet(void *context,
     if (text->layer & BIT_INTEGRITY) {
 	const char *hash;
 	unsigned char myhash[EVP_MAX_MD_SIZE];
-	unsigned hashlen;
+	size_t hashlen;
 	unsigned long tmpnum;
 
-	hashlen = EVP_MD_size(text->hmac_md);
+	hashlen = EVP_MAC_CTX_get_mac_size(text->hmac_recv_ctx);
 
 	if (inputlen < hashlen) {
 	    text->utils->seterror(text->utils->conn, 0,
 				  "SRP input is smaller "
-				  "than hash length: %d vs %d\n",
+				  "than hash length: %d vs %ld\n",
 				  inputlen, hashlen);
 	    return SASL_BADPROT;
 	}
@@ -408,17 +406,18 @@ static int srp_decode_packet(void *context,
 	hash = input + inputlen;
 
 	/* create our own hash from the input */
-	HMAC_Update(text->hmac_recv_ctx, (unsigned char *) input, inputlen);
+	EVP_MAC_update(text->hmac_recv_ctx, (unsigned char *) input, inputlen);
 	    
 	if (text->layer & BIT_REPLAY_DETECTION) {
 	    /* hash the sequence number */
 	    tmpnum = htonl(text->seqnum_in);
-	    HMAC_Update(text->hmac_recv_ctx, (unsigned char *) &tmpnum, 4);
+	    EVP_MAC_update(text->hmac_recv_ctx, (unsigned char *) &tmpnum, 4);
 		
 	    text->seqnum_in++;
 	}
 	    
-	HMAC_Final(text->hmac_recv_ctx, myhash, &hashlen);
+	EVP_MAC_final(text->hmac_recv_ctx, myhash, &hashlen,
+		      EVP_MAC_CTX_get_mac_size(text->hmac_recv_ctx));
 
 	/* compare hashes */
         if (memcmp(hash, myhash, hashlen)) {
@@ -1405,6 +1404,10 @@ static int LayerInit(srp_options_t *opts, context_t *text,
 		     unsigned maxbufsize)
 {
     layer_option_t *opt;
+    OSSL_PARAM params[2];
+    EVP_MAC *hmac = EVP_MAC_fetch(NULL, "HMAC", NULL);
+    if (hmac == NULL)
+	return SASL_FAIL;
     
     if ((opts->integrity == 0) && (opts->confidentiality == 0)) {
 	oparams->encode = NULL;
@@ -1445,14 +1448,15 @@ static int LayerInit(srp_options_t *opts, context_t *text,
 	oparams->mech_ssf = opt->ssf;
 
 	/* Initialize the HMACs */
-	text->hmac_md = EVP_get_digestbyname(opt->evp_name);
-        text->hmac_send_ctx = HMAC_CTX_new();
-	HMAC_Init_ex(text->hmac_send_ctx, text->K, text->Klen, text->hmac_md, NULL);
-        text->hmac_recv_ctx = HMAC_CTX_new();
-	HMAC_Init_ex(text->hmac_recv_ctx, text->K, text->Klen, text->hmac_md, NULL);
+	params[0] = OSSL_PARAM_construct_utf8_string("digest", opt->evp_name, 0);
+	params[1] = OSSL_PARAM_construct_end();
+	text->hmac_send_ctx = EVP_MAC_CTX_new(hmac);
+	EVP_MAC_init(text->hmac_send_ctx, text->K, text->Klen, params);
+	text->hmac_recv_ctx = EVP_MAC_CTX_new(hmac);
+	EVP_MAC_init(text->hmac_recv_ctx, text->K, text->Klen, params);
 	
 	/* account for HMAC */
-	oparams->maxoutbuf -= EVP_MD_size(text->hmac_md);
+	oparams->maxoutbuf -= EVP_MAC_CTX_get_mac_size(text->hmac_send_ctx);
     }
     
     if (opts->confidentiality) {
@@ -1488,8 +1492,8 @@ static int LayerInit(srp_options_t *opts, context_t *text,
 static void LayerCleanup(context_t *text)
 {
     if (text->layer & BIT_INTEGRITY) {
-	HMAC_CTX_free(text->hmac_send_ctx);
-	HMAC_CTX_free(text->hmac_recv_ctx);
+	EVP_MAC_CTX_free(text->hmac_send_ctx);
+	EVP_MAC_CTX_free(text->hmac_recv_ctx);
     }
 
     if (text->layer & BIT_CONFIDENTIALITY) {

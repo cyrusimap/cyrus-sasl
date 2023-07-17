@@ -188,12 +188,7 @@ static layer_option_t cipher_options[] = {
     { "IDEA",		0, (1<<5), 128,	"idea-ofb" },
     { NULL,		0,      0, 0,	NULL}
 };
-/* XXX Hack until OpenSSL 0.9.7 */
-#if OPENSSL_VERSION_NUMBER < 0x00907000L
-static layer_option_t *default_cipher = &cipher_options[0];
-#else
 static layer_option_t *default_cipher = &cipher_options[2];
-#endif
 
 
 enum {
@@ -1622,12 +1617,7 @@ static int CalculateB(context_t *text  __attribute__((unused)),
 
     *B = BN_new();
     BN_mod_exp(*B, g, *b, N, ctx);
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L
     BN_mod_add(*B, *B, v3, N, ctx);
-#else
-    BN_add(*B, *B, v3);
-    BN_mod(*B, *B, N, ctx);
-#endif
 
     BN_clear_free(v3);
     BN_CTX_free(ctx);
@@ -2559,15 +2549,7 @@ static int ClientCalculateK(context_t *text, char *salt, int saltlen,
     BN_mod_mul(gx3, gx3, gx, N, ctx);
     
     /* base = (B - 3(g^x)) % N */
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L
     BN_mod_sub(base, B, gx3, N, ctx);
-#else
-    BN_sub(base, B, gx3);
-    BN_mod(base, base, N, ctx);
-    if (BigIntCmpWord(base, 0) < 0) {
-	BN_add(base, base, N);
-    }
-#endif
     
     /* S = base^aux % N */
     BN_mod_exp(S, base, aux, N, ctx);

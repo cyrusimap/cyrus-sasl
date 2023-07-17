@@ -47,9 +47,6 @@
 #include <crypt.h>
 #endif
 
-#ifndef OPENSSL_DISABLE_OLD_DES_SUPPORT
-#define OPENSSL_DISABLE_OLD_DES_SUPPORT
-#endif
 #include <openssl/evp.h>
 #include <openssl/des.h>
 

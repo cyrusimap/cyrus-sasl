@@ -62,22 +62,8 @@
 #ifdef WITH_DES
 # ifdef WITH_SSL_DES
 #  include <openssl/des.h>
-#  include <openssl/opensslv.h>
-#  if (OPENSSL_VERSION_NUMBER >= 0x0090700f) && \
-      !defined(OPENSSL_ENABLE_OLD_DES_SUPPORT)
-#   define des_cblock DES_cblock
-#   define des_key_schedule DES_key_schedule
-#   define des_key_sched(k,ks) \
-           DES_key_sched((k),&(ks))
-#   define des_cbc_encrypt(i,o,l,k,iv,e) \
-           DES_cbc_encrypt((i),(o),(l),&(k),(iv),(e))
-#   define des_ede2_cbc_encrypt(i,o,l,k1,k2,iv,e) \
-           DES_ede2_cbc_encrypt((i),(o),(l),&(k1),&(k2),(iv),(e))
-#  endif /* OpenSSL 0.9.7+ w/o old DES support */
 # else /* system DES library */
-#ifdef HAVE_DES_H
 #  include <des.h>
-#endif
 # endif
 #endif /* WITH_DES */
 
@@ -855,9 +841,9 @@ static void get_pair(char **in, char **name, char **value)
 
 #ifdef WITH_DES
 struct des_context_s {
-    des_key_schedule keysched;  /* key schedule for des initialization */
-    des_cblock ivec;            /* initial vector for encoding */
-    des_key_schedule keysched2; /* key schedule for 3des initialization */
+    DES_key_schedule keysched;  /* key schedule for des initialization */
+    DES_cblock ivec;            /* initial vector for encoding */
+    DES_key_schedule keysched2; /* key schedule for 3des initialization */
 };
 
 typedef struct des_context_s des_context_t;
@@ -892,7 +878,7 @@ static int dec_3des(context_t *text,
     des_context_t *c = (des_context_t *) text->cipher_dec_context;
     int padding, p;
     
-    des_ede2_cbc_encrypt((void *) input,
+    DES_ede2_cbc_encrypt((void *) input,
 			 (void *) output,
 			 inputlen,
 			 c->keysched,
@@ -940,7 +926,7 @@ static int enc_3des(context_t *text,
     
     len=inputlen+paddinglen+10;
     
-    des_ede2_cbc_encrypt((void *) output,
+    DES_ede2_cbc_encrypt((void *) output,
 			 (void *) output,
 			 len,
 			 c->keysched,
@@ -966,11 +952,11 @@ static int init_3des(context_t *text,
 
     /* setup enc context */
     slidebits(keybuf, enckey);
-    if (des_key_sched((des_cblock *) keybuf, c->keysched) < 0)
+    if (DES_key_sched((DES_cblock *) keybuf, c->keysched) < 0)
 	return SASL_FAIL;
 
     slidebits(keybuf, enckey + 7);
-    if (des_key_sched((des_cblock *) keybuf, c->keysched2) < 0)
+    if (DES_key_sched((DES_cblock *) keybuf, c->keysched2) < 0)
 	return SASL_FAIL;
     memcpy(c->ivec, ((char *) enckey) + 8, 8);
 
@@ -979,11 +965,11 @@ static int init_3des(context_t *text,
     /* setup dec context */
     c++;
     slidebits(keybuf, deckey);
-    if (des_key_sched((des_cblock *) keybuf, c->keysched) < 0)
+    if (DES_key_sched((DES_cblock *) keybuf, c->keysched) < 0)
 	return SASL_FAIL;
     
     slidebits(keybuf, deckey + 7);
-    if (des_key_sched((des_cblock *) keybuf, c->keysched2) < 0)
+    if (DES_key_sched((DES_cblock *) keybuf, c->keysched2) < 0)
 	return SASL_FAIL;
     
     memcpy(c->ivec, ((char *) deckey) + 8, 8);
@@ -1010,14 +996,14 @@ static int dec_des(context_t *text,
     des_context_t *c = (des_context_t *) text->cipher_dec_context;
     int p, padding = 0;
     
-    des_cbc_encrypt((void *) input,
+    DES_cbc_encrypt((void *) input,
 		    (void *) output,
 		    inputlen,
 		    c->keysched,
 		    &c->ivec,
 		    DES_DECRYPT);
 
-    /* Update the ivec (des_cbc_encrypt implementations tend to be broken in
+    /* Update the ivec (DES_cbc_encrypt implementations tend to be broken in
        this way) */
     memcpy(c->ivec, input + (inputlen - 8), 8);
     
@@ -1061,14 +1047,14 @@ static int enc_des(context_t *text,
     
     len = inputlen + paddinglen + 10;
     
-    des_cbc_encrypt((void *) output,
+    DES_cbc_encrypt((void *) output,
                     (void *) output,
                     len,
                     c->keysched,
                     &c->ivec,
                     DES_ENCRYPT);
     
-    /* Update the ivec (des_cbc_encrypt implementations tend to be broken in
+    /* Update the ivec (DES_cbc_encrypt implementations tend to be broken in
        this way) */
     memcpy(c->ivec, output + (len - 8), 8);
     
@@ -1090,7 +1076,7 @@ static int init_des(context_t *text,
     
     /* setup enc context */
     slidebits(keybuf, enckey);
-    des_key_sched((des_cblock *) keybuf, c->keysched);
+    DES_key_sched((DES_cblock *) keybuf, c->keysched);
 
     memcpy(c->ivec, ((char *) enckey) + 8, 8);
     
@@ -1099,7 +1085,7 @@ static int init_des(context_t *text,
     /* setup dec context */
     c++;
     slidebits(keybuf, deckey);
-    des_key_sched((des_cblock *) keybuf, c->keysched);
+    DES_key_sched((DES_cblock *) keybuf, c->keysched);
 
     memcpy(c->ivec, ((char *) deckey) + 8, 8);
     

@@ -46,9 +46,6 @@
 
 # ifdef WITH_DES
 #  ifdef WITH_SSL_DES
-#   ifndef OPENSSL_DISABLE_OLD_DES_SUPPORT
-#    define OPENSSL_DISABLE_OLD_DES_SUPPORT
-#   endif
 #   include <openssl/des.h>
 #  else
 #   include <des.h>

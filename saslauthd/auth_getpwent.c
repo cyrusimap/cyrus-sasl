@@ -44,13 +44,7 @@
 #include <crypt.h>
 #endif
 
-# ifdef WITH_DES
-#  ifdef WITH_SSL_DES
-#   include <openssl/des.h>
-#  else
-#   include <des.h>
-#  endif /* WITH_SSL_DES */
-# endif /* WITH_DES */
+#include <openssl/des.h>
 
 # include "globals.h"
 /* END PUBLIC DEPENDENCIES */

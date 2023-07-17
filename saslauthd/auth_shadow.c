@@ -55,13 +55,7 @@
 
 # ifndef HAVE_GETSPNAM
 
-# ifdef WITH_DES
-#  ifdef WITH_SSL_DES
-#   include <openssl/des.h>
-#  else
-#   include <des.h>
-#  endif /* WITH_SSL_DES */
-# endif /* WITH_DES */
+#include <openssl/des.h>
 
 # endif /* ! HAVE_GETSPNAM */
 

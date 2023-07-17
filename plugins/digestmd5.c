@@ -58,14 +58,7 @@
 #include <ctype.h>
 
 #include <openssl/evp.h>
-/* DES support */
-#ifdef WITH_DES
-# ifdef WITH_SSL_DES
-#  include <openssl/des.h>
-# else /* system DES library */
-#  include <des.h>
-# endif
-#endif /* WITH_DES */
+#include <openssl/des.h>
 
 #ifdef WIN32
 # include <winsock2.h>
@@ -839,7 +832,6 @@ static void get_pair(char **in, char **name, char **value)
     *in = endpair;
 }
 
-#ifdef WITH_DES
 struct des_context_s {
     DES_key_schedule keysched;  /* key schedule for des initialization */
     DES_cblock ivec;            /* initial vector for encoding */
@@ -1101,14 +1093,10 @@ static void free_des(context_t *text)
     if (text->cipher_enc_context) text->utils->free(text->cipher_enc_context);
 }
 
-#endif /* WITH_DES */
-
 struct digest_cipher available_ciphers[] =
 {
-#ifdef WITH_DES
     { "des", 55, 16, 0x08, &enc_des, &dec_des, &init_des, &free_des },
     { "3des", 112, 16, 0x10, &enc_3des, &dec_3des, &init_3des, &free_des },
-#endif
     { NULL, 0, 0, 0, NULL, NULL, NULL, NULL }
 };
 
@@ -2899,11 +2887,7 @@ static sasl_server_plug_t digestmd5_server_plugins[] =
 {
     {
 	"DIGEST-MD5",			/* mech_name */
-#if defined(WITH_DES)
 	112,
-#else 
-	1,
-#endif
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOANONYMOUS
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
@@ -4412,11 +4396,7 @@ static sasl_client_plug_t digestmd5_client_plugins[] =
 {
     {
 	"DIGEST-MD5",			/* mech_name */
-#if defined(WITH_DES)
 	112,
-#else
-	1,
-#endif
 	SASL_SEC_NOPLAINTEXT
 	| SASL_SEC_NOANONYMOUS
 	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */

@@ -65,9 +65,7 @@
 
 #include <openssl/sha.h>
 #include <openssl/evp.h>
-#if OPENSSL_VERSION_NUMBER < 0x30000000L
 #include <openssl/hmac.h>
-#endif
 
 /*****************************  Common Section  *****************************/
 
@@ -291,32 +289,6 @@ print_hash (const char * func, const char * hash, size_t hash_size)
 }
 #endif
 
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L
-
-/* Decalre as void given functions never use the result */
-void *HMAC(const EVP_MD *evp_md, const void *key, int key_len,
-                     const unsigned char *data, size_t data_len,
-                     unsigned char *md, unsigned int *md_len)
-{
-    const char *digest;
-    size_t digest_size;
-    size_t out_len;
-    void *ret = NULL;
-
-    digest = EVP_MD_get0_name(evp_md);
-    if (digest == NULL) {
-        return NULL;
-    }
-    digest_size = EVP_MD_size(evp_md);
-
-    ret = EVP_Q_mac(NULL, "hmac", NULL, digest, NULL, key, key_len,
-                    data, data_len, md, digest_size, &out_len);
-    if (ret != NULL) {
-        *md_len = (unsigned int)out_len;
-    }
-    return ret;
-}
-#endif
 
 /* The result variable need to point to a buffer big enough for the [SHA-*] hash */
 static void

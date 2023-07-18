@@ -130,6 +130,8 @@ SQLITE_INCLUDES=/I"C:\work\open_source\sqllite\sqlite\src" /I"C:\work\open_sourc
 !IF "$(VERBOSE)" != "0"
 !MESSAGE Defaulting SQLITE_INCLUDES includes to $(SQLITE_INCLUDES).
 !ENDIF
+!ELSE
+SQLITE_INCLUDES=/I$(SQLITE_INCLUDE)
 !ENDIF
 
 !IF "$(SQLITE_LIBPATH)" == ""
@@ -144,6 +146,8 @@ SQLITE_INCLUDES3=/I"c:\work\sqlite\generated"
 !IF "$(VERBOSE)" != "0"
 !MESSAGE Defaulting SQLITE_INCLUDES3 includes to $(SQLITE_INCLUDES3).
 !ENDIF
+!ELSE
+SQLITE_INCLUDES3=/I$(SQLITE_INCLUDE3)
 !ENDIF
 
 !IF "$(SQLITE_LIBPATH3)" == ""

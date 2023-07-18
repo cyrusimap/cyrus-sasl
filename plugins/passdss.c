@@ -51,6 +51,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdint.h>
 
 /* check OpenSSL version */
 #include <openssl/opensslv.h>

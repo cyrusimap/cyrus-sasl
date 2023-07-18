@@ -434,13 +434,6 @@ Is LOGIN supported?
     for sites that need it to interoperate with old clients; we don't
     support it.  Don't enable it unless you know you need it.
 
-Is NTLM supported?
-    The NTLM mechanism is a non-standard, undocumented
-    mechanism developed by Microsoft.  It's included in the SASL
-    distribution purely for sites that need it to interoperate with
-    Microsoft clients (ie, Outlook) and/or servers (ie, Exchange); we
-    don't support it.  Don't enable it unless you know you need it.
-
 How can I get a non-root application to check plaintext passwords?
     Use the "saslauthd" daemon and setting "pwcheck_method"
     to "saslauthd".

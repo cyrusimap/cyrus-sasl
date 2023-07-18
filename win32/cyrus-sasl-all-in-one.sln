@@ -48,8 +48,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "plugin_anonymous", "plugin_
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "plugin_plain", "plugin_plain.vcxproj", "{B8C5499F-BCB8-409C-8446-0D92DE118020}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "plugin_ntlm", "plugin_ntlm.vcxproj", "{7D694002-B275-4895-A76E-A6ED345FD3C3}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "plugin_sasldb", "plugin_sasldb.vcxproj", "{BAA833AE-8C05-4C1F-AE5A-739241E3765B}"
 	ProjectSection(ProjectDependencies) = postProject
 		{EF82DBE5-D25B-4AC8-989E-68350BD17185} = {EF82DBE5-D25B-4AC8-989E-68350BD17185}

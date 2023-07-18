@@ -106,7 +106,7 @@ of the SASL negotiation.  If the given mechanism supports a security layer
 negotiation is complete), the plugin provides that functionality as well.
 
 SASL mechanisms are generally defined by the IETF standards process,
-however, some mechanisms are not (For example, NTLM).  This is in contrast
+however, some mechanisms are not.  This is in contrast
 to the other types of plugins, which provide database and username
 canonicalization services to other plugins and thus aren't standardized in
 their behavior (they are specific to our implementation).  Password verifiers

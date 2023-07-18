@@ -11,5 +11,4 @@ Other Documentation & Resources
 * `FAQ from Sendmail <https://www.sendmail.org/~ca/email/auth.html>`_
 * `The Secure Remote Password Protocol <http://www-cs-students.stanford.edu/~tjw/srp/ndss.html>`_ paper by Thomas Wu
 * `TCL extensions for SASL <http://beepcore-tcl.sourceforge.net/tclsasl.html>`_
-*  `The NTLM Authentication Protocol <http://davenport.sourceforge.net/ntlm.html>`_ (NTLM)
 * `Common Internet File System (CIFS) Technical Reference <https://www.cs.miami.edu/home/burt/learning/Csc521.071/docs/CIFS-TR-1p00_FINAL.pdf>`_ (SMB/NTLM)

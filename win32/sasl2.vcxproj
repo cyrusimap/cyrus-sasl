@@ -156,9 +156,6 @@
     <ProjectReference Include="plugin_digestmd5.vcxproj">
       <Project>{6e87064b-9a5e-4f05-a8fb-09fc72e9e3cc}</Project>
     </ProjectReference>
-    <ProjectReference Include="plugin_ntlm.vcxproj">
-      <Project>{7d694002-b275-4895-a76e-a6ed345fd3c3}</Project>
-    </ProjectReference>
     <ProjectReference Include="plugin_plain.vcxproj">
       <Project>{b8c5499f-bcb8-409c-8446-0d92de118020}</Project>
     </ProjectReference>

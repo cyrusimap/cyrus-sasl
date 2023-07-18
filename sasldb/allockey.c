@@ -1,4 +1,4 @@
-/* db_berkeley.c--SASL berkeley db interface
+/* SASL generic db interface
  * Rob Siemborski
  * Tim Martin
  */

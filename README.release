@@ -12,7 +12,7 @@
   to generate configure etc
 
 * MUST build with one of the supported database backends:
-  bdb gdbm lmdb ndbm
+  gdbm lmdb ndbm
   It is recommended to use lmdb
 
 Generally using Debian or Ubuntu distributions for the compile steps is useful

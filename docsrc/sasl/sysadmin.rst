@@ -438,14 +438,6 @@ How can I get a non-root application to check plaintext passwords?
     Use the "saslauthd" daemon and setting "pwcheck_method"
     to "saslauthd".
 
-I want to use Berkeley DB, but it's installed in ``/usr/local/BerkeleyDB.3.1`` and ``configure`` can't find it.
-    Try setting "CPPFLAGS" and "LDFLAGS" environment
-    variables before running ``configure``, like so::
-
-        env CPPFLAGS="-I/usr/local/BerkeleyDB.3.1/include" \
-          LDFLAGS="-L/usr/local/BerkeleyDB.3.1/lib -R/usr/local/BerkeleyDB.3.1/lib" \
-          ./configure --with-dblib=berkeley
-
 It's not working and won't tell me why! Help!
     Check syslog output (usually stored in
     ``/var/log``) for more information. You might want to change your

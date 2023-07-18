@@ -30,7 +30,7 @@ this distribution:
 
 
 The library also supports storing user secrets in either a hash
-database (e.g. Berkeley DB, gdbm, ndbm), LDAP, or in a SQL database
+database (e.g. lmdb, gdbm, ndbm), LDAP, or in a SQL database
 (MySQL, Postgres).
 
 

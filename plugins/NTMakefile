@@ -2,11 +2,7 @@
 
 SCRAM=1
 
-!IF "$(NTLM)" == "1"
-PLUGINS_EXT=saslNTLM.dll
-!ELSE 
 PLUGINS_EXT=
-!ENDIF 
 
 !IF "$(GSSAPI)" == "CyberSafe"
 PLUGINS_EXT=$(PLUGINS_EXT) saslGSSAPI.dll
@@ -51,7 +47,7 @@ PLUGINS=saslANONYMOUS.dll \
 	$(PLUGINS_EXT) \
 	saslSASLDB.dll
 
-generated_rc=saslANONYMOUS.rc saslPLAIN.rc saslCRAMMD5.rc saslDIGESTMD5.rc saslLOGIN.rc saslNTLM.rc saslSCRAM.rc saslGSSAPI.rc saslSRP.rc saslOTP.rc saslSASLDB.rc saslSQLITE.rc saslLDAPDB.rc
+generated_rc=saslANONYMOUS.rc saslPLAIN.rc saslCRAMMD5.rc saslDIGESTMD5.rc saslLOGIN.rc saslSCRAM.rc saslGSSAPI.rc saslSRP.rc saslOTP.rc saslSASLDB.rc saslSQLITE.rc saslLDAPDB.rc
 
 # WS2tcpip.h included in Visual Studio 7 provides getaddrinfo, ...
 # emulation on Windows, so there is no need to build getaddrinfo.c
@@ -79,9 +75,6 @@ saslLOGIN_out = saslLOGIN.dll saslLOGIN.exp saslLOGIN.lib
 
 saslSCRAM_objs = scram.obj scram_init.obj $(common_objs)
 saslSCRAM_out = saslSCRAM.dll saslSCRAM.exp saslSCRAM.lib
-
-saslNTLM_objs = ntlm.obj ntlm_init.obj $(common_objs)
-saslNTLM_out = saslNTLM.dll saslNTLM.exp saslNTLM.lib
 
 saslGSSAPI_objs = gssapi.obj gssapiv2_init.obj $(common_objs)
 saslGSSAPI_out = saslGSSAPI.dll saslGSSAPI.exp saslGSSAPI.lib
@@ -141,8 +134,8 @@ SCRAM_FLAGS=/DHAVE_SHA512=1
 saslSASLDB_objs = sasldb.obj sasldb_init.obj $(libsasldb_objs) $(common_objs)
 saslSASLDB_out = saslSASLDB.dll saslSASLDB.exp saslSASLDB.lib
 
-all_objs = $(saslANONYMOUS_objs) $(saslPLAIN_objs) $(saslCRAMMD5_objs) $(saslDIGESTMD5_objs) $(saslLOGIN_objs) $(saslSCRAM_objs) $(saslNTLM_objs) $(saslGSSAPI_objs) $(saslSRP_objs) $(saslOTP_objs) $(saslSASLDB_objs) $(saslSQL_objs) $(saslLDAPDB_objs)
-all_out = $(saslANONYMOUS_out) $(saslPLAIN_out) $(saslCRAMMD5_out) $(saslDIGESTMD5_out) $(saslLOGIN_out) $(saslSCRAM_out) $(saslNTLM_out) $(saslGSSAPI_out) $(saslSRP_out) $(saslOTP_out) $(saslSASLDB_out) $(saslSQL_out) $(saslLDAPDB_out)
+all_objs = $(saslANONYMOUS_objs) $(saslPLAIN_objs) $(saslCRAMMD5_objs) $(saslDIGESTMD5_objs) $(saslLOGIN_objs) $(saslSCRAM_objs) $(saslGSSAPI_objs) $(saslSRP_objs) $(saslOTP_objs) $(saslSASLDB_objs) $(saslSQL_objs) $(saslLDAPDB_objs)
+all_out = $(saslANONYMOUS_out) $(saslPLAIN_out) $(saslCRAMMD5_out) $(saslDIGESTMD5_out) $(saslLOGIN_out) $(saslSCRAM_out) $(saslGSSAPI_out) $(saslSRP_out) $(saslOTP_out) $(saslSASLDB_out) $(saslSQL_out) $(saslLDAPDB_out)
 
 # LIBSASL_EXPORTS is required to export additional DB routines from sasldb
 DB_FLAGS = /I "$(DB_INCLUDE)" /I "..\sasldb" /D "LIBSASL_EXPORTS" /D "KEEP_DB_OPEN"
@@ -217,11 +210,6 @@ saslLOGIN.dll: $(saslLOGIN_objs) saslLOGIN.res
 
 saslSCRAM.dll: $(saslSCRAM_objs) saslSCRAM.res
 	$(LINK32DLL) @<< $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslSCRAM.dll" /implib:"saslSCRAM.lib" $(saslSCRAM_objs) saslSCRAM.res
-<<
-	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
-
-saslNTLM.dll: $(saslNTLM_objs) saslNTLM.res
-	$(LINK32DLL) @<< $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslNTLM.dll" /implib:"saslNTLM.lib" $(saslNTLM_objs) saslNTLM.res
 <<
 	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 

@@ -632,27 +632,6 @@ else
   AC_MSG_RESULT(disabled)
 fi
 
-dnl NTLM
-AC_ARG_ENABLE(ntlm, [  --enable-ntlm           enable unsupported NTLM authentication [[no]] ],
-  ntlm=$enableval,
-  ntlm=no)
-
-AC_MSG_CHECKING(NTLM)
-if test "$ntlm" != no; then
-  AC_MSG_RESULT(enabled)
-  NTLM_LIBS="-lcrypto $LIB_RSAREF"
-  AC_SUBST(NTLM_LIBS)
-
-  SASL_MECHS="$SASL_MECHS libntlm.la"
-  if test "$enable_static" = yes; then
-    SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/ntlm.c"
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS ntlm.o"
-    AC_DEFINE(STATIC_NTLM,[],[Link NTLM Statically])
-  fi
-else
-  AC_MSG_RESULT(disabled)
-fi
-
 dnl PASSDSS
 AC_ARG_ENABLE(passdss, [  --enable-passdss        enable PASSDSS authentication (experimental) [[no]] ],
   passdss=$enableval,

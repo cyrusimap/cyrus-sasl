@@ -22,7 +22,6 @@ this distribution:
 *  EXTERNAL
 *  GSSAPI (MIT Kerberos 5, Heimdal Kerberos 5 or CyberSafe)
 *  LOGIN
-*  NTLM (requires OpenSSL libcrypto)
 *  OTP (requires OpenSSL libcrypto)
 *  PASSDSS (requires OpenSSL libcrypto)
 *  PLAIN

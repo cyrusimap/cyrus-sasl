@@ -118,11 +118,6 @@ DB_LIBS="/libpath:$(LMDB_LIBPATH)" lmdb.lib
 
 # Auxprop Plugin
 libsasldb_objs = allockey.obj db_lmdb.obj
-!ELSE
-DB_LIBS="/libpath:$(DB_LIBPATH)" "$(DB_LIB)"
-
-# Auxprop Plugin
-libsasldb_objs = allockey.obj db_berkeley.obj
 !ENDIF
 
 CRAM_FLAGS=/DOBSOLETE_CRAM_ATTR=1
@@ -250,7 +245,6 @@ CLEAN :
 	-@erase "*.manifest"
 	-@erase getaddrinfo.c
 	-@erase allockey.c
-	-@erase db_berkeley.c
 	-@erase db_lmdb.c
 	-@erase getnameinfo.c
 	-@erase plugin_common.h

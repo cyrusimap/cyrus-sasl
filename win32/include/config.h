@@ -90,7 +90,6 @@ typedef int		    intptr_t;
 /* what db package are we using? */
 /* #undef SASL_GDBM */
 /* #undef SASL_NDBM */
-#define SASL_BERKELEYDB 1
 
 /* static plugins are not yet compatible with building via NTMakeFile */
 #ifndef NO_STATIC_PLUGINS

@@ -148,7 +148,7 @@ fi
 
 AM_CONDITIONAL(SAMPLE, test "$enable_sample" = yes)
 
-dnl call before we do the berkeley DB checks
+dnl call before we do the LMDB checks
 CMU_SOCKETS
 
 dnl we extracted this to config/sasldb.m4
@@ -159,8 +159,8 @@ AC_ARG_ENABLE(keep_db_open, [  --enable-keep-db-open   keep handle to DB open fo
                 keep_db_open=$enableval,
                 keep_db_open=no)
 
-# Disable if Berkeley DB and LMDB are not used
-if test "$dblib" != berkeley -a "$dblib" != lmdb; then
+# Disable if LMDB is not used
+if "$dblib" != lmdb; then
   keep_db_open=no
 fi
 

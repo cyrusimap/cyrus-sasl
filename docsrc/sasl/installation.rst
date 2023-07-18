@@ -75,7 +75,7 @@ installation:
 
 
 1.  What mechanisms do you want to support?  Are they plaintext (LOGIN, PLAIN),
-shared secret (SCRAM, DIGEST-MD5, CRAM-MD5), or Kerberos (KERBEROS_V4, GSSAPI)?
+shared secret (SCRAM, DIGEST-MD5, CRAM-MD5), or Kerberos (GSSAPI)?
 Perhaps you will use some combination (generally plaintext with one of
 the other two types).
 2.  Given the answer to the previous question, how will the mechanisms
@@ -143,11 +143,11 @@ resources to load a given plugin, even if that plugin is otherwise unused
 
 As of this writing, modules that are enabled by default but may not
 be applicable to all systems include CRAM-MD5, DIGEST-MD5, SCRAM, OTP,
-KERBEROS_V4, GSSAPI, PLAIN, and ANONYMOUS.  These can be disabled with::
+GSSAPI, PLAIN, and ANONYMOUS.  These can be disabled with::
 
     ``--disable-cram``, ``--disable-digest``,
     ``--disable-scram``, ``--disable-otp``,
-    ``--disable-krb4``, ``--disable-gssapi``,
+    ``--disable-gssapi``,
     ``--disable-plain``, and ``--disable-anon`` respectively.
 
 If you are using an SQL auxprop plugin, you may want to specify one or more
@@ -212,7 +212,7 @@ saslauthd as a password verifier, you'll want to be sure to set
 ``pwcheck_method: saslauthd``).
 
 If you are using saslauthd, you will want to arrange for
-``saslauthd -a pam`` (or ldap, or kerberos4, etc) to be run
+``saslauthd -a pam`` (or ldap, etc) to be run
 at boot.  If you are not going to be using saslauthd, then this is
 not necessary.
 

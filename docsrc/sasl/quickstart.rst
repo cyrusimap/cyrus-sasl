@@ -21,7 +21,6 @@ this distribution:
 *  DIGEST-MD5 (requires OpenSSL libcrypto)
 *  EXTERNAL
 *  GSSAPI (MIT Kerberos 5, Heimdal Kerberos 5 or CyberSafe)
-*  KERBEROS_V4 (requires OpenSSL libcrypto)
 *  LOGIN
 *  NTLM (requires OpenSSL libcrypto)
 *  OTP (requires OpenSSL libcrypto)

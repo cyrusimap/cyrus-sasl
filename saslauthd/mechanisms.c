@@ -42,7 +42,6 @@
 #ifdef AUTH_SIA
 # include "auth_sia.h"
 #endif /* AUTH_SIA */
-#include "auth_krb4.h"
 #include "auth_krb5.h"
 #include "auth_getpwent.h"
 #include "auth_sasldb.h"
@@ -67,9 +66,6 @@ authmech_t mechanisms[] =
     {	"dce",		0,			auth_dce },
 #endif /* AUTH_DCE */
     {	"getpwent",	0,			auth_getpwent },
-#ifdef AUTH_KRB4
-    {	"kerberos4",	auth_krb4_init,		auth_krb4 },
-#endif /* AUTH_KRB4 */
 #ifdef AUTH_KRB5
     {	"kerberos5",	auth_krb5_init,		auth_krb5 },
 #endif /* AUTH_KRB5 */

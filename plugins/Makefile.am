@@ -66,7 +66,7 @@ LIB_MYSQL = @LIB_MYSQL@
 plugindir = @plugindir@
 plugin_LTLIBRARIES = @SASL_MECHS@
 
-EXTRA_LTLIBRARIES = libplain.la libanonymous.la libkerberos4.la libcrammd5.la \
+EXTRA_LTLIBRARIES = libplain.la libanonymous.la libcrammd5.la \
 	libgs2.la libgssapiv2.la libdigestmd5.la liblogin.la libsrp.la libotp.la \
 	libscram.la libntlm.la libpassdss.la libsasldb.la libsql.la libldapdb.la
 
@@ -77,10 +77,6 @@ libplain_la_LIBADD = $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
 libanonymous_la_SOURCES = anonymous.c anonymous_init.c
 libanonymous_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
 libanonymous_la_LIBADD = $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
-
-libkerberos4_la_SOURCES = kerberos4.c kerberos4_init.c
-libkerberos4_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
-libkerberos4_la_LIBADD = $(SASL_KRB_LIB) $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
 
 libgs2_la_SOURCES = gs2.c gs2_init.c gs2_token.c gs2_token.h
 libgs2_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
@@ -141,7 +137,7 @@ libsql_la_LIBADD = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
 # Instructions for making the _init files
 
 init_src=anonymous_init.c crammd5_init.c digestmd5_init.c scram_init.c gs2_init.c gssapiv2_init.c \
-kerberos4_init.c login_init.c plain_init.c srp_init.c otp_init.c ntlm_init.c \
+login_init.c plain_init.c srp_init.c otp_init.c ntlm_init.c \
 passdss_init.c sasldb_init.c sql_init.c ldapdb_init.c
 
 

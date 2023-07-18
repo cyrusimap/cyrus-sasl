@@ -23,7 +23,7 @@ the sample-client on the "client" machine, and sample-server on the
 "server" machine.
 
 Both programs take a -m MECH command line argument; this can be used
-to force the mechanism used in the exchange.  KERBEROS_V4 requires
+to force the mechanism used in the exchange.  GSSAPI requires
 that the IP addresses of both client and server be set, along with the
 service name, and the server's fully-qualified hostname; these are
 done through more command line arguments.
@@ -32,7 +32,7 @@ Example
 -------
 
 Here's the client side of an exchange.  The mechanism selection code
-chooses KERBEROS_V4; negotiation takes place, and the client is
+chooses GSSAPI; negotiation takes place, and the client is
 authenticated.  This is being run on the machine SPOOKY.ANDREW.CMU.EDU
 (128.2.121.162), pretending to be talking to an "rcmd" service running
 on port 23 (note the semicolons in the IP address.  There is a strong
@@ -43,8 +43,8 @@ chance these will need to be escaped for proper interpretation by the shell):
     > ./sample-client -i local=128.2.121.162;23,remote=128.2.121.162;23 -s rcmd -n SPOOKY.ANDREW.CMU.EDU
     Waiting for mechanism list from server...
     S: UExBSU4gQU5PTllNT1VTIEtFUkJFUk9TX1Y0IERJR0VTVC1NRDUgQ1JBTS1NRDUgAAAAAED5EEA=
-    Choosing best mechanism from: PLAIN ANONYMOUS KERBEROS_V4 DIGEST-MD5 CRAM-MD5
-    Using mechanism KERBEROS_V4
+    Choosing best mechanism from: PLAIN ANONYMOUS GSSAPI DIGEST-MD5 CRAM-MD5
+    Using mechanism GSSAPI
     Preparing initial.
     Sending initial response...
     C: S0VSQkVST1NfVjQA

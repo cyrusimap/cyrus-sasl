@@ -150,7 +150,7 @@ dependent upon the facilities provided by the underlying operating system.
 The mechanism is selected by the
 .Fl a
 flag from the following list of choices:
-.Bl -tag -width "kerberos4"
+.Bl -tag -width "kerberos5"
 .It Li dce
 .Em (AIX)
 .Pp
@@ -164,12 +164,6 @@ library function. Typically this authenticates against the
 local password file. See your system's
 .Xr getpwent 3
 man page for details.
-.It Li kerberos4
-.Em (All platforms)
-.Pp
-Authenticate against the local Kerberos 4 realm. (See the
-.Sx NOTES
-section for caveats about this driver.)
 .It Li kerberos5
 .Em (All platforms)
 .Pp

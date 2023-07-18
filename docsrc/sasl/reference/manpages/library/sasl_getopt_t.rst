@@ -30,7 +30,7 @@ Description
 
     **sasl_getopt_t** is used to retrieve an option, often mechanism specific,
     from the application. An example of this is
-    requesting what KERBEROS_V4 srvtab file to use.
+    requesting what GSSAPI keytab file to use.
 
     :param context: is the SASL connection context
     :param plugin_name: is the plugin this value is for.

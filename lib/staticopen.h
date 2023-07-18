@@ -96,10 +96,6 @@ extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( scram );
 extern SPECIFIC_SERVER_PLUG_INIT_PROTO( gssapiv2 );
 extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( gssapiv2 );
 #endif
-#ifdef STATIC_KERBEROS4
-extern SPECIFIC_SERVER_PLUG_INIT_PROTO( kerberos4 );
-extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( kerberos4 );
-#endif
 #ifdef STATIC_LOGIN
 extern SPECIFIC_SERVER_PLUG_INIT_PROTO( login );
 extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( login );
@@ -146,10 +142,6 @@ _sasl_plug_rec _sasl_static_plugins[] = {
 #ifdef STATIC_GSSAPIV2
 	SPECIFIC_SERVER_PLUG_INIT( gssapiv2, "GSSAPI" ),
 	SPECIFIC_CLIENT_PLUG_INIT( gssapiv2, "GSSAPI" ),
-#endif
-#ifdef STATIC_KERBEROS4
-	SPECIFIC_SERVER_PLUG_INIT( kerberos4, "KERBEROS_V4" ),
-	SPECIFIC_CLIENT_PLUG_INIT( kerberos4, "KERBEROS_V4" ),
 #endif
 #ifdef STATIC_LOGIN
 	SPECIFIC_SERVER_PLUG_INIT( login, "LOGIN" ),

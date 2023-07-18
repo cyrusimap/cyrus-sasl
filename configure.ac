@@ -478,7 +478,6 @@ else
 fi
 
 dnl Kerberos based Mechanisms
-SASL_KERBEROS_V4_CHK
 SASL_GSSAPI_CHK
 
 if test "$gssapi" != "no"; then

@@ -140,7 +140,7 @@ multiple parameters described above, for example ``nmake /f NTMakefile NTLM=1 SR
 Limitations
 -----------
 
-Currently all plugins except KerberosV4 (kerberos4.c) and PASSDSS (passdss.c) can be built on Windows.
+Currently all plugins except PASSDSS (passdss.c) can be built on Windows.
 However limited testings was done for some plugins as listed below:
 
 * GSSAPI - tested using CyberSafe,

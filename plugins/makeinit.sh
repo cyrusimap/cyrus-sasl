@@ -1,6 +1,6 @@
 plugin_init="$1"
 # mechanism plugins
-for mech in anonymous crammd5 digestmd5 scram gssapiv2 kerberos4 login ntlm otp passdss plain srp gs2; do
+for mech in anonymous crammd5 digestmd5 scram gssapiv2 login ntlm otp passdss plain srp gs2; do
     if [ ${plugin_init} = "${mech}_init.c" ];then
 
         echo "

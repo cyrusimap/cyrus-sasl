@@ -2904,9 +2904,8 @@ void test_checkpass(void)
 void notes(void)
 {
     printf("NOTE:\n");
-    printf("-For KERBEROS_V4 must be able to read srvtab file (usually /etc/srvtab)\n");
     printf("-For GSSAPI must be able to read srvtab (/etc/krb5.keytab)\n");
-    printf("-For both KERBEROS_V4 and GSSAPI you must have non-expired tickets\n");
+    printf("-For GSSAPI you must have non-expired tickets\n");
     printf("-For OTP (w/OPIE) must be able to read/write opiekeys (/etc/opiekeys)\n");
     printf("-For OTP you must have a non-expired secret\n");
     printf("-Must be able to read sasldb, which needs to be setup with a\n");

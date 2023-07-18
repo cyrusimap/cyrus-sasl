@@ -74,21 +74,6 @@ you should upgrade to more recent patchlevels of these tools. The easiest way
 to do this is to install the Fink environment and then ``apt-get
 install autoconf2.5 automake1.7 libtool14``.
 
-Recent versions of SASL ship with Kerberos v4 disabled by default.
-If you need Kerberos v4 for some reason, and you are using MIT Kerberos
-for Macintosh 4.0 or later, you should ``./configure`` with
-the added options ``"--enable-krb4=/usr --without-openssl
---disable-digest"`` so that it finds the
-correct location for the header files, and does not use OpenSSL or
-build anything that depends on it (such as the digest-md5 plugin),
-since OpenSSL provides its own DES routines which do not work with
-Kerberos v4.
-
-.. warning::
-
-    Please read the "Known Problems" section at the end of
-    this document for more information on this issue.
-
 You must be root to make install, since ``/usr/local`` is only
 modifiable by root. You need not enable the root account using
 NetInfo; the recommended (but underdocumented) method is to use
@@ -169,13 +154,6 @@ Changes to the Mac OS 9 projects to support Carbon
   API. This folder must be in your CodeWarrior access paths, the
   old ``mac_kclient`` folder must not, and it must precede the
   project's main folder.
-* The kerberos4 plugin uses this new code. The kerberos4 plugin
-  also
-  statically links the Carbon ``libdes``, and no other part of
-  Carbon SASL uses ``libdes`` directly. *Your application should
-  **not** link against* ``libdes.shlb`` *under Carbon!*
-  (It causes problems due to DES symbols also existing in the MIT
-  Kerberos library, which loads first.)
 * To build the projects, you should have the MIT Kerberos for
   Macintosh 3.5 installation disk images mounted, since the access paths
   include the absolute paths to the library directories from that
@@ -185,20 +163,6 @@ Changes to the Mac OS 9 projects to support Carbon
 Known Problems
 ==============
 
-* The Kerberos v4 headers bundled with Mac OS X (and Kerberos for
-  Macintosh) are not compatible with OS X's OpenSSL headers. (Kerberos v4
-  support is disabled by default.) If you actually need krb4 support, the
-  easiest solution is to build without using OpenSSL's
-  ``libcrypto``. To do this, specify the ``--without-openssl``
-  option to ``configure``. As of version 2.1.18, this automatically
-  disables using ``libcrypto`` for DES as well. You will probably
-  also need to specify ``--disable-digest`` since the digestmd5 plugin
-  does not build against Kerberos v4's DES headers or library. Note that
-  this disables several features (DIGEST-MD5, NTLM, OTP, PASSDSS, SCRAM, SRP)
-  which require OpenSSL. If both Kerberos v4 and functionality that requires
-  OpenSSL are needed, it is possible to build the Kerberos v4 plugin against
-  the correct K4 DES libraries, and everything else against OpenSSL;
-  however, we do not support that configuration.
 * Versions of Cyrus SASL prior to 2.1.14 with support for Carbon
   CFM applications on Mac OS X have a known bug involving the CFM glue
   code (in ``mac/osx_cfm_glue``). If ``sasl_done`` is called

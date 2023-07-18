@@ -359,7 +359,7 @@ see).</p>
 <pre>
         For IMAP this might look like:
           {tag} "AUTHENTICATE" {mechusing}\r\n
-          A01 AUTHENTICATE KERBEROS_V4\r\n
+          A01 AUTHENTICATE GSSAPI\r\n
            
         SMTP looks like:
          "AUTH" {mechusing}[ {out base64 encoded}]
@@ -662,7 +662,7 @@ be called right when the socket is accepted.
 
 When a client requests the list of mechanisms supported by the
 server. This particular call might produce the string: <i>"{PLAIN,
-KERBEROS_V4, CRAM-MD5, DIGEST-MD5}"</i> 
+GSSAPI, CRAM-MD5, DIGEST-MD5}"</i>
 
 <pre>
     result=sasl_listmech(conn,  /* The context for this connection */
@@ -818,7 +818,7 @@ Parameters:
 <li>conn - The context for the connection</li>
 
 <li>mech - The authentication mechanism the client wishes to try
-(e.g. <tt>KERBEROS_V4</tt>)</li>
+(e.g. <tt>GSSAPI</tt>)</li>
 
 <li>clientin - Initial client challenge bytes. Note: some protocols
 do not allow this. If this is the case passing NULL is valid</li>

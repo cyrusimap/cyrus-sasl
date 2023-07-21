@@ -76,6 +76,7 @@ dnl named.  arg.
 					     SASL_DB_LIB="-lgdbm", dblib="no")],
   			     dblib="no")
 	  fi
+	fi
 	;;
   none)
 	;;

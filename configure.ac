@@ -160,7 +160,7 @@ AC_ARG_ENABLE(keep_db_open, [  --enable-keep-db-open   keep handle to DB open fo
                 keep_db_open=no)
 
 # Disable if LMDB is not used
-if "$dblib" != lmdb; then
+if test "$dblib" != lmdb; then
   keep_db_open=no
 fi
 

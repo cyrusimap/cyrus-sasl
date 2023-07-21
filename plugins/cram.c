@@ -61,6 +61,8 @@
 #include <saslplug.h>
 #include <saslutil.h>
 
+#include <openssl/hmac.h>
+
 #include "plugin_common.h"
 
 #ifdef macintosh
@@ -491,8 +493,8 @@ static int crammd5_client_mech_new(void *glob_context __attribute__((unused)),
     return SASL_OK;
 }
 
-static char *make_hashed(sasl_secret_t *sec, char *nonce, int noncelen, 
-			 const sasl_utils_t *utils)
+static char *make_hashed(sasl_secret_t *sec, const unsigned char *nonce,
+			 int noncelen, const sasl_utils_t *utils)
 {
     unsigned char digest[24];  
     char *in16;
@@ -500,8 +502,7 @@ static char *make_hashed(sasl_secret_t *sec, char *nonce, int noncelen,
     if (sec == NULL) return NULL;
     
     /* do the hmac md5 hash output 128 bits */
-    utils->hmac_md5((unsigned char *) nonce, noncelen,
-		    sec->data, sec->len, digest);
+    HMAC(EVP_md5(), sec->data, sec->len, nonce, noncelen, digest, NULL);
     
     /* convert that to hex form */
     in16 = convert16(digest, 16, utils);
@@ -599,7 +600,7 @@ static int crammd5_client_mech_step(void *conn_context,
      * username SP digest (keyed md5 where key is passwd)
      */
     
-    in16 = make_hashed(password, (char *) serverin, serverinlen,
+    in16 = make_hashed(password, (const unsigned char *) serverin, serverinlen,
 		       params->utils);
     
     if (in16 == NULL) {

@@ -26,14 +26,6 @@ typedef struct HMAC_MD5_STATE_s {
 extern "C" {
 #endif
 
-/* One step hmac computation
- *
- * digest may be same as text or key
- */
-void _sasl_hmac_md5(const unsigned char *text, int text_len,
-		    const unsigned char *key, int key_len,
-		    unsigned char digest[HMAC_MD5_SIZE]);
-
 /* precalculate intermediate state from key
  */
 void _sasl_hmac_md5_precalc(HMAC_MD5_STATE *hmac,

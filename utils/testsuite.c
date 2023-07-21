@@ -61,6 +61,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #include <sasl.h>
 #include <saslplug.h>
@@ -140,9 +141,16 @@ const char *corrupt_types[] = {
     "CORRUPT_SIZE"
 };
 
-void fatal(char *str)
+void fatal(const char *str, ...)
 {
-    printf("Failed with: %s\n",str);
+    va_list ap;
+
+    va_start(ap, str);
+    printf("Failed with: ");
+    vprintf(str, ap);
+    printf("\n");
+    va_end(ap);
+
     exit(3);
 }
 
@@ -251,7 +259,12 @@ void *test_malloc(size_t size)
     
     if(out) {
 	new_data = malloc(sizeof(mem_info_t));
-	if(!new_data) return out;
+	if(!new_data) {
+		if(DETAILED_MEMORY_DEBUGGING)
+			fprintf(stderr,
+			    " MEM WARNING: realloc malloc(sizeof(mem_info_t)) failed!\n");
+		return out;
+	}
 
 	new_data->addr = out;
 	new_data->size = size;
@@ -290,7 +303,13 @@ void *test_realloc(void *ptr, size_t size)
 		"  MEM WARNING: reallocing something we never allocated!\n");
 
 	cur = malloc(sizeof(mem_info_t));
-	if(!cur) return out;
+	if(!cur) {
+		if(DETAILED_MEMORY_DEBUGGING) {
+			fprintf(stderr,
+			    " MEM WARNING: test_realloc malloc(sizeof(mem_info_t)) failed!\n");
+		}
+		return out;
+	}
 
 	cur->addr = out;
 	cur->size = size;
@@ -314,7 +333,13 @@ void *test_calloc(size_t nmemb, size_t size)
 
     if(out) {
 	new_data = malloc(sizeof(mem_info_t));
-	if(!new_data) return out;
+	if(!new_data) {
+		if(DETAILED_MEMORY_DEBUGGING) {
+			fprintf(stderr,
+			    " MEM WARNING: test_calloc malloc(sizeof(mem_info_t)) failed!\n");
+		}
+		return out;
+	}
 
 	new_data->addr = out;
 	new_data->size = size;
@@ -2304,7 +2329,7 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
 	cleanup_auth(&sconn, &cconn);
 	continue;
     } else if(result != SASL_OK) {
-	fatal("doauth failed in testseclayer");
+	fatal("doauth failed in testseclayer (1) %d", result);
     }
 
     if(sasl_getprop(cconn, SASL_SSF, (const void **)&this_ssf) != SASL_OK) {
@@ -2350,21 +2375,21 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
     cleanup_auth(&sconn, &cconn);
 
     /* Basic I/O Test */
-    if(doauth(mech, &sconn, &cconn, test_props[i], NULL, 0) != SASL_OK) {
-	fatal("doauth failed in testseclayer");
+    if((result = doauth(mech, &sconn, &cconn, test_props[i], NULL, 0)) != SASL_OK) {
+	fatal("doauth failed in testseclayer (2) %d", result);
     }
 
     result = sasl_encode(cconn, txstring, (unsigned) strlen(txstring),
 			 &out, &outlen);
     if(result != SASL_OK) {
-	fatal("basic sasl_encode failure");
+	fatal("basic sasl_encode failure %d", result);
     }
 
     result = sasl_decode(sconn, out, outlen, &out, &outlen);
     if(result != SASL_OK) {
-	fatal("basic sasl_decode failure");
-    }    
-    
+	fatal("basic sasl_decode failure %d", result);
+    }
+
     cleanup_auth(&sconn, &cconn);
 
     /* Split one block and reassemble */
@@ -2407,25 +2432,25 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
     cleanup_auth(&sconn, &cconn);
 
     /* Combine 2 blocks */
-    if(doauth(mech, &sconn, &cconn, test_props[i], NULL, 0) != SASL_OK) {
-	fatal("doauth failed in testseclayer");
+    if((result = doauth(mech, &sconn, &cconn, test_props[i], NULL, 0)) != SASL_OK) {
+	fatal("doauth failed in testseclayer (3) %d", result);
     }
 
     result = sasl_encode(cconn, txstring, (unsigned) strlen(txstring),
 			 &out, &outlen);
     if(result != SASL_OK) {
-	fatal("basic sasl_encode failure (3)");
+	fatal("basic sasl_encode failure (3) %d", result);
     }
 
     memcpy(buf, out, outlen);
 
     tmp = buf + outlen;
     totlen = outlen;
-    
+
     result = sasl_encode(cconn, txstring, (unsigned) strlen(txstring),
 			 &out, &outlen);
     if(result != SASL_OK) {
-	fatal("basic sasl_encode failure (4)");
+	fatal("basic sasl_encode failure (4) %d", result);
     }
 
     memcpy(tmp, out, outlen);
@@ -2446,14 +2471,14 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
     cleanup_auth(&sconn, &cconn);
 
     /* Combine 2 blocks with 1 split */
-    if(doauth(mech, &sconn, &cconn, test_props[i], NULL, 0) != SASL_OK) {
-	fatal("doauth failed in testseclayer");
+    if((result = doauth(mech, &sconn, &cconn, test_props[i], NULL, 0)) != SASL_OK) {
+	fatal("doauth failed in testseclayer (4) %d", result);
     }
 
     result = sasl_encode(cconn, txstring, (unsigned) strlen(txstring),
 			 &out, &outlen);
     if(result != SASL_OK) {
-	fatal("basic sasl_encode failure (3)");
+	fatal("basic sasl_encode failure (3) %d", result);
     }
 
     memcpy(buf, out, outlen);
@@ -2463,7 +2488,7 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
     result = sasl_encode(cconn, txstring, (unsigned) strlen(txstring),
 			 &out2, &outlen2);
     if(result != SASL_OK) {
-	fatal("basic sasl_encode failure (4)");
+	fatal("basic sasl_encode failure (4) %d", result);
     }
 
     memcpy(tmp, out2, 5);
@@ -2477,7 +2502,7 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
     if(result != SASL_OK) {
 	printf("Failed with: %s\n", sasl_errstring(result, NULL, NULL));
 	fatal("sasl_decode failure 1/2 (2 blocks, 1 split)");
-    }    
+    }
 
     memset(buf2, 0, 8192);
     memcpy(buf2, out, outlen);
@@ -2498,11 +2523,11 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
     }
 
     cleanup_auth(&sconn, &cconn);
-    
+
     } /* for each properties type we want to test */
-     
+
     printf("%s --> security layer OK\n", mech);
-    
+
 }
 
 

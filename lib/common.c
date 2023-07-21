@@ -2077,7 +2077,6 @@ _sasl_alloc_utils(sasl_conn_t *conn,
 
 #ifdef HAVE_MD5
   utils->hmac_md5_update = &_sasl_hmac_md5_update;
-  utils->hmac_md5 = &_sasl_hmac_md5;
   utils->hmac_md5_final = &_sasl_hmac_md5_final;
   utils->hmac_md5_precalc = &_sasl_hmac_md5_precalc;
   utils->hmac_md5_import = &_sasl_hmac_md5_import;

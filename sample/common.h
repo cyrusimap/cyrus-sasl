@@ -43,7 +43,7 @@ extern int send_string(FILE *f, const char *s, int l);
 extern int recv_string(FILE *f, char *buf, int buflen);
 
 extern int debuglevel;
-extern int dprintf(int lvl, const char *fmt, ...);
+extern int debug_printf(int lvl, const char *fmt, ...);
 
 extern void saslerr(int why, const char *what);
 extern void saslfail(int why, const char *what);

@@ -252,9 +252,9 @@ int mysasl_negotiate(FILE *in, FILE *out, sasl_conn_t *conn)
     int r, c;
 
     /* get the capability list */
-    dprintf(0, "receiving capability list... ");
+    debug_printf(0, "receiving capability list... ");
     len = recv_string(in, buf, sizeof buf);
-    dprintf(0, "%s\n", buf);
+    debug_printf(0, "%s\n", buf);
 
     if (mech) {
 	/* make sure that 'mech' appears in 'buf' */
@@ -273,7 +273,7 @@ int mysasl_negotiate(FILE *in, FILE *out, sasl_conn_t *conn)
 	return -1;
     }
     
-    dprintf(1, "using mechanism %s\n", chosenmech);
+    debug_printf(1, "using mechanism %s\n", chosenmech);
 
     /* we send up to 3 strings;
        the mechanism chosen, the presence of initial response,
@@ -287,7 +287,7 @@ int mysasl_negotiate(FILE *in, FILE *out, sasl_conn_t *conn)
     }
 
     for (;;) {
-	dprintf(2, "waiting for server reply...\n");
+	debug_printf(2, "waiting for server reply...\n");
 
 	c = fgetc(in);
 	switch (c) {
@@ -314,10 +314,10 @@ int mysasl_negotiate(FILE *in, FILE *out, sasl_conn_t *conn)
 	}
 
 	if (data) {
-	    dprintf(2, "sending response length %d...\n", len);
+	    debug_printf(2, "sending response length %d...\n", len);
 	    send_string(out, data, len);
 	} else {
-	    dprintf(2, "sending null response...\n");
+	    debug_printf(2, "sending null response...\n");
 	    send_string(out, "", 0);
 	}
     }

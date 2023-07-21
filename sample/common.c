@@ -127,7 +127,7 @@ int recv_string(FILE *f, char *buf, int buflen)
 
 int debuglevel = 0;
 
-int dprintf(int lvl, const char *fmt, ...)
+int debug_printf(int lvl, const char *fmt, ...)
 {
     va_list ap;
     int ret = 0;

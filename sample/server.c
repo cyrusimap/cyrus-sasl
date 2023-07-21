@@ -227,17 +227,17 @@ int mysasl_negotiate(FILE *in, FILE *out, sasl_conn_t *conn)
     
     /* generate the capability list */
     if (mech) {
-	dprintf(2, "forcing use of mechanism %s\n", mech);
+	debug_printf(2, "forcing use of mechanism %s\n", mech);
 	data = strdup(mech);
 	len = strlen(data);
     } else {
 	int count;
 
-	dprintf(1, "generating client mechanism list... ");
+	debug_printf(1, "generating client mechanism list... ");
 	r = sasl_listmech(conn, NULL, NULL, " ", NULL,
 			  &data, (unsigned int *) &len, &count);
 	if (r != SASL_OK) saslfail(r, "generating mechanism list");
-	dprintf(1, "%d mechanisms\n", count);
+	debug_printf(1, "%d mechanisms\n", count);
     }
 
     /* send capability list to client */
@@ -245,7 +245,7 @@ int mysasl_negotiate(FILE *in, FILE *out, sasl_conn_t *conn)
     if (mech)
 	free((void *) data);
 
-    dprintf(1, "waiting for client mechanism...\n");
+    debug_printf(1, "waiting for client mechanism...\n");
     len = recv_string(in, chosenmech, sizeof chosenmech);
     if (len <= 0) {
 	printf("client didn't choose mechanism\n");
@@ -290,16 +290,16 @@ int mysasl_negotiate(FILE *in, FILE *out, sasl_conn_t *conn)
 
     while (r == SASL_CONTINUE) {
 	if (data) {
-	    dprintf(2, "sending response length %d...\n", len);
+	    debug_printf(2, "sending response length %d...\n", len);
 	    fputc('C', out); /* send CONTINUE to client */
 	    send_string(out, data, len);
 	} else {
-	    dprintf(2, "sending null response...\n");
+	    debug_printf(2, "sending null response...\n");
 	    fputc('C', out); /* send CONTINUE to client */
 	    send_string(out, "", 0);
 	}
 
-	dprintf(1, "waiting for client reply...\n");
+	debug_printf(1, "waiting for client reply...\n");
 	len = recv_string(in, buf, sizeof buf);
 	if (len < 0) {
 	    printf("client disconnected\n");
@@ -324,7 +324,7 @@ int mysasl_negotiate(FILE *in, FILE *out, sasl_conn_t *conn)
 
     fputc('O', out); /* send OK to client */
     fflush(out);
-    dprintf(1, "negotiation complete\n");
+    debug_printf(1, "negotiation complete\n");
 
     r = sasl_getprop(conn, SASL_USERNAME, (const void **) &userid);
     printf("successful authentication '%s'\n", userid);

@@ -51,8 +51,6 @@ includedir = $(prefix)\include
 
 saslincludedir = $(includedir)\sasl\
 
-saslinclude_HEADERS = md5global.h
-
 # The first target get executed by default. We don't want this to be "install"
 all:
 	@echo Nothing to be done for $@
@@ -61,5 +59,4 @@ all:
 # /I flag to xcopy tells to treat the last parameter as directory and create all missing levels
 #
 install: $(saslinclude_HEADERS)
-	!xcopy md5global*.h "$(saslincludedir)" /I /F /Y
 	!xcopy $? "$(saslincludedir)" /I /F /Y

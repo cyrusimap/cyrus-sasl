@@ -52,12 +52,6 @@
 #include <ctype.h>
 #include <string.h>
 
-/* check OpenSSL version */
-#include <openssl/opensslv.h>
-#if (OPENSSL_VERSION_NUMBER < 0x0090700f)
-#error OpenSSL 0.9.7 or later is required
-#endif
-
 /* for big number support */
 #include <openssl/bn.h>
 
@@ -75,7 +69,6 @@
 #include "crypto-compat.h"
 
 #include <sasl.h>
-#define MD5_H  /* suppress internal MD5 */
 #include <saslplug.h>
 
 #include "plugin_common.h"

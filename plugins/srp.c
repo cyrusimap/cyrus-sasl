@@ -86,14 +86,12 @@ typedef unsigned short uint32;
 
 /* for digest and cipher support */
 #include <openssl/evp.h>
-#include <openssl/hmac.h>
 #include <openssl/md5.h>
 
 /* for legacy libcrypto support */
 #include "crypto-compat.h"
 
 #include <sasl.h>
-#define MD5_H  /* suppress internal MD5 */
 #include <saslplug.h>
 
 #include "plugin_common.h"
@@ -169,7 +167,7 @@ typedef struct layer_option_s {
     unsigned enabled;		/* enabled?  determined at run-time */
     unsigned bit;		/* unique bit in bitmask */
     sasl_ssf_t ssf;		/* ssf of layer */
-    const char *evp_name;	/* name used for lookup in EVP table */
+    char *evp_name;		/* name used for lookup in EVP table */
 } layer_option_t;
 
 static layer_option_t digest_options[] = {
@@ -190,12 +188,7 @@ static layer_option_t cipher_options[] = {
     { "IDEA",		0, (1<<5), 128,	"idea-ofb" },
     { NULL,		0,      0, 0,	NULL}
 };
-/* XXX Hack until OpenSSL 0.9.7 */
-#if OPENSSL_VERSION_NUMBER < 0x00907000L
-static layer_option_t *default_cipher = &cipher_options[0];
-#else
 static layer_option_t *default_cipher = &cipher_options[2];
-#endif
 
 
 enum {
@@ -259,9 +252,8 @@ typedef struct context {
     
     /* Layer foo */
     unsigned layer;		/* bitmask of enabled layers */
-    const EVP_MD *hmac_md;	/* HMAC for integrity */
-    HMAC_CTX *hmac_send_ctx;
-    HMAC_CTX *hmac_recv_ctx;
+    EVP_MAC_CTX *hmac_send_ctx;
+    EVP_MAC_CTX *hmac_recv_ctx;
 
     const EVP_CIPHER *cipher;	/* cipher for confidentiality */
     EVP_CIPHER_CTX *cipher_enc_ctx;
@@ -348,24 +340,24 @@ static int srp_encode(void *context,
     }
 
     if (text->layer & BIT_INTEGRITY) {
-	unsigned hashlen;
+	size_t hashlen;
 
 	/* hash the content */
-	HMAC_Update(text->hmac_send_ctx,
+	EVP_MAC_update(text->hmac_send_ctx,
                     (unsigned char *) text->encode_buf+4, *outputlen-4);
 	
 	if (text->layer & BIT_REPLAY_DETECTION) {
 	    /* hash the sequence number */
 	    tmpnum = htonl(text->seqnum_out);
-	    HMAC_Update(text->hmac_send_ctx, (unsigned char *) &tmpnum, 4);
+	    EVP_MAC_update(text->hmac_send_ctx, (unsigned char *) &tmpnum, 4);
 	    
 	    text->seqnum_out++;
 	}
 
 	/* append the HMAC into the output buffer */
-	HMAC_Final(text->hmac_send_ctx,
+	EVP_MAC_final(text->hmac_send_ctx,
                    (unsigned char *) text->encode_buf + *outputlen,
-		   &hashlen);
+		   &hashlen, EVP_MAC_CTX_get_mac_size(text->hmac_send_ctx));
 	*outputlen += hashlen;
     }
 
@@ -392,15 +384,15 @@ static int srp_decode_packet(void *context,
     if (text->layer & BIT_INTEGRITY) {
 	const char *hash;
 	unsigned char myhash[EVP_MAX_MD_SIZE];
-	unsigned hashlen;
+	size_t hashlen;
 	unsigned long tmpnum;
 
-	hashlen = EVP_MD_size(text->hmac_md);
+	hashlen = EVP_MAC_CTX_get_mac_size(text->hmac_recv_ctx);
 
 	if (inputlen < hashlen) {
 	    text->utils->seterror(text->utils->conn, 0,
 				  "SRP input is smaller "
-				  "than hash length: %d vs %d\n",
+				  "than hash length: %d vs %ld\n",
 				  inputlen, hashlen);
 	    return SASL_BADPROT;
 	}
@@ -409,17 +401,18 @@ static int srp_decode_packet(void *context,
 	hash = input + inputlen;
 
 	/* create our own hash from the input */
-	HMAC_Update(text->hmac_recv_ctx, (unsigned char *) input, inputlen);
+	EVP_MAC_update(text->hmac_recv_ctx, (unsigned char *) input, inputlen);
 	    
 	if (text->layer & BIT_REPLAY_DETECTION) {
 	    /* hash the sequence number */
 	    tmpnum = htonl(text->seqnum_in);
-	    HMAC_Update(text->hmac_recv_ctx, (unsigned char *) &tmpnum, 4);
+	    EVP_MAC_update(text->hmac_recv_ctx, (unsigned char *) &tmpnum, 4);
 		
 	    text->seqnum_in++;
 	}
 	    
-	HMAC_Final(text->hmac_recv_ctx, myhash, &hashlen);
+	EVP_MAC_final(text->hmac_recv_ctx, myhash, &hashlen,
+		      EVP_MAC_CTX_get_mac_size(text->hmac_recv_ctx));
 
 	/* compare hashes */
         if (memcmp(hash, myhash, hashlen)) {
@@ -1406,6 +1399,10 @@ static int LayerInit(srp_options_t *opts, context_t *text,
 		     unsigned maxbufsize)
 {
     layer_option_t *opt;
+    OSSL_PARAM params[2];
+    EVP_MAC *hmac = EVP_MAC_fetch(NULL, "HMAC", NULL);
+    if (hmac == NULL)
+	return SASL_FAIL;
     
     if ((opts->integrity == 0) && (opts->confidentiality == 0)) {
 	oparams->encode = NULL;
@@ -1446,14 +1443,15 @@ static int LayerInit(srp_options_t *opts, context_t *text,
 	oparams->mech_ssf = opt->ssf;
 
 	/* Initialize the HMACs */
-	text->hmac_md = EVP_get_digestbyname(opt->evp_name);
-        text->hmac_send_ctx = HMAC_CTX_new();
-	HMAC_Init_ex(text->hmac_send_ctx, text->K, text->Klen, text->hmac_md, NULL);
-        text->hmac_recv_ctx = HMAC_CTX_new();
-	HMAC_Init_ex(text->hmac_recv_ctx, text->K, text->Klen, text->hmac_md, NULL);
+	params[0] = OSSL_PARAM_construct_utf8_string("digest", opt->evp_name, 0);
+	params[1] = OSSL_PARAM_construct_end();
+	text->hmac_send_ctx = EVP_MAC_CTX_new(hmac);
+	EVP_MAC_init(text->hmac_send_ctx, text->K, text->Klen, params);
+	text->hmac_recv_ctx = EVP_MAC_CTX_new(hmac);
+	EVP_MAC_init(text->hmac_recv_ctx, text->K, text->Klen, params);
 	
 	/* account for HMAC */
-	oparams->maxoutbuf -= EVP_MD_size(text->hmac_md);
+	oparams->maxoutbuf -= EVP_MAC_CTX_get_mac_size(text->hmac_send_ctx);
     }
     
     if (opts->confidentiality) {
@@ -1489,8 +1487,8 @@ static int LayerInit(srp_options_t *opts, context_t *text,
 static void LayerCleanup(context_t *text)
 {
     if (text->layer & BIT_INTEGRITY) {
-	HMAC_CTX_free(text->hmac_send_ctx);
-	HMAC_CTX_free(text->hmac_recv_ctx);
+	EVP_MAC_CTX_free(text->hmac_send_ctx);
+	EVP_MAC_CTX_free(text->hmac_recv_ctx);
     }
 
     if (text->layer & BIT_CONFIDENTIALITY) {
@@ -1619,12 +1617,7 @@ static int CalculateB(context_t *text  __attribute__((unused)),
 
     *B = BN_new();
     BN_mod_exp(*B, g, *b, N, ctx);
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L
     BN_mod_add(*B, *B, v3, N, ctx);
-#else
-    BN_add(*B, *B, v3);
-    BN_mod(*B, *B, N, ctx);
-#endif
 
     BN_clear_free(v3);
     BN_CTX_free(ctx);
@@ -2411,8 +2404,7 @@ int srp_server_plug_init(const sasl_utils_t *utils,
 			 int maxversion,
 			 int *out_version,
 			 const sasl_server_plug_t **pluglist,
-			 int *plugcount,
-			 const char *plugname __attribute__((unused)))
+			 int *plugcount)
 {
     const char *mda;
     unsigned int len;
@@ -2557,15 +2549,7 @@ static int ClientCalculateK(context_t *text, char *salt, int saltlen,
     BN_mod_mul(gx3, gx3, gx, N, ctx);
     
     /* base = (B - 3(g^x)) % N */
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L
     BN_mod_sub(base, B, gx3, N, ctx);
-#else
-    BN_sub(base, B, gx3);
-    BN_mod(base, base, N, ctx);
-    if (BigIntCmpWord(base, 0) < 0) {
-	BN_add(base, base, N);
-    }
-#endif
     
     /* S = base^aux % N */
     BN_mod_exp(S, base, aux, N, ctx);
@@ -3150,8 +3134,7 @@ int srp_client_plug_init(const sasl_utils_t *utils __attribute__((unused)),
 			 int maxversion,
 			 int *out_version,
 			 const sasl_client_plug_t **pluglist,
-			 int *plugcount,
-			 const char *plugname __attribute__((unused)))
+			 int *plugcount)
 {
     layer_option_t *opts;
     

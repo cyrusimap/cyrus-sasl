@@ -67,6 +67,8 @@
 #include <saslutil.h>
 #include <prop.h>
 
+#include <openssl/evp.h>
+
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -2142,15 +2144,6 @@ const sasl_security_properties_t force_des = {
     NULL	    
 };
 
-const sasl_security_properties_t force_rc4_56 = {
-    0,
-    56,
-    8192,
-    0,
-    NULL,
-    NULL	    
-};
-
 const sasl_security_properties_t force_3des = {
     0,
     112,
@@ -2290,7 +2283,6 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
     const sasl_security_properties_t *test_props[7] =
                                           { &security_props,
 					    &force_3des,
-					    &force_rc4_56,
 					    &force_des,
 					    &int_only,
 					    &no_int,
@@ -2708,7 +2700,7 @@ void create_ids(void)
 #ifdef DO_SASL_CHECKAPOP
     int i;
     const char challenge[] = "<1896.697170952@cyrus.andrew.cmu.edu>";
-    MD5_CTX ctx;
+    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
     unsigned char digest[16];
     char digeststr[33];
 #endif
@@ -2760,10 +2752,10 @@ void create_ids(void)
 
     /* Test sasl_checkapop */
 #ifdef DO_SASL_CHECKAPOP
-    _sasl_MD5Init(&ctx);
-    _sasl_MD5Update(&ctx,(const unsigned char *)challenge,strlen(challenge));
-    _sasl_MD5Update(&ctx,(const unsigned char *)password,strlen(password));
-    _sasl_MD5Final(digest, &ctx);
+    EVP_DigestInit(ctx, EVP_md5());
+    EVP_DigestUpdate(ctx,(const unsigned char *)challenge,strlen(challenge));
+    EVP_DigestUpdate(ctx,(const unsigned char *)password,strlen(password));
+    EVP_DigestFinal(ctx, digest, NULL);
                             
     /* convert digest from binary to ASCII hex */
     for (i = 0; i < 16; i++)
@@ -2912,9 +2904,8 @@ void test_checkpass(void)
 void notes(void)
 {
     printf("NOTE:\n");
-    printf("-For KERBEROS_V4 must be able to read srvtab file (usually /etc/srvtab)\n");
     printf("-For GSSAPI must be able to read srvtab (/etc/krb5.keytab)\n");
-    printf("-For both KERBEROS_V4 and GSSAPI you must have non-expired tickets\n");
+    printf("-For GSSAPI you must have non-expired tickets\n");
     printf("-For OTP (w/OPIE) must be able to read/write opiekeys (/etc/opiekeys)\n");
     printf("-For OTP you must have a non-expired secret\n");
     printf("-Must be able to read sasldb, which needs to be setup with a\n");
@@ -2938,7 +2929,7 @@ void usage(void)
 
 int main(int argc, char **argv)
 {
-    char c;
+    int c;
     int random_tests = -1;
     int do_all = 0;
     int skip_do_correct = 0;

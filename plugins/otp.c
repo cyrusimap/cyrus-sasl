@@ -56,8 +56,10 @@
 #include <openssl/evp.h>
 #include <openssl/md5.h> /* XXX hack for OpenBSD/OpenSSL cruftiness */
 
+/* for legacy libcrypto support */
+#include "crypto-compat.h"
+
 #include <sasl.h>
-#define MD5_H  /* suppress internal MD5 */
 #include <saslplug.h>
 
 #include "plugin_common.h"
@@ -98,22 +100,14 @@ static EVP_MD_CTX *_plug_EVP_MD_CTX_new(const sasl_utils_t *utils)
 {
     utils->log(NULL, SASL_LOG_DEBUG, "_plug_EVP_MD_CTX_new()");
 
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
     return EVP_MD_CTX_new();
-#else
-    return utils->malloc(sizeof(EVP_MD_CTX));
-#endif
 }
 
 static void _plug_EVP_MD_CTX_free(EVP_MD_CTX *ctx, const sasl_utils_t *utils)
 {
     utils->log(NULL, SASL_LOG_DEBUG, "_plug_EVP_MD_CTX_free()");
 
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
     EVP_MD_CTX_free(ctx);
-#else
-    utils->free(ctx);
-#endif
 }
 
 /* Convert the binary data into ASCII hex */

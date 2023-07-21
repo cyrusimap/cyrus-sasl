@@ -43,8 +43,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "plugin_anonymous", "plugin_
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "plugin_plain", "plugin_plain.vcxproj", "{B8C5499F-BCB8-409C-8446-0D92DE118020}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "plugin_ntlm", "plugin_ntlm.vcxproj", "{7D694002-B275-4895-A76E-A6ED345FD3C3}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "plugin_login", "plugin_login.vcxproj", "{6F556F64-FB73-4E7D-9908-EEBA78D1592E}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "install", "install.vcxproj", "{D0E8D7B3-5466-4BE2-B54B-80A0E1A55101}"

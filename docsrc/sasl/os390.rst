@@ -28,12 +28,6 @@ That should allow you to run configure and get a coherent build environment. Bef
     cd include
     make CC=c89
 
-In the include directory is a small program that generates an md5global.h
-header file. This file must be generated in native EBCDIC. If you just
-typed make from the top level, the program and header file would be
-generated in ASCII, with an ASCII filename, which would be very confusing
-and not very useful.
-
 In my initial tests I was able to use SASL/EXTERNAL to perform X.509-based
 authentication with slapd.  I have subsequently tested the DIGEST-MD5
 mechanism, using OpenLDAP's slapd for storage of the secrets. It worked

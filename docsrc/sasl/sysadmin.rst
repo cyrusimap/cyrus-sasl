@@ -101,9 +101,9 @@ To add users of different realms to sasldb, you can use the
 ``-u`` option to saslpasswd2.  The SQL plugin has a way of
 integrating the realm name into the query string with the '%r' macro.
 
-The Kerberos mechanisms treat the SASL realm as the Kerberos
-realm.  Thus, the realm for Kerberos mechanisms defaults to the
-default Kerberos realm on the server.  They may support cross-realm
+The Kerberos GSSAPI mechanism treats the SASL realm as the Kerberos
+realm.  Thus, the realm for Kerberos GSSAPI mechanism defaults to the
+default Kerberos realm on the server.  It may support cross-realm
 authentication; check your application on how it deals with this.
 
 Realms will be passed to saslauthd as part of the saslauthd protocol,
@@ -276,24 +276,18 @@ no point in enabling this option if "pwcheck_method" is "auxprop",
 and the sasldb plugin is installed, since you'll be transitioning from
 a plaintext store to a plaintext store)
 
-Kerberos mechanisms
+Kerberos mechanism
 -------------------
 
-The Cyrus SASL library also comes with two mechanisms that make use of
-Kerberos: KERBEROS_V4, which should be able to use any Kerberos v4
-implementation, and GSSAPI (tested against MIT Kerberos 5, Heimdal
-Kerberos 5 and CyberSafe Kerberos 5).  These mechanisms make use of the kerberos infrastructure
-and thus have no password database.
+The Cyrus SASL library also comes with a mechanism that make use of
+Kerberos: GSSAPI (tested against MIT Kerberos 5, Heimdal
+Kerberos 5 and CyberSafe Kerberos 5).  This mechanism makes use of the
+kerberos infrastructure and thus has no password database.
 
 Applications that wish to use a kerberos mechanism will need access
-to a service key, stored either in a :option:`srvtab` file (Kerberos 4) or a
-:option:`keytab` file (Kerberos 5).
+to a service key, stored in a :option:`keytab` file.
 
-The Kerberos 4 :option:`srvtab` file location is configurable; by default it is
-``/etc/srvtab``, but this is modifiable by the "srvtab" option.
-Different SASL applications can use different srvtab files.
-
-A SASL application must be able to read its srvtab or keytab file.
+A SASL application must be able to read its keytab file.
 
 You may want to consult the :ref:`GSSAPI Tutorial <gssapi>`.
 
@@ -403,12 +397,6 @@ SASL_DBNAME
 Troubleshooting
 ===============
 
-Why doesn't KERBEROS_V4 doesn't appear as an available mechanism?
-    Check that the ``srvtab`` file is readable by the
-    user running as the daemon.  For Cyrus imapd, it must be readable by
-    the Cyrus user.  By default, the library looks for the srvtab in
-    ``/etc/srvtab``, but it's configurable using the :option:`srvtab`
-    option.
 Why doesn't OTP doesn't appear as an available mechanism?
     If using OPIE, check that the ``opiekeys`` file is
     readable by the user running the daemon.  For Cyrus imapd, it must
@@ -446,24 +434,9 @@ Is LOGIN supported?
     for sites that need it to interoperate with old clients; we don't
     support it.  Don't enable it unless you know you need it.
 
-Is NTLM supported?
-    The NTLM mechanism is a non-standard, undocumented
-    mechanism developed by Microsoft.  It's included in the SASL
-    distribution purely for sites that need it to interoperate with
-    Microsoft clients (ie, Outlook) and/or servers (ie, Exchange); we
-    don't support it.  Don't enable it unless you know you need it.
-
 How can I get a non-root application to check plaintext passwords?
     Use the "saslauthd" daemon and setting "pwcheck_method"
     to "saslauthd".
-
-I want to use Berkeley DB, but it's installed in ``/usr/local/BerkeleyDB.3.1`` and ``configure`` can't find it.
-    Try setting "CPPFLAGS" and "LDFLAGS" environment
-    variables before running ``configure``, like so::
-
-        env CPPFLAGS="-I/usr/local/BerkeleyDB.3.1/include" \
-          LDFLAGS="-L/usr/local/BerkeleyDB.3.1/lib -R/usr/local/BerkeleyDB.3.1/lib" \
-          ./configure --with-dblib=berkeley
 
 It's not working and won't tell me why! Help!
     Check syslog output (usually stored in

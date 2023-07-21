@@ -267,7 +267,7 @@ see).
 * For IMAP this might look like::
 
           {tag} "AUTHENTICATE" {mechusing}\r\n
-          A01 AUTHENTICATE KERBEROS_V4\r\n
+          A01 AUTHENTICATE GSSAPI\r\n
 
 * SMTP looks like::
 
@@ -444,7 +444,7 @@ be called when the socket is accepted.
 
 When a client requests the list of mechanisms supported by the
 server, use :saslman:`sasl_listmech(3)`. This particular call might
-produce the string: ``{PLAIN, KERBEROS_V4, CRAM-MD5, DIGEST-MD5}``
+produce the string: ``{PLAIN, GSSAPI, CRAM-MD5, DIGEST-MD5}``
 
 .. code-block:: C
 

@@ -121,26 +121,23 @@ that links against SQLITE (www.sqlite.org).
 SQL=<SQLITE> depends on ``SQLITE_INCLUDES`` and ``SQLITE_LIBPATH`` parameters.
 You can either specify them on the command line or edit the defaults in win32\common.mak
 
-Specify "NTLM=1" parameter if you want to enable NTLM plugin.
-I.e. ``nmake /f NTMakefile NTLM=1``
-
 Specify "SRP=1" parameter if you want to enable SRP plugin.
 You can also specify "DO_SRP_SETPASS=1" if you want to enable SRP setpass functionality.
 
 Specify "OTP=1" parameter if you want to enable OTP plugin.
 
-NTLM, SRP and OTP plugins depend on OpenSSL. You can either specify
+The SRP and OTP plugins depend on OpenSSL. You can either specify
 ``OPENSSL_INCLUDE`` and ``OPENSSL_LIBPATH`` parameters on the command
 line or edit the defaults in win32\common.mak
 Note, that unless you are building one of those plugins, OpenSSL is not required!
 
 If you want to build multiple additional plugins at once, you can specify
-multiple parameters described above, for example ``nmake /f NTMakefile NTLM=1 SRP=1 OPT=1``
+multiple parameters described above, for example ``nmake /f NTMakefile SRP=1 OPT=1``
 
 Limitations
 -----------
 
-Currently all plugins except KerberosV4 (kerberos4.c) and PASSDSS (passdss.c) can be built on Windows.
+Currently all plugins except PASSDSS (passdss.c) can be built on Windows.
 However limited testings was done for some plugins as listed below:
 
 * GSSAPI - tested using CyberSafe,

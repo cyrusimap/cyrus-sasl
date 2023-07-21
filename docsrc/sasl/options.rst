@@ -236,22 +236,6 @@ stored.  The slapd.conf will need to map these usernames to LDAP DNs:
    sasl-regexp uid=(.*),cn=external,cn=auth
        ldap:///dc=example,dc=com??sub?(uid=$1)
 
-NTLM
-====
-
-.. option:: ntlm_server [<list of server names>]
-
-   Comma separated list of servernames (WinNT, Win2K, Samba, etc) to
-   which authentication will be proxied.
-
-   Default: empty - perform authentication internally
-
-.. option:: ntlm_v2 [yes|no]
-
-   (Client) Send NTLMv2 responses to the server.
-
-   Default: no (send NTLMv1)
-
 OTP
 ===
 

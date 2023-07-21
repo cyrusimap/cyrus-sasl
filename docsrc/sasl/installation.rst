@@ -75,7 +75,7 @@ installation:
 
 
 1.  What mechanisms do you want to support?  Are they plaintext (LOGIN, PLAIN),
-shared secret (SCRAM, DIGEST-MD5, CRAM-MD5), or Kerberos (KERBEROS_V4, GSSAPI)?
+shared secret (SCRAM, DIGEST-MD5, CRAM-MD5), or Kerberos (GSSAPI)?
 Perhaps you will use some combination (generally plaintext with one of
 the other two types).
 2.  Given the answer to the previous question, how will the mechanisms
@@ -87,7 +87,7 @@ perform user verification?
     * To use Kerberos and Plaintext, you'll want to use saslauthd with a kerberos module for plaintext authentication.  To use Shared Secret and plaintext, you'll want to use the auxprop plugin for password verification.
 
 3.  If you are using an auxprop plugin, will you be using SASLdb (and
-if so, Berkeley DB [recommended], GDBM, or NDBM?), LDAP or an SQL backend
+if so, LMDB [recommended], GDBM, or NDBM?), LDAP or an SQL backend
 (Postgres? MySQL?).
 4.  If you are using saslauthd, what module will you be using?  LDAP?
 Kerberos?  PAM?
@@ -107,7 +107,7 @@ Requirements
 2. You'll need `GNU make <ftp://ftp.gnu.org/pub/gnu/make/>`_.
 
 3. If you are using SASLdb, you will need to pick your backend.
-   libsasl2 can use `gdbm <ftp://ftp.gnu.org/pub/gnu/gdbm/>`_, `Berkeley db <https://www.oracle.com/database/technologies/related/berkeleydb-downloads.html>`_, or ndbm to implement its user/password lookup. Most systems come with ndbm.
+   libsasl2 can use `gdbm <ftp://ftp.gnu.org/pub/gnu/gdbm/>`_, `LMDB <https://www.openldap.org/>`_, or ndbm to implement its user/password lookup. Most systems come with ndbm.
 
 4. If you are using SQL, you'll need to properly configure your server/tables,
    and build the necessary client libraries on the system where you will be
@@ -143,11 +143,11 @@ resources to load a given plugin, even if that plugin is otherwise unused
 
 As of this writing, modules that are enabled by default but may not
 be applicable to all systems include CRAM-MD5, DIGEST-MD5, SCRAM, OTP,
-KERBEROS_V4, GSSAPI, PLAIN, and ANONYMOUS.  These can be disabled with::
+GSSAPI, PLAIN, and ANONYMOUS.  These can be disabled with::
 
     ``--disable-cram``, ``--disable-digest``,
     ``--disable-scram``, ``--disable-otp``,
-    ``--disable-krb4``, ``--disable-gssapi``,
+    ``--disable-gssapi``,
     ``--disable-plain``, and ``--disable-anon`` respectively.
 
 If you are using an SQL auxprop plugin, you may want to specify one or more
@@ -164,12 +164,7 @@ OpenLDAP already built with SASL support. One way to solve this issue is to
 build Cyrus SASL first without ldap support, then build OpenLDAP, and then come
 back to SASL and build LDAPDB.
 
-Given the myriad of ways that Berkeley DB can be installed on a system,
-people using it may want to look at the ``--with-bdb-libdir`` and
-``--with-bdb-incdir`` as alternatives to ``--with-dbbase`` for
-specifying the paths to the Berkeley DB Library and Include directories.
-
-In fact, if you're not planning on using SASLdb at all, it may be worth
+If you're not planning on using SASLdb at all, it may be worth
 your time to disable its use entirely with the ``--with-dblib=none``
 option.
 
@@ -212,7 +207,7 @@ saslauthd as a password verifier, you'll want to be sure to set
 ``pwcheck_method: saslauthd``).
 
 If you are using saslauthd, you will want to arrange for
-``saslauthd -a pam`` (or ldap, or kerberos4, etc) to be run
+``saslauthd -a pam`` (or ldap, etc) to be run
 at boot.  If you are not going to be using saslauthd, then this is
 not necessary.
 

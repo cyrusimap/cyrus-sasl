@@ -6,10 +6,10 @@ This article assumes that you have read and followed the SASL chapter of the `Op
 To verify that you have the Cyrus :ref:`GSSAPI <gssapi>` mechanism properly installed, use the pluginviewer command. For instance::
 
     server:~# pluginviewer  | grep -i gssapi
-     CRAM-MD5 PLAIN NTLM GSSAPI OTP DIGEST-MD5 ANONYMOUS LOGIN EXTERNAL
+     CRAM-MD5 PLAIN GSSAPI OTP DIGEST-MD5 ANONYMOUS LOGIN EXTERNAL
     Plugin "gssapiv2" [loaded],     API version: 4
            SASL mechanism: GSSAPI, best SSF: 56, supports setpass: no
-    CRAM-MD5 PLAIN NTLM GSSAPI OTP DIGEST-MD5 ANONYMOUS LOGIN EXTERNAL
+    CRAM-MD5 PLAIN GSSAPI OTP DIGEST-MD5 ANONYMOUS LOGIN EXTERNAL
     Plugin "gssapiv2" [loaded],     API version: 4
            SASL mechanism: GSSAPI, best SSF: 56
 
@@ -20,7 +20,6 @@ On your client system, search the Root DSE of the server to view advertised mech
     client:~# ldapsearch -LLL -x -H ldap://ldap.example.org -s "base" -b "" supportedSASLMechanisms
     dn:
     supportedSASLMechanisms: DIGEST-MD5
-    supportedSASLMechanisms: NTLM
     supportedSASLMechanisms: GSSAPI
     supportedSASLMechanisms: OTP
     supportedSASLMechanisms: CRAM-MD5
@@ -48,7 +47,6 @@ Once you have verified that the server is advertising GSSAPI support, then try::
     SASL SSF: 56 SASL data security layer installed.
     dn:
     supportedSASLMechanisms: DIGEST-MD5
-    supportedSASLMechanisms: NTLM
     supportedSASLMechanisms: GSSAPI
     supportedSASLMechanisms: OTP
     supportedSASLMechanisms: CRAM-MD5

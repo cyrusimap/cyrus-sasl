@@ -46,7 +46,7 @@ sasl_version = 1:25:0
 
 AM_CPPFLAGS=-DLIBSASL_EXPORTS=1 -fPIC -I$(top_srcdir)/include -I$(top_builddir)/include @SASL_DB_INC@
 
-extra_common_sources = db_none.c db_lmdb.c db_ndbm.c db_gdbm.c db_berkeley.c
+extra_common_sources = db_none.c db_lmdb.c db_ndbm.c db_gdbm.c
 
 EXTRA_DIST = NTMakefile
 

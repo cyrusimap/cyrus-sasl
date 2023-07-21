@@ -45,30 +45,12 @@
 noinst_HEADERS = gai.h exits.h
 
 saslincludedir = $(includedir)/sasl
-saslinclude_HEADERS = hmac-md5.h md5.h md5global.h sasl.h saslplug.h saslutil.h prop.h
-
-noinst_PROGRAMS = makemd5
-
-makemd5_SOURCES = makemd5.c
-
-makemd5$(BUILD_EXEEXT) $(makemd5_OBJECTS): CC=$(CC_FOR_BUILD)
-makemd5$(BUILD_EXEEXT) $(makemd5_OBJECTS): CFLAGS=$(CFLAGS_FOR_BUILD)
-makemd5$(BUILD_EXEEXT): LDFLAGS=$(LDFLAGS_FOR_BUILD)
-
-md5global.h: makemd5$(BUILD_EXEEXT) Makefile
-	-rm -f $@
-	./$< $@
-
-BUILT_SOURCES = md5global.h
+saslinclude_HEADERS = hmac-md5.h sasl.h saslplug.h saslutil.h prop.h
 
 EXTRA_DIST = NTMakefile
-DISTCLEANFILES = md5global.h
 
 if MACOSX
 framedir = /Library/Frameworks/SASL2.framework
 frameheaderdir = $(framedir)/Versions/A/Headers
 frameheader_DATA = $(saslinclude_HEADERS)
 endif
-
-# TODO: automake, don't build it
-makemd5$(EXEEXT):

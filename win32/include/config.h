@@ -90,7 +90,6 @@ typedef int		    intptr_t;
 /* what db package are we using? */
 /* #undef SASL_GDBM */
 /* #undef SASL_NDBM */
-#define SASL_BERKELEYDB 1
 
 /* static plugins are not yet compatible with building via NTMakeFile */
 #ifndef NO_STATIC_PLUGINS
@@ -102,7 +101,6 @@ typedef int		    intptr_t;
 /* #undef STATIC_KERBEROS4 */
 #define STATIC_LOGIN 1
 /* #undef STATIC_MYSQL */
-#define STATIC_NTLM 1
 /* #define STATIC_OTP 1 */
 #define STATIC_PLAIN 1
 /* #define STATIC_SASLDB 1 */
@@ -115,7 +113,6 @@ typedef int		    intptr_t;
 /* Things that are fetched via autoconf under Unix
  */
 #define HAVE_MEMCPY 1
-#define HAVE_OPENSSL 1
 
 #define PLUGINDIR "C:\\CMU\\bin\\sasl2"
 #define CONFIGDIR "C:\\CMU\\bin\\sasl2"

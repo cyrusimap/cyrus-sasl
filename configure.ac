@@ -329,8 +329,6 @@ else
   AC_MSG_RESULT(disabled)
 fi
 
-SASL_DES_CHK
-
 dnl SCRAM
 AC_ARG_ENABLE(scram, [  --enable-scram            enable SCRAM authentication [[yes]] ],
   scram=$enableval,

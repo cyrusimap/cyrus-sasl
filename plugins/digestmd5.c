@@ -873,8 +873,8 @@ static int dec_3des(context_t *text,
     DES_ede2_cbc_encrypt((void *) input,
 			 (void *) output,
 			 inputlen,
-			 c->keysched,
-			 c->keysched2,
+			 &c->keysched,
+			 &c->keysched2,
 			 &c->ivec,
 			 DES_DECRYPT);
     
@@ -921,8 +921,8 @@ static int enc_3des(context_t *text,
     DES_ede2_cbc_encrypt((void *) output,
 			 (void *) output,
 			 len,
-			 c->keysched,
-			 c->keysched2,
+			 &c->keysched,
+			 &c->keysched2,
 			 &c->ivec,
 			 DES_ENCRYPT);
     
@@ -944,11 +944,11 @@ static int init_3des(context_t *text,
 
     /* setup enc context */
     slidebits(keybuf, enckey);
-    if (DES_key_sched((DES_cblock *) keybuf, c->keysched) < 0)
+    if (DES_key_sched((DES_cblock *) keybuf, &c->keysched) < 0)
 	return SASL_FAIL;
 
     slidebits(keybuf, enckey + 7);
-    if (DES_key_sched((DES_cblock *) keybuf, c->keysched2) < 0)
+    if (DES_key_sched((DES_cblock *) keybuf, &c->keysched2) < 0)
 	return SASL_FAIL;
     memcpy(c->ivec, ((char *) enckey) + 8, 8);
 
@@ -957,11 +957,11 @@ static int init_3des(context_t *text,
     /* setup dec context */
     c++;
     slidebits(keybuf, deckey);
-    if (DES_key_sched((DES_cblock *) keybuf, c->keysched) < 0)
+    if (DES_key_sched((DES_cblock *) keybuf, &c->keysched) < 0)
 	return SASL_FAIL;
     
     slidebits(keybuf, deckey + 7);
-    if (DES_key_sched((DES_cblock *) keybuf, c->keysched2) < 0)
+    if (DES_key_sched((DES_cblock *) keybuf, &c->keysched2) < 0)
 	return SASL_FAIL;
     
     memcpy(c->ivec, ((char *) deckey) + 8, 8);
@@ -991,7 +991,7 @@ static int dec_des(context_t *text,
     DES_cbc_encrypt((void *) input,
 		    (void *) output,
 		    inputlen,
-		    c->keysched,
+		    &c->keysched,
 		    &c->ivec,
 		    DES_DECRYPT);
 
@@ -1042,7 +1042,7 @@ static int enc_des(context_t *text,
     DES_cbc_encrypt((void *) output,
                     (void *) output,
                     len,
-                    c->keysched,
+                    &c->keysched,
                     &c->ivec,
                     DES_ENCRYPT);
     
@@ -1068,7 +1068,7 @@ static int init_des(context_t *text,
     
     /* setup enc context */
     slidebits(keybuf, enckey);
-    DES_key_sched((DES_cblock *) keybuf, c->keysched);
+    DES_key_sched((DES_cblock *) keybuf, &c->keysched);
 
     memcpy(c->ivec, ((char *) enckey) + 8, 8);
     
@@ -1077,7 +1077,7 @@ static int init_des(context_t *text,
     /* setup dec context */
     c++;
     slidebits(keybuf, deckey);
-    DES_key_sched((DES_cblock *) keybuf, c->keysched);
+    DES_key_sched((DES_cblock *) keybuf, &c->keysched);
 
     memcpy(c->ivec, ((char *) deckey) + 8, 8);
     

@@ -21,8 +21,7 @@ saslauthd_SOURCES = mechanisms.c globals.h \
 		    utils.c utils.h \
             ipc_unix.c ipc_doors.c saslauthd-main.c saslauthd-main.h
 saslauthd_DEPENDENCIES = saslauthd-main.o $(LTLIBOBJS_FULL)
-saslauthd_LDADD	= @SASL_KRB_LIB@ \
-		  @GSSAPIBASE_LIBS@ @LIB_CRYPT@ @LIB_SIA@ \
+saslauthd_LDADD	= @GSSAPIBASE_LIBS@ @LIB_CRYPT@ @LIB_SIA@ \
 		  @LIB_SOCKET@ @SASL_DB_LIB@ @LIB_PAM@ @LDAP_LIBS@ $(LTLIBOBJS_FULL) $(CRYPTO_COMPAT_OBJS) $(LIBSASLDB_OBJS) -lcrypto
 
 testsaslauthd_SOURCES = testsaslauthd.c utils.c

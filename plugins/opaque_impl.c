@@ -19,6 +19,8 @@
 */
 
 #include "opaque.h"
+#include <string.h>
+
 #if _WIN32 == 1 || _WIN64 == 1
 #include <winsock2.h>
 #else

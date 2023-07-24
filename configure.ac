@@ -634,10 +634,10 @@ else
   opaque=yes
 fi
 
+AM_CONDITIONAL(OPAQUE_INTERNAL,test "$opaque" = internal)
+AM_CONDITIONAL(INTERNAL_HKDF,test "$need_internal_hkdf" = yes)
 AC_MSG_CHECKING(OPAQUE)
 if test "$opaque" != no; then
-  AM_CONDITIONAL(OPAQUE_INTERNAL,test "$opaque" = internal)
-  AM_CONDITIONAL(INTERNAL_HKDF,test "$need_internal_hkdf" = yes)
   if test "$opaque" = internal; then
     AC_MSG_RESULT(internal)
     OPAQUE_LIBS="-lsodium"

@@ -80,10 +80,6 @@ sasl_canonuser_init_t x##_canonuser_plug_init
 extern SPECIFIC_SERVER_PLUG_INIT_PROTO( anonymous );
 extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( anonymous );
 #endif
-#ifdef STATIC_CRAMMD5
-extern SPECIFIC_SERVER_PLUG_INIT_PROTO( crammd5 );
-extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( crammd5 );
-#endif
 #ifdef STATIC_SCRAM
 extern SPECIFIC_SERVER_PLUG_INIT_PROTO( scram );
 extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( scram );
@@ -122,10 +118,6 @@ _sasl_plug_rec _sasl_static_plugins[] = {
 #ifdef STATIC_ANONYMOUS
 	SPECIFIC_SERVER_PLUG_INIT( anonymous, "ANONYMOUS" ),
 	SPECIFIC_CLIENT_PLUG_INIT( anonymous, "ANONYMOUS" ),
-#endif
-#ifdef STATIC_CRAMMD5
-	SPECIFIC_SERVER_PLUG_INIT( crammd5, "CRAM-MD5" ),
-	SPECIFIC_CLIENT_PLUG_INIT( crammd5, "CRAM-MD5" ),
 #endif
 #ifdef STATIC_GSSAPIV2
 	SPECIFIC_SERVER_PLUG_INIT( gssapiv2, "GSSAPI" ),

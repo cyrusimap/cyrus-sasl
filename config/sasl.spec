@@ -28,15 +28,6 @@ applications which use SASL.
 This plugin implements the SASL ANONYMOUS mechanism,
 used for anonymous authentication.
 
-%package plug-crammd5
-%summary: SASL CRAM-MD5 mechanism plugin
-
-%description plug-crammd5
-This plugin implements the SASL CRAM-MD5 mechanism.
-CRAM-MD5 is the mandatory-to-implement authentication mechanism for a
-number of protocols; it uses MD5 with a challenge/response system to
-authenticate the user.
-
 %package plug-plain
 %summary: SASL PLAIN mechanism plugin
 
@@ -84,17 +75,11 @@ fi
 /usr/include/sasl.h
 /usr/include/saslplug.h
 /usr/include/saslutil.h
-/usr/include/hmac-md5.h
 
 %files plug-anonymous
 %doc doc/draft-newman-sasl-anon-00.txt
 /usr/lib/sasl/libanonymous.so.1.0.2
 /usr/lib/sasl/libanonymous.so
-
-%files plug-crammd5
-%doc doc/rfc1321.txt doc/rfc2095.txt doc/rfc2104.txt
-/usr/lib/sasl/libcrammd5.so.1.0.1
-/usr/lib/sasl/libcrammd5.so
 
 %files plug-plain
 /usr/lib/sasl/libplain.so.1.0.1

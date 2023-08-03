@@ -62,7 +62,7 @@
  * code that requires superuser privileges (for example, access to
  * the shadow password file) into a single easily audited module. It
  * can also act as an authentication proxy between plaintext-equivelent
- * authentication schemes (i.e. CRAM-MD5) and more secure authentication
+ * authentication schemes (e.g. SCRAM-SHA-512) and more secure authentication
  * services such as Kerberos, although such usage is STRONGLY discouraged
  * because it exposes the strong credentials via the insecure plaintext
  * mechanisms.

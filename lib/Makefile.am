@@ -63,7 +63,7 @@ DLOPEN_C = dlopen.c
 endif
 
 common_headers = saslint.h
-common_sources = auxprop.c canonusr.c checkpw.c client.c common.c config.c external.c md5.c saslutil.c server.c seterror.c $(DLOPEN_C)
+common_sources = auxprop.c canonusr.c checkpw.c client.c common.c config.c external.c saslutil.c server.c seterror.c $(DLOPEN_C)
 
 LTLIBOBJS = @LTLIBOBJS@
 LIB_DOOR= @LIB_DOOR@

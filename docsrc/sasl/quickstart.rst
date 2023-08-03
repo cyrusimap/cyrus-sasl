@@ -17,7 +17,6 @@ The following :ref:`authentication_mechanisms` are included in
 this distribution:
 
 *  ANONYMOUS
-*  CRAM-MD5
 *  EXTERNAL
 *  GSSAPI (MIT Kerberos 5, Heimdal Kerberos 5 or CyberSafe)
 *  LOGIN

@@ -59,7 +59,7 @@
  *  sasl_server_step  Perform one authentication exchange step
  *  sasl_checkpass    Check a plaintext passphrase
  *  sasl_checkapop    Check an APOP challenge/response (uses pseudo "APOP"
- *                    mechanism similar to CRAM-MD5 mechanism; optional)
+ *                    mechanism; optional)
  *  sasl_user_exists  Check if user exists
  *  sasl_setpass      Change a password or add a user entry
  *  sasl_auxprop_request  Request auxiliary properties

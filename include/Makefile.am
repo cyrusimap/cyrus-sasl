@@ -45,7 +45,7 @@
 noinst_HEADERS = gai.h exits.h
 
 saslincludedir = $(includedir)/sasl
-saslinclude_HEADERS = hmac-md5.h sasl.h saslplug.h saslutil.h prop.h
+saslinclude_HEADERS = sasl.h saslplug.h saslutil.h prop.h
 
 EXTRA_DIST = NTMakefile
 

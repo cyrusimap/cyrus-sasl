@@ -221,9 +221,9 @@ the same way the PLAIN mechanism does.
 Shared secrets mechanisms
 -------------------------
 
-The Cyrus SASL library also supports some "shared secret"
-authentication methods: CRAM-MD5 and SCRAM.
-These methods rely on the client and the server sharing a "secret",
+The Cyrus SASL library also supports a "shared secret"
+authentication method: SCRAM.
+This method relies on the client and the server sharing a "secret",
 usually a password.  The server generates a challenge and the client a
 response proving that it knows the shared secret.  This is much more
 secure than simply sending the secret over the wire proving that the
@@ -234,8 +234,8 @@ server must keep passwords or password equivalents in a database;
 if this database is compromised, it is the same as if all the
 passwords for the realm are compromised.
 
-Put another way, *you cannot use saslauthd with these methods*.
-If you do not wish to advertise these methods for that reason (i.e. you
+Put another way, *you cannot use saslauthd with this method*.
+If you do not wish to advertise this method for that reason (i.e. you
 are only using saslauthd for password verification), then either remove
 the non-plaintext plugins (those other than login and plain) from the
 plugin directory, or use the :option:`mech_list` option to disable them.
@@ -295,7 +295,7 @@ The OTP mechanism
 -----------------
 
 The Cyrus SASL library also supports the One-Time-Password (OTP)
-mechanism.  This mechanism is similar to CRAM-MD5, SCRAM
+mechanism.  This mechanism is similar to SCRAM
 and SRP in that is uses a shared secret and a challenge/response exchange.
 However, OTP is more secure than the other shared secret mechanisms in
 that the secret is used to generate a sequence of one-time (single
@@ -403,7 +403,7 @@ Why doesn't OTP doesn't appear as an available mechanism?
     be readable by the Cyrus user.  By default, the library looks for the
     opiekeys in ``/etc/opiekeys``, but it's configurable using the
     :option:`opiekeys` option.
-Why don't CRAM-MD5 and SCRAM work with my old sasldb?
+Why doesn't SCRAM work with my old sasldb?
     Because sasldb now stores plaintext passwords only, the old
     sasldb is incompatible.
 I'm having performance problems on each authentication, there is a noticeable slowdown when sasl initializes, what can I do?

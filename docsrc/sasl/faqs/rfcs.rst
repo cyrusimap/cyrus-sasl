@@ -5,8 +5,6 @@ RFCs and drafts
 ===============
 
 * :rfc:`1939#page-15` - Post Office Protocol - Version 3 (APOP/sasl_checkapop)
-* :rfc:`2195` - The CRAM-MD5 SASL Mechanism (CRAM-MD5)
-* :rfc:`2222#section-7.1` - Simple Authentication and Security Layer (SASL) (KERBEROS_V4)
 * :rfc:`2444` - The One-Time-Password SASL Mechanism (OTP)
 * :rfc:`2808` - The SecurID(r) SASL Mechanism
 * :rfc:`4120` - The Kerberos Network Authentication Service (V5)
@@ -24,7 +22,6 @@ RFCs and drafts
 * :rfc:`7677` - SCRAM-SHA-256 and SCRAM-SHA-256-PLUS: Simple Authentication and Security Layer (SASL) Mechanisms
 * :rfc:`7804` - Salted Challenge Response HTTP Authentication Mechanism
 * `draft-burdis-cat-srp-sasl <https://tools.ietf.org/html/draft-burdis-cat-srp-sasl-08>`_ - Secure Remote Password SASL Mechanism (SRP)
-* `draft-ietf-sasl-crammd5 <https://tools.ietf.org/html/draft-ietf-sasl-crammd5>`_ - The CRAM-MD5 SASL Mechanism (CRAM-MD5)
 * `draft-murchison-sasl-login <https://tools.ietf.org/html/draft-murchison-sasl-login>`_ - The LOGIN SASL Mechanism
 * `draft-newman-sasl-c-api <https://tools.ietf.org/html/draft-newman-sasl-c-api>`_ - The SASL C API
 * `draft-newman-sasl-passdss <https://tools.ietf.org/html/draft-newman-sasl-passdss>`_ - DSS Secured Password Authentication Mechanism (PASSDSS)

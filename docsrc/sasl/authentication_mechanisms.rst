@@ -14,23 +14,6 @@ This mechanism does not require the client to authenticate or provide any inform
 
 Defined in :rfc:`2245`
 
-.. _MECH-CRAM-MD5:
-
-CRAM-MD5
---------
-
-This mechanism avoids sending the users password over the network in plain text by hashing the password with a server provided random value (known as a nonce).
-A disadvantage of this mechanism is that the server must maintain a database of **plaintext passwords** for comparison.
-
-CRAM-MD5 does not provide adequate security services for use on the Internet, it does not protect the user's authentication identifier from eavesdroppers and is subject to a number of passive and active attacks.
-
-Defined in :rfc:`2195`
-
-Documented in a `RFC Draft: draft-ietf-sasl-crammd5 <https://tools.ietf.org/html/draft-ietf-sasl-crammd5>`_
-
-.. warning::
-   The CRAM-MD5 SASL mechanism is obsolete. It has been moved to Historic in `draft-ietf-sasl-crammd5-to-historic <https://tools.ietf.org/html/draft-ietf-sasl-crammd5-to-historic-00>`_
-
 EXTERNAL
 --------
 
@@ -161,8 +144,6 @@ of the mechanisms provided by the Cyrus SASL Library.
 |             |         | NOPLAIN | NOACTIVE | NODICT | FORWARD | NOANON | CRED | MUTUAL | CLT FIRST | SRV FIRST    | SRV LAST | PROXY | BIND | HTTP |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 | ANONYMOUS   | 0       | X       |          |        |         |        |      |        | X         |              |          |       |      |      |
-+-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
-| CRAM-MD5    | 0       | X       |          |        |         | X      |      |        |           | X            |          |       |      |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 | EXTERNAL    | 0       | X       |          | X      |         | X      |      |        | X         |              |          | X     |      |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+

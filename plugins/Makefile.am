@@ -73,7 +73,7 @@ endif
 plugindir = @plugindir@
 plugin_LTLIBRARIES = @SASL_MECHS@
 
-EXTRA_LTLIBRARIES = libplain.la libanonymous.la libcrammd5.la \
+EXTRA_LTLIBRARIES = libplain.la libanonymous.la \
 	libgs2.la libgssapiv2.la liblogin.la libsrp.la libotp.la \
 	libscram.la libpassdss.la libsasldb.la libsql.la libldapdb.la libopaque.la
 
@@ -92,10 +92,6 @@ libgs2_la_LIBADD = $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS
 libgssapiv2_la_SOURCES = gssapi.c gssapiv2_init.c
 libgssapiv2_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
 libgssapiv2_la_LIBADD = $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
-
-libcrammd5_la_SOURCES = cram.c crammd5_init.c
-libcrammd5_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
-libcrammd5_la_LIBADD = $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
 
 libscram_la_SOURCES = scram.c scram_init.c
 libscram_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
@@ -138,7 +134,7 @@ libsql_la_LIBADD = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
 
 # Instructions for making the _init files
 
-init_src=anonymous_init.c crammd5_init.c scram_init.c gs2_init.c gssapiv2_init.c \
+init_src=anonymous_init.c scram_init.c gs2_init.c gssapiv2_init.c \
 login_init.c plain_init.c srp_init.c opaque_init.c otp_init.c \
 passdss_init.c sasldb_init.c sql_init.c ldapdb_init.c
 

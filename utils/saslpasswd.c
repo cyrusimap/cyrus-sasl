@@ -430,8 +430,7 @@ main(int argc, char *argv[])
       exit_sasl(result, NULL);
   else {
       struct propctx *propctx = NULL;
-      const char *delete_request[] = { "cmusaslsecretCRAM-MD5",
-				       "cmusaslsecretPLAIN",
+      const char *delete_request[] = { "cmusaslsecretPLAIN",
 				       NULL };
       int ret = SASL_OK;
       /* Either we were setting and succeeded or we were disabling and
@@ -443,7 +442,6 @@ main(int argc, char *argv[])
       if (!propctx) ret = SASL_FAIL;
       if (!ret) ret = prop_request(propctx, delete_request);
       if (!ret) {
-	  ret = prop_set(propctx, "cmusaslsecretCRAM-MD5", NULL, 0);
 	  ret = prop_set(propctx, "cmusaslsecretPLAIN", NULL, 0);
 	  ret = sasl_auxprop_store(conn, propctx, userid);
       }

@@ -28,10 +28,7 @@ AC_ARG_WITH(openssl,
 			AC_CHECK_LIB(crypto, EVP_DigestInit,
 					[AC_CHECK_LIB(crypto, SHA512,
                                                       AC_DEFINE(HAVE_SHA512,[],
-                                                      [Do we have SHA512?]))
-					 AC_CHECK_LIB(crypto, MD5_Init,
-                                                      AC_DEFINE(HAVE_MD5,[],
-                                                      [Do we have legacy MD5?]))],
+                                                      [Do we have SHA512?]))],
 					with_openssl="no", $LIB_RSAREF)],
 			with_openssl="no")
 ])

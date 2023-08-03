@@ -949,7 +949,6 @@ int sasl_server_init(const sasl_callback_t *callbacks,
  * for them in the passwd database for other
  * stronger mechanism
  *
- * for example PLAIN -> CRAM-MD5
  */
 static int
 _sasl_transition(sasl_conn_t * conn,

@@ -77,11 +77,6 @@ AC_ARG_ENABLE(sample,
               [],
               enable_sample=yes)
 
-AC_ARG_ENABLE(obsolete_cram_attr,
-              [AS_HELP_STRING([--enable-obsolete_cram_attr],[enable support for cmusaslsecretCRAM-MD5 auxprop property [[yes]]])],
-              enable_obsolete_cram_attr=$enableval,
-              enable_obsolete_cram_attr=yes)
-
 AC_PROG_CC
 AX_PROG_CC_FOR_BUILD
 AC_PROG_CPP
@@ -306,27 +301,6 @@ AC_MSG_CHECKING(for OpenSSL)
 AC_MSG_RESULT($with_openssl)
 if test "$with_openssl" = no; then
   AC_MSG_ERROR(OpenSSL not found)
-fi
-
-dnl CRAM-MD5
-AC_ARG_ENABLE(cram, [  --enable-cram           enable CRAM-MD5 authentication [[yes]] ],
-  cram=$enableval,
-  cram=yes)
-
-AC_MSG_CHECKING(CRAM-MD5)
-if test "$cram" != no -a $ac_cv_lib_crypto_MD5_Init = yes; then
-  AC_MSG_RESULT(enabled)
-  SASL_MECHS="$SASL_MECHS libcrammd5.la"
-  if test "$enable_obsolete_cram_attr" = yes; then
-    CPPFLAGS="$CPPFLAGS -DOBSOLETE_CRAM_ATTR=1"
-  fi
-  if test "$enable_static" = yes; then
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS cram.o"
-    SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/cram.c"
-    AC_DEFINE(STATIC_CRAMMD5, [], [Link CRAM-MD5 Statically])
-  fi
-else
-  AC_MSG_RESULT(disabled)
 fi
 
 dnl SCRAM

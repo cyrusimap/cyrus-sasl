@@ -2075,12 +2075,6 @@ _sasl_alloc_utils(sasl_conn_t *conn,
   utils->mutex_unlock = _sasl_mutex_utils.unlock;
   utils->mutex_free = _sasl_mutex_utils.free;
 
-#ifdef HAVE_MD5
-  utils->hmac_md5_update = &_sasl_hmac_md5_update;
-  utils->hmac_md5_final = &_sasl_hmac_md5_final;
-  utils->hmac_md5_precalc = &_sasl_hmac_md5_precalc;
-  utils->hmac_md5_import = &_sasl_hmac_md5_import;
-#endif
   utils->mkchal = &sasl_mkchal;
   utils->utf8verify = &sasl_utf8verify;
   utils->rand=&sasl_rand;

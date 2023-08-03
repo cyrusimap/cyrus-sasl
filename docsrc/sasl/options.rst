@@ -225,7 +225,7 @@ Examples
    ldapdb_uri: ldap://ldap.example.com
    ldapdb_id: root
    ldapdb_pw: secret
-   ldapdb_mech: SCRAM
+   ldapdb_mech: SCRAM-SHA-512
    ldapdb_canon_attr: uid
 
 The LDAP server must be configured to map the SASL authcId "root" into a DN

@@ -2305,21 +2305,21 @@ void testseclayer(char *mech, void *rock __attribute__((unused)))
     const char *txstring = "THIS IS A TEST";
     const char *out, *out2;
     char *tmp;
-    const sasl_security_properties_t *test_props[7] =
+    const sasl_security_properties_t *test_props[] =
                                           { &security_props,
 					    &force_3des,
 					    &force_des,
 					    &int_only,
 					    &no_int,
-					    &disable_seclayer };
-    const unsigned num_properties = 7;
+					    &disable_seclayer,
+					    NULL };
     unsigned i;
     const sasl_ssf_t *this_ssf;
     unsigned outlen = 0, outlen2 = 0, totlen = 0;
     
     printf("%s --> security layer start\n", mech);
 
-    for(i=0; i<num_properties; i++) {
+    for(i=0; test_props[i] != NULL; i++) {
         
     /* Basic crash-tests (none should cause a crash): */
     result = doauth(mech, &sconn, &cconn, test_props[i], NULL, 1);

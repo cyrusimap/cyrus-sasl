@@ -113,6 +113,20 @@ OPENSSL_LIBPATH=D:\openssl\engine-0.9.6g-md3\lib
 !ENDIF
 !ENDIF
 
+OPENSSL_LIBS="/libpath:$(OPENSSL_LIBPATH)"
+!IF      EXISTS($(OPENSSL_LIBPATH)\libcrypto.lib)
+# OpenSSL >= 1.1
+OPENSSL_LIBS=$(OPENSSL_LIBS) libcrypto.lib
+OPENSSL_LIB_PATH=$(OPENSSL_LIBPATH)\libcrypto.lib
+!ELSE IF EXISTS($(OPENSSL_LIBPATH)\libeay32.lib)
+# OpenSSL <= 1.0
+OPENSSL_LIBS=$(OPENSSL_LIBS) libeay32.lib
+!ELSE
+# Don't error out because during 'nmake install', variable 'OPENSSL_LIBS'
+# can be missing but it's not used anyway.
+OPENSSL_LIBS=$(OPENSSL_LIBS) failed_to_identify_openssl.lib
+!ENDIF
+
 !IF "$(GSSAPI_INCLUDE)" == ""
 GSSAPI_INCLUDE=C:\Program Files\CyberSafe\Developer Pack\ApplicationSecuritySDK\include
 !IF "$(VERBOSE)" != "0"

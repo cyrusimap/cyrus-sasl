@@ -126,19 +126,6 @@ EXTRA_FLAGS = /D TARGET_WIN_SYSTEM=$(TARGET_WIN_SYSTEM) $(EXTRA_FLAGS)
 EXTRA_FLAGS=$(EXTRA_FLAGS) $(DB_FLAGS) $(OPENSSL_FLAGS) $(GSS_FLAGS) $(SRP_FLAGS) $(SQL_FLAGS) $(SCRAM_FLAGS) $(LDAP_FLAGS)
 CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" /I "..\common" $(EXTRA_FLAGS) /D "_WIN32" $(COMMON_CPPFLAGS)
 
-OPENSSL_LIBS="/libpath:$(OPENSSL_LIBPATH)"
-!IF      EXISTS($(OPENSSL_LIBPATH)\libcrypto.lib)
-# OpenSSL >= 1.1
-OPENSSL_LIBS=$(OPENSSL_LIBS) libcrypto.lib
-!ELSE IF EXISTS($(OPENSSL_LIBPATH)\libeay32.lib)
-# OpenSSL <= 1.0
-OPENSSL_LIBS=$(OPENSSL_LIBS) libeay32.lib
-!ELSE
-# Don't error out because during 'nmake install', variable 'OPENSSL_LIBS'
-# can be missing but it's not used anyway.
-OPENSSL_LIBS=$(OPENSSL_LIBS) failed_to_identify_openssl.lib
-!ENDIF
-
 # Where to install files from this directory
 libdir = $(prefix)\lib
 bindir = $(prefix)\bin\sasl2

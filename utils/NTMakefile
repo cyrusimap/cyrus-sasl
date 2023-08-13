@@ -12,7 +12,8 @@ all_objs = $(saslpwd_objs) $(sasldblistusers_objs) $(testsuite_objs) $(pluginvie
 all_out = $(sasl_apps) $(sasl_out)
 
 DB_FLAGS = /I "$(DB_INCLUDE)" /I "..\sasldb"
-CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" $(DB_FLAGS) $(COMMON_CPPFLAGS)
+OPENSSL_FLAGS = /I "$(OPENSSL_INCLUDE)"
+CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" $(DB_FLAGS) $(OPENSSL_FLAGS) $(COMMON_CPPFLAGS)
 CPPFLAGS = $(CPPFLAGS) /DNEED_GETOPT
 
 
@@ -45,7 +46,7 @@ install: $(sasl_apps)
 all-recursive : $(sasl_apps)
 
 saslpasswd2.exe: $(saslpwd_objs)
-	$(LINK32EXE) @<< $(LINK32EXE_FLAGS) /pdb:"saslpasswd2.pdb" /out:"saslpasswd2.exe" $(saslpwd_objs)
+	$(LINK32EXE) @<< $(LINK32EXE_FLAGS) $(OPENSSL_LIBS) /pdb:"saslpasswd2.pdb" /out:"saslpasswd2.exe" $(saslpwd_objs)
 <<
 	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;1
 

@@ -52,18 +52,6 @@ This is a Microsoft specific customization of GSSAPI.
 
 Described in the `Microsoft documentation <https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/e1cbe214-d73b-4c58-aad2-bee399ccdfb8>`_ and :rfc:`4178`
 
-LOGIN
------
-
-Documented in a `RFC Draft: draft-murchison-sasl-login <https://tools.ietf.org/html/draft-murchison-sasl-login>`_
-
-.. warning::
-   The LOGIN SASL mechanism is obsoleted in favor of the :ref:`MECH-PLAIN` SASL mechanism.
-
-The LOGIN SASL mechanism does not provide a security layer.
-This mechanism must not be used without adequate security protection as
-the mechanism affords no integrity nor confidentiality protection itself.
-
 OTP
 ---
 
@@ -152,8 +140,6 @@ of the mechanisms provided by the Cyrus SASL Library.
 | GSSAPI      | 56      | X       | X        |        |         | X      | X    | X      | X         |              |          | X     | X    |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 | GSS-SPNEGO  | 56      | X       | X        |        |         | X      | X    | X      | X         |              |          | X     |      | X    |
-+-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
-| LOGIN       | 0       |         |          |        |         | X      | X    |        |           | X            |          |       |      |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 | OTP         | 0       | X       |          |        | X       | X      |      |        | X         |              |          | X     |      |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+

@@ -250,7 +250,7 @@ static int _sasl_auxprop_lookup_user_props (sasl_conn_t *conn,
 	       is not an error. For example the caller is using Kerberos to verify user,
 	       but the LDAPDB/SASLDB auxprop plugin doesn't contain any auxprops for
 	       the user.
-	       Another case is PLAIN/LOGIN not using auxprop to verify user passwords. */
+	       Another case is PLAIN not using auxprop to verify user passwords. */
 	    result = SASL_OK;
 	}	
     }

@@ -74,7 +74,7 @@ You will want to have answered the following questions about your intended
 installation:
 
 
-1.  What mechanisms do you want to support?  Are they plaintext (LOGIN, PLAIN),
+1.  What mechanisms do you want to support?  Are they plaintext (PLAIN),
 shared secret (SCRAM), or Kerberos (GSSAPI)?
 Perhaps you will use some combination (generally plaintext with one of
 the other two types).

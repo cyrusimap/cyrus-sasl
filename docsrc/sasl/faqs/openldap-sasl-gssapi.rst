@@ -6,10 +6,10 @@ This article assumes that you have read and followed the SASL chapter of the `Op
 To verify that you have the Cyrus :ref:`GSSAPI <gssapi>` mechanism properly installed, use the pluginviewer command. For instance::
 
     server:~# pluginviewer  | grep -i gssapi
-     PLAIN GSSAPI OTP ANONYMOUS LOGIN EXTERNAL
+     PLAIN GSSAPI OTP ANONYMOUS EXTERNAL
     Plugin "gssapiv2" [loaded],     API version: 4
            SASL mechanism: GSSAPI, best SSF: 56, supports setpass: no
-    PLAIN GSSAPI OTP ANONYMOUS LOGIN EXTERNAL
+    PLAIN GSSAPI OTP ANONYMOUS EXTERNAL
     Plugin "gssapiv2" [loaded],     API version: 4
            SASL mechanism: GSSAPI, best SSF: 56
 

@@ -71,9 +71,9 @@ typedef struct sasl_utils {
     /* This allows recursive calls to the sasl_checkpass() routine from
      * within a SASL plug-in.  This MUST NOT be used in the PLAIN mechanism
      * as sasl_checkpass MAY be a front-end for the PLAIN mechanism.
-     * This is intended for use by the non-standard LOGIN mechanism and
-     * potentially by a future mechanism which uses public-key technology to
-     * set up a lightweight encryption layer just for sending a password.
+     * This is intended for use potentially by a future mechanism
+	 * which uses public-key technology to set up a lightweight
+	 * encryption layer just for sending a password.
      */
     int (*checkpass)(sasl_conn_t *conn,
 		     const char *user, unsigned userlen,

@@ -211,13 +211,6 @@ write your own
     However, the more flexible and preferred method of
     adding a routine is to create a new saslauthd mechanism.
 
-The LOGIN mechanism (not to be confused with IMAP4's LOGIN command)
-is an undocumented, unsupported mechanism.  It's included in the Cyrus
-SASL distribution for the sake of SMTP servers that might want to
-interoperate with old clients.  Do not enable this mechanism unless
-you know you're going to need it.  When enabled, it verifies passwords
-the same way the PLAIN mechanism does.
-
 Shared secrets mechanisms
 -------------------------
 
@@ -237,7 +230,7 @@ passwords for the realm are compromised.
 Put another way, *you cannot use saslauthd with this method*.
 If you do not wish to advertise this method for that reason (i.e. you
 are only using saslauthd for password verification), then either remove
-the non-plaintext plugins (those other than login and plain) from the
+the non-plaintext plugins (those other than PLAIN) from the
 plugin directory, or use the :option:`mech_list` option to disable them.
 
 For simplicity sake, the Cyrus SASL library stores plaintext
@@ -427,12 +420,6 @@ I've converted the sasldb database to the new format. Why can't anybody authenti
 
     ...and if you're using cyrus-imapd, /etc/imapd.conf must reflect:
     ``sasl_pwcheck_method: auxprop``
-
-Is LOGIN supported?
-    The LOGIN mechanism is a non-standard, undocumented
-    plaintext mechanism.  It's included in the SASL distribution purely
-    for sites that need it to interoperate with old clients; we don't
-    support it.  Don't enable it unless you know you need it.
 
 How can I get a non-root application to check plaintext passwords?
     Use the "saslauthd" daemon and setting "pwcheck_method"

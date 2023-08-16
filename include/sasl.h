@@ -290,7 +290,7 @@ typedef unsigned sasl_ssf_t;
 
 /* These are the various security flags apps can specify. */
 /* NOPLAINTEXT          -- don't permit mechanisms susceptible to simple
- *                         passive attack (e.g., PLAIN, LOGIN)
+ *                         passive attack (e.g., PLAIN)
  * NOACTIVE             -- protection from active (non-dictionary) attacks
  *                         during authentication exchange.
  *                         Authenticates server.

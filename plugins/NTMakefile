@@ -40,12 +40,11 @@ SQLITE_LIBS = "/libpath:$(SQLITE_LIBPATH3)" libsqlite3.lib
 
 PLUGINS=saslANONYMOUS.dll \
 	saslPLAIN.dll \
-	saslLOGIN.dll \
 	saslSCRAM.dll \
 	$(PLUGINS_EXT) \
 	saslSASLDB.dll
 
-generated_rc=saslANONYMOUS.rc saslPLAIN.rc saslLOGIN.rc saslSCRAM.rc saslGSSAPI.rc saslSRP.rc saslOTP.rc saslSASLDB.rc saslSQLITE.rc saslLDAPDB.rc
+generated_rc=saslANONYMOUS.rc saslPLAIN.rc saslSCRAM.rc saslGSSAPI.rc saslSRP.rc saslOTP.rc saslSASLDB.rc saslSQLITE.rc saslLDAPDB.rc
 
 # WS2tcpip.h included in Visual Studio 7 provides getaddrinfo, ...
 # emulation on Windows, so there is no need to build getaddrinfo.c
@@ -61,9 +60,6 @@ saslANONYMOUS_out = saslANONYMOUS.dll saslANONYMOUS.exp saslANONYMOUS.lib
 
 saslPLAIN_objs = plain.obj plain_init.obj $(common_objs)
 saslPLAIN_out = saslPLAIN.dll saslPLAIN.exp saslPLAIN.lib
-
-saslLOGIN_objs = login.obj login_init.obj $(common_objs)
-saslLOGIN_out = saslLOGIN.dll saslLOGIN.exp saslLOGIN.lib
 
 saslSCRAM_objs = scram.obj scram_init.obj $(common_objs)
 saslSCRAM_out = saslSCRAM.dll saslSCRAM.exp saslSCRAM.lib
@@ -117,8 +113,8 @@ SCRAM_FLAGS=/DHAVE_SHA512=1
 saslSASLDB_objs = sasldb.obj sasldb_init.obj $(libsasldb_objs) $(common_objs)
 saslSASLDB_out = saslSASLDB.dll saslSASLDB.exp saslSASLDB.lib
 
-all_objs = $(saslANONYMOUS_objs) $(saslPLAIN_objs) $(saslLOGIN_objs) $(saslSCRAM_objs) $(saslGSSAPI_objs) $(saslSRP_objs) $(saslOTP_objs) $(saslSASLDB_objs) $(saslSQL_objs) $(saslLDAPDB_objs)
-all_out = $(saslANONYMOUS_out) $(saslPLAIN_out) $(saslLOGIN_out) $(saslSCRAM_out) $(saslGSSAPI_out) $(saslSRP_out) $(saslOTP_out) $(saslSASLDB_out) $(saslSQL_out) $(saslLDAPDB_out)
+all_objs = $(saslANONYMOUS_objs) $(saslPLAIN_objs) $(saslSCRAM_objs) $(saslGSSAPI_objs) $(saslSRP_objs) $(saslOTP_objs) $(saslSASLDB_objs) $(saslSQL_objs) $(saslLDAPDB_objs)
+all_out = $(saslANONYMOUS_out) $(saslPLAIN_out) $(saslSCRAM_out) $(saslGSSAPI_out) $(saslSRP_out) $(saslOTP_out) $(saslSASLDB_out) $(saslSQL_out) $(saslLDAPDB_out)
 
 # LIBSASL_EXPORTS is required to export additional DB routines from sasldb
 DB_FLAGS = /I "$(DB_INCLUDE)" /I "..\sasldb" /D "LIBSASL_EXPORTS" /D "KEEP_DB_OPEN"
@@ -173,11 +169,6 @@ saslANONYMOUS.dll: $(saslANONYMOUS_objs) saslANONYMOUS.res
 
 saslPLAIN.dll: $(saslPLAIN_objs) saslPLAIN.res
 	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"saslPLAIN.dll" /implib:"saslPLAIN.lib" $(saslPLAIN_objs) saslPLAIN.res
-<<
-	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
-
-saslLOGIN.dll: $(saslLOGIN_objs) saslLOGIN.res
-	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) /out:"saslLOGIN.dll" /implib:"saslLOGIN.lib" $(saslLOGIN_objs) saslLOGIN.res
 <<
 	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 

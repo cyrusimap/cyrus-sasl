@@ -548,24 +548,6 @@ else
   AC_MSG_RESULT(disabled)
 fi
 
-dnl LOGIN
-AC_ARG_ENABLE(login, [  --enable-login          enable unsupported LOGIN authentication [[no]] ],
-  login=$enableval,
-  login=no)
-
-AC_MSG_CHECKING(LOGIN)
-if test "$login" != no; then
-  AC_MSG_RESULT(enabled)
-  SASL_MECHS="$SASL_MECHS liblogin.la"
-  if test "$enable_static" = yes; then
-    SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/login.c"
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS login.o"
-    AC_DEFINE(STATIC_LOGIN,[],[Link LOGIN Statically])
-  fi
-else
-  AC_MSG_RESULT(disabled)
-fi
-
 dnl PASSDSS
 AC_ARG_ENABLE(passdss, [  --enable-passdss        enable PASSDSS authentication (experimental) [[no]] ],
   passdss=$enableval,

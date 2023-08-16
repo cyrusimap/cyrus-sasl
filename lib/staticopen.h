@@ -88,10 +88,6 @@ extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( scram );
 extern SPECIFIC_SERVER_PLUG_INIT_PROTO( gssapiv2 );
 extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( gssapiv2 );
 #endif
-#ifdef STATIC_LOGIN
-extern SPECIFIC_SERVER_PLUG_INIT_PROTO( login );
-extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( login );
-#endif
 #ifdef STATIC_OTP
 extern SPECIFIC_SERVER_PLUG_INIT_PROTO( otp );
 extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( otp );
@@ -122,10 +118,6 @@ _sasl_plug_rec _sasl_static_plugins[] = {
 #ifdef STATIC_GSSAPIV2
 	SPECIFIC_SERVER_PLUG_INIT( gssapiv2, "GSSAPI" ),
 	SPECIFIC_CLIENT_PLUG_INIT( gssapiv2, "GSSAPI" ),
-#endif
-#ifdef STATIC_LOGIN
-	SPECIFIC_SERVER_PLUG_INIT( login, "LOGIN" ),
-	SPECIFIC_CLIENT_PLUG_INIT( login, "LOGIN" ),
 #endif
 #ifdef STATIC_OTP
 	SPECIFIC_SERVER_PLUG_INIT( otp, "OTP" ),

@@ -40,7 +40,6 @@ extensions = [
     'sphinx.ext.intersphinx',
 ]
 
-extensions.append('sphinxlocal.builders.manpage')
 extensions.append('sphinxlocal.roles.saslman')
 
 intersphinx_mapping = {'cyrusimap': ('https://www.cyrusimap.org/', None)}

@@ -48,7 +48,7 @@
 plugin_common_version = 3:0:0
 crypto_compat_version = 0:0:0
 
-AM_CPPFLAGS=-fPIC -I$(top_srcdir)/include -I$(top_builddir)/include
+AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_builddir)/include
 
 noinst_LTLIBRARIES = libplugin_common.la libcrypto_compat.la
 

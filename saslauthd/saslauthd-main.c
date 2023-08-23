@@ -170,7 +170,7 @@ int main(int argc, char **argv) {
 	flags |= LOG_USE_STDERR;
 	flags |= AM_MASTER;
 
-	while ((option = getopt(argc, argv, "a:cdhO:lm:n:rs:t:vV")) != -1) {
+	while ((option = getopt(argc, argv, "a:cdfhO:lm:n:rs:t:vV")) != -1) {
 		switch(option) {
 			case 'a':
 			        /* Only one at a time, please! */
@@ -193,6 +193,9 @@ int main(int argc, char **argv) {
 
 			case 'd':
 				flags |= VERBOSE;
+				flags &= ~DETACH_TTY;
+				break;
+			case 'f':
 				flags &= ~DETACH_TTY;
 				break;
 
@@ -983,7 +986,8 @@ void show_usage() {
     fprintf(stderr, "option information:\n");
     fprintf(stderr, "  -a <authmech>  Selects the authentication mechanism to use.\n");
     fprintf(stderr, "  -c             Enable credential caching.\n");
-    fprintf(stderr, "  -d             Debugging (don't detach from tty, implies -V)\n");
+    fprintf(stderr, "  -d             Debugging (combines -f and -V)\n");
+    fprintf(stderr, "  -f             Run in foreground, don't detach from tty\n");
     fprintf(stderr, "  -r             Combine the realm with the login before passing to authentication mechanism\n");
     fprintf(stderr, "                 Ex. login: \"foo\" realm: \"bar\" will get passed as login: \"foo@bar\"\n");
     fprintf(stderr, "                 The realm name is passed untouched.\n");

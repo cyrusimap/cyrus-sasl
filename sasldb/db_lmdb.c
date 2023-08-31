@@ -152,6 +152,7 @@ static int do_open(const sasl_utils_t *utils,
 	}
     } else {
     	env = db_env;
+	path = NULL;
     }
 
     ret = mdb_txn_begin(env, NULL, rdwr ? 0 : MDB_RDONLY, &txn);

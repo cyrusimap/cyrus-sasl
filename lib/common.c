@@ -64,6 +64,16 @@
 #include <unistd.h>
 #endif
 
+#ifdef HAVE_PTHREAD
+#include <pthread.h>
+#endif
+
+#ifdef HAVE_NT_THREADS
+#define _WIN32_WINNT 0x0400
+#include <windows.h>
+#include <process.h>
+#endif
+
 static const char *implementation_string = "Cyrus SASL";
 static const char *sasl_root_key = SASL_ROOT_KEY;
 
@@ -123,24 +133,53 @@ static int _sasl_global_getopt(void *context,
 			       const char ** result,
 			       unsigned *len);
  
-/* Intenal mutex functions do as little as possible (no thread protection) */
+#ifdef HAVE_PTHREAD
+static pthread_mutex_t static_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
+
 static void *sasl_mutex_alloc(void)
 {
-  return (void *)0x1;
+#if defined(HAVE_PTHREAD)
+    pthread_mutex_t *mutex = sasl_ALLOC(sizeof(pthread_mutex_t));
+    if (!mutex) return NULL;
+    if (pthread_mutex_init(mutex, NULL)) return NULL;
+    return mutex;
+#elif defined(HAVE_NT_THREADS)
+    return CreateMutex(NULL, 0, NULL);
+#else
+    return (void *)0x1;
+#endif
 }
 
 static int sasl_mutex_lock(void *mutex __attribute__((unused)))
 {
+#if defined(HAVE_PTHREAD)
+    if (pthread_mutex_lock(mutex)) return SASL_FAIL;
+#elif defined(HAVE_NT_THREADS)
+    DWORD status;
+    if (WaitForSingleObject(mutex, INFINITE) == WAIT_FAILED)
+	return SASL_FAIL;
+#endif
     return SASL_OK;
 }
 
 static int sasl_mutex_unlock(void *mutex __attribute__((unused)))
 {
+#if defined(HAVE_PTHREAD)
+    if (pthread_mutex_unlock(mutex)) return SASL_FAIL;
+#elif defined(HAVE_NT_THREADS)
+    ReleaseMutex(mutex);
+#endif
     return SASL_OK;
 }
 
 static void sasl_mutex_free(void *mutex __attribute__((unused)))
 {
+#if defined(HAVE_PTHREAD)
+    pthread_mutex_destroy(mutex);
+#elif defined(HAVE_NT_THREADS)
+    CloseHandle(mutex);
+#endif
     return;
 }
 

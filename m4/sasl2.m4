@@ -568,3 +568,13 @@ AC_DEFUN([SASL2_CRYPT_CHK],
                              cmu_have_crypt=no)])
 AC_SUBST(LIB_CRYPT)
 ])# SASL2_CRYPT_CHK
+
+dnl Check for NT Threads
+AC_DEFUN([SASL2_NT_THREADS], [
+	AC_CHECK_FUNC(_beginthread)
+
+	if test $ac_cv_func__beginthread = yes ; then
+		AC_DEFINE(HAVE_NT_THREADS,1,[if you have NT Threads])
+		sasl2_cv_nt_threads=yes
+	fi
+])

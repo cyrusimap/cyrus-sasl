@@ -86,6 +86,40 @@ AC_PROG_MAKE_SET
 AC_PROG_INSTALL
 AC_USE_SYSTEM_EXTENSIONS
 
+AC_ARG_WITH(threads,
+            [AS_HELP_STRING([--with-threads={auto|pthread|nt|no}], [With built-in threading support])],
+            [],
+            with_threads=auto)
+
+sasl_threads=
+if test "$with_threads" = no; then
+    sasl_threads=no
+fi
+if test -z "$sasl_threads" && (test "$with_threads" = nt || test "$with_threads" = auto); then
+    SASL2_NT_THREADS
+    if test "$sasl2_cv_nt_threads" = yes; then
+        sasl_threads=nt
+    elif test "$with_threads" = nt; then
+        AC_MSG_ERROR(NT threads not found)
+    fi
+fi
+if test -z "$sasl_threads" && (test "$with_threads" = pthread || test "$with_threads" = auto); then
+    AX_PTHREAD
+    if test "$ax_pthread_ok" = yes; then
+        sasl_threads=pthread
+        LIBS="$PTHREAD_LIBS $LIBS"
+        CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+        CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"
+        CC="$PTHREAD_CC"
+        CXX="$PTHREAD_CXX"
+    elif test "$with_threads" = pthread; then
+        AC_MSG_ERROR(pthread library not found)
+    fi
+fi
+if test -z "$sasl_threads" && test "$with_threads" != "auto"; then
+    AC_MSG_ERROR(Unrecognised thread implementation $with_threads)
+fi
+
 dnl check for -R, etc. switch
 CMU_GUESS_RUNPATH_SWITCH
 

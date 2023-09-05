@@ -81,6 +81,10 @@ libobj_la_LIBADD = $(LTLIBOBJS)
 
 libsasl2_la_SOURCES = $(common_sources) $(common_headers)
 libsasl2_la_LDFLAGS = -version-info $(sasl_version) -no-undefined
+if HAVE_LD_VERSION_SCRIPT
+libsasl2_la_LDFLAGS += -Wl,--version-script=$(srcdir)/libsasl2.map
+endif
+
 
 libsasl2_la_LIBADD = $(SASL_DL_LIB) $(SASL_STATIC_LIBS) $(LIB_SOCKET) $(LIB_DOOR) $(PLUGIN_COMMON_OBJS) -lcrypto
 if BUILD_LIBOBJ

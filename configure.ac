@@ -104,6 +104,7 @@ fi
 # new libtool
 AC_DISABLE_STATIC([])
 LT_INIT([win32-dll])
+gl_LD_VERSION_SCRIPT
 
 target=$save_target
 

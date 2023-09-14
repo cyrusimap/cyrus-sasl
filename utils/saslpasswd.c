@@ -426,28 +426,6 @@ main(int argc, char *argv[])
 			| (flag_nouserpass ? SASL_SET_NOPLAIN : 0));
   free(password);
 
-  if (result != SASL_OK && !flag_disable)
-      exit_sasl(result, NULL);
-  else {
-      struct propctx *propctx = NULL;
-      const char *delete_request[] = { "cmusaslsecretPLAIN",
-				       NULL };
-      int ret = SASL_OK;
-      /* Either we were setting and succeeded or we were disabling and
-	 failed.  In either case, we want to wipe old entries */
-
-      /* Delete the possibly old entries */
-      /* We don't care if these fail */
-      propctx = prop_new(0);
-      if (!propctx) ret = SASL_FAIL;
-      if (!ret) ret = prop_request(propctx, delete_request);
-      if (!ret) {
-	  ret = prop_set(propctx, "cmusaslsecretPLAIN", NULL, 0);
-	  ret = sasl_auxprop_store(conn, propctx, userid);
-      }
-      if (propctx) prop_dispose(&propctx);
-  }
-      
   if (result != SASL_OK)
 /* errstr is currently always NULL */
     exit_sasl(result, errstr);

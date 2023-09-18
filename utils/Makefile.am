@@ -89,7 +89,7 @@ libsfsasl2_la_SOURCES =
 libsfsasl2_la_LIBADD = sfsasl.lo
 libsfsasl2_la_LDFLAGS = -version-info 1:0:0 -export-dynamic -rpath $(libdir)
 
-AM_CPPFLAGS=-DLIBSASL_EXPORTS=1 -I$(top_srcdir)/include -I$(top_builddir)/include @SASL_DB_INC@ -DPLUGINDIR='"${plugindir}"'
+AM_CPPFLAGS=-DLIBSASL_EXPORTS=1 -I$(top_srcdir)/include -I$(top_builddir)/include @SASL_DB_INC@
 
 EXTRA_DIST = saslpasswd2.8 sasldbconverter2.8 sasldblistusers2.8 sasltestsuite.8 pluginviewer.8 sfsasl.h sfsasl.c smtptest.c testsuite.c pluginviewer.c NTMakefile
 

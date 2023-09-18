@@ -194,11 +194,7 @@ getpath(void *context,
         return SASL_BADPARAM;
     }
 
-    if (searchpath) {
-        *path = searchpath;
-    } else {
-        *path = PLUGINDIR;
-    }
+    *path = searchpath;
 
     return SASL_OK;
 }

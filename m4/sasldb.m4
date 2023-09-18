@@ -14,8 +14,6 @@ AC_ARG_WITH(dblib,
 SASL_DB_LIB=""
 
 case "$dblib" in
-dnl this is unbelievably painful due to confusion over what db-3 should be
-dnl named.  arg.
   gdbm)
 	AC_ARG_WITH(gdbm,[  --with-gdbm=PATH        use gdbm from PATH],
                     with_gdbm="${withval}")
@@ -51,12 +49,10 @@ dnl named.  arg.
 				dblib="no")
 	;;
   auto_detect)
-	if test "$dblib" = no; then
-	  dnl How about OpenLDAP's lmdb?
-      AC_CHECK_HEADER(lmdb.h, [
-		AC_CHECK_LIB(lmdb, mdb_env_create, SASL_DB_LIB="-llmdb"; enable_keep_db_open=yes, dblib="no")],
+	dnl How about OpenLDAP's lmdb?
+    AC_CHECK_HEADER(lmdb.h, [
+		AC_CHECK_LIB(lmdb, mdb_env_create, SASL_DB_LIB="-llmdb"; dblib="lmdb"; enable_keep_db_open=yes, dblib="no")],
 		dblib="no")
-	fi
 	if test "$dblib" = no; then
 	  dnl How about ndbm?
 	  AC_CHECK_HEADER(ndbm.h, [

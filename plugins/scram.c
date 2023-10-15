@@ -2455,8 +2455,11 @@ scram_client_mech_step2(client_context_t *text,
     }
 
     if (text->iteration_count < MIN_ITERATION_COUNTER) {
+	SETERROR(params->utils, "iteration-count is too small, refusing to compute");
+	result = SASL_BADPROT;
+	goto cleanup;
     }
-    
+
     if (text->iteration_count > MAX_ITERATION_COUNTER) {
 	SETERROR(params->utils, "iteration-count is too big, refusing to compute");
 	result = SASL_BADPROT;

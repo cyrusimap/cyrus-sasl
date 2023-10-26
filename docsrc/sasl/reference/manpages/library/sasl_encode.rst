@@ -20,12 +20,6 @@ Synopsis
                     const char ** output,
                     unsigned * outputlen);
 
-    int sasl_encodev(sasl_conn_t *conn,
-                    const struct iovec * invec,
-                    unsigned numiov,
-                    const char ** output,
-                    unsigned * outputlen);
-
 
 Description
 ===========
@@ -40,15 +34,6 @@ output is identical to the input.
 of a character buffer.
 
 .. c:function:: int sasl_encode(sasl_conn_t *conn, const char * input, unsigned inputlen, const char ** output, unsigned * outputlen);
-
-    :param conn: is the SASL connection context
-
-    :param output: contains the decoded data and is allocated/freed by
-        the library.
-
-    :param outputlen: length of `output`.
-
-    .. c:function:: int sasl_encodev(sasl_conn_t *conn, const struct iovec * invec, unsigned numiov, const char ** output, unsigned * outputlen);
 
     :param conn: is the SASL connection context
 

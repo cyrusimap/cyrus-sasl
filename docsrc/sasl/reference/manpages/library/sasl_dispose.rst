@@ -19,11 +19,7 @@ Synopsis
 Description
 ===========
 
-.. c:function:: int sasl_encode(sasl_conn_t *conn,
-            const char * input,
-            unsigned inputlen,
-            const char ** output,
-            unsigned * outputlen);
+.. c:function:: int sasl_dispose(sasl_conn_t *conn)
 
     **sasl_dispose** is called when a SASL connection object is no longer needed.
 

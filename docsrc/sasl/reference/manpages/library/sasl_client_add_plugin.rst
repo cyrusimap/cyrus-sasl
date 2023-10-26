@@ -19,8 +19,7 @@ Synopsis
 Description
 ===========
 
-.. c:function:: int sasl_client_add_plugin(const char *plugname,
-        sasl_client_plug_init_t *cplugfunc);
+.. c:function:: int sasl_client_add_plugin(const char *plugname, sasl_client_plug_init_t *cplugfunc);
 
     **sasl_client_add_plugin** adds a client plugin to the
     current in-memory list of client plugins in the SASL library.

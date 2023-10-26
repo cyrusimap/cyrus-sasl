@@ -24,11 +24,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::   int sasl_decode64(const char * input,
-        unsigned inputlen,
-        const char ** output,
-        unasigned outmax,
-        unsigned * outputlen);
+.. c:function::   int sasl_decode64(const char * input, unsigned inputlen, const char ** output, unsigned outmax, unsigned * outputlen);
 
 
     **sasl_decode64** decodes a base64 encoded buffer.

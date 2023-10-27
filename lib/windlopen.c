@@ -48,6 +48,7 @@
 
 #include <config.h>
 #include <sasl.h>
+#include <tchar.h>
 #include "saslint.h"
 #include "staticopen.h"
 

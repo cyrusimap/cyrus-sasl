@@ -72,6 +72,7 @@
 #define _WIN32_WINNT 0x0400
 #include <windows.h>
 #include <process.h>
+#include <tchar.h>
 #endif
 
 static const char *implementation_string = "Cyrus SASL";
@@ -2750,11 +2751,11 @@ _sasl_get_default_path(void *context __attribute__((unused)),
         break;
 
     default:
-        return_value = NULL;
+        *value = NULL;
         goto CLEANUP;
     }
 
-    return_value = ValueData; /* just to flag we have a result */
+    *value = ValueData; /* just to flag we have a result */
 
 CLEANUP:
     RegCloseKey(hKey);

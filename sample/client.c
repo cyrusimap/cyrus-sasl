@@ -72,6 +72,7 @@
 
 #include <sasl.h>
 #include <saslplug.h>
+#include <saslutil.h>
 
 #include "common.h"
 

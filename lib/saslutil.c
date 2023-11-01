@@ -585,7 +585,8 @@ LOWERCASE:
     return (0);
 }
 
-#if defined(WIN32) && !defined(__MINGW64_VERSION_MAJOR)
+#if defined(WIN32)
+#if !defined(__MINGW64_VERSION_MAJOR)
 /***************************************************************************** 
  * 
  *  MODULE NAME : GETOPT.C 
@@ -761,6 +762,7 @@ int getopt(int argc, char *argv[], char *opstring)
         return (int)*pArgString;    /* return the letter that matched */ 
     } 
 } 
+#endif /* !MINGW */
 
 #ifndef PASSWORD_MAX
 #  define PASSWORD_MAX 255

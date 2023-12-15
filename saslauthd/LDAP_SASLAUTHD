@@ -36,7 +36,7 @@ make install
 2. START SASLAUTHD WITH LDAP
 ----------------------------
 
-Create /usr/local/etc/saslauthd.conf and add the following (modify to fit your
+Create /etc/saslauthd.conf and add the following (modify to fit your
 environment):
 ldap_servers: ldap://10.1.1.15/ ldap://10.1.1.25/
 ldap_bind_dn: cn=operator,ou=Profile,o=foo.com

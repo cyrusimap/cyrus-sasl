@@ -1025,6 +1025,25 @@ gs2_save_cbindings(context_t *text,
     return SASL_OK;
 }
 
+/*
+ * Request for (alternate) channel binding data
+ */
+static void
+gs2_server_get_channel_binding(sasl_server_params_t* sparams,
+                               const char *mech,
+                               const char *cbindingname)
+{
+    sasl_server_channel_binding_t* binding = NULL;
+    void* context = NULL;
+    /* try to get alternate channel binding data */
+    if (sparams->utils->getcallback(sparams->utils->conn,
+                                    SASL_CB_SERVER_CHANNEL_BINDING,
+                                    (sasl_callback_ft*)&binding,
+                                    &context) == SASL_OK) {
+        binding(sparams->utils->conn, context, mech, cbindingname);
+    }
+}
+
 #define CHECK_REMAIN(n)     do { if (remain < (n)) return SASL_BADPROT; } while (0)
 
 /*
@@ -1073,6 +1092,13 @@ gs2_verify_initial_message(context_t *text,
         if (ret != SASL_OK)
             return ret;
 
+        if (sparams->cbinding == NULL ||
+            strcmp(sparams->cbinding->name, text->cbindingname) != 0) {
+            /* Try to get desired channel binding data */
+            gs2_server_get_channel_binding(sparams,
+                                           text->plug.server->mech_name,
+                                           text->cbindingname);
+        }
         text->gs2_flags |= GS2_CB_FLAG_P;
         break;
     case 'n':

@@ -24,12 +24,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::     int sasl_client_start(sasl_conn_t * conn,
-        const char * mechlist,
-        sasl_interact_t ** prompt_need,
-        const char ** clientout,
-        unsigned * clientoutlen,
-        const char ** mech);
+.. c:function::     int sasl_client_start(sasl_conn_t * conn, const char * mechlist, sasl_interact_t ** prompt_need, const char ** clientout, unsigned * clientoutlen, const char ** mech);
 
     **sasl_client_start()** selects a mechanism for authentication and starts the
     authentication session. The mechlist is the list of mechanisms the client

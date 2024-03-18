@@ -19,8 +19,7 @@ Synopsis
 Description
 ===========
 
-.. c:function:: int sasl_auxprop_add_plugin(const char *plugname,
-        sasl_auxprop_plug_init_t *cplugfunc);
+.. c:function:: int sasl_auxprop_add_plugin(const char *plugname, sasl_auxprop_plug_init_t *cplugfunc);
 
     **sasl_auxprop_add_plugin** adds an auxiliary property plugin to the
     current list of auxiliary property plugins in the SASL library.

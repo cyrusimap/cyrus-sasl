@@ -20,10 +20,7 @@ Synopsis
 
 Description
 ===========
-.. c:function:: int sasl_getcallback_t(sasl_conn_t *conn,
-        unsigned long callbacknum,
-        int (**proc)( ),
-        void **pcontext);
+.. c:function:: int sasl_getcallback_t(sasl_conn_t *conn, unsigned long callbacknum, int (**proc)( ), void **pcontext);
 
     The **sasl_getcallback_t()** function is a callback to lookup
     a sasl_callback_t for a connection.

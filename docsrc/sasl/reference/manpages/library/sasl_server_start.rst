@@ -24,12 +24,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::  int sasl_server_start(sasl_conn_t * conn,
-           const char * mech,
-           const char * clientin,
-           unsigned * clientinlen,
-           const char ** serverout,
-           unsigned * serveroutlen);
+.. c:function::  int sasl_server_start(sasl_conn_t * conn, const char * mech, const char * clientin, unsigned * clientinlen, const char ** serverout, unsigned * serveroutlen);
 
     **sasl_server_start()** begins  the  authentication  with the
     mechanism specified with mech. This fails if the mechanism

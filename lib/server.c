@@ -1764,7 +1764,7 @@ int _sasl_server_listmech(sasl_conn_t *conn,
       INTERROR(conn, SASL_NOMECH);
 
   resultlen = (prefix ? strlen(prefix) : 0)
-            + (strlen(mysep) * (s_conn->mech_length - 1) * 2)
+            + (strlen(mysep) * (s_conn->mech_length * 2 - 1))
 	    + (mech_names_len(s_conn->mech_list) * 2) /* including -PLUS variant */
 	    + (s_conn->mech_length * (sizeof("-PLUS") - 1))
             + (suffix ? strlen(suffix) : 0)

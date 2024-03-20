@@ -639,8 +639,8 @@ static int make_secret(const sasl_utils_t *utils, const char *alg,
     bin2hex(otp, OTP_HASH_SIZE, buf);
     buf[2*OTP_HASH_SIZE] = '\0';
     
-    sprintf(data, "%s\t%04d\t%s\t%s\t%020ld",
-	    alg, seq, seed, buf, timeout);
+    sprintf(data, "%s\t%04u\t%s\t%s\t%020lld",
+	    alg, seq, seed, buf, (long long)timeout);
     
     return SASL_OK;
 }
@@ -700,8 +700,8 @@ static int parse_secret(const sasl_utils_t *utils,
 	    return SASL_FAIL;
 	}
 	
-	sscanf(secret, "%s\t%04d\t%s\t%s\t%020ld",
-	       alg, seq, seed, buf, timeout);
+	sscanf(secret, "%s\t%04u\t%s\t%s\t%020lld",
+	       alg, seq, seed, buf, (long long)timeout);
 	
 	hex2bin(buf, otp, OTP_HASH_SIZE);
 	

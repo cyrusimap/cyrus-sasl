@@ -172,7 +172,7 @@ void dump_cache_users(void) {
 			fprintf(stderr, "\"%s\",", ref_bucket->creds + ref_bucket->user_offt);
 			fprintf(stderr, "\"%s\",", ref_bucket->creds + ref_bucket->realm_offt);
 			fprintf(stderr, "\"%s\",", ref_bucket->creds + ref_bucket->service_offt);
-			fprintf(stderr, "\"%lu\",", ref_bucket->created);
+			fprintf(stderr, "\"%lld\",", (long long)ref_bucket->created);
 			fprintf(stderr, "\"%s\"\n", make_time(ref_bucket->created));
 		}
 	}

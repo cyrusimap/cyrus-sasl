@@ -269,9 +269,9 @@ if test "$gssapi" != no; then
 
   cmu_save_LIBS="$LIBS"
   LIBS="$LIBS $GSSAPIBASE_LIBS"
+  AC_CHECK_HEADERS(gssapi/gssapi_krb5.h)
   AC_CHECK_FUNCS(gsskrb5_register_acceptor_identity)
   if test "$ac_cv_func_gsskrb5_register_acceptor_identity" = no ; then
-    AC_CHECK_HEADERS(gssapi/gssapi_krb5.h)
     if test "$ac_cv_header_gssapi_gssapi_krb5_h" = "yes"; then
       AC_CHECK_DECL(gsskrb5_register_acceptor_identity,
                     [AC_DEFINE(HAVE_GSSKRB5_REGISTER_ACCEPTOR_IDENTITY,1,

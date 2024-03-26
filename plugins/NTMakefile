@@ -35,7 +35,11 @@ SQLITE_LIBS = "/libpath:$(SQLITE_LIBPATH)" libsqlite.lib
 !IF "$(SQL)" == "SQLITE3"
 PLUGINS_EXT=$(PLUGINS_EXT) saslSQLITE.dll
 SQL_FLAGS= $(SQLITE_INCLUDES3) /DHAVE_SQLITE3=1
+!IF EXISTS($(SQLITE_LIBPATH3)\sqlite3.lib)
+SQLITE_LIBS = "/libpath:$(SQLITE_LIBPATH3)" sqlite3.lib
+!ELSE
 SQLITE_LIBS = "/libpath:$(SQLITE_LIBPATH3)" libsqlite3.lib
+!ENDIF
 !ENDIF
 
 PLUGINS=saslANONYMOUS.dll \
@@ -106,6 +110,8 @@ DB_LIBS="/libpath:$(LMDB_LIBPATH)" lmdb.lib
 
 # Auxprop Plugin
 libsasldb_objs = allockey.obj db_lmdb.obj
+!ELSE IF "$(SASLDB)" == "NONE"
+libsasldb_objs = allockey.obj db_none.obj
 !ENDIF
 
 SCRAM_FLAGS=/DHAVE_SHA512=1

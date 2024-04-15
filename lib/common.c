@@ -737,8 +737,10 @@ void sasl_common_done(void)
     _sasl_canonuser_free();
     _sasl_done_with_plugins();
     
-    sasl_MUTEX_FREE(free_mutex);
-    free_mutex = NULL;
+    if (free_mutex) {
+      sasl_MUTEX_FREE(free_mutex);
+      free_mutex = NULL;
+    }
     
     _sasl_free_utils(&sasl_global_utils);
     

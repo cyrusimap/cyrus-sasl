@@ -203,6 +203,7 @@ auth_krb5 (
 
     if (form_principal_name(user, service, realm, principalbuf, sizeof (principalbuf))) {
         syslog(LOG_ERR, "auth_krb5: form_principal_name");
+        krb5_free_context(context);
         return strdup("NO saslauthd principal name error");
     }
 

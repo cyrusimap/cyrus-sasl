@@ -2395,18 +2395,19 @@ int _sasl_ipfromstring(const char *addr,
 
     /* Parse the address */
     for (i = 0; addr[i] != '\0' && addr[i] != ';'; i++) {
-	if (i >= NI_MAXHOST)
+	if (i >= NI_MAXHOST - 1)
 	    return SASL_BADPARAM;
 	hbuf[i] = addr[i];
     }
     hbuf[i] = '\0';
 
-    if (addr[i] == ';')
+    if (addr[i] == ';') {
 	i++;
-    /* XXX: Do we need this check? */
-    for (j = i; addr[j] != '\0'; j++)
-	if (!isdigit((int)(addr[j])))
-	    return SASL_BADPARAM;
+        /* XXX: Do we need this check? */
+        for (j = i; addr[j] != '\0'; j++)
+            if (!isdigit((int)(addr[j])))
+                return SASL_BADPARAM;
+    }
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = PF_UNSPEC;

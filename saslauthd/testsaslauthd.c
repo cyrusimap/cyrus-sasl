@@ -70,8 +70,8 @@ int flags = LOG_USE_STDERR;
  */
 int retry_read(int fd, void *inbuf, unsigned nbyte)
 {
-    int n;
-    int nread = 0;
+    ssize_t n;
+    size_t nread = 0;
     char *buf = (char *)inbuf;
 
     if (nbyte == 0) return 0;
@@ -233,7 +233,7 @@ static int saslauthd_verify_password(const char *saslauthd_path,
 	return -1;
     }
   
-    count = (int)sizeof(response) < count ? sizeof(response) : count;
+    count = (int)sizeof(response) <= count ? sizeof(response) - 1: count;
     if (retry_read(s, response, count) < count) {
 	close(s);
         fprintf(stderr,"read failed\n");

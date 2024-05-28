@@ -484,7 +484,7 @@ if test "$gssapi" != "no"; then
   AC_MSG_RESULT($use_gss_mutexes)
 
   AC_MSG_CHECKING(to use GSS delgation with ccache store)
-  AC_ARG_ENABLE(gss_ccache, [  --enable-gss-ccache       allow delegation of cached crdentials],
+  AC_ARG_ENABLE(gss_ccache, [  --enable-gss-ccache       allow delegation of cached credentials],
                 use_gss_ccache=$enableval,
                 use_gss_ccache=$ccache_default)
 

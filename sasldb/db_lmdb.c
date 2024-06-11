@@ -74,18 +74,22 @@ static int do_open(const sasl_utils_t *utils,
     int readers = 0;
     int ret;
     int flags;
+    int path_needs_freepath = 0;
 
     if (!db_env) {
 
 	ret = _sasldb_getpath(utils, &path);
 	if (ret) return ret;
+	path_needs_freepath = 1;
 
 	if (utils->getcallback(conn, SASL_CB_GETOPT,
 			       (sasl_callback_ft *)&getopt, &cntxt) == SASL_OK) {
 	    const char *p;
 	    if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK
 		&& p != NULL && *p != 0) {
+        SASLDB_FREEPATH(utils, path);
 		path = p;
+		path_needs_freepath = 0;
 	    }
 	    if (getopt(cntxt, NULL, "sasldb_maxreaders", &p, NULL) == SASL_OK
 		&& p != NULL && *p != 0) {
@@ -152,7 +156,10 @@ static int do_open(const sasl_utils_t *utils,
 	}
     } else {
     	env = db_env;
-	path = NULL;
+        if (path_needs_freepath)
+            SASLDB_FREEPATH(utils, path);
+        path = NULL;
+        path_needs_freepath = 0;
     }
 
     ret = mdb_txn_begin(env, NULL, rdwr ? 0 : MDB_RDONLY, &txn);
@@ -186,7 +193,8 @@ static int do_open(const sasl_utils_t *utils,
     ret = SASL_OK;
 
 cleanup:
-    SASLDB_FREEPATH(utils, path);
+    if (path_needs_freepath)
+        SASLDB_FREEPATH(utils, path);
     return ret;
 }
 

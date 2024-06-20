@@ -22,10 +22,7 @@ Synopsis
 Description
 ===========
 
-.. c:function:: int sasl_getrealm_t(void *context,
-        int id,
-        const char **availrealms,
-        const char **result)
+.. c:function:: int sasl_getrealm_t(void *context, int id, const char **availrealms, const char **result)
 
     **sasl_getrealm_t()** is used when there is an interaction with
     SASL_CB_GETREALM as the type.

@@ -22,10 +22,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::  void sasl_seterror(sasl_conn_t *conn,
-        unsigned flags,
-        const char *fmt,
-        ...);
+.. c:function::  void sasl_seterror(sasl_conn_t *conn, unsigned flags, const char *fmt, ...);
 
     The  **sasl_seterror()**  interface sets the error string that
     will be returned by :saslman:`sasl_errdetail(3)`. Use

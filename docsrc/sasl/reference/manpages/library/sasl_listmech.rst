@@ -26,14 +26,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::  int sasl_listmech(sasl_conn_t *conn,
-        const char *user,
-        const char *prefix,
-        const char *sep,
-        const char *suffix,
-        const char **result,
-        unsigned *plen,
-        int *pcount);
+.. c:function::  int sasl_listmech(sasl_conn_t *conn, const char *user, const char *prefix, const char *sep, const char *suffix, const char **result, unsigned *plen, int *pcount);
 
     **sasl_listmech** returns a string listing the SASL names of
     all the mechanisms available to the specified user. This

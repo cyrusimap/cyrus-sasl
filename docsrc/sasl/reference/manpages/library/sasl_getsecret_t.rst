@@ -23,10 +23,7 @@ Synopsis
 Description
 ===========
 
-.. c:function:: int sasl_getsecret_t(sasl_conn_t *conn,
-        void *context,
-        int id,
-        sasl_secret_t ** psecret);
+.. c:function:: int sasl_getsecret_t(sasl_conn_t *conn, void *context, int id, sasl_secret_t ** psecret);
 
 
     **sasl_getsecret_t()** is used to retrieve the secret  from  the

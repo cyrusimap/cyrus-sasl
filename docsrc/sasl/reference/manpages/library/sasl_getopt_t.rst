@@ -22,11 +22,7 @@ Synopsis
 Description
 ===========
 
-.. c:function:: int sasl_getopt_t(void *context,
-        const char *plugin_name,
-        const char *option,
-        const char ** result,
-        unsigned * len);
+.. c:function:: int sasl_getopt_t(void *context, const char *plugin_name, const char *option, const char ** result, unsigned * len);
 
     **sasl_getopt_t** is used to retrieve an option, often mechanism specific,
     from the application. An example of this is

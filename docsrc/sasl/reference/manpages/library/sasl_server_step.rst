@@ -23,11 +23,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::  int sasl_server_step(sasl_conn_t *conn,
-        const char *clientin,
-        unsigned clientinlen,
-        const char ** serverout,
-        unsigned * serveroutlen);
+.. c:function::  int sasl_server_step(sasl_conn_t *conn, const char *clientin, unsigned clientinlen, const char ** serverout, unsigned * serveroutlen);
 
     **sasl_server_step()** performs a step in  the  authentication negotiation.  It
     returns :c:macro:`SASL_OK` if the whole negotiation is successful and

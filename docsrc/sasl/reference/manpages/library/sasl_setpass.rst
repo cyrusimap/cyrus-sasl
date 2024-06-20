@@ -23,11 +23,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::  int sasl_setpass(sasl_conn_t *conn,
-    const char *user,
-    const char *pass, unsigned passlen,
-    const char *oldpass, unsigned oldpasslen,
-    unsigned flags)
+.. c:function::  int sasl_setpass(sasl_conn_t *conn, const char *user, const char *pass, unsigned passlen, const char *oldpass, unsigned oldpasslen, unsigned flags)
 
     **sasl_setpass** will set passwords in the sasldb, and trigger the setpass
     callbacks for all available mechanisms.

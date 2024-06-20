@@ -22,11 +22,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::     int sasl_checkapop(sasl_conn_t *conn,
-                     const char *challenge,
-                     unsigned challen,
-                     const char *response,
-                     unsigned resplen)
+.. c:function::     int sasl_checkapop(sasl_conn_t *conn, const char *challenge, unsigned challen, const char *response, unsigned resplen)
 
     **sasl_checkapop**  will  check  an APOP challenge/response.
     APOP is an optional POP3 (:rfc:`1939`) authentication command

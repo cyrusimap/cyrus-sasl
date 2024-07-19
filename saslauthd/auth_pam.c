@@ -206,7 +206,7 @@ auth_pam (
     char * remote_host = strdup(remote);
     if (remote_host) {
 	char * semicol = strchr(remote_host, ';');
-	if (semicol) * semicol = NULL; /* truncate remote_host at the ';' port separator */
+	if (semicol) * semicol = '\0'; /* truncate remote_host at the ';' port separator */
 	pam_set_item(pamh, PAM_RHOST, remote_host);
 	free (remote_host);
     }

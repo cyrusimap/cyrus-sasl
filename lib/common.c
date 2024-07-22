@@ -848,7 +848,7 @@ int _sasl_conn_init(sasl_conn_t *conn,
   RETURN(conn, SASL_OK);
 }
 
-int _sasl_common_init(sasl_global_callbacks_t *global_callbacks)
+int _sasl_common_init(sasl_global_callbacks_t *global_callbacks, void **mutex)
 {
     int result;
 
@@ -868,7 +868,7 @@ int _sasl_common_init(sasl_global_callbacks_t *global_callbacks)
 	global_utils->getopt = &_sasl_global_getopt;
 	global_utils->getopt_context = global_callbacks;
 
-	sasl_MUTEX_UNLOCK(free_mutex);
+	*mutex = free_mutex;
 	return SASL_OK;
     } else {
 	sasl_global_utils = _sasl_alloc_utils(NULL, global_callbacks);
@@ -884,7 +884,11 @@ int _sasl_common_init(sasl_global_callbacks_t *global_callbacks)
 	result = SASL_FAIL;
     }
 
-    sasl_MUTEX_UNLOCK(free_mutex);
+    if (result == SASL_OK) {
+	*mutex = free_mutex;
+    } else {
+	sasl_MUTEX_UNLOCK(free_mutex);
+    }
     return result;
 }
 

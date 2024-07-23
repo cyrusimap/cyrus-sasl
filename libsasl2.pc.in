@@ -9,4 +9,4 @@ URL: http://www.cyrussasl.org/
 Version: @VERSION@
 Cflags: -I${includedir}
 Libs: -L${libdir} -lsasl2
-Libs.private: @LIB_DOOR@ @SASL_DL_LIB@ @LIBS@
+Libs.private: @LIB_DOOR@ @SASL_DL_LIB@ @LIBS@ @SASL_STATIC_LIBS@

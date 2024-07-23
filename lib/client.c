@@ -332,6 +332,20 @@ int sasl_client_init(const sasl_callback_t *callbacks)
   return ret;
 }
 
+/* return 1 if mech is in cmechlist->mech_list
+ * otherwise return 0
+ */
+static int mech_in_cmechlist(cmechanism_t *mech)
+{
+  cmechanism_t *m = cmechlist->mech_list;
+  while (m) {
+    if (m == mech)
+      return 1;
+    m = m->next;
+  }
+  return 0;
+}
+
 static void client_dispose(sasl_conn_t *pconn)
 {
   sasl_client_conn_t *c_conn=(sasl_client_conn_t *) pconn;
@@ -358,6 +372,9 @@ static void client_dispose(sasl_conn_t *pconn)
       m = c_conn->mech_list; /* m point to beginning of the list */
 
       while (m) {
+	  /* If m is in global mechlist, leave it all alone */
+	  if (mech_in_cmechlist(m))
+	    break;
 	  prevm = m;
 	  m = m->next;
 	  sasl_FREE(prevm);    

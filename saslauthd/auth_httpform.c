@@ -371,7 +371,19 @@ static char *build_sasl_response(
 
     /* isolate the HTTP response code and string */
     http_response_code = strpbrk(http_response, SPACE) + 1;
+    if (!http_response_code) {
+	logger(LOG_ERR, "auth_httpform", "invalid response to auth request: %s",
+           http_response);
+	goto fail;
+    }
+
     http_response_string = strpbrk(http_response_code, SPACE) + 1;
+    if (!http_response_string) {
+	logger(LOG_ERR, "auth_httpform", "invalid response to auth request: %s",
+           http_response);
+	goto fail;
+    }
+
     *(http_response_string-1) = '\0';  /* replace space after code with 0 */
 
     if (!strcmp(http_response_code, HTTP_STATUS_SUCCESS) ||
@@ -392,6 +404,7 @@ static char *build_sasl_response(
     logger(L_INFO, "auth_httpform", "unexpected response to auth request: %s %s",
            http_response_code, http_response_string);
 
+fail:
     return strdup(RESP_UNEXPECTED);
 }
 

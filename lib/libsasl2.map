@@ -41,6 +41,7 @@ SASL2_4.0 {
         sasl_errstring;
         sasl_getprop;
         sasl_global_listmech;
+        sasl_global_utils;
         sasl_idle;
         sasl_listmech;
         sasl_mkchal;

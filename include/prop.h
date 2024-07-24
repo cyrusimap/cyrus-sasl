@@ -53,6 +53,12 @@
 # define LIBSASL_VAR extern
 #endif /* WIN32 */
 
+/* Only use __attribute__ on Gnu C */
+#ifndef __GNUC__
+#undef __attribute__
+#define __attribute__(foo)
+#endif /* __GNUC__ */
+
 /* the resulting structure for property values
  */
 struct propval {

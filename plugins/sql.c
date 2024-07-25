@@ -680,7 +680,7 @@ static char *sql_create_statement(const char *statement, const char *prop,
     }
     
     /* find the biggest of ulen, rlen, plen, vlen */
-    biggest = sql_max(sql_max(ulen, rlen), sql_max(plen, vlen));
+    biggest = sql_max(sql_max(sql_max(ulen, rlen), sql_max(plen, vlen)), alen);
     
     /* plus one for the semicolon...and don't forget the trailing 0x0 */
     filtersize = (int)strlen(statement) + 1 + (numpercents*biggest)+1;

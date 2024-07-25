@@ -703,7 +703,7 @@ static int opaque_client_mech_step2(context_t *ctx,
 
   ctx->state = 3;
 
-  result = SASL_CONTINUE;
+  result = SASL_OK;
 
 cleanup:
 

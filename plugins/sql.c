@@ -645,6 +645,7 @@ static const sql_engine_t sql_engines[] = {
 **   %p = prop
 **   %r = realm
 **   %v = value of prop
+**   %a = remote IP address;port
 **  e.g select %p from auth where user = %u and domain = %r;
 **  Note: calling function must free memory.
 **
@@ -653,12 +654,13 @@ static const sql_engine_t sql_engines[] = {
 static char *sql_create_statement(const char *statement, const char *prop,
 				  const char *user, const char *realm, 
 				  const char *value,  
+				  const char *remoteaddrport,
 				  const sasl_utils_t *utils)
 {
     const char *ptr, *line_ptr;
     char *buf, *buf_ptr;
     int filtersize;
-    int ulen, plen, rlen, vlen;
+    int ulen, plen, rlen, vlen, alen;
     int numpercents=0;
     int biggest;
     size_t i;
@@ -668,6 +670,7 @@ static char *sql_create_statement(const char *statement, const char *prop,
     rlen = (int)strlen(realm);
     plen = (int)strlen(prop);
     vlen = (int)sql_len(value);
+    alen = (int)sql_len(remoteaddrport);
     
     /* what if we have multiple %foo occurrences in the input query? */
     for (i = 0; i < strlen(statement); i++) {
@@ -677,7 +680,7 @@ static char *sql_create_statement(const char *statement, const char *prop,
     }
     
     /* find the biggest of ulen, rlen, plen, vlen */
-    biggest = sql_max(sql_max(ulen, rlen), sql_max(plen, vlen));
+    biggest = sql_max(sql_max(sql_max(ulen, rlen), sql_max(plen, vlen)), alen);
     
     /* plus one for the semicolon...and don't forget the trailing 0x0 */
     filtersize = (int)strlen(statement) + 1 + (numpercents*biggest)+1;
@@ -726,6 +729,10 @@ static char *sql_create_statement(const char *statement, const char *prop,
 			   "'%%v' shouldn't be in a SELECT or DELETE");
 	    }
 	    break;
+	case 'a':
+		memcpy(buf_ptr, remoteaddrport, alen);
+		buf_ptr += alen;
+		break;
 	default:
 	    buf_ptr[0] = '%';
 	    buf_ptr[1] = ptr[0];
@@ -908,6 +915,7 @@ static int sql_auxprop_lookup(void *glob_context,
     char *query = NULL;
     char *escap_userid = NULL;
     char *escap_realm = NULL;
+    char *remoteaddrport = NULL;
     sql_settings_t *settings;
     int verify_against_hashed_password;
     int saw_user_password = 0;
@@ -956,6 +964,8 @@ static int sql_auxprop_lookup(void *glob_context,
 	ret = SASL_NOMEM;
 	goto done;
     }
+    
+    remoteaddrport = sparams->ipremoteport;
     
     /*************************************/
     
@@ -1033,6 +1043,7 @@ static int sql_auxprop_lookup(void *glob_context,
 	query = sql_create_statement(settings->sql_select,
 				     realname,escap_userid,
 				     escap_realm, NULL,
+				     remoteaddrport,
 				     sparams->utils);
 	if (query == NULL) {
 	    ret = SASL_NOMEM;
@@ -1089,6 +1100,7 @@ static int sql_auxprop_lookup(void *glob_context,
 					 escap_userid,
 					 escap_realm,
 					 NULL,
+					 remoteaddrport,
 					 sparams->utils);
 	    if (query == NULL) {
 		ret = SASL_NOMEM;
@@ -1238,6 +1250,7 @@ static int sql_auxprop_store(void *glob_context,
 	statement = sql_create_statement(settings->sql_select,
 					 SQL_WILDCARD, escap_userid,
 					 escap_realm, NULL,
+					 NULL,
 					 sparams->utils);
 	if (!settings->sql_engine->sql_exec(conn, statement, NULL, 0, NULL,
 					    sparams->utils)) {
@@ -1263,6 +1276,7 @@ static int sql_auxprop_store(void *glob_context,
 					 escap_realm,
 					 escap_passwd ?
 					 escap_passwd : SQL_NULL_VALUE,
+					 NULL,
 					 sparams->utils);
 	if (!statement) {
 	    ret = SASL_NOMEM;
@@ -1276,6 +1290,7 @@ static int sql_auxprop_store(void *glob_context,
 				     escap_realm,
 				     escap_passwd ?
 				     "<omitted>" : SQL_NULL_VALUE,
+				     NULL,
 				     sparams->utils);
 	    sparams->utils->log(sparams->utils->conn, SASL_LOG_DEBUG,
 				"sql plugin doing statement %s\n",

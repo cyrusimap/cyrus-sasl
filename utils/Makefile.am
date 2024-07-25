@@ -48,7 +48,7 @@ all_sasl_static_libs = ../lib/.libs/libsasl2.a $(SASL_DB_LIB) $(LIB_SOCKET) $(GS
 sbin_PROGRAMS = @SASL_DB_UTILS@ @SMTPTEST_PROGRAM@ pluginviewer
 EXTRA_PROGRAMS = saslpasswd2 sasldblistusers2 testsuite testsuitestatic smtptest pluginviewer
 
-man_MANS = $(SASL_DB_MANS) saslpasswd2.8 pluginviewer.8
+man_MANS = $(SASL_DB_MANS) pluginviewer.8
 
 saslpasswd2_LDADD = ../sasldb/libsasldb.la $(all_sasl_libs)
 saslpasswd2_SOURCES = saslpasswd.c

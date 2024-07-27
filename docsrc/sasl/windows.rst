@@ -132,7 +132,7 @@ line or edit the defaults in win32\common.mak
 Note, that unless you are building one of those plugins, OpenSSL is not required!
 
 If you want to build multiple additional plugins at once, you can specify
-multiple parameters described above, for example ``nmake /f NTMakefile SRP=1 OPT=1``
+multiple parameters described above, for example ``nmake /f NTMakefile SRP=1 OTP=1``
 
 Limitations
 -----------

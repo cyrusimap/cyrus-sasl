@@ -27,14 +27,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::  int sasl_server_new(const char *service,
-        const char *serverFQDN,
-        const char *user_realm,
-        const char *iplocalport,
-        const char *ipremoteport,
-        const sasl_callback_t *callbacks,
-        unsigned flags,
-        sasl_conn_t ** pconn);
+.. c:function::  int sasl_server_new(const char *service, const char *serverFQDN, const char *user_realm, const char *iplocalport, const char *ipremoteport, const sasl_callback_t *callbacks, unsigned flags, sasl_conn_t ** pconn);
 
 
     **sasl_server_new()** creates a new SASL context. This context will  be

@@ -26,13 +26,7 @@ Synopsis
 Description
 ===========
 
-.. c:function:: int sasl_client_new(const char *service,
-    const char *serverFQDN,
-    const char *iplocalport,
-    const char *ipremoteport,
-    const sasl_callback_t *prompt_supp,
-    unsigned flags,
-    sasl_conn_t ** pconn);
+.. c:function:: int sasl_client_new(const char *service, const char *serverFQDN, const char *iplocalport, const char *ipremoteport, const sasl_callback_t *prompt_supp, unsigned flags, sasl_conn_t ** pconn);
 
     **sasl_client_new()** creates a new SASL context. This context will be
     used for all SASL calls for one connection. It handles both

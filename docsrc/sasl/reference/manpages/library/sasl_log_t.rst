@@ -21,9 +21,7 @@ Synopsis
 Description
 ===========
 
-.. c:function:: int sasl_log_t(void *context,
-        int level,
-        const char * message);
+.. c:function:: int sasl_log_t(void *context, int level, const char * message);
 
     **sasl_log_t** is used to log warning/error messages from the
        SASL library. If not specified :manpage:`syslog` will be used.

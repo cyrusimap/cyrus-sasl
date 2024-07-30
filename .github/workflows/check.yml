@@ -1,0 +1,47 @@
+name: check
+on:
+  push:
+  pull_request:
+
+jobs:
+  check_linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: apt update
+        run: sudo apt update
+
+      - name: Install dependencies
+        run: sudo apt install krb5-kdc krb5-admin-server libkrb5-dev liblmdb-dev libnss-wrapper libsocket-wrapper
+
+      - name: Build
+        run: |
+          autoreconf -fiv
+          ./configure
+          make check
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: testdir
+          path: |
+            ${{ github.workspace }}/tests
+            !**/w/*
+        if: always()
+
+  check_macos:
+    runs-on: macos-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: brew install autoconf automake libtool
+
+      - name: Build
+        run: |
+          autoreconf -fiv
+          ./configure --with-openssl=/opt/homebrew/opt/openssl
+          make check

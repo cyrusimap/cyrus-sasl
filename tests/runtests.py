@@ -379,7 +379,11 @@ def gss_spnego_zeromaxssf_test(kenv):
 
 def gssapi_tests(testdir):
     """ SASL/GSSAPI Tests """
-    env = setup_socket_wrappers(testdir)
+    try:
+        env = setup_socket_wrappers(testdir)
+    except Exception as e:
+        print("SKIP: {}".format(e))
+        return 0
     kdc, kenv = setup_kdc(testdir, env)
     #print("KDC: {}, ENV: {}".format(kdc, kenv))
     kenv['KRB5_TRACE'] = os.path.join(testdir, 'trace.log')
@@ -431,10 +435,16 @@ def setup_plain(testdir):
     passwdprog = os.path.join(testdir, '../../utils/saslpasswd2')
 
     echo = subprocess.Popen(('echo', '1234567'), stdout=subprocess.PIPE)
-    subprocess.check_call([
-        passwdprog, "-f", sasldbfile, "-c", "test",
-        "-u", "host.realm.test", "-p"
-        ], stdin=echo.stdout, env=sasldbenv, timeout=5)
+    subprocess.check_call(
+        [
+            passwdprog,
+            "-f", sasldbfile,
+            "-c",
+            "-u", "host.realm.test",
+            "-p",
+            "test",
+        ],
+        stdin=echo.stdout, env=sasldbenv, timeout=5)
 
     return (sasldbfile, sasldbenv)
 

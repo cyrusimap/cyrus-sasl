@@ -72,8 +72,4 @@ EXTRA_DIST = \
 all: $(check_PROGRAMS)
 
 check:
-if MACOSX
-# skip Mac OSX for now
-else
 	$(srcdir)/runtests.py $(CHECKARGS)
-endif

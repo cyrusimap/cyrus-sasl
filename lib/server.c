@@ -1315,6 +1315,9 @@ static int mech_permitted(sasl_conn_t *conn,
     /* special case plaintext */
     myflags = conn->props.security_flags;
 
+    /* not a real security flag */
+    myflags &= ~SASL_SEC_NONSTD_CBIND;
+
     /* if there's an external layer this is no longer plaintext */
     if ((conn->props.min_ssf <= conn->external.ssf) && 
 	(conn->external.ssf > 1)) {

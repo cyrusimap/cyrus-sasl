@@ -406,7 +406,7 @@ def gssapi_tests(testdir):
     print('    ', end='')
     err += gssapi_channel_binding_test(kenv)
 
-    print('GSSAPI CHANNEL BINDING MISMTACH:')
+    print('GSSAPI CHANNEL BINDING MISMATCH:')
     print('    ', end='')
     err += gssapi_channel_binding_mismatch_test(kenv)
 

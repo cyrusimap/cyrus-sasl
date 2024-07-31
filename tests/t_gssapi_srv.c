@@ -166,6 +166,9 @@ int main(int argc, char *argv[])
 
     if (cb.name) {
         sasl_setprop(conn, SASL_CHANNEL_BINDING, &cb);
+        sasl_security_properties_t secprops = { 0 };
+        secprops.security_flags = SASL_SEC_NONSTD_CBIND;
+        sasl_setprop(conn, SASL_SEC_PROPS, &secprops);
     }
 
     if (plain) {

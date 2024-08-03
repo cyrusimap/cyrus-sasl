@@ -470,12 +470,12 @@ def plain_test(sasldbfile, sasldbenv):
                 srv.returncode, srv.stderr.read().decode('utf-8')))
     except Exception as e:
         print("FAIL: {}".format(e))
-        return
+        return 1
 
     print("PASS: PLAIN CLI({}) SRV({})".format(
         cli.stdout.read().decode('utf-8').strip(),
         srv.stdout.read().decode('utf-8').strip()))
-    return
+    return 0
 
 def plain_mismatch_test(sasldbfile, sasldbenv):
     result = "FAIL"
@@ -504,23 +504,28 @@ def plain_mismatch_test(sasldbfile, sasldbenv):
                 cli.returncode, cli_err, srv.returncode, srv_err))
     except Exception as e:
         print("{}: {}".format(result, e))
-        return
+        if result == "PASS":
+            return 0
+        return 1
 
     print("FAIL: This test should fail [CLI({}) SRV({})]".format(
         cli.stdout.read().decode('utf-8').strip(),
         srv.stdout.read().decode('utf-8').strip()))
-    return
+    return 1
 
 def plain_tests(testdir):
     sasldbfile, sasldbenv = setup_plain(testdir)
     #print("DB file: {}, ENV: {}".format(sasldbfile, sasldbenv))
+    err = 0
     print('SASLDB PLAIN:')
     print('    ', end='')
-    plain_test(sasldbfile, sasldbenv)
+    err += plain_test(sasldbfile, sasldbenv)
 
     print('SASLDB PLAIN PASSWORD MISMATCH:')
     print('    ', end='')
-    plain_mismatch_test(sasldbfile, sasldbenv)
+    err += plain_mismatch_test(sasldbfile, sasldbenv)
+
+    return err
 
 if __name__ == "__main__":
 
@@ -535,9 +540,9 @@ if __name__ == "__main__":
         shutil.rmtree(T)
     os.makedirs(T)
 
-    plain_tests(T)
+    err = plain_tests(T)
+    err += gssapi_tests(T)
 
-    err = gssapi_tests(T)
     if err != 0:
         print('{} test(s) FAILED'.format(err))
         sys.exit(-1)

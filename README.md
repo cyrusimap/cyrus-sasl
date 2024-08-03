@@ -1,5 +1,4 @@
-[![Build Status:master](https://api.travis-ci.org/cyrusimap/cyrus-sasl.svg?branch=master)](https://travis-ci.org/cyrusimap/cyrus-sasl)
-
+[![build status](https://github.com/cyrusimap/cyrus-sasl/actions/workflows/check.yml/badge.svg)](https://github.com/cyrusimap/cyrus-sasl/actions/workflows/check.yml)
 
 ## Cyrus SASL
 This is the Cyrus SASL API implementation. It can be used on the client

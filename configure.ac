@@ -605,24 +605,24 @@ else
 fi
 
 dnl OPAQUE
-AC_CHECK_LIB(libopaque, opaque_CreateCredentialRequest, [AC_SUBST([LIB_OPAQUE], ["-lopaque"]) AC_DEFINE([HAVE_LIBOPAQUE], [1],[opaque library])],have_libopaque="no",-lopaque)
-
 AC_ARG_ENABLE(opaque, [  --enable-opaque            enable OPAQUE authentication [[yes]] ],
   opaque=$enableval,
   opaque=yes)
 
-if test "$have_libopaque" = no; then
-  AC_CHECK_LIB(sodium, crypto_core_ristretto255_scalar_invert, [AC_SUBST([LIB_SODIUM], ["-lsodium"]) AC_DEFINE([HAVE_LIBSODIUM], [1],[sodium library])],have_sodium="no",-lsodium)
-  AC_CHECK_LIB(sodium, crypto_kdf_hkdf_sha512_expand,need_internal_hkdf="no",need_internal_hkdf="yes",-lsodium)
+if test "$opaque" = yes; then
+  AC_CHECK_LIB(libopaque, opaque_CreateCredentialRequest, [AC_SUBST([LIB_OPAQUE], ["-lopaque"]) AC_DEFINE([HAVE_LIBOPAQUE], [1],[opaque library])],have_libopaque="no",-lopaque)
 
-  if test "$have_sodium" = no; then
-    AC_MSG_WARN(neither libopaque nor libsodium found -- OPAQUE will be disabled)
-    opaque=no
-  else
-    opaque=internal
+  if test "$have_libopaque" = no; then
+    AC_CHECK_LIB(sodium, crypto_core_ristretto255_scalar_invert, [AC_SUBST([LIB_SODIUM], ["-lsodium"]) AC_DEFINE([HAVE_LIBSODIUM], [1],[sodium library])],have_sodium="no",-lsodium)
+    AC_CHECK_LIB(sodium, crypto_kdf_hkdf_sha512_expand,need_internal_hkdf="no",need_internal_hkdf="yes",-lsodium)
+
+    if test "$have_sodium" = no; then
+      AC_MSG_WARN(neither libopaque nor libsodium found -- OPAQUE will be disabled)
+      opaque=no
+    else
+      opaque=internal
+    fi
   fi
-else
-  opaque=yes
 fi
 
 AM_CONDITIONAL(OPAQUE_INTERNAL,test "$opaque" = internal)

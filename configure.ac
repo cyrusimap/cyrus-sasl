@@ -633,8 +633,8 @@ if test "$opaque" != no; then
     AC_MSG_RESULT(internal)
     OPAQUE_LIBS="-lsodium"
     if test "$enable_static" = yes; then
-        SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/opaque.c \$(top_srcdir)/plugins/opaque_impl.c"
-        SASL_STATIC_OBJS="$SASL_STATIC_OBJS opaque.o opaque_impl.o kdf_hkdf_sha512."
+        SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/opaque.c \$(top_srcdir)/plugins/opaque_impl.c \$(top_srcdir)/plugins/kdf_hkdf_sha512.c"
+        SASL_STATIC_OBJS="$SASL_STATIC_OBJS opaque.o opaque_impl.o kdf_hkdf_sha512.o"
         AC_DEFINE(STATIC_OPAQUE, [], [Link OPAQUE Statically])
     fi
   else
@@ -642,7 +642,7 @@ if test "$opaque" != no; then
     OPAQUE_LIBS="-lopaque"
 
     if test "$enable_static" = yes; then
-        SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/opaque.c"
+        SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/opaque.c \$(top_srcdir)/plugins/kdf_hkdf_sha512.c"
         SASL_STATIC_OBJS="$SASL_STATIC_OBJS opaque.o kdf_hkdf_sha512.o"
         AC_DEFINE(STATIC_OPAQUE, [], [Link OPAQUE Statically])
     fi

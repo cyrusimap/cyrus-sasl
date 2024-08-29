@@ -334,7 +334,7 @@ int mysasl_negotiate(FILE *in, FILE *out, sasl_conn_t *conn)
 
 void usage(void)
 {
-    fprintf(stderr, "usage: client [-c|-C] [-p port] [-s service] [-m mech] host\n");
+    fprintf(stderr, "usage: client [-c|-C|-d|-D] [-p port] [-s service] [-m mech] host\n");
     exit(EX_USAGE);
 }
 
@@ -355,16 +355,29 @@ int main(int argc, char *argv[])
     int niflags, error;
     struct sockaddr_storage local_ip, remote_ip;
     int cb_flag = 0;
+    int cb_digest = 0;
     sasl_channel_binding_t cb;
 
-    while ((c = getopt(argc, argv, "Ccp:s:m:")) != EOF) {
+    while ((c = getopt(argc, argv, "CcDdp:s:m:")) != EOF) {
 	switch(c) {
 	case 'C':
-	    cb_flag = 2;    /* channel bindings are critical */
+	    cb_flag = 2;    /* 'finish' channel bindings are critical */
+	    cb_digest = 0;
 	    break;
 
 	case 'c':
-	    cb_flag = 1;    /* channel bindings are optional */
+	    cb_flag = 1;    /* 'finish' channel bindings are optional */
+	    cb_digest = 0;
+	    break;
+
+        case 'D':
+	    cb_flag = 2;    /* 'digest' channel bindings are critical */
+	    cb_digest = 1;
+	    break;
+
+	case 'd':
+	    cb_flag = 1;    /* 'digest' bindings are optional */
+	    cb_digest = 1;
 	    break;
 
 	case 'p':
@@ -443,12 +456,23 @@ int main(int argc, char *argv[])
     if (r != SASL_OK) saslfail(r, "allocating connection state");
 
     if (cb_flag) {
-        cb.name = "sasl-sample";
-        cb.critical = cb_flag > 1;
-        cb.data = (unsigned char *) "this is a test of channel binding";
-        cb.len = (unsigned int) strlen((const char *) cb.data);
+	/* see RFC 5929 and RFC 9266 for reference */
+	/* see cyrus-imapd for real implementation example */
+	const char finish_msg[] = "use SSL_get_(peer)_finished()";
+	const char digest_msg[] = "use X509_digest()";
 
-        sasl_setprop(conn, SASL_CHANNEL_BINDING, &cb);
+	cb.critical = cb_flag > 1;
+	if (cb_digest) {
+	    cb.name = "tls-server-end-point";
+	    cb.data = (const unsigned char*)digest_msg;
+	    cb.len = sizeof(digest_msg);
+	}
+	else {
+	    cb.name = "tls-unique"; /* or "tls-exporter" for TLS 1.3 */
+	    cb.data = (const unsigned char*)finish_msg;
+	    cb.len = sizeof(finish_msg);
+	}
+	sasl_setprop(conn, SASL_CHANNEL_BINDING, &cb);
     }
 
     /* set external properties here

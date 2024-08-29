@@ -122,6 +122,38 @@ enumerateAttributes(OM_uint32 *minor,
                     int noisy);
 #endif
 
+typedef int (*my_cb_ft)(void);
+
+struct my_channel_binding
+{
+    /* storage for 'tls-unique' or 'tls-exporter' */
+    sasl_channel_binding_t finish;
+    unsigned char finish_data[64]; /* use data[EVP_MAX_MD_SIZE] */
+    /* storage for 'tls-server-endpoint' */
+    sasl_channel_binding_t digest;
+    unsigned char digest_data[64]; /* use data[EVP_MAX_MD_SIZE] */
+};
+
+/* EXPORTED */
+int my_select_binding(sasl_conn_t* conn,
+		      void* context,
+		      const char* plugin,
+		      const char* cbindingname)
+{
+    struct my_channel_binding *cb = context;
+
+    if (!conn || !context || !plugin || !cbindingname) {
+	return SASL_FAIL;
+    }
+
+    if (cb->digest.name != NULL &&
+	strcmp(cbindingname, cb->digest.name) == 0) {
+	/* overwrite channel binding with 'tls-server-end-point' data */
+	return sasl_setprop(conn, SASL_CHANNEL_BINDING, &cb->digest);
+    }
+    return SASL_FAIL;
+}
+
 /* create a socket listening on port 'port' */
 /* if af is PF_UNSPEC more than one socket may be returned */
 /* the returned list is dynamically allocated, so caller needs to free it */
@@ -350,6 +382,12 @@ int main(int argc, char *argv[])
     int r, i;
     sasl_conn_t *conn;
     int cb_flag = 0;
+    struct my_channel_binding cb;
+
+    const struct sasl_callback mysasl_cb[] = {
+	{ SASL_CB_SERVER_CHANNEL_BINDING, (my_cb_ft)&my_select_binding, &cb},
+	{ SASL_CB_LIST_END, NULL, NULL}
+    };
 
     while ((c = getopt(argc, argv, "Cch:p:s:m:")) != EOF) {
 	switch(c) {
@@ -384,7 +422,7 @@ int main(int argc, char *argv[])
     }
 
     /* initialize the sasl library */
-    r = sasl_server_init(NULL, "sample");
+    r = sasl_server_init(mysasl_cb, "sample");
     if (r != SASL_OK) saslfail(r, "initializing libsasl");
 
     /* get a listening socket */
@@ -408,7 +446,6 @@ int main(int argc, char *argv[])
 	int nfds, fd = -1;
 	FILE *in, *out;
 	fd_set readfds;
-	sasl_channel_binding_t cb;
 
 	FD_ZERO(&readfds);
 	for (i = 1; i <= l[0]; i++)
@@ -483,13 +520,26 @@ int main(int argc, char *argv[])
 			    NULL, 0, &conn);
 	if (r != SASL_OK) saslfail(r, "allocating connection state");
 
-	cb.name = "sasl-sample";
-	cb.critical = cb_flag > 1;
-	cb.data = (const unsigned char *) "this is a test of channel binding";
-	cb.len = (unsigned int) strlen((const char *) cb.data);
-
+	memset(&cb, 0, sizeof(cb));
 	if (cb_flag) {
-	    sasl_setprop(conn, SASL_CHANNEL_BINDING, &cb);
+	    /* see RFC 5929 and RFC 9266 for reference */
+	    /* see cyrus-imapd for real implementation example */
+	    const char finish_msg[] = "use SSL_get_(peer)_finished()";
+	    const char digest_msg[] = "use X509_digest()";
+
+	    cb.finish.name = "tls-unique"; /* or "tls-exporter" for TLS 1.3 */
+	    cb.finish.critical = cb_flag > 1;
+	    cb.finish.data = cb.finish_data;
+	    memcpy(cb.finish_data, finish_msg, sizeof(finish_msg));
+	    cb.finish.len = sizeof(finish_msg);
+	    sasl_setprop(conn, SASL_CHANNEL_BINDING, &cb.finish);
+
+	    /* Prepare alternate channel binding data for callback */
+	    cb.digest.name = "tls-server-end-point";
+	    cb.digest.critical = cb_flag > 1;
+	    cb.digest.data = cb.digest_data;
+	    memcpy(cb.digest_data, digest_msg, sizeof(digest_msg));
+	    cb.digest.len = sizeof(digest_msg);
 	}
 
 	/* set external properties here

@@ -1155,7 +1155,23 @@ cleanup:
     }
     return result;
 }
-    
+
+static void
+scram_server_get_channel_binding(sasl_server_params_t* sparams,
+				 const char *mech,
+				 const char *cbindingname)
+{
+    sasl_server_channel_binding_t* binding = NULL;
+    void* context = NULL;
+    /* try to get alternate channel binding data */
+    if (sparams->utils->getcallback(sparams->utils->conn,
+				    SASL_CB_SERVER_CHANNEL_BINDING,
+				    (sasl_callback_ft*)&binding,
+				    &context) == SASL_OK) {
+	binding(sparams->utils->conn, context, mech, cbindingname);
+    }
+}
+
 static int
 scram_server_mech_step2(server_context_t *text,
 			sasl_server_params_t *sparams,
@@ -1279,6 +1295,14 @@ scram_server_mech_step2(server_context_t *text,
                                      scram_sasl_mech);
 	    result = SASL_BADPROT;
 	    goto cleanup;
+	}
+
+	if (sparams->cbinding == NULL ||
+	    strcmp(sparams->cbinding->name, text->cbindingname) != 0) {
+	    /* Try to get desired channel binding data */
+	    scram_server_get_channel_binding(sparams,
+					     scram_sasl_mech,
+					     text->cbindingname);
 	}
 
 	if (sparams->cbinding == NULL) {

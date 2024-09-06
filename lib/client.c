@@ -168,6 +168,8 @@ static int mech_compare(const sasl_client_plug_t *a,
     if (sec_diff & b->security_flags & SASL_SEC_NODICTIONARY) return -1;
     if (sec_diff & a->security_flags & SASL_SEC_FORWARD_SECRECY) return 1;
     if (sec_diff & b->security_flags & SASL_SEC_FORWARD_SECRECY) return -1;
+    if (sec_diff & a->security_flags & SASL_SEC_NONSTD_CBIND) return 1;
+    if (sec_diff & b->security_flags & SASL_SEC_NONSTD_CBIND) return -1;
 
     features_diff = a->features ^ b->features;
     if (features_diff & a->features & SASL_FEAT_CHANNEL_BINDING) return 1;
@@ -1216,7 +1218,10 @@ _sasl_print_mechanism (
 	    delimiter = '|';
 	}
 
-
+	if (m->plug->security_flags & SASL_SEC_NONSTD_CBIND) {
+	    printf ("%cNONSTD_CBIND", delimiter);
+	    delimiter = '|';
+	}
 
 	printf ("\n\tfeatures:");
 	

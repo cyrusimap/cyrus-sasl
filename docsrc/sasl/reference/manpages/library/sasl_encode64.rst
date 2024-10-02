@@ -28,11 +28,7 @@ string. This routine is useful for SASL profiles that use base64, such as the
 IMAP (IMAP4) and POP (POP_AUTH) profiles. The output is null‐terminated. If
 outlen is non‐NULL, the length is placed in the outlen.
 
-.. c:function:: int sasl_encode64(const char * input,
-            unsigned inputlen,
-            const char ** output,
-            unsigned outmax,
-            unsigned * outputlen);
+.. c:function:: int sasl_encode64(const char * input, unsigned inputlen, const char ** output, unsigned outmax, unsigned * outputlen);
 
     :param input: input data.
 

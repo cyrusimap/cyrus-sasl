@@ -21,9 +21,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::  int sasl_setprop(sasl_conn_t *conn,
-    int propnum,
-    const void * pvalue)
+.. c:function::  int sasl_setprop(sasl_conn_t *conn, int propnum, const void * pvalue)
 
     **sasl_setprop**  sets the value of a SASL property. For example an
     application should tell the SASL library about  any external negotiated

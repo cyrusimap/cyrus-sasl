@@ -21,13 +21,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::     int sasl_chalprompt_t(void *context,
-        int id,
-        const char *challenge,
-        const char *prompt,
-        const char *defresult,
-        const char **result,
-        unsigned *len)
+.. c:function::     int sasl_chalprompt_t(void *context, int id, const char *challenge, const char *prompt, const char *defresult, const char **result, unsigned *len)
 
         **sasl_chalprompt_t**  is used to prompt for input in response to a server challenge.
 

@@ -22,7 +22,7 @@ the flexibility of the DSOs that allow one to simply drop in a new mechanism
 that even currently-running applications will see for each new connection.
 That is, if you choose to use the static version of the library, not only
 will you need to recompile the library each time you add a mechanism (provided
-the mechanisms even support being compiled staticly), but you will need to
+the mechanisms even support being compiled statically), but you will need to
 recompile every application that uses Cyrus SASL as well.
 
 However, if you are sure you wish to use a static version of Cyrus SASL,

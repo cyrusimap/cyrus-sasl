@@ -524,18 +524,41 @@ static int _sqlite3_escape_str(char *to, const char *from)
     return 0;
 }
 
-static int sqlite3_my_callback(void *pArg, int argc __attribute__((unused)),
-			      char **argv,
-			      char **columnNames __attribute__((unused)))
-{
-    char **result = (char**)pArg;
+typedef struct sql_callback_data {
+    char *value;
+    size_t size;
+    size_t *value_len;
+    size_t num_columns;
+    size_t num_values;
+} sql_callback_data_t;
 
-    if (argv == NULL) {
-	*result = NULL;				/* no record */
-    } else if (argv[0] == NULL) {
-	*result = strdup(SQL_NULL_VALUE);	/* NULL IS SQL_NULL_VALUE */
+static int sqlite3_my_callback(void *pArg, int num_columns,
+			      char **column_values,
+			      char **column_names __attribute__((unused)))
+{
+    sql_callback_data_t *data = (sql_callback_data_t*)pArg;
+    const char *value = NULL;
+
+    data->num_columns = num_columns;
+
+    if (column_values == NULL) {
+	value = NULL;			/* no record */
+    } else if (column_values[0] == NULL) {
+	value = SQL_NULL_VALUE;		/* NULL IS SQL_NULL_VALUE */
+	data->num_values++;
     } else {
-	*result = strdup(argv[0]);
+	value = column_values[0];
+	data->num_values++;
+    }
+
+    /* now get the result set value and value_len */
+    /* we only fetch one because we don't care about the rest */
+    if (value && data->value) {
+	strncpy(data->value, value, data->size - 2);
+	data->value[data->size - 1] = '\0';
+	if (data->value_len) {
+	    *data->value_len = strlen(value);
+	}
     }
 
     return 0;
@@ -551,8 +574,14 @@ static int _sqlite3_exec(void *db,
     int rc;
     char *result = NULL;
     char *zErrMsg = NULL;
+    sql_callback_data_t callback_data;
 
-    rc = sqlite3_exec((sqlite3*)db, cmd, sqlite3_my_callback, (void*)&result, &zErrMsg);
+    callback_data.value = value;
+    callback_data.size = size;
+    callback_data.value_len = value_len;
+    callback_data.num_columns = 0;
+    callback_data.num_values = 0;
+    rc = sqlite3_exec((sqlite3*)db, cmd, sqlite3_my_callback, (void*)&callback_data, &zErrMsg);
     if (rc != SQLITE_OK) {
     	if (zErrMsg) {
 	    utils->log(utils->conn, SASL_LOG_DEBUG, "sql plugin: %s", zErrMsg);
@@ -563,12 +592,12 @@ static int _sqlite3_exec(void *db,
 	return -1;
     }
 
-    if (value == NULL && rc == SQLITE_OK) {
+    if (callback_data.num_columns == 0 && rc == SQLITE_OK) {
 	/* no results (BEGIN, COMMIT, DELETE, INSERT, UPDATE) */
 	return 0;
     }
 
-    if (result == NULL) {
+    if (callback_data.num_values == 0) {
 	/* umm nothing found */
 	utils->log(utils->conn, SASL_LOG_NOTE, "sql plugin: no result found");
 	return -1;
@@ -576,17 +605,6 @@ static int _sqlite3_exec(void *db,
 
     /* XXX: Duplication cannot be found by this method. */
 
-    /* now get the result set value and value_len */
-    /* we only fetch one because we don't care about the rest */
-    if (value) {
-	strncpy(value, result, size - 2);
-	value[size - 1] = '\0';
-	if (value_len) {
-	    *value_len = strlen(value);
-	}
-    }
-
-    free(result);
     return 0;
 }
 

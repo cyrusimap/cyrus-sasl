@@ -444,10 +444,9 @@ rst_prolog += """
 .. |CMU| replace:: :abbr:`CMU (Carnegie Mellon University)`
 """
 
-# Use this as :task:`18`
+# Use this as :issue:`18`
 extlinks = {
-        'task':('https://git.cyrus.foundation/T%s', 'Task #'),
-        'issue':('https://github.com/cyrusimap/cyrus-imapd/issues/%s', 'Issue #'),
+        'issue':('https://github.com/cyrusimap/cyrus-imapd/issues/%s', 'Issue #%s'),
         'cyrus-stable':('http://www.cyrusimap.org/stable%s',None),
         'cyrus-dev':('http://www.cyrusimap.org/dev%s',None),
     }

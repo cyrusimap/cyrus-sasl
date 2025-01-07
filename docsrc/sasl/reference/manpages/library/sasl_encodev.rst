@@ -39,11 +39,7 @@ output is identical to the input.
 **sasl_encodev** does the same, but for a `struct iovec` instead
 of a character buffer.
 
-.. c:function:: int sasl_encode(sasl_conn_t *conn,
-            const char * input,
-            unsigned inputlen,
-            const char ** output,
-            unsigned * outputlen);
+.. c:function:: int sasl_encode(sasl_conn_t *conn, const char * input, unsigned inputlen, const char ** output, unsigned * outputlen);
 
     :param conn: is the SASL connection context
 
@@ -52,11 +48,7 @@ of a character buffer.
 
     :param outputlen: length of `output`.
 
-    .. c:function:: int sasl_encodev(sasl_conn_t *conn,
-                const struct iovec * invec,
-                unsigned numiov,
-                const char ** output,
-                unsigned * outputlen);
+    .. c:function:: int sasl_encodev(sasl_conn_t *conn, const struct iovec * invec, unsigned numiov, const char ** output, unsigned * outputlen);
 
     :param conn: is the SASL connection context
 

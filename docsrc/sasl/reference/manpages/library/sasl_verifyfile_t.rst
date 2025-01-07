@@ -29,9 +29,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::    int sasl_verifyfile_t(void *context,
-        const char *file,
-        sasl_verify_type_t type)
+.. c:function::    int sasl_verifyfile_t(void *context, const char *file, sasl_verify_type_t type)
 
     **sasl_verifyfile_t()** is used to check whether a given file is
     okay for use by the SASL library.   This  is  intended  to

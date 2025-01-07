@@ -25,13 +25,7 @@ Synopsis
 Description
 ===========
 
-.. c:function:: int sasl_server_userdb_setpass_t(sasl_conn_t *conn,
-        void *context,
-        const char *user,
-        const char *pass,
-        unsigned passlen,
-        struct propctx *propctx,
-        unsigned flags)
+.. c:function:: int sasl_server_userdb_setpass_t(sasl_conn_t *conn, void *context, const char *user, const char *pass, unsigned passlen, struct propctx *propctx, unsigned flags)
 
     **sasl_server_userdb_setpass_t** is used to store or change  a plaintext
     password  in the callback‐supplier’s user database.

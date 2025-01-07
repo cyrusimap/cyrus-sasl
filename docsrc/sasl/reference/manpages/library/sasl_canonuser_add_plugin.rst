@@ -19,8 +19,7 @@ Synopsis
 Description
 ===========
 
-.. c:function:: int sasl_canonuser_add_plugin(const char *plugname,
-        sasl_canonuser_plug_init_t *cplugfunc);
+.. c:function:: int sasl_canonuser_add_plugin(const char *plugname, sasl_canonuser_plug_init_t *cplugfunc);
 
     **sasl_canonuser_add_plugin** adds a user canonicalization plugin to the
     current list of user canonicalization plugins in the SASL library.

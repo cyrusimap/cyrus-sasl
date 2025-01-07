@@ -22,11 +22,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::  int sasl_server_plug_init_t(const sasl_utils_t *utils,
-        int max_version,
-        int *out_version,
-        sasl_server_plug_t **pluglist,
-        int *plugcount);
+.. c:function::  int sasl_server_plug_init_t(const sasl_utils_t *utils, int max_version, int *out_version, sasl_server_plug_t **pluglist, int *plugcount);
 
     The **sasl_server_plug_init_t** callback function is the server
     plugin entry point.

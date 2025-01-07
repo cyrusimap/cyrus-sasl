@@ -20,8 +20,7 @@ Synopsis
 Description
 ===========
 
-.. c:function:: int sasl_utf8verify(const char *str,
-        unsigned len);
+.. c:function:: int sasl_utf8verify(const char *str, unsigned len);
 
     Use the **sasl_utf8verify** interface to verify that a string is
     valid UTF‐8 and does not contain NULL, a carriage return, or a linefeed.

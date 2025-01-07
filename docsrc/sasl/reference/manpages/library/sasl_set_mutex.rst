@@ -22,10 +22,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::  void sasl_set_mutex(sasl_mutex_alloc_t *a,
-        sasl_mutex_lock_t *l,
-        sasl_mutex_unlock_t *u,
-        sasl_mutex_free_t *f);
+.. c:function::  void sasl_set_mutex(sasl_mutex_alloc_t *a, sasl_mutex_lock_t *l, sasl_mutex_unlock_t *u, sasl_mutex_free_t *f);
 
     Use the **sasl_set_mutex()** interface to set the mutex lock
     routines that the SASL library and plug‐ins will use.

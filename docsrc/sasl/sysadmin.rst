@@ -368,7 +368,8 @@ Default pathnames
 Some pathnames hardcoded into the SASL libraries can be overridden
 at runtime using environment variables or, on Windows, in the
 system registry. The Windows registry key is
-    ``HKLM\SOFTWARE\Project Cyrus\SASL Library``.
+``HKLM\SOFTWARE\Project Cyrus\SASL Library``.
+
 The attributes used in this key are:
 
 ConfDir

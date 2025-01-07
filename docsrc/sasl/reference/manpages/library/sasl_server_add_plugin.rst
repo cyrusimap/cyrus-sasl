@@ -19,8 +19,7 @@ Synopsis
 Description
 ===========
 
-.. c:function:: int sasl_server_add_plugin(const char *plugname,
-        sasl_server_plug_init_t *cplugfunc);
+.. c:function:: int sasl_server_add_plugin(const char *plugname, sasl_server_plug_init_t *cplugfunc);
 
     **sasl_server_add_plugin** adds a server plugin to the
     current list of server plugins in the SASL library.

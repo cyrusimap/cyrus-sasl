@@ -129,7 +129,7 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 
-html_theme = 'cyrus'
+html_theme = 'sphinx_rtd_theme'
 
 # This gets used to generate the 'Edit in Github' link in the breadcrumbs header
 # Used to form the url https://github.com/github_user/github_repo/blob/github_version/conf_py_path/<file>.source_suffix
@@ -444,10 +444,9 @@ rst_prolog += """
 .. |CMU| replace:: :abbr:`CMU (Carnegie Mellon University)`
 """
 
-# Use this as :task:`18`
+# Use this as :issue:`18`
 extlinks = {
-        'task':('https://git.cyrus.foundation/T%s', 'Task #'),
-        'issue':('https://github.com/cyrusimap/cyrus-imapd/issues/%s', 'Issue #'),
+        'issue':('https://github.com/cyrusimap/cyrus-imapd/issues/%s', 'Issue #%s'),
         'cyrus-stable':('http://www.cyrusimap.org/stable%s',None),
         'cyrus-dev':('http://www.cyrusimap.org/dev%s',None),
     }

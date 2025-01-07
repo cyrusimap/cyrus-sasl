@@ -22,11 +22,7 @@ Synopsis
 Description
 ===========
 
-.. c:function:: int sasl_checkpass(sasl_conn_t *conn,
-        const char *user,
-        unsigned userlen,
-        const char *pass,
-        unsigned passlen)
+.. c:function:: int sasl_checkpass(sasl_conn_t *conn, const char *user, unsigned userlen, const char *pass, unsigned passlen)
 
         **sasl_checkpass**  will check a plaintext password. This is
         needed for protocols that had a login method  before  SASL

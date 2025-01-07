@@ -20,15 +20,7 @@ Synopsis
 Description
 ===========
 
-.. c:function:: int sasl_canon_user_t(sasl_conn_t *conn,
-        void *context,
-        const char *user,
-        unsigned ulen,
-        unsigned flags,
-        const char *user_realm,
-        char *out_user,
-        unsigned out_umax,
-        unsigned *out_ulen)
+.. c:function:: int sasl_canon_user_t(sasl_conn_t *conn, void *context, const char *user, unsigned ulen, unsigned flags, const char *user_realm, char *out_user, unsigned out_umax, unsigned *out_ulen)
 
     **sasl_canon_user_t** is the callback for an  application-supplied  user  canonicalization  function.  This function is
     subject to the requirements that all user canonicalization

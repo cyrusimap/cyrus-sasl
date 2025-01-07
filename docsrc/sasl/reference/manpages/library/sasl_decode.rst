@@ -24,11 +24,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::   int sasl_decode(sasl_conn_t *conn,
-        const char * input,
-        unsigned inputlen,
-        const char ** output,
-        unsigned * outputlen);
+.. c:function::   int sasl_decode(sasl_conn_t *conn, const char * input, unsigned inputlen, const char ** output, unsigned * outputlen);
 
 
     **sasl_decode** decodes   data  received.  After  successful authentication

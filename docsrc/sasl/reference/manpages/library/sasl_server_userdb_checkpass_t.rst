@@ -25,12 +25,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::   int sasl_server_userdb_checkpass_t(sasl_conn_t *conn,
-        void *context,
-        const char *user,
-        const char *pass,
-        unsigned passlen,
-        struct propctx *propctx)
+.. c:function::   int sasl_server_userdb_checkpass_t(sasl_conn_t *conn, void *context, const char *user, const char *pass, unsigned passlen, struct propctx *propctx)
 
     **sasl_server_userdb_checkpass_t()** is used to verify a plaintext
     password against the callback supplier’s user database. This is to

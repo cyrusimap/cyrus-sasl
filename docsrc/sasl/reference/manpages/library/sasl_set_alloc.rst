@@ -22,10 +22,7 @@ Synopsis
 Description
 ===========
 
-.. c:function:: void sasl_set_alloc(sasl_malloc_t *m,
-        sasl_calloc_t *c,
-        sasl_realloc_t *r,
-        sasl_free_t *f);
+.. c:function:: void sasl_set_alloc(sasl_malloc_t *m, sasl_calloc_t *c, sasl_realloc_t *r, sasl_free_t *f);
 
     Use the **sasl_set_alloc()** interface to set the memory allocation
     routines that the SASL library and plug‐ins will use.

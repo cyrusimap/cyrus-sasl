@@ -22,10 +22,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::   int sasl_getsimple_t(void *context,
-        int id,
-        const char ** result,
-        unsigned * len);
+.. c:function::   int sasl_getsimple_t(void *context, int id, const char ** result, unsigned * len);
 
     **sasl_getsimple_t** is used to retrieve simple things from
     the application. In practice this is authentication name,

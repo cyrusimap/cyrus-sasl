@@ -20,8 +20,7 @@ Synopsis
 Description
 ===========
 
-.. c:function:: int sasl_server_init(const sasl_callback_t *callbacks,
-                     const char *appname);
+.. c:function:: int sasl_server_init(const sasl_callback_t *callbacks, const char *appname);
 
     **sasl_server_init()** initializes SASL.  It  must  be  called
     before  any  calls to sasl_server_start, and only once per

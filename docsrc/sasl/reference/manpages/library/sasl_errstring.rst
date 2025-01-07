@@ -21,9 +21,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::  const char * sasl_errstring(int saslerr,
-        const char * langlist,
-        const char ** outlang);
+.. c:function::  const char * sasl_errstring(int saslerr, const char * langlist, const char ** outlang);
 
     **sasl_errstring** is called to convert a SASL return code (an
     integer) into a human readable string. At this time the

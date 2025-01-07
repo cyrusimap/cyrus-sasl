@@ -23,10 +23,7 @@ Synopsis
 Description
 ===========
 
-.. c:function:: int sasl_user_exists( sasl_conn_t *conn,
-        const char *service,
-        const char *user_realm,
-        const char *user)
+.. c:function:: int sasl_user_exists( sasl_conn_t *conn, const char *service, const char *user_realm, const char *user)
 
 
     **sasl_user_exists** will check if a user exists on the server.

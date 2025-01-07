@@ -21,9 +21,7 @@ Synopsis
 Description
 ===========
 
-.. c:function::  int sasl_getprop(sasl_conn_t *conn,
-        int propnum,
-        const void ** pvalue);
+.. c:function::  int sasl_getprop(sasl_conn_t *conn, int propnum, const void ** pvalue);
 
     **sasl_getprop**  gets the value of a SASL property. For example after
     successful authentication a server may  wish  to know  the  authorization

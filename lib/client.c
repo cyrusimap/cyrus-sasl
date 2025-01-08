@@ -797,6 +797,9 @@ int sasl_client_start(sasl_conn_t *conn,
 
 	    myflags = conn->props.security_flags;
 
+	    /* not a real security flag */
+	    myflags &= ~SASL_SEC_NONSTD_CBIND;
+
 	    /* if there's an external layer with a better SSF then this is no
 	     * longer considered a plaintext mechanism
 	     */

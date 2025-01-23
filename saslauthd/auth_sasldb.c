@@ -51,9 +51,7 @@
 #include "../sasldb/sasldb.h"
 
 static int
-vf(void *context __attribute__((unused)),
-   char *file  __attribute__((unused)),
-   int type  __attribute__((unused)))
+vf(void)
 {
     /* always say ok */ 
     return SASL_OK;

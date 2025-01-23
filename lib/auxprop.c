@@ -780,7 +780,7 @@ int sasl_auxprop_request(sasl_conn_t *conn, const char **propnames)
     }
     
     result = prop_request(sconn->sparams->propctx, propnames);
-    RETURN(conn, result);
+    RETURN_VAL(conn, result);
 }
 
 

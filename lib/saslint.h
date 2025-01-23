@@ -74,22 +74,22 @@
  *   memory errors.
  *  -Only errors (error codes < SASL_OK) should be remembered
  */
-#define RETURN(conn, val) { if(conn && (val) < SASL_OK) \
+#define RETURN_VAL(conn, val) { if(conn && (val) < SASL_OK) \
                                (conn)->error_code = (val); \
                             return (val); }
 #define MEMERROR(conn) {\
     if(conn) sasl_seterror( (conn), 0, \
                    "Out of Memory in " __FILE__ " near line %d", __LINE__ ); \
-    RETURN(conn, SASL_NOMEM) }
+    RETURN_VAL(conn, SASL_NOMEM) }
 #define PARAMERROR(conn) {\
     if(conn) sasl_seterror( (conn), SASL_NOLOG, \
                   "Parameter error in " __FILE__ " near line %d", __LINE__ ); \
-    RETURN(conn, SASL_BADPARAM) }
+    RETURN_VAL(conn, SASL_BADPARAM) }
 #define INTERROR(conn, val) {\
     if(conn) sasl_seterror( (conn), 0, \
                    "Internal Error %d in " __FILE__ " near line %d", (val),\
 		   __LINE__ ); \
-    RETURN(conn, (val)) }
+    RETURN_VAL(conn, (val)) }
 
 #ifndef PATH_MAX
 # ifdef WIN32

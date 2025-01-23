@@ -192,7 +192,7 @@ int _sasl_canon_user(sasl_conn_t *conn,
 	oparams->user = conn->user_buf;
     }
 
-    RETURN(conn, result);
+    RETURN_VAL(conn, result);
 }
 
 /* Lookup all properties for authentication and/or authorization identity. */
@@ -256,7 +256,7 @@ static int _sasl_auxprop_lookup_user_props (sasl_conn_t *conn,
     }
 #endif
 
-    RETURN(conn, result);
+    RETURN_VAL(conn, result);
 }
 
 /* default behavior:
@@ -285,7 +285,7 @@ int _sasl_canon_user_lookup (sasl_conn_t *conn,
 						  oparams);
     }
 
-    RETURN(conn, result);
+    RETURN_VAL(conn, result);
 }
 
 void _sasl_canonuser_free() 

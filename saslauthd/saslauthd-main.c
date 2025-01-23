@@ -596,7 +596,7 @@ void signal_setup() {
 	/**************************************************************
 	 * Handler for SIGTERM
 	 **************************************************************/
-	act_sigterm.sa_handler = server_exit;
+	act_sigterm.sa_handler = handle_exit;
 	sigemptyset(&act_sigterm.sa_mask);
 
 	if (sigaction(SIGTERM, &act_sigterm, NULL) != 0) {
@@ -609,7 +609,7 @@ void signal_setup() {
 	/**************************************************************
 	 * Handler for SIGINT
 	 **************************************************************/
-	act_sigint.sa_handler = server_exit;
+	act_sigint.sa_handler = handle_exit;
 	sigemptyset(&act_sigint.sa_mask);
 
 	if (sigaction(SIGINT, &act_sigint, NULL) != 0) {
@@ -879,7 +879,7 @@ pid_t have_baby() {
 /*************************************************************
  * Reap in all the dead children
  **************************************************************/
-void handle_sigchld() {
+void handle_sigchld(__attribute__((unused)) int sig) {
 	pid_t pid;
 
 	while ((pid = waitpid(-1, 0, WNOHANG)) > 0) {
@@ -891,11 +891,15 @@ void handle_sigchld() {
 	return;
 }
 
+void handle_exit(__attribute__((unused)) int sig) {
+	server_exit();
+}
+
 
 /*************************************************************
  * Do some final cleanup here.
  **************************************************************/
-void server_exit() {
+void server_exit(void) {
 
 	/*********************************************************
 	 * If we're not the master process, don't do anything

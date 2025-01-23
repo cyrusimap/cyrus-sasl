@@ -155,7 +155,7 @@ int sasl_setpass(sasl_conn_t *conn,
 	 (current_mech == NULL) ) {
 	sasl_seterror( conn, SASL_NOLOG,
                   "No current SASL mechanism available");
-	RETURN(conn, SASL_BADPARAM);
+	RETURN_VAL(conn, SASL_BADPARAM);
     }
 
     /* Do we want to store SASL_AUX_PASSWORD_PROP (plain text)?  and
@@ -297,7 +297,7 @@ int sasl_setpass(sasl_conn_t *conn,
 	}
     }
 
-    RETURN(conn, result);
+    RETURN_VAL(conn, result);
 }
 
 /* local mechanism which disposes of server */
@@ -990,7 +990,7 @@ _sasl_transition(sasl_conn_t * conn,
 			      NULL, 0, SASL_SET_CREATE | flags);
     }
 
-    RETURN(conn,result);
+    RETURN_VAL(conn,result);
 }
 
 
@@ -1366,7 +1366,7 @@ static int do_authorization(sasl_server_conn_t *s_conn)
 		   (s_conn->user_realm ? (unsigned) strlen(s_conn->user_realm) : 0),
 		   s_conn->sparams->propctx);
 
-    RETURN(&s_conn->base, ret);
+    RETURN_VAL(&s_conn->base, ret);
 }
 
 
@@ -1483,7 +1483,7 @@ int sasl_server_start(sasl_conn_t *conn,
 
 	if (result != SASL_OK) {
 	    /* The library will eventually be freed, don't sweat it */
-	    RETURN(conn, result);
+	    RETURN_VAL(conn, result);
 	}
     }
 
@@ -1572,7 +1572,7 @@ int sasl_server_start(sasl_conn_t *conn,
 	conn->oparams.doneflag = 0;
     }
     
-    RETURN(conn,result);
+    RETURN_VAL(conn,result);
 }
 
 
@@ -1700,7 +1700,7 @@ int sasl_server_step(sasl_conn_t *conn,
 	conn->oparams.doneflag = 0;
     }
 
-    RETURN(conn, ret);
+    RETURN_VAL(conn, ret);
 }
 
 /* returns the length of all the mechanisms
@@ -1949,7 +1949,7 @@ static int _sasl_checkpass(sasl_conn_t *conn,
     if (result != SASL_OK)
 	sasl_seterror(conn, SASL_NOLOG, "checkpass failed");
 
-    RETURN(conn, result);
+    RETURN_VAL(conn, result);
 }
 
 /* check if a plaintext password is valid
@@ -1989,7 +1989,7 @@ int sasl_checkpass(sasl_conn_t *conn,
     result = _sasl_canon_user(conn, user, userlen,
 			      SASL_CU_AUTHID | SASL_CU_AUTHZID,
 			      &(conn->oparams));
-    if(result != SASL_OK) RETURN(conn, result);
+    if(result != SASL_OK) RETURN_VAL(conn, result);
     user = conn->oparams.user;
 
     /* Check the password and lookup additional properties */
@@ -2000,7 +2000,7 @@ int sasl_checkpass(sasl_conn_t *conn,
       result = do_authorization((sasl_server_conn_t *)conn);
     }
 
-    RETURN(conn,result);
+    RETURN_VAL(conn,result);
 }
 
 /* check if a user exists on server
@@ -2073,7 +2073,7 @@ int sasl_user_exists(sasl_conn_t *conn,
 	sasl_seterror(conn, SASL_NOLOG, "no plaintext password verifier?");
     }
 
-    RETURN(conn, result);
+    RETURN_VAL(conn, result);
 }
 
 /* check if an apop exchange is valid
@@ -2135,7 +2135,7 @@ int sasl_checkapop(sasl_conn_t *conn,
     if (!user_end || strspn(user_end + 1, "0123456789abcdef") != 32) 
     {
         sasl_seterror(conn, 0, "Bad Digest");
-        RETURN(conn,SASL_BADPROT);
+        RETURN_VAL(conn,SASL_BADPROT);
     }
  
     user_len = (size_t)(user_end - response);
@@ -2147,7 +2147,7 @@ int sasl_checkapop(sasl_conn_t *conn,
     if(result != SASL_OK) 
     {
         sasl_FREE(user);
-        RETURN(conn, result);
+        RETURN_VAL(conn, result);
     }
 
     /* erase the plaintext password */
@@ -2162,7 +2162,7 @@ int sasl_checkapop(sasl_conn_t *conn,
 				      &(conn->oparams));
     sasl_FREE(user);
 
-    if(result != SASL_OK) RETURN(conn, result);
+    if(result != SASL_OK) RETURN_VAL(conn, result);
 
     /* Do APOP verification */
     result = _sasl_auxprop_verify_apop(conn, conn->oparams.authid,
@@ -2177,11 +2177,11 @@ int sasl_checkapop(sasl_conn_t *conn,
 	conn->oparams.authid = NULL;
     }
 
-    RETURN(conn, result);
+    RETURN_VAL(conn, result);
 #else /* sasl_checkapop was disabled at compile time */
     sasl_seterror(conn, SASL_NOLOG,
 	"sasl_checkapop called, but was disabled at compile time");
-    RETURN(conn, SASL_NOMECH);
+    RETURN_VAL(conn, SASL_NOMECH);
 #endif /* DO_SASL_CHECKAPOP */
 }
 

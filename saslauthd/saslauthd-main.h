@@ -97,8 +97,9 @@ extern void	set_mech_option(const char *);
 extern void	set_run_path(const char *);
 extern void	signal_setup();
 extern void	detach_tty();
-extern void	handle_sigchld();
-extern void	server_exit();
+extern void	handle_sigchld(int sig);
+extern void	handle_exit(int sig);
+extern void	server_exit(void);
 extern pid_t	have_baby();
 
 /* ipc api delcarations */

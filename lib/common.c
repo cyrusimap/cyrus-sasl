@@ -359,7 +359,7 @@ int sasl_encode(sasl_conn_t *conn, const char *input,
     
     result = sasl_encodev(conn, &tmp, 1, output, outputlen);
 
-    RETURN(conn, result);
+    RETURN_VAL(conn, result);
 }
 
 /* Internal function that doesn't do any verification */
@@ -445,7 +445,7 @@ _sasl_encodev (sasl_conn_t *conn,
 
     (*p_num_packets)++;
 
-    RETURN(conn, result);
+    RETURN_VAL(conn, result);
 }
 
 /* security-encode an iovec */
@@ -491,7 +491,7 @@ int sasl_encodev(sasl_conn_t *conn,
 	*output = conn->encode_buf->data;
 	*outputlen = (unsigned) conn->encode_buf->curlen;
 
-        RETURN(conn, result);
+        RETURN_VAL(conn, result);
     }
 
     /* This might be better to check on a per-plugin basis, but I think
@@ -649,7 +649,7 @@ cleanup:
         sasl_FREE(cur_invec);
     }
 
-    RETURN(conn, result);
+    RETURN_VAL(conn, result);
 }
  
 /* output is only valid until next call to sasl_decode */
@@ -666,7 +666,7 @@ int sasl_decode(sasl_conn_t *conn,
     if(!conn->props.maxbufsize) {
 	sasl_seterror(conn, 0,
 		      "called sasl_decode with application that does not support security layers");
-	RETURN(conn, SASL_TOOWEAK);
+	RETURN_VAL(conn, SASL_TOOWEAK);
     }
 
     if(conn->oparams.decode == NULL)
@@ -680,7 +680,7 @@ int sasl_decode(sasl_conn_t *conn,
 	if(inputlen > conn->props.maxbufsize) {
 	    sasl_seterror(conn, 0,
 			  "input too large for default sasl_decode");
-	    RETURN(conn,SASL_BUFOVER);
+	    RETURN_VAL(conn,SASL_BUFOVER);
 	}
 
 	if(!conn->decode_buf)
@@ -701,7 +701,7 @@ int sasl_decode(sasl_conn_t *conn,
 	/* NULL an empty buffer (for misbehaved applications) */
 	if (*outputlen == 0) *output = NULL;
 
-        RETURN(conn, result);
+        RETURN_VAL(conn, result);
     }
 
     INTERROR(conn, SASL_FAIL);
@@ -797,11 +797,11 @@ int _sasl_conn_init(sasl_conn_t *conn,
 
   result = sasl_setprop(conn, SASL_IPLOCALPORT, iplocalport);
   if(result != SASL_OK)
-      RETURN(conn, result);
+      RETURN_VAL(conn, result);
   
   result = sasl_setprop(conn, SASL_IPREMOTEPORT, ipremoteport);
   if(result != SASL_OK)
-      RETURN(conn, result);
+      RETURN_VAL(conn, result);
   
   conn->encode_buf = NULL;
   conn->context = NULL;
@@ -846,7 +846,7 @@ int _sasl_conn_init(sasl_conn_t *conn,
 
   if(result != SASL_OK) MEMERROR( conn );
 
-  RETURN(conn, SASL_OK);
+  RETURN_VAL(conn, SASL_OK);
 }
 
 int _sasl_common_init(sasl_global_callbacks_t *global_callbacks)
@@ -1133,11 +1133,11 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, const void **pvalue)
   } else if(result == SASL_NOTDONE) {
       sasl_seterror(conn, SASL_NOLOG,
 		    "Information that was requested is not yet available.");
-      RETURN(conn, result);
+      RETURN_VAL(conn, result);
   } else if(result != SASL_OK) {
       INTERROR(conn, result);
   } else
-      RETURN(conn, result); 
+      RETURN_VAL(conn, result);
 }
 
 /* set property in SASL connection state
@@ -1211,7 +1211,7 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
       if(props->maxbufsize == 0 && props->min_ssf != 0) {
 	  sasl_seterror(conn, 0,
 			"Attempt to disable security layers (maxoutbuf == 0) with min_ssf > 0");
-	  RETURN(conn, SASL_TOOWEAK);
+	  RETURN_VAL(conn, SASL_TOOWEAK);
       }
 
       conn->props = *props;
@@ -1233,7 +1233,7 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
       } else if (_sasl_ipfromstring(ipremoteport, NULL, 0)
 		 != SASL_OK) {
 	  sasl_seterror(conn, 0, "Bad IPREMOTEPORT value");
-	  RETURN(conn, SASL_BADPARAM);
+	  RETURN_VAL(conn, SASL_BADPARAM);
       } else {
 	  strcpy(conn->ipremoteport, ipremoteport);
 	  conn->got_ip_remote = 1;
@@ -1274,7 +1274,7 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
       } else if (_sasl_ipfromstring(iplocalport, NULL, 0)
 		 != SASL_OK) {
 	  sasl_seterror(conn, 0, "Bad IPLOCALPORT value");
-	  RETURN(conn, SASL_BADPARAM);
+	  RETURN_VAL(conn, SASL_BADPARAM);
       } else {
 	  strcpy(conn->iplocalport, iplocalport);
 	  conn->got_ip_local = 1;
@@ -1367,7 +1367,7 @@ int sasl_setprop(sasl_conn_t *conn, int propnum, const void *value)
       result = SASL_BADPARAM;
   }
   
-  RETURN(conn, result);
+  RETURN_VAL(conn, result);
 }
 
 /* this is apparently no longer a user function */
@@ -1823,7 +1823,7 @@ _sasl_proxy_policy(sasl_conn_t *conn,
 	(memcmp(auth_identity, requested_user, rlen) != 0)) {
 	sasl_seterror(conn, 0,
 		      "Requested identity not authenticated identity");
-	RETURN(conn, SASL_BADAUTH);
+	RETURN_VAL(conn, SASL_BADAUTH);
     }
 
     return SASL_OK;
@@ -1924,7 +1924,7 @@ int _sasl_getcallback(sasl_conn_t * conn,
   *pproc = NULL;
   *pcontext = NULL;
   sasl_seterror(conn, SASL_NOLOG, "Unable to find a callback: %d", callbackid);
-  RETURN(conn,SASL_FAIL);
+  RETURN_VAL(conn,SASL_FAIL);
 }
 
 
@@ -2517,10 +2517,10 @@ int sasl_listmech(sasl_conn_t *conn,
     if(!conn) {
 	return SASL_BADPARAM;
     } else if(conn->type == SASL_CONN_SERVER) {
-	RETURN(conn, _sasl_server_listmech(conn, user, prefix, sep, suffix,
+	RETURN_VAL(conn, _sasl_server_listmech(conn, user, prefix, sep, suffix,
 					   result, plen, pcount));
     } else if (conn->type == SASL_CONN_CLIENT) {
-	RETURN(conn, _sasl_client_listmech(conn, prefix, sep, suffix,
+	RETURN_VAL(conn, _sasl_client_listmech(conn, prefix, sep, suffix,
 					   result, plen, pcount));
     }
     

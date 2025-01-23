@@ -452,7 +452,7 @@ int sasl_client_new(const char *service,
 			   &client_idle, serverFQDN,
 			   iplocalport, ipremoteport,
 			   prompt_supp, &global_callbacks_client);
-  if (result != SASL_OK) RETURN(*pconn, result);
+  if (result != SASL_OK) RETURN_VAL(*pconn, result);
   
   utils = _sasl_alloc_utils(*pconn, &global_callbacks_client);
   if (utils == NULL) {
@@ -898,7 +898,7 @@ int sasl_client_start(sasl_conn_t *conn,
  done:
     if (ordered_mechs != NULL)
 	c_conn->cparams->utils->free(ordered_mechs);
-    RETURN(conn, result);
+    RETURN_VAL(conn, result);
 }
 
 /* do a single authentication step.
@@ -971,7 +971,7 @@ int sasl_client_step(sasl_conn_t *conn,
       }
   }  
 
-  RETURN(conn,result);
+  RETURN_VAL(conn,result);
 }
 
 /* returns the length of all the mechanisms

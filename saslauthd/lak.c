@@ -705,9 +705,8 @@ static int lak_expand_tokens(
 						strcat(buf,ebuf);
 						free(ebuf);
 					}
-				} else
-					syslog(LOG_DEBUG|LOG_AUTH, "Domain/Realm not available.");
-                                break;
+					break;
+				}
 			case 'R':
 			case 'r':
 				if (ISSET(realm)) {

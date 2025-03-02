@@ -2053,7 +2053,41 @@ static int gssapi_client_mech_step(void *conn_context,
     switch (text->state) {
 
     case SASL_GSSAPI_STATE_AUTHNEG:
-	/* try to get the userid */
+	/* try to get the authid for user */
+	if (text->user == NULL) {
+	    int user_result = SASL_OK;
+
+	    user_result = _plug_get_authid(params->utils, &text->user,
+					   prompt_need);
+
+	    if ((user_result != SASL_OK) && (user_result != SASL_INTERACT)) {
+		sasl_gss_free_context_contents(text);
+		return user_result;
+	    }
+
+	    /* free prompts we got */
+	    if (prompt_need && *prompt_need) {
+		params->utils->free(*prompt_need);
+		*prompt_need = NULL;
+	    }
+
+	    /* if there are prompts not filled in */
+	    if (user_result == SASL_INTERACT) {
+		/* make the prompt list */
+		int result =
+		    _plug_make_prompts(params->utils, prompt_need,
+				       "Please enter your authorization name", NULL,
+				       NULL, NULL,
+				       NULL, NULL,
+				       NULL, NULL, NULL,
+				       NULL, NULL, NULL);
+		if (result != SASL_OK) return result;
+
+		return SASL_INTERACT;
+	    }
+	}
+
+	/* try to get the userid if no authid for user is given*/
 	if (text->user == NULL) {
 	    int user_result = SASL_OK;
 	    
@@ -2087,6 +2121,26 @@ static int gssapi_client_mech_step(void *conn_context,
 	    }
 	}
 	    
+	if (text->client_name == GSS_C_NO_NAME && text->user && text->user[0]) { /* only once */
+	    name_token.length = strlen(text->user);
+	    name_token.value = (void*) text->user;
+
+	    GSS_LOCK_MUTEX_CTX(params->utils, text);
+	    maj_stat = gss_import_name (&min_stat,
+					&name_token,
+					GSS_C_NT_USER_NAME,
+					&text->client_name);
+	    GSS_UNLOCK_MUTEX_CTX(params->utils, text);
+
+	    name_token.value = NULL;
+
+	    if (GSS_ERROR(maj_stat)) {
+		sasl_gss_seterror(text->utils, maj_stat, min_stat);
+		sasl_gss_free_context_contents(text);
+		return SASL_FAIL;
+	    }
+	}
+
 	if (text->server_name == GSS_C_NO_NAME) { /* only once */
 	    if (params->serverFQDN == NULL
 		|| strlen(params->serverFQDN) == 0) {
@@ -2177,7 +2231,7 @@ static int gssapi_client_mech_step(void *conn_context,
                 }
 
 		if (text->client_creds == GSS_C_NO_CREDENTIAL) {
-		    maj_stat = gss_acquire_cred(&min_stat, GSS_C_NO_NAME,
+		    maj_stat = gss_acquire_cred(&min_stat, text->client_name,
 						GSS_C_INDEFINITE, desired_mechs,
 						GSS_C_INITIATE,
 						&text->client_creds, NULL, NULL);

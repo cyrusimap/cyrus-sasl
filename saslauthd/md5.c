@@ -397,9 +397,9 @@ void _saslauthd_hmac_md5_init(HMAC_MD5_CTX *hmac,
   _saslauthd_MD5Update(&hmac->octx, k_opad, 64);     /* apply outer pad */
 
   /* scrub the pads and key context (if used) */
-  MD5_memset(&k_ipad, 0, sizeof(k_ipad));
-  MD5_memset(&k_opad, 0, sizeof(k_opad));
-  MD5_memset(&tk, 0, sizeof(tk));
+  MD5_memset(k_ipad, 0, sizeof(k_ipad));
+  MD5_memset(k_opad, 0, sizeof(k_opad));
+  MD5_memset(tk, 0, sizeof(tk));
 
   /* and we're done. */
 }
@@ -424,7 +424,7 @@ void _saslauthd_hmac_md5_precalc(HMAC_MD5_STATE *state,
     state->istate[lupe] = htonl(hmac.ictx.state[lupe]);
     state->ostate[lupe] = htonl(hmac.octx.state[lupe]);
   }
-  MD5_memset(&hmac, 0, sizeof(hmac));
+  MD5_memset((POINTER)&hmac, 0, sizeof(hmac));
 }
 
 
@@ -432,7 +432,7 @@ void _saslauthd_hmac_md5_import(HMAC_MD5_CTX *hmac,
 				HMAC_MD5_STATE *state)
 {
   unsigned lupe;
-  MD5_memset(hmac, 0, sizeof(HMAC_MD5_CTX));
+  MD5_memset((POINTER)hmac, 0, sizeof(HMAC_MD5_CTX));
   for (lupe = 0; lupe < 4; lupe++) {
     hmac->ictx.state[lupe] = ntohl(state->istate[lupe]);
     hmac->octx.state[lupe] = ntohl(state->ostate[lupe]);

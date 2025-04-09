@@ -88,6 +88,7 @@ AC_ARG_ENABLE(obsolete_digest_attr,
               enable_obsolete_digest_attr=yes)
 
 AC_PROG_CC
+AC_C_PROTOTYPES
 AX_PROG_CC_FOR_BUILD
 AC_PROG_CPP
 AC_PROG_AWK

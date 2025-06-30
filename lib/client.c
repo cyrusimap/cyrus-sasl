@@ -279,6 +279,7 @@ client_idle(sasl_conn_t *conn)
 int sasl_client_init(const sasl_callback_t *callbacks)
 {
   int ret;
+  void *mutex = NULL;
   const add_plugin_list_t ep_list[] = {
       { "sasl_client_plug_init", (add_plugin_t *)sasl_client_add_plugin },
       { "sasl_canonuser_init", (add_plugin_t *)sasl_canonuser_add_plugin },
@@ -287,22 +288,30 @@ int sasl_client_init(const sasl_callback_t *callbacks)
 
   /* lock allocation type */
   _sasl_allocation_locked++;
-  
-  if(_sasl_client_active) {
-      /* We're already active, just increase our refcount */
-      /* xxx do something with the callback structure? */
-      _sasl_client_active++;
-      return SASL_OK;
-  }
 
   global_callbacks_client.callbacks = callbacks;
   global_callbacks_client.appname = NULL;
 
+  ret = _sasl_common_init(&global_callbacks_client, &mutex);
+  if (ret != SASL_OK) return ret;
+
+  if (_sasl_client_active) {
+      /* We're already active, just increase our refcount */
+      /* xxx do something with the callback structure? */
+      _sasl_client_active++;
+      sasl_MUTEX_UNLOCK(mutex);
+      return SASL_OK;
+  }
+
   cmechlist=sasl_ALLOC(sizeof(cmech_list_t));
-  if (cmechlist==NULL) return SASL_NOMEM;
+  if (cmechlist==NULL) {
+      sasl_MUTEX_UNLOCK(mutex);
+      return SASL_NOMEM;
+  }
 
   /* We need to call client_done if we fail now */
   _sasl_client_active = 1;
+  sasl_MUTEX_UNLOCK(mutex);
 
   /* load plugins */
   ret=init_mechlist();  
@@ -312,8 +321,6 @@ int sasl_client_init(const sasl_callback_t *callbacks)
   }
 
   sasl_client_add_plugin("EXTERNAL", &external_client_plug_init);
-
-  ret = _sasl_common_init(&global_callbacks_client);
 
   if (ret == SASL_OK)
       ret = _sasl_load_plugins(ep_list,

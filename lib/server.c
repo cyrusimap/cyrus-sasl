@@ -826,6 +826,7 @@ int sasl_server_init(const sasl_callback_t *callbacks,
     int ret;
     const sasl_callback_t *vf;
     const char *pluginfile = NULL;
+    void *mutex = NULL;
 #ifdef PIC
     sasl_getopt_t *getopt;
     void *context;
@@ -845,32 +846,33 @@ int sasl_server_init(const sasl_callback_t *callbacks,
     if (appname != NULL && strlen(appname) >= PATH_MAX)
 	return SASL_BADPARAM;
 
-    if (_sasl_server_active) {
-	/* We're already active, just increase our refcount */
-	/* xxx do something with the callback structure? */
-	_sasl_server_active++;
-	return SASL_OK;
-    }
-    
-    ret = _sasl_common_init(&global_callbacks);
-    if (ret != SASL_OK)
-	return ret;
- 
     /* verify that the callbacks look ok */
     ret = verify_server_callbacks(callbacks);
-    if (ret != SASL_OK)
+    if (ret != SASL_OK) {
+	sasl_MUTEX_UNLOCK(mutex);
 	return ret;
+    }
 
     global_callbacks.callbacks = callbacks;
-    
+
     /* A shared library calling sasl_server_init will pass NULL as appname.
        This should retain the original appname. */
     if (appname != NULL) {
         global_callbacks.appname = appname;
     }
 
+    ret = _sasl_common_init(&global_callbacks, &mutex);
+    if (ret != SASL_OK) return ret;
+
+    if (_sasl_server_active++) {
+	/* We're already active */
+	/* xxx do something with the callback structure? */
+	sasl_MUTEX_UNLOCK(mutex);
+	return SASL_OK;
+    }
+
     /* If we fail now, we have to call server_done */
-    _sasl_server_active = 1;
+    sasl_MUTEX_UNLOCK(mutex);
 
     /* allocate mechlist and set it to empty */
     mechlist = sasl_ALLOC(sizeof(mech_list_t));

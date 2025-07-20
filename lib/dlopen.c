@@ -465,8 +465,8 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
 /* only do the following if:
  * 
  * we support dlopen()
- *  AND we are not staticly compiled
- *      OR we are staticly compiled and TRY_DLOPEN_WHEN_STATIC is defined
+ *  AND we are not statically compiled
+ *      OR we are statically compiled and TRY_DLOPEN_WHEN_STATIC is defined
  */
 #if defined(DO_DLOPEN) && (defined(PIC) || (!defined(PIC) && defined(TRY_DLOPEN_WHEN_STATIC)))
     /* get the path to the plugins */

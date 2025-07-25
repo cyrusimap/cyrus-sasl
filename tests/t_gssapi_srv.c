@@ -37,7 +37,7 @@ static int setup_socket(void)
     if (sock < 0) s_error("socket", 0, 0, errno);
 
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr("127.0.0.9");
+    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     addr.sin_port = htons(9000);
 
     ret = bind(sock, (struct sockaddr *)&addr, sizeof(addr));
@@ -166,6 +166,9 @@ int main(int argc, char *argv[])
 
     if (cb.name) {
         sasl_setprop(conn, SASL_CHANNEL_BINDING, &cb);
+        sasl_security_properties_t secprops = { 0 };
+        secprops.security_flags = SASL_SEC_NONSTD_CBIND;
+        sasl_setprop(conn, SASL_SEC_PROPS, &secprops);
     }
 
     if (plain) {

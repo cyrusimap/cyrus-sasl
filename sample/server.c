@@ -569,10 +569,7 @@ int main(int argc, char *argv[])
 }
 
 #ifdef HAVE_GSS_GET_NAME_ATTRIBUTE
-static void displayStatus_1(m, code, type)
-    char *m;
-    OM_uint32 code;
-    int type;
+static void displayStatus_1(char *m, OM_uint32 code, int type)
 {
     OM_uint32 maj_stat, min_stat;
     gss_buffer_desc msg;
@@ -591,10 +588,7 @@ static void displayStatus_1(m, code, type)
     }
 }
 
-static void displayStatus(msg, maj_stat, min_stat)
-    char *msg;
-    OM_uint32 maj_stat;
-    OM_uint32 min_stat;
+static void displayStatus(char *msg, OM_uint32 maj_stat, OM_uint32 min_stat)
 {
     displayStatus_1(msg, maj_stat, GSS_C_GSS_CODE);
     displayStatus_1(msg, min_stat, GSS_C_MECH_CODE);

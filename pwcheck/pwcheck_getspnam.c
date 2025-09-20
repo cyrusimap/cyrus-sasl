@@ -44,11 +44,9 @@
 #include <shadow.h>
 #include <string.h>
 
-extern char *crypt();
+extern char *crypt(char *, char *);
 
-char *pwcheck(userid, password)
-char *userid;
-char *password;
+char *pwcheck(char *userid, char *password)
 {
     struct spwd *pwd;
     char *crpt_passwd;

@@ -7,6 +7,16 @@ Latest version is |sasl_current_stable_version|.
 Supported Product Series
 ========================
 
+Series 2.2
+----------
+
+.. toctree::
+    :maxdepth: 1
+    :glob:
+
+    2.2/index
+
+
 Series 2.1
 ----------
 

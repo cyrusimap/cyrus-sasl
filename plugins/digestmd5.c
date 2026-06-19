@@ -554,8 +554,10 @@ static int add_to_challenge(const sasl_utils_t *utils,
 	    if (quoted == NULL)
 		MEMERROR(utils);
 	    valuesize = strlen(quoted);
-	    /* As the quoted string is bigger, make sure we have enough
-	       space now */
+	    /* Recalculate newlen with the expanded (quoted) value size,
+	     * then reallocate. The initial newlen used the pre-quote
+	     * valuesize and is too small when escaping expands the string. */
+	    newlen = (unsigned) (*curlen + 1 + namesize + 2 + valuesize + 2);
 	    ret = _plug_buf_alloc(utils, str, buflen, newlen);
 	    if (ret == SASL_OK) {
 		strcat(*str, quoted);

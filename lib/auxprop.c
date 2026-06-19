@@ -191,6 +191,7 @@ int prop_dup(struct propctx *src_ctx, struct propctx **dst_ctx)
 
     /* Now dup the values */
     for(i=0; i<src_ctx->used_values; i++) {
+	if(!src_ctx->values[i].name) continue;
 	retval->values[i].name = src_ctx->values[i].name;
 	result = prop_setvals(retval, retval->values[i].name,
 			      src_ctx->values[i].values);

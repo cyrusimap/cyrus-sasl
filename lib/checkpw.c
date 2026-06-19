@@ -562,7 +562,7 @@ static int pwcheck_verify_password(sasl_conn_t *conn,
     }
 
     response[start] = '\0';
-    sasl_seterror(conn,0,response);
+    sasl_seterror(conn, 0, "%s", response);
     return SASL_BADAUTH;
 }
 

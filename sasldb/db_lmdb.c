@@ -65,6 +65,7 @@ static int do_open(const sasl_utils_t *utils,
 			 sasl_conn_t *conn,
 			 int rdwr, MDB_txn **mtxn)
 {
+    char *reg_path = NULL;
     char *path;
     void *cntxt;
     MDB_env *env;
@@ -74,22 +75,19 @@ static int do_open(const sasl_utils_t *utils,
     int readers = 0;
     int ret;
     int flags;
-    int path_needs_freepath = 0;
 
     if (!db_env) {
 
-	ret = _sasldb_getpath(utils, &path);
+	ret = _sasldb_getpath(utils, &reg_path);
 	if (ret) return ret;
-	path_needs_freepath = 1;
+	path = reg_path;
 
 	if (utils->getcallback(conn, SASL_CB_GETOPT,
 			       (sasl_callback_ft *)&getopt, &cntxt) == SASL_OK) {
 	    const char *p;
 	    if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK
 		&& p != NULL && *p != 0) {
-        SASLDB_FREEPATH(utils, path);
 		path = p;
-		path_needs_freepath = 0;
 	    }
 	    if (getopt(cntxt, NULL, "sasldb_maxreaders", &p, NULL) == SASL_OK
 		&& p != NULL && *p != 0) {
@@ -156,10 +154,6 @@ static int do_open(const sasl_utils_t *utils,
 	}
     } else {
     	env = db_env;
-        if (path_needs_freepath)
-            SASLDB_FREEPATH(utils, path);
-        path = NULL;
-        path_needs_freepath = 0;
     }
 
     ret = mdb_txn_begin(env, NULL, rdwr ? 0 : MDB_RDONLY, &txn);
@@ -193,8 +187,7 @@ static int do_open(const sasl_utils_t *utils,
     ret = SASL_OK;
 
 cleanup:
-    if (path_needs_freepath)
-        SASLDB_FREEPATH(utils, path);
+    SASLDB_FREEPATH(utils, reg_path);
     return ret;
 }
 
@@ -403,6 +396,7 @@ int _sasldb_putdata(const sasl_utils_t *utils,
 int _sasl_check_db(const sasl_utils_t *utils,
 		   sasl_conn_t *conn)
 {
+    char *reg_path;
     char *path;
     int ret;
     void *cntxt;
@@ -411,8 +405,9 @@ int _sasl_check_db(const sasl_utils_t *utils,
 
     if (!utils) return SASL_BADPARAM;
 
-    ret = _sasldb_getpath(utils, &path);
+    ret = _sasldb_getpath(utils, &reg_path);
     if (ret) return ret;
+    path = reg_path;
 
     if (utils->getcallback(conn, SASL_CB_GETOPT,
 			   (sasl_callback_ft *)&getopt, &cntxt) == SASL_OK) {
@@ -441,7 +436,7 @@ int _sasl_check_db(const sasl_utils_t *utils,
     }
 
 cleanup:
-    SASLDB_FREEPATH(utils, path);
+    SASLDB_FREEPATH(utils, reg_path);
     return ret;
 }
 

@@ -460,8 +460,7 @@ int opaque_server_plug_init(const sasl_utils_t *utils,
 			 int maxversion,
 			 int *out_version,
 			 const sasl_server_plug_t **pluglist,
-			 int *plugcount,
-			 const char *plugname __attribute__((unused))) {
+			 int *plugcount) {
     if (maxversion < SASL_SERVER_PLUG_VERSION) {
       utils->seterror(utils->conn, 0, "OPAQUE version mismatch");
       return SASL_BADVERS;
@@ -772,8 +771,7 @@ int opaque_client_plug_init(const sasl_utils_t *utils __attribute__((unused)),
                           int maxversion,
                           int *out_version,
                           const sasl_client_plug_t **pluglist,
-                          int *plugcount,
-                          const char *plugname __attribute__((unused))) {
+                          int *plugcount) {
     if (maxversion < SASL_CLIENT_PLUG_VERSION) {
       utils->seterror(utils->conn, 0, "OPAQUE version mismatch");
       return SASL_BADVERS;

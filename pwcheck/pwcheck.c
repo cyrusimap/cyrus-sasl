@@ -213,7 +213,7 @@ void newclient(int c)
     int n;
     unsigned int start;
     char *reply;
-    extern char *pwcheck();
+    extern char *pwcheck(char *userid, char *password);
     
     start = 0;
     while (start < sizeof(request) - 1) {

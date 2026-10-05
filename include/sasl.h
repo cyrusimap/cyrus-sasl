@@ -125,8 +125,8 @@
 
 /* Keep in sync with win32/common.mak */
 #define SASL_VERSION_MAJOR 2
-#define SASL_VERSION_MINOR 1
-#define SASL_VERSION_STEP 28
+#define SASL_VERSION_MINOR 2
+#define SASL_VERSION_STEP 0
 
 /* A convenience macro: same as was defined in the OpenLDAP LDAPDB */
 #define SASL_VERSION_FULL ((SASL_VERSION_MAJOR << 16) |\

@@ -20,7 +20,7 @@ diff -u -r1.192 configure.in
 +  SASL_MECHS="$SASL_MECHS libstripplus.la"
 +  if test "$enable_static" = yes; then
 +    SASL_STATIC_OBJS="$SASL_STATIC_OBJS ../plugins/stripplus.o"
-+    AC_DEFINE(STATIC_STRIPPLUS, [], [Link STRIPPLUS Staticly])
++    AC_DEFINE(STATIC_STRIPPLUS, [], [Link STRIPPLUS Statically])
 +  fi
 +else
 +  AC_MSG_RESULT(disabled)

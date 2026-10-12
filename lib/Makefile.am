@@ -49,7 +49,7 @@ AM_CPPFLAGS=-DLIBSASL_EXPORTS=1 -I$(top_srcdir)/include -I$(top_srcdir)/plugins 
                -I$(top_builddir)/include -I$(top_srcdir)/sasldb -I$(top_srcdir)/common -DCONFIGDIR='"${configdir}"' -DPLUGINDIR='"${plugindir}"'
 PLUGIN_COMMON_OBJS = $(top_builddir)/common/libplugin_common.la
 
-EXTRA_DIST = windlopen.c dlopen.c staticopen.h NTMakefile
+EXTRA_DIST = windlopen.c dlopen.c staticopen.h NTMakefile libsasl2.map
 EXTRA_LIBRARIES = libsasl2.a
 noinst_LIBRARIES = @SASL_STATIC_LIB@
 libsasl2_a_SOURCES=
@@ -83,11 +83,12 @@ libsasl2_la_SOURCES = $(common_sources) $(common_headers)
 libsasl2_la_LDFLAGS = -version-info $(sasl_version) -no-undefined
 if HAVE_LD_VERSION_SCRIPT
 EXTRA_libsasl2_la_DEPENDENCIES = libsasl2.map
+MAPADD_LIB=$(top_builddir)/lib/libsasl2.map
 libsasl2_la_LDFLAGS += -Wl,--version-script=$(srcdir)/libsasl2.map
 endif
 
 
-libsasl2_la_LIBADD = $(SASL_DL_LIB) $(SASL_STATIC_LIBS) $(LIB_SOCKET) $(LIB_DOOR) $(PLUGIN_COMMON_OBJS) -lcrypto
+libsasl2_la_LIBADD = $(SASL_DL_LIB) $(SASL_STATIC_LIBS) $(LIB_SOCKET) $(LIB_DOOR) $(PLUGIN_COMMON_OBJS) -lcrypto $(MAPADD_LIB)
 if BUILD_LIBOBJ
 libsasl2_la_LIBADD += libobj.la
 endif

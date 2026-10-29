@@ -356,7 +356,7 @@ else
 fi
 
 AC_ARG_WITH(crypto,
-  [AS_HELP_STRING([--with-crypto=openssl|callbacks],
+  [AS_HELP_STRING([--with-crypto=openssl|callbacks|cng],
                   [cryptographic backend (default: openssl)])],
   [], [with_crypto=openssl])
 AS_CASE([$with_crypto],
@@ -368,6 +368,29 @@ AS_CASE([$with_crypto],
     AC_DEFINE([HAVE_OPENSSL], [1], [Use the built-in OpenSSL crypto backend])
     CRYPTO_LIBS="-lcrypto $LIB_RSAREF"
   ],
+  [cng], [
+    with_openssl=no
+    save_LIBS="$LIBS"
+    LIBS="$LIBS -lbcrypt"
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#include <windows.h>
+#include <bcrypt.h>
+#ifndef _WIN32
+#error Native Windows target required
+#endif
+#ifndef BCRYPT_SHA256_ALG_HANDLE
+#error Windows 10 SDK required
+#endif
+]], [[
+    ULONG length, size;
+    return BCryptGetProperty(BCRYPT_SHA256_ALG_HANDLE, BCRYPT_HASH_LENGTH,
+                              (PUCHAR)&length, sizeof(length), &size, 0);
+]])], [], [AC_MSG_ERROR([CNG requires Windows and the Windows 10 SDK or later])])
+    LIBS="$save_LIBS"
+    CRYPTO_LIBS=-lbcrypt
+    AC_DEFINE([HAVE_CNG], [1], [Use the built-in Windows CNG crypto backend])
+    AC_DEFINE([HAVE_SHA512], [1], [Do we have SHA512?])
+  ],
   [callbacks], [
     with_openssl=no
     CRYPTO_LIBS=
@@ -376,6 +399,7 @@ AS_CASE([$with_crypto],
   [AC_MSG_ERROR([unsupported cryptographic backend: $with_crypto])])
 AC_SUBST([CRYPTO_LIBS])
 AM_CONDITIONAL([HAVE_OPENSSL], [test "$with_crypto" = openssl])
+AM_CONDITIONAL([HAVE_CNG], [test "$with_crypto" = cng])
 
 dnl SCRAM
 AC_ARG_ENABLE(scram, [  --enable-scram            enable SCRAM authentication [[yes]] ],

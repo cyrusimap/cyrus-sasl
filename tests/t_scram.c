@@ -12,7 +12,7 @@
 #include <saslutil.h>
 #include <prop.h>
 
-#if defined(HAVE_OPENSSL) || defined(TEST_EXTERNAL_CRYPTO)
+#if defined(HAVE_OPENSSL) || defined(HAVE_CNG) || defined(TEST_EXTERNAL_CRYPTO)
 
 extern sasl_client_plug_init_t scram_client_plug_init;
 extern sasl_server_plug_init_t scram_server_plug_init;
@@ -118,7 +118,8 @@ struct backend {
     const char *only_algorithm;
     const char *password;
     unsigned hash_calls, hmac_calls, pbkdf2_calls;
-    int fail_operation;
+    int fail_operation, fail_selection;
+    unsigned select_calls;
     struct {
         unsigned long len;
         unsigned char data[32];
@@ -188,6 +189,9 @@ static int test_select(void *context, const char *algorithm,
     unsigned i;
     binding_t *binding = NULL;
     int result;
+    backend->select_calls++;
+    if (backend->fail_selection)
+        return backend->fail_selection;
     for (i = 0; i < sizeof(names) / sizeof(names[0]); i++) {
         if (!strcmp(algorithm, names[i]))
             binding = &backend->bindings[i];
@@ -669,13 +673,13 @@ static void saved_credentials(void)
         CHECK(stored_count > 0);
         create_stored_secret = 0;
         use_stored_secret = 1;
-#ifdef HAVE_OPENSSL
+#if defined(HAVE_OPENSSL) || defined(HAVE_CNG)
         round_trip(mechanisms[i], 1, 0, 0, 0, 0, 0, 0);
 #else
         round_trip(mechanisms[i], 1, 1, 0, 0, 0, 0, 0);
 #endif
         use_stored_secret = 0;
-#ifdef HAVE_OPENSSL
+#if defined(HAVE_OPENSSL) || defined(HAVE_CNG)
         create_stored_secret = 1;
         round_trip(mechanisms[i], 1, 0, 0, 0, 0, 0, 0);
         create_stored_secret = 0;
@@ -723,6 +727,71 @@ static void mechanism_filter(void)
     sasl_dispose(&bs);
 }
 
+static void client_mechanism_selection(void)
+{
+    static const int errors[] = {SASL_NOMEM, SASL_FAIL, SASL_BADPARAM};
+    backend_t backend;
+    sasl_callback_t cb[9];
+    sasl_conn_t *client = NULL;
+    sasl_interact_t *interact = NULL;
+    const char *out, *chosen;
+    unsigned len, i;
+    const char *list = "SCRAM-SHA-512 SCRAM-SHA-384 SCRAM-SHA-256 "
+                       "SCRAM-SHA-224 SCRAM-SHA-1";
+
+    init_backend(&backend);
+    backend.only_algorithm = "SHA1";
+    callbacks(cb, &backend, 1);
+    CHECK(sasl_client_new("test", "localhost", NULL, NULL, cb, 0, &client) == SASL_OK);
+    CHECK(sasl_client_start(client, list, &interact, &out, &len, &chosen) == SASL_CONTINUE);
+    CHECK(!strcmp(chosen, "SCRAM-SHA-1"));
+    CHECK(backend.select_calls > 1);
+    sasl_dispose(&client);
+
+    /* A backend error must not silently select a different mechanism. */
+    for (i = 0; i < sizeof(errors) / sizeof(errors[0]); i++) {
+        init_backend(&backend);
+        backend.fail_selection = errors[i];
+        callbacks(cb, &backend, 1);
+        CHECK(sasl_client_new("test", "localhost", NULL, NULL, cb, 0, &client) == SASL_OK);
+        CHECK(sasl_client_start(client, list, &interact, &out, &len, &chosen) == errors[i]);
+        CHECK(backend.select_calls == 1);
+        sasl_dispose(&client);
+    }
+}
+
+#ifdef HAVE_CNG
+static void cng_mechanisms(void)
+{
+    backend_t backend;
+    sasl_callback_t cb[9];
+    sasl_conn_t *client = NULL, *server = NULL;
+    sasl_interact_t *interact = NULL;
+    const char *list, *out, *chosen;
+    unsigned len;
+    int count;
+
+    init_backend(&backend);
+    callbacks(cb, &backend, 0);
+    CHECK(sasl_client_new("test", "localhost", NULL, NULL, cb, 0, &client) == SASL_OK);
+    CHECK(sasl_client_start(client, "SCRAM-SHA-224", &interact, &out, &len,
+                            &chosen) == SASL_NOMECH);
+    sasl_dispose(&client);
+    CHECK(sasl_client_new("test", "localhost", NULL, NULL, cb, 0, &client) == SASL_OK);
+    CHECK(sasl_client_start(client, "SCRAM-SHA-224 SCRAM-SHA-1", &interact,
+                            &out, &len, &chosen) == SASL_CONTINUE);
+    CHECK(!strcmp(chosen, "SCRAM-SHA-1"));
+    sasl_dispose(&client);
+    CHECK(sasl_server_new("test", "localhost", NULL, NULL, NULL, cb, 0,
+                          &server) == SASL_OK);
+    CHECK(sasl_listmech(server, NULL, "", " ", "", &list, &len, &count) == SASL_OK);
+    CHECK(strstr(list, "SCRAM-SHA-1") && strstr(list, "SCRAM-SHA-256"));
+    CHECK(strstr(list, "SCRAM-SHA-384") && strstr(list, "SCRAM-SHA-512"));
+    CHECK(strstr(list, "SCRAM-SHA-224") == NULL);
+    sasl_dispose(&server);
+}
+#endif
+
 int main(int argc, char **argv)
 {
     backend_t global;
@@ -761,7 +830,8 @@ int main(int argc, char **argv)
                "6rriTRBi23WpRR/wtup+mMhUZUn/dB5nLTJRsjl95G4=");
     for (i = 0; i < sizeof(mechanisms) / sizeof(mechanisms[0]); i++) {
         round_trip(mechanisms[i], 1, 1, 0, 0, 0, 0, 0);
-#ifdef HAVE_OPENSSL
+#if defined(HAVE_OPENSSL) || defined(HAVE_CNG)
+        round_trip(mechanisms[i], 0, 0, 0, 0, 0, 0, 0);
         round_trip(mechanisms[i], 1, 0, 0, 0, 0, 0, 0);
         round_trip(mechanisms[i], 0, 1, 0, 0, 0, 0, 0);
 #endif
@@ -779,6 +849,10 @@ int main(int argc, char **argv)
     round_trip("SCRAM-SHA-224-PLUS", 0, 1, 0, 0, 0, 0, 0);
 #endif
 #endif
+#ifdef HAVE_CNG
+    cng_mechanisms();
+#endif
+    client_mechanism_selection();
     mechanism_filter();
     interleaved_exchanges();
     invalid_iterations();

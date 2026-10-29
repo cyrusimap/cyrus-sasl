@@ -15,11 +15,11 @@ sample_server_objs = sample-server.obj
 common_objs = $(common_objs) $(compat_objs)
 !ENDIF
 
-all_objs = $(common_objs) $(server_objs) $(client_objs) $(sample_client_objs) $(sample_server_objs)
-all_out = $(sample_apps) $(sample_out)
+all_objs = sample-client-cng.obj crypto-cng.obj $(common_objs) $(server_objs) $(client_objs) $(sample_client_objs) $(sample_server_objs)
+all_out = $(sample_apps) $(sample_out) sample-cng-client.exe sample-cng-client.lib sample-cng-client.exp
 
 DB_FLAGS = /I "$(DB_INCLUDE)"
-CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" $(DB_FLAGS) $(COMMON_CPPFLAGS)
+CPPFLAGS = /I "..\common" /I "..\win32\include" /I "." /I "..\include" $(DB_FLAGS) $(COMMON_CPPFLAGS)
 CPPFLAGS = $(CPPFLAGS) /DNEED_GETOPT
 
 !IF $(TARGET_WIN_SYSTEM) >= 51
@@ -68,6 +68,18 @@ sample-server.exe: $(sample_server_objs)
 
 sample-client.exe: $(sample_client_objs)
 	$(LINK32EXE) @<< $(LINK32EXE_FLAGS) /pdb:"sample-client.pdb" /out:"sample-client.exe" $(sample_client_objs)
+<<
+	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;1
+
+# Explicit Windows 10+ crypto callback demonstration target.
+sample-client-cng.obj: sample-client.c ..\common\crypto-cng.h
+	$(CPP) $(CPP_PROJ) /DSAMPLE_CNG_CRYPTO /Fo$@ sample-client.c
+
+crypto-cng.obj: ..\common\crypto-cng.c ..\common\crypto-cng.h
+	$(CPP) $(CPP_PROJ) ..\common\crypto-cng.c
+
+sample-cng-client.exe: sample-client-cng.obj crypto-cng.obj
+	$(LINK32EXE) @<< $(LINK32EXE_FLAGS) bcrypt.lib /pdb:"sample-cng-client.pdb" /out:"sample-cng-client.exe" sample-client-cng.obj crypto-cng.obj
 <<
 	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;1
 

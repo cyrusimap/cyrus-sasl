@@ -135,12 +135,14 @@
     <Lib />
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\common\crypto-compat.c" Condition="'$(SaslCryptoBackend)'!='callbacks'" />
+    <ClCompile Include="..\common\crypto-compat.c" Condition="'$(SaslCryptoBackend)'=='openssl'" />
+    <ClCompile Include="..\common\crypto-cng.c" Condition="'$(SaslCryptoBackend)'=='cng'" />
     <ClCompile Include="..\common\sasl_crypto.c" />
     <ClCompile Include="..\common\plugin_common.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\crypto-compat.h" />
+    <ClInclude Include="..\common\crypto-cng.h" />
     <ClInclude Include="..\common\plugin_common.h" />
     <ClInclude Include="..\common\sasl_crypto.h" />
   </ItemGroup>

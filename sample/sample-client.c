@@ -57,6 +57,9 @@ __declspec(dllimport) int getsubopt(char **optionp, const char * const *tokens, 
 #include <sasl.h>
 #include <saslplug.h>
 #include <saslutil.h>
+#ifdef SAMPLE_CNG_CRYPTO
+#include "crypto-cng.h"
+#endif
 
 #ifdef macintosh
 #include <sioux.h>
@@ -83,7 +86,7 @@ int main(void)
 #include <unistd.h>
 #endif
 
-#ifndef HAVE_GETSUBOPT
+#if !defined(HAVE_GETSUBOPT) && !defined(WIN32)
 int getsubopt(char **optionp, const char * const *tokens, char **valuep);
 #endif
 
@@ -140,12 +143,30 @@ static const char *ip_subopts[] = {
 };
 
 static sasl_conn_t *conn = NULL;
+static sasl_secret_t *client_secret = NULL;
+
+static void
+erase_memory(void *buffer, size_t length)
+{
+  char *cursor = buffer;
+  while (length) {
+    unsigned chunk = length > UINT_MAX ? UINT_MAX : (unsigned)length;
+    sasl_erasebuffer(cursor, chunk);
+    cursor += chunk;
+    length -= chunk;
+  }
+}
 
 static void
 free_conn(void)
 {
   if (conn)
     sasl_dispose(&conn);
+  if (client_secret) {
+    erase_memory(client_secret, sizeof(*client_secret) + client_secret->len);
+    free(client_secret);
+    client_secret = NULL;
+  }
 }
 
 static int
@@ -253,27 +274,35 @@ getsecret(sasl_conn_t *conn,
 	  sasl_secret_t **psecret)
 {
   char *password;
-  unsigned len;
+  size_t len;
 
   if (! conn || ! psecret || id != SASL_CB_PASS)
     return SASL_BADPARAM;
+  *psecret = NULL;
+  if (client_secret) {
+    *psecret = client_secret;
+    return SASL_OK;
+  }
 
   password = getpassphrase("Password: ");
   if (! password)
     return SASL_FAIL;
 
-  len = (unsigned) strlen(password);
-
-  *psecret = (sasl_secret_t *) malloc(sizeof(sasl_secret_t) + len);
-  
-  if (! *psecret) {
-    memset(password, 0, len);
+  len = strlen(password);
+  if (len > ULONG_MAX || len > (size_t)-1 - sizeof(*client_secret)) {
+    erase_memory(password, len);
+    return SASL_BUFOVER;
+  }
+  client_secret = malloc(sizeof(*client_secret) + len);
+  if (!client_secret) {
+    erase_memory(password, len);
     return SASL_NOMEM;
   }
 
-  (*psecret)->len = len;
-  strcpy((char *)(*psecret)->data, password);
-  memset(password, 0, len);
+  client_secret->len = (unsigned long)len;
+  memcpy(client_secret->data, password, len + 1);
+  erase_memory(password, len);
+  *psecret = client_secret;
     
   return SASL_OK;
 }
@@ -454,6 +483,10 @@ main(int argc, char *argv[])
     progname++;
   else
     progname = argv[0];
+
+  /* Callback-owned secrets outlive the connection, including error exits. */
+  if (atexit(free_conn) != 0)
+    fail("Unable to register connection cleanup");
 
   /* Init defaults... */
   memset(&secprops, 0L, sizeof(secprops));
@@ -700,6 +733,16 @@ main(int argc, char *argv[])
   callback->proc = (sasl_callback_ft)&prompt;
   callback->context = NULL;
   ++callback;
+
+#ifdef SAMPLE_CNG_CRYPTO
+  /* Compile the CNG adapter into the application, not the SASL library.
+   * The callback also works with a callbacks-only library build.
+   */
+  callback->id = SASL_CB_CRYPTO;
+  callback->proc = (sasl_callback_ft)&_sasl_cng_getcrypto;
+  callback->context = NULL;
+  ++callback;
+#endif
 
   /* termination */
   callback->id = SASL_CB_LIST_END;

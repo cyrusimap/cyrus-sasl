@@ -17,7 +17,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <PreprocessorDefinitions>GCC_FALLTHROUGH=;LIBSASL_EXPORTS;WIN32;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GCC_FALLTHROUGH=;WIN32;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>include;..\include;..\lib;..\plugins;..\sasldb;..\common;$(SaslDependencyRoot)\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -28,14 +28,26 @@
       <AdditionalLibraryDirectories>$(SaslDependencyLibDir)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(ConfigurationType)'!='Application'">
+    <ClCompile>
+      <PreprocessorDefinitions>LIBSASL_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(SaslCryptoBackend)'=='callbacks'">
     <ClCompile>
       <PreprocessorDefinitions>SASL_NO_OPENSSL;HAVE_SHA512=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(SaslCryptoBackend)'=='cng'">
+    <ClCompile>
+      <PreprocessorDefinitions>SASL_NO_OPENSSL;HAVE_CNG=1;HAVE_SHA512=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
   <Target Name="ValidateCryptoBackend" BeforeTargets="ClCompile">
-    <Error Condition="'$(SaslCryptoBackend)'!='openssl' and '$(SaslCryptoBackend)'!='callbacks'" Text="SaslCryptoBackend must be openssl or callbacks." />
-    <Error Condition="'$(SaslCryptoBackend)'=='callbacks' and ('$(ProjectName)'=='plugin_otp' or '$(ProjectName)'=='plugin_srp')" Text="This mechanism requires the OpenSSL backend." />
+    <Error Condition="'$(SaslCryptoBackend)'!='openssl' and '$(SaslCryptoBackend)'!='callbacks' and '$(SaslCryptoBackend)'!='cng'" Text="SaslCryptoBackend must be openssl, callbacks or cng." />
   </Target>
   <ItemGroup>
     <BuildMacro Include="InstallRoot">

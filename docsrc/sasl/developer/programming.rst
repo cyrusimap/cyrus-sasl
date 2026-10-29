@@ -847,10 +847,10 @@ must not log sensitive input. Prefer streaming hash implementations and
 optimized PBKDF2 implementations: the library makes one PBKDF2 call per key
 derivation, rather than a callback for each HMAC iteration.
 
-When the callback is absent, the built-in OpenSSL implementation is used.
+When the callback is absent, the backend selected at build time is used.
 A registered callback is authoritative: unsupported algorithms and operation
-failures never fall back to OpenSSL. No existing public structure layout is
-changed by this callback.
+failures never fall back to the built-in backend. No existing public structure
+layout is changed by this callback.
 
 The default build continues to use OpenSSL. Configure with
 ``--with-crypto=callbacks`` to omit the built-in backend and its OpenSSL
@@ -860,3 +860,78 @@ is rejected because those mechanisms still require OpenSSL. Independently
 selected dependencies may themselves use OpenSSL. For Windows builds, use
 ``SASL_CRYPTO=callbacks`` with NMake or
 ``/p:SaslCryptoBackend=callbacks`` with MSBuild.
+
+
+Windows CNG backend and callback example
+----------------------------------------
+
+Windows builds can use Cryptography API: Next Generation (CNG) instead of
+OpenSSL for the operations described above. Select ``SASL_CRYPTO=cng`` with
+NMake, ``/p:SaslCryptoBackend=cng`` with MSBuild, or ``--with-crypto=cng`` with
+Autotools targeting native Windows. OpenSSL remains the default. Clean NMake
+builds before changing backends, as NMake does not track compiler options.
+
+The CNG backend requires Windows 10 or later and a Windows 10 SDK or later.
+It uses immutable algorithm pseudo-handles, independent per-operation hash
+objects and the system PBKDF2 implementation. It neither copies whole input
+messages nor retains application passwords or keys. Hash and HMAC input is
+streamed in chunks bounded by the Windows API's length type. Keys, passwords
+and salts exceeding ``ULONG_MAX`` bytes are rejected before narrowing.
+Failed operation outputs are erased. The system owns and destroys internal
+hash and key state through ``BCryptDestroyHash``.
+
+MD5, SHA-1, SHA-256, SHA-384 and SHA-512 are supported, subject to system
+cryptographic policy. SHA-224 is unsupported and returns ``SASL_NOMECH``;
+SHA-256 is never truncated as a substitute. This enables the corresponding
+SCRAM and SCRAM-PLUS mechanisms, APOP and legacy secret verification without
+OpenSSL or an application crypto callback. Server availability checks omit
+unsupported hashes. Before a protocol step has run, client selection skips
+mechanisms whose initialization returns ``SASL_NOMECH`` with no connection
+context, and considers the remaining allowed mechanisms. Other errors are
+returned without retrying. This does not retry authentication after a failed
+protocol exchange or fall back to another backend for an algorithm rejected
+by a callback. CNG does not remove the OpenSSL dependencies of OTP, SRP or
+PASSDSS; those mechanisms cannot be selected with this backend. Other independently selected mechanisms and dependencies retain
+their requirements. TLS channel binding must still come from the application's
+actual TLS connection; this backend does not provide a TLS implementation.
+
+The optional ``sample-cng-client`` target builds the existing sample client
+with an application-owned ``SASL_CB_CRYPTO`` callback. The callback adapter in
+``common/crypto-cng.c`` uses only the public callback contract and Windows
+APIs, and is compiled directly into the executable. Its header is private,
+not an installed or exported SASL API. Sharing this source with the built-in
+backend keeps the cryptographic implementation in one place. Applications
+can adapt it without depending on a private library symbol.
+
+For example, in a Visual Studio developer command prompt:
+
+.. code-block:: doscon
+
+    msbuild win32\sample_cng_client.vcxproj /p:Configuration=Release /p:Platform=x64 /p:SaslCryptoBackend=callbacks /p:WindowsTargetPlatformVersion=10.0
+
+Select the installed toolset with ``/p:PlatformToolset=...`` when necessary.
+The project builds the callbacks-only core as a dependency; the application
+provides all three cryptographic operations through CNG. Alternatively, first
+build the NMake core in callbacks mode, then run from ``sample``:
+
+.. code-block:: doscon
+
+    nmake /f NTMakefile SASL_CRYPTO=callbacks sample-cng-client.exe
+
+Keep the resulting SASL DLL accessible to the sample. With Autotools, the
+sample is included in a CNG build and can also be built explicitly with
+``make -C sample sample-cng-client`` on a native Windows target.
+The client keeps the existing sample client's options and line-oriented
+challenge/response interface. It is not a TLS client: SCRAM-PLUS requires
+real channel-binding data supplied by a TLS-capable application. Use the
+sample with a test account and avoid verbose logging of authentication data.
+
+The Windows API contracts are documented in Microsoft's
+`CNG algorithm pseudo-handles <https://learn.microsoft.com/windows/win32/seccng/cng-algorithm-pseudo-handles>`_
+and `BCryptDeriveKeyPBKDF2 <https://learn.microsoft.com/windows/win32/api/bcrypt/nf-bcrypt-bcryptderivekeypbkdf2>`_
+references.
+
+The CNG known-answer and concurrency test is part of ``make check`` for CNG
+builds. It can also be built with ``win32/test_cng.vcxproj`` and run as
+``test_cng.exe``. The SCRAM tests exercise both implicit backend selection
+and explicit application callbacks, including their failure paths.

@@ -8,7 +8,7 @@ compat_objs = getaddrinfo.obj getnameinfo.obj
 !ENDIF
 
 
-libsasl_objs = auxprop.obj canonusr.obj checkpw.obj client.obj common.obj config.obj external.obj saslutil.obj server.obj seterror.obj windlopen.obj getsubopt.obj plugin_common.obj sasl_crypto.obj $(compat_objs)
+libsasl_objs = auxprop.obj canonusr.obj checkpw.obj client.obj common.obj config.obj external.obj saslutil.obj server.obj seterror.obj windlopen.obj getsubopt.obj plugin_common.obj sasl_crypto.obj $(cng_objs) $(compat_objs)
 libsasl_res = libsasl.res
 libsasl_out = libsasl.dll libsasl.exp libsasl.lib $(libsasl_res)
 
@@ -49,7 +49,7 @@ install: libsasl.dll
 all-recursive: libsasl.dll
 
 libsasl.dll: $(libsasl_objs) $(libsasl_res)
-	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) $(OPENSSL_LIBS) /out:"libsasl.dll" /implib:"libsasl.lib" /pdb:"libsasl.pdb" $(libsasl_objs) $(libsasl_res)
+	$(LINK32DLL) @<< $(LINK32DLL_FLAGS) $(CRYPTO_LIBS) /out:"libsasl.dll" /implib:"libsasl.lib" /pdb:"libsasl.pdb" $(libsasl_objs) $(libsasl_res)
 <<
 	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 
@@ -59,7 +59,10 @@ plugin_common.c: ..\common\plugin_common.c plugin_common.h
 plugin_common.h: ..\common\plugin_common.h
 	xcopy /D /Y ..\common\plugin_common.h .
 
-sasl_crypto.obj: ..\common\sasl_crypto.c ..\common\sasl_crypto.h
+crypto-cng.obj: ..\common\crypto-cng.c ..\common\crypto-cng.h
+	$(CPP) $(CPP_PROJ) ..\common\crypto-cng.c
+
+sasl_crypto.obj: ..\common\sasl_crypto.c ..\common\sasl_crypto.h ..\common\crypto-cng.h
 	$(CPP) $(CPP_PROJ) ..\common\sasl_crypto.c
 
 auxprop.obj checkpw.obj client.obj common.obj external.obj plugin_common.obj server.obj seterror.obj: ..\include\saslplug.h

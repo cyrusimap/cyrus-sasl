@@ -89,6 +89,12 @@ t_crypto_SOURCES = t_crypto.c
 t_crypto_LDADD = ../common/libsasl_crypto.la $(CRYPTO_LIBS) $(LIB_SOCKET)
 
 TESTS = t_crypto
+if HAVE_CNG
+check_PROGRAMS += t_cng
+TESTS += t_cng
+t_cng_SOURCES = t_cng.c
+t_cng_LDADD = ../common/libsasl_crypto.la $(CRYPTO_LIBS)
+endif
 if SCRAM
 check_PROGRAMS += t_scram
 TESTS += t_scram t_scram_global.sh

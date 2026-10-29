@@ -61,6 +61,9 @@ libplugin_common_la_LDFLAGS = -version-info $(plugin_common_version) -no-undefin
 libplugin_common_la_LIBADD = $(LIB_SOCKET)
 
 libsasl_crypto_la_SOURCES = sasl_crypto.c sasl_crypto.h
+if HAVE_CNG
+libsasl_crypto_la_SOURCES += crypto-cng.c crypto-cng.h
+endif
 libsasl_crypto_la_LDFLAGS = -version-info $(sasl_crypto_version) -no-undefined
 libsasl_crypto_la_LIBADD = $(CRYPTO_LIBS)
 

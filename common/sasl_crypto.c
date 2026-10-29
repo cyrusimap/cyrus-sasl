@@ -9,6 +9,9 @@
 #include <sys/uio.h>
 #endif
 #include "sasl_crypto.h"
+#ifdef HAVE_CNG
+#include "crypto-cng.h"
+#endif
 
 #ifdef HAVE_OPENSSL
 #include <openssl/evp.h>
@@ -145,6 +148,8 @@ int _sasl_crypto_default(void *context __attribute__((unused)),
         return SASL_NOMECH;
     *operations = &openssl_operations;
     return SASL_OK;
+#elif defined(HAVE_CNG)
+    return _sasl_cng_getcrypto(NULL, algorithm, operations, crypto_context);
 #else
     (void)algorithm;
     return SASL_NOMECH;

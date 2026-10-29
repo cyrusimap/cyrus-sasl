@@ -215,7 +215,7 @@ int main(void)
     a.lookup_result = SASL_NOMEM;
     CHECK(_sasl_crypto_init(&au, "SHA256", &ac) == SASL_NOMEM);
     a.lookup_result = SASL_FAIL;
-#ifdef HAVE_OPENSSL
+#if defined(HAVE_OPENSSL) || defined(HAVE_CNG)
     CHECK(_sasl_crypto_init(&au, "SHA256", &ac) == SASL_OK);
     {
         static const unsigned char hash[] = {
@@ -240,12 +240,14 @@ int main(void)
         CHECK(!memcmp(output, mac, sizeof(mac)));
         CHECK(_sasl_crypto_pbkdf2(&ac, NULL, 0, NULL, 0, 1, output) == SASL_OK);
         CHECK(!memcmp(output, derived, sizeof(derived)));
+#ifdef HAVE_OPENSSL
         CHECK(_sasl_crypto_hmac(&ac, message, (size_t)INT_MAX + 1, NULL, 0,
                                 output) == SASL_BADPARAM);
         CHECK(all_bytes(output, 32, 0));
         CHECK(_sasl_crypto_pbkdf2(&ac, message, (size_t)INT_MAX + 1, NULL, 0, 1,
                                   output) == SASL_BADPARAM);
         CHECK(all_bytes(output, 32, 0));
+#endif
     }
 #else
     CHECK(_sasl_crypto_init(&au, "SHA256", &ac) == SASL_NOMECH);

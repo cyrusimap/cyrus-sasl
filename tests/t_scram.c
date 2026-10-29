@@ -28,6 +28,84 @@ extern sasl_getcrypto_t test_external_crypto;
         }                                                                      \
     } while (0)
 
+/* Observe derived keys so freeing an uncleared mechanism context is a failure.
+ */
+static unsigned char observed[32][SASL_MAX_HASH_SIZE];
+static unsigned observed_lengths[32], observed_count;
+
+typedef union allocation_header {
+    size_t size;
+    long double alignment;
+    void *pointer_alignment;
+} allocation_header_t;
+
+static void *test_malloc(size_t size)
+{
+    allocation_header_t *allocation;
+    if (size > (size_t)-1 - sizeof(*allocation))
+        return NULL;
+    allocation = malloc(sizeof(*allocation) + size);
+    if (allocation == NULL)
+        return NULL;
+    allocation->size = size;
+    return allocation + 1;
+}
+
+static void *test_calloc(size_t count, size_t size)
+{
+    void *allocation;
+    if (size && count > (size_t)-1 / size)
+        return NULL;
+    allocation = test_malloc(count * size);
+    if (allocation)
+        memset(allocation, 0, count * size);
+    return allocation;
+}
+
+static void *test_realloc(void *pointer, size_t size)
+{
+    allocation_header_t *allocation;
+    if (pointer == NULL)
+        return test_malloc(size);
+    if (size > (size_t)-1 - sizeof(*allocation))
+        return NULL;
+    allocation =
+        realloc((allocation_header_t *)pointer - 1, sizeof(*allocation) + size);
+    if (allocation == NULL)
+        return NULL;
+    allocation->size = size;
+    return allocation + 1;
+}
+
+static void test_free(void *pointer)
+{
+    allocation_header_t *allocation;
+    size_t offset;
+    unsigned i, length;
+    if (pointer == NULL)
+        return;
+    allocation = (allocation_header_t *)pointer - 1;
+    for (i = 0; i < observed_count; i++) {
+        length = observed_lengths[i];
+        if (allocation->size < length)
+            continue;
+        for (offset = 0; offset <= allocation->size - length; offset++)
+            CHECK(memcmp((char *)pointer + offset, observed[i], length) != 0);
+    }
+    free(allocation);
+}
+
+static void observe(const unsigned char *output, unsigned length, int result)
+{
+    if (result != SASL_OK)
+        return;
+    CHECK(observed_count <
+          sizeof(observed_lengths) / sizeof(observed_lengths[0]));
+    CHECK(length <= SASL_MAX_HASH_SIZE);
+    memcpy(observed[observed_count], output, length);
+    observed_lengths[observed_count++] = length;
+}
+
 typedef struct backend backend_t;
 typedef struct binding {
     backend_t *backend;
@@ -58,6 +136,7 @@ static int test_hash(void *context, const struct iovec *input, unsigned count,
         return SASL_NOMEM;
     result = binding->operations->hash(binding->context, input, count, output,
                                        outputlen);
+    observe(output, outputlen, result);
     return result;
 }
 
@@ -73,6 +152,7 @@ static int test_hmac(void *context, const unsigned char *key, size_t keylen,
         return SASL_NOMEM;
     result = binding->operations->hmac(binding->context, key, keylen, input,
                                        inputlen, output, outputlen);
+    observe(output, outputlen, result);
     return result;
 }
 
@@ -90,6 +170,9 @@ static int test_pbkdf2(void *context, const unsigned char *password,
     result = binding->operations->pbkdf2(binding->context, password,
                                          passwordlen, salt, saltlen, iterations,
                                          output, outputlen);
+    /* The server also derives a public salt with 20 iterations. */
+    if (iterations != 20)
+        observe(output, outputlen, result);
     return result;
 }
 
@@ -163,7 +246,7 @@ static int test_path(void *context, const char **path)
 static int test_confpath(void *context, char **path)
 {
     (void)context;
-    *path = malloc(1);
+    *path = test_malloc(1);
     if (*path == NULL)
         return SASL_NOMEM;
     **path = '\0';
@@ -310,6 +393,7 @@ static void rfc_vector(const char *algorithm, unsigned size, const char *nonce,
     unsigned saltlen, i;
     int length;
 
+    observed_count = 0;
     init_backend(&backend);
     CHECK(test_select(&backend, algorithm, &ops, &context) == SASL_OK);
     CHECK(sasl_decode64(s, (unsigned)(end - s), (char *)salt, sizeof(salt),
@@ -362,6 +446,7 @@ static void round_trip(const char *mechanism, int custom_client,
     unsigned len, replylen;
     int result, plus = strstr(mechanism, "-PLUS") != NULL;
 
+    observed_count = 0;
     init_backend(&client_backend);
     init_backend(&server_backend);
     if (bad_password)
@@ -432,14 +517,21 @@ static void round_trip(const char *mechanism, int custom_client,
         }
     }
     if (create_stored_secret) {
+        /* A length-delimited password need not have a trailing NUL. */
+        char *password = malloc(6);
+        CHECK(password != NULL);
+        memcpy(password, "pencil", 6);
         server_backend.fail_operation = store_failure;
-        result = sasl_setpass(server, "user", "pencil", 6, NULL, 0,
+        result = sasl_setpass(server, "user", password, 6, NULL, 0,
                               SASL_SET_NOPLAIN | SASL_SET_CURMECH_ONLY);
+        sasl_erasebuffer(password, 6);
+        free(password);
         CHECK(result == (store_failure ? SASL_NOMEM : SASL_OK));
     }
 done:
     sasl_dispose(&client);
     sasl_dispose(&server);
+    observed_count = 0;
 }
 
 static void interleaved_exchanges(void)
@@ -451,6 +543,7 @@ static void interleaved_exchanges(void)
     const char *output[2], *reply[2], *chosen;
     unsigned length[2], replylen[2], i;
     sasl_interact_t *interact = NULL;
+    observed_count = 0;
     init_backend(&client_backend);
     init_backend(&server_backend);
     callbacks(cc, &client_backend, 1);
@@ -477,6 +570,7 @@ static void interleaved_exchanges(void)
         sasl_dispose(&clients[i]);
         sasl_dispose(&servers[i]);
     }
+    observed_count = 0;
 }
 
 static void invalid_iterations(void)
@@ -515,6 +609,7 @@ static void check_passwords(void)
     sasl_conn_t *server = NULL;
     init_backend(&backend);
     callbacks(cb, &backend, 1);
+    observed_count = 0;
     use_legacy_secret = 1;
     CHECK(sasl_server_new("test", "localhost", NULL, NULL, NULL, cb, 0,
                           &server) == SASL_OK);
@@ -531,6 +626,7 @@ static void check_passwords(void)
     CHECK(sasl_checkpass(server, "user", 4, "pencil", 6) != SASL_OK);
     sasl_dispose(&server);
     use_legacy_secret = 0;
+    observed_count = 0;
 #ifdef DO_SASL_CHECKAPOP
     {
         const char challenge[] = "<test-challenge@localhost>";
@@ -556,6 +652,7 @@ static void check_passwords(void)
                                 values) >= 0);
             CHECK(values[0].values == NULL);
             sasl_dispose(&server);
+            observed_count = 0;
         }
     }
 #endif
@@ -636,6 +733,7 @@ int main(int argc, char **argv)
         "SCRAM-SHA-1",        "SCRAM-SHA-256",     "SCRAM-SHA-384",
         "SCRAM-SHA-512",      "SCRAM-SHA-1-PLUS",  "SCRAM-SHA-256-PLUS",
         "SCRAM-SHA-384-PLUS", "SCRAM-SHA-512-PLUS"};
+    sasl_set_alloc(test_malloc, test_calloc, test_realloc, test_free);
     init_backend(&global);
     callbacks(cb, &global, global_mode);
     CHECK(sasl_client_init(cb) == SASL_OK);

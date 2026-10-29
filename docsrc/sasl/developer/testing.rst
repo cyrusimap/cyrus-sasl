@@ -104,7 +104,8 @@ built-in and callback-only builds. ``tests/t_scram`` checks the calculations
 in RFC 5802 and RFC 7677, client/server exchanges, channel binding, backend
 failures, bounded iteration counts, interleaved connections, and
 interoperability with the built-in implementation, including verifiers
-created with ``sasl_setpass()``. These tests require
+created with ``sasl_setpass()``. Its allocator also checks that observed
+derived keys are erased before their storage is freed. These tests require
 no network service or password database. The SCRAM test is skipped
 when no cryptographic test backend is available in a callback-only build.
 

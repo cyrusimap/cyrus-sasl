@@ -247,6 +247,8 @@ static int auxprop_verify_password(sasl_conn_t *conn,
 	    ret = SASL_BADAUTH;
 	}
 
+	sconn->sparams->utils->erasebuffer((char *)construct,
+                                         sizeof(*construct) + construct->len);
 	sasl_FREE(construct);
     } else {
 	/* passwords do not match */
@@ -378,13 +380,11 @@ int _sasl_auxprop_verify_apop(sasl_conn_t *conn,
     sasl_server_conn_t *sconn = (sasl_server_conn_t *)conn;
     sasl_crypto_context_t crypto;
     struct iovec input[2];
+    size_t challenge_len, password_len;
     int i;
 
     if (!conn || !userstr || !challenge || !response)
        PARAMERROR(conn)
-
-    ret = _sasl_crypto_init(sconn->sparams->utils, "MD5", &crypto);
-    if (ret != SASL_OK) goto done;
 
     /* We've done the auxprop lookup already (in our caller) */
     /* sadly, APOP has no provision for storing secrets */
@@ -403,15 +403,19 @@ int _sasl_auxprop_verify_apop(sasl_conn_t *conn,
 	goto done;
     }
     
-    if (strlen(challenge) > LONG_MAX ||
-        strlen(auxprop_values[0].values[0]) > LONG_MAX) {
+    ret = _sasl_crypto_init(sconn->sparams->utils, "MD5", &crypto);
+    if (ret != SASL_OK) goto erase_password;
+
+    challenge_len = strlen(challenge);
+    password_len = strlen(auxprop_values[0].values[0]);
+    if (challenge_len > LONG_MAX || password_len > LONG_MAX) {
         ret = SASL_BADPARAM;
         goto erase_password;
     }
     input[0].iov_base = (char *)challenge;
-    input[0].iov_len = (long)strlen(challenge);
+    input[0].iov_len = (long)challenge_len;
     input[1].iov_base = (char *)auxprop_values[0].values[0];
-    input[1].iov_len = (long)strlen(auxprop_values[0].values[0]);
+    input[1].iov_len = (long)password_len;
     ret = _sasl_crypto_hash(&crypto, input, 2, digest);
 
 erase_password:
@@ -434,6 +438,8 @@ erase_password:
     }
 
  done:
+    sconn->sparams->utils->erasebuffer((char *)digest, sizeof(digest));
+    sconn->sparams->utils->erasebuffer(digeststr, sizeof(digeststr));
     if (ret == SASL_BADAUTH) sasl_seterror(conn, SASL_NOLOG,
 					   "login incorrect");
     if (userid) sasl_FREE(userid);

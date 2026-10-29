@@ -479,6 +479,35 @@ static void interleaved_exchanges(void)
     }
 }
 
+static void invalid_iterations(void)
+{
+    static const char *invalid[] = {
+        "0",     "4095",  "65537", "4294971392", "9999999999999999999999",
+        "-4096", "+4096", " 4096", "04096"};
+    backend_t backend;
+    sasl_callback_t cb[9];
+    sasl_conn_t *client = NULL;
+    sasl_interact_t *interact = NULL;
+    const char *output, *chosen, *nonce;
+    unsigned length, i;
+    char challenge[512];
+    for (i = 0; i < sizeof(invalid) / sizeof(invalid[0]); i++) {
+        init_backend(&backend);
+        callbacks(cb, &backend, 1);
+        CHECK(sasl_client_new("test", "localhost", NULL, NULL, cb, 0,
+                              &client) == SASL_OK);
+        CHECK(sasl_client_start(client, "SCRAM-SHA-1", &interact, &output,
+                                &length, &chosen) == SASL_CONTINUE);
+        nonce = strstr(output, ",r=") + 3;
+        sprintf(challenge, "r=%.*sserver,s=QSXCR+Q6sek8bf92,i=%s",
+                (int)(length - (nonce - output)), nonce, invalid[i]);
+        CHECK(sasl_client_step(client, challenge, (unsigned)strlen(challenge),
+                               &interact, &output, &length) == SASL_BADPROT);
+        CHECK(backend.pbkdf2_calls == 0);
+        sasl_dispose(&client);
+    }
+}
+
 static void check_passwords(void)
 {
     backend_t backend;
@@ -654,6 +683,7 @@ int main(int argc, char **argv)
 #endif
     mechanism_filter();
     interleaved_exchanges();
+    invalid_iterations();
     check_passwords();
     saved_credentials();
     sasl_done();

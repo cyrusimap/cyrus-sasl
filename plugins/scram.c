@@ -2421,6 +2421,7 @@ scram_client_mech_step2(client_context_t *text,
     char * cb_encoded = NULL;
     char * cb_bin = NULL;
     int result;
+    unsigned long iteration_count;
     char ClientKey[SASL_MAX_HASH_SIZE];
     char StoredKey[SASL_MAX_HASH_SIZE];
     char ClientSignature[SASL_MAX_HASH_SIZE];
@@ -2542,7 +2543,7 @@ scram_client_mech_step2(client_context_t *text,
 	goto cleanup;
     }
 
-    if (text->iteration_count < MIN_ITERATION_COUNTER) {
+    if (iteration_count < MIN_ITERATION_COUNTER) {
 	SETERROR(params->utils, "iteration-count is too small, refusing to compute");
 	result = SASL_BADPROT;
 	goto cleanup;

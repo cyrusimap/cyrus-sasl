@@ -11,6 +11,7 @@
     <Krb5Dir>C:\msvc\krb</Krb5Dir>
   </PropertyGroup>
   <PropertyGroup>
+    <SaslCryptoBackend Condition="'$(SaslCryptoBackend)'==''">openssl</SaslCryptoBackend>
     <IntDir>$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
     <OutDir>$(SaslIntermediateLibDir)\</OutDir>
   </PropertyGroup>
@@ -27,6 +28,15 @@
       <AdditionalLibraryDirectories>$(SaslDependencyLibDir)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(SaslCryptoBackend)'=='callbacks'">
+    <ClCompile>
+      <PreprocessorDefinitions>SASL_NO_OPENSSL;HAVE_SHA512=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <Target Name="ValidateCryptoBackend" BeforeTargets="ClCompile">
+    <Error Condition="'$(SaslCryptoBackend)'!='openssl' and '$(SaslCryptoBackend)'!='callbacks'" Text="SaslCryptoBackend must be openssl or callbacks." />
+    <Error Condition="'$(SaslCryptoBackend)'=='callbacks' and ('$(ProjectName)'=='plugin_otp' or '$(ProjectName)'=='plugin_srp')" Text="This mechanism requires the OpenSSL backend." />
+  </Target>
   <ItemGroup>
     <BuildMacro Include="InstallRoot">
       <Value>$(InstallRoot)</Value>

@@ -47,14 +47,22 @@
 # CURRENT:REVISION:AGE
 plugin_common_version = 3:0:0
 crypto_compat_version = 0:0:0
+sasl_crypto_version = 0:0:0
 
 AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_builddir)/include
 
-noinst_LTLIBRARIES = libplugin_common.la libcrypto_compat.la
+noinst_LTLIBRARIES = libplugin_common.la libsasl_crypto.la
+if HAVE_OPENSSL
+noinst_LTLIBRARIES += libcrypto_compat.la
+endif
 
 libplugin_common_la_SOURCES = plugin_common.c plugin_common.h
 libplugin_common_la_LDFLAGS = -version-info $(plugin_common_version) -no-undefined
 libplugin_common_la_LIBADD = $(LIB_SOCKET)
+
+libsasl_crypto_la_SOURCES = sasl_crypto.c sasl_crypto.h
+libsasl_crypto_la_LDFLAGS = -version-info $(sasl_crypto_version) -no-undefined
+libsasl_crypto_la_LIBADD = $(CRYPTO_LIBS)
 
 libcrypto_compat_la_SOURCES = crypto-compat.c crypto-compat.h
 libcrypto_compat_la_LDFLAGS = -version-info $(crypto_compat_version) -no-undefined

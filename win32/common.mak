@@ -99,6 +99,16 @@ LMDB_LIBPATH=c:\work\isode\lmdb\libraries\liblmdb\Release
 !ENDIF
 !ENDIF
 
+!IF "$(SASL_CRYPTO)" == ""
+SASL_CRYPTO=openssl
+!ENDIF
+!IF "$(SASL_CRYPTO)" == "callbacks"
+COMMON_CPPFLAGS=$(COMMON_CPPFLAGS) /D "SASL_NO_OPENSSL"
+OPENSSL_LIBS=
+!IF "$(OTP)" == "1" || "$(SRP)" == "1"
+!ERROR OTP and SRP require SASL_CRYPTO=openssl
+!ENDIF
+!ELSEIF "$(SASL_CRYPTO)" == "openssl"
 !IF "$(OPENSSL_INCLUDE)" == ""
 OPENSSL_INCLUDE=D:\openssl\engine-0.9.6g-md3\include
 !IF "$(VERBOSE)" != "0"
@@ -125,6 +135,10 @@ OPENSSL_LIBS=$(OPENSSL_LIBS) libeay32.lib
 # Don't error out because during 'nmake install', variable 'OPENSSL_LIBS'
 # can be missing but it's not used anyway.
 OPENSSL_LIBS=$(OPENSSL_LIBS) failed_to_identify_openssl.lib
+!ENDIF
+
+!ELSE
+!ERROR SASL_CRYPTO must be openssl or callbacks
 !ENDIF
 
 !IF "$(GSSAPI_INCLUDE)" == ""

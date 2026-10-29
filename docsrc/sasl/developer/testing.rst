@@ -93,3 +93,24 @@ functionality of libsasl against itself. When you run the application
 it displays some requirements for running, such as being able to read
 and write to the sasldb file. If this program is set up correctly and
 still fails we'd like to hear about it at cyrus-bugs@andrew.cmu.edu.
+
+
+Cryptographic callback tests
+============================
+
+``tests/t_crypto`` checks callback selection, connection isolation, buffer
+bounds, error propagation, and erasure of failed outputs. It works with both
+built-in and callback-only builds. ``tests/t_scram`` checks the calculations
+in RFC 5802 and RFC 7677, client/server exchanges, channel binding, backend
+failures, interleaved connections, and
+interoperability with the built-in implementation, including verifiers
+created with ``sasl_setpass()``. These tests require
+no network service or password database. The SCRAM test is skipped
+when no cryptographic test backend is available in a callback-only build.
+
+After building, run the focused tests with::
+
+    make -C tests check-TESTS TESTS="t_crypto t_scram t_scram_global.sh"
+
+The full ``make check`` also runs the existing integration tests and needs
+their external dependencies.

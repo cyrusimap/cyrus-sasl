@@ -803,3 +803,60 @@ Idle
 
 While the implementation and the plugins correctly implement the
 idle calls, none of them currently do anything.
+
+
+Cryptographic callbacks
+=======================
+
+Applications can supply cryptographic operations using ``SASL_CB_CRYPTO``.
+The callback is used by SCRAM (including its channel-binding variants), APOP,
+and verification of legacy ``cmusaslsecretPLAIN`` secrets. Other mechanisms
+retain their existing cryptographic dependencies. This interface does not
+replace random-number generation, password normalization, or channel binding.
+Applications provide channel-binding data through ``SASL_CHANNEL_BINDING``.
+
+Register a ``sasl_getcrypto_t`` callback in the callback array passed to
+``sasl_client_init()``, ``sasl_server_init()``, ``sasl_client_new()``, or
+``sasl_server_new()``. Connection callbacks take precedence over global
+callbacks. The selector receives one canonical algorithm name: ``MD5``,
+``SHA1``, ``SHA224``, ``SHA256``, ``SHA384``, or ``SHA512``. On success, return
+``SASL_OK``, an immutable ``sasl_crypto_t`` with ``version`` set to
+``SASL_CRYPTO_VERSION``, and an operation context. The table and context are
+owned by the application and must remain valid until the connection is
+disposed. The selector may run more than once, including during mechanism
+availability checks. Shared contexts must support concurrent connections.
+
+The ``hash`` operation hashes the concatenation of an array of input vectors.
+``hmac`` computes HMAC using the selected hash. ``pbkdf2`` computes PBKDF2-HMAC
+using that hash and the supplied iteration count. The output length is exactly
+the hash length: 16, 20, 28, 32, 48, or 64 bytes, respectively. Each operation
+must fill that output on success. Inputs and output belong to the caller and
+are valid only during the call; operations must not retain their contents or
+pointers. Input vectors are read-only, despite the non-const ``iovec`` members.
+Passwords and keys may contain NUL bytes; use the supplied lengths. A null
+input pointer is permitted only with zero length. Hashing zero vectors and
+HMAC with an empty key or input are valid. PBKDF2 iterations are nonzero.
+
+``hash`` is required. ``hmac`` and ``pbkdf2`` may be null for a hash-only
+backend, but all three are required for SCRAM. Return ``SASL_NOMECH`` from
+the selector for unsupported algorithms; return an appropriate negative SASL
+error for other failures. Neither selectors nor operations may request
+interaction or return ``SASL_CONTINUE``. Failed operations have their output
+erased by the library. Backends must erase temporary keys and passwords and
+must not log sensitive input. Prefer streaming hash implementations and
+optimized PBKDF2 implementations: the library makes one PBKDF2 call per key
+derivation, rather than a callback for each HMAC iteration.
+
+When the callback is absent, the built-in OpenSSL implementation is used.
+A registered callback is authoritative: unsupported algorithms and operation
+failures never fall back to OpenSSL. No existing public structure layout is
+changed by this callback.
+
+The default build continues to use OpenSSL. Configure with
+``--with-crypto=callbacks`` to omit the built-in backend and its OpenSSL
+link dependency. In that mode an application must supply the operations it
+needs. OTP is disabled by default; explicitly enabling OTP, SRP, or PASSDSS
+is rejected because those mechanisms still require OpenSSL. Independently
+selected dependencies may themselves use OpenSSL. For Windows builds, use
+``SASL_CRYPTO=callbacks`` with NMake or
+``/p:SaslCryptoBackend=callbacks`` with MSBuild.

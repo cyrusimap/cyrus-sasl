@@ -55,7 +55,7 @@ saslANONYMOUS_out = saslANONYMOUS.dll saslANONYMOUS.exp saslANONYMOUS.lib
 saslPLAIN_objs = plain.obj plain_init.obj $(common_objs)
 saslPLAIN_out = saslPLAIN.dll saslPLAIN.exp saslPLAIN.lib
 
-saslSCRAM_objs = scram.obj scram_init.obj $(common_objs)
+saslSCRAM_objs = scram.obj scram_init.obj sasl_crypto.obj $(common_objs)
 saslSCRAM_out = saslSCRAM.dll saslSCRAM.exp saslSCRAM.lib
 
 saslGSSAPI_objs = gssapi.obj gssapiv2_init.obj $(common_objs)
@@ -69,7 +69,9 @@ saslSQL_out = saslSQLITE.dll saslSQLITE.exp saslSQLITE.lib
 saslLDAPDB_objs = ldapdb.obj $(common_objs)
 saslLDAPDB_out = saslLDAPDB.dll saslLDAPDB.exp saslLDAPDB.lib
 
+!IF "$(SASL_CRYPTO)" == "openssl"
 OPENSSL_FLAGS= /I "$(OPENSSL_INCLUDE)"
+!ENDIF
 
 !IF "$(GSSAPILIB)" == ""
 !IF EXISTS($(GSSAPI_LIBPATH)\gssapi64.lib)

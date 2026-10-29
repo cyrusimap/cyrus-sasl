@@ -59,6 +59,7 @@
 #include <saslutil.h>
 #include <saslplug.h>
 #include "saslint.h"
+#include "sasl_crypto.h"
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -1950,6 +1951,10 @@ int _sasl_getcallback(sasl_conn_t * conn,
   case SASL_CB_AUTHNAME:
     *pproc = (sasl_callback_ft)&_sasl_getsimple;
     *pcontext = conn;
+    return SASL_OK;
+  case SASL_CB_CRYPTO:
+    *pproc = (sasl_callback_ft)&_sasl_crypto_default;
+    *pcontext = NULL;
     return SASL_OK;
   case SASL_CB_VERIFYFILE:
     *pproc = (sasl_callback_ft)&_sasl_verifyfile;

@@ -1890,6 +1890,9 @@ static int lak_check_crypt(
 		return LAK_INVALID_PASSWORD;
 
 	cred = crypt(passwd, hash);
+	if (cred == NULL)
+		return LAK_INVALID_PASSWORD;
+	
 	if (EMPTY(cred))
 		return LAK_INVALID_PASSWORD;
 

@@ -1047,69 +1047,6 @@ if test "$host_os" = "mingw32"; then
    LIB_SOCKET="$LIB_SOCKET -lws2_32"
 fi
 
-dnl sfio tests
-AC_MSG_CHECKING(for sfio library)
-AC_ARG_WITH(sfio, [  --with-sfio=DIR         with SFIO support (for smtptest/libsfsasl) [[no]] ],
-	with_sfio=$withval,
-	with_sfio=no)
-
-if test "$with_sfio" != "no"; then
-   if test "$with_sfio" = "yes"; then
-	with_sfio="/usr/local"
-   fi
-
-   AC_DEFUN([SFIO_INC_CHK],
-	[if test -r "$with_sfio$1/sfio.h"; then SFIO_DIR=$with_sfio;
-					      SFIO_INC_DIR=$with_sfio$1])
-
-   AC_DEFUN([SFIO_LIB_CHK],[
-		str="$SFIO_DIR/$1/libsfio.*"
-		for i in `echo $str`; do
-			if test -r $i; then
-				SFIO_LIBDIR=$SFIO_DIR/$1
-				break 2
-			fi
-		done
-		])
-
-   SFIO_INC_CHK()
-   el[]SFIO_INC_CHK(/include)
-   el[]SFIO_INC_CHK(/include/sfio)
-   fi
-
-   if test -z "$SFIO_DIR"; then
-	AC_MSG_ERROR(Cannot find sfio.h, Please check your SFIO installation.)
-   fi
-
-   SFIO_LIB_CHK(lib)
-   SFIO_LIB_CHK(lib/sfio)
-
-   if test -z "$SFIO_LIBDIR"; then
-	AC_MSG_ERROR(Cannot find sfio library, Please check your SFIO installation.)
-   fi
-
-   SFIO_INC_FLAGS="-I$SFIO_INC_DIR"
-   SFIO_LIB_FLAGS="-L$SFIO_LIBDIR -lsfio"
-   SMTPTEST_PROGRAM="smtptest"
-   SASL_UTIL_LIBS_EXTRA=libsfsasl2.la
-   SASL_UTIL_HEADERS_EXTRA=sfsasl.h
-
-   AC_MSG_RESULT(yes)
-else
-   AC_MSG_RESULT(no)
-   SFIO_INC_FLAGS=""
-   SFIO_LIB_FLAGS=""
-   SMTPTEST_PROGRAM=""
-   SASL_UTIL_LIBS_EXTRA=""
-   SASL_UTIL_HEADERS_EXTRA=""
-fi
-
-AC_SUBST(SFIO_INC_FLAGS)
-AC_SUBST(SFIO_LIB_FLAGS)
-AC_SUBST(SMTPTEST_PROGRAM)
-AC_SUBST(SASL_UTIL_LIBS_EXTRA)
-AC_SUBST(SASL_UTIL_HEADERS_EXTRA)
-
 dnl check for getsubopt
 sasl_cv_getsubopt=no
 AC_CHECK_FUNC(getsubopt, [AC_DEFINE(HAVE_GETSUBOPT,[],

@@ -64,8 +64,7 @@ Tips for clients
 * In ``sasl_client_new`` you can now pass ip address strings as
   parameters 3 and 4 instead of calling setprop later on sockaddr's.
   This is preferred but not required (not passing them by either method disables
-  mechs which require IP address information).   You might find the iptostring()
-  function in utils/smtptest.c to be useful for this.  If the protocol supports
+  mechs which require IP address information).  If the protocol supports
   the server sending data on success you should pass SASL_SUCCESS_DATA as a
   flag.
 * ``sasl_client_start`` loses the 3rd "secret" parameter.

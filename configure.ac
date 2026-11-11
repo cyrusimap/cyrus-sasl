@@ -78,7 +78,6 @@ AC_ARG_ENABLE(sample,
               enable_sample=yes)
 
 AC_PROG_CC
-AX_PROG_CC_FOR_BUILD
 AC_PROG_CPP
 AC_PROG_AWK
 AC_PROG_LN_S

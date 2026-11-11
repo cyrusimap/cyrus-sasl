@@ -823,58 +823,6 @@ case "$with_pgsql" in
 esac
 AC_SUBST(LIB_PGSQL)
 
-dnl SQLite
-AC_ARG_WITH(sqlite,  [  --with-sqlite=PATH       use SQLite from PATH ],
-  with_sqlite=$withval,
-  with_sqlite=$sql)
-
-# find location of library
-# presuing if one given then correct
-if test "${with_sqlite}" = "yes"; then
-  with_sqlite=notfound
-  for sqliteloc in lib
-  do
-    if test -f ${prefix}/${sqliteloc}/libsqlite.a; then
-      with_sqlite="${prefix}"
-      break
-    elif test -f /usr/local/${sqliteloc}/libsqlite.a; then
-      with_sqlite="/usr/local"
-      break
-    elif test -f /usr/${sqliteloc}/libsqlite.a; then
-      with_sqlite="/usr"
-      break
-    fi
-  done
-fi
-
-LIB_SQLITE=""
-
-case "$with_sqlite" in
-    no) true;;
-    notfound) AC_MSG_WARN(SQLite Library not found); true;;
-    *)
-     if test -d ${with_sqlite}/lib; then
-         CMU_ADD_LIBPATH_TO(${with_sqlite}/lib, LIB_SQLITE)
-     else
-         CMU_ADD_LIBPATH_TO(${with_sqlite}, LIB_SQLITE)
-     fi
-
-     LIB_SQLITE_DIR=$LIB_SQLITE
-     LIB_SQLITE="$LIB_SQLITE -lsqlite"
-
-     if test -d ${with_sqlite}/include; then
-         CPPFLAGS="${CPPFLAGS} -I${with_sqlite}/include"
-     else
-         CPPFLAGS="${CPPFLAGS} -I${with_sqlite}"
-     fi
-       AC_CHECK_LIB(sqlite, sqlite_open, AC_DEFINE(HAVE_SQLITE,[],
-	   [Do we have SQLite support?]),
-           [AC_MSG_WARN(SQLite Library sqlite does not work)
-	    with_sqlite=no], $LIB_SQLITE_DIR);;
-
-esac
-AC_SUBST(LIB_SQLITE)
-
 dnl SQLite3
 AC_ARG_WITH(sqlite3,  [  --with-sqlite3=PATH       use SQLite3 from PATH ],
   with_sqlite3=$withval,
@@ -927,8 +875,8 @@ case "$with_sqlite3" in
 esac
 AC_SUBST(LIB_SQLITE3)
 
-if test "$sql" = yes -a "$with_pgsql" = no -a "$with_mysql" = no -a "$with_sqlite" = no -a "$with_sqlite3" = no; then
-    AC_MSG_ERROR([--enable-sql chosen but neither Postgres nor MySQL nor SQLite nor SQLite3 found])
+if test "$sql" = yes -a "$with_pgsql" = no -a "$with_mysql" = no -a "$with_sqlite3" = no; then
+    AC_MSG_ERROR([--enable-sql chosen but neither Postgres nor MySQL nor SQLite3 found])
 fi
 
 if test "$enable_shared" = yes; then

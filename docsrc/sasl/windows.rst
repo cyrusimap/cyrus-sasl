@@ -115,10 +115,10 @@ GSSAPI depends on ``GSSAPI_INCLUDE`` and ``GSSAPI_LIBPATH`` parameters.
 You can either specify them on the command line or edit the defaults in win32\common.mak
 
 Specify "SQL=<type>" parameter if you want to enable SQL plugin.
-Currently only <type>=SQLITE is supported and this will build the plugin
-that links against SQLITE (www.sqlite.org).
+Currently only <type>=SQLITE3 is supported and this will build the plugin
+that links against SQLite 3 (www.sqlite.org).
 
-SQL=<SQLITE> depends on ``SQLITE_INCLUDES`` and ``SQLITE_LIBPATH`` parameters.
+SQL=<SQLITE3> depends on ``SQLITE_INCLUDES3`` and ``SQLITE_LIBPATH3`` parameters.
 You can either specify them on the command line or edit the defaults in win32\common.mak
 
 Specify "SRP=1" parameter if you want to enable SRP plugin.
@@ -142,7 +142,7 @@ However limited testings was done for some plugins as listed below:
 
 * GSSAPI - tested using CyberSafe,
 * SASLDB - only SleepyCat version can be built,
-* SQL - using SQLITE, not tested
+* SQL - using SQLITE3, not tested
 
 
 The following executables were built and tested (to some extent):

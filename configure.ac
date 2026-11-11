@@ -162,15 +162,6 @@ if test "$ac_cv_c_compiler_gnu" = yes; then
   CFLAGS="-Wall -W ${CFLAGS}"
 fi
 
-AC_ARG_WITH(purecov,[  --with-purecov          link with purecov])
-if test "$with_purecov" = yes; then
-  AC_CHECK_PROGS(PURECOV, purecov)
-fi
-AC_ARG_WITH(purify,[  --with-purify           link with purify])
-if test "$with_purify" = yes; then
-  AC_CHECK_PROGS(PURIFY, purify)
-fi
-
 AM_CONDITIONAL(SAMPLE, test "$enable_sample" = yes)
 
 dnl call before we do the LMDB checks

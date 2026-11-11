@@ -71,12 +71,6 @@ extern authmech_t *authmech;		/* auth mech daemon is using */
 # endif
 #endif
 
-#ifndef AUTH_SIA
-# if defined(HAVE_SIA_VALIDATE_USER)
-#  define AUTH_SIA
-# endif
-#endif
-
 #ifndef AUTH_PAM
 # ifdef HAVE_PAM
 #  define AUTH_PAM

@@ -498,20 +498,6 @@ fi
 
 SASL2_CRYPT_CHK
 
-AC_ARG_ENABLE(sia, [  --enable-sia            enable SIA authentication [no] ],
-  sia=$enableval,
-  sia=no)
-LIB_SIA=""
-if test "$sia" != no; then
-  if test -f /etc/sia/matrix.conf; then
-    AC_DEFINE(HAVE_SIA,[],[Include SIA Support])
-    LIB_SIA="-lsecurity -ldb -lm -laud"
-  else
-    AC_MSG_ERROR([No support for SIA found])
-  fi
-fi
-AC_SUBST(LIB_SIA)
-
 AC_ARG_ENABLE(auth-sasldb, [  --enable-auth-sasldb    enable experimental SASLdb authentication module [no] ],
   authsasldb=$enableval,
   authsasldb=no)

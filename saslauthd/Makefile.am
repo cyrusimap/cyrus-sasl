@@ -15,13 +15,13 @@ saslauthd_SOURCES = mechanisms.c globals.h \
 		    mechanisms.h auth_dce.c auth_dce.h auth_getpwent.c \
 		    auth_getpwent.h auth_krb5.c auth_krb5.h \
 		    auth_pam.c auth_pam.h auth_rimap.c auth_httpform.c \
-		    auth_rimap.h auth_shadow.c auth_shadow.h auth_sia.c auth_httpform.h \
-		    auth_sia.h auth_sasldb.c auth_sasldb.h lak.c lak.h \
+		    auth_rimap.h auth_shadow.c auth_shadow.h auth_httpform.h \
+		    auth_sasldb.c auth_sasldb.h lak.c lak.h \
 		    auth_ldap.c auth_ldap.h cache.c cache.h cfile.c cfile.h \
 		    utils.c utils.h \
             ipc_unix.c ipc_doors.c saslauthd-main.c saslauthd-main.h
 saslauthd_DEPENDENCIES = saslauthd-main.o $(LTLIBOBJS_FULL)
-saslauthd_LDADD	= @GSSAPIBASE_LIBS@ @LIB_CRYPT@ @LIB_SIA@ \
+saslauthd_LDADD	= @GSSAPIBASE_LIBS@ @LIB_CRYPT@ \
 		  @LIB_SOCKET@ @SASL_DB_LIB@ @LIB_PAM@ @LDAP_LIBS@ $(LTLIBOBJS_FULL) $(CRYPTO_COMPAT_OBJS) $(LIBSASLDB_OBJS) -lcrypto
 
 testsaslauthd_SOURCES = testsaslauthd.c utils.c

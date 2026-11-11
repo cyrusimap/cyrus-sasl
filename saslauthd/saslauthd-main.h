@@ -66,14 +66,6 @@
 # define SALEN_TYPE int
 #endif 
 
-/* Define some macros. These help keep the ifdefs out of the
- * mainline code. */
-#ifdef AUTH_SIA
-#define SET_AUTH_PARAMETERS(argc, argv) set_auth_parameters(argc, argv)
-#else
-#define SET_AUTH_PARAMETERS(argc, argv)
-#endif
-
 /* file name defines - don't forget the '/' in these! */
 #define PID_FILE		"/saslauthd.pid"    
 #define PID_FILE_LOCK		"/saslauthd.pid.lock"

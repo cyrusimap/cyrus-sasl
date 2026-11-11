@@ -158,8 +158,6 @@ int main(int argc, char **argv) {
 	/* XXX  force openlog() before any of our mechs try syslog() */
 	logger(L_INFO, L_FUNC, "starting %s", argv[0]);
 
-	SET_AUTH_PARAMETERS(argc, argv);
-
 	g_argc = argc;
 	g_argv = argv;
 

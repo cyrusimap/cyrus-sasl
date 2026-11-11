@@ -67,11 +67,6 @@ AM_INIT_AUTOMAKE([1.11 tar-ustar dist-bzip2 foreign -Wno-portability subdir-obje
 
 DIRS=""
 
-AC_ARG_ENABLE(cmulocal,
-              [AS_HELP_STRING([--enable-cmulocal],[enable local mods for CMU [[no]]])],
-              [],
-              enable_cmulocal=no)
-
 AC_ARG_ENABLE(sample,
               [AS_HELP_STRING([--enable-sample],[compile sample code [[yes]]])],
               [],
@@ -1149,12 +1144,6 @@ char pwdata[512];
 			[Define if your getpwnam_r()/getspnam_r()
 			functions take 5 arguments])],[AC_MSG_RESULT(no)
 	])
-fi
-
-if test $enable_cmulocal = yes; then
-    AC_MSG_WARN(enabling CMU local kludges)
-    AC_DEFINE(KRB4_IGNORE_IP_ADDRESS,[],[Ignore IP Address in Kerberos 4 tickets?])
-    AC_DEFINE_UNQUOTED(PREFER_MECH, "KERBEROS_V4", [Force a preferred mechanism])
 fi
 
 AC_EGREP_HEADER(sockaddr_storage, sys/socket.h, [

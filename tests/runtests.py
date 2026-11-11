@@ -425,7 +425,7 @@ def setup_plain(testdir):
     """ Create sasldb file """
     sasldbfile = os.path.join(testdir, 'testsasldb.db')
 
-    sasldbenv = {'SASL_PATH': os.path.join(testdir, '../../plugins/.libs'),
+    sasldbenv = {'SASL_PLUGINDIR': os.path.join(testdir, '../../plugins/.libs'),
                  'LD_LIBRARY_PATH' : os.path.join(testdir, '../../lib/.libs')}
 
     passwdprog = os.path.join(testdir, '../../utils/saslpasswd2')

@@ -60,17 +60,17 @@ pluginviewer_LDADD = $(all_sasl_libs)
 pluginviewer_SOURCES = pluginviewer.c
 pluginviewer_LDFLAGS = -rpath $(libdir)
 
-testsuite_LDADD = $(all_sasl_libs) @DMALLOC_LIBS@
+testsuite_LDADD = $(all_sasl_libs)
 
 CLEANFILES=$(EXTRA_PROGRAMS)
 
 testsuitestatic_SOURCES = testsuite.c
-testsuitestatic_LDADD = $(all_sasl_static_libs) @DMALLOC_LIBS@ @SASL_DL_LIB@
+testsuitestatic_LDADD = $(all_sasl_static_libs) @SASL_DL_LIB@
 testsuitestatic_DEPENDENCIES = ../lib/.libs/libsasl2.a
 
 smtptest_SOURCES =
 smtptest_DEPENDENCIES = ./smtptest.lo ./libsfsasl2.la
-smtptest_LDADD = ./smtptest.lo ./libsfsasl2.la @SFIO_LIB_FLAGS@ @DMALLOC_LIBS@ $(all_sasl_libs)
+smtptest_LDADD = ./smtptest.lo ./libsfsasl2.la @SFIO_LIB_FLAGS@ $(all_sasl_libs)
 
 saslincludedir = $(includedir)/sasl
 

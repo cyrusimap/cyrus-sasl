@@ -1047,36 +1047,6 @@ if test "$host_os" = "mingw32"; then
    LIB_SOCKET="$LIB_SOCKET -lws2_32"
 fi
 
-dnl dmalloc tests
-AC_MSG_CHECKING(for dmalloc library)
-AC_ARG_WITH(dmalloc, [  --with-dmalloc=DIR      with DMALLOC support (for test applications) [[no]] ],
-	with_dmalloc=$withval,
-	with_dmalloc=no)
-
-DMALLOC_LIBS=""
-
-if test "$with_dmalloc" != "no"; then
-   if test "$with_dmalloc" = "yes"; then
-	with_dmalloc="/usr/local"
-   fi
-
-   if test -r "$with_dmalloc/libdmalloc.a"; then
-	DMALLOC_LIBS="$with_dmalloc/libdmalloc.a"
-	AC_DEFINE(WITH_DMALLOC,[],[Linking against dmalloc?])
-	AC_MSG_RESULT(yes)
-   elif test -r "$with_dmalloc/lib/libdmalloc.a"; then
-	DMALLOC_LIBS="$with_dmalloc/lib/libdmalloc.a"
-	AC_DEFINE(WITH_DMALLOC,[],[Linking against dmalloc?])
-	AC_MSG_RESULT(yes)
-   else
-	AC_MSG_ERROR(cannot find dmalloc library, please check your installation.)
-   fi
-else
-   AC_MSG_RESULT(no)
-fi
-
-AC_SUBST(DMALLOC_LIBS)
-
 dnl sfio tests
 AC_MSG_CHECKING(for sfio library)
 AC_ARG_WITH(sfio, [  --with-sfio=DIR         with SFIO support (for smtptest/libsfsasl) [[no]] ],

@@ -66,7 +66,7 @@ INSTALLOSX =
 endif
 
 SUBDIRS=include sasldb common lib plugins utils $(PWC) $(SAM) $(SAD) tests
-EXTRA_DIST=config doc docsrc win32 mac dlcompat-20010505 NTMakefile \
+EXTRA_DIST=config doc docsrc win32 NTMakefile \
     README.md README.ldapdb INSTALL.TXT libsasl2.pc.in
 
 dist_man3_MANS = \

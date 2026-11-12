@@ -15,12 +15,6 @@ from string import Template
 # XFAIL and don't fail the run; if one passes, the run fails (XPASS) so the
 # entry gets removed and the test guards against regressions.
 KNOWN_FAILURES = {
-    'GSSAPI CHANNEL BINDING':
-        'SASL_SEC_NONSTD_CBIND makes every mechanism unavailable '
-        '(issue #853, fix in PR #882)',
-    'GSSAPI CHANNEL BINDING MISMTACH':
-        'SASL_SEC_NONSTD_CBIND makes every mechanism unavailable '
-        '(issue #853, fix in PR #882)',
 }
 
 

@@ -171,7 +171,19 @@ int main(int argc, char *argv[])
     }
 
     if (cb.name) {
+        const sasl_security_properties_t *cur = NULL;
+        sasl_security_properties_t secprops;
+
         sasl_setprop(conn, SASL_CHANNEL_BINDING, &cb);
+
+        /* GSSAPI and GSS-SPNEGO only use channel bindings when they're
+         * explicitly allowed (see SASL_SEC_NONSTD_CBIND in sasl.h). */
+        if (sasl_getprop(conn, SASL_SEC_PROPS, (const void **)&cur) == SASL_OK
+            && cur) {
+            secprops = *cur;
+            secprops.security_flags |= SASL_SEC_NONSTD_CBIND;
+            sasl_setprop(conn, SASL_SEC_PROPS, &secprops);
+        }
     }
 
     if (plain) {

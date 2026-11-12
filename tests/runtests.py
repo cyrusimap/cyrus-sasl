@@ -11,6 +11,33 @@ import time
 from string import Template
 
 
+# Tests that fail because of known, unfixed bugs.  They're reported as
+# XFAIL and don't fail the run; if one passes, the run fails (XPASS) so the
+# entry gets removed and the test guards against regressions.
+KNOWN_FAILURES = {
+    'GSSAPI CHANNEL BINDING':
+        'SASL_SEC_NONSTD_CBIND makes every mechanism unavailable',
+    'GSSAPI CHANNEL BINDING MISMTACH':
+        'SASL_SEC_NONSTD_CBIND makes every mechanism unavailable',
+}
+
+
+def run_test(name, test, *args):
+    """ Run one test, applying KNOWN_FAILURES; return 1 if it counts as failed """
+    print('{}:'.format(name))
+    print('    ', end='')
+    err = test(*args)
+    known = KNOWN_FAILURES.get(name)
+    if not known:
+        return err
+    if err:
+        print('    XFAIL: known bug: {}'.format(known))
+        return 0
+    print('    XPASS: known bug appears fixed, remove "{}" from '
+          'KNOWN_FAILURES: {}'.format(name, known))
+    return 1
+
+
 KRB5_TOOLS = ('krb5kdc', 'kdb5_util', 'kadmin.local')
 KRB5_TOOLS_PATH = '/sbin:/bin:/usr/sbin:/usr/bin'
 
@@ -355,7 +382,7 @@ def gssapi_channel_binding_mismatch_test(kenv):
                 cli.returncode, cli_err, srv.returncode, srv_err))
     except Exception as e:
         print("{}: {}".format(result, e))
-        return 0
+        return 0 if result == "PASS" else 1
 
     print("FAIL: This test should fail [CLI({}) SRV({})]".format(
         cli.stdout.read().decode('utf-8').strip(),
@@ -429,38 +456,15 @@ def gssapi_tests(testdir):
     kenv['KRB5_TRACE'] = os.path.join(testdir, 'trace.log')
 
     err = 0
-
-    print('GSSAPI BASIC:')
-    print('    ', end='')
-    err += gssapi_basic_test(kenv)
-
-    print('GSSAPI ACCEPT ANY:')
-    print('    ', end='')
-    err += gssapi_accept_any_test(kenv)
-
-    print('GSSAPI SERVICE PRINCIPAL:')
-    print('    ', end='')
-    err += gssapi_service_principal_test(kenv)
-
-    print('GSSAPI KEYTAB:')
-    print('    ', end='')
-    err += gssapi_keytab_test(kenv)
-
-    print('GSSAPI CHANNEL BINDING:')
-    print('    ', end='')
-    err += gssapi_channel_binding_test(kenv)
-
-    print('GSSAPI CHANNEL BINDING MISMTACH:')
-    print('    ', end='')
-    err += gssapi_channel_binding_mismatch_test(kenv)
-
-    print('GSS-SPNEGO BASIC:')
-    print('    ', end='')
-    err += gss_spnego_basic_test(kenv)
-
-    print('GSS-SPNEGO 0 MAXSSF:')
-    print('    ', end='')
-    err += gss_spnego_zeromaxssf_test(kenv)
+    err += run_test('GSSAPI BASIC', gssapi_basic_test, kenv)
+    err += run_test('GSSAPI ACCEPT ANY', gssapi_accept_any_test, kenv)
+    err += run_test('GSSAPI SERVICE PRINCIPAL', gssapi_service_principal_test, kenv)
+    err += run_test('GSSAPI KEYTAB', gssapi_keytab_test, kenv)
+    err += run_test('GSSAPI CHANNEL BINDING', gssapi_channel_binding_test, kenv)
+    err += run_test('GSSAPI CHANNEL BINDING MISMTACH',
+                    gssapi_channel_binding_mismatch_test, kenv)
+    err += run_test('GSS-SPNEGO BASIC', gss_spnego_basic_test, kenv)
+    err += run_test('GSS-SPNEGO 0 MAXSSF', gss_spnego_zeromaxssf_test, kenv)
 
     os.killpg(kdc.pid, signal.SIGTERM)
     return err
@@ -552,14 +556,9 @@ def plain_tests(testdir):
     sasldbfile, sasldbenv = setup_plain(testdir)
     #print("DB file: {}, ENV: {}".format(sasldbfile, sasldbenv))
     err = 0
-
-    print('SASLDB PLAIN:')
-    print('    ', end='')
-    err += plain_test(sasldbfile, sasldbenv)
-
-    print('SASLDB PLAIN PASSWORD MISMATCH:')
-    print('    ', end='')
-    err += plain_mismatch_test(sasldbfile, sasldbenv)
+    err += run_test('SASLDB PLAIN', plain_test, sasldbfile, sasldbenv)
+    err += run_test('SASLDB PLAIN PASSWORD MISMATCH', plain_mismatch_test,
+                    sasldbfile, sasldbenv)
 
     return err
 

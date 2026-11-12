@@ -98,9 +98,17 @@ all: $(check_PROGRAMS)
 # Override the interpreter with: make check PYTHON3=/path/to/python3
 PYTHON3 = python3
 
+# With --enable-sanitizers, tell the suite so it treats sanitizer reports
+# as failures.
+if SANITIZERS
+CONFORMANCE_ENV = T_SANITIZER=1
+else
+CONFORMANCE_ENV =
+endif
+
 check-conformance: $(check_PROGRAMS)
 	T_BUILDDIR=$(abs_builddir) T_PLUGINDIR=$(abs_top_builddir)/plugins/.libs \
-	    $(PYTHON3) $(srcdir)/conformance/run.py
+	    $(CONFORMANCE_ENV) $(PYTHON3) $(srcdir)/conformance/run.py
 
 .PHONY: check-conformance
 

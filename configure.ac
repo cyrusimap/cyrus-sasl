@@ -162,6 +162,30 @@ if test "$ac_cv_c_compiler_gnu" = yes; then
   CFLAGS="-Wall -W ${CFLAGS}"
 fi
 
+dnl Sanitizers, for testing: run "make check" to have the conformance
+dnl suite report any memory or undefined-behavior error as a failure.
+AC_ARG_ENABLE(sanitizers,
+  [AS_HELP_STRING([--enable-sanitizers@<:@=LIST@:>@],
+    [build with the comma-separated -fsanitize LIST, for testing
+     (default LIST: address,undefined) [no]])],
+  enable_sanitizers=$enableval,
+  enable_sanitizers=no)
+
+if test "$enable_sanitizers" != no; then
+  if test "$enable_sanitizers" = yes; then
+    enable_sanitizers="address,undefined"
+  fi
+  SANITIZER_FLAGS="-fsanitize=$enable_sanitizers -fno-sanitize-recover=all -fno-omit-frame-pointer"
+  CFLAGS="$CFLAGS $SANITIZER_FLAGS"
+  LDFLAGS="$LDFLAGS $SANITIZER_FLAGS"
+  AC_MSG_CHECKING([whether the compiler supports $SANITIZER_FLAGS])
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])],
+    [AC_MSG_RESULT(yes)],
+    [AC_MSG_RESULT(no)
+     AC_MSG_ERROR([the compiler or its sanitizer runtimes don't support -fsanitize=$enable_sanitizers; try a subset such as --enable-sanitizers=address, or another compiler])])
+fi
+AM_CONDITIONAL(SANITIZERS, test "$enable_sanitizers" != no)
+
 AC_ARG_WITH(purecov,[  --with-purecov          link with purecov])
 if test "$with_purecov" = yes; then
   AC_CHECK_PROGS(PURECOV, purecov)

@@ -107,6 +107,11 @@ def main():
         loader.testNamePatterns = ["*%s*" % p for p in args.pattern]
     suite = loader.discover(HERE, pattern="test_*.py", top_level_dir=HERE)
 
+    import sasltest
+    print("Sanitizers: %s" % ("on (memory and undefined-behavior errors fail tests)"
+                              if sasltest.SANITIZED else "off"))
+    sys.stdout.flush()
+
     runner = unittest.TextTestRunner(verbosity=2 if args.verbose else 1,
                                      resultclass=ConformanceResult,
                                      stream=sys.stdout)

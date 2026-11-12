@@ -22,6 +22,11 @@ TIMEOUT = 20  # seconds to wait for any single driver response
 HERE = os.path.dirname(os.path.abspath(__file__))
 BUILDDIR = os.environ.get("T_BUILDDIR") or os.path.dirname(HERE)
 
+# Set by "make check-conformance" when configured with --enable-sanitizers.
+SANITIZED = bool(os.environ.get("T_SANITIZER"))
+SANITIZER_MARKERS = ("ERROR: AddressSanitizer", "ERROR: LeakSanitizer",
+                     "runtime error:")
+
 
 # ---------------------------------------------------------------------------
 # Spec and known-bug markers
@@ -41,14 +46,20 @@ def spec(ref, section, level, requirement=None):
     return deco
 
 
-def known_bug(audit_id, summary):
+def known_bug(audit_id, summary, only_if=True):
     """Mark a test that fails because of a known, unfixed bug.
 
     audit_id refers to the finding on the conformance audit page.  The test
     is an expected failure; once the bug is fixed it will report an
     unexpected success, and this marker should be removed.
+
+    only_if limits the marker to builds where the bug is observable, e.g.
+    only_if=SANITIZED for a memory error that only a sanitizer detects.
+    Elsewhere the test runs as a normal test.
     """
     def deco(func):
+        if not only_if:
+            return func
         func = unittest.expectedFailure(func)
         func.known_bug = (audit_id, summary)
         return func
@@ -110,6 +121,12 @@ class Driver:
         if not os.path.exists(path):
             raise DriverError("driver not built: %s" % path)
         env = dict(os.environ)
+        # Leak reports are off by default: the library has known leaks at
+        # exit that would fail every test.  Set ASAN_OPTIONS to override.
+        env.setdefault("ASAN_OPTIONS", "detect_leaks=0")
+        env.setdefault("UBSAN_OPTIONS", "print_stacktrace=1")
+        self.stderr = ""
+        self.reported = False  # stderr already surfaced in a DriverError
         self.proc = subprocess.Popen(
             [path] + [str(a) for a in args],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -125,10 +142,12 @@ class Driver:
                 raise DriverError("timed out waiting for %s" % self.program)
             chunk = os.read(fd, 65536)
             if not chunk:
-                err = self.proc.stderr.read().decode("utf-8", "replace")
+                self.stderr += self.proc.stderr.read().decode("utf-8", "replace")
                 self.proc.wait()
+                self.reported = True
                 raise DriverError("%s exited (status %s): %s"
-                                  % (self.program, self.proc.returncode, err.strip()))
+                                  % (self.program, self.proc.returncode,
+                                     self.stderr.strip()))
             self._buf += chunk
         line, self._buf = self._buf.split(b"\n", 1)
         return json.loads(line.decode("ascii"))
@@ -160,9 +179,17 @@ class Driver:
             except subprocess.TimeoutExpired:
                 self.proc.kill()
                 self.proc.wait()
+        if self.proc.stderr and not self.proc.stderr.closed:
+            self.stderr += self.proc.stderr.read().decode("utf-8", "replace")
         for f in (self.proc.stdout, self.proc.stderr):
             if f:
                 f.close()
+
+    def sanitizer_report(self):
+        """The driver's stderr if it contains a sanitizer report, else None."""
+        if any(m in self.stderr for m in SANITIZER_MARKERS):
+            return self.stderr
+        return None
 
 
 def _common_args(opts=None, cbinding=None, critical=False, min_ssf=None,
@@ -258,6 +285,12 @@ class SaslTestCase(unittest.TestCase):
     def tearDown(self):
         for d in self._drivers:
             d.close()
+        # A sanitizer report fails the test even if every result looked
+        # right, e.g. an error during cleanup after the last response.
+        for d in self._drivers:
+            report = d.sanitizer_report()
+            if report and not d.reported:
+                self.fail("sanitizer report from %s:\n%s" % (d.program, report))
 
     def server(self, mech, **kw):
         s = Server(mech, **kw)

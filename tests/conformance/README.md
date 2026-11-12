@@ -23,6 +23,30 @@ T_BUILDDIR=$PWD/tests T_PLUGINDIR=$PWD/plugins/.libs \
 The run prints a summary by spec and lists the known bugs still present.
 It fails on any test failure, error, or unexpected pass.
 
+### With sanitizers
+
+Memory errors such as a one-byte over-read usually don't change what the
+library returns, so the tests can't see them in a normal build. Build with
+AddressSanitizer and UndefinedBehaviorSanitizer to catch them:
+
+```sh
+./configure --enable-sanitizers
+make
+make -C tests check-conformance
+```
+
+Any sanitizer report from a driver then fails the test that triggered it,
+including reports printed after the last response (for example during
+cleanup). If your compiler lacks one of the runtimes, pick a subset, for
+example `--enable-sanitizers=address`.
+
+Leak detection is off by default because the library has known leaks at
+exit. Run with `ASAN_OPTIONS=detect_leaks=1` to see them.
+
+Tests for bugs that only a sanitizer can observe use
+`@known_bug(..., only_if=SANITIZED)`, so they're expected failures in
+sanitizer builds and ordinary tests otherwise.
+
 ## How it works
 
 - `tests/t_srv` runs one server-side authentication; `tests/t_cli` runs

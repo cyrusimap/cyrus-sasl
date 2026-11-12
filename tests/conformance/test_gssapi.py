@@ -217,7 +217,6 @@ class GssapiServer(SaslTestCase):
         self.assertFailed(peer.server.decode(packet),
                           "integrity-only packet accepted on a confidential layer")
 
-    @known_bug("S4", "both layer bits select integrity instead of confidentiality")
     @spec("RFC 4752", "3.3", "MUST",
           "a client asking for confidentiality must get conf_flag TRUE data")
     def test_both_layer_bits(self):

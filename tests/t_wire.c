@@ -258,10 +258,14 @@ static void json_prop_str(sasl_conn_t *conn, const char *key, int prop)
 void t_report(sasl_conn_t *conn, int rc, const char *out, unsigned outlen,
               const char *mech)
 {
+    /* Output is only defined for SASL_OK and SASL_CONTINUE; after a failure
+     * the library may already have freed the buffer it points to. */
+    int has_out = out != NULL && (rc == SASL_OK || rc == SASL_CONTINUE);
+
     t_json_begin();
     t_json_int("rc", rc);
     t_json_str("name", rc_name(rc));
-    t_json_hex("out", (const unsigned char *) out, outlen, out != NULL);
+    t_json_hex("out", (const unsigned char *) out, outlen, has_out);
     if (mech) t_json_str("mech", mech);
     if (rc != SASL_OK && rc != SASL_CONTINUE) {
         t_json_str("detail", sasl_errdetail(conn));

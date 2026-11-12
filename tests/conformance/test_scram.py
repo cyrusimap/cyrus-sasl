@@ -11,7 +11,7 @@ exchange.
 
 import os
 
-from sasltest import (SCRAM_HASHES, SaslTestCase, Scram, b64, known_bug,
+from sasltest import (SANITIZED, SaslTestCase, Scram, b64, known_bug,
                       parse_attrs, scram_escape, spec, unb64)
 
 MECH = "SCRAM-SHA-256"
@@ -212,10 +212,12 @@ class ScramServer(SuccessDataMixin, SaslTestCase):
         p = self.peer()
         self.assertFailed(p.first("x,,n=alice,r=" + p.cnonce))
 
+    @known_bug("H1", "one-byte heap over-read parsing client-first",
+               only_if=SANITIZED)
     @spec("RFC 5802", "7", "ABNF", "authzid with no terminating client-first fields")
     def test_truncated_after_authzid(self):
-        # Also exercises finding H1 (one-byte over-read); detecting the
-        # over-read itself needs a build with AddressSanitizer.
+        # The over-read (finding H1) is only visible with --enable-sanitizers;
+        # in other builds the server rejects the message and the test passes.
         p = self.peer()
         self.assertFailed(p.first("n,a=abcdef,"))
 

@@ -137,17 +137,29 @@ class Gs2Server(SaslTestCase):
 
     # --- GS2 header ---
 
-    @known_bug("H7", "an unknown gs2-cb-flag is treated as n")
     @spec("RFC 5801", "7", "MUST",
           "authentication MUST NOT succeed if the GS2 header doesn't match the ABNF")
     def test_unknown_cb_flag(self):
         peer = Gs2ClientPeer(self.gs2_server(), gs2_header=b"x,,")
         self.assertFailed(peer.run())
 
-    @known_bug("H8", "NUL in the authzid is accepted and truncates it")
     @spec("RFC 5801", "4", "ABNF", "UTF8-1-safe excludes NUL in the authzid")
     def test_authzid_with_nul(self):
         peer = Gs2ClientPeer(self.gs2_server(), gs2_header=b"n,a=user\0junk,")
+        self.assertFailed(peer.run())
+
+    @spec("RFC 5801", "4", "ABNF", "the authzid is UTF-8")
+    def test_authzid_invalid_utf8(self):
+        # Permit exactly these bytes as an authzid (surrogate escapes pass
+        # them through argv), so only the UTF-8 check can reject them.
+        server = self.gs2_server(proxies=[("user", "\udcff\udcfe")])
+        peer = Gs2ClientPeer(server, gs2_header=b"n,a=\xff\xfe,")
+        self.assertFailed(peer.run())
+
+    @spec("RFC 5801", "4", "ABNF", 'cb-name = 1*(ALPHA / DIGIT / "." / "-")')
+    def test_cb_name_invalid_characters(self):
+        server = self.gs2_server(mech=MECH + "-PLUS", cbinding=("tls,unique", CB_DATA))
+        peer = Gs2ClientPeer(server, gs2_header=b"p=tls=2Cunique,,", cb_data=CB_DATA)
         self.assertFailed(peer.run())
 
     @spec("RFC 5801", "4", "MUST", "a= requires authorization to act as that identity")

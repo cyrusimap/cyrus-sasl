@@ -173,6 +173,8 @@ static int gs2_unescape_authzid(const sasl_utils_t *utils,
                                 unsigned *inlen,
                                 char **authzid);
 
+static int gs2_valid_cb_name(const char *name);
+
 static int gs2_escape_authzid(const sasl_utils_t *utils,
                               const char *in,
                               unsigned inlen,
@@ -1091,6 +1093,8 @@ gs2_verify_initial_message(context_t *text,
         ret = gs2_unescape_authzid(text->utils, &p, &remain, &text->cbindingname);
         if (ret != SASL_OK)
             return ret;
+        if (!gs2_valid_cb_name(text->cbindingname))
+            return SASL_BADPROT;
 
         if (sparams->cbinding == NULL ||
             strcmp(sparams->cbinding->name, text->cbindingname) != 0) {
@@ -1107,6 +1111,10 @@ gs2_verify_initial_message(context_t *text,
     case 'y':
         text->gs2_flags |= GS2_CB_FLAG_Y;
         break;
+    default:
+        /* RFC 5801 section 7: a header that doesn't match the ABNF MUST
+           fail authentication */
+        return SASL_BADPROT;
     }
 
     CHECK_REMAIN(1); /* , */
@@ -1123,6 +1131,9 @@ gs2_verify_initial_message(context_t *text,
         ret = gs2_unescape_authzid(text->utils, &p, &remain, &text->authzid);
         if (ret != SASL_OK)
             return ret;
+        if (text->utils->utf8verify(text->authzid,
+                                    (unsigned) strlen(text->authzid)) != SASL_OK)
+            return SASL_BADPROT;
     }
 
     /* end of header */
@@ -1442,6 +1453,24 @@ gs2_duplicate_buffer(const sasl_utils_t *utils,
     return SASL_OK;
 }
 
+/*
+ * RFC 5801 section 4: cb-name = 1*(ALPHA / DIGIT / "." / "-")
+ */
+static int
+gs2_valid_cb_name(const char *name)
+{
+    const char *p;
+
+    if (name == NULL || *name == '\0')
+        return 0;
+    for (p = name; *p; p++) {
+        if (!((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') ||
+              (*p >= '0' && *p <= '9') || *p == '.' || *p == '-'))
+            return 0;
+    }
+    return 1;
+}
+
 static int
 gs2_unescape_authzid(const sasl_utils_t *utils,
                      char **endp,
@@ -1459,6 +1488,9 @@ gs2_unescape_authzid(const sasl_utils_t *utils,
             *endp = &in[i];
             *remain -= i;
             break;
+        } else if (in[i] == '\0') {
+            /* RFC 5801 section 4: UTF8-1-safe excludes NUL */
+            return SASL_BADPROT;
         } else if (in[i] == '=') {
             if (inlen <= i + 2)
                 return SASL_BADPROT;

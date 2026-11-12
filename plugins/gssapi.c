@@ -186,6 +186,7 @@ typedef struct context {
     sasl_ssf_t limitssf, requiressf; /* application defined bounds, for the
 					server */
     unsigned char qop;		     /* as allowed by GSSAPI */
+    int confidentiality;	     /* the confidentiality layer is in use */
 
     const sasl_utils_t *utils;
     
@@ -469,6 +470,7 @@ gssapi_decode_packet(void *context,
     OM_uint32 maj_stat, min_stat;
     gss_buffer_t input_token, output_token;
     gss_buffer_desc real_input_token, real_output_token;
+    int conf_state = 0;
     int result;
     
     if (text->state != SASL_GSSAPI_STATE_AUTHENTICATED) {
@@ -489,12 +491,25 @@ gssapi_decode_packet(void *context,
 			   text->gss_ctx,
 			   input_token,
 			   output_token,
-			   NULL,
+			   &conf_state,
 			   NULL);
     GSS_UNLOCK_MUTEX_CTX(text->utils, text);
     
-    if (GSS_ERROR(maj_stat)) {
-	sasl_gss_seterror(text->utils,maj_stat,min_stat);
+    /* RFC 4752 section 3.3: any major status other than GSS_S_COMPLETE,
+       including supplementary status such as GSS_S_DUPLICATE_TOKEN,
+       GSS_S_GAP_TOKEN or GSS_S_UNSEQ_TOKEN, MUST be treated as fatal.
+       With confidentiality negotiated, the packet must be encrypted. */
+    if (maj_stat != GSS_S_COMPLETE ||
+	(text->confidentiality && !conf_state)) {
+	if (GSS_ERROR(maj_stat)) {
+	    sasl_gss_seterror(text->utils,maj_stat,min_stat);
+	} else if (maj_stat != GSS_S_COMPLETE) {
+	    SETERROR(text->utils,
+		     "GSSAPI security layer: replayed, out of order or missing packet");
+	} else {
+	    SETERROR(text->utils,
+		     "GSSAPI security layer: unencrypted packet with confidentiality negotiated");
+	}
 	if (output_token->value) {
 	    GSS_LOCK_MUTEX_CTX(text->utils, text);
 	    gss_release_buffer(&min_stat, output_token);
@@ -766,6 +781,7 @@ static int gssapi_spnego_ssf(context_t *text,
     if (text->qop & LAYER_CONFIDENTIALITY) {
         oparams->encode = &gssapi_privacy_encode;
         oparams->decode = &gssapi_decode;
+        text->confidentiality = 1;
         ret = gssapi_get_ssf(text, &oparams->mech_ssf);
         if (ret != SASL_OK) {
             return ret;
@@ -1685,7 +1701,8 @@ gssapi_server_mech_ssfreq(context_t *text,
 			  NULL);
     GSS_UNLOCK_MUTEX_CTX(params->utils, text);
 
-    if (GSS_ERROR(maj_stat)) {
+    /* RFC 4752 section 3: any status other than GSS_S_COMPLETE is fatal */
+    if (maj_stat != GSS_S_COMPLETE) {
 	sasl_gss_seterror(text->utils, maj_stat, min_stat);
 	sasl_gss_free_context_contents(text);
 	return SASL_FAIL;
@@ -1718,6 +1735,7 @@ gssapi_server_mech_ssfreq(context_t *text,
         int ret;
 	oparams->encode = &gssapi_privacy_encode;
 	oparams->decode = &gssapi_decode;
+	text->confidentiality = 1;
 
 	ret = gssapi_get_ssf(text, &oparams->mech_ssf);
         if (ret != SASL_OK) {
@@ -2378,7 +2396,8 @@ static int gssapi_client_mech_step(void *conn_context,
 			      NULL);
 	GSS_UNLOCK_MUTEX_CTX(params->utils, text);
 	
-	if (GSS_ERROR(maj_stat)) {
+	/* RFC 4752 section 3: any status other than GSS_S_COMPLETE is fatal */
+	if (maj_stat != GSS_S_COMPLETE) {
 	    sasl_gss_seterror(text->utils, maj_stat, min_stat);
 	    if (output_token->value) {
 		GSS_LOCK_MUTEX_CTX(params->utils, text);
@@ -2442,6 +2461,7 @@ static int gssapi_client_mech_step(void *conn_context,
 	    /* encryption */
 	    oparams->encode = &gssapi_privacy_encode;
 	    oparams->decode = &gssapi_decode;
+	    text->confidentiality = 1;
 	    oparams->mech_ssf = mech_ssf;
 	    mychoice = LAYER_CONFIDENTIALITY;
 

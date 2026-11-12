@@ -199,7 +199,6 @@ class GssapiServer(SaslTestCase):
         self.assertEqual(unwrapped.message, b"secret")
         self.assertTrue(unwrapped.encrypted)
 
-    @known_bug("S3", "GSS_Unwrap supplementary status (replay) is ignored")
     @spec("RFC 4752", "3.3", "MUST",
           "GSS_Unwrap status other than GSS_S_COMPLETE MUST be a fatal error")
     def test_replayed_packet_rejected(self):
@@ -208,7 +207,6 @@ class GssapiServer(SaslTestCase):
         self.assertOk(peer.server.decode(packet))
         self.assertFailed(peer.server.decode(packet), "replayed packet was accepted")
 
-    @known_bug("S3", "decode doesn't check that the packet was encrypted")
     @spec("RFC 4752", "3.3", "MUST",
           "with confidentiality negotiated, data MUST be wrapped with conf_flag TRUE")
     def test_unencrypted_packet_rejected(self):
@@ -332,7 +330,6 @@ class GssapiClient(SaslTestCase):
         self.assertOk(r)
         self.assertEqual(peer.ctx.unwrap(r.out).message[4:], b"admin")
 
-    @known_bug("S3", "GSS_Unwrap supplementary status (replay) is ignored")
     @spec("RFC 4752", "3.3", "MUST",
           "GSS_Unwrap status other than GSS_S_COMPLETE MUST be a fatal error")
     def test_replayed_packet_rejected(self):

@@ -548,27 +548,6 @@ else
   AC_MSG_RESULT(disabled)
 fi
 
-dnl PASSDSS
-AC_ARG_ENABLE(passdss, [  --enable-passdss        enable PASSDSS authentication (experimental) [[no]] ],
-  passdss=$enableval,
-  passdss=no)
-
-AC_MSG_CHECKING(PASSDSS)
-if test "$passdss" != no; then
-  AC_MSG_RESULT(enabled)
-  PASSDSS_LIBS="-lcrypto $LIB_RSAREF"
-  AC_SUBST(PASSDSS_LIBS)
-
-  SASL_MECHS="$SASL_MECHS libpassdss.la"
-  if test "$enable_static" = yes; then
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS passdss.o"
-    SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/passdss.c"
-    AC_DEFINE(STATIC_PASSDSS,[],[Link PASSDSS Statically])
-  fi
-else
-  AC_MSG_RESULT(disabled)
-fi
-
 dnl OPAQUE
 AC_ARG_ENABLE(opaque, [  --enable-opaque            enable OPAQUE authentication [[yes]] ],
   opaque=$enableval,

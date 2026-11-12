@@ -134,7 +134,7 @@ multiple parameters described above, for example ``nmake /f NTMakefile SQL=SQLIT
 Limitations
 -----------
 
-Currently all plugins except PASSDSS (passdss.c) can be built on Windows.
+Currently all plugins can be built on Windows.
 However limited testings was done for some plugins as listed below:
 
 * GSSAPI - tested using CyberSafe,

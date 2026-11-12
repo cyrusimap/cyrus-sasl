@@ -77,7 +77,6 @@ class PlainServer(SaslTestCase):
     def test_empty_authcid(self):
         self.assertFailed(self.run_plain(plain("", "", "secret")))
 
-    @known_bug("S2", "empty password is passed to the verifier")
     @spec("RFC 4616", "2", "SHALL",
           "if preparation results in an empty string, verification SHALL fail")
     def test_empty_password(self):

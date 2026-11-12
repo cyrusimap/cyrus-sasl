@@ -13,6 +13,14 @@ localhost port with its own configuration (`krb5env.py`), so they don't
 need root, DNS, `socket_wrapper` or `nss_wrapper`. Set `T_KEEP_KRB5=1` to
 keep its directory, with the KDC log, after the run.
 
+Two more groups use optional Python packages and are skipped without them:
+
+- `test_tls_cbind.py` derives channel binding data from real TLS handshakes
+  (`tls-exporter`, `tls-unique`, `tls-server-end-point`) with pyOpenSSL and
+  cryptography (`tlsenv.py`).
+- `test_interop.py` runs SCRAM against scramp, an independent
+  implementation, in both directions.
+
 ## Running
 
 ```sh

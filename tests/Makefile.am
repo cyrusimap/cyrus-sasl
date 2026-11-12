@@ -91,8 +91,11 @@ EXTRA_DIST = \
 	conformance/test_external.py \
 	conformance/test_gs2.py \
 	conformance/test_gssapi.py \
+	conformance/test_interop.py \
 	conformance/test_plain.py \
 	conformance/test_scram.py \
+	conformance/test_tls_cbind.py \
+	conformance/tlsenv.py \
 	$(NULL)
 
 all: $(check_PROGRAMS)

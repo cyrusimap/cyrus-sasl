@@ -437,8 +437,10 @@ class ScramVariants(SuccessDataMixin, SaslTestCase):
         self.run_variant("SCRAM-SHA-512")
 
 
-class ScramClient(SaslTestCase):
-    """The Python side plays the server; the library is the client."""
+class ScramClientHelpers(SaslTestCase):
+    """Helpers for tests where the Python side plays the SCRAM server and
+    the library is the client.  Has no tests of its own, so other modules
+    can reuse it without re-running ScramClient's tests."""
 
     def setUp(self):
         super().setUp()
@@ -483,6 +485,10 @@ class ScramClient(SaslTestCase):
 
     def verifier(self, scram, auth):
         return "v=" + b64(scram.server_signature(self.salt, self.iterations, auth))
+
+
+class ScramClient(ScramClientHelpers):
+    """The Python side plays the server; the library is the client."""
 
     # --- message construction ---
 

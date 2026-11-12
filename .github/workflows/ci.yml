@@ -28,6 +28,7 @@ jobs:
             packages: >-
               liblmdb-dev libkrb5-dev krb5-kdc krb5-admin-server
               libsocket-wrapper libnss-wrapper python3-gssapi
+              python3-openssl python3-cryptography python3-scramp
             configure: --with-dblib=lmdb
             checkargs: --no-skip
           # AddressSanitizer and UndefinedBehaviorSanitizer: any report
@@ -35,7 +36,8 @@ jobs:
           - name: sanitizers
             packages: >-
               liblmdb-dev libkrb5-dev krb5-kdc krb5-admin-server
-              python3-gssapi
+              python3-gssapi python3-openssl python3-cryptography
+              python3-scramp
             configure: --with-dblib=lmdb --enable-sanitizers
             checkargs: ""
 

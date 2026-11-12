@@ -43,6 +43,17 @@ def missing_plain_prereqs(testdir):
     return None
 
 
+def sanitizer_env():
+    """ Sanitizer settings for test programs (see --enable-sanitizers)
+
+    Test programs get their own environment, so pass these through.  Leak
+    reports are off by default: the library and tools have known leaks at
+    exit that would fail every test.  Set ASAN_OPTIONS to override.
+    """
+    return {'ASAN_OPTIONS': os.environ.get('ASAN_OPTIONS', 'detect_leaks=0'),
+            'UBSAN_OPTIONS': os.environ.get('UBSAN_OPTIONS', 'print_stacktrace=1')}
+
+
 def setup_socket_wrappers(testdir):
     """ Try to set up socket wrappers """
     wrapdir = os.path.join(testdir, 'w')
@@ -412,6 +423,7 @@ def gss_spnego_zeromaxssf_test(kenv):
 def gssapi_tests(testdir):
     """ SASL/GSSAPI Tests """
     env = setup_socket_wrappers(testdir)
+    env.update(sanitizer_env())
     kdc, kenv = setup_kdc(testdir, env)
     #print("KDC: {}, ENV: {}".format(kdc, kenv))
     kenv['KRB5_TRACE'] = os.path.join(testdir, 'trace.log')
@@ -461,6 +473,7 @@ def setup_plain(testdir):
     # SASL_PLUGIN_PATH_ATTR in configure.ac).
     sasldbenv = {'SASL_PLUGINDIR': os.path.join(testdir, '../../plugins/.libs'),
                  'LD_LIBRARY_PATH' : os.path.join(testdir, '../../lib/.libs')}
+    sasldbenv.update(sanitizer_env())
 
     passwdprog = saslpasswd2_path(testdir)
 

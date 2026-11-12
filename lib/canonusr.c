@@ -373,12 +373,12 @@ static int _canonuser_internal(const sasl_utils_t *utils,
     userin[ulen] = '\0';
     
     /* Strip User ID */
-    for(i=0;isspace((int)userin[i]) && i<ulen;i++);
+    for(i=0; i<ulen && isspace((unsigned char)userin[i]); i++);
     begin_u = &(userin[i]);
-    if(i>0) ulen -= i;
+    ulen -= i;
 
-    for(;ulen > 0 && isspace((int)begin_u[ulen-1]); ulen--);
-    if(begin_u == &(userin[ulen])) {
+    for(;ulen > 0 && isspace((unsigned char)begin_u[ulen-1]); ulen--);
+    if(ulen == 0) {
 	sasl_FREE(in_buf);
 	utils->seterror(utils->conn, 0, "All-whitespace username.");
 	return SASL_FAIL;

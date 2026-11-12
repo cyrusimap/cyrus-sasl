@@ -9,7 +9,7 @@ The authentication identity comes from outside SASL (for example a TLS
 client certificate); the drivers set it with SASL_AUTH_EXTERNAL.
 """
 
-from sasltest import SaslTestCase, known_bug, spec
+from sasltest import SaslTestCase, spec
 
 EXT_ID = "alice"
 
@@ -56,7 +56,6 @@ class ExternalServer(SaslTestCase):
         r = self.ext_server(proxies=[("alice", "bob")]).start(b"bob\0junk")
         self.assertFailed(r)
 
-    @known_bug("S1", "whitespace-only authzid is canonicalized to an empty identity")
     @spec("RFC 4422", "3.4.1", "MUST",
           "a non-empty authzid requests that exact identity")
     def test_whitespace_authzid(self):

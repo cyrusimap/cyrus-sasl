@@ -84,12 +84,19 @@ class PlainServer(SaslTestCase):
         r = self.run_plain(plain("", "carol", ""), users={"carol": ""})
         self.assertFailed(r)
 
-    @known_bug("S1", "whitespace-only authzid is canonicalized to an empty identity")
     @spec("RFC 4422", "3.4.1", "MUST",
           "a non-empty authzid requests that exact identity")
     def test_whitespace_authzid(self):
         r = self.run_plain(plain(" ", "alice", "secret"))
         self.assertFailed(r, "authzid ' ' was accepted as %r" % r.user)
+
+    def test_authzid_leading_whitespace(self):
+        # Regression test for the canonicalization bug behind S1, which also
+        # rejected names whose leading-space count equals their trimmed
+        # length as "All-whitespace".  Surrounding whitespace is trimmed.
+        r = self.run_plain(plain("  ab", "ab", "secret"), users={"ab": "secret"})
+        self.assertOk(r)
+        self.assertEqual(r.user, b"ab")
 
     # --- message syntax ---
 

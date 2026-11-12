@@ -1347,6 +1347,18 @@ scram_server_mech_step2(server_context_t *text,
 	    goto cleanup;
 	}
         break;
+
+    default:
+	/* RFC 5802 section 7: cbind-data MUST be absent for "y" or "n", so
+	   the decoded value must be exactly the GS2 header. */
+	if (binary_channel_binding_len != text->gs2_header_length) {
+	    sparams->utils->seterror(sparams->utils->conn, 0,
+                                     "Unexpected channel bindings data in %s",
+                                     scram_sasl_mech);
+	    result = SASL_BADPROT;
+	    goto cleanup;
+	}
+        break;
     }
 
     if (strncmp(p, "r=", 2) != 0) {

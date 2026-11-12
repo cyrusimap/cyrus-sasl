@@ -86,6 +86,8 @@ EXTRA_DIST = \
 	conformance/README.md \
 	conformance/run.py \
 	conformance/sasltest.py \
+	conformance/test_anonymous.py \
+	conformance/test_external.py \
 	conformance/test_plain.py \
 	conformance/test_scram.py \
 	$(NULL)

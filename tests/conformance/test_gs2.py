@@ -6,8 +6,13 @@ header starts with "F,").  The GS2 header, without "F,", plus any channel
 binding data, is the application_data of the GSS-API channel bindings.
 """
 
-import gssapi
-import gssapi.raw
+import unittest
+
+try:
+    import gssapi
+    import gssapi.raw
+except ImportError:
+    raise unittest.SkipTest("Python gssapi module not installed")
 
 import krb5env
 from sasltest import SANITIZED, SaslTestCase, known_bug, spec

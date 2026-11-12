@@ -10,8 +10,13 @@ Security layer bit-masks (RFC 4752 section 3.3): 1 none, 2 integrity,
 length followed by a GSS_Wrap token.
 """
 
-import gssapi
-import gssapi.raw
+import unittest
+
+try:
+    import gssapi
+    import gssapi.raw
+except ImportError:
+    raise unittest.SkipTest("Python gssapi module not installed")
 
 import krb5env
 from sasltest import SaslTestCase, config_defined, known_bug, spec

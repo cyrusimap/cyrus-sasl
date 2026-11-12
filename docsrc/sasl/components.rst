@@ -125,7 +125,7 @@ Password Verification Mechanisms
     of the password.
 Shared Secret Mechanisms
     For these mechanisms,
-    such as OTP and SCRAM,
+    such as SCRAM,
     there is a shared secret between the server and client (e.g. a password).
     However, in this case the password itself does not travel on the wire.
     Instead, the client passes a server a token that proves that it knows

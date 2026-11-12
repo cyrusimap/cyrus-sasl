@@ -8,9 +8,6 @@ PLUGINS_EXT=
 PLUGINS_EXT=$(PLUGINS_EXT) saslGSSAPI.dll
 !ENDIF 
 
-!IF "$(OTP)" == "1"
-PLUGINS_EXT=$(PLUGINS_EXT) saslOTP.dll
-!ENDIF
 
 !IF "$(LDAP)" == "1"
 PLUGINS_EXT=$(PLUGINS_EXT) saslLDAPDB.dll
@@ -41,7 +38,7 @@ PLUGINS=saslANONYMOUS.dll \
 	$(PLUGINS_EXT) \
 	saslSASLDB.dll
 
-generated_rc=saslANONYMOUS.rc saslPLAIN.rc saslSCRAM.rc saslGSSAPI.rc saslOTP.rc saslSASLDB.rc saslSQLITE.rc saslLDAPDB.rc
+generated_rc=saslANONYMOUS.rc saslPLAIN.rc saslSCRAM.rc saslGSSAPI.rc saslSASLDB.rc saslSQLITE.rc saslLDAPDB.rc
 
 # WS2tcpip.h included in Visual Studio 7 provides getaddrinfo, ...
 # emulation on Windows, so there is no need to build getaddrinfo.c
@@ -64,8 +61,6 @@ saslSCRAM_out = saslSCRAM.dll saslSCRAM.exp saslSCRAM.lib
 saslGSSAPI_objs = gssapi.obj gssapiv2_init.obj $(common_objs)
 saslGSSAPI_out = saslGSSAPI.dll saslGSSAPI.exp saslGSSAPI.lib
 
-saslOTP_objs = otp.obj otp_init.obj $(common_objs)
-saslOTP_out = saslOTP.dll saslOTP.exp saslOTP.lib
 
 saslSQL_objs = sql.obj sql_init.obj $(common_objs)
 # saslSQL_out is an agregation of all generated files for all SQL plugins
@@ -109,8 +104,8 @@ SCRAM_FLAGS=/DHAVE_SHA512=1
 saslSASLDB_objs = sasldb.obj sasldb_init.obj $(libsasldb_objs) $(common_objs)
 saslSASLDB_out = saslSASLDB.dll saslSASLDB.exp saslSASLDB.lib
 
-all_objs = $(saslANONYMOUS_objs) $(saslPLAIN_objs) $(saslSCRAM_objs) $(saslGSSAPI_objs) $(saslOTP_objs) $(saslSASLDB_objs) $(saslSQL_objs) $(saslLDAPDB_objs)
-all_out = $(saslANONYMOUS_out) $(saslPLAIN_out) $(saslSCRAM_out) $(saslGSSAPI_out) $(saslOTP_out) $(saslSASLDB_out) $(saslSQL_out) $(saslLDAPDB_out)
+all_objs = $(saslANONYMOUS_objs) $(saslPLAIN_objs) $(saslSCRAM_objs) $(saslGSSAPI_objs) $(saslSASLDB_objs) $(saslSQL_objs) $(saslLDAPDB_objs)
+all_out = $(saslANONYMOUS_out) $(saslPLAIN_out) $(saslSCRAM_out) $(saslGSSAPI_out) $(saslSASLDB_out) $(saslSQL_out) $(saslLDAPDB_out)
 
 # LIBSASL_EXPORTS is required to export additional DB routines from sasldb
 DB_FLAGS = /I "$(DB_INCLUDE)" /I "..\sasldb" /D "LIBSASL_EXPORTS" /D "KEEP_DB_OPEN"
@@ -165,8 +160,6 @@ saslGSSAPI.dll: $(saslGSSAPI_objs) saslGSSAPI.res
 <<
 	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 
-saslOTP.dll: $(saslOTP_objs) saslOTP.res
-	$(LINK32DLL) @<< $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslOTP.dll" /implib:"saslOTP.lib" $(saslOTP_objs) saslOTP.res
 <<
 	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 

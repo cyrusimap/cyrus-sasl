@@ -6,10 +6,10 @@ This article assumes that you have read and followed the SASL chapter of the `Op
 To verify that you have the Cyrus :ref:`GSSAPI <gssapi>` mechanism properly installed, use the pluginviewer command. For instance::
 
     server:~# pluginviewer  | grep -i gssapi
-     PLAIN GSSAPI OTP ANONYMOUS EXTERNAL
+     PLAIN GSSAPI ANONYMOUS EXTERNAL
     Plugin "gssapiv2" [loaded],     API version: 4
            SASL mechanism: GSSAPI, best SSF: 56, supports setpass: no
-    PLAIN GSSAPI OTP ANONYMOUS EXTERNAL
+    PLAIN GSSAPI ANONYMOUS EXTERNAL
     Plugin "gssapiv2" [loaded],     API version: 4
            SASL mechanism: GSSAPI, best SSF: 56
 
@@ -20,7 +20,6 @@ On your client system, search the Root DSE of the server to view advertised mech
     client:~# ldapsearch -LLL -x -H ldap://ldap.example.org -s "base" -b "" supportedSASLMechanisms
     dn:
     supportedSASLMechanisms: GSSAPI
-    supportedSASLMechanisms: OTP
 
 If you received a No Such Object error, you may have an `ACL misconfiguration on your server <https://www.openldap.org/doc/admin24/appendix-common-errors.html#ldap_sasl_interactive_bind_s>`_.
 
@@ -45,7 +44,6 @@ Once you have verified that the server is advertising GSSAPI support, then try::
     SASL SSF: 56 SASL data security layer installed.
     dn:
     supportedSASLMechanisms: GSSAPI
-    supportedSASLMechanisms: OTP
 
 If you receive a list of mechanisms, then congratulations, you're done.
 

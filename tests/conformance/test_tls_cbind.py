@@ -9,7 +9,7 @@ tls-server-end-point (RFC 5929).
 
 import krb5env
 import tlsenv
-from sasltest import SANITIZED, SaslTestCase, known_bug, spec
+from sasltest import SaslTestCase, spec
 from test_scram import PASSWORD, USER, USERS, ScramClientHelpers, ScramPeer
 
 MECH = "SCRAM-SHA-256"
@@ -126,8 +126,6 @@ class TlsGs2ChannelBinding(SaslTestCase):
         tlsenv.require()
         krb5env.require()
 
-    @known_bug("H30", "client calls memcpy with a NULL source for an empty token",
-               only_if=SANITIZED)
     @spec("RFC 5801", "5", "MUST",
           "GS2-KRB5-PLUS succeeds with matching tls-exporter data")
     def test_gs2_tls_exporter(self):

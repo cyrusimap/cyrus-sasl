@@ -3,7 +3,7 @@
  * Runs one server-side authentication for the mechanism given with -m.
  * The first stdin line is the client's initial response, each later line
  * is a client response; each produces one JSON result line on stdout (see
- * t_wire.h).  Before reading any input it prints one line listing the
+ * t_wire.h).  E: and D: lines use the negotiated security layer.  Before reading any input it prints one line listing the
  * mechanisms the server advertises.
  *
  * Passwords come from an in-memory auxprop plugin ("memdb") filled with
@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
     unsigned char *in;
     unsigned inlen, outlen = 0, mlen;
     sasl_ssf_t ext_ssf = 0;
-    int have_cb = 0, have_ext_ssf = 0, ncb = 0;
+    int have_cb = 0, have_ext_ssf = 0, ncb = 0, started = 0, cmd;
     unsigned conn_flags = 0;
     int c, rc;
 
@@ -247,17 +247,23 @@ int main(int argc, char *argv[])
     t_json_str("mechs", rc == SASL_OK ? mechlist : "");
     t_json_end();
 
-    if (!t_read_msg(&in, &inlen)) return 0;
-    rc = sasl_server_start(conn, mech, (const char *) in, inlen, &out, &outlen);
-    t_report(conn, rc, out, outlen, NULL);
-    free(in);
-
-    while (rc == SASL_CONTINUE) {
-        if (!t_read_msg(&in, &inlen)) break;
-        out = NULL;
-        outlen = 0;
-        rc = sasl_server_step(conn, (const char *) in, inlen, &out, &outlen);
-        t_report(conn, rc, out, outlen, NULL);
+    while (t_read_msg(&cmd, &in, &inlen)) {
+        if (cmd) {
+            t_security_layer(conn, cmd, in, inlen);
+        } else if (!started) {
+            started = 1;
+            rc = sasl_server_start(conn, mech, (const char *) in, inlen,
+                                   &out, &outlen);
+            t_report(conn, rc, out, outlen, NULL);
+        } else if (rc == SASL_CONTINUE) {
+            out = NULL;
+            outlen = 0;
+            rc = sasl_server_step(conn, (const char *) in, inlen, &out, &outlen);
+            t_report(conn, rc, out, outlen, NULL);
+        } else {
+            free(in);
+            break;
+        }
         free(in);
     }
 

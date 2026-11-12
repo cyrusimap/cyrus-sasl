@@ -28,6 +28,16 @@ SANITIZER_MARKERS = ("ERROR: AddressSanitizer", "ERROR: LeakSanitizer",
                      "runtime error:")
 
 
+def config_defined(name):
+    """True if the build's config.h defines `name` (e.g. a build option)."""
+    path = os.path.join(BUILDDIR, os.pardir, "config.h")
+    try:
+        with open(path) as f:
+            return any(line.split()[:2] == ["#define", name] for line in f)
+    except OSError:
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Spec and known-bug markers
 # ---------------------------------------------------------------------------
@@ -83,6 +93,7 @@ class Result:
         self.user = bytes.fromhex(obj["user"]) if obj.get("user") is not None else None
         self.authuser = bytes.fromhex(obj["authuser"]) if obj.get("authuser") is not None else None
         self.ssf = obj.get("ssf")
+        self.maxoutbuf = obj.get("maxoutbuf")
 
     @property
     def ok(self):
@@ -99,7 +110,9 @@ class Result:
     def __repr__(self):
         parts = ["%s" % self.name]
         if self.out is not None:
-            parts.append("out=%r" % self.out)
+            out = self.out if len(self.out) <= 64 else (
+                self.out[:64] + b"...(%d bytes)" % len(self.out))
+            parts.append("out=%r" % out)
         if self.mech:
             parts.append("mech=%s" % self.mech)
         if self.user is not None:
@@ -152,11 +165,11 @@ class Driver:
         line, self._buf = self._buf.split(b"\n", 1)
         return json.loads(line.decode("ascii"))
 
-    def _send(self, data):
+    def _send(self, data, prefix=""):
         if data is None:
             line = "-"
         else:
-            line = bytes(data).hex()
+            line = prefix + bytes(data).hex()
         try:
             self.proc.stdin.write((line + "\n").encode("ascii"))
             self.proc.stdin.flush()
@@ -166,6 +179,16 @@ class Driver:
     def call(self, data):
         """Send one message (bytes, or None for no data) and return the Result."""
         self._send(data)
+        return Result(self._readline())
+
+    def encode(self, data):
+        """sasl_encode() data through the negotiated security layer."""
+        self._send(data, prefix="E:")
+        return Result(self._readline())
+
+    def decode(self, data):
+        """sasl_decode() data received through the security layer."""
+        self._send(data, prefix="D:")
         return Result(self._readline())
 
     def close(self):

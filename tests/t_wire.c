@@ -107,7 +107,7 @@ void t_parse_cbinding(const char *arg, sasl_channel_binding_t *cb)
     cb->len = len;
 }
 
-int t_read_msg(unsigned char **data, unsigned *len)
+int t_read_msg(int *cmd, unsigned char **data, unsigned *len)
 {
     static char *line = NULL;
     static size_t cap = 0;
@@ -120,13 +120,32 @@ int t_read_msg(unsigned char **data, unsigned *len)
         line[--n] = '\0';
     }
 
-    if (strcmp(line, "-") == 0) {
+    *cmd = 0;
+    if ((line[0] == 'E' || line[0] == 'D') && line[1] == ':') {
+        *cmd = line[0];
+        *data = t_hex_decode(line + 2, len);
+    } else if (strcmp(line, "-") == 0) {
         *data = NULL;
         *len = 0;
     } else {
         *data = t_hex_decode(line, len);
     }
     return 1;
+}
+
+void t_security_layer(sasl_conn_t *conn, int cmd, const unsigned char *data,
+                      unsigned len)
+{
+    const char *out = NULL;
+    unsigned outlen = 0;
+    int rc;
+
+    if (cmd == 'E') {
+        rc = sasl_encode(conn, (const char *) data, len, &out, &outlen);
+    } else {
+        rc = sasl_decode(conn, (const char *) data, len, &out, &outlen);
+    }
+    t_report(conn, rc, out, outlen, NULL);
 }
 
 /* ---- JSON output ---- */
@@ -275,8 +294,13 @@ void t_report(sasl_conn_t *conn, int rc, const char *out, unsigned outlen,
 
         json_prop_str(conn, "user", SASL_USERNAME);
         json_prop_str(conn, "authuser", SASL_AUTHUSER);
+        const void *maxoutbuf = NULL;
+
         if (sasl_getprop(conn, SASL_SSF, &ssf) == SASL_OK && ssf) {
             t_json_int("ssf", (long) *(const sasl_ssf_t *) ssf);
+        }
+        if (sasl_getprop(conn, SASL_MAXOUTBUF, &maxoutbuf) == SASL_OK && maxoutbuf) {
+            t_json_int("maxoutbuf", (long) *(const unsigned *) maxoutbuf);
         }
     }
     t_json_end();

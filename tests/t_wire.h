@@ -9,6 +9,11 @@
  *   ""         present but empty (zero-length, non-NULL)
  *   <hex>      the message bytes, hex-encoded
  *
+ * After authentication, two commands exercise the negotiated security
+ * layer; each prints one JSON result whose "out" is the output bytes:
+ *   "E:<hex>"  sasl_encode() the bytes
+ *   "D:<hex>"  sasl_decode() the bytes
+ *
  * See COPYING file for License */
 
 #ifndef T_WIRE_H
@@ -51,9 +56,14 @@ void t_parse_cbinding(const char *arg, sasl_channel_binding_t *cb);
 /* Decode a hex string into a newly allocated buffer; exits on bad input. */
 unsigned char *t_hex_decode(const char *hex, unsigned *len);
 
-/* Read one input line.  Returns 0 on EOF, 1 otherwise.  On return *data is
+/* Read one input line.  Returns 0 on EOF, 1 otherwise.  *cmd is 'E' or 'D'
+ * for a security-layer command, or 0 for a SASL message.  On return *data is
  * NULL for "-", or points to the decoded bytes (possibly zero-length). */
-int t_read_msg(unsigned char **data, unsigned *len);
+int t_read_msg(int *cmd, unsigned char **data, unsigned *len);
+
+/* Run an 'E' (sasl_encode) or 'D' (sasl_decode) command and report it. */
+void t_security_layer(sasl_conn_t *conn, int cmd, const unsigned char *data,
+                      unsigned len);
 
 /* JSON output helpers.  Each driver call prints exactly one object. */
 void t_json_begin(void);

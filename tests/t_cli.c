@@ -5,7 +5,8 @@
  * response).  Each stdin line after that is a server challenge passed to
  * sasl_client_step(), and each produces one JSON result line (see
  * t_wire.h).  A line of "-" passes no data, as an application does when
- * the server reports success without additional data.
+ * the server reports success without additional data.  E: and D: lines
+ * use the negotiated security layer.
  *
  * Callbacks are registered only for the values given, so a missing value
  * shows up as SASL_INTERACT.
@@ -86,7 +87,7 @@ int main(int argc, char *argv[])
     unsigned char *in;
     unsigned inlen, outlen = 0;
     sasl_ssf_t ext_ssf = 0;
-    int have_cb = 0, have_ext_ssf = 0, ncb = 0, no_initial = 0;
+    int have_cb = 0, have_ext_ssf = 0, ncb = 0, no_initial = 0, cmd;
     unsigned conn_flags = 0;
     int c, rc;
 
@@ -171,12 +172,17 @@ int main(int argc, char *argv[])
                            no_initial ? NULL : &outlen, &chosen);
     t_report(conn, rc, out, outlen, chosen);
 
-    while (rc == SASL_CONTINUE || rc == SASL_OK) {
-        if (!t_read_msg(&in, &inlen)) break;
-        out = NULL;
-        outlen = 0;
-        rc = sasl_client_step(conn, (const char *) in, inlen, NULL, &out, &outlen);
-        t_report(conn, rc, out, outlen, NULL);
+    while ((rc == SASL_CONTINUE || rc == SASL_OK) &&
+           t_read_msg(&cmd, &in, &inlen)) {
+        if (cmd) {
+            t_security_layer(conn, cmd, in, inlen);
+        } else {
+            out = NULL;
+            outlen = 0;
+            rc = sasl_client_step(conn, (const char *) in, inlen, NULL,
+                                  &out, &outlen);
+            t_report(conn, rc, out, outlen, NULL);
+        }
         free(in);
     }
 

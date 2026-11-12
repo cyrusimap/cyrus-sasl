@@ -101,6 +101,7 @@
 static const char * GSSAPI_BLANK_STRING = "";
 
 static gss_OID_desc gss_spnego_oid = { 6, (void *) "\x2b\x06\x01\x05\x05\x02" };
+static gss_OID_desc gss_krb5_oid = { 9, (void *) "\x2a\x86\x48\x86\xf7\x12\x01\x02\x02" };
 
 #if !defined(HAVE_GSS_C_NT_HOSTBASED_SERVICE) && !defined(GSS_C_NT_HOSTBASED_SERVICE)
 extern gss_OID gss_nt_service_name;
@@ -1188,6 +1189,14 @@ gssapi_server_mech_authneg(context_t *text,
 	}
 	/* If caller didn't provide creds already */
 	if ( server_creds == GSS_C_NO_CREDENTIAL) {
+	    /* RFC 4752 section 3.2: GSSAPI servers SHOULD use acceptor
+	       credentials for the Kerberos V5 mechanism only, so other
+	       mechanisms (including SPNEGO) are refused.  GSS-SPNEGO needs
+	       credentials for any mechanism. */
+	    gss_OID_set_desc krb5_mechs = { 1, &gss_krb5_oid };
+	    gss_OID_set desired_mechs =
+		(text->mech_type == &gss_spnego_oid) ? GSS_C_NO_OID_SET : &krb5_mechs;
+
 	    GSS_LOCK_MUTEX_CTX(params->utils, text);
 #ifdef GSS_USE_LOAD_FROM
             if (keytab != NULL) {
@@ -1201,7 +1210,7 @@ gssapi_server_mech_authneg(context_t *text,
                 maj_stat = gss_acquire_cred_from(&min_stat,
                                                  accept_any ? GSS_C_NO_NAME : text->server_name,
                                                  GSS_C_INDEFINITE,
-                                                 GSS_C_NO_OID_SET,
+                                                 desired_mechs,
                                                  GSS_C_ACCEPT,
                                                  &cred_store,
                                                  &text->server_creds,
@@ -1210,11 +1219,13 @@ gssapi_server_mech_authneg(context_t *text,
             }
             else
 #endif
-            if (! accept_any) {
+            /* GSS_C_NO_CREDENTIAL (accept_any) can't be limited to a
+               mechanism, so GSSAPI acquires GSS_C_NO_NAME credentials. */
+            if (! accept_any || desired_mechs != GSS_C_NO_OID_SET) {
                 maj_stat = gss_acquire_cred(&min_stat,
-                                            text->server_name,
+                                            accept_any ? GSS_C_NO_NAME : text->server_name,
                                             GSS_C_INDEFINITE,
-                                            GSS_C_NO_OID_SET,
+                                            desired_mechs,
                                             GSS_C_ACCEPT,
                                             &text->server_creds, 
                                             NULL,
@@ -1224,9 +1235,9 @@ gssapi_server_mech_authneg(context_t *text,
 	    GSS_UNLOCK_MUTEX_CTX(params->utils, text);
 
 #ifdef GSS_USE_LOAD_FROM
-	    if (keytab != NULL || ! accept_any) {
+	    if (keytab != NULL || ! accept_any || desired_mechs != GSS_C_NO_OID_SET) {
 #else
-	    if (! accept_any) {
+	    if (! accept_any || desired_mechs != GSS_C_NO_OID_SET) {
 #endif
 		if (GSS_ERROR(maj_stat)) {
 		    sasl_gss_seterror(text->utils, maj_stat, min_stat);
@@ -1309,6 +1320,20 @@ gssapi_server_mech_authneg(context_t *text,
     }
 
     assert(maj_stat == GSS_S_COMPLETE);
+
+    /* RFC 4752 section 3.2: the server SHOULD verify that the negotiated
+       GSS-API mechanism is Kerberos V5; if it isn't, authentication MUST
+       be aborted.  (GSS-SPNEGO negotiates its mechanism on purpose.) */
+    if (text->mech_type != &gss_spnego_oid &&
+	(mech_type == GSS_C_NO_OID ||
+	 mech_type->length != gss_krb5_oid.length ||
+	 memcmp(mech_type->elements, gss_krb5_oid.elements,
+		gss_krb5_oid.length) != 0)) {
+	text->utils->seterror(text->utils->conn, 0,
+			      "GSSAPI Failure: the negotiated mechanism is not Kerberos V5");
+	sasl_gss_free_context_contents(text);
+	return SASL_BADAUTH;
+    }
 
     /* When GSS_Accept_sec_context returns GSS_S_COMPLETE, the server
        examines the context to ensure that it provides a level of protection

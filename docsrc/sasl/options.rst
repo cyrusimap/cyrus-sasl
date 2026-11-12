@@ -33,7 +33,7 @@ SASL Library
    authentication.  When set to 'noplain', only non-plaintext secrets
    will be written.  *Note that the only mechanisms (as currently
    implemented) which don't use plaintext secrets are
-   OTP, SCRAM and SRP.*
+   OTP and SCRAM.*
 
    Default: no
 
@@ -416,15 +416,6 @@ Note that all substitutions do not have to be used. For instance,
 is a valid value for sql_select.
 
 
-
-SRP
-===
-
-.. option:: srp_mda [md5 | sha1 | rmd160]
-
-   Message digest algorithm for SRP calculations
-
-   Default: sha1
 
 Kerberos V4
 ===========

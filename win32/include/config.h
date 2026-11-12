@@ -101,7 +101,6 @@ typedef int		    intptr_t;
 #define STATIC_PLAIN 1
 /* #define STATIC_SASLDB 1 */
 #define STATIC_SCRAM 1
-/* #define STATIC_SRP 1 */
 #endif
 
 /* ------------------------------------------------------------ */

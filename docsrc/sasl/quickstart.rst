@@ -23,7 +23,6 @@ this distribution:
 *  PASSDSS (requires OpenSSL libcrypto)
 *  PLAIN
 *  SCRAM (requires OpenSSL libcrypto)
-*  SRP (requires OpenSSL libcrypto)
 
 
 The library also supports storing user secrets in either a hash

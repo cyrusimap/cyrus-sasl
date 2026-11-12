@@ -21,6 +21,5 @@ RFCs and drafts
 * :rfc:`7613` - Preparation, Enforcement, and Comparison of Internationalized Strings Representing Usernames and Passwords
 * :rfc:`7677` - SCRAM-SHA-256 and SCRAM-SHA-256-PLUS: Simple Authentication and Security Layer (SASL) Mechanisms
 * :rfc:`7804` - Salted Challenge Response HTTP Authentication Mechanism
-* `draft-burdis-cat-srp-sasl <https://tools.ietf.org/html/draft-burdis-cat-srp-sasl-08>`_ - Secure Remote Password SASL Mechanism (SRP)
 * `draft-newman-sasl-c-api <https://tools.ietf.org/html/draft-newman-sasl-c-api>`_ - The SASL C API
 * `draft-newman-sasl-passdss <https://tools.ietf.org/html/draft-newman-sasl-passdss>`_ - DSS Secured Password Authentication Mechanism (PASSDSS)

@@ -96,10 +96,6 @@ extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( otp );
 extern SPECIFIC_SERVER_PLUG_INIT_PROTO( plain );
 extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( plain );
 #endif
-#ifdef STATIC_SRP
-extern SPECIFIC_SERVER_PLUG_INIT_PROTO( srp );
-extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( srp );
-#endif
 #ifdef STATIC_SASLDB
 extern SPECIFIC_AUXPROP_PLUG_INIT_PROTO( sasldb );
 #endif
@@ -130,10 +126,6 @@ _sasl_plug_rec _sasl_static_plugins[] = {
 #ifdef STATIC_SCRAM
         SPECIFIC_SERVER_PLUG_INIT( scram, "SCRAM" ),
         SPECIFIC_CLIENT_PLUG_INIT( scram, "SCRAM" ),
-#endif
-#ifdef STATIC_SRP
-	SPECIFIC_SERVER_PLUG_INIT( srp, "SRP" ),
-	SPECIFIC_CLIENT_PLUG_INIT( srp, "SRP" ),
 #endif
 #ifdef STATIC_SASLDB
 	SPECIFIC_AUXPROP_PLUG_INIT( sasldb, "SASLDB" ),

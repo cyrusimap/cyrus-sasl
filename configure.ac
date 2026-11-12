@@ -411,41 +411,6 @@ else
   AC_MSG_RESULT(disabled)
 fi
 
-dnl SRP
-AC_ARG_ENABLE(srp, [  --enable-srp            enable SRP authentication [[no]] ],
-  srp=$enableval,
-  srp=no)
-
-AC_MSG_CHECKING(SRP)
-if test "$srp" != no; then
-  AC_MSG_RESULT(enabled)
-  SRP_LIBS="-lcrypto $LIB_RSAREF"
-
-  SASL_MECHS="$SASL_MECHS libsrp.la"
-  if test "$enable_static" = yes; then
-    SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/srp.c"
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS srp.o"
-    AC_DEFINE(STATIC_SRP, [], [Link SRP Statically])
-  fi
-
-dnl srp_setpass support
-  AC_ARG_ENABLE(srp_setpass, [  --enable-srp-setpass    enable setting SRP secrets with saslpasswd [[no]]],
-      srp_setpass=$enableval,
-      srp_setpass=no)
-
-  AC_MSG_CHECKING(if we should enable setting SRP secrets with saslpasswd)
-  if test "$srp_setpass" != no; then
-    AC_MSG_RESULT(enabled)
-    AC_DEFINE(DO_SRP_SETPASS, [], [should we support setpass() for SRP?])
-  else
-    AC_MSG_RESULT(disabled)
-  fi
-
-  AC_SUBST(SRP_LIBS)
-else
-  AC_MSG_RESULT(disabled)
-fi
-
 dnl Kerberos based Mechanisms
 SASL_GSSAPI_CHK
 

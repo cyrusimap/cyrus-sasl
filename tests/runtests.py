@@ -11,6 +11,38 @@ import time
 from string import Template
 
 
+KRB5_TOOLS = ('krb5kdc', 'kdb5_util', 'kadmin.local')
+KRB5_TOOLS_PATH = '/sbin:/bin:/usr/sbin:/usr/bin'
+
+
+def missing_gssapi_prereqs():
+    """ Return why the GSSAPI tests can't run, or None if they can """
+    missing = []
+    for pkg in ('socket_wrapper', 'nss_wrapper'):
+        try:
+            found = subprocess.call(['pkg-config', '--exists', pkg]) == 0
+        except FileNotFoundError:
+            return 'pkg-config not found'
+        if not found:
+            missing.append(pkg)
+    path = os.pathsep.join([os.environ.get('PATH', ''), KRB5_TOOLS_PATH])
+    missing += [tool for tool in KRB5_TOOLS if not shutil.which(tool, path=path)]
+    if missing:
+        return 'missing ' + ', '.join(missing)
+    return None
+
+
+def saslpasswd2_path(testdir):
+    return os.path.join(testdir, '../../utils/saslpasswd2')
+
+
+def missing_plain_prereqs(testdir):
+    """ Return why the SASLDB PLAIN tests can't run, or None if they can """
+    if not os.access(saslpasswd2_path(testdir), os.X_OK):
+        return 'utils/saslpasswd2 not built (configure without a sasldb backend)'
+    return None
+
+
 def setup_socket_wrappers(testdir):
     """ Try to set up socket wrappers """
     wrapdir = os.path.join(testdir, 'w')
@@ -425,10 +457,12 @@ def setup_plain(testdir):
     """ Create sasldb file """
     sasldbfile = os.path.join(testdir, 'testsasldb.db')
 
-    sasldbenv = {'SASL_PATH': os.path.join(testdir, '../../plugins/.libs'),
+    # libsasl reads the plugin directory from SASL_PLUGINDIR (see
+    # SASL_PLUGIN_PATH_ATTR in configure.ac).
+    sasldbenv = {'SASL_PLUGINDIR': os.path.join(testdir, '../../plugins/.libs'),
                  'LD_LIBRARY_PATH' : os.path.join(testdir, '../../lib/.libs')}
 
-    passwdprog = os.path.join(testdir, '../../utils/saslpasswd2')
+    passwdprog = saslpasswd2_path(testdir)
 
     echo = subprocess.Popen(('echo', '1234567'), stdout=subprocess.PIPE)
     subprocess.check_call([
@@ -460,12 +494,12 @@ def plain_test(sasldbfile, sasldbenv):
                 srv.returncode, srv.stderr.read().decode('utf-8')))
     except Exception as e:
         print("FAIL: {}".format(e))
-        return
+        return 1
 
     print("PASS: PLAIN CLI({}) SRV({})".format(
         cli.stdout.read().decode('utf-8').strip(),
         srv.stdout.read().decode('utf-8').strip()))
-    return
+    return 0
 
 def plain_mismatch_test(sasldbfile, sasldbenv):
     result = "FAIL"
@@ -494,29 +528,36 @@ def plain_mismatch_test(sasldbfile, sasldbenv):
                 cli.returncode, cli_err, srv.returncode, srv_err))
     except Exception as e:
         print("{}: {}".format(result, e))
-        return
+        return 0 if result == "PASS" else 1
 
     print("FAIL: This test should fail [CLI({}) SRV({})]".format(
         cli.stdout.read().decode('utf-8').strip(),
         srv.stdout.read().decode('utf-8').strip()))
-    return
+    return 1
 
 def plain_tests(testdir):
     sasldbfile, sasldbenv = setup_plain(testdir)
     #print("DB file: {}, ENV: {}".format(sasldbfile, sasldbenv))
+    err = 0
+
     print('SASLDB PLAIN:')
     print('    ', end='')
-    plain_test(sasldbfile, sasldbenv)
+    err += plain_test(sasldbfile, sasldbenv)
 
     print('SASLDB PLAIN PASSWORD MISMATCH:')
     print('    ', end='')
-    plain_mismatch_test(sasldbfile, sasldbenv)
+    err += plain_mismatch_test(sasldbfile, sasldbenv)
+
+    return err
 
 if __name__ == "__main__":
 
     P = argparse.ArgumentParser(description='Cyrus SASL Tests')
     P.add_argument('--testdir', default=os.path.join(os.getcwd(), '.tests'),
                    help="Directory for running tests")
+    P.add_argument('--no-skip', action='store_true',
+                   help="Fail instead of skipping tests whose prerequisites "
+                        "are missing")
     A = vars(P.parse_args())
 
     T = A['testdir']
@@ -525,9 +566,20 @@ if __name__ == "__main__":
         shutil.rmtree(T)
     os.makedirs(T)
 
-    plain_tests(T)
+    err = 0
+    skipped = 0
+    groups = (('SASLDB PLAIN', missing_plain_prereqs(T), plain_tests),
+              ('GSSAPI', missing_gssapi_prereqs(), gssapi_tests))
+    for name, missing, run in groups:
+        if missing:
+            print('SKIP: {} tests: {}'.format(name, missing))
+            skipped += 1
+            continue
+        err += run(T)
 
-    err = gssapi_tests(T)
     if err != 0:
         print('{} test(s) FAILED'.format(err))
+        sys.exit(-1)
+    if skipped and A['no_skip']:
+        print('{} test group(s) SKIPPED and --no-skip given'.format(skipped))
         sys.exit(-1)

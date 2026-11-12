@@ -3,8 +3,15 @@
 These tests check Cyrus SASL mechanisms against their RFCs by playing one
 side of an exchange with exact bytes while libsasl plays the other.
 
-They need only Python 3 (standard library) and the two drivers built in
-`tests/`. No sasldb backend, KDC, or network access is required.
+Most tests need only Python 3 (standard library) and the two drivers built
+in `tests/`. No sasldb backend or network access is required.
+
+The GSSAPI and GS2 tests also need the MIT Kerberos KDC tools (`krb5kdc`,
+`kdb5_util`, `kadmin.local`) and the Python `gssapi` module; they're
+skipped if either is missing. They start a throwaway KDC on a free
+localhost port with its own configuration (`krb5env.py`), so they don't
+need root, DNS, `socket_wrapper` or `nss_wrapper`. Set `T_KEEP_KRB5=1` to
+keep its directory, with the KDC log, after the run.
 
 ## Running
 
@@ -55,6 +62,9 @@ sanitizer builds and ordinary tests otherwise.
   one JSON result per libsasl call. See `tests/t_wire.h`.
 - `t_srv` serves passwords from an in-memory auxprop plugin (`-U user:pass`),
   so tests don't depend on how the library was configured.
+- After authentication, `E:<hex>` and `D:<hex>` lines run `sasl_encode()`
+  and `sasl_decode()`, so tests can send, replay and inspect
+  security-layer packets.
 - `sasltest.py` wraps the drivers and computes SCRAM values independently
   of the library, so a passing exchange shows agreement with the RFC
   rather than with the library itself.

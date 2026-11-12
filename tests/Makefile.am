@@ -84,10 +84,13 @@ noinst_PROGRAMS = $(check_PROGRAMS)
 EXTRA_DIST = \
 	runtests.py \
 	conformance/README.md \
+	conformance/krb5env.py \
 	conformance/run.py \
 	conformance/sasltest.py \
 	conformance/test_anonymous.py \
 	conformance/test_external.py \
+	conformance/test_gs2.py \
+	conformance/test_gssapi.py \
 	conformance/test_plain.py \
 	conformance/test_scram.py \
 	$(NULL)

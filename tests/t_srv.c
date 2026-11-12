@@ -7,11 +7,14 @@
  * mechanisms the server advertises.
  *
  * Passwords come from an in-memory auxprop plugin ("memdb") filled with
- * -U user:password, so no sasldb backend is required.
+ * -U user:password (userPassword) and -P user:secret (authPassword, e.g.
+ * stored SCRAM secrets), so no sasldb backend is required.
  *
  * Options:
  *   -m MECH          mechanism to run (required)
  *   -U user:pass     add a user (repeatable)
+ *   -P user:secret   add an authPassword value for a user (repeatable; a
+ *                    user may have several)
  *   -A authid:authzid  allow authid to act as authzid (repeatable); when
  *                    given, replaces the library's default proxy policy
  *   -o key=value     SASL option served through SASL_CB_GETOPT (repeatable)
@@ -39,6 +42,8 @@
 
 static struct t_kv users[T_MAX_USERS];
 static int nusers = 0;
+static struct t_kv secrets[T_MAX_USERS];
+static int nsecrets = 0;
 static struct t_kv proxies[T_MAX_USERS];
 static int nproxies = 0;
 
@@ -55,6 +60,19 @@ static const char *find_password(const char *user, unsigned ulen)
         }
     }
     return NULL;
+}
+
+static int has_secrets(const char *user, unsigned ulen)
+{
+    int i;
+
+    for (i = 0; i < nsecrets; i++) {
+        if (strlen(secrets[i].key) == ulen &&
+            memcmp(secrets[i].key, user, ulen) == 0) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 static int memdb_lookup(void *glob_context __attribute__((unused)),
@@ -82,20 +100,36 @@ static int memdb_lookup(void *glob_context __attribute__((unused)),
             realname = cur->name + 1;
         }
 
-        if (strcasecmp(realname, SASL_AUX_PASSWORD_PROP) != 0) continue;
+        if (strcasecmp(realname, SASL_AUX_PASSWORD_PROP) == 0) {
+            if (cur->values) {
+                if (!(flags & SASL_AUXPROP_OVERRIDE)) continue;
+                sparams->utils->prop_erase(sparams->propctx, cur->name);
+            }
+            if (password) {
+                sparams->utils->prop_set(sparams->propctx, cur->name, password,
+                                         (unsigned) strlen(password));
+            }
+        } else if (strcasecmp(realname, "authPassword") == 0) {
+            int i;
 
-        if (cur->values) {
-            if (!(flags & SASL_AUXPROP_OVERRIDE)) continue;
-            sparams->utils->prop_erase(sparams->propctx, cur->name);
-        }
-
-        if (password) {
-            sparams->utils->prop_set(sparams->propctx, cur->name, password,
-                                     (unsigned) strlen(password));
+            if (cur->values) {
+                if (!(flags & SASL_AUXPROP_OVERRIDE)) continue;
+                sparams->utils->prop_erase(sparams->propctx, cur->name);
+            }
+            for (i = 0; i < nsecrets; i++) {
+                if (strlen(secrets[i].key) == ulen &&
+                    memcmp(secrets[i].key, user, ulen) == 0) {
+                    sparams->utils->prop_set(sparams->propctx, cur->name,
+                                             secrets[i].value,
+                                             (unsigned) strlen(secrets[i].value));
+                }
+            }
         }
     }
 
-    if (!password && !(flags & SASL_AUXPROP_AUTHZID)) return SASL_NOUSER;
+    if (!password && !has_secrets(user, ulen) && !(flags & SASL_AUXPROP_AUTHZID)) {
+        return SASL_NOUSER;
+    }
     return SASL_OK;
 }
 
@@ -166,12 +200,16 @@ int main(int argc, char *argv[])
     /* Defaults: use only the in-memory store, verify through auxprop.
      * Later -o options take precedence because t_getopt returns the first
      * match, so user options are inserted ahead of these below. */
-    while ((c = getopt(argc, argv, "m:U:A:o:c:Cn:x:b:f:e:E:r:Ss:h:")) != EOF) {
+    while ((c = getopt(argc, argv, "m:U:P:A:o:c:Cn:x:b:f:e:E:r:Ss:h:")) != EOF) {
         switch (c) {
         case 'm': mech = optarg; break;
         case 'U':
             if (nusers >= T_MAX_USERS) { fprintf(stderr, "too many -U\n"); exit(2); }
             t_parse_kv(optarg, ':', &users[nusers++]);
+            break;
+        case 'P':
+            if (nsecrets >= T_MAX_USERS) { fprintf(stderr, "too many -P\n"); exit(2); }
+            t_parse_kv(optarg, ':', &secrets[nsecrets++]);
             break;
         case 'A':
             if (nproxies >= T_MAX_USERS) { fprintf(stderr, "too many -A\n"); exit(2); }

@@ -11,8 +11,10 @@ exchange.
 
 import os
 
+import unittest
+
 from sasltest import (SANITIZED, SaslTestCase, Scram, b64, known_bug,
-                      parse_attrs, scram_escape, spec, unb64)
+                      parse_attrs, saslprep, scram_escape, spec, unb64)
 
 MECH = "SCRAM-SHA-256"
 USER = "alice"
@@ -60,16 +62,17 @@ class ScramPeer:
         return r
 
     def final(self, channel_binding=None, nonce=None, proof=None,
-              extra="", password_scram=None):
+              extra="", password_scram=None, extension=""):
         """Send client-final; return the server's Result.
 
         Any argument overrides the correct value, to send a bad message.
+        extension is appended before the proof (e.g. ",x=1").
         """
         cb = channel_binding
         if cb is None:
             cb = b64(self.gs2_header.encode("utf-8") + self.cbind_data)
         nonce = self.nonce if nonce is None else nonce
-        without_proof = "c=%s,r=%s" % (cb, nonce)
+        without_proof = "c=%s,r=%s%s" % (cb, nonce, extension)
         bare = self.sent_first[len(self.gs2_header):]
         self.auth_message = ",".join(
             (bare, self.server_first, without_proof)).encode("utf-8")
@@ -247,7 +250,21 @@ class ScramServer(SuccessDataMixin, SaslTestCase):
         self.assertContinue(r)
         self.assertEqual(r.out or b"", b"")
 
+    @spec("RFC 5802", "5.1", "MUST",
+          "unknown optional extensions in client-first MUST be ignored")
+    def test_client_first_extension_ignored(self):
+        p = self.peer()
+        self.assertContinue(p.first("n,,n=alice,r=%s,x=ext" % p.cnonce))
+        self.assertOk(p.final())
+
     # --- client-final syntax ---
+
+    @spec("RFC 5802", "5.1", "MUST",
+          "unknown optional extensions in client-final MUST be ignored")
+    def test_client_final_extension_ignored(self):
+        p = self.peer()
+        p.first()
+        self.assertOk(p.final(extension=",x=ext"))
 
     @spec("RFC 5802", "7", "ABNF", "proof is the last attribute of client-final")
     def test_data_after_proof_rejected(self):
@@ -535,6 +552,15 @@ class ScramClient(SaslTestCase):
         r = c.step(("m=ext,r=%s,s=%s,i=4096" % (nonce, b64(b"salt"))).encode())
         self.assertFailed(r)
 
+    @spec("RFC 5802", "5.1", "MUST",
+          "unknown optional extensions in server-first MUST be ignored")
+    def test_server_first_extension_ignored(self):
+        c = self.start()
+        r = self.server_first(c, extra=",x=ext")
+        self.assertContinue(r)
+        scram, auth = self.check_final(r)
+        self.assertOk(c.step(self.verifier(scram, auth).encode()))
+
     @known_bug("I1", "off-by-one drops the last ServerSignature character")
     @spec("RFC 5802", "5.1", "MUST", "unknown optional extensions MUST be ignored")
     def test_server_final_extension_ignored(self):
@@ -597,3 +623,147 @@ class ScramClient(SaslTestCase):
     def test_n_without_binding(self):
         self.start("%s %s-PLUS" % (MECH, MECH))
         self.assertEqual(self.gs2_header, "n,,")
+
+
+# Password and username whose SASLprep output differs from the input:
+# U+00AD SOFT HYPHEN is mapped to nothing, U+2168 ROMAN NUMERAL NINE is
+# NFKC-normalized to "IX" (RFC 4013 section 3 examples).
+UNPREPARED_PASSWORD = "pen\u00adcil"
+UNPREPARED_USER = "\u2168"
+
+
+class SaslprepHelper(unittest.TestCase):
+    """Checks the harness's SASLprep against RFC 4013's examples."""
+
+    def test_rfc4013_examples(self):
+        self.assertEqual(saslprep("I\u00adX"), "IX")
+        self.assertEqual(saslprep("user"), "user")
+        self.assertEqual(saslprep("USER"), "USER")
+        self.assertEqual(saslprep("\u00aa"), "a")
+        self.assertEqual(saslprep("\u2168"), "IX")
+        self.assertRaises(ValueError, saslprep, "\u0007")
+        self.assertRaises(ValueError, saslprep, "\u0627\u0031")
+
+
+class ScramSaslprep(SaslTestCase):
+    """RFC 5802 section 2.2: Normalize() MUST be SASLprep, or non-ASCII
+    input MUST be refused."""
+
+    def setUp(self):
+        super().setUp()
+        self.require_mech(MECH)
+
+    @known_bug("I2", "no SASLprep and non-ASCII isn't refused")
+    @spec("RFC 5802", "2.2", "MUST",
+          "implement SASLprep or disallow non-US-ASCII; a raw proof can't match either")
+    def test_server_rejects_unprepared_proof(self):
+        # A conforming server either prepares the stored password (so a
+        # proof over the raw string can't match) or refuses non-ASCII.
+        server = self.server(MECH, users={USER: UNPREPARED_PASSWORD},
+                             success_data=True)
+        p = ScramPeer(server, password=UNPREPARED_PASSWORD)
+        r = p.first()
+        if r.cont:
+            r = p.final()
+        self.assertFailed(r, "proof over the unprepared password was accepted")
+
+    @known_bug("I2", "no SASLprep and non-ASCII isn't refused")
+    @spec("RFC 5802", "2.2", "MUST",
+          "client implements SASLprep or disallows non-US-ASCII in the password")
+    def test_client_prepares_password(self):
+        c = self.client(MECH, authname=USER, password=UNPREPARED_PASSWORD)
+        if c.first.failed:
+            return  # refusing non-ASCII is also conforming
+        bare = c.first.out.decode()[3:]
+        cnonce = dict(parse_attrs(bare))["r"]
+        salt, iterations = b"saltsaltsalt", 4096
+        sfirst = "r=%s,s=%s,i=%d" % (cnonce + new_nonce(), b64(salt), iterations)
+        r = c.step(sfirst.encode())
+        if r.failed:
+            return
+        out = r.out.decode()
+        without_proof = out[:out.rindex(",p=")]
+        auth = ",".join((bare, sfirst, without_proof)).encode()
+        expected = Scram(MECH, saslprep(UNPREPARED_PASSWORD)).client_proof(
+            salt, iterations, auth)
+        self.assertEqual(unb64(dict(parse_attrs(out))["p"]), expected,
+                         "client proof isn't over the SASLprep'd password")
+
+    @known_bug("I2", "no SASLprep and non-ASCII isn't refused")
+    @spec("RFC 5802", "5.1", "SHOULD", "client prepares the username with SASLprep")
+    def test_client_prepares_username(self):
+        c = self.client(MECH, authname=UNPREPARED_USER, password=PASSWORD)
+        if c.first.failed:
+            return  # refusing non-ASCII is also conforming
+        n = dict(parse_attrs(c.first.out.decode()[3:]))["n"]
+        self.assertEqual(n, saslprep(UNPREPARED_USER))
+
+
+class ScramStoredSecrets(SaslTestCase):
+    """The server authenticating from stored secrets (authPassword, RFC 5803
+    layout) instead of a plaintext password."""
+
+    SALT = b"stored-salt-0001"
+    ITERATIONS = 4096
+
+    def setUp(self):
+        super().setUp()
+        self.require_mech(MECH)
+
+    def secret(self, mech=MECH, password=PASSWORD, salt=None, iterations=None):
+        return Scram(mech, password).stored_secret(
+            mech, salt or self.SALT, iterations or self.ITERATIONS)
+
+    def run_peer(self, secrets, password=PASSWORD):
+        server = self.server(MECH, secrets={USER: secrets}, success_data=True)
+        p = ScramPeer(server, password=password)
+        r = p.first()
+        if r.cont:
+            r = p.final()
+        return p, r
+
+    @spec("RFC 5802", "5.1", "MUST",
+          "server authenticates from a stored secret, announcing its salt and count")
+    def test_stored_secret(self):
+        p, r = self.run_peer([self.secret()])
+        self.assertOk(r)
+        self.assertEqual(r.user, USER.encode())
+        self.assertEqual(p.salt, self.SALT)
+        self.assertEqual(p.iterations, self.ITERATIONS)
+        self.assertEqual(r.out.decode(), p.expected_verifier())
+
+    @spec("RFC 5802", "5.1", "MUST", "a wrong password fails against a stored secret")
+    def test_wrong_password(self):
+        p, r = self.run_peer([self.secret()], password="wrong")
+        self.assertError(r)
+
+    @spec("RFC 5802", "5.1", "MUST",
+          "the secret for this mechanism is chosen among several")
+    def test_picks_matching_mechanism(self):
+        other = self.secret(mech="SCRAM-SHA-1", salt=b"other-salt-00001")
+        p, r = self.run_peer([other, self.secret()])
+        self.assertOk(r)
+        self.assertEqual(p.salt, self.SALT)
+
+    @spec("RFC 5802", "5.1", "MUST",
+          "with no usable secret for this mechanism, authentication fails")
+    def test_only_other_mechanism(self):
+        server = self.server(MECH, success_data=True, secrets={
+            USER: [self.secret(mech="SCRAM-SHA-1")]})
+        r = ScramPeer(server).first()
+        self.assertError(r, "no usable secret, but the server didn't return an error")
+
+    @spec("RFC 5802", "5.1", "MUST",
+          "a malformed stored secret is skipped in favor of a valid one")
+    def test_malformed_secret_skipped(self):
+        bad = "%s$%d:%s$!!notbase64!!:x" % (MECH, self.ITERATIONS, b64(b"junk"))
+        p, r = self.run_peer([bad, self.secret()])
+        self.assertOk(r)
+
+    @spec("RFC 5802", "5.1", "MUST",
+          "with only malformed secrets, authentication fails")
+    def test_only_malformed_secret(self):
+        bad = "%s$%d:%s$!!notbase64!!:x" % (MECH, self.ITERATIONS, b64(b"junk"))
+        server = self.server(MECH, success_data=True, secrets={USER: [bad]})
+        r = ScramPeer(server).first()
+        self.assertError(r, "no usable secret, but the server didn't return an error")

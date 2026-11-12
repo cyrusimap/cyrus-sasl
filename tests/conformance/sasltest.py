@@ -241,6 +241,8 @@ class Server(Driver):
     """A libsasl server running one authentication with mechanism `mech`.
 
     users:   {name: password} served by the in-memory password store
+    secrets: {name: [value, ...]} authPassword values, e.g. stored SCRAM
+             secrets (RFC 5803)
     proxies: [(authid, authzid)] pairs allowed to proxy; when given, they
              replace the library's default proxy policy
     success_data: the protocol can carry additional data with the success
@@ -249,10 +251,14 @@ class Server(Driver):
     """
     program = "t_srv"
 
-    def __init__(self, mech, users=None, proxies=None, realm=None, **kw):
+    def __init__(self, mech, users=None, secrets=None, proxies=None,
+                 realm=None, **kw):
         args = ["-m", mech]
         for name, password in (users or {}).items():
             args += ["-U", "%s:%s" % (name, password)]
+        for name, values in (secrets or {}).items():
+            for value in values:
+                args += ["-P", "%s:%s" % (name, value)]
         for authid, authzid in (proxies or []):
             args += ["-A", "%s:%s" % (authid, authzid)]
         if realm is not None:
@@ -343,6 +349,12 @@ class SaslTestCase(unittest.TestCase):
         if not result.failed:
             self.fail(msg or "expected the exchange to fail, got %r" % result)
 
+    def assertError(self, result, msg=None):
+        """Stricter than assertFailed: a SASL error code (negative), not a
+        positive status such as SASL_INTERACT."""
+        if result.rc is None or result.rc >= 0:
+            self.fail(msg or "expected a SASL error code, got %r" % result)
+
 
 # ---------------------------------------------------------------------------
 # SCRAM (RFC 5802) calculator, independent of the library under test
@@ -355,6 +367,39 @@ SCRAM_HASHES = {
     "SCRAM-SHA-384": "sha384",
     "SCRAM-SHA-512": "sha512",
 }
+
+
+def saslprep(text, allow_unassigned=False):
+    """SASLprep (RFC 4013) using the stringprep tables from Unicode 3.2.
+
+    Raises ValueError for prohibited output or a bidi violation.
+    """
+    import stringprep
+    import unicodedata
+
+    mapped = []
+    for ch in text:
+        if stringprep.in_table_c12(ch):
+            mapped.append(" ")          # non-ASCII space -> SPACE
+        elif not stringprep.in_table_b1(ch):
+            mapped.append(ch)           # B.1: commonly mapped to nothing
+    out = unicodedata.ucd_3_2_0.normalize("NFKC", "".join(mapped))
+    prohibited = (stringprep.in_table_c12, stringprep.in_table_c21,
+                  stringprep.in_table_c22, stringprep.in_table_c3,
+                  stringprep.in_table_c4, stringprep.in_table_c5,
+                  stringprep.in_table_c6, stringprep.in_table_c7,
+                  stringprep.in_table_c8, stringprep.in_table_c9)
+    for ch in out:
+        if any(table(ch) for table in prohibited):
+            raise ValueError("prohibited character U+%04X" % ord(ch))
+        if not allow_unassigned and stringprep.in_table_a1(ch):
+            raise ValueError("unassigned code point U+%04X" % ord(ch))
+    if any(stringprep.in_table_d1(ch) for ch in out):
+        if any(stringprep.in_table_d2(ch) for ch in out):
+            raise ValueError("mixed bidirectional text")
+        if not (stringprep.in_table_d1(out[0]) and stringprep.in_table_d1(out[-1])):
+            raise ValueError("RandALCat text must start and end with RandALCat")
+    return out
 
 
 def b64(data):
@@ -410,3 +455,9 @@ class Scram:
     def server_signature(self, salt, iterations, auth_message):
         _, _, server_key = self.keys(salt, iterations)
         return self.HMAC(server_key, auth_message)
+
+    def stored_secret(self, mech, salt, iterations):
+        """The authPassword value the library stores (RFC 5803 layout)."""
+        _, stored_key, server_key = self.keys(salt, iterations)
+        return "%s$%d:%s$%s:%s" % (mech, iterations, b64(salt),
+                                   b64(stored_key), b64(server_key))

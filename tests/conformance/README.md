@@ -60,8 +60,9 @@ sanitizer builds and ordinary tests otherwise.
   one client-side authentication. Each reads one SASL message per line
   (hex, `-` for no data, or an empty line for zero-length data) and prints
   one JSON result per libsasl call. See `tests/t_wire.h`.
-- `t_srv` serves passwords from an in-memory auxprop plugin (`-U user:pass`),
-  so tests don't depend on how the library was configured.
+- `t_srv` serves passwords (`-U user:pass`) and stored secrets such as
+  SCRAM's `authPassword` values (`-P user:secret`) from an in-memory auxprop
+  plugin, so tests don't depend on how the library was configured.
 - After authentication, `E:<hex>` and `D:<hex>` lines run `sasl_encode()`
   and `sasl_decode()`, so tests can send, replay and inspect
   security-layer packets.

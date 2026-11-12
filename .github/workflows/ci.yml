@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: make check (${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # No sasldb backend or Kerberos tools: runtests.py groups that
+          # need them must be skipped, not crash.
+          - name: minimal
+            packages: ""
+            configure: ""
+            checkargs: ""
+          # Everything installed: every test group must run (--no-skip).
+          - name: full
+            packages: >-
+              liblmdb-dev libkrb5-dev krb5-kdc krb5-admin-server
+              libsocket-wrapper libnss-wrapper
+            configure: --with-dblib=lmdb
+            checkargs: --no-skip
+          # AddressSanitizer and UndefinedBehaviorSanitizer: any report
+          # fails the conformance test that triggered it.
+          - name: sanitizers
+            packages: liblmdb-dev libkrb5-dev
+            configure: --with-dblib=lmdb --enable-sanitizers
+            checkargs: ""
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            autoconf automake libtool pkg-config make gcc \
+            libssl-dev python3 ${{ matrix.packages }}
+
+      - name: Configure
+        run: |
+          NOCONFIGURE=1 ./autogen.sh
+          ./configure ${{ matrix.configure }}
+
+      - name: Build
+        run: make -j"$(nproc)"
+
+      - name: Test
+        run: make check CHECKARGS="${{ matrix.checkargs }}"
+
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-${{ matrix.name }}
+          path: |
+            config.log
+            tests/.tests/
+          if-no-files-found: ignore

@@ -56,6 +56,22 @@ int t_getopt(void *context __attribute__((unused)),
     return SASL_FAIL;
 }
 
+static char logbuf[16384];
+static size_t loglen;
+
+int t_log(void *context __attribute__((unused)),
+          int level __attribute__((unused)), const char *message)
+{
+    size_t len = message ? strlen(message) : 0;
+
+    if (loglen + len + 1 <= sizeof(logbuf)) {
+        memcpy(logbuf + loglen, message, len);
+        loglen += len;
+        logbuf[loglen++] = '\n';
+    }
+    return SASL_OK;
+}
+
 int t_getpath(void *context __attribute__((unused)), const char **path)
 {
     const char *env;
@@ -286,6 +302,10 @@ void t_report(sasl_conn_t *conn, int rc, const char *out, unsigned outlen,
     t_json_str("name", rc_name(rc));
     t_json_hex("out", (const unsigned char *) out, outlen, has_out);
     if (mech) t_json_str("mech", mech);
+    if (loglen) {
+        t_json_hex("log", (const unsigned char *) logbuf, (unsigned) loglen, 1);
+        loglen = 0;
+    }
     if (rc != SASL_OK && rc != SASL_CONTINUE) {
         t_json_str("detail", sasl_errdetail(conn));
     }

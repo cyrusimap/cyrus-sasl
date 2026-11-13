@@ -153,7 +153,6 @@ class PlainClient(SaslTestCase):
         self.assertOk(r)
         self.assertEqual(r.out, b"\0alice\0secret")
 
-    @known_bug("H22", "client ignores a non-empty first challenge")
     @spec("RFC 4422", "5", "MUST",
           "for a client-first mechanism, the first server challenge MUST be empty")
     def test_nonempty_challenge_rejected(self):

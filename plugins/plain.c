@@ -298,7 +298,7 @@ static int plain_client_mech_new(void *glob_context __attribute__((unused)),
 static int plain_client_mech_step(void *conn_context,
 				  sasl_client_params_t *params,
 				  const char *serverin __attribute__((unused)),
-				  unsigned serverinlen __attribute__((unused)),
+				  unsigned serverinlen,
 				  sasl_interact_t **prompt_need,
 				  const char **clientout,
 				  unsigned *clientoutlen,
@@ -317,7 +317,12 @@ static int plain_client_mech_step(void *conn_context,
     *clientout = NULL;
     *clientoutlen = 0;
     
-    /* doesn't really matter how the server responds */
+    /* PLAIN is client-first: RFC 4422 section 5 requires the server's
+       challenge, if it sends one before the initial response, to be empty. */
+    if (serverinlen != 0) {
+	SETERROR( params->utils, "Non-empty challenge received from PLAIN server");
+	return SASL_BADPROT;
+    }
     
     /* check if sec layer strong enough */
     if (params->props.min_ssf > params->external_ssf) {

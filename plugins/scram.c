@@ -81,6 +81,22 @@
 
 #define BASE64_LEN(size)	    (((size) / 3 * 4) + (((size) % 3) ? 4 : 0))
 
+/* RFC 5802 posit-number, checked before narrowing on LP64 hosts. */
+static int scram_parse_iterations(const char *text, unsigned int *iterations)
+{
+    unsigned long value;
+    char *end;
+
+    if (text == NULL || text[0] < '1' || text[0] > '9')
+        return SASL_BADPROT;
+    errno = 0;
+    value = strtoul(text, &end, 10);
+    if (*end != '\0' || errno != 0 || value > UINT_MAX)
+        return SASL_BADPROT;
+    *iterations = (unsigned int)value;
+    return SASL_OK;
+}
+
 #define MAX_CLIENTIN_LEN	    2048
 #define MAX_SERVERIN_LEN	    2048
 
@@ -480,7 +496,17 @@ static int
 scram_server_mech_avail(void *glob_context, sasl_server_params_t *params,
                         void **conn_context)
 {
-    return scram_server_mech_new(glob_context, params, NULL, 0, conn_context);
+    sasl_crypto_context_t crypto;
+    int result;
+    (void)conn_context;
+
+    /* Availability queries must not allocate or replace a saved context. */
+    result = _sasl_crypto_init(params->utils, (const char *)glob_context,
+                               &crypto);
+    if (result != SASL_OK)
+        return result;
+    return crypto.operations->hmac && crypto.operations->pbkdf2
+               ? SASL_OK : SASL_NOMECH;
 }
 
 static int
@@ -803,8 +829,7 @@ scram_server_mech_step1(server_context_t *text,
 
     if (auxprop_values[0].name && auxprop_values[0].values) {
 	char * error_text = NULL;
-	char * s_iteration_count;
-	char * end;
+	char * s_iteration_count = NULL;
 
 	result = scram_server_user_salt(sparams->utils, &text->md,
                                          text->authentication_id,
@@ -822,12 +847,11 @@ scram_server_mech_step1(server_context_t *text,
 			       NULL);
 
 	if (s_iteration_count != NULL) {
-	    errno = 0;
-	    text->iteration_count = strtoul(s_iteration_count, &end, 10);
-	    if (s_iteration_count == end || *end != '\0' || errno != 0) {
+	    if (scram_parse_iterations(s_iteration_count,
+                                        &text->iteration_count) != SASL_OK) {
 		sparams->utils->log(NULL,
 				    SASL_LOG_DEBUG,
-				    "Invalid iteration-count in scram_iteration_count SASL option: not a number. Using the default instead.");
+				    "Invalid scram_iteration_counter: expected a positive unsigned integer. Using the default instead.");
 		s_iteration_count = NULL;
 	    }
 	}
@@ -860,11 +884,11 @@ scram_server_mech_step1(server_context_t *text,
 	unsigned int exact_key_len;
 	const char * scram_hash;
 	const char * p_field;
-	char * end;
 	int i;
         size_t scram_sasl_mech_len = strlen(scram_sasl_mech);
 
 
+        result = SASL_SCRAM_INTERNAL;
 	for (i = 0; auxprop_values[1].values[i] != NULL; i++) {
 	    scram_hash = auxprop_values[1].values[i];
 
@@ -911,11 +935,10 @@ scram_server_mech_step1(server_context_t *text,
 	    memcpy(s_iteration_count, scram_hash, p_field - scram_hash);
 	    s_iteration_count[p_field - scram_hash] = '\0';
 
-	    errno = 0;
-	    text->iteration_count = strtoul(s_iteration_count, &end, 10);
-	    if (s_iteration_count == end || *end != '\0' || errno != 0) {
+	    if (scram_parse_iterations(s_iteration_count,
+                                        &text->iteration_count) != SASL_OK) {
 		sparams->utils->seterror(sparams->utils->conn, 0,
-                                         "Invalid iteration-count in %s input: not a number",
+                                         "Invalid iteration-count in %s stored secret: expected a positive unsigned integer",
                                          scram_sasl_mech);
 		continue;
 	    }
@@ -930,6 +953,10 @@ scram_server_mech_step1(server_context_t *text,
 
 	    base64_salt_len = p_field - scram_hash;
 	    text->salt = (char *) sparams->utils->malloc(base64_salt_len);
+            if (text->salt == NULL) {
+                result = SASL_NOMEM;
+                goto cleanup;
+            }
 	    if (sparams->utils->decode64(scram_hash,
 					 (unsigned int)base64_salt_len,
 					 text->salt,
@@ -938,6 +965,8 @@ scram_server_mech_step1(server_context_t *text,
 		sparams->utils->seterror(sparams->utils->conn, 0,
                                          "Invalid base64 encoding of the salt in %s stored value",
                                          scram_sasl_mech);
+                sparams->utils->free(text->salt);
+                text->salt = NULL;
 		continue;
 	    }
 
@@ -1558,8 +1587,6 @@ static int scram_server_mech_step(void *conn_context,
     *serveroutlen = 0;
     
     if (text == NULL) {
-	sparams->utils->erasebuffer(text->StoredKey, sizeof(text->StoredKey));
-	sparams->utils->erasebuffer(text->ServerKey, sizeof(text->ServerKey));
 	return SASL_BADPROT;
     }
 
@@ -1637,16 +1664,11 @@ static int scram_setpass(void *glob_context,
     struct propctx *propctx = NULL;
     const char *store_request[] = { "authPassword",
 				    NULL };
-    const char *generate_scram_secret;
+    const char *generate_scram_secret = NULL;
     sasl_crypto_context_t crypto;
     const sasl_crypto_context_t *md = &crypto;
     size_t hash_size;
-    const char *scram_sasl_mech;
-
-    r = _sasl_crypto_init(sparams->utils, (const char *)glob_context, &crypto);
-    if (r != SASL_OK) return r;
-    hash_size = crypto.hash_size;
-    scram_sasl_mech = scram_sasl_mech_name(hash_size);
+    const char *scram_sasl_mech = "SCRAM";
     
     /* Do we have a backend that can store properties? */
     if (!sparams->utils->auxprop_store ||
@@ -1672,6 +1694,11 @@ static int scram_setpass(void *glob_context,
 	/* Pretend that everything is Ok, no need to generate noise in the logs */
 	return SASL_OK;
     }
+
+    r = _sasl_crypto_init(sparams->utils, (const char *)glob_context, &crypto);
+    if (r != SASL_OK) return r;
+    hash_size = crypto.hash_size;
+    scram_sasl_mech = scram_sasl_mech_name(hash_size);
 
     r = _plug_parseuser(sparams->utils,
 			&user_only,
@@ -1699,8 +1726,7 @@ static int scram_setpass(void *glob_context,
 	/* size_t salt_len = SALT_SIZE; */
 	size_t secret_len;
 	unsigned int iteration_count = DEFAULT_ITERATION_COUNTER;
-	char * s_iteration_count;
-	char * end;
+	char * s_iteration_count = NULL;
 
 	sparams->utils->getopt(sparams->utils->getopt_context,
 			       /* Different SCRAM hashes can have different strengh */
@@ -1710,12 +1736,11 @@ static int scram_setpass(void *glob_context,
 			       NULL);
 
 	if (s_iteration_count != NULL) {
-	    errno = 0;
-	    iteration_count = strtoul(s_iteration_count, &end, 10);
-	    if (s_iteration_count == end || *end != '\0' || errno != 0) {
+	    if (scram_parse_iterations(s_iteration_count,
+                                        &iteration_count) != SASL_OK) {
 		sparams->utils->log(NULL,
 				    SASL_LOG_DEBUG,
-				    "Invalid iteration-count in scram_iteration_count SASL option: not a number. Using the default instead.");
+				    "Invalid scram_iteration_counter: expected a positive unsigned integer. Using the default instead.");
 		s_iteration_count = NULL;
 	    }
 	}

@@ -604,7 +604,8 @@ static int server_idle(sasl_conn_t *conn)
 static int load_config(const sasl_callback_t *verifyfile_cb)
 {
     int result;
-    const char *path_to_config = NULL;
+    char *config_path = NULL;
+    const char *path_to_config;
     size_t path_len;
     char *config_filename = NULL;
     size_t len;
@@ -624,9 +625,12 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
     /* getconfpath_cb->proc MUST be a sasl_getconfpath_t; if only C had a type
        system */
     result = ((sasl_getconfpath_t *)(getconfpath_cb->proc))(getconfpath_cb->context,
-							    (char **) &path_to_config);
-    if (result != SASL_OK) goto done;
-    if (path_to_config == NULL) path_to_config = "";
+							    &config_path);
+    /* Ownership transfers only after a successful callback. */
+    if (result != SASL_OK) return result;
+    /* GETCONFPATH transfers a heap allocation. Keep its base address while
+     * path_to_config advances through the directory list. */
+    path_to_config = config_path != NULL ? config_path : "";
 
     next = path_to_config;
 
@@ -684,6 +688,7 @@ static int load_config(const sasl_callback_t *verifyfile_cb)
 
  done:
     if (config_filename) sasl_FREE(config_filename);
+    if (config_path) sasl_FREE(config_path);
 
     return result;
 }

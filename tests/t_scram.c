@@ -32,6 +32,10 @@ extern sasl_getcrypto_t test_external_crypto;
  */
 static unsigned char observed[32][SASL_MAX_HASH_SIZE];
 static unsigned observed_lengths[32], observed_count;
+static size_t live_allocations;
+static const sasl_utils_t *plugin_utils;
+static const char *iteration_option = "4096";
+static const char *generate_secret_option = "yes";
 
 typedef union allocation_header {
     size_t size;
@@ -48,6 +52,7 @@ static void *test_malloc(size_t size)
     if (allocation == NULL)
         return NULL;
     allocation->size = size;
+    live_allocations++;
     return allocation + 1;
 }
 
@@ -92,6 +97,8 @@ static void test_free(void *pointer)
         for (offset = 0; offset <= allocation->size - length; offset++)
             CHECK(memcmp((char *)pointer + offset, observed[i], length) != 0);
     }
+    CHECK(live_allocations > 0);
+    live_allocations--;
     free(allocation);
 }
 
@@ -270,15 +277,18 @@ static int test_option(void *context, const char *plugin, const char *option,
 {
     (void)context;
     (void)plugin;
+    *result = NULL;
     if (!strcmp(option, "auxprop_plugin"))
         *result = "scram-test";
     else if (!strcmp(option, "pwcheck_method"))
         *result = "auxprop";
     else if (!strcmp(option, "scram_iteration_counter"))
-        *result = "4096";
+        *result = iteration_option;
     else if (!strcmp(option, "scram_secret_generate"))
-        *result = "yes";
+        *result = generate_secret_option;
     else
+        return SASL_FAIL;
+    if (*result == NULL)
         return SASL_FAIL;
     if (len)
         *len = (unsigned)strlen(*result);
@@ -366,7 +376,7 @@ static int test_auxprop_init(const sasl_utils_t *utils, int max_version,
                              int *version, sasl_auxprop_plug_t **plug,
                              const char *name)
 {
-    (void)utils;
+    plugin_utils = utils;
     (void)name;
     if (max_version < SASL_AUXPROP_PLUG_VERSION)
         return SASL_BADVERS;
@@ -748,6 +758,28 @@ static void client_mechanism_selection(void)
     CHECK(backend.select_calls > 1);
     sasl_dispose(&client);
 
+    /* Exhausting all choices must leave no active or reported mechanism. */
+    init_backend(&backend);
+    backend.fail_selection = SASL_NOMECH;
+    callbacks(cb, &backend, 1);
+    CHECK(sasl_client_new("test", "localhost", NULL, NULL, cb, 0, &client) ==
+          SASL_OK);
+    chosen = "stale mechanism";
+    CHECK(sasl_client_start(client, list, &interact, &out, &len, &chosen) ==
+          SASL_NOMECH);
+    CHECK(chosen == NULL);
+    {
+        const void *active = NULL;
+        CHECK(sasl_getprop(client, SASL_MECHNAME, &active) == SASL_NOTDONE);
+        CHECK(active == NULL);
+    }
+    /* The same connection can select an available mechanism afterward. */
+    backend.fail_selection = 0;
+    CHECK(sasl_client_start(client, "SCRAM-SHA-1", &interact, &out, &len,
+                            &chosen) == SASL_CONTINUE);
+    CHECK(!strcmp(chosen, "SCRAM-SHA-1"));
+    sasl_dispose(&client);
+
     /* A backend error must not silently select a different mechanism. */
     for (i = 0; i < sizeof(errors) / sizeof(errors[0]); i++) {
         init_backend(&backend);
@@ -758,6 +790,144 @@ static void client_mechanism_selection(void)
         CHECK(backend.select_calls == 1);
         sasl_dispose(&client);
     }
+}
+
+#ifndef STATIC_SCRAM
+static int plugin_crypto_lookup(sasl_conn_t *conn, unsigned long id,
+                                sasl_callback_ft *callback, void **context)
+{
+    CHECK(id == SASL_CB_CRYPTO);
+    *callback = (sasl_callback_ft)test_select;
+    *context = conn;
+    return SASL_OK;
+}
+
+static void server_plugin_contract(void)
+{
+    sasl_server_plug_t *plugins;
+    sasl_server_params_t params;
+    sasl_out_params_t output;
+    sasl_utils_t utils = *plugin_utils;
+    backend_t backend;
+    const char *reply;
+    unsigned length, i;
+    int version, count;
+    void *context;
+    size_t before;
+
+    init_backend(&backend);
+    utils.conn = (sasl_conn_t *)&backend;
+    utils.getcallback = plugin_crypto_lookup;
+    utils.getopt = test_option;
+    memset(&params, 0, sizeof(params));
+    params.utils = &utils;
+    CHECK(scram_server_plug_init(&utils, SASL_SERVER_PLUG_VERSION, &version,
+                                 &plugins, &count) == SASL_OK);
+    CHECK(count > 0);
+    CHECK(plugins[0].mech_step(NULL, &params, "", 0, &reply, &length,
+                               &output) == SASL_BADPROT);
+    CHECK(reply == NULL && length == 0);
+
+    /* An availability query must not replace a caller's saved context. */
+    context = &params;
+    before = live_allocations;
+    CHECK(plugins[0].mech_avail(plugins[0].glob_context, &params, &context) ==
+          SASL_OK);
+    CHECK(context == &params && live_allocations == before);
+    context = NULL;
+    CHECK(plugins[0].mech_avail(plugins[0].glob_context, &params, &context) ==
+          SASL_OK);
+    CHECK(context == NULL && live_allocations == before);
+
+    /* Disabled secret generation must not require a crypto backend. */
+    backend.fail_selection = SASL_NOMECH;
+    backend.select_calls = 0;
+    for (i = 0; i < 2; i++) {
+        int j;
+        generate_secret_option = i ? "no" : NULL;
+        for (j = 0; j < count; j++)
+            CHECK(plugins[j].setpass(plugins[j].glob_context, &params, "user",
+                                     "pencil", 6, NULL, 0, 0) == SASL_OK);
+    }
+    CHECK(backend.select_calls == 0);
+    generate_secret_option = "yes";
+    CHECK(plugins[0].setpass(plugins[0].glob_context, &params, "user", "pencil",
+                             6, NULL, 0, 0) == SASL_NOMECH);
+    CHECK(backend.select_calls == 1);
+}
+
+#endif
+
+static void invalid_server_secrets(void)
+{
+    static const char *invalid[] = {"0",
+                                    "-1",
+                                    "+4096",
+                                    "04096",
+                                    "4294967296",
+                                    "4294971392",
+                                    "9999999999999999999999"};
+    static const char *malformed[] = {
+        "SCRAM-SHA-1 $4096:invalid", "SCRAM-SHA-256 malformed",
+        "SCRAM-SHA-256 $4096:!!!!$!:!", "SCRAM-SHA-256 $4096:YWJj$!:!",
+        "SCRAM-SHA-256 $4096:YWJj$YQ==:YQ=="};
+    backend_t backend;
+    sasl_callback_t cb[9];
+    sasl_conn_t *server = NULL;
+    const char first[] = "n,,n=user,r=clientnonce";
+    const char *reply;
+    unsigned length, i;
+    char valid[sizeof(stored_secret)];
+
+    create_stored_secret = 1;
+    round_trip("SCRAM-SHA-256", 1, 1, 0, 0, 0, 0, 0);
+    create_stored_secret = 0;
+    strcpy(valid, stored_secret);
+    use_stored_secret = 1;
+    for (i = 0; i < sizeof(invalid) / sizeof(invalid[0]) +
+                        sizeof(malformed) / sizeof(malformed[0]);
+         i++) {
+        init_backend(&backend);
+        callbacks(cb, &backend, 1);
+        if (i < sizeof(invalid) / sizeof(invalid[0]))
+            sprintf(stored_secret, "SCRAM-SHA-256 $%s:%s", invalid[i],
+                    strchr(valid, ':') + 1);
+        else
+            strcpy(stored_secret,
+                   malformed[i - sizeof(invalid) / sizeof(invalid[0])]);
+        CHECK(sasl_server_new("test", "localhost", NULL, NULL, NULL, cb, 0,
+                              &server) == SASL_OK);
+        CHECK(sasl_server_start(server, "SCRAM-SHA-256", first,
+                                sizeof(first) - 1, &reply, &length) < 0);
+        CHECK(reply == NULL && length == 0);
+        CHECK(backend.pbkdf2_calls == 0);
+        sasl_dispose(&server);
+    }
+    use_stored_secret = 0;
+    sasl_erasebuffer(stored_secret, sizeof(stored_secret));
+    sasl_erasebuffer(valid, sizeof(valid));
+}
+
+static void server_iteration_options(void)
+{
+    static const char *invalid[] = {"0",
+                                    "-1",
+                                    "+4096",
+                                    "04096",
+                                    "4294967296",
+                                    "4294971392",
+                                    "9999999999999999999999",
+                                    "junk"};
+    unsigned i;
+    for (i = 0; i < sizeof(invalid) / sizeof(invalid[0]); i++) {
+        iteration_option = invalid[i];
+        create_stored_secret = 1;
+        round_trip("SCRAM-SHA-256", 1, 1, 0, 0, 0, 0, 0);
+        create_stored_secret = 0;
+        CHECK(strstr(stored_secret, "$4096:") != NULL);
+        sasl_erasebuffer(stored_secret, sizeof(stored_secret));
+    }
+    iteration_option = "4096";
 }
 
 #ifdef HAVE_CNG
@@ -816,6 +986,7 @@ int main(int argc, char **argv)
         round_trip("SCRAM-SHA-256-PLUS", 0, 0, 0, 0, 0, 0, 0);
         CHECK(global.pbkdf2_calls > 0);
         sasl_done();
+        CHECK(live_allocations == 0);
         puts("global crypto callback tests passed");
         return 0;
     }
@@ -852,6 +1023,11 @@ int main(int argc, char **argv)
 #ifdef HAVE_CNG
     cng_mechanisms();
 #endif
+#ifndef STATIC_SCRAM
+    server_plugin_contract();
+#endif
+    invalid_server_secrets();
+    server_iteration_options();
     client_mechanism_selection();
     mechanism_filter();
     interleaved_exchanges();
@@ -859,6 +1035,7 @@ int main(int argc, char **argv)
     check_passwords();
     saved_credentials();
     sasl_done();
+    CHECK(live_allocations == 0);
     puts("SCRAM callback tests passed");
     return 0;
 }

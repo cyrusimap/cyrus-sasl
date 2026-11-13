@@ -373,6 +373,9 @@ AS_CASE([$with_crypto],
     AC_DEFINE([HAVE_SHA512], [1], [Do we have SHA512?])
   ],
   [AC_MSG_ERROR([unsupported cryptographic backend: $with_crypto])])
+dnl saslauthd's password cache and LDAP verifier still use OpenSSL directly.
+AS_IF([test "$with_crypto" != openssl && test "$with_saslauthd" != no],
+      [AC_MSG_ERROR([saslauthd requires --with-crypto=openssl; use --without-saslauthd with callbacks or cng])])
 AC_SUBST([CRYPTO_LIBS])
 AM_CONDITIONAL([HAVE_OPENSSL], [test "$with_crypto" = openssl])
 AM_CONDITIONAL([HAVE_CNG], [test "$with_crypto" = cng])

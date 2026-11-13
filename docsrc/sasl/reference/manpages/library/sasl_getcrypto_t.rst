@@ -49,6 +49,9 @@ When no callback is registered the built-in backend is used, if available.
 A registered callback is authoritative: its errors and unsupported
 algorithms never cause fallback to the built-in backend. Only the mechanisms
 listed above use this callback; other mechanisms keep their dependencies.
+The ``saslauthd`` daemon still requires OpenSSL for its cache and LDAP
+password verifier. Configure with ``--without-saslauthd`` when selecting
+``--with-crypto=callbacks`` or ``--with-crypto=cng``.
 
 Return Value
 ============

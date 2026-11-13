@@ -60,12 +60,12 @@ pluginviewer_LDADD = $(all_sasl_libs)
 pluginviewer_SOURCES = pluginviewer.c
 pluginviewer_LDFLAGS = -rpath $(libdir)
 
-testsuite_LDADD = $(all_sasl_libs) @DMALLOC_LIBS@
+testsuite_LDADD = ../common/libsasl_crypto.la $(all_sasl_libs) @DMALLOC_LIBS@
 
 CLEANFILES=$(EXTRA_PROGRAMS)
 
 testsuitestatic_SOURCES = testsuite.c
-testsuitestatic_LDADD = $(all_sasl_static_libs) @DMALLOC_LIBS@ @SASL_DL_LIB@
+testsuitestatic_LDADD = ../common/libsasl_crypto.la $(all_sasl_static_libs) @DMALLOC_LIBS@ @SASL_DL_LIB@
 testsuitestatic_DEPENDENCIES = ../lib/.libs/libsasl2.a
 
 smtptest_SOURCES =
@@ -85,7 +85,7 @@ libsfsasl2_la_SOURCES =
 libsfsasl2_la_LIBADD = sfsasl.lo
 libsfsasl2_la_LDFLAGS = -version-info 1:0:0 -export-dynamic -rpath $(libdir)
 
-AM_CPPFLAGS=-DLIBSASL_EXPORTS=1 -I$(top_srcdir)/include -I$(top_builddir)/include @SASL_DB_INC@
+AM_CPPFLAGS=-I$(top_srcdir)/common -DLIBSASL_EXPORTS=1 -I$(top_srcdir)/include -I$(top_builddir)/include @SASL_DB_INC@
 
 EXTRA_DIST = saslpasswd2.8 sasldblistusers2.8 sasltestsuite.8 pluginviewer.8 sfsasl.h sfsasl.c smtptest.c testsuite.c pluginviewer.c NTMakefile
 

@@ -58,7 +58,7 @@ t_gssapi_srv_SOURCES = \
 
 t_gssapi_srv_LDADD = $(COMMON_LDADD)
 
-check_PROGRAMS = t_crypto \
+check_PROGRAMS = t_crypto t_confpath \
 	t_gssapi_cli \
 	t_gssapi_srv \
 	$(NULL)
@@ -66,7 +66,10 @@ check_PROGRAMS = t_crypto \
 t_crypto_SOURCES = t_crypto.c
 t_crypto_LDADD = ../common/libsasl_crypto.la $(CRYPTO_LIBS) $(LIB_SOCKET)
 
-TESTS = t_crypto
+t_confpath_SOURCES = t_confpath.c
+t_confpath_LDADD = $(COMMON_LDADD)
+
+TESTS = t_crypto t_confpath
 if HAVE_CNG
 check_PROGRAMS += t_cng
 TESTS += t_cng

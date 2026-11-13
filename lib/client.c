@@ -885,8 +885,12 @@ int sasl_client_start(sasl_conn_t *conn,
      * No protocol step has run yet. Retry only a clean SASL_NOMECH result;
      * preserve other errors and contexts which still need disposal.
      */
-    if (result == SASL_NOMECH && conn->context == NULL)
+    if (result == SASL_NOMECH && conn->context == NULL) {
+        c_conn->mech = NULL;
+        if (mech != NULL)
+            *mech = NULL;
         goto choosemech;
+    }
     if (result != SASL_OK) goto done;
 
     /* do a step -- but only if we can do a client-send-first */

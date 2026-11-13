@@ -9,6 +9,7 @@
 #include <sys/uio.h>
 #endif
 #include "sasl_crypto.h"
+#include "crypto-validate.h"
 #ifdef HAVE_CNG
 #include "crypto-cng.h"
 #endif
@@ -16,6 +17,13 @@
 #ifdef HAVE_OPENSSL
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
+
+static int openssl_output(const EVP_MD *md, unsigned char *output,
+                          unsigned outputlen)
+{
+    return md != NULL &&
+           crypto_valid_output(output, outputlen, (unsigned)EVP_MD_size(md));
+}
 
 static int openssl_hash(void *context, const struct iovec *input,
                         unsigned count, unsigned char *output,
@@ -26,11 +34,17 @@ static int openssl_hash(void *context, const struct iovec *input,
     unsigned i, length = 0;
     int result = SASL_FAIL;
 
-    if (output == NULL || outputlen != (unsigned)EVP_MD_size(md))
+    if (!openssl_output(md, output, outputlen))
         return SASL_BADPARAM;
+    if (!crypto_valid_hash_input(input, count)) {
+        OPENSSL_cleanse(output, outputlen);
+        return SASL_BADPARAM;
+    }
     ctx = EVP_MD_CTX_new();
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        OPENSSL_cleanse(output, outputlen);
         return SASL_NOMEM;
+    }
     if (EVP_DigestInit_ex(ctx, md, NULL) != 1)
         goto done;
     for (i = 0; i < count; i++) {
@@ -41,6 +55,8 @@ static int openssl_hash(void *context, const struct iovec *input,
         result = SASL_OK;
 done:
     EVP_MD_CTX_free(ctx);
+    if (result != SASL_OK)
+        OPENSSL_cleanse(output, outputlen);
     return result;
 }
 
@@ -52,15 +68,21 @@ static int openssl_hmac(void *context, const unsigned char *key, size_t keylen,
 
     static const unsigned char empty = 0;
 
-    if (keylen > INT_MAX || output == NULL ||
-        outputlen != (unsigned)EVP_MD_size(context))
+    if (!openssl_output(context, output, outputlen))
         return SASL_BADPARAM;
+    if (keylen > INT_MAX ||
+        !crypto_valid_hmac_input(key, keylen, input, inputlen)) {
+        OPENSSL_cleanse(output, outputlen);
+        return SASL_BADPARAM;
+    }
     if (key == NULL && keylen == 0)
         key = &empty;
     if (HMAC(context, key, (int)keylen, input, inputlen, output, &length) ==
             NULL ||
-        length != outputlen)
+        length != outputlen) {
+        OPENSSL_cleanse(output, outputlen);
         return SASL_FAIL;
+    }
     return SASL_OK;
 }
 
@@ -69,14 +91,21 @@ static int openssl_pbkdf2(void *context, const unsigned char *password,
                           size_t saltlen, unsigned iterations,
                           unsigned char *output, unsigned outputlen)
 {
-    if (passwordlen > INT_MAX || saltlen > INT_MAX || iterations > INT_MAX ||
-        outputlen > INT_MAX)
+    if (!openssl_output(context, output, outputlen))
         return SASL_BADPARAM;
-    return PKCS5_PBKDF2_HMAC((const char *)password, (int)passwordlen, salt,
-                             (int)saltlen, (int)iterations, context,
-                             (int)outputlen, output) == 1
-               ? SASL_OK
-               : SASL_FAIL;
+    if (passwordlen > INT_MAX || saltlen > INT_MAX || iterations > INT_MAX ||
+        !crypto_valid_pbkdf2_input(password, passwordlen, salt, saltlen,
+                                   iterations)) {
+        OPENSSL_cleanse(output, outputlen);
+        return SASL_BADPARAM;
+    }
+    if (PKCS5_PBKDF2_HMAC((const char *)password, (int)passwordlen, salt,
+                          (int)saltlen, (int)iterations, context,
+                          (int)outputlen, output) != 1) {
+        OPENSSL_cleanse(output, outputlen);
+        return SASL_FAIL;
+    }
+    return SASL_OK;
 }
 
 static const sasl_crypto_t openssl_operations = {
@@ -140,8 +169,12 @@ int _sasl_crypto_default(void *context __attribute__((unused)),
                          const sasl_crypto_t **operations,
                          void **crypto_context)
 {
+    if (operations == NULL || crypto_context == NULL)
+        return SASL_BADPARAM;
     *operations = NULL;
     *crypto_context = NULL;
+    if (algorithm == NULL)
+        return SASL_BADPARAM;
 #ifdef HAVE_OPENSSL
     *crypto_context = (void *)EVP_get_digestbyname(algorithm);
     if (*crypto_context == NULL)
@@ -170,18 +203,10 @@ int _sasl_crypto_hash(const sasl_crypto_context_t *crypto,
                       const struct iovec *input, unsigned count,
                       unsigned char *output)
 {
-    unsigned i;
-
-    if (output == NULL || (count && input == NULL))
+    if (output == NULL)
         return SASL_BADPARAM;
-    for (i = 0; i < count; i++) {
-#ifdef _WIN32
-        if (input[i].iov_len < 0)
-            return SASL_BADPARAM;
-#endif
-        if (input[i].iov_len && input[i].iov_base == NULL)
-            return SASL_BADPARAM;
-    }
+    if (!crypto_valid_hash_input(input, count))
+        return crypto_result(crypto, SASL_BADPARAM, output);
     return crypto_result(crypto,
                          crypto->operations->hash(crypto->context, input, count,
                                                   output, crypto->hash_size),
@@ -209,9 +234,10 @@ int _sasl_crypto_hmac(const sasl_crypto_context_t *crypto,
                       const unsigned char *input, size_t inputlen,
                       unsigned char *output)
 {
-    if (output == NULL || (keylen && key == NULL) ||
-        (inputlen && input == NULL))
+    if (output == NULL)
         return SASL_BADPARAM;
+    if (!crypto_valid_hmac_input(key, keylen, input, inputlen))
+        return crypto_result(crypto, SASL_BADPARAM, output);
     if (crypto->operations->hmac == NULL)
         return crypto_result(crypto, SASL_NOMECH, output);
     return crypto_result(crypto,
@@ -226,9 +252,11 @@ int _sasl_crypto_pbkdf2(const sasl_crypto_context_t *crypto,
                         const unsigned char *salt, size_t saltlen,
                         unsigned iterations, unsigned char *output)
 {
-    if (output == NULL || iterations == 0 ||
-        (passwordlen && password == NULL) || (saltlen && salt == NULL))
+    if (output == NULL)
         return SASL_BADPARAM;
+    if (!crypto_valid_pbkdf2_input(password, passwordlen, salt, saltlen,
+                                   iterations))
+        return crypto_result(crypto, SASL_BADPARAM, output);
     if (crypto->operations->pbkdf2 == NULL)
         return crypto_result(crypto, SASL_NOMECH, output);
     return crypto_result(crypto,

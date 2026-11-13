@@ -57,6 +57,7 @@
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/hmac.h>
+#include <openssl/crypto.h>
 
 /****************************************
  * module globals
@@ -117,8 +118,10 @@ int cache_init(void) {
 	 * access the HMAC key, then the attacker can access plaintext
 	 * password material anyway.
 	 **************************************************************/
-	if (RAND_priv_bytes((unsigned char *)&hmac_key, CACHE_HMAC_DIGEST_LEN) != 1)
+	if (RAND_bytes(hmac_key, CACHE_HMAC_DIGEST_LEN) != 1) {
+		logger(L_ERR, L_FUNC, "unable to generate the cache HMAC key");
 		return -1;
+	}
 
 	if (flags & VERBOSE) {
 		logger(L_DEBUG, L_FUNC, "bucket size: %d bytes",
@@ -226,7 +229,7 @@ int cache_lookup(const char *user, const char *realm, const char *service, const
 	if (HMAC(EVP_sha256(), (const void *)&hmac_key, CACHE_HMAC_DIGEST_LEN,
 			(const unsigned char *)password, strlen(password),
 			pwd_digest, NULL) == NULL) {
-		logger(L_DEBUG, L_FUNC, debug, user, service, realm, "unable to HMAC user passwd");
+		logger(L_ERR, L_FUNC, "HMAC-SHA256 failed; credential cache bypassed");
 		return CACHE_FAIL;
 	}
 
@@ -277,7 +280,7 @@ int cache_lookup(const char *user, const char *realm, const char *service, const
 
 	if (read_bucket != NULL) {
 
-		if (memcmp(pwd_digest, read_bucket->pwd_digest, CACHE_HMAC_DIGEST_LEN) == 0) {
+		if (CRYPTO_memcmp(pwd_digest, read_bucket->pwd_digest, CACHE_HMAC_DIGEST_LEN) == 0) {
 
 			if (flags & VERBOSE)
 				logger(L_DEBUG, L_FUNC, debug, user, service, realm, "found with valid passwd");

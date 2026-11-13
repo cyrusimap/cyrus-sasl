@@ -110,6 +110,13 @@ class ExternalClient(SaslTestCase):
         self.assertOk(c.first)
         self.assertEqual(c.first.out, b"bob")
 
+    @spec("RFC 4422", "A.1", "ABNF",
+          "the client sends the authzid it reports acting as")
+    def test_authzid_sent_canonicalized(self):
+        c = self.ext_client(authzid=" bob ")
+        self.assertOk(c.first)
+        self.assertEqual(c.first.out, c.first.user)
+
     @spec("RFC 4422", "A.1", "MUST",
           "there are no additional challenges; a non-empty challenge fails")
     def test_nonempty_challenge_rejected(self):

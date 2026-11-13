@@ -1335,7 +1335,9 @@ gs2_get_mech_attrs(const sasl_utils_t *utils,
     }
 
     *security_flags = SASL_SEC_NOPLAINTEXT | SASL_SEC_NOACTIVE;
-    *features = SASL_FEAT_WANT_CLIENT_FIRST | SASL_FEAT_CHANNEL_BINDING;
+    /* GS2 carries an authzid (RFC 5801 section 4) */
+    *features = SASL_FEAT_WANT_CLIENT_FIRST | SASL_FEAT_CHANNEL_BINDING |
+                SASL_FEAT_ALLOWS_PROXY;
     if (prompts != NULL)
         *prompts = gs2_required_prompts;
 

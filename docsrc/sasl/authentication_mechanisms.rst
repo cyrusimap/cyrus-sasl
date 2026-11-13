@@ -66,15 +66,6 @@ Only a digest of a seed and a passphrase is ever transmitted across the network.
 .. todo::
    Content needed here
 
-PASSDSS
--------
-
-DSS Secured Password Authentication Mechanism (PASSDSS)
-
-Documented in a `RFC Draft: draft-newman-sasl-passdss <https://tools.ietf.org/html/draft-newman-sasl-passdss>`_
-
-  * PASSDSS-3DES-1
-
 .. _MECH-PLAIN:
 
 PLAIN
@@ -129,8 +120,6 @@ of the mechanisms provided by the Cyrus SASL Library.
 | GSS-SPNEGO  | 56      | X       | X        |        |         | X      | X    | X      | X         |              |          | X     |      | X    |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 | OTP         | 0       | X       |          |        | X       | X      |      |        | X         |              |          | X     |      |      |
-+-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
-| PASSDSS     | 112     | X       | X        | X      | X       | X      | X    | X      | X         |              |          | X     |      |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 | PLAIN       | 0       |         |          |        |         | X      | X    |        | X         |              |          | X     |      |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+

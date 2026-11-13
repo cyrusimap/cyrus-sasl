@@ -1,4 +1,4 @@
-$mechanism = @("anonymous", "scram", "gssapiv2", "otp", "passdss", "plain", "gs2")
+$mechanism = @("anonymous", "scram", "gssapiv2", "otp", "plain", "gs2")
 $pluginsDir = "..\plugins\"
 
 for ($i = 0; $i -le $mechanism.Count - 1; $i++)

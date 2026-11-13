@@ -74,12 +74,42 @@
 
 /* TODO: make this a configurable option? */
 #define DEFAULT_ITERATION_COUNTER   4096
+/* RFC 7677 section 4: the server SHOULD announce at least 4096 */
 #define MIN_ITERATION_COUNTER	    4096
 
-#define MAX_ITERATION_COUNTER	    0x10000
+/* An upper bound, so a server can't make a client compute (or a
+   misconfiguration make a server compute) almost forever.  Well above
+   current PBKDF2 guidance, which reaches about 1,300,000 for SHA-1. */
+#define MAX_ITERATION_COUNTER	    10000000
 
 /* maximum length of the iteration_counter (as a string). Assume it is 32bits */
 #define ITERATION_COUNTER_BUF_LEN   20
+
+/*
+ * Parse an iteration count strictly, per the RFC 5802 ABNF
+ * (posit-number = %x31-39 *DIGIT): no sign, spaces or leading zeros,
+ * and no larger than max.  Returns SASL_OK and sets *out, or SASL_BADPROT.
+ */
+static int
+scram_parse_iteration_count(const char *s, unsigned int max, unsigned int *out)
+{
+    unsigned long value = 0;
+
+    if (s == NULL || *s < '1' || *s > '9') {
+	return SASL_BADPROT;
+    }
+    for (; *s; s++) {
+	if (*s < '0' || *s > '9') {
+	    return SASL_BADPROT;
+	}
+	value = value * 10 + (unsigned long) (*s - '0');
+	if (value > max) {
+	    return SASL_BADPROT;
+	}
+    }
+    *out = (unsigned int) value;
+    return SASL_OK;
+}
 
 #define BASE64_LEN(size)	    (((size) / 3 * 4) + (((size) % 3) ? 4 : 0))
 
@@ -840,7 +870,6 @@ scram_server_mech_step1(server_context_t *text,
     if (auxprop_values[0].name && auxprop_values[0].values) {
 	char * error_text = NULL;
 	char * s_iteration_count;
-	char * end;
 
 	text->salt = (char *) scram_server_user_salt(sparams->utils, text->md, text->authentication_id, &text->salt_len);
 
@@ -851,15 +880,16 @@ scram_server_mech_step1(server_context_t *text,
 			       (const char **) &s_iteration_count,
 			       NULL);
 
-	if (s_iteration_count != NULL) {
-	    errno = 0;
-	    text->iteration_count = strtoul(s_iteration_count, &end, 10);
-	    if (s_iteration_count == end || *end != '\0' || errno != 0) {
-		sparams->utils->log(NULL,
-				    SASL_LOG_DEBUG,
-				    "Invalid iteration-count in scram_iteration_count SASL option: not a number. Using the default instead.");
-		s_iteration_count = NULL;
-	    }
+	if (s_iteration_count != NULL &&
+	    (scram_parse_iteration_count(s_iteration_count,
+					 MAX_ITERATION_COUNTER,
+					 &text->iteration_count) != SASL_OK ||
+	     text->iteration_count < MIN_ITERATION_COUNTER)) {
+	    sparams->utils->log(NULL,
+				SASL_LOG_WARN,
+				"Invalid scram_iteration_counter SASL option: not a number from %d to %d. Using the default instead.",
+				MIN_ITERATION_COUNTER, MAX_ITERATION_COUNTER);
+	    s_iteration_count = NULL;
 	}
 
 	if (s_iteration_count == NULL) {
@@ -890,7 +920,6 @@ scram_server_mech_step1(server_context_t *text,
 	unsigned int exact_key_len;
 	const char * scram_hash;
 	const char * p_field;
-	char * end;
 	int i;
         size_t scram_sasl_mech_len = strlen(scram_sasl_mech);
 
@@ -942,11 +971,13 @@ scram_server_mech_step1(server_context_t *text,
 	    memcpy(s_iteration_count, scram_hash, p_field - scram_hash);
 	    s_iteration_count[p_field - scram_hash] = '\0';
 
-	    errno = 0;
-	    text->iteration_count = strtoul(s_iteration_count, &end, 10);
-	    if (s_iteration_count == end || *end != '\0' || errno != 0) {
+	    /* Stored secrets may predate the recommended minimum, so only
+	       the upper bound applies. */
+	    if (scram_parse_iteration_count(s_iteration_count,
+					    MAX_ITERATION_COUNTER,
+					    &text->iteration_count) != SASL_OK) {
 		sparams->utils->seterror(sparams->utils->conn, 0,
-                                         "Invalid iteration-count in %s input: not a number",
+                                         "Invalid iteration-count in %s per-user storage",
                                          scram_sasl_mech);
 		continue;
 	    }
@@ -1718,7 +1749,6 @@ static int scram_setpass(void *glob_context,
 	size_t secret_len;
 	unsigned int iteration_count = DEFAULT_ITERATION_COUNTER;
 	char * s_iteration_count;
-	char * end;
 
 	sparams->utils->getopt(sparams->utils->getopt_context,
 			       /* Different SCRAM hashes can have different strengh */
@@ -1727,15 +1757,16 @@ static int scram_setpass(void *glob_context,
 			       (const char **) &s_iteration_count,
 			       NULL);
 
-	if (s_iteration_count != NULL) {
-	    errno = 0;
-	    iteration_count = strtoul(s_iteration_count, &end, 10);
-	    if (s_iteration_count == end || *end != '\0' || errno != 0) {
-		sparams->utils->log(NULL,
-				    SASL_LOG_DEBUG,
-				    "Invalid iteration-count in scram_iteration_count SASL option: not a number. Using the default instead.");
-		s_iteration_count = NULL;
-	    }
+	if (s_iteration_count != NULL &&
+	    (scram_parse_iteration_count(s_iteration_count,
+					 MAX_ITERATION_COUNTER,
+					 &iteration_count) != SASL_OK ||
+	     iteration_count < MIN_ITERATION_COUNTER)) {
+	    sparams->utils->log(NULL,
+				SASL_LOG_WARN,
+				"Invalid scram_iteration_counter SASL option: not a number from %d to %d. Using the default instead.",
+				MIN_ITERATION_COUNTER, MAX_ITERATION_COUNTER);
+	    s_iteration_count = NULL;
 	}
 
 	if (s_iteration_count == NULL) {
@@ -2344,7 +2375,6 @@ scram_client_mech_step2(client_context_t *text,
     size_t base64_salt_len;
     unsigned exact_salt_len;
     char * counter;
-    char * end;
     char * inbuf = NULL;
     size_t estimated_response_len;
     size_t length_no_proof;
@@ -2468,24 +2498,17 @@ scram_client_mech_step2(client_context_t *text,
 	*p = '\0';
     }
 
-    errno = 0;
-    text->iteration_count = strtoul(counter, &end, 10);
-    if (counter == end || *end != '\0' || errno != 0) {
+    if (scram_parse_iteration_count(counter, MAX_ITERATION_COUNTER,
+				    &text->iteration_count) != SASL_OK) {
 	params->utils->seterror(params->utils->conn, 0,
-                                "Invalid iteration-count in %s input",
-                                scram_sasl_mech);
+                                "Invalid iteration-count in %s input: not a number from 1 to %d",
+                                scram_sasl_mech, MAX_ITERATION_COUNTER);
 	result = SASL_BADPROT;
 	goto cleanup;
     }
 
     if (text->iteration_count < MIN_ITERATION_COUNTER) {
 	SETERROR(params->utils, "iteration-count is too small, refusing to compute");
-	result = SASL_BADPROT;
-	goto cleanup;
-    }
-
-    if (text->iteration_count > MAX_ITERATION_COUNTER) {
-	SETERROR(params->utils, "iteration-count is too big, refusing to compute");
 	result = SASL_BADPROT;
 	goto cleanup;
     }

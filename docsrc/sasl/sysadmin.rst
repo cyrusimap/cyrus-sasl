@@ -400,5 +400,5 @@ It's not working and won't tell me why! Help!
     information.
 
 Is there a mailing list to discuss the Cyrus SASL library?
-    Check out our :ref:`contribution <contribute>` page for ways to get in touch
-    with us, including mailing lists and IRC.
+    Yes!  See the :ref:`support <sasl-support>` page for the mailing list and
+    how to report bugs.

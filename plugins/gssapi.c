@@ -831,221 +831,203 @@ gssapi_server_mech_new(void *glob_context,
 
 #ifdef GSS_USE_CCACHE_STORE
 static char* resolve_ccname_from_env(context_t* text) {
-    char* ccname = strdup(getenv("KRB5CCNAME"));
-    if (NULL == ccname) {
+    const char* env = getenv("KRB5CCNAME");
+    char* ccname;
+
+    if (NULL == env || '\0' == *env) {
         text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
-                              "GSSAPI error: out of memory, or KRB5CCNAME unset");
+                              "GSSAPI error: no ccache store and KRB5CCNAME is unset");
+        return NULL;
     }
-    text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
-                          "GSSAPI warning: using KRB5CCNAME for ccache store");
+    if (NULL == (ccname = strdup(env))) {
+        text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
+                              "GSSAPI error: out of memory");
+        return NULL;
+    }
+    text->utils->log(text->utils->conn, SASL_LOG_WARN,
+                     "GSSAPI warning: using KRB5CCNAME for ccache store");
     return ccname;
 }
 
-static char* strsubst(context_t* text, const char* haystack, const char* needle, const char* subst) {
-    const size_t haystack_len = strlen(haystack);
-    const size_t needle_len = strlen(needle);
-    const size_t subst_len = strlen(subst);
-    const size_t dest_len = haystack_len - needle_len + subst_len;
-    const char* needle_ptr = strstr(haystack, needle);
-    const size_t pre_needle_len = needle_ptr - haystack;
-    char* d;
+/* Append s to the growing string *buf (length *len, capacity *cap). */
+static int ccache_append(char** buf, size_t* len, size_t* cap, const char* s) {
+    size_t n = strlen(s);
 
-    if ((NULL == haystack) || (NULL == needle) || (NULL == subst)) {
-        text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
-                              "GSSAPI error: Bad ccache store format");
-        return NULL;
+    if (*len + n + 1 > *cap) {
+        size_t newcap = (*len + n + 1) * 2;
+        char* p = realloc(*buf, newcap);
+        if (NULL == p) {
+            return 0;
+        }
+        *buf = p;
+        *cap = newcap;
     }
-
-    if (NULL == (d = malloc(dest_len + 1))) {
-        text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
-                              "GSSAPI error: Out of memory processing ccache store format");
-        return NULL;
-    }
-
-    strncpy(d, haystack, pre_needle_len);
-    d[pre_needle_len] = 0;
-    strcat(d, subst);
-    strcat(d, &haystack[pre_needle_len + needle_len]);
-
-    return d;
+    memcpy(*buf + *len, s, n + 1);
+    *len += n;
+    return 1;
 }
 
+/* A value substituted into the ccache name must not change which
+   directory it names: one path component, no separators or control
+   characters. */
+static int ccache_component_ok(const char* s) {
+    const unsigned char* p;
+
+    if ('\0' == *s || 0 == strcmp(s, ".") || 0 == strcmp(s, "..")) {
+        return 0;
+    }
+    for (p = (const unsigned char*)s; *p; p++) {
+        if ('/' == *p || '\\' == *p || *p < 0x20 || 0x7f == *p) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/*
+ * Expand the ccache_store format in one left-to-right pass; substituted
+ * values are never rescanned.  Returns the ccache name, or NULL if the
+ * credentials must not be stored.  As documented, an empty format or one
+ * that can't be parsed falls back to KRB5CCNAME; a value that can't be
+ * resolved or isn't safe to substitute does not.
+ */
 static char* resolve_ccache_store(context_t* text, gss_buffer_desc* username_buf, const char* ccache) {
     char* username = NULL;
-    char* ccname = NULL;
-    char* ccache_copy = NULL;
-    char* needle;
-    
-    if (NULL == ccache) {
-        goto noccache;
-    }
+    char* out = NULL;
+    size_t len = 0, cap = 0;
+    const char* f;
+    char numbuf[100];
 
     /* Empty string will result in default value */
-    if (0 == strcmp("", ccache)) {
-        goto noccache;
+    if (NULL == ccache || '\0' == *ccache) {
+        return resolve_ccname_from_env(text);
     }
 
     if (NULL == username_buf) {
-        goto sanity_check_failed;
+        return NULL;
     }
 
-    if (NULL == (ccache_copy = strdup(ccache))) {
-        text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
-                              "GSSAPI error: out of memory");
-        goto malloc_failed;
+    if (NULL == (username = strndup(username_buf->value, username_buf->length)) ||
+        !ccache_append(&out, &len, &cap, "")) {
+        goto nomem;
     }
 
-    if (NULL == (username = strndup(username_buf->value, username_buf->length))) {
-        text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
-                              "GSSAPI error: out of memory");
-        goto malloc_failed;
-    }
+    for (f = ccache; *f; f++) {
+        const char* value = NULL;
 
-    while (NULL != (needle = strchr(ccache_copy, '%'))) {
-        if (NULL != ccname) {
-            /* Every iteration starts with a fresh destination string */
-          free(ccname);
-          ccname = NULL;
+        if ('%' != *f) {
+            char c[2] = { *f, '\0' };
+            if (!ccache_append(&out, &len, &cap, c)) {
+                goto nomem;
+            }
+            continue;
         }
 
-        switch (needle[1]) {
+        f++;
+        switch (*f) {
+        case '%':
+            value = "%";
+            break;
+        case 'U':
+            if (!ccache_component_ok(username)) {
+                text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
+                                      "GSSAPI error: '%s' is not safe to use for %%U in the ccache store name", username);
+                goto fail;
+            }
+            value = username;
+            break;
         case 'u': {
 #ifdef HAVE_GETPWNAM
             OM_uint32 maj;
             OM_uint32 min;
             gss_buffer_desc local_name = GSS_C_EMPTY_BUFFER;
             char* username_wo_realm;
-            char uid_str[100];
             struct passwd* pwd;
             maj = gss_localname(&min, text->client_name, text->mech_type, &local_name);
             if (GSS_S_COMPLETE != maj) {
                 text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
                                       "GSSAPI error: ccache store with %%u can not be resolved for '%s' while stripping realm", username);
-                goto parsing_failed;
+                goto fail;
             }
             username_wo_realm = strndup(local_name.value, local_name.length);
             gss_release_buffer(&min, &local_name);
             if (NULL == username_wo_realm) {
-                text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
-                                      "GSSAPI error: out of memory");
-                goto parsing_failed;
+                goto nomem;
             }
             pwd = getpwnam(username_wo_realm);
             free(username_wo_realm);
             if (NULL == pwd) {
                 text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
                                       "GSSAPI error: ccache store with %%u can not be resolved for '%s'", username);
-                goto parsing_failed;
+                goto fail;
             }
-            sprintf(uid_str, "%d", pwd->pw_uid);
-            if (NULL == (ccname = strsubst(text, ccache_copy, "%u", uid_str))) {
-                goto parsing_failed;
-            }
+            snprintf(numbuf, sizeof(numbuf), "%lu", (unsigned long) pwd->pw_uid);
+            value = numbuf;
 #else
             text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
                                   "GSSAPI error: %%u is unsupported in ccache store format");
-            goto parsing_failed;
+            goto fail;
 #endif
             break;
         }
-        case 'U': {
-            ccname = strsubst(text, ccache_copy, "%U", username);
-            break;
-        }
-        case 'e': {
+        case 'e':
 #ifdef HAVE_GETEUID
-            char euid_str[100];
-            uid_t euid = geteuid();
-            sprintf(euid_str, "%ul", euid);
-            if (NULL == (ccname = strsubst(text, ccache_copy, "%e", euid_str))) {
-                goto parsing_failed;
-            }
+            snprintf(numbuf, sizeof(numbuf), "%lu", (unsigned long) geteuid());
+            value = numbuf;
 #else
             text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
                                   "GSSAPI error: %%e is unsupported in ccache store format");
-            goto parsing_failed;
+            goto fail;
 #endif
             break;
-        }
-        case 'E': {
+        case 'E':
 #ifdef HAVE_GETLOGIN_R
-            char server_username[100];
-            getlogin_r(server_username, sizeof(server_username));
-            if (NULL == (ccname = strsubst(text, ccache_copy, "%E", server_username))) {
-                goto parsing_failed;
+            if (0 != getlogin_r(numbuf, sizeof(numbuf)) || !ccache_component_ok(numbuf)) {
+                text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
+                                      "GSSAPI error: ccache store with %%E can not be resolved");
+                goto fail;
             }
+            value = numbuf;
 #else
             text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
                                   "GSSAPI error: %%E is unsupported in ccache store format");
-            goto parsing_failed;
+            goto fail;
 #endif
             break;
-        }
-        case 'p': {
+        case 'p':
 #ifdef HAVE_GETPID
-            char pid_str[100];
-            pid_t pid;
-            pid = getpid();
-            sprintf(pid_str, "%d", pid);
-            if (NULL == (ccname = strsubst(text, ccache_copy, "%p", pid_str))) {
-                goto parsing_failed;
-            }
+            snprintf(numbuf, sizeof(numbuf), "%ld", (long) getpid());
+            value = numbuf;
 #else
             text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
                                   "GSSAPI error: %%p is unsupported in ccache store format");
-            goto parsing_failed;
+            goto fail;
 #endif
             break;
-        }
         default:
+            /* Includes a trailing '%'.  Documented to fall back. */
             text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
                                   "GSSAPI error: invalid ccache store format");
-            goto invalid_ccache_format;
-            break;
+            free(username);
+            free(out);
+            return resolve_ccname_from_env(text);
         }
 
-        free(ccache_copy);
-        if (NULL != ccname) {
-            ccache_copy = strdup(ccname);
-            if (NULL == ccache_copy) {
-                text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
-                                      "GSSAPI error: out of memory");
-                goto malloc_failed;
-            }
+        if (!ccache_append(&out, &len, &cap, value)) {
+            goto nomem;
         }
     }
 
-    if ((NULL == ccname) && (NULL != ccache)) {
-        if (NULL == (ccname = strdup(ccache))) {
-            text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
-                                  "GSSAPI error: out of memory");
-            goto malloc_failed;
-        }
-    }
+    free(username);
+    return out;
 
-    goto ok;
- invalid_ccache_format:
- malloc_failed:
- sanity_check_failed:
- parsing_failed:
-    if (NULL != username) {
-        free(username);
-        username = NULL;
-    }
-    if (NULL != ccname) {
-        free(ccname);
-        ccname = NULL;
-    }
- noccache:
-    if (NULL == ccname) {
-        ccache = resolve_ccname_from_env(text);
-    }
- ok:
-    if (NULL != ccache_copy) {
-        free(ccache_copy);
-    }
-
-    return ccname;
+ nomem:
+    text->utils->seterror(text->utils->conn, SASL_LOG_ERR,
+                          "GSSAPI error: out of memory");
+ fail:
+    free(username);
+    free(out);
+    return NULL;
 }
 
 static char *store_client_credentials(context_t* text, gss_cred_id_t* client_credentials, gss_buffer_desc* username_buf, const char* ccache) {

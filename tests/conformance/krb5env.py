@@ -8,6 +8,9 @@ root access, DNS, socket_wrapper or nss_wrapper is needed.  The realm has:
   test/host.test@TEST.REALM  the service the drivers use by default
                              (service "test", host "host.test")
   other/host.test@TEST.REALM a second service in the same keytab
+  x/../../escaped@TEST.REALM, pct%Upct@TEST.REALM
+                             clients with awkward names, in the client
+                             keytab (for the ccache_store tests)
 
 The environment variables are set in os.environ, so the drivers (which
 inherit it) and the Python GSS-API peer use the same realm.
@@ -30,6 +33,8 @@ REALM = "TEST.REALM"
 HOST = "host.test"
 SERVICE = "test"
 USER = "user"
+TRAVERSAL_USER = "x/../../escaped"
+PERCENT_USER = "pct%Upct"
 
 TOOLS = ("krb5kdc", "kdb5_util", "kadmin.local")
 TOOL_PATH = os.pathsep.join([os.environ.get("PATH", ""), "/usr/sbin", "/sbin"])
@@ -120,6 +125,8 @@ def _start():
 
     _run(["kdb5_util", "-r", REALM, "create", "-s", "-P", "masterkey"], env, log)
     for princ, keytab in ((USER, "user.keytab"),
+                          (TRAVERSAL_USER, "user.keytab"),
+                          (PERCENT_USER, "user.keytab"),
                           ("%s/%s" % (SERVICE, HOST), "service.keytab"),
                           ("other/%s" % HOST, "service.keytab")):
         _run(["kadmin.local", "-r", REALM, "-q", "addprinc -randkey %s" % princ],
@@ -173,3 +180,7 @@ def require():
 
 def principal(name):
     return "%s@%s" % (name, REALM)
+
+
+def client_keytab():
+    return os.environ["KRB5_CLIENT_KTNAME"]

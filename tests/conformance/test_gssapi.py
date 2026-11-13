@@ -46,11 +46,22 @@ def negotiation(layer, maxbuf, authzid=b""):
 class GssClientPeer:
     """Plays the RFC 4752 client against the library's server."""
 
-    def __init__(self, server, flags=CLIENT_FLAGS, mech=gssapi.MechType.kerberos):
+    def __init__(self, server, flags=CLIENT_FLAGS, mech=gssapi.MechType.kerberos,
+                 principal=None):
         self.server = server
+        creds = None
+        if principal is not None:
+            # A private in-memory ccache: the shared default one may already
+            # hold tickets for another principal.
+            creds = gssapi.Credentials(
+                name=gssapi.Name(krb5env.principal(principal),
+                                 gssapi.NameType.kerberos_principal),
+                usage="initiate",
+                store={"ccache": "MEMORY:peer-%d" % id(self),
+                       "client_keytab": krb5env.client_keytab()})
         self.ctx = gssapi.SecurityContext(
             name=gssapi.Name(TARGET, gssapi.NameType.hostbased_service),
-            usage="initiate", mech=mech, flags=flags)
+            usage="initiate", mech=mech, flags=flags, creds=creds)
 
     def authenticate(self):
         """Run context establishment; return the server's 4-octet offer.
@@ -352,3 +363,73 @@ class GssapiClient(SaslTestCase):
         peer.establish()
         self.assertNotIn(F.delegate_to_peer, peer.ctx.actual_flags)
         self.assertIsNone(peer.ctx.delegated_creds)
+
+
+class GssapiCcacheStore(SaslTestCase):
+    """Storing a client's delegated credentials (the ccache_store option).
+
+    Not part of RFC 4752: these check that the ccache name built from the
+    ccache_store format can't be steered by the client's principal name
+    (audit finding H16).
+    """
+
+    def setUp(self):
+        super().setUp()
+        krb5env.require()
+        if not config_defined("GSS_USE_CCACHE_STORE"):
+            self.skipTest("built without GSS_USE_CCACHE_STORE")
+        import tempfile
+        self.dir = tempfile.mkdtemp(prefix="sasl-ccstore-")
+        self.addCleanup(__import__("shutil").rmtree, self.dir, True)
+
+    def authenticate(self, ccache_store, principal=None, env=None):
+        server = self.server("GSSAPI", success_data=True, env=env,
+                             opts={"ccache_store": ccache_store})
+        peer = GssClientPeer(server, principal=principal,
+                             flags=CLIENT_FLAGS + [F.delegate_to_peer])
+        peer.authenticate()
+        r = peer.choose(LAYER_NONE, maxbuf=0)
+        self.assertOk(r)
+        self.assertIn(F.delegate_to_peer, peer.ctx.actual_flags,
+                      "the client's credentials weren't delegated")
+        return r
+
+    def path(self, *parts):
+        import os
+        return os.path.join(self.dir, *parts)
+
+    def test_stores_per_user(self):
+        import os
+        self.authenticate("FILE:%s/krb5cc_%%U" % self.dir)
+        self.assertTrue(os.path.exists(self.path("krb5cc_" + krb5env.principal(krb5env.USER))))
+
+    def test_principal_cannot_leave_the_directory(self):
+        # FILE:<dir>/a/b/krb5cc_%U with the principal x/../../escaped would
+        # name <dir>/a/b/krb5cc_x/../../escaped@REALM = <dir>/a/escaped@REALM.
+        import os
+        os.makedirs(self.path("a", "b", "krb5cc_x"))
+        self.authenticate("FILE:%s/a/b/krb5cc_%%U" % self.dir,
+                          principal=krb5env.TRAVERSAL_USER)
+        escaped = self.path("a", "escaped@" + krb5env.REALM)
+        self.assertFalse(os.path.exists(escaped),
+                         "delegated credentials were written to %s" % escaped)
+
+    def test_principal_is_not_expanded_again(self):
+        # A principal containing %U used to be expanded forever.
+        import os
+        self.authenticate("FILE:%s/krb5cc_%%U" % self.dir,
+                          principal=krb5env.PERCENT_USER)
+        self.assertTrue(os.path.exists(
+            self.path("krb5cc_" + krb5env.principal(krb5env.PERCENT_USER))))
+
+    def test_empty_format_uses_krb5ccname(self):
+        # Documented: an empty ccache_store means KRB5CCNAME.
+        import os
+        target = self.path("from-env")
+        self.authenticate("", env={"KRB5CCNAME": "FILE:" + target})
+        self.assertTrue(os.path.exists(target))
+
+    def test_empty_format_without_krb5ccname(self):
+        # Used to pass NULL to strdup() with KRB5CCNAME unset.  Whether that
+        # crashes depends on the compiler; --enable-sanitizers reports it.
+        self.authenticate("", env={"KRB5CCNAME": None})

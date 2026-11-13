@@ -97,17 +97,11 @@ class Gs2Server(SaslTestCase):
 
     def gs2_server(self, mech=MECH, **kw):
         kw.setdefault("success_data", True)
-        # The library looks up the authenticated principal in the password
-        # store and fails with SASL_NOUSER when it isn't there (see
-        # test_no_account_required), so give these protocol tests one.
-        kw.setdefault("users", {krb5env.USER: "unused"})
         s = self.server(mech, **kw)
         if MECH not in s.mechs and MECH + "-PLUS" not in s.mechs:
             self.skipTest("%s not available" % MECH)
         return s
 
-    @known_bug("H29", "server fails with SASL_NOUSER unless the password store "
-               "has an entry for the Kerberos principal")
     @spec("RFC 5801", "4", "INTEROP",
           "the GSS-API mechanism authenticates the user; no password entry is needed")
     def test_no_account_required(self):

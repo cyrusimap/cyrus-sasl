@@ -1264,7 +1264,7 @@ AC_CHECK_HEADERS_ONCE([sys/time.h])
 
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(crypt.h dlfcn.h fcntl.h limits.h malloc.h paths.h strings.h sys/file.h sys/time.h syslog.h time.h unistd.h inttypes.h sys/uio.h sys/param.h sysexits.h stdarg.h varargs.h krb5.h netinet/in.h netdb.h sys/un.h string.h termios.h getopt.h arpa/inet.h sys/socket.h)
+AC_CHECK_HEADERS(crypt.h dlfcn.h fcntl.h limits.h malloc.h paths.h strings.h sys/file.h sys/time.h syslog.h time.h unistd.h inttypes.h sys/uio.h sys/param.h sysexits.h stdarg.h varargs.h krb5.h netinet/in.h netdb.h sys/un.h string.h termios.h getopt.h arpa/inet.h sys/socket.h sys/random.h)
 
 IPv6_CHECK_SS_FAMILY()
 IPv6_CHECK_SA_LEN()
@@ -1272,7 +1272,7 @@ IPv6_CHECK_SOCKLEN_T()
 
 #AC_FUNC_MEMCMP
 #AC_FUNC_VPRINTF
-AC_CHECK_FUNCS(gethostname getdomainname getpwnam getspnam gettimeofday inet_aton memcpy memmem mkdir select socket strchr strdup strerror strspn strstr strtol jrand48 getpassphrase asprintf strlcat strlcpy)
+AC_CHECK_FUNCS(gethostname getdomainname getpwnam getspnam gettimeofday inet_aton memcpy memmem mkdir select socket strchr strdup strerror strspn strstr strtol jrand48 getpassphrase asprintf strlcat strlcpy getrandom arc4random_buf)
 
 if test $ac_cv_func_getspnam = yes; then
 	AC_MSG_CHECKING(if getpwnam_r/getspnam_r take 5 arguments)

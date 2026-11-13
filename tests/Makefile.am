@@ -93,6 +93,7 @@ EXTRA_DIST = \
 	conformance/test_gssapi.py \
 	conformance/test_interop.py \
 	conformance/test_plain.py \
+	conformance/test_random.py \
 	conformance/test_scram.py \
 	conformance/test_tls_cbind.py \
 	conformance/tlsenv.py \

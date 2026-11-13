@@ -1707,14 +1707,11 @@ gssapi_server_mech_ssfreq(context_t *text,
 	oparams->encode = NULL;
 	oparams->decode = NULL;
 	oparams->mech_ssf = 0;
-    } else if ((layerchoice & LAYER_INTEGRITY) &&
-	       (text->qop & LAYER_INTEGRITY)) { /* integrity */
-	oparams->encode = &gssapi_integrity_encode;
-	oparams->decode = &gssapi_decode;
-	oparams->mech_ssf = 1;
-    } else if (/* For compatibility with broken clients setting both bits */
-		(layerchoice & (LAYER_CONFIDENTIALITY | LAYER_INTEGRITY)) &&
+    } else if ((layerchoice & LAYER_CONFIDENTIALITY) &&
 	       (text->qop & LAYER_CONFIDENTIALITY)) { /* privacy */
+	/* Checked before integrity, so a client that sets both bits (as
+	   Cyrus clients do with the ad_compat option) gets the
+	   confidentiality it installed, not integrity only. */
         int ret;
 	oparams->encode = &gssapi_privacy_encode;
 	oparams->decode = &gssapi_decode;
@@ -1727,6 +1724,11 @@ gssapi_server_mech_ssfreq(context_t *text,
 	    sasl_gss_free_context_contents(text);
 	    return ret;
 	}
+    } else if ((layerchoice & LAYER_INTEGRITY) &&
+	       (text->qop & LAYER_INTEGRITY)) { /* integrity */
+	oparams->encode = &gssapi_integrity_encode;
+	oparams->decode = &gssapi_decode;
+	oparams->mech_ssf = 1;
     } else {
 	/* not a supported encryption layer */
 	SETERROR(text->utils,

@@ -67,6 +67,7 @@ int _sasldb_getdata(const sasl_utils_t *utils,
   void *cntxt;
   sasl_getopt_t *getopt;
   char *path;
+  int path_needs_freepath = 0;
 
   if (!utils) return SASL_BADPARAM;
   if (!authid || !propName || !realm || !out || !max_out) {
@@ -91,13 +92,16 @@ int _sasldb_getdata(const sasl_utils_t *utils,
 
   result = _sasldb_getpath(utils, &path);
   if (result) goto cleanup;
+  path_needs_freepath = 1;
 
   if (utils->getcallback(conn, SASL_CB_GETOPT,
                          (sasl_callback_ft *)&getopt, &cntxt) == SASL_OK) {
       const char *p;
       if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK 
 	  && p != NULL && *p != 0) {
+          SASLDB_FREEPATH(utils, path);
           path = p;
+          path_needs_freepath = 0;
       }
   }
   db = gdbm_open((char *)path, 0, GDBM_READER, S_IRUSR | S_IWUSR, NULL);
@@ -142,7 +146,8 @@ int _sasldb_getdata(const sasl_utils_t *utils,
   free(gvalue.dptr);
 
  cleanup:
-  SASLDB_FREEPATH(utils, path);
+  if (path_needs_freepath)
+    SASLDB_FREEPATH(utils, path);
   utils->free(key);
 
   return result;
@@ -163,6 +168,7 @@ int _sasldb_putdata(const sasl_utils_t *utils,
   void *cntxt;
   sasl_getopt_t *getopt;
   char *path;
+  int path_needs_freepath = 0;
 
   if (!utils) return SASL_BADPARAM;
 
@@ -182,13 +188,16 @@ int _sasldb_putdata(const sasl_utils_t *utils,
 
   result = _sasldb_getpath(utils, &path);
   if (result) goto cleanup;
+  path_needs_freepath = 1;
 
   if (utils->getcallback(conn, SASL_CB_GETOPT,
 			 (sasl_callback_ft *)&getopt, &cntxt) == SASL_OK) {
       const char *p;
       if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK 
 	  && p != NULL && *p != 0) {
+          SASLDB_FREEPATH(utils, path);
           path = p;
+          path_needs_freepath = 0;
       }
   }
   db = gdbm_open((char *)path, 0, GDBM_WRCREAT, S_IRUSR | S_IWUSR, NULL);
@@ -225,7 +234,8 @@ int _sasldb_putdata(const sasl_utils_t *utils,
   gdbm_close(db);
 
  cleanup:
-  SASLDB_FREEPATH(utils, path);
+  if (path_needs_freepath)
+    SASLDB_FREEPATH(utils, path);
   utils->free(key);
 
   return result;
@@ -235,6 +245,7 @@ LIBSASL_API int _sasl_check_db(const sasl_utils_t *utils,
 		   sasl_conn_t *conn)
 {
     char *path;
+    int path_needs_freepath = 0;
     int ret;
     void *cntxt;
     sasl_getopt_t *getopt;
@@ -244,13 +255,16 @@ LIBSASL_API int _sasl_check_db(const sasl_utils_t *utils,
 
     ret = _sasldb_getpath(utils, &path);
     if (ret) return ret;
+    path_needs_freepath = 1;
 
     if (utils->getcallback(conn, SASL_CB_GETOPT,
 			   (sasl_callback_ft *)&getopt, &cntxt) == SASL_OK) {
 	const char *p;
 	if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK 
 	    && p != NULL && *p != 0) {
+	    SASLDB_FREEPATH(utils, path);
 	    path = p;
+	    path_needs_freepath = 0;
 	}
     }
 
@@ -274,7 +288,8 @@ LIBSASL_API int _sasl_check_db(const sasl_utils_t *utils,
 			"Verifyfile failed");
     }
 cleanup:
-    SASLDB_FREEPATH(utils, path);
+    if (path_needs_freepath)
+        SASLDB_FREEPATH(utils, path);
     return ret;
 }
 
@@ -289,6 +304,7 @@ LIBSASL_API sasldb_handle _sasldb_getkeyhandle(const sasl_utils_t *utils,
 				   sasl_conn_t *conn) 
 {
     char *path;
+    int path_needs_freepath = 0;
     sasl_getopt_t *getopt;
     void *cntxt;
     GDBM_FILE db;
@@ -303,13 +319,16 @@ LIBSASL_API sasldb_handle _sasldb_getkeyhandle(const sasl_utils_t *utils,
 
     if (_sasldb_getpath(utils, &path))
 	return NULL;
+    path_needs_freepath = 1;
 
     if (utils->getcallback(conn, SASL_CB_GETOPT,
 			   (sasl_callback_ft *)&getopt, &cntxt) == SASL_OK) {
 	const char *p;
 	if (getopt(cntxt, NULL, "sasldb_path", &p, NULL) == SASL_OK 
 	    && p != NULL && *p != 0) {
+	    SASLDB_FREEPATH(utils, path);
 	    path = p;
+	    path_needs_freepath = 0;
 	}
     }
 
@@ -331,7 +350,8 @@ LIBSASL_API sasldb_handle _sasldb_getkeyhandle(const sasl_utils_t *utils,
     }
 
 cleanup:
-    SASLDB_FREEPATH(utils, path);
+    if (path_needs_freepath)
+        SASLDB_FREEPATH(utils, path);
     return (sasldb_handle)handle;
 }
 

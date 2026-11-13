@@ -67,18 +67,12 @@ AM_INIT_AUTOMAKE([1.11 tar-ustar dist-bzip2 foreign -Wno-portability subdir-obje
 
 DIRS=""
 
-AC_ARG_ENABLE(cmulocal,
-              [AS_HELP_STRING([--enable-cmulocal],[enable local mods for CMU [[no]]])],
-              [],
-              enable_cmulocal=no)
-
 AC_ARG_ENABLE(sample,
               [AS_HELP_STRING([--enable-sample],[compile sample code [[yes]]])],
               [],
               enable_sample=yes)
 
 AC_PROG_CC
-AX_PROG_CC_FOR_BUILD
 AC_PROG_CPP
 AC_PROG_AWK
 AC_PROG_LN_S
@@ -160,15 +154,6 @@ fi
 
 if test "$ac_cv_c_compiler_gnu" = yes; then
   CFLAGS="-Wall -W ${CFLAGS}"
-fi
-
-AC_ARG_WITH(purecov,[  --with-purecov          link with purecov])
-if test "$with_purecov" = yes; then
-  AC_CHECK_PROGS(PURECOV, purecov)
-fi
-AC_ARG_WITH(purify,[  --with-purify           link with purify])
-if test "$with_purify" = yes; then
-  AC_CHECK_PROGS(PURIFY, purify)
 fi
 
 AM_CONDITIONAL(SAMPLE, test "$enable_sample" = yes)
@@ -507,20 +492,6 @@ fi
 
 SASL2_CRYPT_CHK
 
-AC_ARG_ENABLE(sia, [  --enable-sia            enable SIA authentication [no] ],
-  sia=$enableval,
-  sia=no)
-LIB_SIA=""
-if test "$sia" != no; then
-  if test -f /etc/sia/matrix.conf; then
-    AC_DEFINE(HAVE_SIA,[],[Include SIA Support])
-    LIB_SIA="-lsecurity -ldb -lm -laud"
-  else
-    AC_MSG_ERROR([No support for SIA found])
-  fi
-fi
-AC_SUBST(LIB_SIA)
-
 AC_ARG_ENABLE(auth-sasldb, [  --enable-auth-sasldb    enable experimental SASLdb authentication module [no] ],
   authsasldb=$enableval,
   authsasldb=no)
@@ -852,58 +823,6 @@ case "$with_pgsql" in
 esac
 AC_SUBST(LIB_PGSQL)
 
-dnl SQLite
-AC_ARG_WITH(sqlite,  [  --with-sqlite=PATH       use SQLite from PATH ],
-  with_sqlite=$withval,
-  with_sqlite=$sql)
-
-# find location of library
-# presuing if one given then correct
-if test "${with_sqlite}" = "yes"; then
-  with_sqlite=notfound
-  for sqliteloc in lib
-  do
-    if test -f ${prefix}/${sqliteloc}/libsqlite.a; then
-      with_sqlite="${prefix}"
-      break
-    elif test -f /usr/local/${sqliteloc}/libsqlite.a; then
-      with_sqlite="/usr/local"
-      break
-    elif test -f /usr/${sqliteloc}/libsqlite.a; then
-      with_sqlite="/usr"
-      break
-    fi
-  done
-fi
-
-LIB_SQLITE=""
-
-case "$with_sqlite" in
-    no) true;;
-    notfound) AC_MSG_WARN(SQLite Library not found); true;;
-    *)
-     if test -d ${with_sqlite}/lib; then
-         CMU_ADD_LIBPATH_TO(${with_sqlite}/lib, LIB_SQLITE)
-     else
-         CMU_ADD_LIBPATH_TO(${with_sqlite}, LIB_SQLITE)
-     fi
-
-     LIB_SQLITE_DIR=$LIB_SQLITE
-     LIB_SQLITE="$LIB_SQLITE -lsqlite"
-
-     if test -d ${with_sqlite}/include; then
-         CPPFLAGS="${CPPFLAGS} -I${with_sqlite}/include"
-     else
-         CPPFLAGS="${CPPFLAGS} -I${with_sqlite}"
-     fi
-       AC_CHECK_LIB(sqlite, sqlite_open, AC_DEFINE(HAVE_SQLITE,[],
-	   [Do we have SQLite support?]),
-           [AC_MSG_WARN(SQLite Library sqlite does not work)
-	    with_sqlite=no], $LIB_SQLITE_DIR);;
-
-esac
-AC_SUBST(LIB_SQLITE)
-
 dnl SQLite3
 AC_ARG_WITH(sqlite3,  [  --with-sqlite3=PATH       use SQLite3 from PATH ],
   with_sqlite3=$withval,
@@ -956,8 +875,8 @@ case "$with_sqlite3" in
 esac
 AC_SUBST(LIB_SQLITE3)
 
-if test "$sql" = yes -a "$with_pgsql" = no -a "$with_mysql" = no -a "$with_sqlite" = no -a "$with_sqlite3" = no; then
-    AC_MSG_ERROR([--enable-sql chosen but neither Postgres nor MySQL nor SQLite nor SQLite3 found])
+if test "$sql" = yes -a "$with_pgsql" = no -a "$with_mysql" = no -a "$with_sqlite3" = no; then
+    AC_MSG_ERROR([--enable-sql chosen but neither Postgres nor MySQL nor SQLite3 found])
 fi
 
 if test "$enable_shared" = yes; then
@@ -1055,99 +974,6 @@ if test "$host_os" = "mingw32"; then
    ac_cv_func_gethostname=yes
    LIB_SOCKET="$LIB_SOCKET -lws2_32"
 fi
-
-dnl dmalloc tests
-AC_MSG_CHECKING(for dmalloc library)
-AC_ARG_WITH(dmalloc, [  --with-dmalloc=DIR      with DMALLOC support (for test applications) [[no]] ],
-	with_dmalloc=$withval,
-	with_dmalloc=no)
-
-DMALLOC_LIBS=""
-
-if test "$with_dmalloc" != "no"; then
-   if test "$with_dmalloc" = "yes"; then
-	with_dmalloc="/usr/local"
-   fi
-
-   if test -r "$with_dmalloc/libdmalloc.a"; then
-	DMALLOC_LIBS="$with_dmalloc/libdmalloc.a"
-	AC_DEFINE(WITH_DMALLOC,[],[Linking against dmalloc?])
-	AC_MSG_RESULT(yes)
-   elif test -r "$with_dmalloc/lib/libdmalloc.a"; then
-	DMALLOC_LIBS="$with_dmalloc/lib/libdmalloc.a"
-	AC_DEFINE(WITH_DMALLOC,[],[Linking against dmalloc?])
-	AC_MSG_RESULT(yes)
-   else
-	AC_MSG_ERROR(cannot find dmalloc library, please check your installation.)
-   fi
-else
-   AC_MSG_RESULT(no)
-fi
-
-AC_SUBST(DMALLOC_LIBS)
-
-dnl sfio tests
-AC_MSG_CHECKING(for sfio library)
-AC_ARG_WITH(sfio, [  --with-sfio=DIR         with SFIO support (for smtptest/libsfsasl) [[no]] ],
-	with_sfio=$withval,
-	with_sfio=no)
-
-if test "$with_sfio" != "no"; then
-   if test "$with_sfio" = "yes"; then
-	with_sfio="/usr/local"
-   fi
-
-   AC_DEFUN([SFIO_INC_CHK],
-	[if test -r "$with_sfio$1/sfio.h"; then SFIO_DIR=$with_sfio;
-					      SFIO_INC_DIR=$with_sfio$1])
-
-   AC_DEFUN([SFIO_LIB_CHK],[
-		str="$SFIO_DIR/$1/libsfio.*"
-		for i in `echo $str`; do
-			if test -r $i; then
-				SFIO_LIBDIR=$SFIO_DIR/$1
-				break 2
-			fi
-		done
-		])
-
-   SFIO_INC_CHK()
-   el[]SFIO_INC_CHK(/include)
-   el[]SFIO_INC_CHK(/include/sfio)
-   fi
-
-   if test -z "$SFIO_DIR"; then
-	AC_MSG_ERROR(Cannot find sfio.h, Please check your SFIO installation.)
-   fi
-
-   SFIO_LIB_CHK(lib)
-   SFIO_LIB_CHK(lib/sfio)
-
-   if test -z "$SFIO_LIBDIR"; then
-	AC_MSG_ERROR(Cannot find sfio library, Please check your SFIO installation.)
-   fi
-
-   SFIO_INC_FLAGS="-I$SFIO_INC_DIR"
-   SFIO_LIB_FLAGS="-L$SFIO_LIBDIR -lsfio"
-   SMTPTEST_PROGRAM="smtptest"
-   SASL_UTIL_LIBS_EXTRA=libsfsasl2.la
-   SASL_UTIL_HEADERS_EXTRA=sfsasl.h
-
-   AC_MSG_RESULT(yes)
-else
-   AC_MSG_RESULT(no)
-   SFIO_INC_FLAGS=""
-   SFIO_LIB_FLAGS=""
-   SMTPTEST_PROGRAM=""
-   SASL_UTIL_LIBS_EXTRA=""
-   SASL_UTIL_HEADERS_EXTRA=""
-fi
-
-AC_SUBST(SFIO_INC_FLAGS)
-AC_SUBST(SFIO_LIB_FLAGS)
-AC_SUBST(SMTPTEST_PROGRAM)
-AC_SUBST(SASL_UTIL_LIBS_EXTRA)
-AC_SUBST(SASL_UTIL_HEADERS_EXTRA)
 
 dnl check for getsubopt
 sasl_cv_getsubopt=no
@@ -1266,12 +1092,6 @@ char pwdata[512];
 			[Define if your getpwnam_r()/getspnam_r()
 			functions take 5 arguments])],[AC_MSG_RESULT(no)
 	])
-fi
-
-if test $enable_cmulocal = yes; then
-    AC_MSG_WARN(enabling CMU local kludges)
-    AC_DEFINE(KRB4_IGNORE_IP_ADDRESS,[],[Ignore IP Address in Kerberos 4 tickets?])
-    AC_DEFINE_UNQUOTED(PREFER_MECH, "KERBEROS_V4", [Force a preferred mechanism])
 fi
 
 AC_EGREP_HEADER(sockaddr_storage, sys/socket.h, [

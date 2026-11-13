@@ -306,7 +306,7 @@ SQL Plugin
 
 .. option:: sql_engine [<name>]
 
-   Name of SQL engine to use (possible values: 'mysql', 'pgsql', 'sqlite', 'sqlite3').
+   Name of SQL engine to use (possible values: 'mysql', 'pgsql', 'sqlite3').
 
    Default: mysql
 

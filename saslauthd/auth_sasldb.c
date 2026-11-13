@@ -87,6 +87,41 @@ static void lame_seterror(sasl_conn_t *conn __attribute__((unused)),
     return;
 }
 
+static int lame_get_registry_value(void *context __attribute__((unused)),
+                                   const char *attrname,
+                                   char **value,
+                                   const char *def_value)
+{
+    const char *path = NULL;
+
+    if (attrname == NULL || value == NULL) {
+        return SASL_BADPARAM;
+    }
+
+    if (getuid() == geteuid() && getgid() == getegid()) {
+        path = getenv(attrname);
+    }
+    if (path == NULL) {
+        path = def_value;
+    }
+    if (path == NULL) {
+        *value = NULL;
+        return SASL_OK;
+    }
+
+    *value = strdup(path);
+    if (*value == NULL) {
+        return SASL_NOMEM;
+    }
+
+    return SASL_OK;
+}
+
+static void lame_free_registry_value(void *value)
+{
+    free(value);
+}
+
 /* FUNCTION: init_lame_utils */
 /* This sets up a very minimal sasl_utils_t for use only with the
  * database functions */
@@ -102,6 +137,8 @@ static void init_lame_utils(sasl_utils_t *utils)
     utils->getcallback=lame_getcallback;
     utils->log=lame_log;
     utils->seterror=lame_seterror;
+    utils->get_registry_value=lame_get_registry_value;
+    utils->free_registry_value=lame_free_registry_value;
 
     return;
 }

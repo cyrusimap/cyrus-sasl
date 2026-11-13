@@ -39,9 +39,6 @@
 #ifdef AUTH_SHADOW
 # include "auth_shadow.h"
 #endif /* AUTH_SHADOW */
-#ifdef AUTH_SIA
-# include "auth_sia.h"
-#endif /* AUTH_SIA */
 #include "auth_krb5.h"
 #include "auth_getpwent.h"
 #include "auth_sasldb.h"
@@ -76,9 +73,6 @@ authmech_t mechanisms[] =
 #ifdef AUTH_SHADOW
     {	"shadow",	0,			auth_shadow },
 #endif /* AUTH_SHADOW */
-#ifdef AUTH_SIA
-    {   "sia",		0,			auth_sia },
-#endif /* AUTH_SIA */
 #ifdef AUTH_LDAP
     {   "ldap",		auth_ldap_init,		auth_ldap },
 #endif /* AUTH_LDAP */

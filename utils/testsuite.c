@@ -245,8 +245,6 @@ int DETAILED_MEMORY_DEBUGGING = 0;
 
 mem_info_t *head = NULL;
 
-#ifndef WITH_DMALLOC
-
 void *test_malloc(size_t size)
 {
     void *out;
@@ -380,11 +378,8 @@ void test_free(void *ptr)
     free(ptr);
 }
 
-#endif /* WITH_DMALLOC */
-
 int mem_stat() 
 {
-#ifndef WITH_DMALLOC
     mem_info_t *cur;
     size_t n;
     unsigned char *data;
@@ -409,9 +404,6 @@ int mem_stat()
 	fprintf(stderr, "\n");
     }
     return SASL_FAIL;
-#else
-    return SASL_OK;
-#endif /* WITH_DMALLOC */
 }
 
 
@@ -599,12 +591,10 @@ void init(unsigned int seed)
 		   (sasl_mutex_unlock_t *) &my_mutex_unlock,
 		   (sasl_mutex_free_t *) &my_mutex_dispose);
 
-#ifndef WITH_DMALLOC
     sasl_set_alloc((sasl_malloc_t *)test_malloc,
 		   (sasl_calloc_t *)test_calloc,
 		   (sasl_realloc_t *)test_realloc,
 		   (sasl_free_t *)test_free);
-#endif
 
 }
 

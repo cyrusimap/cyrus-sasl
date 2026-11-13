@@ -128,7 +128,6 @@ class Gs2Server(SaslTestCase):
         peer = Gs2ClientPeer(self.gs2_server(), gs2_header=b"F,n,,", keep_header=True)
         self.assertOk(peer.run())
 
-    @known_bug("I4", "server requires the SEQUENCE per-message flag")
     @spec("RFC 5801", "8", "SHOULD NOT",
           "per-message req_flags are irrelevant; clients SHOULD NOT set them")
     def test_client_without_sequence_flag(self):
@@ -262,7 +261,7 @@ class Gs2Client(SaslTestCase):
         peer.run()
         self.assertIn(F.mutual_authentication, peer.ctx.actual_flags)
 
-    @known_bug("I4", "client requests the SEQUENCE per-message flag")
+    @H30
     @spec("RFC 5801", "8", "SHOULD NOT",
           "implementations SHOULD NOT set the per-message req_flags")
     def test_no_per_message_flags(self):

@@ -445,10 +445,9 @@ gs2_server_mech_step(void *conn_context,
 
     assert(maj_stat == GSS_S_COMPLETE);
 
-    if ((out_flags & GSS_C_SEQUENCE_FLAG) == 0)  {
-        ret = SASL_BADAUTH;
-        goto cleanup;
-    }
+    /* RFC 5801 section 8: GS2 has no security layer, so the per-message
+       flags (such as GSS_C_SEQUENCE_FLAG) are irrelevant and clients
+       SHOULD NOT request them; don't require them. */
 
     maj_stat = gss_display_name(&min_stat, text->client_name,
                                 &name_buf, NULL);
@@ -779,7 +778,9 @@ static int gs2_client_mech_step(void *conn_context,
 	}
     }
 
-    req_flags = GSS_C_MUTUAL_FLAG | GSS_C_SEQUENCE_FLAG;
+    /* RFC 5801 section 8: mutual_req_flag MUST be set; per-message
+       req_flags SHOULD NOT be. */
+    req_flags = GSS_C_MUTUAL_FLAG;
 
     maj_stat = gss_init_sec_context(&min_stat,
                                     (params->gss_creds != GSS_C_NO_CREDENTIAL)

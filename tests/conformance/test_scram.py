@@ -338,6 +338,18 @@ class ScramServerChannelBinding(SuccessDataMixin, SaslTestCase):
         self.assertContinue(p.first())
         self.assertOk(p.final())
 
+    @spec("RFC 5802", "6", "MUST",
+          "a binding type the server doesn't have fails, and is reported "
+          "as unsupported rather than as a mismatch")
+    def test_p_unsupported_type(self):
+        p = ScramPeer(self.cb_server(), mech=MECH + "-PLUS",
+                      gs2_header="p=tls-unique,,", cbind_data=CB_DATA)
+        r = p.first()
+        if r.cont:
+            r = p.final()
+        self.assertFailed(r)
+        self.assertRegex(r.detail or "", r"(?i)unsupported.*tls-unique")
+
     @spec("RFC 5802", "6", "MUST", "server MUST validate c= against its own binding data")
     def test_p_mismatched_binding(self):
         p = ScramPeer(self.cb_server(), mech=MECH + "-PLUS",

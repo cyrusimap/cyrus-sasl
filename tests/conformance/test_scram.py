@@ -567,7 +567,6 @@ class ScramClient(ScramClientHelpers):
         scram, auth = self.check_final(r)
         self.assertOk(c.step(self.verifier(scram, auth).encode()))
 
-    @known_bug("I1", "off-by-one drops the last ServerSignature character")
     @spec("RFC 5802", "5.1", "MUST", "unknown optional extensions MUST be ignored")
     def test_server_final_extension_ignored(self):
         c = self.start()

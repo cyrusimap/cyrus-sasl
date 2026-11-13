@@ -2802,7 +2802,7 @@ scram_client_mech_step3(client_context_t *text,
        the input data is NUL terminated */
     p = memchr (serverin + 2, ',', serverinlen - 2);
     if (p != NULL) {
-	server_proof_len = p - (serverin + 2) - 1;
+	server_proof_len = p - (serverin + 2);
     } else {
 	server_proof_len = serverinlen - 2;
     }

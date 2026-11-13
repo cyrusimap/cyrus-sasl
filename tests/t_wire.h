@@ -50,6 +50,11 @@ int t_getopt(void *context, const char *plugin_name, const char *option,
 /* SASL_CB_GETPATH callback: $T_PLUGINDIR, else the compiled-in PLUGINDIR. */
 int t_getpath(void *context, const char **path);
 
+/* SASL_CB_LOG callback: collects messages, which t_report() returns as
+ * "log" (hex of the messages, each followed by a newline).  Only messages
+ * at or below the log_level option are passed to it. */
+int t_log(void *context, int level, const char *message);
+
 /* Parse a channel binding argument "name:hexdata". */
 void t_parse_cbinding(const char *arg, sasl_channel_binding_t *cb);
 

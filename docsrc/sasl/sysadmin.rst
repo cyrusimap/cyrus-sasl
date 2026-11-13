@@ -289,7 +289,7 @@ The OTP mechanism
 
 The Cyrus SASL library also supports the One-Time-Password (OTP)
 mechanism.  This mechanism is similar to SCRAM
-and SRP in that is uses a shared secret and a challenge/response exchange.
+in that it uses a shared secret and a challenge/response exchange.
 However, OTP is more secure than the other shared secret mechanisms in
 that the secret is used to generate a sequence of one-time (single
 use) passwords which prevents reply attacks, and that secret need
@@ -409,9 +409,9 @@ I'm having performance problems on each authentication, there is a noticeable sl
     To improve performance, you can change DEV_RANDOM in
     ``config.h`` to be ``/dev/urandom`` and recompile
     libsasl. ``/dev/urandom`` offers less secure random numbers but
-    should return immediately. The included mechanisms, besides OTP and
-    SRP, use random numbers only to generate nonces, so using
-    ``/dev/urandom`` is safe if you aren't using OTP or SRP.
+    should return immediately. The included mechanisms, besides OTP,
+    use random numbers only to generate nonces, so using
+    ``/dev/urandom`` is safe if you aren't using OTP.
 
 
 I've converted the sasldb database to the new format. Why can't anybody authenticate?

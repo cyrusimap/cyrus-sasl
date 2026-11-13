@@ -99,19 +99,6 @@ Defined in :rfc:`5802`
   * SCRAM-SHA-384(-PLUS)
   * SCRAM-SHA-512(-PLUS)
 
-SRP
----
-
-The Secure Remote Password (SRP) is a password-based, zero-knowledge,
-authentication and key-exchange protocol.
-It has good performance, is not plaintext-equivalent and maintains perfect forward secrecy.
-It provides authentication (optionally mutual authentication) and the negotiation of a shared context key.
-
-Documented in a `RFC Draft: draft-burdis-cat-srp-sasl <https://tools.ietf.org/html/draft-burdis-cat-srp-sasl-08>`_
-
-  * mda=sha1,rmd160,md5
-  * confidentiality=des-ofb,des-ede-ofb,aes-128-ofb,bf-ofb,cast5-ofb,idea-ofb
-
 Non-SASL Authentication
 -----------------------
 
@@ -148,8 +135,6 @@ of the mechanisms provided by the Cyrus SASL Library.
 | PLAIN       | 0       |         |          |        |         | X      | X    |        | X         |              |          | X     |      |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 | SCRAM       | 0       | X       | X        |        |         | X      |      | X      | X         |              | X        | X     | X    | X    |
-+-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
-| SRP         | 128     | X       | X        | X      | X       | X      |      | X      | X         |              | X        | X     |      |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 
 ..  Helpfully generated  from https://www.tablesgenerator.com/text_tables

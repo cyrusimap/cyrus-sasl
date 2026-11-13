@@ -99,7 +99,7 @@ Plugins: SASL Mechanisms
 ------------------------
 
 The simplest types of plugins to understand are those which provide
-SASL mechanisms, such as GSSAPI, PLAIN, SCRAM, SRP, and so on.
+SASL mechanisms, such as GSSAPI, PLAIN, SCRAM, and so on.
 These mechanisms take care of both server-side and client-side parts
 of the SASL negotiation.  If the given mechanism supports a security layer
 (that is, makes guarantees about privacy or integrity of data after the
@@ -125,13 +125,13 @@ Password Verification Mechanisms
     of the password.
 Shared Secret Mechanisms
     For these mechanisms,
-    such as OTP, SCRAM, and SRP,
+    such as OTP and SCRAM,
     there is a shared secret between the server and client (e.g. a password).
     However, in this case the password itself does not travel on the wire.
     Instead, the client passes a server a token that proves that it knows
     the secret (without actually sending the secret across the wire).
     For these mechanisms, the server generally needs a plaintext equivalent of
-    the secret to be in local storage (not true for SRP).
+    the secret to be in local storage.
 Kerberos Mechanisms
     Kerberos mechanisms use a trusted
     third party to authenticate the client.  These mechanisms don't require

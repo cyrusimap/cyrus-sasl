@@ -74,7 +74,7 @@ plugindir = @plugindir@
 plugin_LTLIBRARIES = @SASL_MECHS@
 
 EXTRA_LTLIBRARIES = libplain.la libanonymous.la \
-	libgs2.la libgssapiv2.la libsrp.la libotp.la \
+	libgs2.la libgssapiv2.la libotp.la \
 	libscram.la libpassdss.la libsasldb.la libsql.la libldapdb.la libopaque.la
 
 libplain_la_SOURCES = plain.c plain_init.c
@@ -96,10 +96,6 @@ libgssapiv2_la_LIBADD = $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET) $(COMPAT
 libscram_la_SOURCES = scram.c scram_init.c
 libscram_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
 libscram_la_LIBADD = $(SCRAM_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
-
-libsrp_la_SOURCES = srp.c srp_init.c
-libsrp_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS) $(CRYPTO_COMPAT_OBJS)
-libsrp_la_LIBADD = $(SRP_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS) $(CRYPTO_COMPAT_OBJS)
 
 libopaque_la_SOURCES = opaque.c opaque_init.c $(OPAQUE_INTERNAL_IMPL_SRC)
 libopaque_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS) $(CRYPTO_COMPAT_OBJS)
@@ -131,7 +127,7 @@ libsql_la_LIBADD = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
 # Instructions for making the _init files
 
 init_src=anonymous_init.c scram_init.c gs2_init.c gssapiv2_init.c \
-plain_init.c srp_init.c opaque_init.c otp_init.c \
+plain_init.c opaque_init.c otp_init.c \
 passdss_init.c sasldb_init.c sql_init.c ldapdb_init.c
 
 

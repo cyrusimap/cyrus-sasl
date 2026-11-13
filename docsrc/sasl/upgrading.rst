@@ -62,7 +62,7 @@ sasldb will compromise all services with the same passwords.  (This
 situation isn't significantly worse, cryptographically speaking, than
 the old method and allows the database to be easy to transition to
 another format, when the need arises.)  Mechanisms requiring a more
-secure password database backend (e.g. SRP) should implement their own
+secure password database backend should implement their own
 or use alternate property names within sasldb.
 
 .. _coexist:

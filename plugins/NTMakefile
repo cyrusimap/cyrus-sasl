@@ -8,13 +8,6 @@ PLUGINS_EXT=
 PLUGINS_EXT=$(PLUGINS_EXT) saslGSSAPI.dll
 !ENDIF 
 
-!IF "$(SRP)" == "1"
-PLUGINS_EXT=$(PLUGINS_EXT) saslSRP.dll
-!IF "$(DO_SRP_SETPASS)" == "1"
-SRP_FLAGS=/DDO_SRP_SETPASS=1
-!ENDIF 
-!ENDIF 
-
 !IF "$(OTP)" == "1"
 PLUGINS_EXT=$(PLUGINS_EXT) saslOTP.dll
 !ENDIF
@@ -48,7 +41,7 @@ PLUGINS=saslANONYMOUS.dll \
 	$(PLUGINS_EXT) \
 	saslSASLDB.dll
 
-generated_rc=saslANONYMOUS.rc saslPLAIN.rc saslSCRAM.rc saslGSSAPI.rc saslSRP.rc saslOTP.rc saslSASLDB.rc saslSQLITE.rc saslLDAPDB.rc
+generated_rc=saslANONYMOUS.rc saslPLAIN.rc saslSCRAM.rc saslGSSAPI.rc saslOTP.rc saslSASLDB.rc saslSQLITE.rc saslLDAPDB.rc
 
 # WS2tcpip.h included in Visual Studio 7 provides getaddrinfo, ...
 # emulation on Windows, so there is no need to build getaddrinfo.c
@@ -70,9 +63,6 @@ saslSCRAM_out = saslSCRAM.dll saslSCRAM.exp saslSCRAM.lib
 
 saslGSSAPI_objs = gssapi.obj gssapiv2_init.obj $(common_objs)
 saslGSSAPI_out = saslGSSAPI.dll saslGSSAPI.exp saslGSSAPI.lib
-
-saslSRP_objs = srp.obj srp_init.obj $(common_objs)
-saslSRP_out = saslSRP.dll saslSRP.exp saslSRP.lib
 
 saslOTP_objs = otp.obj otp_init.obj $(common_objs)
 saslOTP_out = saslOTP.dll saslOTP.exp saslOTP.lib
@@ -119,8 +109,8 @@ SCRAM_FLAGS=/DHAVE_SHA512=1
 saslSASLDB_objs = sasldb.obj sasldb_init.obj $(libsasldb_objs) $(common_objs)
 saslSASLDB_out = saslSASLDB.dll saslSASLDB.exp saslSASLDB.lib
 
-all_objs = $(saslANONYMOUS_objs) $(saslPLAIN_objs) $(saslSCRAM_objs) $(saslGSSAPI_objs) $(saslSRP_objs) $(saslOTP_objs) $(saslSASLDB_objs) $(saslSQL_objs) $(saslLDAPDB_objs)
-all_out = $(saslANONYMOUS_out) $(saslPLAIN_out) $(saslSCRAM_out) $(saslGSSAPI_out) $(saslSRP_out) $(saslOTP_out) $(saslSASLDB_out) $(saslSQL_out) $(saslLDAPDB_out)
+all_objs = $(saslANONYMOUS_objs) $(saslPLAIN_objs) $(saslSCRAM_objs) $(saslGSSAPI_objs) $(saslOTP_objs) $(saslSASLDB_objs) $(saslSQL_objs) $(saslLDAPDB_objs)
+all_out = $(saslANONYMOUS_out) $(saslPLAIN_out) $(saslSCRAM_out) $(saslGSSAPI_out) $(saslOTP_out) $(saslSASLDB_out) $(saslSQL_out) $(saslLDAPDB_out)
 
 # LIBSASL_EXPORTS is required to export additional DB routines from sasldb
 DB_FLAGS = /I "$(DB_INCLUDE)" /I "..\sasldb" /D "LIBSASL_EXPORTS" /D "KEEP_DB_OPEN"
@@ -129,7 +119,7 @@ DB_FLAGS = /I "$(DB_INCLUDE)" /I "..\sasldb" /D "LIBSASL_EXPORTS" /D "KEEP_DB_OP
 EXTRA_FLAGS = /D TARGET_WIN_SYSTEM=$(TARGET_WIN_SYSTEM) $(EXTRA_FLAGS)
 !ENDIF
 
-EXTRA_FLAGS=$(EXTRA_FLAGS) $(DB_FLAGS) $(OPENSSL_FLAGS) $(GSS_FLAGS) $(SRP_FLAGS) $(SQL_FLAGS) $(SCRAM_FLAGS) $(LDAP_FLAGS)
+EXTRA_FLAGS=$(EXTRA_FLAGS) $(DB_FLAGS) $(OPENSSL_FLAGS) $(GSS_FLAGS) $(SQL_FLAGS) $(SCRAM_FLAGS) $(LDAP_FLAGS)
 CPPFLAGS = /I "..\win32\include" /I "." /I "..\include" /I "..\common" $(EXTRA_FLAGS) /D "_WIN32" $(COMMON_CPPFLAGS)
 
 # Where to install files from this directory
@@ -172,11 +162,6 @@ saslSCRAM.dll: $(saslSCRAM_objs) saslSCRAM.res
 
 saslGSSAPI.dll: $(saslGSSAPI_objs) saslGSSAPI.res
 	$(LINK32DLL) @<< $(GSS_LIBS) $(LINK32DLL_FLAGS) /out:"saslGSSAPI.dll" /implib:"saslGSSAPI.lib" $(saslGSSAPI_objs) saslGSSAPI.res
-<<
-	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
-
-saslSRP.dll: $(saslSRP_objs) saslSRP.res
-	$(LINK32DLL) @<< $(OPENSSL_LIBS) $(LINK32DLL_FLAGS) /out:"saslSRP.dll" /implib:"saslSRP.lib" $(saslSRP_objs) saslSRP.res
 <<
 	IF EXIST $@.manifest mt -manifest $@.manifest -outputresource:$@;2
 

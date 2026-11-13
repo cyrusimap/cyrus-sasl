@@ -61,14 +61,24 @@ LIBSASL_API int sasl_randcreate(sasl_rand_t **rpool);
 /* free random pool from randcreate */
 LIBSASL_API void sasl_randfree(sasl_rand_t **rpool);
 
-/* seed random number generator */
+/* seed random number generator
+ *  The seed only affects the fallback generator used on platforms without
+ *  an operating system source of random numbers; see sasl_rand().
+ */
 LIBSASL_API void sasl_randseed(sasl_rand_t *rpool, const char *seed,
 			       unsigned len);
 
-/* generate random octets */
+/* generate random octets
+ *  Octets come from the operating system's cryptographically secure
+ *  generator (arc4random_buf(), getrandom(), the configured random device,
+ *  or rand_s() on Windows).  Only if none is available does it fall back to
+ *  a weak pool-based generator.
+ */
 LIBSASL_API void sasl_rand(sasl_rand_t *rpool, char *buf, unsigned len);
 
-/* churn data into random number generator */
+/* churn data into random number generator
+ *  Like sasl_randseed(), this only affects the fallback generator.
+ */
 LIBSASL_API void sasl_churn(sasl_rand_t *rpool, const char *data,
 			    unsigned len);
 

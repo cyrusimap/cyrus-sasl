@@ -46,7 +46,9 @@ def spec(ref, section, level, requirement=None):
     """Tag a test with the spec requirement it checks.
 
     ref:   e.g. "RFC 5802"
-    level: MUST, MUST NOT, SHOULD, SHOULD NOT, SHALL, MAY, ABNF, or INTEROP
+    level: MUST, MUST NOT, SHOULD, SHOULD NOT, SHALL, MAY, ABNF, INTEROP, or
+           SECURITY (a security requirement the spec states without a
+           BCP 14 keyword, e.g. RFC 4086 randomness)
     """
     def deco(func):
         tags = list(getattr(func, "spec_tags", []))

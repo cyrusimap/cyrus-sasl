@@ -62,6 +62,9 @@
 #ifdef HAVE_TIME_H
 #include <time.h>
 #endif
+#ifdef HAVE_SYS_RANDOM_H
+#include <sys/random.h>
+#endif
 #include "saslint.h"
 #include <saslutil.h>
 
@@ -438,16 +441,80 @@ static void randinit(sasl_rand_t *rpool)
 
 }
 
+/*
+ * Fill buf with len octets from the operating system's cryptographically
+ * secure generator.  Returns 1 on success and 0 if no such source could
+ * fill the whole buffer.
+ */
+static int os_random(char *buf, unsigned len)
+{
+#if defined(WIN32) && !defined(__MINGW32__)
+    unsigned int value;
+    unsigned lup;
+
+    /* rand_s() is backed by RtlGenRandom(). */
+    for (lup = 0; lup < len; lup += sizeof(value)) {
+	unsigned n = len - lup < sizeof(value) ? len - lup : sizeof(value);
+
+	if (rand_s(&value) != 0) return 0;
+	memcpy(buf + lup, &value, n);
+    }
+    return 1;
+#elif defined(HAVE_ARC4RANDOM_BUF)
+    arc4random_buf(buf, len);
+    return 1;
+#else
+    size_t done = 0;
+
+#ifdef HAVE_GETRANDOM
+    while (done < len) {
+	ssize_t n = getrandom(buf + done, len - done, 0);
+
+	if (n < 0) {
+	    if (errno == EINTR) continue;
+	    break;		/* e.g. ENOSYS: try the device below */
+	}
+	done += n;
+    }
+    if (done == len) return 1;
+    done = 0;
+#endif
+
+#ifdef DEV_RANDOM
+    {
+	int fd = open(DEV_RANDOM, O_RDONLY);
+
+	if (fd == -1) return 0;
+	while (done < len) {
+	    ssize_t n = read(fd, buf + done, len - done);
+
+	    if (n < 0 && errno == EINTR) continue;
+	    if (n <= 0) break;
+	    done += n;
+	}
+	close(fd);
+    }
+#endif
+
+    return done == len;
+#endif
+}
+
 void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
 {
     unsigned int lup;
-#if defined(WIN32) && !defined(__MINGW32__)
-    unsigned int randomValue;
-#endif
 
     /* check params */
     if (!rpool || !buf) return;
-    
+
+    /*
+     * Nonces, salts and challenges must not be predictable (RFC 4086), so
+     * use the operating system's generator.  The pool below is only a last
+     * resort for platforms without one; its output follows from 48 bits of
+     * state, so seeding or churning it adds nothing to os_random().
+     */
+    if (len == 0 || os_random(buf, len)) return;
+
     /* init if necessary */
     randinit(rpool);
 
@@ -455,11 +522,7 @@ void sasl_rand (sasl_rand_t *rpool, char *buf, unsigned len)
 #if defined(__MINGW32__)
 	buf[lup] = (char) (rand() >> 8);
 #elif defined(WIN32)
-	if (rand_s(&randomValue) != 0) {
-	    randomValue = rand();
-	}
-
-	buf[lup] = (char) (randomValue >> 8);
+	buf[lup] = (char) (rand() >> 8);
 #elif defined(macintosh)
 	buf[lup] = (char) (rand() >> 8);
 #else /* !WIN32 && !macintosh */

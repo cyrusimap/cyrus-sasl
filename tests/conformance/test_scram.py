@@ -385,12 +385,17 @@ class ScramServerChannelBinding(SuccessDataMixin, SaslTestCase):
         p.first()
         self.assertFailed(p.final(channel_binding=b64(b"y,,")))
 
-    @known_bug("H2", "trailing cbind-data is accepted after n or y")
     @spec("RFC 5802", "7", "MUST", "cbind-data MUST be absent for y or n")
     def test_c_trailing_data_with_n(self):
         p = ScramPeer(self.server(MECH, users=USERS))
         p.first()
         self.assertFailed(p.final(channel_binding=b64(b"n,,JUNK")))
+
+    @spec("RFC 5802", "7", "MUST", "cbind-data MUST be absent for y or n")
+    def test_c_trailing_data_with_y(self):
+        p = ScramPeer(self.server(MECH, users=USERS), gs2_header="y,,")
+        p.first()
+        self.assertFailed(p.final(channel_binding=b64(b"y,,JUNK")))
 
     @known_bug("I6", "server ignores whether the -PLUS name was selected")
     @spec("RFC 5802", "6", "MUST",

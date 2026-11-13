@@ -705,8 +705,16 @@ static int lak_expand_tokens(
 						strcat(buf,ebuf);
 						free(ebuf);
 					}
-					break;
-				}
+				} else if (ISSET(realm)) {
+					/* no domain in the username: same as %r */
+					rc = lak_escape(realm, strlen(realm), &ebuf);
+					if (rc == LAK_OK) {
+						strcat(buf,ebuf);
+						free(ebuf);
+					}
+				} else
+					syslog(LOG_DEBUG|LOG_AUTH, "Domain/Realm not available.");
+				break;
 			case 'R':
 			case 'r':
 				if (ISSET(realm)) {

@@ -65,7 +65,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Cyrus SASL'
-copyright = u'1993-2022, The Cyrus Team'
+copyright = u'1993-2022, Carnegie Mellon University'
 
 
 # The version info for the project you're documenting, acts as replacement for
@@ -241,7 +241,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
   ('index', 'Cyrus.tex', u'Cyrus Documentation',
-   u'The Cyrus Team', 'manual'),
+   u'The Cyrus SASL Team', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -293,7 +293,7 @@ for tuple in pathset:
     except OSError as e:
         continue
     for rstfile in glob.glob("*.rst"):
-        author = "The Cyrus Team"
+        author = "The Cyrus SASL Team"
         orphan = 'False';
         with io.open(rstfile,'r',encoding="utf8") as f:
             for line in f:
@@ -326,7 +326,7 @@ for tuple in pathset:
 #  dir menu entry, description, category)
 texinfo_documents = [
   ('index', 'SASL', u'Cyrus SASL Documentation',
-   u'The Cyrus Team', 'Cyrus', 'One line description of project.',
+   u'The Cyrus SASL Team', 'Cyrus', 'One line description of project.',
    'Miscellaneous'),
 ]
 
@@ -347,9 +347,9 @@ texinfo_documents = [
 
 # Bibliographic Dublin Core info.
 epub_title = u'Cyrus'
-epub_author = u'The Cyrus Team'
-epub_publisher = u'The Cyrus Team'
-epub_copyright = u'2022, The Cyrus Team'
+epub_author = u'The Cyrus SASL Team'
+epub_publisher = u'The Cyrus SASL Team'
+epub_copyright = u'2022, Carnegie Mellon University'
 
 # The basename for the epub file. It defaults to the project name.
 epub_basename = u'Cyrus'

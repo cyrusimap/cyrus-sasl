@@ -352,3 +352,173 @@ class GssapiClient(SaslTestCase):
         peer.establish()
         self.assertNotIn(F.delegate_to_peer, peer.ctx.actual_flags)
         self.assertIsNone(peer.ctx.delegated_creds)
+
+
+# GSS_KRB5_CRED_NO_CI_FLAGS_X: stop the krb5 mechanism adding the integrity
+# and confidentiality flags to every context it initiates.
+NO_CI_FLAGS = gssapi.raw.OID.from_int_seq("1.2.752.43.13.29")
+SPNEGO_FLAGS = [F.mutual_authentication, F.out_of_sequence_detection,
+                F.replay_detection]
+
+
+class SpnegoClientPeer:
+    """Initiates a SPNEGO context against the library's GSS-SPNEGO server.
+
+    GSS-SPNEGO has no security-layer negotiation: the layer follows the
+    context's integrity and confidentiality flags.
+    """
+
+    def __init__(self, server, flags=CLIENT_FLAGS):
+        self.server = server
+        creds = None
+        if F.confidentiality not in flags:
+            # Set on SPNEGO credentials, which pass it to the krb5 mechanism.
+            creds = gssapi.Credentials(usage="initiate", mechs=[SPNEGO])
+            try:
+                creds = gssapi.Credentials(
+                    gssapi.raw.set_cred_option(NO_CI_FLAGS, creds, b""))
+            except Exception as e:
+                raise unittest.SkipTest("can't clear the krb5 CI flags: %s" % e)
+        self.ctx = gssapi.SecurityContext(
+            name=gssapi.Name(TARGET, gssapi.NameType.hostbased_service),
+            usage="initiate", mech=SPNEGO, flags=flags, creds=creds)
+
+    def run(self):
+        r = self.server.start(self.ctx.step())
+        while r.cont:
+            token = self.ctx.step(r.out) if r.out else b""
+            r = self.server.step(token or b"")
+        if r.ok and r.out and not self.ctx.complete:
+            self.ctx.step(r.out)
+        return r
+
+
+class GssSpnegoServer(SaslTestCase):
+    """The library's GSS-SPNEGO server enforces its security properties."""
+
+    def setUp(self):
+        super().setUp()
+        krb5env.require()
+
+    def spnego_server(self, **kw):
+        kw.setdefault("success_data", True)
+        s = self.server("GSS-SPNEGO", **kw)
+        if "GSS-SPNEGO" not in s.mechs:
+            self.skipTest("GSS-SPNEGO not available")
+        return s
+
+    @spec("RFC 4422", "3.7", "POLICY", "GSS-SPNEGO server installs the context's layer")
+    def test_confidentiality_layer(self):
+        peer = SpnegoClientPeer(self.spnego_server())
+        r = peer.run()
+        self.assertOk(r)
+        self.assertGreater(r.ssf, 1)
+        e = peer.server.encode(b"secret")
+        self.assertOk(e)
+        self.assertTrue(peer.ctx.unwrap(unframe(e.out)).encrypted)
+
+    @spec("RFC 4422", "3.7", "POLICY",
+          "GSS-SPNEGO server fails a context weaker than min_ssf")
+    def test_min_ssf(self):
+        peer = SpnegoClientPeer(self.spnego_server(min_ssf=56),
+                                flags=SPNEGO_FLAGS + [F.integrity])
+        r = peer.run()
+        self.assertNotIn(F.confidentiality, peer.ctx.actual_flags)
+        self.assertFailed(r)
+
+    @spec("RFC 4422", "3.7", "POLICY",
+          "GSS-SPNEGO server counts the external SSF towards min_ssf")
+    def test_min_ssf_external(self):
+        peer = SpnegoClientPeer(self.spnego_server(min_ssf=56, external_ssf=56),
+                                flags=SPNEGO_FLAGS + [F.integrity])
+        r = peer.run()
+        self.assertOk(r)
+
+    @spec("RFC 4422", "3.7", "POLICY",
+          "GSS-SPNEGO server fails a layer when max_ssf forbids one")
+    def test_max_ssf_zero(self):
+        self.assertFailed(SpnegoClientPeer(self.spnego_server(max_ssf=0)).run())
+
+    @spec("RFC 4422", "3.7", "POLICY",
+          "GSS-SPNEGO server fails a layer when the external SSF uses up max_ssf")
+    def test_max_ssf_external(self):
+        server = self.spnego_server(max_ssf=256, external_ssf=256)
+        self.assertFailed(SpnegoClientPeer(server).run())
+
+    @spec("RFC 4422", "3.7", "POLICY",
+          "GSS-SPNEGO server fails a layer when maxbufsize is 0")
+    def test_maxbufsize_zero(self):
+        self.assertFailed(SpnegoClientPeer(self.spnego_server(maxbuf=0)).run())
+
+    @spec("RFC 4422", "3.7", "POLICY",
+          "GSS-SPNEGO server's packets fit in its own maxbufsize")
+    def test_maxoutbuf(self):
+        peer = SpnegoClientPeer(self.spnego_server(maxbuf=4096))
+        r = peer.run()
+        self.assertOk(r)
+        self.assertTrue(r.maxoutbuf and r.maxoutbuf < 4096, r.maxoutbuf)
+        e = peer.server.encode(b"x" * r.maxoutbuf)
+        self.assertOk(e)
+        self.assertLessEqual(len(unframe(e.out)), 4096)
+
+
+class SpnegoServerPeer:
+    """Accepts the library GSS-SPNEGO client's context."""
+
+    def __init__(self, client):
+        self.client = client
+        self.ctx = gssapi.SecurityContext(
+            usage="accept", creds=gssapi.Credentials(usage="accept"))
+
+    def run(self):
+        r = self.client.first
+        while r.cont and not self.ctx.complete:
+            token = self.ctx.step(r.out)
+            r = self.client.step(token or b"")
+        if r.cont:
+            r = self.client.step(None)
+        return r
+
+
+class GssSpnegoClient(SaslTestCase):
+    """The library's GSS-SPNEGO client enforces its security properties."""
+
+    def setUp(self):
+        super().setUp()
+        krb5env.require()
+
+    def spnego_client(self, **kw):
+        c = self.client("GSS-SPNEGO", **kw)
+        if c.first.name == "SASL_NOMECH":
+            self.skipTest("GSS-SPNEGO not available")
+        self.assertContinue(c.first)
+        return c
+
+    @spec("RFC 4422", "3.7", "POLICY",
+          "GSS-SPNEGO client doesn't get confidentiality when the external SSF uses up max_ssf")
+    def test_no_layer_over_external(self):
+        peer = SpnegoServerPeer(self.spnego_client(max_ssf=256, external_ssf=256))
+        r = peer.run()
+        self.assertOk(r)
+        self.assertEqual(r.ssf, 0)
+        self.assertNotIn(F.confidentiality, peer.ctx.actual_flags)
+
+    @spec("RFC 4422", "3.7", "POLICY",
+          "GSS-SPNEGO client with max_ssf=1 gets integrity only")
+    def test_integrity_only(self):
+        peer = SpnegoServerPeer(self.spnego_client(max_ssf=1))
+        r = peer.run()
+        self.assertOk(r)
+        self.assertEqual(r.ssf, 1)
+        self.assertNotIn(F.confidentiality, peer.ctx.actual_flags)
+
+    @spec("RFC 4422", "3.7", "POLICY",
+          "GSS-SPNEGO client's packets fit in its own maxbufsize")
+    def test_maxoutbuf(self):
+        peer = SpnegoServerPeer(self.spnego_client(maxbuf=4096))
+        r = peer.run()
+        self.assertOk(r)
+        self.assertTrue(r.maxoutbuf and r.maxoutbuf < 4096, r.maxoutbuf)
+        e = peer.client.encode(b"x" * r.maxoutbuf)
+        self.assertOk(e)
+        self.assertLessEqual(len(unframe(e.out)), 4096)

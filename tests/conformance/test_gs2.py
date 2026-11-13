@@ -185,6 +185,16 @@ class Gs2Server(SaslTestCase):
         peer = Gs2ClientPeer(self.cb_server(), gs2_header=header, cb_data=CB_DATA)
         self.assertOk(peer.run())
 
+    @spec("RFC 5801", "5", "MUST",
+          "a binding type the server doesn't have fails, and is reported "
+          "as unsupported rather than as a mismatch")
+    def test_p_unsupported_type(self):
+        peer = Gs2ClientPeer(self.cb_server(), gs2_header=b"p=tls-unique,,",
+                             cb_data=CB_DATA)
+        r = peer.run()
+        self.assertFailed(r)
+        self.assertRegex(r.detail or "", r"(?i)unsupported.*tls-unique")
+
     @spec("RFC 5801", "5", "MUST", "p= with different channel binding data fails")
     def test_p_mismatched_binding(self):
         header = ("p=%s,," % CB_NAME).encode()

@@ -1099,6 +1099,26 @@ gs2_verify_initial_message(context_t *text,
                                            text->plug.server->mech_name,
                                            text->cbindingname);
         }
+
+        /* Without data of the requested type the bindings can't match;
+           say why, rather than leave it to GSS-API to report a mismatch. */
+        if (sparams->cbinding == NULL) {
+            text->utils->seterror(text->utils->conn, 0,
+                                  "Server does not support channel binding "
+                                  "type received in %s. Received: %s",
+                                  text->plug.server->mech_name,
+                                  text->cbindingname);
+            return SASL_BADBINDING;
+        }
+        if (strcmp(sparams->cbinding->name, text->cbindingname) != 0) {
+            text->utils->seterror(text->utils->conn, 0,
+                                  "Unsupported channel bindings type "
+                                  "received in %s. Expected: %s, received: %s",
+                                  text->plug.server->mech_name,
+                                  sparams->cbinding->name,
+                                  text->cbindingname);
+            return SASL_BADBINDING;
+        }
         text->gs2_flags |= GS2_CB_FLAG_P;
         break;
     case 'n':

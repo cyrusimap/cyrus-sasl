@@ -48,6 +48,7 @@ of libraries correct.
     operations
     developer
     support
+    bylaws
 
 .. OLD INDEX
 

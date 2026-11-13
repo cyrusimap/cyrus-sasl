@@ -296,8 +296,8 @@ gs2_decapsulate_token(const gss_buffer_t input_token,
 
     major = verify_token_header(&minor, token_oid, &body_size, &buf_in,
                                 input_token->length);
-    if (minor != 0)
-        return GSS_S_DEFECTIVE_TOKEN;
+    if (GSS_ERROR(major))
+        return major;
 
     output_token->value = malloc(body_size);
     if (output_token->value == NULL)

@@ -133,7 +133,6 @@ class TlsGs2ChannelBinding(SaslTestCase):
     def test_gs2_tls_exporter(self):
         c_data, s_data = tlsenv.channel_bindings("tls-exporter")
         server = self.server("GS2-KRB5-PLUS", success_data=True,
-                             users={krb5env.USER: "unused"},
                              cbinding=("tls-exporter", s_data))
         if "GS2-KRB5-PLUS" not in server.mechs:
             self.skipTest("GS2-KRB5 not available")
@@ -149,7 +148,6 @@ class TlsGs2ChannelBinding(SaslTestCase):
         c_data, _ = tlsenv.channel_bindings("tls-exporter")
         _, s_data = tlsenv.channel_bindings("tls-exporter")
         server = self.server("GS2-KRB5-PLUS", success_data=True,
-                             users={krb5env.USER: "unused"},
                              cbinding=("tls-exporter", s_data))
         if "GS2-KRB5-PLUS" not in server.mechs:
             self.skipTest("GS2-KRB5 not available")

@@ -494,11 +494,14 @@ gs2_server_mech_step(void *conn_context,
 	}
     }
 
+    /* The GSS-API mechanism authenticated the principal, so it needs no
+       entry in the password store (as for GSSAPI). */
     ret = params->canon_user(params->utils->conn,
                              text->authid, 0,
-                             text->authzid == NULL
+                             (text->authzid == NULL
                                 ? (SASL_CU_AUTHZID | SASL_CU_AUTHID)
-                                : SASL_CU_AUTHID,
+                                : SASL_CU_AUTHID) |
+                             SASL_CU_EXTERNALLY_VERIFIED,
                              oparams);
     if (ret != SASL_OK) {
         goto cleanup;

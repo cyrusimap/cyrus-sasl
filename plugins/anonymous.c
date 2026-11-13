@@ -130,9 +130,12 @@ anonymous_server_mech_step(void *conn_context __attribute__((unused)),
     if (clientdata != clientin) 
 	sparams->utils->free(clientdata);
     
+    /* There is nothing to look up: "anonymous" needs no account in the
+       password store. */
     result = sparams->canon_user(sparams->utils->conn,
 				 anonymous_id, 0,
-				 SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
+				 SASL_CU_AUTHID | SASL_CU_AUTHZID |
+				 SASL_CU_EXTERNALLY_VERIFIED, oparams);
 
     if (result != SASL_OK) return result;
     

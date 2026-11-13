@@ -96,7 +96,8 @@ class GssapiServer(SaslTestCase):
         """A server and peer that completed authentication with `layer`."""
         peer = GssClientPeer(self.gss_server(**kw))
         peer.authenticate()
-        r = peer.choose(layer)
+        # RFC 4752 section 3.1: the maximum buffer MUST be 0 with no layer.
+        r = peer.choose(layer, maxbuf=0 if layer == LAYER_NONE else 0x10000)
         self.assertOk(r)
         return peer, r
 
@@ -150,7 +151,6 @@ class GssapiServer(SaslTestCase):
         peer.authenticate()
         self.assertFailed(peer.choose(LAYER_INTEGRITY))
 
-    @known_bug("H13", "server doesn't check the client's maximum buffer")
     @spec("RFC 4752", "3.2", "REQUIRED",
           "server verifies the client maximum buffer is 0 if no layer was chosen")
     def test_no_layer_with_nonzero_maxbuf(self):
@@ -305,7 +305,6 @@ class GssapiClient(SaslTestCase):
         peer.establish()
         self.assertFailed(peer.offer(0, raw=b"\x07\x01\x00\x00\x00"))
 
-    @known_bug("H13", "client doesn't check the server's maximum buffer")
     @spec("RFC 4752", "3.1", "REQUIRED",
           "client verifies the server maximum buffer is 0 if no layer is offered")
     def test_no_layer_with_nonzero_maxbuf(self):

@@ -218,10 +218,12 @@ class Driver:
 def _common_args(opts=None, cbinding=None, critical=False, min_ssf=None,
                  max_ssf=None, maxbuf=None, secflags=None, external=None,
                  external_ssf=None, service=None, fqdn=None,
-                 success_data=False):
+                 success_data=False, need_proxy=False):
     args = []
     if success_data:
         args.append("-S")
+    if need_proxy:
+        args.append("-X")
     for key, value in (opts or {}).items():
         args += ["-o", "%s=%s" % (key, value)]
     if cbinding is not None:

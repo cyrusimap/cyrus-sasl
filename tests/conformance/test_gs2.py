@@ -155,6 +155,18 @@ class Gs2Server(SaslTestCase):
         peer = Gs2ClientPeer(self.gs2_server(), gs2_header=b"n,a=admin,")
         self.assertFailed(peer.run())
 
+    @spec("RFC 4422", "3.4.1", "MUST",
+          "GS2 carries an authzid, so it's offered when proxying is required")
+    def test_offered_when_proxy_needed(self):
+        self.gs2_server()  # skips if GS2 isn't available at all
+        server = self.server(MECH, success_data=True, need_proxy=True,
+                             users={krb5env.USER: "unused"},
+                             proxies=[("user", "admin")])
+        self.assertIn(MECH, server.mechs)
+        r = Gs2ClientPeer(server, gs2_header=b"n,a=admin,").run()
+        self.assertOk(r)
+        self.assertEqual(r.user, b"admin")
+
     @spec("RFC 5801", "4", "MUST", "a= values are unescaped (=2C, =3D)")
     def test_authzid_escaping(self):
         server = self.gs2_server(proxies=[("user", "ad,m=in")])
@@ -276,6 +288,18 @@ class Gs2Client(SaslTestCase):
         peer = Gs2ServerPeer(self.gs2_client(authzid="ad,min"))
         peer.run()
         self.assertEqual(peer.gs2_header, b"n,a=ad=2Cmin,")
+
+    @H30
+    @spec("RFC 4422", "3.4.1", "MUST",
+          "GS2 carries an authzid, so the client uses it when proxying is required")
+    def test_selected_when_proxy_needed(self):
+        self.gs2_client()  # skips if GS2 isn't available at all
+        c = self.client(MECH, authname=krb5env.USER, authzid="admin",
+                        need_proxy=True)
+        self.assertContinue(c.first)
+        peer = Gs2ServerPeer(c)
+        peer.run()
+        self.assertEqual(peer.gs2_header, b"n,a=admin,")
 
     @H30
     @spec("RFC 5801", "5", "MUST",

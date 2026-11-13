@@ -284,8 +284,10 @@ int _sasldb_getdata(const sasl_utils_t *utils,
     break;
   }
 
-  if(data.mv_size > max_out + 1)
-      return SASL_BUFOVER;
+  if(data.mv_size > max_out + 1) {
+      result = SASL_BUFOVER;
+      goto cleanup;
+  }
 
   if(out_len) *out_len = data.mv_size;
   memcpy(out, data.mv_data, data.mv_size);
@@ -403,7 +405,8 @@ int _sasldb_putdata(const sasl_utils_t *utils,
 int _sasl_check_db(const sasl_utils_t *utils,
 		   sasl_conn_t *conn)
 {
-    char *path;
+    char *default_path;
+    const char *path;
     int ret;
     void *cntxt;
     sasl_getopt_t *getopt;
@@ -411,8 +414,9 @@ int _sasl_check_db(const sasl_utils_t *utils,
 
     if (!utils) return SASL_BADPARAM;
 
-    ret = _sasldb_getpath(utils, &path);
+    ret = _sasldb_getpath(utils, &default_path);
     if (ret) return ret;
+    path = default_path;
 
     if (utils->getcallback(conn, SASL_CB_GETOPT,
 			   (sasl_callback_ft *)&getopt, &cntxt) == SASL_OK) {
@@ -441,7 +445,7 @@ int _sasl_check_db(const sasl_utils_t *utils,
     }
 
 cleanup:
-    SASLDB_FREEPATH(utils, path);
+    SASLDB_FREEPATH(utils, default_path);
     return ret;
 }
 

@@ -92,7 +92,8 @@ struct lock_ctl {
 #define CACHE_MAX_BUCKETS_PER		6
 #define CACHE_MMAP_FILE			"/cache.mmap"  /* don't forget the "/" */
 #define CACHE_FLOCK_FILE		"/cache.flock" /* don't forget the "/" */
-
+/* HMAC key len must be less than or equal to the size of the hash function */
+#define CACHE_HMAC_DIGEST_LEN 32
 
 
 /* If debugging uncomment this for always verbose  */
@@ -130,7 +131,7 @@ struct bucket {
         unsigned int		user_offt;
         unsigned int		realm_offt;
         unsigned int		service_offt;
-        unsigned char   	pwd_digest[16];
+        unsigned char   	pwd_digest[CACHE_HMAC_DIGEST_LEN];
         time_t          	created;
 };
 

@@ -224,7 +224,6 @@ class ScramServer(SuccessDataMixin, SaslTestCase):
         p = self.peer()
         self.assertFailed(p.first("n,a=abcdef,"))
 
-    @known_bug("H4", "a=, (empty authzid) is accepted as no authzid")
     @spec("RFC 5802", "7", "ABNF", "authzid = \"a=\" saslname, saslname = 1*(...)")
     def test_empty_authzid_rejected(self):
         p = self.peer(gs2_header="n,a=,")
@@ -233,7 +232,6 @@ class ScramServer(SuccessDataMixin, SaslTestCase):
             r = p.final()
         self.assertFailed(r)
 
-    @known_bug("H4", "non-printable client nonce is accepted")
     @spec("RFC 5802", "7", "ABNF", "c-nonce = printable (%x21-2B / %x2D-7E)")
     def test_nonprintable_nonce_rejected(self):
         p = self.peer(cnonce="abc\x01def")
@@ -360,6 +358,17 @@ class ScramServerChannelBinding(SuccessDataMixin, SaslTestCase):
           "server MUST fail if the client sent y and the server supports binding")
     def test_y_downgrade_detected(self):
         p = ScramPeer(self.cb_server(mech=MECH), gs2_header="y,,")
+        r = p.first()
+        if r.cont:
+            r = p.final()
+        self.assertFailed(r)
+
+    @spec("RFC 5802", "7", "ABNF", 'cb-name = 1*(ALPHA / DIGIT / "." / "-")')
+    def test_invalid_cb_name(self):
+        # The server has a binding with exactly this name, so only the
+        # syntax check can reject it.
+        server = self.server(MECH + "-PLUS", users=USERS, cbinding=("bad_name", CB_DATA))
+        p = ScramPeer(server, mech=MECH + "-PLUS", gs2_header="p=bad_name,,", cbind_data=CB_DATA)
         r = p.first()
         if r.cont:
             r = p.final()
@@ -550,6 +559,11 @@ class ScramClient(ScramClientHelpers):
     def test_server_nonce_not_prefixed(self):
         c = self.start()
         self.assertFailed(self.server_first(c, nonce=new_nonce() + new_nonce()))
+
+    @spec("RFC 5802", "7", "ABNF", "s-nonce = printable")
+    def test_server_nonce_not_printable(self):
+        c = self.start()
+        self.assertFailed(self.server_first(c, nonce=self.cnonce + "abc\x01def"))
 
     @spec("RFC 5802", "5.1", "MUST", "client fails on a mandatory extension (m=)")
     def test_mandatory_extension(self):

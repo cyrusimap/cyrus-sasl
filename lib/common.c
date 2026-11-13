@@ -1060,8 +1060,10 @@ int sasl_getprop(sasl_conn_t *conn, int propnum, const void **pvalue)
 	      result = SASL_NOTDONE;
 	      break;
 	  }
-	  *((const char **)pvalue) =
-	      ((sasl_client_conn_t *)conn)->mech->m.plug->mech_name;
+	  sasl_client_conn_t *c_conn = (sasl_client_conn_t *)conn;
+
+	  *((const char **)pvalue) = c_conn->plus_mech_name
+	      ? c_conn->plus_mech_name : c_conn->mech->m.plug->mech_name;
       } else if (conn->type == SASL_CONN_SERVER) {
 	  if(!((sasl_server_conn_t *)conn)->mech) {
 	      result = SASL_NOTDONE;

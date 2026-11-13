@@ -123,6 +123,15 @@ class PlainServer(SaslTestCase):
         self.assertEqual(r.user, b"alice")
 
 
+    @spec("RFC 5802", "6", "MUST",
+          "only a mechanism with channel binding has a -PLUS variant")
+    def test_plus_name_not_accepted(self):
+        s = self.server("PLAIN-PLUS", users=USERS,
+                        cbinding=("tls-exporter", bytes(32)))
+        self.assertNotIn("PLAIN-PLUS", s.mechs)
+        self.assertFailed(s.start(plain("", "alice", "secret")))
+
+
 class PlainClient(SaslTestCase):
 
     def setUp(self):
@@ -161,6 +170,16 @@ class PlainClient(SaslTestCase):
                         no_initial_response=True)
         self.assertContinue(c.first)
         self.assertFailed(c.step(b"unexpected"))
+
+    @spec("RFC 5802", "6", "MUST",
+          "a client with binding data doesn't select a -PLUS name for a "
+          "mechanism without channel binding")
+    def test_plus_name_not_selected(self):
+        c = self.client("PLAIN-PLUS PLAIN", authname="alice",
+                        password="secret",
+                        cbinding=("tls-exporter", bytes(32)))
+        self.assertOk(c.first)
+        self.assertEqual(c.first.mech, "PLAIN")
 
     @spec("RFC 4422", "3.6", "MUST",
           "data after the exchange is complete is a protocol error")

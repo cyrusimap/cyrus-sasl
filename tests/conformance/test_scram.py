@@ -392,7 +392,15 @@ class ScramServerChannelBinding(SuccessDataMixin, SaslTestCase):
         p.first()
         self.assertFailed(p.final(channel_binding=b64(b"n,,JUNK")))
 
-    @known_bug("I6", "server ignores whether the -PLUS name was selected")
+    @spec("RFC 5802", "6", "INTEROP",
+          "p under the plain name is still accepted: older Cyrus SASL clients "
+          "report the plain name while binding the channel")
+    def test_p_under_plain_name_tolerated(self):
+        p = ScramPeer(self.cb_server(mech=MECH), mech=MECH,
+                      gs2_header="p=%s,," % CB_NAME, cbind_data=CB_DATA)
+        self.assertContinue(p.first())
+        self.assertOk(p.final())
+
     @spec("RFC 5802", "6", "MUST",
           "the -PLUS variant is the channel-binding variant; n under -PLUS is inconsistent")
     def test_n_under_plus_name(self):
@@ -604,7 +612,6 @@ class ScramClient(ScramClientHelpers):
         scram, auth = self.check_final(r, mech=mech, cbind_data=CB_DATA)
         self.assertOk(c.step(self.verifier(scram, auth).encode()))
 
-    @known_bug("I6", "client reports the non-PLUS name while using channel binding")
     @spec("RFC 5801", "5", "MUST",
           "client MUST use p with the PLUS variant, and so names that variant")
     def test_plus_name_reported(self):
@@ -618,12 +625,18 @@ class ScramClient(ScramClientHelpers):
         self.start("%s SCRAM-SHA-1" % MECH, cbinding=(CB_NAME, CB_DATA))
         self.assertEqual(self.gs2_header, "y,,")
 
-    @known_bug("S7", "client sends n instead of y when only one mechanism is listed")
     @spec("RFC 5801", "5", "MUST NOT",
           "client that supports binding MUST NOT send n when the server appears not to")
     def test_y_with_single_mechanism(self):
         self.start(MECH, cbinding=(CB_NAME, CB_DATA))
         self.assertEqual(self.gs2_header, "y,,")
+
+    @spec("RFC 5801", "5", "MUST",
+          "a client that requires binding uses p, and names the -PLUS variant")
+    def test_critical_binding_uses_plus_name(self):
+        c = self.start(MECH, cbinding=(CB_NAME, CB_DATA), critical=True)
+        self.assertEqual(self.gs2_header, "p=%s,," % CB_NAME)
+        self.assertEqual(c.first.mech, MECH + "-PLUS")
 
     @spec("RFC 5802", "6", "MUST", "client without binding data sends n")
     def test_n_without_binding(self):

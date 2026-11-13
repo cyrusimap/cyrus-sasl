@@ -360,6 +360,9 @@ static void client_dispose(sasl_conn_t *pconn)
   if (c_conn->clientFQDN)
       sasl_FREE(c_conn->clientFQDN);
 
+  if (c_conn->plus_mech_name)
+      sasl_FREE(c_conn->plus_mech_name);
+
   if (c_conn->cparams) {
       _sasl_free_utils(&(c_conn->cparams->utils));
       sasl_FREE(c_conn->cparams);
@@ -666,7 +669,8 @@ _sasl_cbinding_disp(sasl_client_params_t *cparams,
      * become "p" if we select a supporting mechanism).
      *
      * If the client explicitly selected a mechanism, then we only
-     * send channel bindings if they're marked critical.
+     * send channel bindings if they're marked critical; otherwise we
+     * send "y".
      */
 
     *cbindingdisp = SASL_CB_DISP_NONE;
@@ -680,6 +684,15 @@ _sasl_cbinding_disp(sasl_client_params_t *cparams,
 	    }
         } else if (SASL_CB_CRITICAL(cparams)) {
             *cbindingdisp = SASL_CB_DISP_USED;
+        } else {
+            /*
+             * The application named the mechanism, so we can't tell
+             * whether the server offers its -PLUS variant.  Send "y",
+             * not "n": a server that does support channel binding then
+             * detects that the -PLUS variant was stripped (RFC 5802
+             * section 6, RFC 5801 section 5).
+             */
+            *cbindingdisp = SASL_CB_DISP_WANT;
         }
     }
 
@@ -787,6 +800,12 @@ int sasl_client_start(sasl_conn_t *conn,
 		continue;
 	    }
 
+	    /* Only a mechanism that supports channel binding has a -PLUS
+	     * variant; try the plain name instead. */
+	    if (plus && !(m->m.plug->features & SASL_FEAT_CHANNEL_BINDING)) {
+		continue;
+	    }
+
 	    /* Do we have the prompts for it? */
 	    if (!have_prompts(conn, m->m.plug))
 		break;
@@ -841,10 +860,6 @@ int sasl_client_start(sasl_conn_t *conn,
 		cur_cbindingdisp = cbindingdisp;
 	    }
 
-	    if (mech) {
-		*mech = m->m.plug->mech_name;
-	    }
-
             /* Since the list of client mechs is ordered by preference/strength,
                the first mech in our list that is available on the server and
                meets our security properties and features is the "best" */
@@ -858,6 +873,29 @@ int sasl_client_start(sasl_conn_t *conn,
 	sasl_seterror(conn, 0, "No worthy mechs found");
 	result = SASL_NOMECH;
 	goto done;
+    }
+
+    /* A client that binds the channel uses the -PLUS variant, and the
+     * application must send that name (RFC 5802 section 6). */
+    if (c_conn->plus_mech_name) {
+	sasl_FREE(c_conn->plus_mech_name);
+	c_conn->plus_mech_name = NULL;
+    }
+    if (best_cbindingdisp == SASL_CB_DISP_USED) {
+	size_t len = strlen(bestm->m.plug->mech_name);
+
+	c_conn->plus_mech_name = sasl_ALLOC(len + sizeof("-PLUS"));
+	if (c_conn->plus_mech_name == NULL) {
+	    result = SASL_NOMEM;
+	    goto done;
+	}
+	memcpy(c_conn->plus_mech_name, bestm->m.plug->mech_name, len);
+	memcpy(c_conn->plus_mech_name + len, "-PLUS", sizeof("-PLUS"));
+    }
+
+    if (mech) {
+	*mech = c_conn->plus_mech_name ? c_conn->plus_mech_name
+				       : bestm->m.plug->mech_name;
     }
 
     /* make (the rest of) cparams */

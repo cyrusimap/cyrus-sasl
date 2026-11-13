@@ -1490,6 +1490,15 @@ int sasl_server_start(sasl_conn_t *conn,
 	}
     }
 
+    /* Only a mechanism that supports channel binding has a -PLUS
+     * variant (RFC 5802 section 6, RFC 5801 section 5). */
+    if (plus && !(m->m.plug->features & SASL_FEAT_CHANNEL_BINDING)) {
+	sasl_seterror(conn, 0, "Couldn't find mech %s", mech);
+	result = SASL_NOMECH;
+	goto done;
+    }
+    s_conn->plus = plus;
+
     if (conn->context) {
 	s_conn->mech->m.plug->mech_dispose(conn->context,
 					   s_conn->sparams->utils);
@@ -1681,6 +1690,20 @@ int sasl_server_step(sasl_conn_t *conn,
 		ret = SASL_BADBINDING;
 	    }
 	    break;
+	}
+
+	/*
+	 * The -PLUS name selects channel binding, so a client that chose
+	 * it but sent "n" or "y" is inconsistent.  "p" under the plain
+	 * name is tolerated: older Cyrus SASL clients report the plain
+	 * name while binding the channel.
+	 */
+	if (ret == SASL_OK && s_conn->plus &&
+	    conn->oparams.cbindingdisp != SASL_CB_DISP_USED) {
+	    sasl_seterror(conn, 0,
+			  "client selected %s-PLUS without channel binding",
+			  s_conn->mech->m.plug->mech_name);
+	    ret = SASL_BADBINDING;
 	}
 
         if (ret == SASL_OK &&

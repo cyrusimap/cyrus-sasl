@@ -744,6 +744,18 @@ class ScramStoredSecrets(SaslTestCase):
         self.assertError(r)
 
     @spec("RFC 5802", "5.1", "MUST",
+          "a stored secret with a malformed salt is skipped for the next one")
+    def test_skips_malformed_salt(self):
+        # Exercises the path that leaked the skipped entry's salt (finding
+        # H6); LeakSanitizer doesn't reliably report that leak.
+        mech, rest = self.secret().split("$", 1)
+        count, rest = rest.split(":", 1)
+        bad = "%s$%s:!!!!$%s" % (mech, count, rest.split("$", 1)[1])
+        p, r = self.run_peer([bad, self.secret()])
+        self.assertOk(r)
+        self.assertEqual(p.salt, self.SALT)
+
+    @spec("RFC 5802", "5.1", "MUST",
           "the secret for this mechanism is chosen among several")
     def test_picks_matching_mechanism(self):
         other = self.secret(mech="SCRAM-SHA-1", salt=b"other-salt-00001")

@@ -278,6 +278,25 @@ class Gs2Client(SaslTestCase):
         self.assertEqual(peer.gs2_header, b"n,a=ad=2Cmin,")
 
     @H30
+    @spec("RFC 5801", "4", "MUST",
+          "with an empty authentication name the default credential is used")
+    def test_default_credential(self):
+        peer = Gs2ServerPeer(self.gs2_client(authname=""))
+        r = peer.run()
+        self.assertOk(r)
+        self.assertEqual(peer.gs2_header, b"n,,")
+        self.assertEqual(str(peer.ctx.initiator_name).split("@")[0], krb5env.USER)
+
+    @H30
+    @spec("RFC 5801", "4", "MUST",
+          "a= carries the authorization identity with the default credential")
+    def test_default_credential_authzid(self):
+        peer = Gs2ServerPeer(self.gs2_client(authname="", authzid="admin"))
+        r = peer.run()
+        self.assertOk(r)
+        self.assertEqual(peer.gs2_header, b"n,a=admin,")
+
+    @H30
     @spec("RFC 5801", "5", "MUST",
           "client with channel binding picks -PLUS and binds the GS2 header and data")
     def test_selects_plus(self):

@@ -1578,10 +1578,11 @@ gs2_get_init_creds(context_t *text,
 
     /*
      * Canonicalize the authentication and authorization identities before
-     * calling GSS_Import_name.
+     * calling GSS_Import_name.  An empty authentication identity means the
+     * default credential's, below.
      */
     if (auth_result == SASL_OK && user_result == SASL_OK &&
-        oparams->authid == NULL) {
+        oparams->authid == NULL && authid != NULL && authid[0] != '\0') {
         if (userid == NULL || userid[0] == '\0') {
             result = params->canon_user(params->utils->conn, authid, 0,
                                         SASL_CU_AUTHID | SASL_CU_AUTHZID,
@@ -1662,7 +1663,7 @@ gs2_get_init_creds(context_t *text,
                 goto cleanup;
 
             result = params->canon_user(params->utils->conn,
-                                        cred_authid.value, cred_authid.length,
+                                        userid, 0,
                                         SASL_CU_AUTHZID, oparams);
             if (result != SASL_OK)
                 goto cleanup;

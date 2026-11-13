@@ -305,7 +305,8 @@ typedef unsigned sasl_ssf_t;
  * MUTUAL_AUTH          -- require mechanisms which provide mutual
  *			   authentication
  * NONSTD_CBIND         -- enable channel binding on mechs that aren't
- *			   supposed to support them but do anyway (e.g. GSSAPI)
+ *			   supposed to support them but do anyway (e.g. GSSAPI).
+ *			   Such mechs are never offered as "-PLUS" variants.
  */
 #define SASL_SEC_NOPLAINTEXT      0x0001
 #define SASL_SEC_NOACTIVE         0x0002

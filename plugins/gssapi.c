@@ -756,12 +756,21 @@ fallback:
 /* The GSS-SPNEGO mechanism does not do SSF negotiation, instead it uses the
  * flags negotiated by GSSAPI to determine If confidentiality or integrity are
  * used. These flags are stored in text->qop transalated as layers by the
- * caller */
+ * caller.
+ *
+ * Since both sides derive the layer from the same context flags and neither
+ * can pick a different one, check the result against our own security
+ * properties and fail if they can't be met: installing a layer that the
+ * application didn't allow (or not installing one the peer will use) leaves
+ * the two sides unable to talk to each other. */
 static int gssapi_spnego_ssf(context_t *text,
                              sasl_security_properties_t *props,
+                             sasl_ssf_t external_ssf,
                              sasl_out_params_t *oparams)
 {
     int ret;
+    sasl_ssf_t allowed_ssf;
+    unsigned maxbufsize;
 
     if (text->qop & LAYER_CONFIDENTIALITY) {
         oparams->encode = &gssapi_privacy_encode;
@@ -780,7 +789,35 @@ static int gssapi_spnego_ssf(context_t *text,
         oparams->mech_ssf = 0;
     }
 
+    if (props->min_ssf > external_ssf + oparams->mech_ssf) {
+        text->utils->seterror(text->utils->conn, 0,
+                              "GSS-SPNEGO context provides SSF %d, "
+                              "but at least %d is required",
+                              oparams->mech_ssf,
+                              props->min_ssf - external_ssf);
+        return SASL_TOOWEAK;
+    }
+
+    allowed_ssf = (props->max_ssf > external_ssf) ?
+                  props->max_ssf - external_ssf : 0;
+    if (oparams->mech_ssf > allowed_ssf ||
+        (oparams->mech_ssf && props->maxbufsize == 0)) {
+        text->utils->seterror(text->utils->conn, 0,
+                              "GSS-SPNEGO context has a security layer "
+                              "(SSF %d), but one with an SSF over %d is "
+                              "forbidden",
+                              oparams->mech_ssf,
+                              props->maxbufsize ? allowed_ssf : 0);
+        return SASL_TOOWEAK;
+    }
+
+    maxbufsize = (props->maxbufsize > 0xFFFFFF) ? 0xFFFFFF : props->maxbufsize;
+
     if (oparams->mech_ssf) {
+        /* GSS-SPNEGO doesn't exchange buffer sizes, so assume the peer
+           accepts packets as large as we do, and leave room for the
+           wrapping */
+        oparams->maxoutbuf = maxbufsize;
         ret = gssapi_wrap_sizes(text, oparams);
         if (ret != SASL_OK) {
             return ret;
@@ -790,9 +827,7 @@ static int gssapi_spnego_ssf(context_t *text,
     text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
 
     /* used by layers */
-    _plug_decode_init(&text->decode_context, text->utils,
-		      (props->maxbufsize > 0xFFFFFF) ? 0xFFFFFF :
-                      props->maxbufsize);
+    _plug_decode_init(&text->decode_context, text->utils, maxbufsize);
 
     return SASL_OK;
 }
@@ -1473,7 +1508,8 @@ gssapi_server_mech_authneg(context_t *text,
 	text->state = SASL_GSSAPI_STATE_AUTHENTICATED;
 	ret = SASL_OK;
     } else if (text->mech_type && text->mech_type == &gss_spnego_oid) {
-        ret = gssapi_spnego_ssf(text, &params->props, oparams);
+        ret = gssapi_spnego_ssf(text, &params->props, params->external_ssf,
+                                oparams);
     } else {
 	/* Switch to ssf negotiation */
 	text->state = SASL_GSSAPI_STATE_SSFCAP;
@@ -2156,6 +2192,7 @@ static int gssapi_client_mech_step(void *conn_context,
 		/* We want to try for privacy */
 		req_flags |= GSS_C_CONF_FLAG;
 	    }
+	}
 #ifdef HAVE_GSS_KRB5_CRED_NO_CI_FLAGS_X
         /* The krb5 mechanism automatically adds INTEG and CONF flags even when
          * not specified, this has the effect of rendering explicit requests
@@ -2164,8 +2201,14 @@ static int gssapi_client_mech_step(void *conn_context,
          * possible to unset these flags as Windows machines refuse to allow
          * two layers (say TLS and GSSAPI) to both provide these services.
          * So if we do not suppress these flags a SASL/GSS-SPNEGO negotiation
-         * over, say, LDAPS will fail against Windows Servers */
-	} else if (params->props.max_ssf <= 1) {
+         * over, say, LDAPS will fail against Windows Servers.
+         *
+         * GSS-SPNEGO takes its security layer from these flags, so suppress
+         * them whenever we don't want confidentiality; GSSAPI negotiates its
+         * layer separately. */
+	if (!(req_flags & GSS_C_CONF_FLAG) &&
+	    ((text->mech_type && text->mech_type == &gss_spnego_oid) ||
+	     params->props.max_ssf <= 1)) {
             gss_buffer_desc empty_buffer = GSS_C_EMPTY_BUFFER;
             if (client_creds == GSS_C_NO_CREDENTIAL) {
                 gss_OID_set_desc mechs = { 0 };
@@ -2198,8 +2241,8 @@ static int gssapi_client_mech_step(void *conn_context,
                 sasl_gss_free_context_contents(text);
                 return SASL_FAIL;
             }
-#endif
         }
+#endif
 
 
 #ifdef GSS_USE_CCACHE_STORE
@@ -2349,7 +2392,8 @@ static int gssapi_client_mech_step(void *conn_context,
 		return SASL_OK;
 	    } else if (text->mech_type && text->mech_type == &gss_spnego_oid) {
 		oparams->doneflag = 1;
-                return gssapi_spnego_ssf(text, &params->props, oparams);
+                return gssapi_spnego_ssf(text, &params->props,
+                                         params->external_ssf, oparams);
             }
 
 	    /* Switch to ssf negotiation */

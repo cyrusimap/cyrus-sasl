@@ -432,10 +432,15 @@ gs2_server_mech_step(void *conn_context,
             goto cleanup;
         memcpy(text->out_buf, output_token.value, *serveroutlen);
         *serverout = text->out_buf;
-    } else {
-        /* No output token, send an empty string */
+    } else if (maj_stat == GSS_S_CONTINUE_NEEDED) {
+        /* No output token, send an empty challenge */
         *serverout = "";
-        serveroutlen = 0;
+        *serveroutlen = 0;
+    } else {
+        /* The context is complete and the client sent the last token:
+           there's nothing to send, not even empty success data */
+        *serverout = NULL;
+        *serveroutlen = 0;
     }
 
     if (maj_stat == GSS_S_CONTINUE_NEEDED) {

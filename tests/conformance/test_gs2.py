@@ -155,6 +155,27 @@ class Gs2Server(SaslTestCase):
         peer = Gs2ClientPeer(self.gs2_server(), gs2_header=b"n,a=admin,")
         self.assertFailed(peer.run())
 
+    @spec("RFC 4422", "3.6", "MUST",
+          "server whose context completes on the client's token sends no extra challenge")
+    def test_client_sends_last_token(self):
+        # Without mutual authentication the Kerberos context completes on
+        # the AP-REQ, like a mechanism whose last token is the client's
+        # (RFC 5801 section 6, second example).
+        peer = Gs2ClientPeer(self.gs2_server(success_data=False),
+                             flags=(F.out_of_sequence_detection,))
+        r = peer.server.start(peer.gs2_header + strip_token_header(peer.ctx.step()))
+        self.assertTrue(peer.ctx.complete)
+        self.assertOk(r, "server sent another challenge after the context completed")
+
+    @spec("RFC 4422", "3.6", "MUST",
+          "with success data, a server with no final token sends none")
+    def test_client_sends_last_token_success_data(self):
+        peer = Gs2ClientPeer(self.gs2_server(),
+                             flags=(F.out_of_sequence_detection,))
+        r = peer.run()
+        self.assertOk(r)
+        self.assertIsNone(r.out, "server sent success data %r" % r.out)
+
     @spec("RFC 5801", "4", "MUST", "a= values are unescaped (=2C, =3D)")
     def test_authzid_escaping(self):
         server = self.gs2_server(proxies=[("user", "ad,m=in")])

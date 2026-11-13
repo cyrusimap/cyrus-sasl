@@ -673,10 +673,17 @@ static void gssapi_common_mech_free(void *global_context __attribute__((unused))
 #endif
 }
 
+/* On entry, oparams->maxoutbuf is the peer's maximum buffer size (0 if it
+   isn't known); on return, the most data that wraps into a packet that size */
 static int gssapi_wrap_sizes(context_t *text, sasl_out_params_t *oparams)
 {
     OM_uint32 maj_stat = 0, min_stat = 0;
     OM_uint32 max_input = 0;
+
+    if (oparams->maxoutbuf == 0) {
+        /* Nothing to fit; the library picks a size */
+        return SASL_OK;
+    }
 
     maj_stat = gss_wrap_size_limit(&min_stat,
                                    text->gss_ctx,
@@ -689,12 +696,26 @@ static int gssapi_wrap_sizes(context_t *text, sasl_out_params_t *oparams)
    }
 
     if (max_input > oparams->maxoutbuf) {
-        /* Heimdal appears to get this wrong */
-        oparams->maxoutbuf -= (max_input - oparams->maxoutbuf);
-    } else {
-        /* This code is actually correct */
-        oparams->maxoutbuf = max_input;
+        /* Heimdal appears to get this wrong, returning the size plus the
+           wrapping overhead instead of minus it */
+        OM_uint32 overhead = max_input - oparams->maxoutbuf;
+
+        max_input = (overhead < oparams->maxoutbuf) ?
+            oparams->maxoutbuf - overhead : 0;
     }
+
+    if (max_input == 0) {
+        /* No data fits in a packet the peer accepts.  Don't leave
+           maxoutbuf 0, which the library would replace with our own
+           maxbufsize. */
+        text->utils->seterror(text->utils->conn, 0,
+                              "GSSAPI peer's maximum buffer size (%d) is "
+                              "too small for a security layer",
+                              (int) oparams->maxoutbuf);
+        return SASL_BADPROT;
+    }
+
+    oparams->maxoutbuf = max_input;
 
     return SASL_OK;
 }

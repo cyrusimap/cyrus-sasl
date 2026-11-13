@@ -935,7 +935,7 @@ AC_SUBST(configdir)
 building_for_macosx=no
 case "$host_os" in
         darwin*)
-AC_ARG_ENABLE(macos-framework, [  --disable-macos-framework       disable building and installing replacement SASL2 Framework for MacOS X-provided SASL Framework [[no]]],building_for_macosx=no,building_for_macosx=yes)
+AC_ARG_ENABLE(macos-framework, [  --disable-macos-framework       disable building and installing replacement SASL2 Framework for MacOS X-provided SASL Framework [[no]]],building_for_macosx=$enableval,building_for_macosx=yes)
         ;;
 esac
 AM_CONDITIONAL(MACOSX, test "$building_for_macosx" = yes)

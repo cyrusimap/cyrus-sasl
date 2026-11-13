@@ -178,7 +178,7 @@ static int proxy_policy(sasl_conn_t *conn,
 
 int main(int argc, char *argv[])
 {
-    sasl_callback_t callbacks[4];
+    sasl_callback_t callbacks[5];
     sasl_security_properties_t secprops;
     sasl_channel_binding_t cb;
     sasl_conn_t *conn;
@@ -245,6 +245,9 @@ int main(int argc, char *argv[])
     callbacks[ncb++].context = NULL;
     callbacks[ncb].id = SASL_CB_GETOPT;
     callbacks[ncb].proc = (sasl_callback_ft) &t_getopt;
+    callbacks[ncb++].context = NULL;
+    callbacks[ncb].id = SASL_CB_LOG;
+    callbacks[ncb].proc = (sasl_callback_ft) &t_log;
     callbacks[ncb++].context = NULL;
     if (nproxies) {
         callbacks[ncb].id = SASL_CB_PROXY_POLICY;

@@ -94,6 +94,9 @@ class Result:
         self.authuser = bytes.fromhex(obj["authuser"]) if obj.get("authuser") is not None else None
         self.ssf = obj.get("ssf")
         self.maxoutbuf = obj.get("maxoutbuf")
+        # Server log messages since the previous call, if the test set the
+        # log_level option high enough to get them.
+        self.log = bytes.fromhex(obj["log"]) if obj.get("log") else b""
 
     @property
     def ok(self):

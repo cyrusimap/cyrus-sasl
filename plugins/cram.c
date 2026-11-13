@@ -53,6 +53,10 @@
 #endif
 #include <fcntl.h>
 
+#ifdef HAVE_TIME_H
+#include <time.h>
+#endif
+
 #include <sasl.h>
 #include <saslplug.h>
 #include <saslutil.h>

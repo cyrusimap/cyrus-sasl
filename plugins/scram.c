@@ -63,6 +63,7 @@
 #include <sasl_scram_plugin_decl.h>
 #endif
 
+#include <openssl/crypto.h>
 #include <openssl/sha.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
@@ -1482,12 +1483,10 @@ scram_server_mech_step2(server_context_t *text,
 	goto cleanup;
     }
     
-    for (k = 0; k < hash_size; k++) {
-	if (CalculatedStoredKey[k] != text->StoredKey[k]) {
-	    SETERROR(sparams->utils, "StoredKey mismatch");
-	    result = SASL_BADAUTH;
-	    goto cleanup;
-	}
+    if (CRYPTO_memcmp(CalculatedStoredKey, text->StoredKey, hash_size) != 0) {
+	SETERROR(sparams->utils, "StoredKey mismatch");
+	result = SASL_BADAUTH;
+	goto cleanup;
     }
     
     /* ServerSignature := HMAC(ServerKey, AuthMessage) */
@@ -2779,7 +2778,7 @@ scram_client_mech_step3(client_context_t *text,
     char ServerKey[EVP_MAX_MD_SIZE];
     char ServerSignature[EVP_MAX_MD_SIZE];
     unsigned int hash_len = 0;
-    size_t k, hash_size = EVP_MD_size(text->md);
+    size_t hash_size = EVP_MD_size(text->md);
     const char *scram_sasl_mech = scram_sasl_mech_name(hash_size);
 
     if (serverinlen < 3) {
@@ -2855,12 +2854,10 @@ scram_client_mech_step3(client_context_t *text,
 	goto cleanup;
     }
 
-    for (k = 0; k < hash_size; k++) {
-	if (DecodedServerProof[k] != ServerSignature[k]) {
-	    SETERROR(params->utils, "ServerSignature mismatch");
-	    result = SASL_BADAUTH;
-	    goto cleanup;
-	}
+    if (CRYPTO_memcmp(DecodedServerProof, ServerSignature, hash_size) != 0) {
+	SETERROR(params->utils, "ServerSignature mismatch");
+	result = SASL_BADAUTH;
+	goto cleanup;
     }
 
     /* set oparams */

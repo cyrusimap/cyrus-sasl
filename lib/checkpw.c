@@ -95,7 +95,11 @@
 
 #include <ctype.h>
 
-#include <openssl/evp.h>
+#include <limits.h>
+#ifndef _WIN32
+#include <sys/uio.h>
+#endif
+#include "sasl_crypto.h"
 
 #ifdef HAVE_PWD_H
 #include <pwd.h>
@@ -118,28 +122,38 @@
  *
  * where <secret> = MD5(<salt>, "sasldb", <pass>)
  */
-static int _sasl_make_plain_secret(const char *salt, 
-				   const char *passwd, size_t passlen,
-				   sasl_secret_t **secret)
+static int _sasl_make_plain_secret(const sasl_utils_t *utils,
+                                   const char *salt,
+                                   const char *passwd, size_t passlen,
+                                   sasl_secret_t **secret)
 {
-    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+    sasl_crypto_context_t crypto;
+    struct iovec input[3];
     unsigned sec_len = 16 + 1 + 16; /* salt + "\0" + hash */
+    int result;
 
-    *secret = (sasl_secret_t *) sasl_ALLOC(sizeof(sasl_secret_t) +
-					   sec_len * sizeof(char));
-    if (*secret == NULL) {
-	return SASL_NOMEM;
-    }
-
-    EVP_DigestInit(ctx, EVP_md5());
-    EVP_DigestUpdate(ctx, (const unsigned char *) salt, 16);
-    EVP_DigestUpdate(ctx, (const unsigned char *) "sasldb", 6);
-    EVP_DigestUpdate(ctx, (const unsigned char *) passwd, (unsigned int) passlen);
+    *secret = NULL;
+    if (passlen > LONG_MAX) return SASL_BADPARAM;
+    result = _sasl_crypto_init(utils, "MD5", &crypto);
+    if (result != SASL_OK) return result;
+    *secret = sasl_ALLOC(sizeof(sasl_secret_t) + sec_len);
+    if (*secret == NULL) return SASL_NOMEM;
+    input[0].iov_base = (char *)salt;
+    input[0].iov_len = 16;
+    input[1].iov_base = "sasldb";
+    input[1].iov_len = 6;
+    input[2].iov_base = (char *)passwd;
+    input[2].iov_len = (long)passlen;
     memcpy((*secret)->data, salt, 16);
     (*secret)->data[16] = '\0';
-    EVP_DigestFinal(ctx, (*secret)->data + 17, NULL);
+    result = _sasl_crypto_hash(&crypto, input, 3, (*secret)->data + 17);
+    if (result != SASL_OK) {
+        utils->erasebuffer((char *)(*secret), sizeof(sasl_secret_t) + sec_len);
+        sasl_FREE(*secret);
+        *secret = NULL;
+        return result;
+    }
     (*secret)->len = sec_len;
-    
     return SASL_OK;
 }
 
@@ -218,7 +232,7 @@ static int auxprop_verify_password(sasl_conn_t *conn,
 	const char *db_secret = auxprop_values[1].values[0];
 	sasl_secret_t *construct;
 	
-	ret = _sasl_make_plain_secret(db_secret, passwd,
+	ret = _sasl_make_plain_secret(sconn->sparams->utils, db_secret, passwd,
 				      strlen(passwd),
 				      &construct);
 	if (ret != SASL_OK) {
@@ -233,6 +247,8 @@ static int auxprop_verify_password(sasl_conn_t *conn,
 	    ret = SASL_BADAUTH;
 	}
 
+	sconn->sparams->utils->erasebuffer((char *)construct,
+                                         sizeof(*construct) + construct->len);
 	sasl_FREE(construct);
     } else {
 	/* passwords do not match */
@@ -362,7 +378,9 @@ int _sasl_auxprop_verify_apop(sasl_conn_t *conn,
     const char *password_request[] = { SASL_AUX_PASSWORD, NULL };
     struct propval auxprop_values[2];
     sasl_server_conn_t *sconn = (sasl_server_conn_t *)conn;
-    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+    sasl_crypto_context_t crypto;
+    struct iovec input[2];
+    size_t challenge_len, password_len;
     int i;
 
     if (!conn || !userstr || !challenge || !response)
@@ -385,15 +403,27 @@ int _sasl_auxprop_verify_apop(sasl_conn_t *conn,
 	goto done;
     }
     
-    EVP_DigestInit(ctx, EVP_md5());
-    EVP_DigestUpdate(ctx, (const unsigned char *) challenge, strlen(challenge));
-    EVP_DigestUpdate(ctx, (const unsigned char *) auxprop_values[0].values[0],
-		    strlen(auxprop_values[0].values[0]));
-    EVP_DigestFinal(ctx, digest, NULL);
+    ret = _sasl_crypto_init(sconn->sparams->utils, "MD5", &crypto);
+    if (ret != SASL_OK) goto erase_password;
 
+    challenge_len = strlen(challenge);
+    password_len = strlen(auxprop_values[0].values[0]);
+    if (challenge_len > LONG_MAX || password_len > LONG_MAX) {
+        ret = SASL_BADPARAM;
+        goto erase_password;
+    }
+    input[0].iov_base = (char *)challenge;
+    input[0].iov_len = (long)challenge_len;
+    input[1].iov_base = (char *)auxprop_values[0].values[0];
+    input[1].iov_len = (long)password_len;
+    ret = _sasl_crypto_hash(&crypto, input, 2, digest);
+
+erase_password:
     /* erase the plaintext password */
     sconn->sparams->utils->prop_erase(sconn->sparams->propctx,
 				      password_request[0]);
+
+    if (ret != SASL_OK) goto done;
 
     /* convert digest from binary to ASCII hex */
     for (i = 0; i < 16; i++)
@@ -408,6 +438,8 @@ int _sasl_auxprop_verify_apop(sasl_conn_t *conn,
     }
 
  done:
+    sconn->sparams->utils->erasebuffer((char *)digest, sizeof(digest));
+    sconn->sparams->utils->erasebuffer(digeststr, sizeof(digeststr));
     if (ret == SASL_BADAUTH) sasl_seterror(conn, SASL_NOLOG,
 					   "login incorrect");
     if (userid) sasl_FREE(userid);

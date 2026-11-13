@@ -53,6 +53,9 @@ sasl_verifyfile_t
 :saslman:`sasl_canon_user_t(3)`
         Username canonicalization function
 
+:saslman:`sasl_getcrypto_t(3)`
+        Select application-supplied cryptographic operations
+
 Client-only Callbacks
 ---------------------
 
@@ -100,7 +103,8 @@ See Also
 
 :saslman:`sasl(3)`, :saslman:`sasl_errors(3)`, :saslman:`sasl_authorize_t(3)`,
 :saslman:`sasl_log_t(3)`, :saslman:`sasl_getpath_t(3)`,
-:saslman:`sasl_getconfpath_t(3)`, :saslman:`sasl_verifyfile_t(3)`,
+:saslman:`sasl_getconfpath_t(3)`, :saslman:`sasl_getcrypto_t(3)`,
+:saslman:`sasl_verifyfile_t(3)`,
 :saslman:`sasl_canon_user_t(3)`,  :saslman:`sasl_getsimple_t(3)`,
 :saslman:`sasl_getsecret_t(3)`, :saslman:`sasl_chalprompt_t(3)`,
 :saslman:`sasl_getrealm_t(3)`, :saslman:`sasl_server_userdb_checkpass_t(3)`,

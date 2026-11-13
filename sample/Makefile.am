@@ -45,7 +45,10 @@
 AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_builddir)/include -DPLUGINDIR='"${plugindir}"'
 
 noinst_PROGRAMS = client server
-EXTRA_PROGRAMS = sample-client sample-server
+EXTRA_PROGRAMS = sample-client sample-server sample-cng-client
+if HAVE_CNG
+noinst_PROGRAMS += sample-cng-client
+endif
 EXTRA_DIST = NTMakefile
 CLEANFILES=sample-client sample-server ./.libs/*sample-client ./.libs/*sample-server
 
@@ -60,3 +63,8 @@ client_LDADD = ../lib/libsasl2.la $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET
 
 sample_client_LDADD = ../lib/libsasl2.la $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET)
 sample_server_LDADD = ../lib/libsasl2.la $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET)
+
+# The adapter is compiled into the application to exercise SASL_CB_CRYPTO.
+sample_cng_client_SOURCES = sample-client.c ../common/crypto-cng.c ../common/crypto-cng.h
+sample_cng_client_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/common -DSAMPLE_CNG_CRYPTO
+sample_cng_client_LDADD = $(sample_client_LDADD) -lbcrypt

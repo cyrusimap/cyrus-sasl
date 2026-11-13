@@ -56,7 +56,11 @@ if BUILD_LIBOBJ
 COMPAT_OBJS = $(top_builddir)/lib/libobj.la
 endif
 PLUGIN_COMMON_OBJS = $(top_builddir)/common/libplugin_common.la
+if HAVE_OPENSSL
 CRYPTO_COMPAT_OBJS = $(top_builddir)/common/libcrypto_compat.la
+else
+CRYPTO_COMPAT_OBJS =
+endif
 
 EXTRA_DIST = makeinit.sh NTMakefile
 noinst_SCRIPTS = makeinit.sh
@@ -94,8 +98,8 @@ libgssapiv2_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
 libgssapiv2_la_LIBADD = $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
 
 libscram_la_SOURCES = scram.c scram_init.c
-libscram_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
-libscram_la_LIBADD = $(SCRAM_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
+libscram_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS) $(top_builddir)/common/libsasl_crypto.la
+libscram_la_LIBADD = $(SCRAM_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS) $(top_builddir)/common/libsasl_crypto.la
 
 libsrp_la_SOURCES = srp.c srp_init.c
 libsrp_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS) $(CRYPTO_COMPAT_OBJS)

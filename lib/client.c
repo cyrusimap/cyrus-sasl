@@ -774,8 +774,11 @@ int sasl_client_start(sasl_conn_t *conn,
     if (result != 0)
 	goto done;
 
+    m = c_conn->mech_list;
+ choosemech:
+    bestm = NULL;
     /* for each mechanism in client's list */
-    for (m = c_conn->mech_list; !bestm && m != NULL; m = m->next) {
+    for (; !bestm && m != NULL; m = m->next) {
 
         for (i = 0, name = ordered_mechs; i < list_len; i++, name += name_len + 1) {
             unsigned myflags;
@@ -881,6 +884,16 @@ int sasl_client_start(sasl_conn_t *conn,
     result = c_conn->mech->m.plug->mech_new(c_conn->mech->m.plug->glob_context,
 					  c_conn->cparams,
 					  &(conn->context));
+    /* An unavailable mechanism may be followed by another allowed choice.
+     * No protocol step has run yet. Retry only a clean SASL_NOMECH result;
+     * preserve other errors and contexts which still need disposal.
+     */
+    if (result == SASL_NOMECH && conn->context == NULL) {
+        c_conn->mech = NULL;
+        if (mech != NULL)
+            *mech = NULL;
+        goto choosemech;
+    }
     if (result != SASL_OK) goto done;
 
     /* do a step -- but only if we can do a client-send-first */

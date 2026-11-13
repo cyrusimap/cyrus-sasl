@@ -93,6 +93,7 @@ dist_man3_MANS = \
     man/sasl_errors.3 \
     man/sasl_errstring.3 \
     man/sasl_getconfpath_t.3 \
+    man/sasl_getcrypto_t.3 \
     man/sasl_getopt_t.3 \
     man/sasl_getpath_t.3 \
     man/sasl_getprop.3 \

@@ -87,7 +87,7 @@ libsasl2_la_LDFLAGS += -Wl,--version-script=$(srcdir)/libsasl2.map
 endif
 
 
-libsasl2_la_LIBADD = $(SASL_DL_LIB) $(SASL_STATIC_LIBS) $(LIB_SOCKET) $(LIB_DOOR) $(PLUGIN_COMMON_OBJS) -lcrypto
+libsasl2_la_LIBADD = $(SASL_DL_LIB) $(SASL_STATIC_LIBS) $(LIB_SOCKET) $(LIB_DOOR) $(PLUGIN_COMMON_OBJS) $(top_builddir)/common/libsasl_crypto.la $(CRYPTO_LIBS)
 if BUILD_LIBOBJ
 libsasl2_la_LIBADD += libobj.la
 endif

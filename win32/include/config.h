@@ -55,6 +55,10 @@
 /* Our package */
 #define PACKAGE "cyrus-sasl"
 
+#ifndef SASL_NO_OPENSSL
+#define HAVE_OPENSSL 1
+#endif
+
 /* Our version */
 #define VERSION "2.1.28"
 

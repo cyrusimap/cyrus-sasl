@@ -30,7 +30,7 @@ It's where it's looking for dependencies. You can put your OpenSSL installation 
 as any other dependency. Just make sure it's exacty in "lib" and "include" directories to make
 it compile
 
-**core** solution depends only on OpenSSL. You can change openssl.props file if putting
+By default the **core** solution depends on OpenSSL. You can change openssl.props file if putting
 OpenSSL into SaslDependencyRoot is not an option for you. In this case openssl.props may look 
 something like this
 
@@ -51,7 +51,7 @@ something like this
   <ItemGroup />
 </Project>
 ```
-In any case it's required to point to the correct name of the OpenSSL library (see libeay32.lib).
+When using OpenSSL, point to its correct library name (see libeay32.lib).
 Also make sure previous values are preserved by including `%(something)` as in the example above.
 
 ---
@@ -65,6 +65,21 @@ for you (even from stable branches), you can try next fork https://github.com/Ri
 
 **gssapiv2** plugin depends on one of Kerberos realization. But only MIT Kerberos was tested with msbuild.
 As always put dependencies to the location pointed by cyrus-sasl.props or change gssapiv2 project file.
+
+#### Cryptographic backend
+
+OpenSSL remains the default. Set `/p:SaslCryptoBackend=cng` to use native
+Windows CNG instead, or `/p:SaslCryptoBackend=callbacks` to require an
+application-supplied `SASL_CB_CRYPTO` callback. CNG requires Windows 10 or
+later and a Windows 10 SDK. It supports MD5 and SHA-1/256/384/512; SHA-224
+is not provided. OTP and SRP still require OpenSSL. Other mechanisms keep
+their own dependencies.
+
+`sample_cng_client.vcxproj` demonstrates application crypto callbacks using
+CNG, including with a callbacks-only core. `test_cng.vcxproj` builds the CNG
+known-answer, streaming and concurrency tests. Both are optional projects.
+See the [programming guide](../docsrc/sasl/developer/programming.rst) for
+build commands, backend scope and channel-binding requirements.
 
 #### Compilation
 
@@ -102,6 +117,24 @@ Feel free to mail and ask questions.
 
 ## nmake
 
-TBD
+The core, SCRAM plugin and callback sample support `SASL_CRYPTO=openssl`,
+`SASL_CRYPTO=callbacks`, or `SASL_CRYPTO=cng`. Clean before changing modes.
+As with MSBuild, CNG needs Windows 10 or later and a Windows 10 SDK.
 
-nmake makefiles weren't updated for awhile and most likely won't build.
+Generate plugin entry points first by running `powershell -File makeinit.ps1`
+from `win32`. For a minimal native CNG build, run these commands from a
+Visual Studio developer command prompt in the source root:
+
+```cmd
+cd lib
+nmake /f NTMakefile SASL_CRYPTO=cng libsasl.dll
+cd ..\plugins
+nmake /f NTMakefile SASL_CRYPTO=cng saslSCRAM.dll
+cd ..\sample
+nmake /f NTMakefile SASL_CRYPTO=cng sample-cng-client.exe
+```
+
+Keep `libsasl.dll` on the executable search path and make the SCRAM module
+available through the application's SASL plugin search path. The sample's
+`-p` option selects a plugin directory. Other optional NMake targets retain
+their own dependencies; they are not required for this minimal build.

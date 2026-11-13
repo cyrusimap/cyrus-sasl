@@ -59,6 +59,7 @@
 #include <saslutil.h>
 #include <saslplug.h>
 #include "saslint.h"
+#include "sasl_crypto.h"
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -86,7 +87,7 @@ static const char *sasl_root_key = SASL_ROOT_KEY;
 static int _sasl_getpath(void *context __attribute__((unused)), const char **path);
 static int _sasl_getpath_simple(void *context __attribute__((unused)), const char **path);
 static int _sasl_getconfpath(void *context __attribute__((unused)), char ** path);
-static int _sasl_getconfpath_simple(void *context __attribute__((unused)), const char **path);
+static int _sasl_getconfpath_simple(void *context __attribute__((unused)), char **path);
 
 static int _sasl_get_default_path(void *context __attribute__((unused)),
 			    const char * reg_key_name,
@@ -1770,7 +1771,9 @@ _sasl_getconfpath(void *context __attribute__((unused)),
                                                        CONFIGDIR);
     }
     if (res == SASL_OK) {
-        *path_dest = default_conf_path;
+        /* The cached path belongs to the library. GETCONFPATH callers own
+         * the returned string, so hand them a separate allocation. */
+        res = _sasl_strdup(default_conf_path, path_dest, NULL);
     }
 
     return res;
@@ -1778,7 +1781,7 @@ _sasl_getconfpath(void *context __attribute__((unused)),
 
 static int
 _sasl_getconfpath_simple(void *context __attribute__((unused)),
-                         const char **path)
+                         char **path)
 {
     if (! path) {
         return SASL_BADPARAM;
@@ -1788,9 +1791,7 @@ _sasl_getconfpath_simple(void *context __attribute__((unused)),
         return SASL_FAIL;
     }
 
-    *path = default_conf_path;
-
-    return SASL_OK;
+    return _sasl_strdup(default_conf_path, path, NULL);
 }
 
 
@@ -1909,6 +1910,10 @@ int _sasl_getcallback(sasl_conn_t * conn,
   case SASL_CB_AUTHNAME:
     *pproc = (sasl_callback_ft)&_sasl_getsimple;
     *pcontext = conn;
+    return SASL_OK;
+  case SASL_CB_CRYPTO:
+    *pproc = (sasl_callback_ft)&_sasl_crypto_default;
+    *pcontext = NULL;
     return SASL_OK;
   case SASL_CB_VERIFYFILE:
     *pproc = (sasl_callback_ft)&_sasl_verifyfile;

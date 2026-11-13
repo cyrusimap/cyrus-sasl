@@ -129,7 +129,7 @@ class DriverError(Exception):
 class Driver:
     program = None
 
-    def __init__(self, args):
+    def __init__(self, args, env_overrides=None):
         path = os.path.join(BUILDDIR, self.program)
         if not os.path.exists(path):
             raise DriverError("driver not built: %s" % path)
@@ -138,6 +138,11 @@ class Driver:
         # exit that would fail every test.  Set ASAN_OPTIONS to override.
         env.setdefault("ASAN_OPTIONS", "detect_leaks=0")
         env.setdefault("UBSAN_OPTIONS", "print_stacktrace=1")
+        for key, value in (env_overrides or {}).items():
+            if value is None:
+                env.pop(key, None)
+            else:
+                env[key] = value
         self.stderr = ""
         self.reported = False  # stderr already surfaced in a DriverError
         self.proc = subprocess.Popen(
@@ -248,11 +253,13 @@ class Server(Driver):
     success_data: the protocol can carry additional data with the success
              outcome (SASL_SUCCESS_DATA); otherwise the library sends such
              data as a final challenge (RFC 4422 section 5)
+    env:     {name: value} environment overrides for the driver; None
+             removes the variable
     """
     program = "t_srv"
 
     def __init__(self, mech, users=None, secrets=None, proxies=None,
-                 realm=None, **kw):
+                 realm=None, env=None, **kw):
         args = ["-m", mech]
         for name, password in (users or {}).items():
             args += ["-U", "%s:%s" % (name, password)]
@@ -264,7 +271,7 @@ class Server(Driver):
         if realm is not None:
             args += ["-r", realm]
         args += _common_args(**kw)
-        super().__init__(args)
+        super().__init__(args, env_overrides=env)
         self.mechs = self._readline()["mechs"].split()
 
     def start(self, initial):

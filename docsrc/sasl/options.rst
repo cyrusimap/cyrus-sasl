@@ -106,11 +106,19 @@ GSSAPI
    %e EUID of the executing process user
    %E username of the executing process user
    %p PID process ID of the executing process
+   %% a literal %
 
    Note that not all formatting options may not be available for all target
    environments. See the log files for indications in run-time. If this
    option can not be parsed correctly credentials cache will fall-back to
-   the contents of the KRB5CCNAME environment variable.
+   the contents of the KRB5CCNAME environment variable, if it is set.
+
+   Each value is substituted once and never expanded again. A username
+   that isn't safe as a single path component (one containing "/", "\" or
+   a control character, or one that is empty, "." or "..") can't be used
+   for %U, and a value that can't be resolved (such as %u for a user with
+   no local account) can't be used either. In those cases the client's
+   credentials are not stored, and authentication continues.
 
    If this option is omitted, credentials delegation will not be enabled.
 

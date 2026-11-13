@@ -81,6 +81,40 @@
 /* maximum length of the iteration_counter (as a string). Assume it is 32bits */
 #define ITERATION_COUNTER_BUF_LEN   20
 
+/* RFC 5802 section 7: printable = %x21-2B / %x2D-7E (no comma); a
+   nonce is one or more of them. */
+static int
+scram_valid_nonce(const char *s, size_t len)
+{
+    size_t i;
+
+    if (len == 0) {
+	return 0;
+    }
+    for (i = 0; i < len; i++) {
+	if (s[i] < 0x21 || s[i] > 0x7e || s[i] == ',') {
+	    return 0;
+	}
+    }
+    return 1;
+}
+
+/* RFC 5802 section 7 (from RFC 5801): cb-name = 1*(ALPHA / DIGIT / "." / "-") */
+static int
+scram_valid_cb_name(const char *s)
+{
+    if (*s == '\0') {
+	return 0;
+    }
+    for (; *s; s++) {
+	if (!((*s >= 'A' && *s <= 'Z') || (*s >= 'a' && *s <= 'z') ||
+	      (*s >= '0' && *s <= '9') || *s == '.' || *s == '-')) {
+	    return 0;
+	}
+    }
+    return 1;
+}
+
 #define BASE64_LEN(size)	    (((size) / 3 * 4) + (((size) % 3) ? 4 : 0))
 
 #define MAX_CLIENTIN_LEN	    2048
@@ -611,6 +645,14 @@ scram_server_mech_step1(server_context_t *text,
 	    }
 
 	    *p = '\0';
+	    if (!scram_valid_cb_name(text->cbindingname)) {
+		text->cbindingname = NULL;
+		sparams->utils->seterror(sparams->utils->conn, 0,
+                                         "Invalid channel binding name in %s input",
+                                         scram_sasl_mech);
+		result = SASL_BADPROT;
+		goto cleanup;
+	    }
 	    _plug_strdup(sparams->utils, text->cbindingname, &text->cbindingname, NULL);
 	    *p = ',';
 
@@ -652,6 +694,14 @@ scram_server_mech_step1(server_context_t *text,
 	if (p == NULL) {
 	    sparams->utils->seterror(sparams->utils->conn, 0,
                                      "At least nonce is expected in %s input",
+                                     scram_sasl_mech);
+	    result = SASL_BADPROT;
+	    goto cleanup;
+	}
+	if (p == authorization_id) {
+	    /* RFC 5802 section 7: saslname = 1*(...) */
+	    sparams->utils->seterror(sparams->utils->conn, 0,
+                                     "Empty authorization identity in %s input",
                                      scram_sasl_mech);
 	    result = SASL_BADPROT;
 	    goto cleanup;
@@ -770,6 +820,13 @@ scram_server_mech_step1(server_context_t *text,
 
     /* Generate server nonce, by appending some random stuff to the client nonce */
     client_nonce_len = strlen(nonce);
+    if (!scram_valid_nonce(nonce, client_nonce_len)) {
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Invalid client nonce in %s input",
+                                 scram_sasl_mech);
+	result = SASL_BADPROT;
+	goto cleanup;
+    }
     text->nonce = sparams->utils->malloc (client_nonce_len + NONCE_SIZE + 1);
 
     if (text->nonce == NULL) {
@@ -2498,6 +2555,12 @@ scram_client_mech_step2(client_context_t *text,
     if (server_nonce_len <= NONCE_SIZE ||
 	strncmp(nonce, text->nonce, NONCE_SIZE) != 0) {
 	SETERROR(params->utils, "The nonce received from the server doesn't start from the nonce sent by the client");
+	result = SASL_BADPROT;
+	goto cleanup;
+    }
+
+    if (!scram_valid_nonce(nonce, server_nonce_len)) {
+	SETERROR(params->utils, "The nonce received from the server contains invalid characters");
 	result = SASL_BADPROT;
 	goto cleanup;
     }

@@ -855,9 +855,9 @@ layout is changed by this callback.
 The default build continues to use OpenSSL. Configure with
 ``--with-crypto=callbacks`` to omit the built-in backend and its OpenSSL
 link dependency. In that mode an application must supply the operations it
-needs. OTP is disabled by default; explicitly enabling OTP, SRP, or PASSDSS
-is rejected because those mechanisms still require OpenSSL. Independently
-selected dependencies may themselves use OpenSSL. For Windows builds, use
+needs. The saslauthd daemon still requires OpenSSL and must be disabled with
+``--without-saslauthd`` for callbacks-only builds. Independently selected
+dependencies may themselves use OpenSSL. For Windows builds, use
 ``SASL_CRYPTO=callbacks`` with NMake or
 ``/p:SaslCryptoBackend=callbacks`` with MSBuild.
 
@@ -890,9 +890,9 @@ mechanisms whose initialization returns ``SASL_NOMECH`` with no connection
 context, and considers the remaining allowed mechanisms. Other errors are
 returned without retrying. This does not retry authentication after a failed
 protocol exchange or fall back to another backend for an algorithm rejected
-by a callback. CNG does not remove the OpenSSL dependencies of OTP, SRP or
-PASSDSS; those mechanisms cannot be selected with this backend. Other independently selected mechanisms and dependencies retain
-their requirements. TLS channel binding must still come from the application's
+by a callback. The saslauthd daemon must be disabled with
+``--without-saslauthd`` for CNG builds. Other independently selected mechanisms
+and dependencies retain their requirements. TLS channel binding must still come from the application's
 actual TLS connection; this backend does not provide a TLS implementation.
 
 The optional ``sample-cng-client`` target builds the existing sample client

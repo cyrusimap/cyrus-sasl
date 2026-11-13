@@ -230,6 +230,39 @@ int main(void)
             0xf7, 0xce, 0x0b, 0x65, 0x3d, 0x2d, 0x72, 0xa4, 0x10, 0x8c, 0xf5,
             0xab, 0xe9, 0x12, 0xff, 0xdd, 0x77, 0x76, 0x16, 0xdb, 0xbb, 0x27,
             0xa7, 0x0e, 0x82, 0x04, 0xf3, 0xae, 0x2d, 0x0f, 0x6f, 0xad};
+        /* The built-in table is also used directly by standalone adapters. */
+        CHECK(ac.operations->hash(NULL, NULL, 0, output, 32) == SASL_BADPARAM);
+        CHECK(ac.operations->hash(ac.context, NULL, 1, output, 32) ==
+              SASL_BADPARAM);
+        CHECK(all_bytes(output, 32, 0));
+        input[0].iov_base = NULL;
+        input[0].iov_len = 1;
+        CHECK(ac.operations->hash(ac.context, input, 1, output, 32) ==
+              SASL_BADPARAM);
+        CHECK(ac.operations->hash(ac.context, NULL, 0, NULL, 32) ==
+              SASL_BADPARAM);
+        CHECK(ac.operations->hmac(ac.context, NULL, 1, NULL, 0, output, 32) ==
+              SASL_BADPARAM);
+        CHECK(ac.operations->hmac(ac.context, NULL, 0, NULL, 1, output, 32) ==
+              SASL_BADPARAM);
+        CHECK(ac.operations->hmac(ac.context, NULL, 0, NULL, 0, NULL, 32) ==
+              SASL_BADPARAM);
+        CHECK(ac.operations->pbkdf2(ac.context, NULL, 1, NULL, 0, 1, output,
+                                    32) == SASL_BADPARAM);
+        CHECK(ac.operations->pbkdf2(ac.context, NULL, 0, NULL, 1, 1, output,
+                                    32) == SASL_BADPARAM);
+        CHECK(ac.operations->pbkdf2(ac.context, NULL, 0, NULL, 0, 0, output,
+                                    32) == SASL_BADPARAM);
+        CHECK(ac.operations->pbkdf2(ac.context, NULL, 0, NULL, 0, 1, NULL,
+                                    32) == SASL_BADPARAM);
+        memset(output, 0x55, sizeof(output));
+        CHECK(ac.operations->hash(ac.context, NULL, 0, output, 31) ==
+              SASL_BADPARAM);
+        CHECK(ac.operations->hmac(ac.context, NULL, 0, NULL, 0, output, 33) ==
+              SASL_BADPARAM);
+        CHECK(ac.operations->pbkdf2(ac.context, NULL, 0, NULL, 0, 1, output,
+                                    33) == SASL_BADPARAM);
+        CHECK(all_bytes(output, sizeof(output), 0x55));
         input[0].iov_base = "a";
         input[0].iov_len = 1;
         input[1].iov_base = "bc";

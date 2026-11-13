@@ -414,7 +414,7 @@ GenerateScramSecrets (const sasl_utils_t * utils,
     char ClientKey[SASL_MAX_HASH_SIZE];
 
     int result;
-    size_t hash_size = md->hash_size;
+    unsigned hash_size = md->hash_size;
 
     *error_text = NULL;
 
@@ -541,7 +541,17 @@ static int
 scram_server_mech_avail(void *glob_context, sasl_server_params_t *params,
                         void **conn_context)
 {
-    return scram_server_mech_new(glob_context, params, NULL, 0, conn_context);
+    sasl_crypto_context_t crypto;
+    int result;
+    (void)conn_context;
+
+    /* Availability queries must not allocate or replace a saved context. */
+    result = _sasl_crypto_init(params->utils, (const char *)glob_context,
+                               &crypto);
+    if (result != SASL_OK)
+        return result;
+    return crypto.operations->hmac && crypto.operations->pbkdf2
+               ? SASL_OK : SASL_NOMECH;
 }
 
 static int
@@ -569,7 +579,7 @@ scram_server_mech_step1(server_context_t *text,
     int canon_flags;
     struct propval auxprop_values[3];
     int result;
-    size_t hash_size = text->md.hash_size;
+    unsigned hash_size = text->md.hash_size;
     const char *scram_sasl_mech = scram_sasl_mech_name(hash_size);
 
     if (clientinlen == 0) {
@@ -887,7 +897,7 @@ scram_server_mech_step1(server_context_t *text,
 
     if (auxprop_values[0].name && auxprop_values[0].values) {
 	char * error_text = NULL;
-	char * s_iteration_count;
+	char * s_iteration_count = NULL;
 
 	result = scram_server_user_salt(sparams->utils, &text->md,
                                          text->authentication_id,
@@ -948,6 +958,7 @@ scram_server_mech_step1(server_context_t *text,
         size_t scram_sasl_mech_len = strlen(scram_sasl_mech);
 
 
+        result = SASL_SCRAM_INTERNAL;
 	for (i = 0; auxprop_values[1].values[i] != NULL; i++) {
 	    scram_hash = auxprop_values[1].values[i];
 
@@ -1263,7 +1274,8 @@ scram_server_mech_step2(server_context_t *text,
     size_t server_proof_len;
     unsigned exact_client_proof_len;
 
-    size_t k, hash_size = text->md.hash_size;
+    size_t k;
+    unsigned hash_size = text->md.hash_size;
     const char *scram_sasl_mech = scram_sasl_mech_name(hash_size);
 
     if (clientinlen == 0) {
@@ -1582,7 +1594,7 @@ scram_server_mech_step2(server_context_t *text,
     result = _plug_buf_alloc(sparams->utils,
 			     &(text->out_buf),
 			     &(text->out_buf_len),
-			     (unsigned) server_proof_len + strlen("v=") + 1);
+			     (unsigned)(server_proof_len + strlen("v=") + 1));
     if (result != SASL_OK) {
 	MEMERROR( sparams->utils );
 	result = SASL_NOMEM;
@@ -1668,8 +1680,6 @@ static int scram_server_mech_step(void *conn_context,
     *serveroutlen = 0;
     
     if (text == NULL) {
-	sparams->utils->erasebuffer(text->StoredKey, sizeof(text->StoredKey));
-	sparams->utils->erasebuffer(text->ServerKey, sizeof(text->ServerKey));
 	return SASL_BADPROT;
     }
 
@@ -1747,16 +1757,11 @@ static int scram_setpass(void *glob_context,
     struct propctx *propctx = NULL;
     const char *store_request[] = { "authPassword",
 				    NULL };
-    const char *generate_scram_secret;
+    const char *generate_scram_secret = NULL;
     sasl_crypto_context_t crypto;
     const sasl_crypto_context_t *md = &crypto;
-    size_t hash_size;
-    const char *scram_sasl_mech;
-
-    r = _sasl_crypto_init(sparams->utils, (const char *)glob_context, &crypto);
-    if (r != SASL_OK) return r;
-    hash_size = crypto.hash_size;
-    scram_sasl_mech = scram_sasl_mech_name(hash_size);
+    unsigned hash_size;
+    const char *scram_sasl_mech = "SCRAM";
     
     /* Do we have a backend that can store properties? */
     if (!sparams->utils->auxprop_store ||
@@ -1782,6 +1787,11 @@ static int scram_setpass(void *glob_context,
 	/* Pretend that everything is Ok, no need to generate noise in the logs */
 	return SASL_OK;
     }
+
+    r = _sasl_crypto_init(sparams->utils, (const char *)glob_context, &crypto);
+    if (r != SASL_OK) return r;
+    hash_size = crypto.hash_size;
+    scram_sasl_mech = scram_sasl_mech_name(hash_size);
 
     r = _plug_parseuser(sparams->utils,
 			&user_only,
@@ -1809,7 +1819,7 @@ static int scram_setpass(void *glob_context,
 	/* size_t salt_len = SALT_SIZE; */
 	size_t secret_len;
 	unsigned int iteration_count = DEFAULT_ITERATION_COUNTER;
-	char * s_iteration_count;
+	char * s_iteration_count = NULL;
 
 	sparams->utils->getopt(sparams->utils->getopt_context,
 			       /* Different SCRAM hashes can have different strengh */
@@ -2445,7 +2455,8 @@ scram_client_mech_step2(client_context_t *text,
     char * client_proof = NULL;
     size_t client_proof_len;
 
-    size_t k, hash_size = text->md.hash_size;
+    size_t k;
+    unsigned hash_size = text->md.hash_size;
     const char *scram_sasl_mech = scram_sasl_mech_name(hash_size);
 
     if (serverinlen == 0) {
@@ -2866,7 +2877,7 @@ scram_client_mech_step3(client_context_t *text,
     char ServerKey[SASL_MAX_HASH_SIZE];
     char ServerSignature[SASL_MAX_HASH_SIZE];
 
-    size_t hash_size = text->md.hash_size;
+    unsigned hash_size = text->md.hash_size;
     const char *scram_sasl_mech = scram_sasl_mech_name(hash_size);
 
     if (serverinlen < 3) {

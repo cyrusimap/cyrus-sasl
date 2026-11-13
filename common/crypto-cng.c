@@ -10,6 +10,7 @@
 #include <windows.h>
 #include <bcrypt.h>
 #include "crypto-cng.h"
+#include "crypto-validate.h"
 
 #ifndef BCRYPT_SHA256_ALG_HANDLE
 #error The CNG backend requires the Windows 10 SDK or later.
@@ -45,7 +46,8 @@ static int cng_result(NTSTATUS status, unsigned char *output, unsigned length)
 static int cng_output(const cng_algorithm_t *algorithm,
                        unsigned char *output, unsigned length)
 {
-    return algorithm != NULL && output != NULL && length == algorithm->size;
+    return algorithm != NULL &&
+           crypto_valid_output(output, length, algorithm->size);
 }
 
 static NTSTATUS cng_update(BCRYPT_HASH_HANDLE hash,
@@ -73,12 +75,9 @@ static int cng_hash(void *context, const struct iovec *input, unsigned count,
 
     if (!cng_output(algorithm, output, length))
         return SASL_BADPARAM;
-    if (count && input == NULL)
-        goto badparam;
-    for (i = 0; i < count; i++) {
-        if (input[i].iov_len < 0 ||
-            (input[i].iov_len && input[i].iov_base == NULL))
-            goto badparam;
+    if (!crypto_valid_hash_input(input, count)) {
+        SecureZeroMemory(output, length);
+        return SASL_BADPARAM;
     }
     status = BCryptCreateHash(algorithm->hash, &hash, NULL, 0, NULL, 0, 0);
     if (status < 0)
@@ -94,9 +93,6 @@ static int cng_hash(void *context, const struct iovec *input, unsigned count,
     BCryptDestroyHash(hash);
     return cng_result(status, output, length);
 
-badparam:
-    SecureZeroMemory(output, length);
-    return SASL_BADPARAM;
 }
 
 static int cng_hmac(void *context, const unsigned char *key, size_t keylen,
@@ -110,8 +106,8 @@ static int cng_hmac(void *context, const unsigned char *key, size_t keylen,
 
     if (!cng_output(algorithm, output, length))
         return SASL_BADPARAM;
-    if (keylen > ULONG_MAX || (keylen && key == NULL) ||
-        (inputlen && input == NULL)) {
+    if (keylen > ULONG_MAX ||
+        !crypto_valid_hmac_input(key, keylen, input, inputlen)) {
         SecureZeroMemory(output, length);
         return SASL_BADPARAM;
     }
@@ -139,8 +135,9 @@ static int cng_pbkdf2(void *context, const unsigned char *password,
 
     if (!cng_output(algorithm, output, length))
         return SASL_BADPARAM;
-    if (passwordlen > ULONG_MAX || saltlen > ULONG_MAX || iterations == 0 ||
-        (passwordlen && password == NULL) || (saltlen && salt == NULL)) {
+    if (passwordlen > ULONG_MAX || saltlen > ULONG_MAX ||
+        !crypto_valid_pbkdf2_input(password, passwordlen, salt, saltlen,
+                                   iterations)) {
         SecureZeroMemory(output, length);
         return SASL_BADPARAM;
     }

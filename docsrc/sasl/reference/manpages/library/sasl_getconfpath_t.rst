@@ -28,6 +28,12 @@ Description
     location  in the environment variable SASL_CONF_PATH (provided
     we are not SUID or SGID) or `/etc/sasl2` by default.
 
+On success, any non-NULL string returned through ``path`` must be
+heap-allocated with the allocator registered through :saslman:`sasl_set_alloc(3)`
+(or the default allocator). Ownership transfers to the library, which frees
+the string after loading the configuration. Do not return a static string or
+retain ownership of the returned allocation.
+
 Return Value
 ============
 

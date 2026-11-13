@@ -89,7 +89,7 @@ static const char *sasl_root_key = SASL_ROOT_KEY;
 static int _sasl_getpath(void *context __attribute__((unused)), const char **path);
 static int _sasl_getpath_simple(void *context __attribute__((unused)), const char **path);
 static int _sasl_getconfpath(void *context __attribute__((unused)), char ** path);
-static int _sasl_getconfpath_simple(void *context __attribute__((unused)), const char **path);
+static int _sasl_getconfpath_simple(void *context __attribute__((unused)), char **path);
 
 static int _sasl_get_default_path(void *context __attribute__((unused)),
 			    const char * reg_key_name,
@@ -166,7 +166,6 @@ static int sasl_mutex_lock(void *mutex __attribute__((unused)))
 #if defined(HAVE_PTHREAD)
     if (pthread_mutex_lock(mutex)) return SASL_FAIL;
 #elif defined(HAVE_NT_THREADS)
-    DWORD status;
     if (WaitForSingleObject(mutex, INFINITE) == WAIT_FAILED)
 	return SASL_FAIL;
 #endif
@@ -549,7 +548,12 @@ int sasl_encodev(sasl_conn_t *conn,
             
             /* Fit as many bytes in last_invec, so that we have conn->oparams.maxoutbuf
                bytes in total. */
+#ifdef WIN32
+            /* The split fits in this input vector's signed-long length. */
+            last_invec.iov_len = (long)(conn->oparams.maxoutbuf - total_size);
+#else
             last_invec.iov_len = conn->oparams.maxoutbuf - total_size;
+#endif
             /* Point to the first byte of the current record. */
             last_invec.iov_base = invec[i].iov_base;
 
@@ -1663,11 +1667,13 @@ _sasl_getsimple(void *context,
 	BOOL rval;
 	static char sender[128];
 
-    TCHAR tsender[128];
+    WCHAR tsender[128];
 	i = sizeof(tsender) / sizeof(tsender[0]);
-	rval = GetUserName(tsender, &i);
+	rval = GetUserNameW(tsender, &i);
 	if ( rval) { /* got a userid */
-        WideCharToMultiByte(CP_UTF8, 0, tsender, -1, sender, sizeof(sender), NULL, NULL); /* -1 ensures null-terminated utf8 */
+        if (WideCharToMultiByte(CP_UTF8, 0, tsender, -1, sender,
+                                sizeof(sender), NULL, NULL) == 0)
+            return SASL_FAIL;
 		*result = sender;
 		if (len) *len = strlen(sender);
 		return SASL_OK;
@@ -1812,7 +1818,9 @@ _sasl_getconfpath(void *context __attribute__((unused)),
                                                        CONFIGDIR);
     }
     if (res == SASL_OK) {
-        *path_dest = default_conf_path;
+        /* The cached path belongs to the library. GETCONFPATH callers own
+         * the returned string, so hand them a separate allocation. */
+        res = _sasl_strdup(default_conf_path, path_dest, NULL);
     }
 
     return res;
@@ -1820,7 +1828,7 @@ _sasl_getconfpath(void *context __attribute__((unused)),
 
 static int
 _sasl_getconfpath_simple(void *context __attribute__((unused)),
-                         const char **path)
+                         char **path)
 {
     if (! path) {
         return SASL_BADPARAM;
@@ -1830,9 +1838,7 @@ _sasl_getconfpath_simple(void *context __attribute__((unused)),
         return SASL_FAIL;
     }
 
-    *path = default_conf_path;
-
-    return SASL_OK;
+    return _sasl_strdup(default_conf_path, path, NULL);
 }
 
 
@@ -2812,17 +2818,19 @@ CLEANUP:
     }
     if (sizeof(TCHAR) != sizeof(char)) {
     /* convert to utf-8 for compatibility with other OS' */
-        char *tmp = _sasl_wchar_to_utf8(ValueData);
+        *value = _sasl_wchar_to_utf8((WCHAR *)ValueData);
         sasl_FREE(ValueData);
-	ValueData = tmp;
+        if (*value == NULL)
+            return SASL_FAIL;
+    } else {
+        *value = (char *)ValueData;
     }
-    *value = ValueData;
     return res;
 }
 
 char* _sasl_wchar_to_utf8(WCHAR *str)
 {
-    size_t bufLen = WideCharToMultiByte(CP_UTF8, 0, str, -1, NULL, 0, NULL, NULL);
+    int bufLen = WideCharToMultiByte(CP_UTF8, 0, str, -1, NULL, 0, NULL, NULL);
     char *buf = sasl_ALLOC(bufLen);
     if (buf) {
         if (WideCharToMultiByte(CP_UTF8, 0, str, -1, buf, bufLen, NULL, NULL) == 0) { /* -1 ensures null-terminated utf8 */
@@ -2835,7 +2843,7 @@ char* _sasl_wchar_to_utf8(WCHAR *str)
 
 WCHAR* _sasl_utf8_to_wchar(const char *str)
 {
-    size_t bufLen = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0);
+    int bufLen = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0);
     WCHAR *buf = sasl_ALLOC(bufLen * sizeof(WCHAR));
     if (buf) {
         if (MultiByteToWideChar(CP_UTF8, 0, str, -1, buf, bufLen) == 0) { /* -1 ensures null-terminated utf8 */

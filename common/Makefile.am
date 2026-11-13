@@ -60,7 +60,7 @@ libplugin_common_la_SOURCES = plugin_common.c plugin_common.h
 libplugin_common_la_LDFLAGS = -version-info $(plugin_common_version) -no-undefined
 libplugin_common_la_LIBADD = $(LIB_SOCKET)
 
-libsasl_crypto_la_SOURCES = sasl_crypto.c sasl_crypto.h
+libsasl_crypto_la_SOURCES = sasl_crypto.c sasl_crypto.h crypto-validate.h
 if HAVE_CNG
 libsasl_crypto_la_SOURCES += crypto-cng.c crypto-cng.h
 endif

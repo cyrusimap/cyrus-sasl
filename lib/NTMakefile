@@ -59,10 +59,10 @@ plugin_common.c: ..\common\plugin_common.c plugin_common.h
 plugin_common.h: ..\common\plugin_common.h
 	xcopy /D /Y ..\common\plugin_common.h .
 
-crypto-cng.obj: ..\common\crypto-cng.c ..\common\crypto-cng.h
+crypto-cng.obj: ..\common\crypto-cng.c ..\common\crypto-cng.h ..\common\crypto-validate.h
 	$(CPP) $(CPP_PROJ) ..\common\crypto-cng.c
 
-sasl_crypto.obj: ..\common\sasl_crypto.c ..\common\sasl_crypto.h ..\common\crypto-cng.h
+sasl_crypto.obj: ..\common\sasl_crypto.c ..\common\sasl_crypto.h ..\common\crypto-cng.h ..\common\crypto-validate.h
 	$(CPP) $(CPP_PROJ) ..\common\sasl_crypto.c
 
 auxprop.obj checkpw.obj client.obj common.obj external.obj plugin_common.obj server.obj seterror.obj: ..\include\saslplug.h

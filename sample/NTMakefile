@@ -75,7 +75,7 @@ sample-client.exe: $(sample_client_objs)
 sample-client-cng.obj: sample-client.c ..\common\crypto-cng.h
 	$(CPP) $(CPP_PROJ) /DSAMPLE_CNG_CRYPTO /Fo$@ sample-client.c
 
-crypto-cng.obj: ..\common\crypto-cng.c ..\common\crypto-cng.h
+crypto-cng.obj: ..\common\crypto-cng.c ..\common\crypto-cng.h ..\common\crypto-validate.h
 	$(CPP) $(CPP_PROJ) ..\common\crypto-cng.c
 
 sample-cng-client.exe: sample-client-cng.obj crypto-cng.obj

@@ -41,14 +41,17 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <shadow.h>
+#include <config.h>
 #include <string.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+#ifdef HAVE_CRYPT_H
+#include <crypt.h>
+#endif
+#include <shadow.h>
 
-extern char *crypt();
-
-char *pwcheck(userid, password)
-char *userid;
-char *password;
+char *pwcheck(char *userid, char *password)
 {
     struct spwd *pwd;
     char *crpt_passwd;

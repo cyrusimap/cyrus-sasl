@@ -56,6 +56,9 @@
 #endif
 #include <fcntl.h>
 #include <ctype.h>
+#ifdef HAVE_TIME_H
+# include <time.h>
+#endif
 
 /* DES support */
 #ifdef WITH_DES

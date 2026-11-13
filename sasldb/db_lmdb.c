@@ -163,8 +163,24 @@ static int do_open(const sasl_utils_t *utils,
     }
 
     ret = mdb_txn_begin(env, NULL, rdwr ? 0 : MDB_RDONLY, &txn);
+    if (ret == MDB_READERS_FULL) {
+	/* Reader slots are only released by mdb_env_close(), which most
+	 * servers never reach (they exit without sasl_done()).  Slots owned
+	 * by dead processes stay taken until someone clears them, so reclaim
+	 * them here and retry once. */
+	int dead = 0;
+
+	if (mdb_reader_check(env, &dead) == 0 && dead > 0) {
+	    utils->log(conn, SASL_LOG_NOTE,
+		       "cleared %d stale MDB reader slot(s)", dead);
+	    ret = mdb_txn_begin(env, NULL, rdwr ? 0 : MDB_RDONLY, &txn);
+	}
+    }
     if (ret) {
-    	mdb_env_close(env);
+	/* Only close an environment we opened in this call; the cached
+	 * db_env stays valid and must not be freed behind our back. */
+	if (env != db_env)
+	    mdb_env_close(env);
 	utils->log(conn, SASL_LOG_ERR,
 		   "unable to open MDB transaction: %s",
 		   mdb_strerror(ret));
@@ -177,7 +193,8 @@ static int do_open(const sasl_utils_t *utils,
 	ret = mdb_open(txn, NULL, 0, &db_dbi);
 	if (ret) {
 	    mdb_txn_abort(txn);
-	    mdb_env_close(env);
+	    if (env != db_env)
+		mdb_env_close(env);
 	    utils->log(conn, SASL_LOG_ERR,
 		       "unable to open MDB database: %s",
 		       mdb_strerror(ret));
@@ -284,8 +301,10 @@ int _sasldb_getdata(const sasl_utils_t *utils,
     break;
   }
 
-  if(data.mv_size > max_out + 1)
-      return SASL_BUFOVER;
+  if(data.mv_size > max_out + 1) {
+      result = SASL_BUFOVER;
+      goto cleanup;
+  }
 
   if(out_len) *out_len = data.mv_size;
   memcpy(out, data.mv_data, data.mv_size);

@@ -131,10 +131,13 @@ class GssapiServer(SaslTestCase):
         self.assertEqual(offer.message[0], LAYER_NONE)
         self.assertEqual(offer.message[1:4], b"\0\0\0")
 
-    @known_bug("S5", "server accepts any GSS mechanism under the name GSSAPI")
-    @spec("RFC 4752", "3.2", "MUST",
-          "if the negotiated mechanism isn't Kerberos V5, authentication MUST be aborted")
+    @spec("RFC 4752", "3.2", "SHOULD",
+          "servers SHOULD use acceptor credentials for the Kerberos V5 mechanism")
     def test_spnego_token_rejected(self):
+        # A SPNEGO-wrapped context negotiates Kerberos, so the separate
+        # "mech_type must be Kerberos V5" check (MUST) doesn't catch it;
+        # Kerberos-only acceptor credentials do.  Testing that check needs
+        # a non-Kerberos GSS mechanism, such as gss-ntlmssp.
         peer = GssClientPeer(self.gss_server(), mech=SPNEGO)
         r = peer.authenticate()
         if not getattr(r, "failed", False):

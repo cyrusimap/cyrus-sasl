@@ -162,7 +162,7 @@ int cache_lookup(const char *user, const char *realm, const char *service, const
 	int			realm_length = 0;
 	int			service_length = 0;
 	int			hash_offset;
-	unsigned char		pwd_digest[16];
+	unsigned char		pwd_digest[32];
 	EVP_MD_CTX		*mdctx = EVP_MD_CTX_new();
 	time_t			epoch;
 	time_t			epoch_timeout;
@@ -200,7 +200,7 @@ int cache_lookup(const char *user, const char *realm, const char *service, const
 	epoch_timeout = epoch - table_timeout;
 
 	/**************************************************************
-	 * Get the offset into the hash table and the md5 sum of
+	 * Get the offset into the hash table and the SHA-256 of
 	 * the password.
 	 **************************************************************/
 
@@ -210,9 +210,15 @@ int cache_lookup(const char *user, const char *realm, const char *service, const
 
 	hash_offset = cache_pjwhash(userrealmserv);
 
-	EVP_DigestInit(mdctx, EVP_md5());
-	EVP_DigestUpdate(mdctx, password, strlen(password));
-	EVP_DigestFinal(mdctx, pwd_digest, NULL);
+	if (mdctx == NULL
+	    || !EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL)
+	    || !EVP_DigestUpdate(mdctx, password, strlen(password))
+	    || !EVP_DigestFinal_ex(mdctx, pwd_digest, NULL)) {
+		EVP_MD_CTX_free(mdctx);
+		logger(L_ERR, L_FUNC, "SHA-256 unavailable, credential cache bypassed");
+		return CACHE_FAIL;
+	}
+	EVP_MD_CTX_free(mdctx);
 
 	/**************************************************************
 	 * Loop through the bucket chain to try and find a hit.
@@ -261,7 +267,7 @@ int cache_lookup(const char *user, const char *realm, const char *service, const
 
 	if (read_bucket != NULL) {
 
-		if (memcmp(pwd_digest, read_bucket->pwd_digest, 16) == 0) {
+		if (memcmp(pwd_digest, read_bucket->pwd_digest, sizeof(pwd_digest)) == 0) {
 
 			if (flags & VERBOSE)
 				logger(L_DEBUG, L_FUNC, debug, user, service, realm, "found with valid passwd");
@@ -295,7 +301,7 @@ int cache_lookup(const char *user, const char *realm, const char *service, const
 	strcpy(result->bucket.creds + result->bucket.realm_offt, realm);	
 	strcpy(result->bucket.creds + result->bucket.service_offt, service);	
 
-	memcpy(result->bucket.pwd_digest, pwd_digest, 16);
+	memcpy(result->bucket.pwd_digest, pwd_digest, sizeof(pwd_digest));
 	result->bucket.created = epoch;
 
 	cache_un_lock(hash_offset);

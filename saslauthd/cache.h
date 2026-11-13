@@ -130,7 +130,7 @@ struct bucket {
         unsigned int		user_offt;
         unsigned int		realm_offt;
         unsigned int		service_offt;
-        unsigned char   	pwd_digest[16];
+        unsigned char   	pwd_digest[32];
         time_t          	created;
 };
 

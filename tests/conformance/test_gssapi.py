@@ -158,6 +158,25 @@ class GssapiServer(SaslTestCase):
         peer.authenticate()
         self.assertFailed(peer.choose(LAYER_NONE, maxbuf=0x10000))
 
+    @spec("RFC 4752", "3.3", "MUST",
+          "server's packets fit in the client's maximum buffer")
+    def test_client_maxbuf_respected(self):
+        peer = GssClientPeer(self.gss_server())
+        peer.authenticate()
+        r = peer.choose(LAYER_INTEGRITY, maxbuf=4096)
+        self.assertOk(r)
+        self.assertTrue(r.maxoutbuf and r.maxoutbuf < 4096, r.maxoutbuf)
+        e = peer.server.encode(b"x" * r.maxoutbuf)
+        self.assertOk(e)
+        self.assertLessEqual(len(unframe(e.out)), 4096)
+
+    @spec("RFC 4752", "3.3", "MUST",
+          "server fails a layer when no data fits in the client's maximum buffer")
+    def test_client_maxbuf_too_small(self):
+        peer = GssClientPeer(self.gss_server())
+        peer.authenticate()
+        self.assertFailed(peer.choose(LAYER_INTEGRITY, maxbuf=8))
+
     @spec("RFC 4752", "3.2", "MUST", "server verifies src_name may act as the authzid")
     def test_authzid_not_permitted(self):
         peer = GssClientPeer(self.gss_server())
@@ -312,6 +331,25 @@ class GssapiClient(SaslTestCase):
         peer = GssServerPeer(self.gss_client())
         peer.establish()
         self.assertFailed(peer.offer(LAYER_NONE, maxbuf=0x10000))
+
+    @spec("RFC 4752", "3.3", "MUST",
+          "client's packets fit in the server's maximum buffer")
+    def test_server_maxbuf_respected(self):
+        peer = GssServerPeer(self.gss_client(max_ssf=1))
+        peer.establish()
+        r = peer.offer(LAYER_INTEGRITY, maxbuf=4096)
+        self.assertOk(r)
+        self.assertTrue(r.maxoutbuf and r.maxoutbuf < 4096, r.maxoutbuf)
+        e = peer.client.encode(b"x" * r.maxoutbuf)
+        self.assertOk(e)
+        self.assertLessEqual(len(unframe(e.out)), 4096)
+
+    @spec("RFC 4752", "3.3", "MUST",
+          "client fails a layer when no data fits in the server's maximum buffer")
+    def test_server_maxbuf_too_small(self):
+        peer = GssServerPeer(self.gss_client(max_ssf=1))
+        peer.establish()
+        self.assertFailed(peer.offer(LAYER_INTEGRITY, maxbuf=8))
 
     @spec("RFC 4752", "3.1", "MUST",
           "client maximum buffer MUST be 0 if it chooses no security layer")

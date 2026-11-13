@@ -360,57 +360,6 @@ else
   AC_MSG_RESULT(disabled)
 fi
 
-dnl OTP
-AC_ARG_ENABLE(otp, [  --enable-otp            enable OTP authentication [[yes]] ],
-  otp=$enableval,
-  otp=yes)
-
-AC_MSG_CHECKING(OTP)
-if test "$otp" != no; then
-  AC_MSG_RESULT(enabled)
-  OTP_LIBS="-lcrypto $LIB_RSAREF"
-
-  SASL_MECHS="$SASL_MECHS libotp.la"
-  if test "$enable_static" = yes; then
-    SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/otp.c"
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS otp.o"
-    AC_DEFINE(STATIC_OTP, [], [Link OTP Statically])
-  fi
-
-  dnl Test for OPIE
-  AC_ARG_WITH(opie, AS_HELP_STRING([--with-opie=PATH],[use OPIE (One Time Passwords in Everything) from PATH]))
-
-  case "$with_opie" in
-	""|yes) 
-		AC_CHECK_LIB(opie, opiechallenge, [
-			AC_CHECK_HEADER(opie.h, with_opie="yes",
-					with_opie="no")],
-			with_opie="no")
-		;;
-	*)
-		if test -d $with_opie; then
-		  CPPFLAGS="${CPPFLAGS} -I${with_opie}/include"
-		  LDFLAGS="${LDFLAGS} -L${with_opie}/lib"
-		else
-		  with_opie="no"
-		fi
-		;;
-  esac
-
-  AC_MSG_CHECKING(for OPIE)
-  AC_MSG_RESULT($with_opie)
-
-  if test "$with_opie" != no; then
-    AC_DEFINE(HAVE_OPIE,[],[Use OPIE for server-side OTP?])
-    OTP_LIBS="$OTP_LIBS -lopie"
-  fi
-
-  AC_SUBST(OTP_LIBS)
-
-else
-  AC_MSG_RESULT(disabled)
-fi
-
 dnl Kerberos based Mechanisms
 SASL_GSSAPI_CHK
 

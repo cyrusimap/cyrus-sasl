@@ -121,15 +121,12 @@ that links against SQLITE (www.sqlite.org).
 SQL=<SQLITE> depends on ``SQLITE_INCLUDES`` and ``SQLITE_LIBPATH`` parameters.
 You can either specify them on the command line or edit the defaults in win32\common.mak
 
-Specify "OTP=1" parameter if you want to enable OTP plugin.
-
-The OTP plugin depends on OpenSSL. You can either specify
+The SCRAM plugin, which is always built, depends on OpenSSL. You can either specify
 ``OPENSSL_INCLUDE`` and ``OPENSSL_LIBPATH`` parameters on the command
 line or edit the defaults in win32\common.mak
-Note, that unless you are building that plugin, OpenSSL is not required!
 
 If you want to build multiple additional plugins at once, you can specify
-multiple parameters described above, for example ``nmake /f NTMakefile SQL=SQLITE OTP=1``
+multiple parameters described above, for example ``nmake /f NTMakefile GSSAPI=CyberSafe SQL=SQLITE``
 
 Limitations
 -----------

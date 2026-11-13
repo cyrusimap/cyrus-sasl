@@ -52,19 +52,6 @@ This is a Microsoft specific customization of GSSAPI.
 
 Described in the `Microsoft documentation <https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/e1cbe214-d73b-4c58-aad2-bee399ccdfb8>`_ and :rfc:`4178`
 
-OTP
----
-
-OTP is the One-Time Password system described in :rfc:`2289`.
-This mechanism is secure against replay attacks and also avoids storing password or password equivalents on the server.
-Only a digest of a seed and a passphrase is ever transmitted across the network.
-
-  * OTP-MD4
-  * OTP-MD5
-  * OTP-SHA1
-
-.. todo::
-   Content needed here
 
 .. _MECH-PLAIN:
 
@@ -118,8 +105,6 @@ of the mechanisms provided by the Cyrus SASL Library.
 | GSSAPI      | 56      | X       | X        |        |         | X      | X    | X      | X         |              |          | X     | X    |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 | GSS-SPNEGO  | 56      | X       | X        |        |         | X      | X    | X      | X         |              |          | X     |      | X    |
-+-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
-| OTP         | 0       | X       |          |        | X       | X      |      |        | X         |              |          | X     |      |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 | PLAIN       | 0       |         |          |        |         | X      | X    |        | X         |              |          | X     |      |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+

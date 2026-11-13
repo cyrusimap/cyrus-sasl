@@ -288,7 +288,6 @@ class Gs2Client(SaslTestCase):
         self.assertTrue(peer.ctx.complete)
         self.assertOk(r)
 
-    @known_bug("S7", "client sends n instead of y when only one mechanism is listed")
     @spec("RFC 5801", "5", "MUST NOT",
           "client that supports binding MUST NOT send n when the server appears not to")
     def test_y_with_single_mechanism(self):

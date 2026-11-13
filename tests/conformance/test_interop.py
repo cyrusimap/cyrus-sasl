@@ -1,6 +1,6 @@
 """SCRAM interoperability with an independent implementation (scramp).
 
-scramp (https://github.com/tlocke/scramp) is a separate Python SCRAM
+scramp (https://codeberg.org/tlocke/scramp) is a separate Python SCRAM
 implementation that applies SASLprep, so it gives a second opinion on the
 protocol beyond this suite's own SCRAM peer.  Its client runs against the
 library's server and its server against the library's client, for each

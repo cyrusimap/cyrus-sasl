@@ -12,7 +12,22 @@ ANONYMOUS
 
 This mechanism does not require the client to authenticate or provide any information.
 
-Defined in :rfc:`2245`
+Defined in :rfc:`4505`
+
+The client may send optional trace information, which the server can log.
+The Cyrus SASL client sends whatever the application supplies through the
+``SASL_CB_USER`` callback, unchanged, and nothing if it supplies none. :rfc:`4505`
+asks that an email address or anything else identifying the user only be sent
+with the user's permission.
+
+**ANONYMOUS is enabled whenever its plugin is installed.** :rfc:`4505` says it
+should be disabled by default, since it lets anyone log in. To turn it off:
+
+* in the application, set ``SASL_SEC_NOANONYMOUS`` in the security properties
+  (``sasl_setprop()`` with ``SASL_SEC_PROPS``);
+* in the configuration, list the mechanisms you want in :option:`mech_list`,
+  leaving out ANONYMOUS; or
+* don't install the ANONYMOUS plugin (``libanonymous``).
 
 EXTERNAL
 --------

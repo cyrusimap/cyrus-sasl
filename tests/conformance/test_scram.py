@@ -424,9 +424,12 @@ class ScramVariants(SuccessDataMixin, SaslTestCase):
     def test_sha256(self):
         self.run_variant("SCRAM-SHA-256")
 
-    @spec("RFC 5802", "5", "INTEROP", "SCRAM-SHA-224 follows the RFC 5802 construction")
-    def test_sha224(self):
-        self.run_variant("SCRAM-SHA-224")
+    @spec("RFC 5802", "10", "MUST",
+          "SCRAM-SHA-224 isn't registered with IANA, and isn't offered")
+    def test_sha224_not_offered(self):
+        server = self.server(MECH, users=USERS)
+        self.assertNotIn("SCRAM-SHA-224", server.mechs)
+        self.assertNotIn("SCRAM-SHA-224-PLUS", server.mechs)
 
     @spec("RFC 5802", "5", "INTEROP", "SCRAM-SHA-384 follows the RFC 5802 construction")
     def test_sha384(self):

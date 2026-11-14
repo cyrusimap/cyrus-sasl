@@ -72,10 +72,15 @@ Salted Challenge Response Authentication Mechanism (SCRAM) is a family of modern
 Defined in :rfc:`5802`
 
   * SCRAM-SHA-1(-PLUS)
-  * SCRAM-SHA-224(-PLUS)
   * SCRAM-SHA-256(-PLUS) (:rfc:`7677`)
   * SCRAM-SHA-384(-PLUS)
   * SCRAM-SHA-512(-PLUS)
+
+Only SCRAM-SHA-1 and SCRAM-SHA-256 (and their -PLUS forms) are registered
+with IANA, which :rfc:`5802` requires of each SCRAM mechanism.
+SCRAM-SHA-384 and SCRAM-SHA-512 follow the same construction and are
+offered for interoperability with other implementations that support them,
+but they aren't registered and have no GSS-API OID.
 
 Non-SASL Authentication
 -----------------------

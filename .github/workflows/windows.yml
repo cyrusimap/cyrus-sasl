@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   # The autoconf build, as MinGW users build it.  It uses the library's
-  # HAVE_NT_THREADS code.
+  # HAVE_NT_THREADS code, which t_initrace exercises.
   mingw:
     name: MinGW (UCRT64)
     runs-on: windows-latest
@@ -51,11 +51,20 @@ jobs:
             --with-dblib=none --without-saslauthd \
             --without-authdaemond --without-pam --disable-sample
 
+      # tests/ holds POSIX-only GSSAPI test programs; build everything else.
       - name: Build
-        run: make -j"$(nproc)"
+        run: make -j"$(nproc)" SUBDIRS="include sasldb common lib plugins utils"
 
+      # The rest of the test suite needs sockets, socket_wrapper and a KDC.
       - name: Test
-        run: make check
+        run: |
+          if ! grep -q '^t_initrace' tests/Makefile; then
+            echo "No Windows tests on this branch"
+            exit 0
+          fi
+          make -C tests t_initrace
+          cd tests
+          T_PLUGINDIR="$(cygpath -m "$PWD/../plugins/.libs")" ./t_initrace
 
       - name: Upload test logs
         if: failure()

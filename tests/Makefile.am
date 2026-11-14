@@ -79,6 +79,6 @@ check:
 if MACOSX
 # skip Mac OSX for now
 else
-	./t_initrace || test $$? -eq 77
+	T_PLUGINDIR=$(abs_top_builddir)/plugins/.libs ./t_initrace || test $$? -eq 77
 	$(srcdir)/runtests.py $(CHECKARGS)
 endif

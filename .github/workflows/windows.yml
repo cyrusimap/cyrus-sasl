@@ -18,6 +18,10 @@ jobs:
     defaults:
       run:
         shell: msys2 {0}
+    env:
+      # MSYS would turn these into Windows paths with backslashes, which
+      # aren't valid inside the C string literals they define.
+      MSYS2_ARG_CONV_EXCL: "-DCONFIGDIR=;-DPLUGINDIR="
 
     steps:
       - name: Don't convert line endings
@@ -37,7 +41,9 @@ jobs:
       - name: Configure
         run: |
           NOCONFIGURE=1 ./autogen.sh
-          ./configure --with-dblib=none --without-saslauthd \
+          # The Windows code expects UNICODE, as the MSVC projects set it.
+          ./configure CPPFLAGS="-DUNICODE -D_UNICODE" \
+            --with-dblib=none --without-saslauthd \
             --without-authdaemond --without-pam
 
       - name: Build

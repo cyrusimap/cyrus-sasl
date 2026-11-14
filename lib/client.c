@@ -79,12 +79,7 @@ int sasl_client_done(void)
 {
     int result = SASL_CONTINUE;
 
-    if (_sasl_init_lock() != SASL_OK) {
-	return SASL_FAIL;
-    }
-
     if (_sasl_server_cleanup_hook == NULL && _sasl_client_cleanup_hook == NULL) {
-	_sasl_init_unlock();
 	return SASL_NOTINIT;
     }
 
@@ -95,18 +90,14 @@ int sasl_client_done(void)
 	    _sasl_client_idle_hook = NULL;	
 	    _sasl_client_cleanup_hook = NULL;
 	} else {
-	    _sasl_init_unlock();
 	    return result;
 	}
     }
     
     if (_sasl_server_cleanup_hook || _sasl_client_cleanup_hook) {
-	_sasl_init_unlock();
 	return result;
     }
-
-    /* sasl_common_done() frees the init lock itself */
-    _sasl_init_unlock();
+    
     sasl_common_done();
 
     return SASL_OK;
@@ -285,8 +276,7 @@ client_idle(sasl_conn_t *conn)
  *  ...
  */
 
-/* Called with the init lock held, when the client side isn't active. */
-static int client_init(const sasl_callback_t *callbacks)
+int sasl_client_init(const sasl_callback_t *callbacks)
 {
   int ret;
   const add_plugin_list_t ep_list[] = {
@@ -294,6 +284,16 @@ static int client_init(const sasl_callback_t *callbacks)
       { "sasl_canonuser_init", (add_plugin_t *)sasl_canonuser_add_plugin },
       { NULL, NULL }
   };
+
+  /* lock allocation type */
+  _sasl_allocation_locked++;
+  
+  if(_sasl_client_active) {
+      /* We're already active, just increase our refcount */
+      /* xxx do something with the callback structure? */
+      _sasl_client_active++;
+      return SASL_OK;
+  }
 
   global_callbacks_client.callbacks = callbacks;
   global_callbacks_client.appname = NULL;
@@ -329,33 +329,6 @@ static int client_init(const sasl_callback_t *callbacks)
       client_done();
   }
       
-  return ret;
-}
-
-int sasl_client_init(const sasl_callback_t *callbacks)
-{
-  int ret;
-
-  /* Hold the init lock until initialization has finished, so that a
-     concurrent caller waits for it instead of using a partly
-     initialized library. */
-  ret = _sasl_init_lock();
-  if (ret != SASL_OK)
-      return ret;
-
-  /* lock allocation type */
-  _sasl_allocation_locked++;
-
-  if (_sasl_client_active) {
-      /* We're already active, just increase our refcount.  The first
-         caller's callbacks stay in effect. */
-      _sasl_client_active++;
-      ret = SASL_OK;
-  } else {
-      ret = client_init(callbacks);
-  }
-
-  _sasl_init_unlock();
   return ret;
 }
 

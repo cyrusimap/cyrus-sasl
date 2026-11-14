@@ -385,8 +385,6 @@ extern const sasl_callback_t *
 _sasl_find_verifyfile_callback(const sasl_callback_t *callbacks);
 
 extern int _sasl_common_init(sasl_global_callbacks_t *global_callbacks);
-extern int _sasl_init_lock(void);
-extern void _sasl_init_unlock(void);
 
 extern int _sasl_conn_init(sasl_conn_t *conn,
 			   const char *service,

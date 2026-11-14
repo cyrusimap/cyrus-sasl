@@ -134,11 +134,8 @@ static int _sasl_global_getopt(void *context,
 			       const char ** result,
 			       unsigned *len);
  
-#if defined(HAVE_PTHREAD)
+#ifdef HAVE_PTHREAD
 static pthread_mutex_t static_mutex = PTHREAD_MUTEX_INITIALIZER;
-#elif defined(HAVE_NT_THREADS)
-/* Created once and never closed, like static_mutex above. */
-static HANDLE static_mutex = NULL;
 #endif
 
 static void *sasl_mutex_alloc(void)
@@ -221,58 +218,13 @@ void _sasl_mutex_init(void)
 #if defined(HAVE_PTHREAD)
     free_mutex = &static_mutex;
 #elif defined(HAVE_NT_THREADS)
-    if (!static_mutex) {
-	HANDLE p = CreateMutex(NULL, 0, NULL);
-	if (InterlockedCompareExchangePointer((PVOID*)&static_mutex, (PVOID)p, NULL) != NULL)
-	    CloseHandle(p);
-    }
-    free_mutex = static_mutex;
+    HANDLE p = CreateMutex(NULL, 0, NULL);
+    if (InterlockedCompareExchangePointer((PVOID*)&free_mutex, (PVOID)p, NULL) != NULL)
+	CloseHandle(p);
 #else
     free_mutex = _sasl_mutex_utils.alloc();
 #endif
     return;
-}
-
-/*
- * Serialize library initialization and teardown.  sasl_server_init() and
- * sasl_client_init() hold this lock until they have finished (or undone)
- * loading plugins, so a concurrent caller can't see a half-initialized
- * library; the *_done() functions hold it while they change the refcounts.
- */
-int _sasl_init_lock(void)
-{
-#ifdef HAVE_PTHREAD
-    if (_sasl_mutex_utils.alloc == &sasl_mutex_alloc) {
-	/* The default mutex is static, so take it before touching
-	   free_mutex, which another caller may be setting too. */
-	if (pthread_mutex_lock(&static_mutex)) return SASL_FAIL;
-	free_mutex = &static_mutex;
-	return SASL_OK;
-    }
-#endif
-
-    if (!free_mutex) {
-	_sasl_mutex_init();
-	if (!free_mutex) {
-	    return SASL_FAIL;
-	}
-    }
-
-    return sasl_MUTEX_LOCK(free_mutex) == SASL_OK ? SASL_OK : SASL_FAIL;
-}
-
-void _sasl_init_unlock(void)
-{
-#ifdef HAVE_PTHREAD
-    if (_sasl_mutex_utils.alloc == &sasl_mutex_alloc) {
-	pthread_mutex_unlock(&static_mutex);
-	return;
-    }
-#endif
-
-    if (free_mutex) {
-	sasl_MUTEX_UNLOCK(free_mutex);
-    }
 }
 
 /* copy a string to malloced memory */
@@ -787,15 +739,7 @@ void sasl_common_done(void)
     _sasl_done_with_plugins();
     
     if (free_mutex) {
-#if defined(HAVE_PTHREAD)
-      /* The default mutex is static: destroying it would make the next
-         sasl_*_init() fail to lock it. */
-      if (free_mutex != &static_mutex)
-#elif defined(HAVE_NT_THREADS)
-      /* Likewise, and a concurrent sasl_*_init() may be waiting on it. */
-      if (free_mutex != static_mutex)
-#endif
-	  sasl_MUTEX_FREE(free_mutex);
+      sasl_MUTEX_FREE(free_mutex);
       free_mutex = NULL;
     }
     
@@ -810,10 +754,6 @@ void sasl_common_done(void)
 /* This function is for backward compatibility */
 void sasl_done(void)
 {
-    int done;
-
-    if (_sasl_init_lock() != SASL_OK) return;
-
     if (_sasl_server_cleanup_hook && _sasl_server_cleanup_hook() == SASL_OK) {
 	_sasl_server_idle_hook = NULL;
 	_sasl_server_cleanup_hook = NULL;
@@ -824,13 +764,11 @@ void sasl_done(void)
 	_sasl_client_cleanup_hook = NULL;
     }
     
-    done = !_sasl_server_cleanup_hook && !_sasl_client_cleanup_hook;
-    _sasl_init_unlock();
-
-    /* sasl_common_done() frees the init lock itself */
-    if (done) {
-	sasl_common_done();
+    if (_sasl_server_cleanup_hook || _sasl_client_cleanup_hook) {
+	return;
     }
+
+    sasl_common_done();
 }
 
 /* fills in the base sasl_conn_t info */
@@ -911,10 +849,19 @@ int _sasl_conn_init(sasl_conn_t *conn,
   RETURN_VAL(conn, SASL_OK);
 }
 
-/* The caller must hold the init lock (_sasl_init_lock). */
 int _sasl_common_init(sasl_global_callbacks_t *global_callbacks)
 {
     int result;
+
+    if (!free_mutex) {
+	_sasl_mutex_init();
+	if (!free_mutex) {
+	    return SASL_FAIL;
+	}
+    }
+
+    result = sasl_MUTEX_LOCK(free_mutex);
+    if (result != SASL_OK) return SASL_FAIL;
 
     /* Just update global callback if we are already initialized */
     if (sasl_global_utils) {
@@ -922,10 +869,12 @@ int _sasl_common_init(sasl_global_callbacks_t *global_callbacks)
 	global_utils->getopt = &_sasl_global_getopt;
 	global_utils->getopt_context = global_callbacks;
 
+	sasl_MUTEX_UNLOCK(free_mutex);
 	return SASL_OK;
     } else {
 	sasl_global_utils = _sasl_alloc_utils(NULL, global_callbacks);
 	if (sasl_global_utils == NULL) {
+	    sasl_MUTEX_UNLOCK(free_mutex);
 	    return SASL_NOMEM;
 	}
     }
@@ -936,6 +885,7 @@ int _sasl_common_init(sasl_global_callbacks_t *global_callbacks)
 	result = SASL_FAIL;
     }
 
+    sasl_MUTEX_UNLOCK(free_mutex);
     return result;
 }
 
@@ -944,12 +894,20 @@ int _sasl_common_init(sasl_global_callbacks_t *global_callbacks)
  */
 void sasl_dispose(sasl_conn_t **pconn)
 {
+  int result;
+
   if (! pconn) return;
   if (! *pconn) return;
 
   /* serialize disposes. this is necessary because we can't
      dispose of conn->mutex if someone else is locked on it */
-  if (_sasl_init_lock() != SASL_OK) return;
+  if (!free_mutex) {
+      _sasl_mutex_init();
+      if (!free_mutex) return;
+  }
+
+  result = sasl_MUTEX_LOCK(free_mutex);
+  if (result!=SASL_OK) return;
   
   /* *pconn might have become NULL by now */
   if (*pconn) {
@@ -958,7 +916,7 @@ void sasl_dispose(sasl_conn_t **pconn)
       *pconn=NULL;
   }
 
-  _sasl_init_unlock();
+  sasl_MUTEX_UNLOCK(free_mutex);
 }
 
 void _sasl_conn_dispose(sasl_conn_t *conn) {

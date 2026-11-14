@@ -503,12 +503,7 @@ int sasl_server_done(void)
 {
     int result = SASL_CONTINUE;
 
-    if (_sasl_init_lock() != SASL_OK) {
-	return SASL_FAIL;
-    }
-
     if (_sasl_server_cleanup_hook == NULL && _sasl_client_cleanup_hook == NULL) {
-	_sasl_init_unlock();
 	return SASL_NOTINIT;
     }
 
@@ -519,18 +514,14 @@ int sasl_server_done(void)
 	    _sasl_server_idle_hook = NULL;
 	    _sasl_server_cleanup_hook = NULL;
 	} else {
-	    _sasl_init_unlock();
 	    return result;
 	}
     }
     
     if (_sasl_server_cleanup_hook || _sasl_client_cleanup_hook) {
-	_sasl_init_unlock();
 	return result;
     }
-
-    /* sasl_common_done() frees the init lock itself */
-    _sasl_init_unlock();
+    
     sasl_common_done();
 
     return SASL_OK;
@@ -829,9 +820,8 @@ static int parse_mechlist_file(const char *mechlistfile)
  *  SASL_BADVERS   -- Mechanism version mismatch
  */
 
-/* Called with the init lock held, when the server side isn't active. */
-static int server_init(const sasl_callback_t *callbacks,
-		       const char *appname)
+int sasl_server_init(const sasl_callback_t *callbacks,
+		     const char *appname)
 {
     int ret;
     const sasl_callback_t *vf;
@@ -848,6 +838,20 @@ static int server_init(const sasl_callback_t *callbacks,
 	{ NULL, NULL }
     };
 
+    /* lock allocation type */
+    _sasl_allocation_locked++;
+
+    /* we require the appname (if present) to be short enough to be a path */
+    if (appname != NULL && strlen(appname) >= PATH_MAX)
+	return SASL_BADPARAM;
+
+    if (_sasl_server_active) {
+	/* We're already active, just increase our refcount */
+	/* xxx do something with the callback structure? */
+	_sasl_server_active++;
+	return SASL_OK;
+    }
+    
     ret = _sasl_common_init(&global_callbacks);
     if (ret != SASL_OK)
 	return ret;
@@ -936,38 +940,6 @@ static int server_init(const sasl_callback_t *callbacks,
 	server_done();
     }
 
-    return ret;
-}
-
-int sasl_server_init(const sasl_callback_t *callbacks,
-		     const char *appname)
-{
-    int ret;
-
-    /* we require the appname (if present) to be short enough to be a path */
-    if (appname != NULL && strlen(appname) >= PATH_MAX)
-	return SASL_BADPARAM;
-
-    /* Hold the init lock until initialization has finished, so that a
-       concurrent caller waits for it instead of using a partly
-       initialized library. */
-    ret = _sasl_init_lock();
-    if (ret != SASL_OK)
-	return ret;
-
-    /* lock allocation type */
-    _sasl_allocation_locked++;
-
-    if (_sasl_server_active) {
-	/* We're already active, just increase our refcount.  The first
-	   caller's callbacks and appname stay in effect. */
-	_sasl_server_active++;
-	ret = SASL_OK;
-    } else {
-	ret = server_init(callbacks, appname);
-    }
-
-    _sasl_init_unlock();
     return ret;
 }
 

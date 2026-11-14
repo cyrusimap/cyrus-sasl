@@ -13,10 +13,14 @@ import os
 
 import unittest
 
-from sasltest import (SANITIZED, SaslTestCase, Scram, b64, known_bug,
-                      parse_attrs, saslprep, scram_escape, spec, unb64)
+from sasltest import (SANITIZED, SaslTestCase, Scram, b64, config_defined,
+                      known_bug, parse_attrs, saslprep, scram_escape, spec,
+                      unb64)
 
 MECH = "SCRAM-SHA-256"
+# Built with ICU: the "saslprep" option defaults to full SASLprep ("icu").
+# Without it the default is "raw", the old, non-conforming behaviour.
+ICU = config_defined("HAVE_ICU")
 USER = "alice"
 PASSWORD = "pencil"
 USERS = {USER: PASSWORD, "bob": "hunter2"}
@@ -659,7 +663,8 @@ class ScramSaslprep(SaslTestCase):
         super().setUp()
         self.require_mech(MECH)
 
-    @known_bug("I2", "no SASLprep and non-ASCII isn't refused")
+    @known_bug("I2", "no SASLprep and non-ASCII isn't refused (built without ICU)",
+               only_if=not ICU)
     @spec("RFC 5802", "2.2", "MUST",
           "implement SASLprep or disallow non-US-ASCII; a raw proof can't match either")
     def test_server_rejects_unprepared_proof(self):
@@ -673,7 +678,8 @@ class ScramSaslprep(SaslTestCase):
             r = p.final()
         self.assertFailed(r, "proof over the unprepared password was accepted")
 
-    @known_bug("I2", "no SASLprep and non-ASCII isn't refused")
+    @known_bug("I2", "no SASLprep and non-ASCII isn't refused (built without ICU)",
+               only_if=not ICU)
     @spec("RFC 5802", "2.2", "MUST",
           "client implements SASLprep or disallows non-US-ASCII in the password")
     def test_client_prepares_password(self):
@@ -695,7 +701,8 @@ class ScramSaslprep(SaslTestCase):
         self.assertEqual(unb64(dict(parse_attrs(out))["p"]), expected,
                          "client proof isn't over the SASLprep'd password")
 
-    @known_bug("I2", "no SASLprep and non-ASCII isn't refused")
+    @known_bug("I2", "no SASLprep and non-ASCII isn't refused (built without ICU)",
+               only_if=not ICU)
     @spec("RFC 5802", "5.1", "SHOULD", "client prepares the username with SASLprep")
     def test_client_prepares_username(self):
         c = self.client(MECH, authname=UNPREPARED_USER, password=PASSWORD)
@@ -703,6 +710,115 @@ class ScramSaslprep(SaslTestCase):
             return  # refusing non-ASCII is also conforming
         n = dict(parse_attrs(c.first.out.decode()[3:]))["n"]
         self.assertEqual(n, saslprep(UNPREPARED_USER))
+
+
+class ScramSaslprepModes(SuccessDataMixin, SaslTestCase):
+    """The "saslprep" option: "icu" (SASLprep), "ascii" (refuse non-ASCII)
+    or "raw" (octets as given)."""
+
+    def setUp(self):
+        super().setUp()
+        self.require_mech(MECH)
+
+    def require_icu(self):
+        if not ICU:
+            self.skipTest("built without ICU")
+
+    def exchange(self, users, user=USER, password=PASSWORD, opts=None):
+        p = ScramPeer(self.server(MECH, users=users, opts=opts),
+                      user=user, password=password)
+        r = p.first()
+        if r.cont:
+            r = p.final()
+        return r
+
+    def client_final(self, password, opts=None):
+        """Run the library's client up to client-final."""
+        c = self.client(MECH, authname=USER, password=password, opts=opts)
+        self.assertContinue(c.first)
+        bare = c.first.out.decode()[3:]
+        cnonce = dict(parse_attrs(bare))["r"]
+        sfirst = "r=%s,s=%s,i=4096" % (cnonce + new_nonce(), b64(b"saltsaltsalt"))
+        return c.step(sfirst.encode())
+
+    # --- icu ---
+
+    @spec("RFC 5802", "2.2", "MUST",
+          "the server prepares the stored password; a proof over the "
+          "SASLprep'd password succeeds")
+    def test_icu_prepared_password_accepted(self):
+        self.require_icu()
+        r = self.exchange({USER: UNPREPARED_PASSWORD},
+                          password=saslprep(UNPREPARED_PASSWORD))
+        self.assertOk(r)
+
+    @spec("RFC 5802", "5.1", "MUST",
+          "the server prepares the username before looking it up")
+    def test_icu_username_prepared(self):
+        self.require_icu()
+        r = self.exchange({saslprep(UNPREPARED_USER): PASSWORD},
+                          user=UNPREPARED_USER)
+        self.assertOk(r)
+
+    @spec("RFC 4013", "2.3", "MUST",
+          "a username with a prohibited character is refused")
+    def test_icu_prohibited_username_refused(self):
+        self.require_icu()
+        self.assertFailed(self.exchange(USERS, user="al\u0007ice"))
+
+    @spec("RFC 4013", "2.3", "MUST",
+          "the client refuses a password with a prohibited character")
+    def test_icu_client_refuses_prohibited_password(self):
+        self.require_icu()
+        self.assertFailed(self.client_final("pen\u0007cil"))
+
+    @spec("RFC 5802", "2.2", "MUST",
+          "\"icu\" in a build without ICU fails rather than skipping SASLprep")
+    def test_icu_without_icu_fails(self):
+        if ICU:
+            self.skipTest("built with ICU")
+        self.assertFailed(self.exchange(USERS, opts={"saslprep": "icu"}))
+
+    # --- ascii ---
+
+    @spec("RFC 5802", "2.2", "MUST",
+          "\"ascii\" refuses a non-ASCII username")
+    def test_ascii_refuses_non_ascii_username(self):
+        r = self.exchange({UNPREPARED_USER: PASSWORD}, user=UNPREPARED_USER,
+                          opts={"saslprep": "ascii"})
+        self.assertFailed(r)
+
+    @spec("RFC 5802", "2.2", "MUST",
+          "\"ascii\" refuses a non-ASCII stored password")
+    def test_ascii_refuses_non_ascii_password(self):
+        r = self.exchange({USER: UNPREPARED_PASSWORD},
+                          password=UNPREPARED_PASSWORD,
+                          opts={"saslprep": "ascii"})
+        self.assertFailed(r)
+
+    @spec("RFC 5802", "2.2", "MUST",
+          "\"ascii\" makes the client refuse a non-ASCII password")
+    def test_ascii_client_refuses_non_ascii_password(self):
+        self.assertFailed(self.client_final(UNPREPARED_PASSWORD,
+                                            opts={"saslprep": "ascii"}))
+
+    @spec("RFC 5802", "2.2", "MUST", "\"ascii\" accepts ASCII input")
+    def test_ascii_accepts_ascii(self):
+        self.assertOk(self.exchange(USERS, opts={"saslprep": "ascii"}))
+
+    # --- raw and errors ---
+
+    @spec("RFC 5802", "2.2", "INTEROP",
+          "\"raw\" keeps the old behaviour: the unprepared password matches")
+    def test_raw_matches_unprepared(self):
+        r = self.exchange({USER: UNPREPARED_PASSWORD},
+                          password=UNPREPARED_PASSWORD,
+                          opts={"saslprep": "raw"})
+        self.assertOk(r)
+
+    @spec("RFC 5802", "2.2", "MUST", "an unknown \"saslprep\" value fails")
+    def test_unknown_mode_fails(self):
+        self.assertFailed(self.exchange(USERS, opts={"saslprep": "bogus"}))
 
 
 class ScramStoredSecrets(SaslTestCase):

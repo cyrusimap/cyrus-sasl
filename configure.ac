@@ -374,15 +374,61 @@ if test "$scram" != no; then
 
   SASL_MECHS="$SASL_MECHS libscram.la"
   if test "$enable_static" = yes; then
-    SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/scram.c"
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS scram.o"
+    SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/scram.c \$(top_srcdir)/common/saslprep.c"
+    SASL_STATIC_OBJS="$SASL_STATIC_OBJS scram.o saslprep.o"
     AC_DEFINE(STATIC_SCRAM, [], [Link SCRAM Statically])
   fi
-
-  AC_SUBST(SCRAM_LIBS)
 else
   AC_MSG_RESULT(disabled)
 fi
+
+dnl ICU, for SASLprep (RFC 4013) in SCRAM
+AC_ARG_WITH(icu, AS_HELP_STRING([--with-icu],
+    [use ICU for SASLprep in SCRAM (default: if found)]),
+  with_icu=$withval,
+  with_icu=auto)
+
+ICU_CFLAGS=
+ICU_LIBS=
+if test "$scram" != no && test "$with_icu" != no; then
+  AC_PATH_TOOL([PKG_CONFIG], [pkg-config])
+  if test -n "$PKG_CONFIG" && $PKG_CONFIG --exists icu-uc; then
+    ICU_CFLAGS=`$PKG_CONFIG --cflags icu-uc`
+    ICU_LIBS=`$PKG_CONFIG --libs icu-uc`
+  else
+    ICU_LIBS="-licuuc"
+  fi
+
+  AC_MSG_CHECKING([for ICU SASLprep])
+  icu_save_CPPFLAGS="$CPPFLAGS"
+  icu_save_LIBS="$LIBS"
+  CPPFLAGS="$CPPFLAGS $ICU_CFLAGS"
+  LIBS="$ICU_LIBS $LIBS"
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <unicode/usprep.h>]],
+      [[UErrorCode err = U_ZERO_ERROR;
+        usprep_close(usprep_openByType(USPREP_RFC4013_SASLPREP, &err));]])],
+    [have_icu=yes], [have_icu=no])
+  CPPFLAGS="$icu_save_CPPFLAGS"
+  LIBS="$icu_save_LIBS"
+  AC_MSG_RESULT($have_icu)
+
+  if test "$have_icu" = yes; then
+    AC_DEFINE(HAVE_ICU, 1, [Use ICU for SASLprep])
+    CPPFLAGS="$CPPFLAGS $ICU_CFLAGS"
+    SCRAM_LIBS="$SCRAM_LIBS $ICU_LIBS"
+    if test "$enable_static" = yes; then
+      SASL_STATIC_LIBS="$SASL_STATIC_LIBS $ICU_LIBS"
+    fi
+  elif test "$with_icu" = yes; then
+    AC_MSG_ERROR([--with-icu was given, but ICU (icu-uc) wasn't found])
+  else
+    ICU_LIBS=
+  fi
+fi
+if test "$scram" != no && test "$have_icu" != yes; then
+  AC_MSG_WARN([Building SCRAM without ICU: the "saslprep" option defaults to "raw", which doesn't SASLprep usernames and passwords as RFC 5802 requires])
+fi
+AC_SUBST(SCRAM_LIBS)
 
 dnl Kerberos based Mechanisms
 SASL_GSSAPI_CHK

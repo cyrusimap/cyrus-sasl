@@ -17,10 +17,11 @@ jobs:
       matrix:
         include:
           # No sasldb backend or Kerberos tools: runtests.py groups that
-          # need them must be skipped, not crash.
+          # need them must be skipped, not crash.  No ICU: SCRAM's
+          # "saslprep" option defaults to "raw".
           - name: minimal
             packages: ""
-            configure: ""
+            configure: --without-icu
             checkargs: ""
           # Everything installed: every test group must run (--no-skip),
           # and the GSSAPI/GS2 conformance tests run against their own KDC.
@@ -29,7 +30,8 @@ jobs:
               liblmdb-dev libkrb5-dev krb5-kdc krb5-admin-server
               libsocket-wrapper libnss-wrapper python3-gssapi
               python3-openssl python3-cryptography python3-scramp
-            configure: --with-dblib=lmdb
+              libicu-dev
+            configure: --with-dblib=lmdb --with-icu
             checkargs: --no-skip
           # AddressSanitizer and UndefinedBehaviorSanitizer: any report
           # fails the conformance test that triggered it.
@@ -37,8 +39,8 @@ jobs:
             packages: >-
               liblmdb-dev libkrb5-dev krb5-kdc krb5-admin-server
               python3-gssapi python3-openssl python3-cryptography
-              python3-scramp
-            configure: --with-dblib=lmdb --enable-sanitizers
+              python3-scramp libicu-dev
+            configure: --with-dblib=lmdb --enable-sanitizers --with-icu
             checkargs: ""
 
     steps:

@@ -58,6 +58,7 @@
 #include <saslutil.h>
 
 #include "plugin_common.h"
+#include "saslprep.h"
 
 #ifdef macintosh
 #include <sasl_scram_plugin_decl.h>
@@ -137,6 +138,9 @@ scram_sasl_mech_name(size_t hash_size)
 
     return NULL;
 }
+
+/* Plugin name used to look up the "saslprep" option */
+#define SASLPREP_PLUGIN_NAME "SCRAM"
 
 /* Convert saslname = 1*(value-safe-char / "=2C" / "=3D") in place.
    Returns SASL_FAIL if the encoding is invalid, otherwise SASL_OK */
@@ -390,11 +394,26 @@ GenerateScramSecrets (const sasl_utils_t * utils,
     char SaltedPassword[EVP_MAX_MD_SIZE];
     char ClientKey[EVP_MAX_MD_SIZE];
     sasl_secret_t *sec = NULL;
+    char *prepared = NULL;
+    size_t prepared_len = 0;
     unsigned int hash_len = 0;
     int result;
     size_t hash_size = EVP_MD_size(md);
 
     *error_text = NULL;
+
+    /* SaltedPassword := Hi(Normalize(password), salt, i) */
+    result = _plug_saslprep(utils, SASLPREP_PLUGIN_NAME, password, password_len,
+			    &prepared, &prepared_len);
+    if (result != SASL_OK) {
+	if (result == SASL_BADPROT) {
+	    *error_text = "password is not allowed by SASLprep";
+	    result = SASL_FAIL;
+	}
+	goto cleanup;
+    }
+    password = prepared;
+    password_len = prepared_len;
 
     if (password_len == 0) {
 	*error_text = "empty secret";
@@ -459,6 +478,10 @@ GenerateScramSecrets (const sasl_utils_t * utils,
     result = SASL_OK;
 
 cleanup:
+    if (prepared) {
+	utils->erasebuffer(prepared, (unsigned) prepared_len);
+	utils->free(prepared);
+    }
     if (sec) {
 	_plug_free_secret(utils, &sec);
     }
@@ -748,7 +771,22 @@ scram_server_mech_step1(server_context_t *text,
 	goto cleanup;
     }
 
-    _plug_strdup(sparams->utils, authentication_id, &text->authentication_id, NULL);
+    {
+	size_t len;
+
+	/* RFC 5802 section 5.1: the username is prepared with SASLprep */
+	result = _plug_saslprep(sparams->utils, SASLPREP_PLUGIN_NAME, authentication_id,
+				strlen(authentication_id),
+				&text->authentication_id, &len);
+	if (result == SASL_BADPROT) {
+	    sparams->utils->seterror(sparams->utils->conn, 0,
+				     "Username in %s input is not allowed by SASLprep",
+				     scram_sasl_mech);
+	}
+	if (result != SASL_OK) {
+	    goto cleanup;
+	}
+    }
 
     if (strncmp(p, "r=", 2) != 0) {
 	sparams->utils->seterror(sparams->utils->conn, 0,
@@ -2099,6 +2137,7 @@ scram_client_mech_step1(client_context_t *text,
     char * encoded_authcid;
     char * freeme = NULL;
     char * freeme2 = NULL;
+    char * prepared_authcid = NULL;
     char channel_binding_state = 'n';
     const char * channel_binding_name = NULL;
     char * encoded_authorization_id = NULL;
@@ -2259,7 +2298,23 @@ scram_client_mech_step1(client_context_t *text,
 	}
     }
 
-    result = encode_saslname (oparams->authid,
+    {
+	size_t len;
+
+	/* RFC 5802 section 5.1: the username is prepared with SASLprep */
+	result = _plug_saslprep(params->utils, SASLPREP_PLUGIN_NAME, oparams->authid,
+				strlen(oparams->authid), &prepared_authcid, &len);
+	if (result == SASL_BADPROT) {
+	    params->utils->seterror(params->utils->conn, 0,
+				    "Username is not allowed by SASLprep");
+	    result = SASL_BADPARAM;
+	}
+	if (result != SASL_OK) {
+	    goto cleanup;
+	}
+    }
+
+    result = encode_saslname (prepared_authcid,
 			      (const char **) &encoded_authcid,
 			      &freeme);
     if (result != SASL_OK) {
@@ -2323,6 +2378,7 @@ scram_client_mech_step1(client_context_t *text,
 cleanup:
     if (freeme != NULL) _plug_free_string(params->utils, &freeme);
     if (freeme2 != NULL) _plug_free_string(params->utils, &freeme2);
+    if (prepared_authcid != NULL) params->utils->free(prepared_authcid);
 
     return result;
 }
@@ -2649,15 +2705,35 @@ scram_client_mech_step2(client_context_t *text,
 
     /* Calculate ClientProof */
 
-    /* SaltedPassword  := Hi(password, salt) */
-    Hi (params->utils,
-        text->md,
-	(const char *) text->password->data,
-	text->password->len,
-	text->salt,
-	text->salt_len,
-	text->iteration_count,
-	text->SaltedPassword);
+    /* SaltedPassword  := Hi(Normalize(password), salt) */
+    {
+	char *prepared = NULL;
+	size_t prepared_len = 0;
+
+	result = _plug_saslprep(params->utils, SASLPREP_PLUGIN_NAME,
+				(const char *) text->password->data,
+				text->password->len, &prepared, &prepared_len);
+	if (result == SASL_BADPROT) {
+	    params->utils->seterror(params->utils->conn, 0,
+				    "Password is not allowed by SASLprep");
+	    result = SASL_BADPARAM;
+	}
+	if (result != SASL_OK) {
+	    goto cleanup;
+	}
+
+	Hi (params->utils,
+	    text->md,
+	    prepared,
+	    prepared_len,
+	    text->salt,
+	    text->salt_len,
+	    text->iteration_count,
+	    text->SaltedPassword);
+
+	params->utils->erasebuffer(prepared, (unsigned) prepared_len);
+	params->utils->free(prepared);
+    }
 
     PRINT_HASH ("SaltedPassword", text->SaltedPassword, hash_size);
 

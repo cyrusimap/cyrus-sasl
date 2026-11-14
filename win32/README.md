@@ -45,13 +45,13 @@ something like this
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>C:\path\to\openssl\install\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libeay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup />
 </Project>
 ```
-In any case it's required to point to the correct name of the OpenSSL library (see libeay32.lib).
+In any case it's required to point to the correct name of the OpenSSL library (see libcrypto.lib).
 Also make sure previous values are preserved by including `%(something)` as in the example above.
 
 ---

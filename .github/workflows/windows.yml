@@ -62,7 +62,7 @@ jobs:
             echo "No Windows tests on this branch"
             exit 0
           fi
-          make -C tests t_initrace
+          make -C tests t_initrace.exe
           cd tests
           T_PLUGINDIR="$(cygpath -m "$PWD/../plugins/.libs")" ./t_initrace
 

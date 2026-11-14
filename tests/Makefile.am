@@ -72,11 +72,15 @@ t_cli_SOURCES = \
 
 t_cli_LDADD = $(COMMON_LDADD)
 
+t_initrace_SOURCES = t_initrace.c
+t_initrace_LDADD = $(COMMON_LDADD)
+
 check_PROGRAMS = \
 	t_gssapi_cli \
 	t_gssapi_srv \
 	t_srv \
 	t_cli \
+	t_initrace \
 	$(NULL)
 
 noinst_PROGRAMS = $(check_PROGRAMS)
@@ -122,5 +126,6 @@ check: check-conformance
 if MACOSX
 # skip Mac OSX for now
 else
+	T_PLUGINDIR=$(abs_top_builddir)/plugins/.libs ./t_initrace || test $$? -eq 77
 	$(srcdir)/runtests.py $(CHECKARGS)
 endif

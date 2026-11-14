@@ -100,6 +100,26 @@ class GssapiServer(SaslTestCase):
         self.assertOk(r)
         return peer, r
 
+    # --- mechanism names ---
+
+    @spec("RFC 4752", "5", "INTEROP",
+          "GSSAPI defines no channel binding, so no GSSAPI-PLUS or "
+          "GSS-SPNEGO-PLUS is offered (neither is a registered mechanism)")
+    def test_no_plus_variant_offered(self):
+        s = self.gss_server(cbinding=("tls-unique", b"\x01" * 12))
+        self.assertIn("GSSAPI", s.mechs)
+        self.assertNotIn("GSSAPI-PLUS", s.mechs)
+        self.assertNotIn("GSS-SPNEGO-PLUS", s.mechs)
+
+    @spec("RFC 5801", "4", "MUST",
+          "GS2-KRB5-PLUS, the registered way to bind Kerberos to the channel, "
+          "is still offered")
+    def test_gs2_plus_still_offered(self):
+        s = self.gss_server(cbinding=("tls-unique", b"\x01" * 12))
+        if "GS2-KRB5" not in s.mechs:
+            self.skipTest("GS2-KRB5 not available")
+        self.assertIn("GS2-KRB5-PLUS", s.mechs)
+
     # --- authentication ---
 
     @spec("RFC 4752", "3.2", "MUST", "server authenticates a Kerberos V5 client")

@@ -1880,8 +1880,7 @@ static sasl_server_plug_t gssapi_server_plugins[] =
 	| SASL_SEC_PASS_CREDENTIALS,
 	SASL_FEAT_WANT_CLIENT_FIRST
 	| SASL_FEAT_ALLOWS_PROXY
-	| SASL_FEAT_DONTUSE_USERPASSWD
-	| SASL_FEAT_CHANNEL_BINDING,	/* features */
+	| SASL_FEAT_DONTUSE_USERPASSWD,	/* features */
 	NULL,				/* glob_context */
 	&gssapi_server_mech_new,	/* mech_new */
 	&gssapi_server_mech_step,	/* mech_step */
@@ -1905,7 +1904,6 @@ static sasl_server_plug_t gssapi_server_plugins[] =
 	SASL_FEAT_WANT_CLIENT_FIRST
 	| SASL_FEAT_ALLOWS_PROXY
 	| SASL_FEAT_DONTUSE_USERPASSWD
-	| SASL_FEAT_CHANNEL_BINDING
 	| SASL_FEAT_SUPPORTS_HTTP,	/* features */
 	&gss_spnego_oid,		/* glob_context */
 	&gssapi_server_mech_new,	/* mech_new */
@@ -2629,8 +2627,7 @@ static sasl_client_plug_t gssapi_client_plugins[] =
 	| SASL_SEC_PASS_CREDENTIALS,    /* security_flags */
 	SASL_FEAT_NEEDSERVERFQDN
 	| SASL_FEAT_WANT_CLIENT_FIRST
-	| SASL_FEAT_ALLOWS_PROXY
-	| SASL_FEAT_CHANNEL_BINDING,	/* features */
+	| SASL_FEAT_ALLOWS_PROXY,	/* features */
 	gssapi_required_prompts,	/* required_prompts */
 	GSS_C_NO_OID,			/* glob_context */
 	&gssapi_client_mech_new,	/* mech_new */
@@ -2653,7 +2650,6 @@ static sasl_client_plug_t gssapi_client_plugins[] =
 	SASL_FEAT_NEEDSERVERFQDN
 	| SASL_FEAT_WANT_CLIENT_FIRST
 	| SASL_FEAT_ALLOWS_PROXY
-	| SASL_FEAT_CHANNEL_BINDING
 	| SASL_FEAT_SUPPORTS_HTTP,	/* features */
 	gssapi_required_prompts,	/* required_prompts */
 	&gss_spnego_oid,		/* glob_context */

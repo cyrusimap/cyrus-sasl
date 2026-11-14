@@ -291,8 +291,11 @@ anonymous_client_mech_step(void *conn_context,
 	return SASL_INTERACT;
     }
     
-    if (!user || !*user) {
-	user = anonymous_id;
+    /* RFC 4505: the trace is optional, and identifying information should
+       only be sent with the user's permission.  Send the application's
+       trace as given, or none. */
+    if (!user) {
+	user = "";
     }
     userlen = strlen(user);
     
@@ -301,19 +304,15 @@ anonymous_client_mech_step(void *conn_context,
 				 SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
     if (result != SASL_OK) return result;
     
-    *clientoutlen = (unsigned) (userlen + cparams->clen + 1);
-    
     result = _plug_buf_alloc(cparams->utils, &text->out_buf,
-			     &text->out_buf_len, *clientoutlen);
+			     &text->out_buf_len, (unsigned) userlen + 1);
     
     if (result != SASL_OK) return result;
     
-    strcpy(text->out_buf, user);
-    text->out_buf[userlen] = '@';
-    /* use memcpy() instead of strcpy() so we don't add the NUL */
-    memcpy(text->out_buf + userlen + 1, cparams->clientFQDN, cparams->clen);
+    memcpy(text->out_buf, user, userlen + 1);
     
     *clientout = text->out_buf;
+    *clientoutlen = (unsigned) userlen;
     
     /* set oparams */
     oparams->doneflag = 1;

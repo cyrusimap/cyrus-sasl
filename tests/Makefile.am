@@ -58,9 +58,13 @@ t_gssapi_srv_SOURCES = \
 
 t_gssapi_srv_LDADD = $(COMMON_LDADD)
 
+t_initrace_SOURCES = t_initrace.c
+t_initrace_LDADD = $(COMMON_LDADD)
+
 check_PROGRAMS = \
 	t_gssapi_cli \
 	t_gssapi_srv \
+	t_initrace \
 	$(NULL)
 
 noinst_PROGRAMS = $(check_PROGRAMS)
@@ -75,5 +79,6 @@ check:
 if MACOSX
 # skip Mac OSX for now
 else
+	./t_initrace || test $$? -eq 77
 	$(srcdir)/runtests.py $(CHECKARGS)
 endif

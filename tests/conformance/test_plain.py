@@ -123,6 +123,16 @@ class PlainServer(SaslTestCase):
         self.assertEqual(r.user, b"alice")
 
 
+    @spec("RFC 4422", "3.3", "MUST",
+          "a NULL step is an empty response, not a missing one")
+    def test_null_step_same_as_empty(self):
+        for response in (None, b""):
+            with self.subTest(response=response):
+                s = self.server("PLAIN", users=USERS)
+                self.assertContinue(s.start(None))
+                self.assertFailed(s.step(response))
+
+
 class PlainClient(SaslTestCase):
 
     def setUp(self):

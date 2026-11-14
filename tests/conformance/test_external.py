@@ -87,6 +87,15 @@ class ExternalServer(SaslTestCase):
         self.assertOk(r)
         self.assertEqual(r.user, b"alice")
 
+    @spec("RFC 4422", "3.3", "MUST",
+          "a step carries the client's response; NULL for an empty one completes")
+    def test_null_step_after_empty_challenge(self):
+        s = self.ext_server()
+        self.assertContinue(s.start(None))
+        r = s.step(None)
+        self.assertOk(r, "a NULL (empty) response got another challenge")
+        self.assertEqual(r.user, b"alice")
+
 
 class ExternalClient(SaslTestCase):
 

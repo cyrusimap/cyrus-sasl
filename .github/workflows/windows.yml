@@ -42,7 +42,10 @@ jobs:
         run: |
           NOCONFIGURE=1 ./autogen.sh
           # The Windows code expects UNICODE, as the MSVC projects set it.
+          # It mixes char and TCHAR pointers, which MSVC only warns about
+          # but GCC 14 rejects.
           ./configure CPPFLAGS="-DUNICODE -D_UNICODE" \
+            CFLAGS="-g -O2 -Wno-error=incompatible-pointer-types" \
             --with-dblib=none --without-saslauthd \
             --without-authdaemond --without-pam
 

@@ -7,6 +7,7 @@
  * while another is still loading plugins, it finds no mechanisms.
  *
  * Exit status: 0 on success, 1 on failure, 77 if built without threads.
+ * The test uses the same thread API as the library: pthreads or Windows.
  */
 
 #include "config.h"
@@ -18,7 +19,7 @@
 #include <sasl.h>
 #include <saslplug.h>
 
-#ifndef HAVE_PTHREAD
+#if !defined(HAVE_PTHREAD) && !defined(HAVE_NT_THREADS)
 
 int main(void)
 {
@@ -28,47 +29,102 @@ int main(void)
 
 #else
 
+#if defined(HAVE_PTHREAD)
+
 #include <pthread.h>
+
+typedef pthread_mutex_t lock_t;
+typedef pthread_cond_t cond_t;
+typedef pthread_t thread_t;
+#define LOCK_INITIALIZER PTHREAD_MUTEX_INITIALIZER
+#define COND_INITIALIZER PTHREAD_COND_INITIALIZER
+#define lock(l)          pthread_mutex_lock(l)
+#define unlock(l)        pthread_mutex_unlock(l)
+#define cond_wait(c, l)  pthread_cond_wait(c, l)
+#define cond_wakeall(c)  pthread_cond_broadcast(c)
+#define THREAD_FUNC(f)   static void *f(void *arg)
+#define THREAD_RETURN    return NULL
+
+static int thread_start(thread_t *t, void *(*f)(void *))
+{
+    return pthread_create(t, NULL, f, NULL) == 0 ? 0 : -1;
+}
+
+static void thread_join(thread_t t)
+{
+    pthread_join(t, NULL);
+}
+
+#else /* HAVE_NT_THREADS */
+
+#include <windows.h>
+#include <process.h>
+
+typedef SRWLOCK lock_t;
+typedef CONDITION_VARIABLE cond_t;
+typedef HANDLE thread_t;
+#define LOCK_INITIALIZER SRWLOCK_INIT
+#define COND_INITIALIZER CONDITION_VARIABLE_INIT
+#define lock(l)          AcquireSRWLockExclusive(l)
+#define unlock(l)        ReleaseSRWLockExclusive(l)
+#define cond_wait(c, l)  SleepConditionVariableSRW(c, l, INFINITE, 0)
+#define cond_wakeall(c)  WakeAllConditionVariable(c)
+#define THREAD_FUNC(f)   static unsigned __stdcall f(void *arg)
+#define THREAD_RETURN    return 0
+
+static int thread_start(thread_t *t, unsigned (__stdcall *f)(void *))
+{
+    *t = (HANDLE)_beginthreadex(NULL, 0, f, NULL, 0, NULL);
+    return *t ? 0 : -1;
+}
+
+static void thread_join(thread_t t)
+{
+    WaitForSingleObject(t, INFINITE);
+    CloseHandle(t);
+}
+
+#endif
 
 #define NTHREADS 16
 #define ROUNDS   20
 
 static const char *plugindir;
 static int failures;
-static pthread_mutex_t fail_lock = PTHREAD_MUTEX_INITIALIZER;
+static lock_t fail_lock = LOCK_INITIALIZER;
 
 /* A reusable barrier; pthread_barrier_t isn't available everywhere. */
 static struct {
-    pthread_mutex_t lock;
-    pthread_cond_t cond;
+    lock_t lock;
+    cond_t cond;
     int waiting;
     unsigned generation;
-} barrier = { PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER, 0, 0 };
+} barrier = { LOCK_INITIALIZER, COND_INITIALIZER, 0, 0 };
 
 static void barrier_wait(void)
 {
     unsigned gen;
 
-    pthread_mutex_lock(&barrier.lock);
+    lock(&barrier.lock);
     gen = barrier.generation;
     if (++barrier.waiting == NTHREADS) {
         barrier.waiting = 0;
         barrier.generation++;
-        pthread_cond_broadcast(&barrier.cond);
+        cond_wakeall(&barrier.cond);
     } else {
         while (gen == barrier.generation)
-            pthread_cond_wait(&barrier.cond, &barrier.lock);
+            cond_wait(&barrier.cond, &barrier.lock);
     }
-    pthread_mutex_unlock(&barrier.lock);
+    unlock(&barrier.lock);
 }
 
 static void fail(int round, const char *what, int rc)
 {
-    pthread_mutex_lock(&fail_lock);
+    lock(&fail_lock);
     if (failures++ < 10)
         fprintf(stderr, "round %d: %s: %s\n", round, what,
                 sasl_errstring(rc, NULL, NULL));
-    pthread_mutex_unlock(&fail_lock);
+    unlock(&fail_lock);
 }
 
 static int getpath(void *context, const char **path)
@@ -84,7 +140,7 @@ static const sasl_callback_t callbacks[] = {
     { SASL_CB_LIST_END, NULL, NULL }
 };
 
-static void *worker(void *arg)
+THREAD_FUNC(worker)
 {
     int round, rc;
     (void)arg;
@@ -147,12 +203,12 @@ static void *worker(void *arg)
             fail(round, "sasl_server_done", rc);
     }
 
-    return NULL;
+    THREAD_RETURN;
 }
 
 int main(void)
 {
-    pthread_t threads[NTHREADS];
+    thread_t threads[NTHREADS];
     const sasl_callback_t bad[] = {
         { SASL_CB_LOG, NULL, NULL },
         { SASL_CB_LIST_END, NULL, NULL }
@@ -172,13 +228,13 @@ int main(void)
     }
 
     for (i = 0; i < NTHREADS; i++) {
-        if (pthread_create(&threads[i], NULL, worker, NULL) != 0) {
-            perror("pthread_create");
+        if (thread_start(&threads[i], worker) != 0) {
+            perror("thread_start");
             return 1;
         }
     }
     for (i = 0; i < NTHREADS; i++)
-        pthread_join(threads[i], NULL);
+        thread_join(threads[i]);
 
     if (failures) {
         fprintf(stderr, "FAIL: %d failures in %d rounds of %d threads\n",
@@ -190,4 +246,4 @@ int main(void)
     return 0;
 }
 
-#endif /* HAVE_PTHREAD */
+#endif /* HAVE_PTHREAD || HAVE_NT_THREADS */

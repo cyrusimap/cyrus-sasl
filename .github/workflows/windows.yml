@@ -1,0 +1,128 @@
+name: Windows
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # The autoconf build, as MinGW users build it.  It uses the library's
+  # HAVE_NT_THREADS code, which t_initrace exercises.
+  mingw:
+    name: MinGW (UCRT64)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    env:
+      # MSYS would turn these into Windows paths with backslashes, which
+      # aren't valid inside the C string literals they define.
+      MSYS2_ARG_CONV_EXCL: "-DCONFIGDIR=;-DPLUGINDIR="
+
+    steps:
+      - name: Don't convert line endings
+        shell: pwsh
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: make
+          pacboy: >-
+            gcc:p autotools:p pkgconf:p openssl:p python:p
+
+      - name: Configure
+        run: |
+          NOCONFIGURE=1 ./autogen.sh
+          # The Windows code expects UNICODE, as the MSVC projects set it.
+          # It mixes char and TCHAR pointers, which MSVC only warns about
+          # but GCC 14 rejects.  The sample programs don't link: configure
+          # misses Windows' getaddrinfo, and the DLL doesn't export the
+          # replacement.
+          ./configure CPPFLAGS="-DUNICODE -D_UNICODE" \
+            CFLAGS="-g -O2 -Wno-error=incompatible-pointer-types" \
+            --with-dblib=none --without-saslauthd \
+            --without-authdaemond --without-pam --disable-sample
+
+      # tests/ holds POSIX-only GSSAPI test programs; build everything else.
+      - name: Build
+        run: make -j"$(nproc)" SUBDIRS="include sasldb common lib plugins utils"
+
+      # The rest of the test suite needs sockets, socket_wrapper and a KDC.
+      - name: Test
+        run: |
+          if ! grep -q '^t_initrace' tests/Makefile; then
+            echo "No Windows tests on this branch"
+            exit 0
+          fi
+          make -C tests t_initrace.exe
+          cd tests
+          T_PLUGINDIR="$(cygpath -m "$PWD/../plugins/.libs")" ./t_initrace
+
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-mingw
+          path: |
+            config.log
+            tests/.tests/
+            tests/*.log
+          if-no-files-found: ignore
+
+  # The Visual Studio projects in win32/.  These only build the library and
+  # its static plugins; there are no MSVC tests.
+  msvc:
+    name: MSVC (x64)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Cache OpenSSL
+        id: cache-openssl
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}\vcpkg-installed
+          key: vcpkg-openssl-x64-windows-${{ runner.os }}-v1
+
+      - name: Install OpenSSL
+        if: steps.cache-openssl.outputs.cache-hit != 'true'
+        run: >
+          vcpkg install openssl:x64-windows
+          --x-install-root="${{ runner.temp }}\vcpkg-installed"
+
+      # The projects target the v140 toolset and the 8.1 SDK, and only add
+      # the OpenSSL library name; point them at what the runner has.
+      - name: Write build overrides
+        shell: pwsh
+        run: |
+          $ossl = "${{ runner.temp }}\vcpkg-installed\x64-windows"
+          @"
+          <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+            <ItemDefinitionGroup>
+              <ClCompile>
+                <AdditionalIncludeDirectories>$ossl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+              </ClCompile>
+              <Link>
+                <AdditionalLibraryDirectories>$ossl\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+              </Link>
+            </ItemDefinitionGroup>
+          </Project>
+          "@ | Set-Content "${{ runner.temp }}\ci.props"
+
+      - name: Build
+        run: >
+          msbuild win32\cyrus-sasl-core.sln /t:sasl2 /m
+          /p:Configuration=Release /p:Platform=x64
+          /p:PlatformToolset=v143 /p:WindowsTargetPlatformVersion=10.0
+          /p:ForceImportBeforeCppTargets="${{ runner.temp }}\ci.props"

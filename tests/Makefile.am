@@ -42,18 +42,20 @@
 #
 ################################################################
 
-AM_CPPFLAGS=-I$(top_srcdir)/include -DPLUGINDIR='"${top_srcdir}/plugins/.libs"'
+AM_CPPFLAGS=-I$(top_srcdir)/include -DPLUGINDIR='"$(abs_top_builddir)/plugins/.libs"'
 
 COMMON_LDADD = ../lib/libsasl2.la $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET)
 
 t_gssapi_cli_SOURCES = \
 	t_common.c \
+	t_common.h \
 	t_gssapi_cli.c
 
 t_gssapi_cli_LDADD = $(COMMON_LDADD)
 
 t_gssapi_srv_SOURCES = \
 	t_common.c \
+	t_common.h \
 	t_gssapi_srv.c
 
 t_gssapi_srv_LDADD = $(COMMON_LDADD)
@@ -132,3 +134,7 @@ else
 	T_PLUGINDIR=$(abs_top_builddir)/plugins/.libs ./t_initrace || test $$? -eq 77
 	$(srcdir)/runtests.py $(CHECKARGS)
 endif
+
+# runtests.py works in .tests
+clean-local:
+	-rm -rf .tests

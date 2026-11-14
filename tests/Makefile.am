@@ -126,6 +126,9 @@ check: check-conformance
 if MACOSX
 # skip Mac OSX for now
 else
+	@# Leak checking is off by default, as in the conformance suite: the
+	@# library leaks plugin memory on each init/done cycle.
+	ASAN_OPTIONS=$${ASAN_OPTIONS-detect_leaks=0} \
 	T_PLUGINDIR=$(abs_top_builddir)/plugins/.libs ./t_initrace || test $$? -eq 77
 	$(srcdir)/runtests.py $(CHECKARGS)
 endif

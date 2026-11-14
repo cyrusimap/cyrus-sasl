@@ -255,6 +255,50 @@ class GssServerPeer:
         return self.client.step(self.ctx.wrap(message, False).message)
 
 
+class GssSpnegoClientAuthzid(SaslTestCase):
+    """GSS-SPNEGO has no security-layer negotiation, so it can't carry an
+    authorization identity to the server."""
+
+    def setUp(self):
+        super().setUp()
+        krb5env.require()
+
+    def spnego_client(self, **kw):
+        c = self.client("GSS-SPNEGO", **kw)
+        if c.first.name == "SASL_NOMECH":
+            self.skipTest("GSS-SPNEGO not available")
+        return c
+
+    @spec("RFC 4422", "3.4.1", "MUST",
+          "a client can't report acting as an authzid it never sent")
+    def test_authzid_refused(self):
+        c = self.spnego_client(authzid="admin")
+        if c.first.failed:
+            return  # refusing up front is also correct
+        r = GssServerPeer(c).establish()
+        self.assertFailed(r, "client reported success as an authzid it never sent")
+
+    @spec("RFC 4422", "3.4.1", "MUST",
+          "without an authzid, the client authenticates as itself")
+    def test_no_authzid(self):
+        c = self.spnego_client()
+        self.assertContinue(c.first)
+        r = GssServerPeer(c).establish()
+        self.assertOk(r)
+        self.assertEqual(r.user, r.authuser)
+
+    @spec("RFC 4422", "3.4.1", "MUST",
+          "an authzid equal to the authenticated identity is not a proxy request")
+    def test_authzid_same_as_authid(self):
+        first = GssServerPeer(self.spnego_client()).establish()
+        self.assertOk(first)
+        c = self.spnego_client(authzid=first.authuser.decode())
+        self.assertContinue(c.first)
+        r = GssServerPeer(c).establish()
+        self.assertOk(r)
+        self.assertEqual(r.user, first.authuser)
+
+
 class GssapiClient(SaslTestCase):
 
     def setUp(self):

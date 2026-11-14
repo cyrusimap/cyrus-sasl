@@ -1903,7 +1903,6 @@ static sasl_server_plug_t gssapi_server_plugins[] =
 	| SASL_SEC_MUTUAL_AUTH		/* security_flags */
 	| SASL_SEC_PASS_CREDENTIALS,
 	SASL_FEAT_WANT_CLIENT_FIRST
-	| SASL_FEAT_ALLOWS_PROXY
 	| SASL_FEAT_DONTUSE_USERPASSWD
 	| SASL_FEAT_CHANNEL_BINDING
 	| SASL_FEAT_SUPPORTS_HTTP,	/* features */
@@ -2341,6 +2340,20 @@ static int gssapi_client_mech_step(void *conn_context,
 	    GSS_UNLOCK_MUTEX_CTX(params->utils, text);
 	    
 	    if (ret != SASL_OK) return ret;
+
+	    /* GSS-SPNEGO and HTTP mode have no security-layer exchange, which
+	       is where RFC 4752 sends the authorization identity, so they
+	       can't carry one: the server authorizes the authenticated
+	       identity (RFC 4422 section 5).  Don't report acting as anyone
+	       else. */
+	    if ((text->http_mode ||
+		 (text->mech_type && text->mech_type == &gss_spnego_oid)) &&
+		strcmp(oparams->user, oparams->authid) != 0) {
+		SETERROR(text->utils,
+			 "This mechanism can't carry an authorization identity");
+		sasl_gss_free_context_contents(text);
+		return SASL_BADPARAM;
+	    }
 	    
 	    if (text->http_mode) {
 		/* HTTP doesn't do any ssf negotiation */
@@ -2652,7 +2665,6 @@ static sasl_client_plug_t gssapi_client_plugins[] =
 	| SASL_SEC_PASS_CREDENTIALS,    /* security_flags */
 	SASL_FEAT_NEEDSERVERFQDN
 	| SASL_FEAT_WANT_CLIENT_FIRST
-	| SASL_FEAT_ALLOWS_PROXY
 	| SASL_FEAT_CHANNEL_BINDING
 	| SASL_FEAT_SUPPORTS_HTTP,	/* features */
 	gssapi_required_prompts,	/* required_prompts */

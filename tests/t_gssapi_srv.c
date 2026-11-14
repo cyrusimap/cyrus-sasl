@@ -36,6 +36,12 @@ static int setup_socket(void)
     sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) s_error("socket", 0, 0, errno);
 
+    /* Tests reuse the same port back to back; without socket_wrapper the
+     * previous connection can still hold it in TIME_WAIT. */
+    ret = 1;
+    ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &ret, sizeof(ret));
+    if (ret != 0) s_error("setsockopt", 0, 0, errno);
+
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = inet_addr("127.0.0.9");
     addr.sin_port = htons(9000);
@@ -165,7 +171,19 @@ int main(int argc, char *argv[])
     }
 
     if (cb.name) {
+        const sasl_security_properties_t *cur = NULL;
+        sasl_security_properties_t secprops;
+
         sasl_setprop(conn, SASL_CHANNEL_BINDING, &cb);
+
+        /* GSSAPI and GSS-SPNEGO only use channel bindings when they're
+         * explicitly allowed (see SASL_SEC_NONSTD_CBIND in sasl.h). */
+        if (sasl_getprop(conn, SASL_SEC_PROPS, (const void **)&cur) == SASL_OK
+            && cur) {
+            secprops = *cur;
+            secprops.security_flags |= SASL_SEC_NONSTD_CBIND;
+            sasl_setprop(conn, SASL_SEC_PROPS, &secprops);
+        }
     }
 
     if (plain) {

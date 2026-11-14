@@ -58,20 +58,67 @@ t_gssapi_srv_SOURCES = \
 
 t_gssapi_srv_LDADD = $(COMMON_LDADD)
 
+t_srv_SOURCES = \
+	t_wire.c \
+	t_wire.h \
+	t_srv.c
+
+t_srv_LDADD = $(COMMON_LDADD)
+
+t_cli_SOURCES = \
+	t_wire.c \
+	t_wire.h \
+	t_cli.c
+
+t_cli_LDADD = $(COMMON_LDADD)
+
 check_PROGRAMS = \
 	t_gssapi_cli \
 	t_gssapi_srv \
+	t_srv \
+	t_cli \
 	$(NULL)
 
 noinst_PROGRAMS = $(check_PROGRAMS)
 
 EXTRA_DIST = \
 	runtests.py \
+	conformance/README.md \
+	conformance/krb5env.py \
+	conformance/run.py \
+	conformance/sasltest.py \
+	conformance/test_anonymous.py \
+	conformance/test_external.py \
+	conformance/test_gs2.py \
+	conformance/test_gssapi.py \
+	conformance/test_interop.py \
+	conformance/test_plain.py \
+	conformance/test_scram.py \
+	conformance/test_tls_cbind.py \
+	conformance/tlsenv.py \
 	$(NULL)
 
 all: $(check_PROGRAMS)
 
-check:
+# Wire-level conformance suite (Python standard library only).
+# Override the interpreter with: make check PYTHON3=/path/to/python3
+PYTHON3 = python3
+
+# With --enable-sanitizers, tell the suite so it treats sanitizer reports
+# as failures.
+if SANITIZERS
+CONFORMANCE_ENV = T_SANITIZER=1
+else
+CONFORMANCE_ENV =
+endif
+
+check-conformance: $(check_PROGRAMS)
+	T_BUILDDIR=$(abs_builddir) T_PLUGINDIR=$(abs_top_builddir)/plugins/.libs \
+	    $(CONFORMANCE_ENV) $(PYTHON3) $(srcdir)/conformance/run.py
+
+.PHONY: check-conformance
+
+check: check-conformance
 if MACOSX
 # skip Mac OSX for now
 else

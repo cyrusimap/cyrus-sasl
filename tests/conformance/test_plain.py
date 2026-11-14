@@ -3,7 +3,7 @@
 message = [authzid] UTF8NUL authcid UTF8NUL passwd
 """
 
-from sasltest import SaslTestCase, known_bug, spec
+from sasltest import SaslTestCase, config_defined, known_bug, spec
 
 USERS = {"alice": "secret", "bob": "hunter2"}
 
@@ -121,6 +121,30 @@ class PlainServer(SaslTestCase):
         r = s.step(plain("", "alice", "secret"))
         self.assertOk(r)
         self.assertEqual(r.user, b"alice")
+
+
+    # The password "se\\xffcret" isn't valid UTF-8; surrogateescape passes
+    # the 0xff octet through to the driver's password store unchanged.
+    NOT_UTF8 = "se\udcffcret"
+
+    @spec("RFC 4616", "2", "ABNF",
+          "the message is UTF-8: unless \"saslprep\" is \"raw\", invalid "
+          "UTF-8 is refused")
+    def test_invalid_utf8_refused(self):
+        for mode in ("ascii",) + (("icu",) if config_defined("HAVE_ICU") else ()):
+            with self.subTest(saslprep=mode):
+                r = self.run_plain(b"\0alice\0se\xffcret",
+                                   users={"alice": self.NOT_UTF8},
+                                   opts={"saslprep": mode})
+                self.assertFailed(r)
+
+    @spec("RFC 4616", "2", "INTEROP",
+          "\"raw\" keeps accepting any octets, as before")
+    def test_invalid_utf8_accepted_when_raw(self):
+        r = self.run_plain(b"\0alice\0se\xffcret",
+                           users={"alice": self.NOT_UTF8},
+                           opts={"saslprep": "raw"})
+        self.assertOk(r)
 
 
 class PlainClient(SaslTestCase):

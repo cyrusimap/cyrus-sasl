@@ -50,6 +50,7 @@
 #include <saslplug.h>
 
 #include "plugin_common.h"
+#include "saslprep.h"
 
 #ifdef macintosh 
 #include <sasl_plain_plugin_decl.h> 
@@ -129,6 +130,24 @@ static int plain_server_mech_step(void *conn_context __attribute__((unused)),
 	SETERROR(params->utils,
 		 "Got more data than we were expecting in the PLAIN plugin\n");
 	return SASL_BADPROT;
+    }
+
+    /* RFC 4616: the message is UTF-8.  Unless the "saslprep" option is
+       "raw" (keep accepting any octets), refuse invalid UTF-8. */
+    {
+	int mode;
+
+	result = _plug_saslprep_mode(params->utils, "PLAIN", &mode);
+	if (result != SASL_OK) {
+	    return result;
+	}
+	if (mode != SASLPREP_RAW &&
+	    (params->utils->utf8verify(author, (unsigned) strlen(author)) != SASL_OK ||
+	     params->utils->utf8verify(authen, (unsigned) strlen(authen)) != SASL_OK ||
+	     params->utils->utf8verify(password, password_len) != SASL_OK)) {
+	    SETERROR(params->utils, "PLAIN message is not valid UTF-8");
+	    return SASL_BADPROT;
+	}
     }
     
     /* this kinda sucks. we need password to be null terminated

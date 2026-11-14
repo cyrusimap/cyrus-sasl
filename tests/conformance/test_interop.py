@@ -20,7 +20,7 @@ except ImportError:
     raise unittest.SkipTest("scramp not installed")
 
 import tlsenv
-from sasltest import SaslTestCase, known_bug, spec
+from sasltest import SaslTestCase, config_defined, known_bug, spec
 
 USER = "alice"
 PASSWORD = "pencil"
@@ -102,7 +102,8 @@ class ScrampInterop(SaslTestCase):
     def test_scramp_client_plus_tls_server_end_point(self):
         self.scramp_client_plus("tls-server-end-point")
 
-    @known_bug("I2", "the library doesn't apply SASLprep; scramp does")
+    @known_bug("I2", "the library doesn't apply SASLprep; scramp does "
+               "(built without ICU)", only_if=not config_defined("HAVE_ICU"))
     @spec("RFC 5802", "2.2", "INTEROP",
           "a non-ASCII password that SASLprep changes still authenticates")
     def test_scramp_client_saslprep_password(self):
@@ -171,7 +172,8 @@ class ScrampInterop(SaslTestCase):
     def test_scramp_server_plus_tls_server_end_point(self):
         self.scramp_server_plus("tls-server-end-point")
 
-    @known_bug("I2", "the library doesn't apply SASLprep; scramp does")
+    @known_bug("I2", "the library doesn't apply SASLprep; scramp does "
+               "(built without ICU)", only_if=not config_defined("HAVE_ICU"))
     @spec("RFC 5802", "2.2", "INTEROP",
           "a non-ASCII password that SASLprep changes still authenticates")
     def test_scramp_server_saslprep_password(self):

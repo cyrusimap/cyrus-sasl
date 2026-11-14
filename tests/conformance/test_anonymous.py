@@ -131,7 +131,6 @@ class AnonymousClient(SaslTestCase):
         super().setUp()
         self.require_mech("ANONYMOUS")
 
-    @known_bug("H18", "client always sends <user>@<hostname> as the trace")
     @spec("RFC 4505", "5", "SHOULD",
           "the client should offer the option of supplying no trace information")
     def test_no_trace_by_default(self):
@@ -139,7 +138,6 @@ class AnonymousClient(SaslTestCase):
         self.assertOk(c.first)
         self.assertEqual(c.first.out, b"")
 
-    @known_bug("H18", "client appends @<hostname> to an email trace")
     @spec("RFC 4505", "2", "ABNF", "message = [ email / token ]")
     def test_email_trace_sent_as_given(self):
         c = self.client("ANONYMOUS", authzid="sirhc@example.com")
@@ -147,6 +145,12 @@ class AnonymousClient(SaslTestCase):
         self.assertTrue(valid_trace(c.first.out),
                         "trace %r matches neither email nor token" % c.first.out)
         self.assertEqual(c.first.out, b"sirhc@example.com")
+
+    @spec("RFC 4505", "2", "ABNF", "message = [ email / token ]")
+    def test_token_trace_sent_as_given(self):
+        c = self.client("ANONYMOUS", authzid="sirhc")
+        self.assertOk(c.first)
+        self.assertEqual(c.first.out, b"sirhc")
 
     @spec("RFC 4422", "5", "MUST",
           "for a client-first mechanism, the first server challenge MUST be empty")

@@ -148,7 +148,10 @@ static void *sasl_mutex_alloc(void)
 #if defined(HAVE_PTHREAD)
     pthread_mutex_t *mutex = sasl_ALLOC(sizeof(pthread_mutex_t));
     if (!mutex) return NULL;
-    if (pthread_mutex_init(mutex, NULL)) return NULL;
+    if (pthread_mutex_init(mutex, NULL)) {
+	sasl_FREE(mutex);
+	return NULL;
+    }
     return mutex;
 #elif defined(HAVE_NT_THREADS)
     return CreateMutex(NULL, 0, NULL);
@@ -183,6 +186,7 @@ static void sasl_mutex_free(void *mutex __attribute__((unused)))
 {
 #if defined(HAVE_PTHREAD)
     pthread_mutex_destroy(mutex);
+    sasl_FREE(mutex);
 #elif defined(HAVE_NT_THREADS)
     CloseHandle(mutex);
 #endif

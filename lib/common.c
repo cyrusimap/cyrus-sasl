@@ -69,7 +69,9 @@
 #endif
 
 #ifdef HAVE_NT_THREADS
+#ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0400
+#endif
 #include <windows.h>
 #include <process.h>
 #include <tchar.h>

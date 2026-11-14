@@ -71,3 +71,36 @@ jobs:
             config.log
             tests/.tests/
           if-no-files-found: ignore
+
+  # Build and test from the release tarball, as a user would: catches
+  # files missing from EXTRA_DIST and VPATH-build problems.
+  distcheck:
+    name: make distcheck
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            autoconf automake libtool pkg-config make gcc \
+            libssl-dev python3 liblmdb-dev libkrb5-dev krb5-kdc \
+            krb5-admin-server libsocket-wrapper libnss-wrapper \
+            python3-gssapi python3-openssl python3-cryptography \
+            python3-scramp \
+            python3-sphinx python3-sphinx-rtd-theme \
+            libpod-pom-view-restructured-perl
+
+      - name: Configure
+        run: |
+          NOCONFIGURE=1 ./autogen.sh
+          ./configure --with-dblib=lmdb
+
+      # make dist builds the HTML documentation, hence Sphinx and Pod::POM.
+      - name: Distcheck
+        run: >
+          make distcheck
+          DISTCHECK_CONFIGURE_FLAGS=--with-dblib=lmdb
+          CHECKARGS=--no-skip

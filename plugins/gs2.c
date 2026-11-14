@@ -274,6 +274,11 @@ gs2_common_mech_dispose(void *conn_context, const sasl_utils_t *utils)
     utils->free(conn_context);
 }
 
+static void gs2_server_mech_free(void *global_context,
+                                 const sasl_utils_t *utils);
+static void gs2_client_mech_free(void *global_context,
+                                 const sasl_utils_t *utils);
+
 static void
 gs2_common_mech_free(void *global_context __attribute__((unused)),
                      const sasl_utils_t *utils __attribute__((unused)))
@@ -640,13 +645,39 @@ gs2_server_plug_alloc(const sasl_utils_t *utils,
     splug->mech_new = gs2_server_mech_new;
     splug->mech_step = gs2_server_mech_step;
     splug->mech_dispose = gs2_common_mech_dispose;
-    splug->mech_free = gs2_common_mech_free;
+    splug->mech_free = gs2_server_mech_free;
 
     return SASL_OK;
 }
 
 static sasl_server_plug_t *gs2_server_plugins;
 static int gs2_server_plugcount;
+/* mech_free calls still to come for gs2_server_plugins */
+static int gs2_server_unfreed;
+
+/*
+ * The library calls mech_free once for each mechanism it registered, and
+ * reads each mechanism's plug structure (which lives in
+ * gs2_server_plugins) before calling it, so free the array on the last
+ * call only.
+ */
+static void
+gs2_server_mech_free(void *global_context, const sasl_utils_t *utils)
+{
+    int i;
+
+    gs2_common_mech_free(global_context, utils);
+
+    if (gs2_server_plugins == NULL || --gs2_server_unfreed > 0)
+        return;
+
+    for (i = 0; i < gs2_server_plugcount; i++)
+        utils->free((void *)gs2_server_plugins[i].mech_name);
+    utils->free(gs2_server_plugins);
+    gs2_server_plugins = NULL;
+    gs2_server_plugcount = 0;
+    gs2_server_unfreed = 0;
+}
 
 int
 gs2_server_plug_init(const sasl_utils_t *utils,
@@ -677,6 +708,7 @@ gs2_server_plug_init(const sasl_utils_t *utils,
 
     *pluglist = gs2_server_plugins;
     *plugcount = gs2_server_plugcount;
+    gs2_server_unfreed += gs2_server_plugcount;
 
     return SASL_OK;
 }
@@ -932,13 +964,39 @@ gs2_client_plug_alloc(const sasl_utils_t *utils,
     cplug->mech_new = gs2_client_mech_new;
     cplug->mech_step = gs2_client_mech_step;
     cplug->mech_dispose = gs2_common_mech_dispose;
-    cplug->mech_free = gs2_common_mech_free;
+    cplug->mech_free = gs2_client_mech_free;
 
     return SASL_OK;
 }
 
 static sasl_client_plug_t *gs2_client_plugins;
 static int gs2_client_plugcount;
+/* mech_free calls still to come for gs2_client_plugins */
+static int gs2_client_unfreed;
+
+/*
+ * The library calls mech_free once for each mechanism it registered, and
+ * reads each mechanism's plug structure (which lives in
+ * gs2_client_plugins) before calling it, so free the array on the last
+ * call only.
+ */
+static void
+gs2_client_mech_free(void *global_context, const sasl_utils_t *utils)
+{
+    int i;
+
+    gs2_common_mech_free(global_context, utils);
+
+    if (gs2_client_plugins == NULL || --gs2_client_unfreed > 0)
+        return;
+
+    for (i = 0; i < gs2_client_plugcount; i++)
+        utils->free((void *)gs2_client_plugins[i].mech_name);
+    utils->free(gs2_client_plugins);
+    gs2_client_plugins = NULL;
+    gs2_client_plugcount = 0;
+    gs2_client_unfreed = 0;
+}
 
 int
 gs2_client_plug_init(const sasl_utils_t *utils,
@@ -969,6 +1027,7 @@ gs2_client_plug_init(const sasl_utils_t *utils,
 
     *pluglist = gs2_client_plugins;
     *plugcount = gs2_client_plugcount;
+    gs2_client_unfreed += gs2_client_plugcount;
 
     return SASL_OK;
 }

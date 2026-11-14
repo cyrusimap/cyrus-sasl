@@ -23,8 +23,61 @@ SASL Security Layers allow a server and client to negotiate integrity and confid
 Channel Binding
 ---------------
 
-.. todo::
-   What's channel binding?
+Channel binding ties a SASL authentication to the TLS connection it runs
+over. Client and server each fold data identifying their end of the TLS
+channel into the exchange, and it only succeeds if both saw the same channel,
+so an attacker who terminates TLS in the middle (with a forged certificate,
+say) can't relay it. Mechanisms support it through their "-PLUS" variants,
+such as ``SCRAM-SHA-256-PLUS`` and ``GS2-KRB5-PLUS``.
+
+The library doesn't talk to TLS itself: the application supplies the binding.
+After the TLS handshake, and before ``sasl_client_start()`` or
+``sasl_server_start()``, set the ``SASL_CHANNEL_BINDING`` property to a
+``sasl_channel_binding_t`` holding the binding type's ``name``, its ``data``
+and ``len``, and ``critical``:
+
+* With ``critical`` set, a client only uses a mechanism that binds the
+  channel, and a server only offers "-PLUS" variants and refuses clients that
+  don't bind.
+* Without it, binding is used when both sides support it, and a client that
+  supports it but doesn't see a "-PLUS" variant offered says so, which lets a
+  server that does offer one detect that it was stripped.
+
+**Which binding type.** The library never chooses one; use the type that
+matches the TLS version:
+
+.. list-table::
+   :header-rows: 1
+
+   * - TLS version
+     - Type
+     - Data
+   * - 1.3
+     - ``tls-exporter`` (:rfc:`9266`)
+     - 32 bytes of TLS exported keying material with the label
+       ``EXPORTER-Channel-Binding`` and an empty context
+   * - 1.2
+     - ``tls-unique`` (:rfc:`5929`)
+     - The first TLS Finished message of the connection. Only safe with the
+       extended master secret extension (:rfc:`7627`)
+   * - Any
+     - ``tls-server-end-point`` (:rfc:`5929`)
+     - A hash of the server's certificate. Weaker: it binds to the server's
+       certificate rather than to the connection
+
+:rfc:`9266` makes ``tls-exporter`` the default, and mandatory to implement,
+over TLS 1.3, where ``tls-unique`` isn't defined; ``tls-unique`` stays the
+default over TLS 1.2. With OpenSSL, the ``tls-exporter`` data is::
+
+    unsigned char cb[32];
+    SSL_export_keying_material(ssl, cb, sizeof(cb),
+                               "EXPORTER-Channel-Binding", 24,
+                               NULL, 0, 1);
+
+A client tells the server which type it used. A server that can provide
+other types too can register a ``SASL_CB_SERVER_CHANNEL_BINDING`` callback,
+which is asked for the type the client requested when it differs from the one
+set with ``SASL_CHANNEL_BINDING``.
 
 Realms
 ------

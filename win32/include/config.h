@@ -97,11 +97,9 @@ typedef int		    intptr_t;
 #define STATIC_ANONYMOUS 1
 /* #define STATIC_GSSAPIV2 1 */
 /* #undef STATIC_MYSQL */
-/* #define STATIC_OTP 1 */
 #define STATIC_PLAIN 1
 /* #define STATIC_SASLDB 1 */
 #define STATIC_SCRAM 1
-/* #define STATIC_SRP 1 */
 #endif
 
 /* ------------------------------------------------------------ */

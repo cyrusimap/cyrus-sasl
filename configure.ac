@@ -384,92 +384,6 @@ else
   AC_MSG_RESULT(disabled)
 fi
 
-dnl OTP
-AC_ARG_ENABLE(otp, [  --enable-otp            enable OTP authentication [[yes]] ],
-  otp=$enableval,
-  otp=yes)
-
-AC_MSG_CHECKING(OTP)
-if test "$otp" != no; then
-  AC_MSG_RESULT(enabled)
-  OTP_LIBS="-lcrypto $LIB_RSAREF"
-
-  SASL_MECHS="$SASL_MECHS libotp.la"
-  if test "$enable_static" = yes; then
-    SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/otp.c"
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS otp.o"
-    AC_DEFINE(STATIC_OTP, [], [Link OTP Statically])
-  fi
-
-  dnl Test for OPIE
-  AC_ARG_WITH(opie, AS_HELP_STRING([--with-opie=PATH],[use OPIE (One Time Passwords in Everything) from PATH]))
-
-  case "$with_opie" in
-	""|yes) 
-		AC_CHECK_LIB(opie, opiechallenge, [
-			AC_CHECK_HEADER(opie.h, with_opie="yes",
-					with_opie="no")],
-			with_opie="no")
-		;;
-	*)
-		if test -d $with_opie; then
-		  CPPFLAGS="${CPPFLAGS} -I${with_opie}/include"
-		  LDFLAGS="${LDFLAGS} -L${with_opie}/lib"
-		else
-		  with_opie="no"
-		fi
-		;;
-  esac
-
-  AC_MSG_CHECKING(for OPIE)
-  AC_MSG_RESULT($with_opie)
-
-  if test "$with_opie" != no; then
-    AC_DEFINE(HAVE_OPIE,[],[Use OPIE for server-side OTP?])
-    OTP_LIBS="$OTP_LIBS -lopie"
-  fi
-
-  AC_SUBST(OTP_LIBS)
-
-else
-  AC_MSG_RESULT(disabled)
-fi
-
-dnl SRP
-AC_ARG_ENABLE(srp, [  --enable-srp            enable SRP authentication [[no]] ],
-  srp=$enableval,
-  srp=no)
-
-AC_MSG_CHECKING(SRP)
-if test "$srp" != no; then
-  AC_MSG_RESULT(enabled)
-  SRP_LIBS="-lcrypto $LIB_RSAREF"
-
-  SASL_MECHS="$SASL_MECHS libsrp.la"
-  if test "$enable_static" = yes; then
-    SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/srp.c"
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS srp.o"
-    AC_DEFINE(STATIC_SRP, [], [Link SRP Statically])
-  fi
-
-dnl srp_setpass support
-  AC_ARG_ENABLE(srp_setpass, [  --enable-srp-setpass    enable setting SRP secrets with saslpasswd [[no]]],
-      srp_setpass=$enableval,
-      srp_setpass=no)
-
-  AC_MSG_CHECKING(if we should enable setting SRP secrets with saslpasswd)
-  if test "$srp_setpass" != no; then
-    AC_MSG_RESULT(enabled)
-    AC_DEFINE(DO_SRP_SETPASS, [], [should we support setpass() for SRP?])
-  else
-    AC_MSG_RESULT(disabled)
-  fi
-
-  AC_SUBST(SRP_LIBS)
-else
-  AC_MSG_RESULT(disabled)
-fi
-
 dnl Kerberos based Mechanisms
 SASL_GSSAPI_CHK
 
@@ -602,27 +516,6 @@ if test "$anon" != no; then
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS anonymous.o"
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/anonymous.c"
     AC_DEFINE(STATIC_ANONYMOUS, [], [Link ANONYMOUS Statically])
-  fi
-else
-  AC_MSG_RESULT(disabled)
-fi
-
-dnl PASSDSS
-AC_ARG_ENABLE(passdss, [  --enable-passdss        enable PASSDSS authentication (experimental) [[no]] ],
-  passdss=$enableval,
-  passdss=no)
-
-AC_MSG_CHECKING(PASSDSS)
-if test "$passdss" != no; then
-  AC_MSG_RESULT(enabled)
-  PASSDSS_LIBS="-lcrypto $LIB_RSAREF"
-  AC_SUBST(PASSDSS_LIBS)
-
-  SASL_MECHS="$SASL_MECHS libpassdss.la"
-  if test "$enable_static" = yes; then
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS passdss.o"
-    SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/passdss.c"
-    AC_DEFINE(STATIC_PASSDSS,[],[Link PASSDSS Statically])
   fi
 else
   AC_MSG_RESULT(disabled)

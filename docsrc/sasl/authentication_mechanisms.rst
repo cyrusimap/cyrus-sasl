@@ -52,28 +52,6 @@ This is a Microsoft specific customization of GSSAPI.
 
 Described in the `Microsoft documentation <https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/e1cbe214-d73b-4c58-aad2-bee399ccdfb8>`_ and :rfc:`4178`
 
-OTP
----
-
-OTP is the One-Time Password system described in :rfc:`2289`.
-This mechanism is secure against replay attacks and also avoids storing password or password equivalents on the server.
-Only a digest of a seed and a passphrase is ever transmitted across the network.
-
-  * OTP-MD4
-  * OTP-MD5
-  * OTP-SHA1
-
-.. todo::
-   Content needed here
-
-PASSDSS
--------
-
-DSS Secured Password Authentication Mechanism (PASSDSS)
-
-Documented in a `RFC Draft: draft-newman-sasl-passdss <https://tools.ietf.org/html/draft-newman-sasl-passdss>`_
-
-  * PASSDSS-3DES-1
 
 .. _MECH-PLAIN:
 
@@ -99,19 +77,6 @@ Defined in :rfc:`5802`
   * SCRAM-SHA-384(-PLUS)
   * SCRAM-SHA-512(-PLUS)
 
-SRP
----
-
-The Secure Remote Password (SRP) is a password-based, zero-knowledge,
-authentication and key-exchange protocol.
-It has good performance, is not plaintext-equivalent and maintains perfect forward secrecy.
-It provides authentication (optionally mutual authentication) and the negotiation of a shared context key.
-
-Documented in a `RFC Draft: draft-burdis-cat-srp-sasl <https://tools.ietf.org/html/draft-burdis-cat-srp-sasl-08>`_
-
-  * mda=sha1,rmd160,md5
-  * confidentiality=des-ofb,des-ede-ofb,aes-128-ofb,bf-ofb,cast5-ofb,idea-ofb
-
 Non-SASL Authentication
 -----------------------
 
@@ -135,21 +100,15 @@ of the mechanisms provided by the Cyrus SASL Library.
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 | EXTERNAL    | 0       | X       |          | X      |         | X      |      |        | X         |              |          | X     |      |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
-| GS2         | 56      | X       | X        |        |         | X      |      | X      | X         |              | X        | X     | X    |      |
+| GS2         | 0       | X       | X        |        |         | X      |      | X      | X         |              | X        | X     | X    |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
-| GSSAPI      | 56      | X       | X        |        |         | X      | X    | X      | X         |              |          | X     | X    |      |
+| GSSAPI      | 256     | X       | X        |        |         | X      | X    | X      | X         |              |          | X     | X    |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
-| GSS-SPNEGO  | 56      | X       | X        |        |         | X      | X    | X      | X         |              |          | X     |      | X    |
-+-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
-| OTP         | 0       | X       |          |        | X       | X      |      |        | X         |              |          | X     |      |      |
-+-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
-| PASSDSS     | 112     | X       | X        | X      | X       | X      | X    | X      | X         |              |          | X     |      |      |
+| GSS-SPNEGO  | 256     | X       | X        |        |         | X      | X    | X      | X         |              |          | X     |      | X    |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 | PLAIN       | 0       |         |          |        |         | X      | X    |        | X         |              |          | X     |      |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 | SCRAM       | 0       | X       | X        |        |         | X      |      | X      | X         |              | X        | X     | X    | X    |
-+-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
-| SRP         | 128     | X       | X        | X      | X       | X      |      | X      | X         |              | X        | X     |      |      |
 +-------------+---------+---------+----------+--------+---------+--------+------+--------+-----------+--------------+----------+-------+------+------+
 
 ..  Helpfully generated  from https://www.tablesgenerator.com/text_tables

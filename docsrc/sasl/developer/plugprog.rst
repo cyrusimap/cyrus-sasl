@@ -157,7 +157,7 @@ setting \*serverout when the step function returns SASL_OK.
   mechanisms which always send last, \*serverout must
   point to the success data.
 * For mechanisms in which the server may or
-  may not send last (e.g. SRP), \*serverout must be set accordingly.
+  may not send last (e.g. SCRAM), \*serverout must be set accordingly.
 
 .. _plugprog-client:
 

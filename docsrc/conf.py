@@ -65,7 +65,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Cyrus SASL'
-copyright = u'1993-2022, The Cyrus Team'
+copyright = u'1993-2022, Carnegie Mellon University'
 
 
 # The version info for the project you're documenting, acts as replacement for
@@ -241,7 +241,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
   ('index', 'Cyrus.tex', u'Cyrus Documentation',
-   u'The Cyrus Team', 'manual'),
+   u'The Cyrus SASL Team', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -293,7 +293,7 @@ for tuple in pathset:
     except OSError as e:
         continue
     for rstfile in glob.glob("*.rst"):
-        author = "The Cyrus Team"
+        author = "The Cyrus SASL Team"
         orphan = 'False';
         with io.open(rstfile,'r',encoding="utf8") as f:
             for line in f:
@@ -326,7 +326,7 @@ for tuple in pathset:
 #  dir menu entry, description, category)
 texinfo_documents = [
   ('index', 'SASL', u'Cyrus SASL Documentation',
-   u'The Cyrus Team', 'Cyrus', 'One line description of project.',
+   u'The Cyrus SASL Team', 'Cyrus', 'One line description of project.',
    'Miscellaneous'),
 ]
 
@@ -347,9 +347,9 @@ texinfo_documents = [
 
 # Bibliographic Dublin Core info.
 epub_title = u'Cyrus'
-epub_author = u'The Cyrus Team'
-epub_publisher = u'The Cyrus Team'
-epub_copyright = u'2022, The Cyrus Team'
+epub_author = u'The Cyrus SASL Team'
+epub_publisher = u'The Cyrus SASL Team'
+epub_copyright = u'2022, Carnegie Mellon University'
 
 # The basename for the epub file. It defaults to the project name.
 epub_basename = u'Cyrus'
@@ -416,27 +416,8 @@ epub_exclude_files = ['search.html']
 # When this is updated, you may also need to update the version and release
 # definitions listed above to stay up to date.
 rst_prolog = """
-.. |imap_last_stable_version| replace:: 3.10.4
-.. |imap_last_stable_branch| replace:: `cyrus-imapd-3.10`
-.. |imap_last_stable_next_version| replace:: 3.10.4 + patches
-.. |imap_current_stable_version| replace:: 3.12.4
-.. |imap_current_stable_branch| replace:: `cyrus-imapd-3.12`
-.. |imap_current_stable_next_version| replace:: 3.12.4 + patches
-.. |imap_latest_development_version| replace:: 3.13.7
-.. |imap_latest_development_branch| replace:: master
 .. |sasl_current_stable_version| replace:: 2.1.28
-.. |imap_stable_release_notes| raw:: html
 
-    <a href="3.12/x/3.12.4.html">3.12.4</a>
-
-.. |imap_development_release_notes| raw:: html
-
-    <a href="https://www.cyrusimap.org/dev/imap/download/release-notes/3.13/x/3.13.7.html">3.13.7</a>
-
-"""
-
-rst_prolog += """
-.. |git_cyrus_imapd_url| replace:: https://github.com/cyrusimap/cyrus-imapd.git
 """
 
 rst_prolog += """
@@ -446,7 +427,5 @@ rst_prolog += """
 
 # Use this as :issue:`18`
 extlinks = {
-        'issue':('https://github.com/cyrusimap/cyrus-imapd/issues/%s', 'Issue #%s'),
-        'cyrus-stable':('http://www.cyrusimap.org/stable%s',None),
-        'cyrus-dev':('http://www.cyrusimap.org/dev%s',None),
+        'issue':('https://github.com/cyrusimap/cyrus-sasl/issues/%s', 'Issue #%s'),
     }

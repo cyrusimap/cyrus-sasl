@@ -18,7 +18,7 @@ Features
 --------
 Cyrus SASL provides a number of authentication plugins out of the box.
 
-    LMDB, GDBM, or NDBM (sasldb), PAM, MySQL, PostgreSQL, SQLite, LDAP, Active Directory (LDAP), DCE, Kerberos 5, proxied IMAP auth, getpwent, shadow, SIA, Courier Authdaemon, httpform, APOP and SASL mechanisms: ANONYMOUS, EXTERNAL, GSSAPI, OTP, PASSDSS, PLAIN, SCRAM, SRP
+    LMDB, GDBM, or NDBM (sasldb), PAM, MySQL, PostgreSQL, SQLite, LDAP, Active Directory (LDAP), DCE, Kerberos 5, proxied IMAP auth, getpwent, shadow, SIA, Courier Authdaemon, httpform, APOP and SASL mechanisms: ANONYMOUS, EXTERNAL, GSSAPI, PLAIN, SCRAM
 
 .. _SASL: https://en.wikipedia.org/wiki/Simple_Authentication_and_Security_Layer
 
@@ -48,6 +48,7 @@ of libraries correct.
     operations
     developer
     support
+    bylaws
 
 .. OLD INDEX
 

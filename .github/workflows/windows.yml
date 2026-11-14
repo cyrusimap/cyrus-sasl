@@ -43,11 +43,13 @@ jobs:
           NOCONFIGURE=1 ./autogen.sh
           # The Windows code expects UNICODE, as the MSVC projects set it.
           # It mixes char and TCHAR pointers, which MSVC only warns about
-          # but GCC 14 rejects.
+          # but GCC 14 rejects.  The sample programs don't link: configure
+          # misses Windows' getaddrinfo, and the DLL doesn't export the
+          # replacement.
           ./configure CPPFLAGS="-DUNICODE -D_UNICODE" \
             CFLAGS="-g -O2 -Wno-error=incompatible-pointer-types" \
             --with-dblib=none --without-saslauthd \
-            --without-authdaemond --without-pam
+            --without-authdaemond --without-pam --disable-sample
 
       - name: Build
         run: make -j"$(nproc)"

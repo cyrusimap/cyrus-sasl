@@ -362,7 +362,6 @@ class SaslTestCase(unittest.TestCase):
 
 SCRAM_HASHES = {
     "SCRAM-SHA-1": "sha1",
-    "SCRAM-SHA-224": "sha224",
     "SCRAM-SHA-256": "sha256",
     "SCRAM-SHA-384": "sha384",
     "SCRAM-SHA-512": "sha512",

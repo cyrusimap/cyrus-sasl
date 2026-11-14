@@ -128,9 +128,6 @@ scram_sasl_mech_name(size_t hash_size)
     case 32:
 	return "SCRAM-SHA-256";
 
-    case 28:
-	return "SCRAM-SHA-224";
-
     case 20:
 	return "SCRAM-SHA-1";
     }
@@ -1961,28 +1958,6 @@ static sasl_server_plug_t scram_server_plugins[] =
 	NULL,				/* mech avail */
 	NULL				/* spare */
     },
-    {
-	"SCRAM-SHA-224",		/* mech_name */
-	0,				/* max_ssf */
-	SASL_SET_HASH_STRENGTH_BITS(224) |
-	SASL_SEC_NOPLAINTEXT
-	| SASL_SEC_NOACTIVE
-	| SASL_SEC_NOANONYMOUS
-	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
-	SASL_FEAT_ALLOWS_PROXY
-        | SASL_FEAT_SUPPORTS_HTTP
-	| SASL_FEAT_CHANNEL_BINDING,	/* features */
-	"SHA224",			/* glob_context */
-	&scram_server_mech_new,		/* mech_new */
-	&scram_server_mech_step,	/* mech_step */
-	&scram_server_mech_dispose,	/* mech_dispose */
-	NULL,				/* mech_free */
-	&scram_setpass,			/* setpass */
-	NULL,				/* user_query */
-	NULL,				/* idle */
-	NULL,				/* mech avail */
-	NULL				/* spare */
-    },
 #endif
     {
 	"SCRAM-SHA-1",			/* mech_name */
@@ -2022,7 +1997,7 @@ int scram_server_plug_init(const sasl_utils_t *utils,
     *out_version = SASL_SERVER_PLUG_VERSION;
     *pluglist = scram_server_plugins;
 #ifdef HAVE_SHA512
-    *plugcount = 5;
+    *plugcount = 4;
 #else
     *plugcount = 1;
 #endif
@@ -3046,27 +3021,6 @@ static sasl_client_plug_t scram_client_plugins[] =
 	NULL,				/* spare */
 	NULL				/* spare */
     },
-    {
-	"SCRAM-SHA-224",		/* mech_name */
-	0,				/* max_ssf */
-	SASL_SET_HASH_STRENGTH_BITS(224) |
-	SASL_SEC_NOPLAINTEXT
-	| SASL_SEC_NOANONYMOUS
-	| SASL_SEC_NOACTIVE
-	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
-	SASL_FEAT_ALLOWS_PROXY
-        | SASL_FEAT_SUPPORTS_HTTP
-	| SASL_FEAT_CHANNEL_BINDING, 	/* features */
-	NULL,				/* required_prompts */
-	"SHA224",			/* glob_context */
-	&scram_client_mech_new,		/* mech_new */
-	&scram_client_mech_step,	/* mech_step */
-	&scram_client_mech_dispose,	/* mech_dispose */
-	NULL,				/* mech_free */
-	NULL,				/* idle */
-	NULL,				/* spare */
-	NULL				/* spare */
-    },
 #endif
     {
 	"SCRAM-SHA-1",			/* mech_name */
@@ -3105,7 +3059,7 @@ int scram_client_plug_init(const sasl_utils_t *utils,
     *out_version = SASL_CLIENT_PLUG_VERSION;
     *pluglist = scram_client_plugins;
 #ifdef HAVE_SHA512
-    *plugcount = 5;
+    *plugcount = 4;
 #else
     *plugcount = 1;
 #endif

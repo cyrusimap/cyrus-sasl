@@ -49,7 +49,7 @@ AM_CPPFLAGS=-DLIBSASL_EXPORTS=1 -I$(top_srcdir)/include -I$(top_srcdir)/plugins 
                -I$(top_builddir)/include -I$(top_srcdir)/sasldb -I$(top_srcdir)/common -DCONFIGDIR='"${configdir}"' -DPLUGINDIR='"${plugindir}"'
 PLUGIN_COMMON_OBJS = $(top_builddir)/common/libplugin_common.la
 
-EXTRA_DIST = windlopen.c dlopen.c staticopen.h NTMakefile
+EXTRA_DIST = windlopen.c dlopen.c staticopen.h NTMakefile libsasl2.map
 EXTRA_LIBRARIES = libsasl2.a
 noinst_LIBRARIES = @SASL_STATIC_LIB@
 libsasl2_a_SOURCES=

@@ -250,6 +250,17 @@ class ScramServer(SuccessDataMixin, SaslTestCase):
         self.assertContinue(r)
         self.assertEqual(r.out or b"", b"")
 
+    @spec("RFC 4422", "3.3", "MUST",
+          "a NULL step is an empty response, not a missing one")
+    def test_null_step_same_as_empty(self):
+        results = []
+        for response in (None, b""):
+            server = self.server(MECH, users=USERS)
+            self.assertContinue(server.start(None))
+            r = server.step(response)
+            results.append((r.name, r.out))
+        self.assertEqual(results[0], results[1])
+
     @spec("RFC 5802", "5.1", "MUST",
           "unknown optional extensions in client-first MUST be ignored")
     def test_client_first_extension_ignored(self):

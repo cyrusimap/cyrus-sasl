@@ -85,6 +85,15 @@ class AnonymousServer(SaslTestCase):
         self.assertEqual(r.out or b"", b"")
         self.assertOk(s.step(b"sirhc"))
 
+    @spec("RFC 4422", "3.3", "MUST",
+          "a step carries the client's response; NULL for an empty one completes")
+    def test_null_step_after_empty_challenge(self):
+        s = self.server("ANONYMOUS")
+        self.assertContinue(s.start(None))
+        r = s.step(None)
+        self.assertOk(r, "a NULL (empty) response got another challenge")
+        self.assertEqual(r.user, b"anonymous")
+
     @spec("RFC 4505", "5", "SHOULD",
           "a server that doesn't allow anonymous access doesn't offer ANONYMOUS")
     def test_noanonymous_policy(self):

@@ -1373,6 +1373,12 @@ static int do_authorization(sasl_server_conn_t *s_conn)
 }
 
 
+static int server_step(sasl_conn_t *conn,
+		       const char *clientin,
+		       unsigned clientinlen,
+		       const char **serverout,
+		       unsigned *serveroutlen);
+
 /* start a mechanism exchange within a connection context
  *  mech           -- the mechanism name client requested
  *  clientin       -- client initial response (NUL terminated), NULL if empty
@@ -1540,11 +1546,11 @@ int sasl_server_start(sasl_conn_t *conn,
                 result = SASL_BADPROT;
             } else {
                 /* Mech wants client-first, so let them have it */
-                result = sasl_server_step(conn,
-                                          clientin,
-					  clientinlen,
-                                          serverout,
-					  serveroutlen);
+                result = server_step(conn,
+				     clientin,
+				     clientinlen,
+				     serverout,
+				     serveroutlen);
             }
         } else {
             if (s_conn->mech->m.plug->features & SASL_FEAT_WANT_CLIENT_FIRST) {
@@ -1554,11 +1560,11 @@ int sasl_server_start(sasl_conn_t *conn,
                 result = SASL_CONTINUE;
             } else {
                 /* Mech wants server-first, so let them have it */
-                result = sasl_server_step(conn,
-                                          clientin,
-					  clientinlen,
-                                          serverout,
-					  serveroutlen);
+                result = server_step(conn,
+				     clientin,
+				     clientinlen,
+				     serverout,
+				     serveroutlen);
             }
 	}
     }
@@ -1601,6 +1607,26 @@ int sasl_server_step(sasl_conn_t *conn,
 		     unsigned clientinlen,
 		     const char **serverout,
 		     unsigned *serveroutlen)
+{
+    /* A step always carries the client's response: unlike the initial
+       response in sasl_server_start(), it can't be absent (RFC 4422
+       section 3.3).  So treat NULL from the application as an empty
+       response, rather than leave mechanisms to take it for a missing
+       one and send another empty challenge. */
+    if (clientin == NULL && clientinlen == 0) {
+	clientin = "";
+    }
+
+    return server_step(conn, clientin, clientinlen, serverout, serveroutlen);
+}
+
+/* The work of sasl_server_step().  sasl_server_start() calls this directly,
+   so that a NULL initial response still reaches the mechanism as absent. */
+static int server_step(sasl_conn_t *conn,
+		       const char *clientin,
+		       unsigned clientinlen,
+		       const char **serverout,
+		       unsigned *serveroutlen)
 {
     int ret;
     sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;  /* cast */

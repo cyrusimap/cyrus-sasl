@@ -134,8 +134,11 @@ static int _sasl_global_getopt(void *context,
 			       const char ** result,
 			       unsigned *len);
  
-#ifdef HAVE_PTHREAD
+#if defined(HAVE_PTHREAD)
 static pthread_mutex_t static_mutex = PTHREAD_MUTEX_INITIALIZER;
+#elif defined(HAVE_NT_THREADS)
+/* Created once and never closed, like static_mutex above. */
+static HANDLE static_mutex = NULL;
 #endif
 
 static void *sasl_mutex_alloc(void)
@@ -218,9 +221,12 @@ void _sasl_mutex_init(void)
 #if defined(HAVE_PTHREAD)
     free_mutex = &static_mutex;
 #elif defined(HAVE_NT_THREADS)
-    HANDLE p = CreateMutex(NULL, 0, NULL);
-    if (InterlockedCompareExchangePointer((PVOID*)&free_mutex, (PVOID)p, NULL) != NULL)
-	CloseHandle(p);
+    if (!static_mutex) {
+	HANDLE p = CreateMutex(NULL, 0, NULL);
+	if (InterlockedCompareExchangePointer((PVOID*)&static_mutex, (PVOID)p, NULL) != NULL)
+	    CloseHandle(p);
+    }
+    free_mutex = static_mutex;
 #else
     free_mutex = _sasl_mutex_utils.alloc();
 #endif
@@ -781,10 +787,13 @@ void sasl_common_done(void)
     _sasl_done_with_plugins();
     
     if (free_mutex) {
-#ifdef HAVE_PTHREAD
+#if defined(HAVE_PTHREAD)
       /* The default mutex is static: destroying it would make the next
          sasl_*_init() fail to lock it. */
       if (free_mutex != &static_mutex)
+#elif defined(HAVE_NT_THREADS)
+      /* Likewise, and a concurrent sasl_*_init() may be waiting on it. */
+      if (free_mutex != static_mutex)
 #endif
 	  sasl_MUTEX_FREE(free_mutex);
       free_mutex = NULL;

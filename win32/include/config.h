@@ -135,6 +135,9 @@ typedef int		    intptr_t;
 /* we're not gcc */
 #define __attribute__(foo)
 
+/* Use Windows mutexes for the library's locks; without this they are no-ops */
+#define HAVE_NT_THREADS 1
+
 /* : Same as in tpipv6.h */
 #ifndef HAVE_SOCKLEN_T
 typedef int socklen_t;

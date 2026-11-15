@@ -125,6 +125,7 @@ if test "$enable_static" = yes; then
     if test "$dblib" != "none"; then
       SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/sasldb.c $SASL_DB_BACKEND_STATIC_SRCS"
       SASL_STATIC_OBJS="$SASL_STATIC_OBJS sasldb.o $SASL_DB_BACKEND_STATIC"
+      SASL_STATIC_LIBS="$SASL_STATIC_LIBS $SASL_DB_LIB"
       AC_DEFINE(STATIC_SASLDB,[],[Link SASLdb Statically])
     else
       SASL_STATIC_OBJS="$SASL_STATIC_OBJS $SASL_DB_BACKEND_STATIC"

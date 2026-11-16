@@ -11,6 +11,72 @@ import time
 from string import Template
 
 
+# Tests that fail because of known, unfixed bugs.  They're reported as
+# XFAIL and don't fail the run; if one passes, the run fails (XPASS) so the
+# entry gets removed and the test guards against regressions.
+KNOWN_FAILURES = {
+}
+
+
+def run_test(name, test, *args):
+    """ Run one test, applying KNOWN_FAILURES; return 1 if it counts as failed """
+    print('{}:'.format(name))
+    print('    ', end='')
+    err = test(*args)
+    known = KNOWN_FAILURES.get(name)
+    if not known:
+        return err
+    if err:
+        print('    XFAIL: known bug: {}'.format(known))
+        return 0
+    print('    XPASS: known bug appears fixed, remove "{}" from '
+          'KNOWN_FAILURES: {}'.format(name, known))
+    return 1
+
+
+KRB5_TOOLS = ('krb5kdc', 'kdb5_util', 'kadmin.local')
+KRB5_TOOLS_PATH = '/sbin:/bin:/usr/sbin:/usr/bin'
+
+
+def missing_gssapi_prereqs():
+    """ Return why the GSSAPI tests can't run, or None if they can """
+    missing = []
+    for pkg in ('socket_wrapper', 'nss_wrapper'):
+        try:
+            found = subprocess.call(['pkg-config', '--exists', pkg]) == 0
+        except FileNotFoundError:
+            return 'pkg-config not found'
+        if not found:
+            missing.append(pkg)
+    path = os.pathsep.join([os.environ.get('PATH', ''), KRB5_TOOLS_PATH])
+    missing += [tool for tool in KRB5_TOOLS if not shutil.which(tool, path=path)]
+    if missing:
+        return 'missing ' + ', '.join(missing)
+    return None
+
+
+def saslpasswd2_path(testdir):
+    return os.path.join(testdir, '../../utils/saslpasswd2')
+
+
+def missing_plain_prereqs(testdir):
+    """ Return why the SASLDB PLAIN tests can't run, or None if they can """
+    if not os.access(saslpasswd2_path(testdir), os.X_OK):
+        return 'utils/saslpasswd2 not built (configure without a sasldb backend)'
+    return None
+
+
+def sanitizer_env():
+    """ Sanitizer settings for test programs (see --enable-sanitizers)
+
+    Test programs get their own environment, so pass these through.  Leak
+    reports are off by default: the library and tools have known leaks at
+    exit that would fail every test.  Set ASAN_OPTIONS to override.
+    """
+    return {'ASAN_OPTIONS': os.environ.get('ASAN_OPTIONS', 'detect_leaks=0'),
+            'UBSAN_OPTIONS': os.environ.get('UBSAN_OPTIONS', 'print_stacktrace=1')}
+
+
 def setup_socket_wrappers(testdir):
     """ Try to set up socket wrappers """
     wrapdir = os.path.join(testdir, 'w')
@@ -312,7 +378,7 @@ def gssapi_channel_binding_mismatch_test(kenv):
                 cli.returncode, cli_err, srv.returncode, srv_err))
     except Exception as e:
         print("{}: {}".format(result, e))
-        return 0
+        return 0 if result == "PASS" else 1
 
     print("FAIL: This test should fail [CLI({}) SRV({})]".format(
         cli.stdout.read().decode('utf-8').strip(),
@@ -380,43 +446,21 @@ def gss_spnego_zeromaxssf_test(kenv):
 def gssapi_tests(testdir):
     """ SASL/GSSAPI Tests """
     env = setup_socket_wrappers(testdir)
+    env.update(sanitizer_env())
     kdc, kenv = setup_kdc(testdir, env)
     #print("KDC: {}, ENV: {}".format(kdc, kenv))
     kenv['KRB5_TRACE'] = os.path.join(testdir, 'trace.log')
 
     err = 0
-
-    print('GSSAPI BASIC:')
-    print('    ', end='')
-    err += gssapi_basic_test(kenv)
-
-    print('GSSAPI ACCEPT ANY:')
-    print('    ', end='')
-    err += gssapi_accept_any_test(kenv)
-
-    print('GSSAPI SERVICE PRINCIPAL:')
-    print('    ', end='')
-    err += gssapi_service_principal_test(kenv)
-
-    print('GSSAPI KEYTAB:')
-    print('    ', end='')
-    err += gssapi_keytab_test(kenv)
-
-    print('GSSAPI CHANNEL BINDING:')
-    print('    ', end='')
-    err += gssapi_channel_binding_test(kenv)
-
-    print('GSSAPI CHANNEL BINDING MISMTACH:')
-    print('    ', end='')
-    err += gssapi_channel_binding_mismatch_test(kenv)
-
-    print('GSS-SPNEGO BASIC:')
-    print('    ', end='')
-    err += gss_spnego_basic_test(kenv)
-
-    print('GSS-SPNEGO 0 MAXSSF:')
-    print('    ', end='')
-    err += gss_spnego_zeromaxssf_test(kenv)
+    err += run_test('GSSAPI BASIC', gssapi_basic_test, kenv)
+    err += run_test('GSSAPI ACCEPT ANY', gssapi_accept_any_test, kenv)
+    err += run_test('GSSAPI SERVICE PRINCIPAL', gssapi_service_principal_test, kenv)
+    err += run_test('GSSAPI KEYTAB', gssapi_keytab_test, kenv)
+    err += run_test('GSSAPI CHANNEL BINDING', gssapi_channel_binding_test, kenv)
+    err += run_test('GSSAPI CHANNEL BINDING MISMTACH',
+                    gssapi_channel_binding_mismatch_test, kenv)
+    err += run_test('GSS-SPNEGO BASIC', gss_spnego_basic_test, kenv)
+    err += run_test('GSS-SPNEGO 0 MAXSSF', gss_spnego_zeromaxssf_test, kenv)
 
     os.killpg(kdc.pid, signal.SIGTERM)
     return err
@@ -425,10 +469,13 @@ def setup_plain(testdir):
     """ Create sasldb file """
     sasldbfile = os.path.join(testdir, 'testsasldb.db')
 
-    sasldbenv = {'SASL_PATH': os.path.join(testdir, '../../plugins/.libs'),
+    # libsasl reads the plugin directory from SASL_PLUGINDIR (see
+    # SASL_PLUGIN_PATH_ATTR in configure.ac).
+    sasldbenv = {'SASL_PLUGINDIR': os.path.join(testdir, '../../plugins/.libs'),
                  'LD_LIBRARY_PATH' : os.path.join(testdir, '../../lib/.libs')}
+    sasldbenv.update(sanitizer_env())
 
-    passwdprog = os.path.join(testdir, '../../utils/saslpasswd2')
+    passwdprog = saslpasswd2_path(testdir)
 
     echo = subprocess.Popen(('echo', '1234567'), stdout=subprocess.PIPE)
     subprocess.check_call([
@@ -460,12 +507,12 @@ def plain_test(sasldbfile, sasldbenv):
                 srv.returncode, srv.stderr.read().decode('utf-8')))
     except Exception as e:
         print("FAIL: {}".format(e))
-        return
+        return 1
 
     print("PASS: PLAIN CLI({}) SRV({})".format(
         cli.stdout.read().decode('utf-8').strip(),
         srv.stdout.read().decode('utf-8').strip()))
-    return
+    return 0
 
 def plain_mismatch_test(sasldbfile, sasldbenv):
     result = "FAIL"
@@ -494,29 +541,31 @@ def plain_mismatch_test(sasldbfile, sasldbenv):
                 cli.returncode, cli_err, srv.returncode, srv_err))
     except Exception as e:
         print("{}: {}".format(result, e))
-        return
+        return 0 if result == "PASS" else 1
 
     print("FAIL: This test should fail [CLI({}) SRV({})]".format(
         cli.stdout.read().decode('utf-8').strip(),
         srv.stdout.read().decode('utf-8').strip()))
-    return
+    return 1
 
 def plain_tests(testdir):
     sasldbfile, sasldbenv = setup_plain(testdir)
     #print("DB file: {}, ENV: {}".format(sasldbfile, sasldbenv))
-    print('SASLDB PLAIN:')
-    print('    ', end='')
-    plain_test(sasldbfile, sasldbenv)
+    err = 0
+    err += run_test('SASLDB PLAIN', plain_test, sasldbfile, sasldbenv)
+    err += run_test('SASLDB PLAIN PASSWORD MISMATCH', plain_mismatch_test,
+                    sasldbfile, sasldbenv)
 
-    print('SASLDB PLAIN PASSWORD MISMATCH:')
-    print('    ', end='')
-    plain_mismatch_test(sasldbfile, sasldbenv)
+    return err
 
 if __name__ == "__main__":
 
     P = argparse.ArgumentParser(description='Cyrus SASL Tests')
     P.add_argument('--testdir', default=os.path.join(os.getcwd(), '.tests'),
                    help="Directory for running tests")
+    P.add_argument('--no-skip', action='store_true',
+                   help="Fail instead of skipping tests whose prerequisites "
+                        "are missing")
     A = vars(P.parse_args())
 
     T = A['testdir']
@@ -525,9 +574,20 @@ if __name__ == "__main__":
         shutil.rmtree(T)
     os.makedirs(T)
 
-    plain_tests(T)
+    err = 0
+    skipped = 0
+    groups = (('SASLDB PLAIN', missing_plain_prereqs(T), plain_tests),
+              ('GSSAPI', missing_gssapi_prereqs(), gssapi_tests))
+    for name, missing, run in groups:
+        if missing:
+            print('SKIP: {} tests: {}'.format(name, missing))
+            skipped += 1
+            continue
+        err += run(T)
 
-    err = gssapi_tests(T)
     if err != 0:
         print('{} test(s) FAILED'.format(err))
+        sys.exit(-1)
+    if skipped and A['no_skip']:
+        print('{} test group(s) SKIPPED and --no-skip given'.format(skipped))
         sys.exit(-1)

@@ -1,0 +1,463 @@
+"""Harness for the Cyrus SASL wire-level conformance tests.
+
+Each test starts one of the C drivers (tests/t_srv or tests/t_cli) as a
+subprocess and plays the other side of a SASL exchange with exact bytes.
+The drivers make one libsasl call per input line and print one JSON object
+per call; see tests/t_wire.h for the line protocol.
+
+Only the Python standard library is used.
+"""
+
+import base64
+import hashlib
+import hmac
+import json
+import os
+import select
+import subprocess
+import unittest
+
+TIMEOUT = 20  # seconds to wait for any single driver response
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+BUILDDIR = os.environ.get("T_BUILDDIR") or os.path.dirname(HERE)
+
+# Set by "make check-conformance" when configured with --enable-sanitizers.
+SANITIZED = bool(os.environ.get("T_SANITIZER"))
+SANITIZER_MARKERS = ("ERROR: AddressSanitizer", "ERROR: LeakSanitizer",
+                     "runtime error:")
+
+
+def config_defined(name):
+    """True if the build's config.h defines `name` (e.g. a build option)."""
+    path = os.path.join(BUILDDIR, os.pardir, "config.h")
+    try:
+        with open(path) as f:
+            return any(line.split()[:2] == ["#define", name] for line in f)
+    except OSError:
+        return False
+
+
+# ---------------------------------------------------------------------------
+# Spec and known-bug markers
+# ---------------------------------------------------------------------------
+
+def spec(ref, section, level, requirement=None):
+    """Tag a test with the spec requirement it checks.
+
+    ref:   e.g. "RFC 5802"
+    level: MUST, MUST NOT, SHOULD, SHOULD NOT, SHALL, MAY, ABNF, or INTEROP
+    """
+    def deco(func):
+        tags = list(getattr(func, "spec_tags", []))
+        tags.append((ref, section, level, requirement))
+        func.spec_tags = tags
+        return func
+    return deco
+
+
+def known_bug(audit_id, summary, only_if=True):
+    """Mark a test that fails because of a known, unfixed bug.
+
+    audit_id refers to the finding on the conformance audit page.  The test
+    is an expected failure; once the bug is fixed it will report an
+    unexpected success, and this marker should be removed.
+
+    only_if limits the marker to builds where the bug is observable, e.g.
+    only_if=SANITIZED for a memory error that only a sanitizer detects.
+    Elsewhere the test runs as a normal test.
+    """
+    def deco(func):
+        if not only_if:
+            return func
+        func = unittest.expectedFailure(func)
+        func.known_bug = (audit_id, summary)
+        return func
+    return deco
+
+
+# ---------------------------------------------------------------------------
+# Driver processes
+# ---------------------------------------------------------------------------
+
+class Result:
+    """One libsasl call's outcome, as reported by a driver."""
+
+    def __init__(self, obj):
+        self.raw = obj
+        self.rc = obj.get("rc")
+        self.name = obj.get("name")
+        self.out = bytes.fromhex(obj["out"]) if obj.get("out") is not None else None
+        self.detail = obj.get("detail")
+        self.mech = obj.get("mech")
+        self.user = bytes.fromhex(obj["user"]) if obj.get("user") is not None else None
+        self.authuser = bytes.fromhex(obj["authuser"]) if obj.get("authuser") is not None else None
+        self.ssf = obj.get("ssf")
+        self.maxoutbuf = obj.get("maxoutbuf")
+
+    @property
+    def ok(self):
+        return self.name == "SASL_OK"
+
+    @property
+    def cont(self):
+        return self.name == "SASL_CONTINUE"
+
+    @property
+    def failed(self):
+        return not (self.ok or self.cont)
+
+    def __repr__(self):
+        parts = ["%s" % self.name]
+        if self.out is not None:
+            out = self.out if len(self.out) <= 64 else (
+                self.out[:64] + b"...(%d bytes)" % len(self.out))
+            parts.append("out=%r" % out)
+        if self.mech:
+            parts.append("mech=%s" % self.mech)
+        if self.user is not None:
+            parts.append("user=%r" % self.user)
+        if self.detail:
+            parts.append("detail=%r" % self.detail)
+        return "<Result %s>" % " ".join(parts)
+
+
+class DriverError(Exception):
+    pass
+
+
+class Driver:
+    program = None
+
+    def __init__(self, args):
+        path = os.path.join(BUILDDIR, self.program)
+        if not os.path.exists(path):
+            raise DriverError("driver not built: %s" % path)
+        env = dict(os.environ)
+        # Leak reports are off by default: the library has known leaks at
+        # exit that would fail every test.  Set ASAN_OPTIONS to override.
+        env.setdefault("ASAN_OPTIONS", "detect_leaks=0")
+        env.setdefault("UBSAN_OPTIONS", "print_stacktrace=1")
+        self.stderr = ""
+        self.reported = False  # stderr already surfaced in a DriverError
+        self.proc = subprocess.Popen(
+            [path] + [str(a) for a in args],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, env=env)
+        self._buf = b""
+
+    def _readline(self):
+        fd = self.proc.stdout.fileno()
+        while b"\n" not in self._buf:
+            ready, _, _ = select.select([fd], [], [], TIMEOUT)
+            if not ready:
+                self.close()
+                raise DriverError("timed out waiting for %s" % self.program)
+            chunk = os.read(fd, 65536)
+            if not chunk:
+                self.stderr += self.proc.stderr.read().decode("utf-8", "replace")
+                self.proc.wait()
+                self.reported = True
+                raise DriverError("%s exited (status %s): %s"
+                                  % (self.program, self.proc.returncode,
+                                     self.stderr.strip()))
+            self._buf += chunk
+        line, self._buf = self._buf.split(b"\n", 1)
+        return json.loads(line.decode("ascii"))
+
+    def _send(self, data, prefix=""):
+        if data is None:
+            line = "-"
+        else:
+            line = prefix + bytes(data).hex()
+        try:
+            self.proc.stdin.write((line + "\n").encode("ascii"))
+            self.proc.stdin.flush()
+        except BrokenPipeError:
+            raise DriverError("%s is no longer reading input" % self.program)
+
+    def call(self, data):
+        """Send one message (bytes, or None for no data) and return the Result."""
+        self._send(data)
+        return Result(self._readline())
+
+    def encode(self, data):
+        """sasl_encode() data through the negotiated security layer."""
+        self._send(data, prefix="E:")
+        return Result(self._readline())
+
+    def decode(self, data):
+        """sasl_decode() data received through the security layer."""
+        self._send(data, prefix="D:")
+        return Result(self._readline())
+
+    def close(self):
+        if self.proc.poll() is None:
+            try:
+                self.proc.stdin.close()
+            except BrokenPipeError:
+                pass
+            try:
+                self.proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self.proc.kill()
+                self.proc.wait()
+        if self.proc.stderr and not self.proc.stderr.closed:
+            self.stderr += self.proc.stderr.read().decode("utf-8", "replace")
+        for f in (self.proc.stdout, self.proc.stderr):
+            if f:
+                f.close()
+
+    def sanitizer_report(self):
+        """The driver's stderr if it contains a sanitizer report, else None."""
+        if any(m in self.stderr for m in SANITIZER_MARKERS):
+            return self.stderr
+        return None
+
+
+def _common_args(opts=None, cbinding=None, critical=False, min_ssf=None,
+                 max_ssf=None, maxbuf=None, secflags=None, external=None,
+                 external_ssf=None, service=None, fqdn=None,
+                 success_data=False):
+    args = []
+    if success_data:
+        args.append("-S")
+    for key, value in (opts or {}).items():
+        args += ["-o", "%s=%s" % (key, value)]
+    if cbinding is not None:
+        name, data = cbinding
+        args += ["-c", "%s:%s" % (name, bytes(data).hex())]
+    if critical:
+        args.append("-C")
+    for flag, value in (("-n", min_ssf), ("-x", max_ssf), ("-b", maxbuf),
+                        ("-f", secflags), ("-e", external),
+                        ("-E", external_ssf), ("-s", service), ("-h", fqdn)):
+        if value is not None:
+            args += [flag, value]
+    return args
+
+
+class Server(Driver):
+    """A libsasl server running one authentication with mechanism `mech`.
+
+    users:   {name: password} served by the in-memory password store
+    secrets: {name: [value, ...]} authPassword values, e.g. stored SCRAM
+             secrets (RFC 5803)
+    proxies: [(authid, authzid)] pairs allowed to proxy; when given, they
+             replace the library's default proxy policy
+    success_data: the protocol can carry additional data with the success
+             outcome (SASL_SUCCESS_DATA); otherwise the library sends such
+             data as a final challenge (RFC 4422 section 5)
+    """
+    program = "t_srv"
+
+    def __init__(self, mech, users=None, secrets=None, proxies=None,
+                 realm=None, **kw):
+        args = ["-m", mech]
+        for name, password in (users or {}).items():
+            args += ["-U", "%s:%s" % (name, password)]
+        for name, values in (secrets or {}).items():
+            for value in values:
+                args += ["-P", "%s:%s" % (name, value)]
+        for authid, authzid in (proxies or []):
+            args += ["-A", "%s:%s" % (authid, authzid)]
+        if realm is not None:
+            args += ["-r", realm]
+        args += _common_args(**kw)
+        super().__init__(args)
+        self.mechs = self._readline()["mechs"].split()
+
+    def start(self, initial):
+        """Call sasl_server_start with the client's initial response."""
+        return self.call(initial)
+
+    def step(self, response):
+        """Call sasl_server_step with the client's response."""
+        return self.call(response)
+
+
+class Client(Driver):
+    """A libsasl client.  sasl_client_start runs immediately; its result
+    is in .first.
+
+    no_initial_response: start without initial-response support, as for a
+    protocol that can't carry one.
+    """
+    program = "t_cli"
+
+    def __init__(self, mechlist, authname=None, authzid=None, password=None,
+                 no_initial_response=False, **kw):
+        args = ["-m", mechlist]
+        if authname is not None:
+            args += ["-u", authname]
+        if authzid is not None:
+            args += ["-a", authzid]
+        if password is not None:
+            args += ["-w", password]
+        if no_initial_response:
+            args.append("-N")
+        args += _common_args(**kw)
+        super().__init__(args)
+        self.first = Result(self._readline())
+
+    def step(self, challenge):
+        """Call sasl_client_step with a server challenge (None for no data)."""
+        return self.call(challenge)
+
+
+class SaslTestCase(unittest.TestCase):
+    """Base class: tracks drivers so they are always cleaned up."""
+
+    def setUp(self):
+        self._drivers = []
+
+    def tearDown(self):
+        for d in self._drivers:
+            d.close()
+        # A sanitizer report fails the test even if every result looked
+        # right, e.g. an error during cleanup after the last response.
+        for d in self._drivers:
+            report = d.sanitizer_report()
+            if report and not d.reported:
+                self.fail("sanitizer report from %s:\n%s" % (d.program, report))
+
+    def server(self, mech, **kw):
+        s = Server(mech, **kw)
+        self._drivers.append(s)
+        return s
+
+    def client(self, mechlist, **kw):
+        c = Client(mechlist, **kw)
+        self._drivers.append(c)
+        return c
+
+    def require_mech(self, mech):
+        """Skip unless the server advertises `mech` (with a dummy user)."""
+        s = self.server(mech, users={"probe": "probe"})
+        if mech not in s.mechs:
+            self.skipTest("%s not available in this build" % mech)
+
+    def assertOk(self, result, msg=None):
+        if not result.ok:
+            self.fail(msg or "expected SASL_OK, got %r" % result)
+
+    def assertContinue(self, result, msg=None):
+        if not result.cont:
+            self.fail(msg or "expected SASL_CONTINUE, got %r" % result)
+
+    def assertFailed(self, result, msg=None):
+        if not result.failed:
+            self.fail(msg or "expected the exchange to fail, got %r" % result)
+
+    def assertError(self, result, msg=None):
+        """Stricter than assertFailed: a SASL error code (negative), not a
+        positive status such as SASL_INTERACT."""
+        if result.rc is None or result.rc >= 0:
+            self.fail(msg or "expected a SASL error code, got %r" % result)
+
+
+# ---------------------------------------------------------------------------
+# SCRAM (RFC 5802) calculator, independent of the library under test
+# ---------------------------------------------------------------------------
+
+SCRAM_HASHES = {
+    "SCRAM-SHA-1": "sha1",
+    "SCRAM-SHA-224": "sha224",
+    "SCRAM-SHA-256": "sha256",
+    "SCRAM-SHA-384": "sha384",
+    "SCRAM-SHA-512": "sha512",
+}
+
+
+def saslprep(text, allow_unassigned=False):
+    """SASLprep (RFC 4013) using the stringprep tables from Unicode 3.2.
+
+    Raises ValueError for prohibited output or a bidi violation.
+    """
+    import stringprep
+    import unicodedata
+
+    mapped = []
+    for ch in text:
+        if stringprep.in_table_c12(ch):
+            mapped.append(" ")          # non-ASCII space -> SPACE
+        elif not stringprep.in_table_b1(ch):
+            mapped.append(ch)           # B.1: commonly mapped to nothing
+    out = unicodedata.ucd_3_2_0.normalize("NFKC", "".join(mapped))
+    prohibited = (stringprep.in_table_c12, stringprep.in_table_c21,
+                  stringprep.in_table_c22, stringprep.in_table_c3,
+                  stringprep.in_table_c4, stringprep.in_table_c5,
+                  stringprep.in_table_c6, stringprep.in_table_c7,
+                  stringprep.in_table_c8, stringprep.in_table_c9)
+    for ch in out:
+        if any(table(ch) for table in prohibited):
+            raise ValueError("prohibited character U+%04X" % ord(ch))
+        if not allow_unassigned and stringprep.in_table_a1(ch):
+            raise ValueError("unassigned code point U+%04X" % ord(ch))
+    if any(stringprep.in_table_d1(ch) for ch in out):
+        if any(stringprep.in_table_d2(ch) for ch in out):
+            raise ValueError("mixed bidirectional text")
+        if not (stringprep.in_table_d1(out[0]) and stringprep.in_table_d1(out[-1])):
+            raise ValueError("RandALCat text must start and end with RandALCat")
+    return out
+
+
+def b64(data):
+    return base64.b64encode(data).decode("ascii")
+
+
+def unb64(text):
+    return base64.b64decode(text, validate=True)
+
+
+def scram_escape(name):
+    """saslname escaping from RFC 5802 section 5.1."""
+    return name.replace("=", "=3D").replace(",", "=2C")
+
+
+def parse_attrs(message):
+    """Split a SCRAM message into an ordered list of (attr, value)."""
+    if isinstance(message, bytes):
+        message = message.decode("utf-8")
+    attrs = []
+    for part in message.split(","):
+        if len(part) < 2 or part[1] != "=":
+            raise ValueError("malformed SCRAM attribute %r in %r" % (part, message))
+        attrs.append((part[0], part[2:]))
+    return attrs
+
+
+class Scram:
+    """Computes RFC 5802 values for one exchange."""
+
+    def __init__(self, mech, password):
+        base = mech[:-5] if mech.endswith("-PLUS") else mech
+        self.hash = SCRAM_HASHES[base]
+        self.password = password.encode("utf-8")
+
+    def H(self, data):
+        return hashlib.new(self.hash, data).digest()
+
+    def HMAC(self, key, data):
+        return hmac.new(key, data, self.hash).digest()
+
+    def keys(self, salt, iterations):
+        salted = hashlib.pbkdf2_hmac(self.hash, self.password, salt, iterations)
+        client_key = self.HMAC(salted, b"Client Key")
+        server_key = self.HMAC(salted, b"Server Key")
+        return client_key, self.H(client_key), server_key
+
+    def client_proof(self, salt, iterations, auth_message):
+        client_key, stored_key, _ = self.keys(salt, iterations)
+        signature = self.HMAC(stored_key, auth_message)
+        return bytes(a ^ b for a, b in zip(client_key, signature))
+
+    def server_signature(self, salt, iterations, auth_message):
+        _, _, server_key = self.keys(salt, iterations)
+        return self.HMAC(server_key, auth_message)
+
+    def stored_secret(self, mech, salt, iterations):
+        """The authPassword value the library stores (RFC 5803 layout)."""
+        _, stored_key, server_key = self.keys(salt, iterations)
+        return "%s$%d:%s$%s:%s" % (mech, iterations, b64(salt),
+                                   b64(stored_key), b64(server_key))

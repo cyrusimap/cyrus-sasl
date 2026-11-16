@@ -1,0 +1,165 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: make check (${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # No sasldb backend or Kerberos tools: runtests.py groups that
+          # need them must be skipped, not crash.
+          - name: minimal
+            packages: ""
+            configure: ""
+            checkargs: ""
+          # Everything installed: every test group must run (--no-skip),
+          # and the GSSAPI/GS2 conformance tests run against their own KDC.
+          - name: full
+            packages: >-
+              liblmdb-dev libkrb5-dev krb5-kdc krb5-admin-server
+              libsocket-wrapper libnss-wrapper python3-gssapi
+              python3-openssl python3-cryptography python3-scramp
+            configure: --with-dblib=lmdb
+            checkargs: --no-skip
+          # AddressSanitizer and UndefinedBehaviorSanitizer: any report
+          # fails the conformance test that triggered it.
+          - name: sanitizers
+            packages: >-
+              liblmdb-dev libkrb5-dev krb5-kdc krb5-admin-server
+              python3-gssapi python3-openssl python3-cryptography
+              python3-scramp
+            configure: --with-dblib=lmdb --enable-sanitizers
+            checkargs: ""
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            autoconf automake libtool pkg-config make gcc \
+            libssl-dev python3 ${{ matrix.packages }}
+
+      - name: Configure
+        run: |
+          NOCONFIGURE=1 ./autogen.sh
+          ./configure ${{ matrix.configure }}
+
+      - name: Build
+        run: make -j"$(nproc)"
+
+      - name: Test
+        run: make check CHECKARGS="${{ matrix.checkargs }}"
+
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-${{ matrix.name }}
+          path: |
+            config.log
+            tests/.tests/
+          if-no-files-found: ignore
+
+  # Build and test from the release tarball, as a user would: catches
+  # files missing from EXTRA_DIST and VPATH-build problems.
+  distcheck:
+    name: make distcheck
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            autoconf automake libtool pkg-config make gcc \
+            libssl-dev python3 liblmdb-dev libkrb5-dev krb5-kdc \
+            krb5-admin-server libsocket-wrapper libnss-wrapper \
+            python3-gssapi python3-openssl python3-cryptography \
+            python3-scramp \
+            python3-sphinx python3-sphinx-rtd-theme \
+            libpod-pom-view-restructured-perl
+
+      - name: Configure
+        run: |
+          NOCONFIGURE=1 ./autogen.sh
+          ./configure --with-dblib=lmdb
+
+      # make dist builds the HTML documentation, hence Sphinx and Pod::POM.
+      - name: Distcheck
+        run: >
+          make distcheck
+          DISTCHECK_CONFIGURE_FLAGS=--with-dblib=lmdb
+          CHECKARGS=--no-skip
+
+  # A static-only build, as distributions that ship static libraries do:
+  # the installed libsasl2.a must carry the plugins, and pkg-config --static
+  # must name everything needed to link it.
+  static:
+    name: static libsasl2.a
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            autoconf automake libtool pkg-config make gcc \
+            libssl-dev liblmdb-dev libkrb5-dev
+
+      - name: Configure
+        run: |
+          NOCONFIGURE=1 ./autogen.sh
+          ./configure --disable-shared --enable-static --with-dblib=lmdb \
+            --prefix="$PWD/inst"
+
+      - name: Build and install
+        run: |
+          make -j"$(nproc)"
+          make install
+
+      - name: Link a program against libsasl2.a
+        run: |
+          set -e
+          export PKG_CONFIG_PATH="$PWD/inst/lib/pkgconfig"
+          cat > t_static.c <<'EOF'
+          #include <stdio.h>
+          #include <sasl/sasl.h>
+          int main(void)
+          {
+              const char **m;
+              if (sasl_server_init(NULL, "t_static") != SASL_OK) return 1;
+              for (m = sasl_global_listmech(); m && *m; m++) printf("%s ", *m);
+              printf("\n");
+              sasl_server_done();
+              return 0;
+          }
+          EOF
+          cc $(pkg-config --cflags libsasl2) -o t_static t_static.c \
+             $(pkg-config --static --libs libsasl2)
+          if ldd ./t_static | grep -q libsasl2; then
+            echo "t_static is linked against a shared libsasl2"; exit 1
+          fi
+          mechs=" $(SASL_PLUGINDIR=/nonexistent ./t_static) "
+          echo "built-in mechanisms:$mechs"
+          for m in ANONYMOUS PLAIN SCRAM-SHA-256 GSSAPI; do
+            case "$mechs" in *" $m "*) ;; *) echo "missing $m"; exit 1 ;; esac
+          done

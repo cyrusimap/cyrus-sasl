@@ -104,3 +104,60 @@ jobs:
           make distcheck
           DISTCHECK_CONFIGURE_FLAGS=--with-dblib=lmdb
           CHECKARGS=--no-skip
+
+  # A static-only build, as distributions that ship static libraries do:
+  # the installed libsasl2.a must carry the plugins, and pkg-config --static
+  # must name everything needed to link it.
+  static:
+    name: static libsasl2.a
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            autoconf automake libtool pkg-config make gcc \
+            libssl-dev liblmdb-dev libkrb5-dev
+
+      - name: Configure
+        run: |
+          NOCONFIGURE=1 ./autogen.sh
+          ./configure --disable-shared --enable-static --with-dblib=lmdb \
+            --prefix="$PWD/inst"
+
+      - name: Build and install
+        run: |
+          make -j"$(nproc)"
+          make install
+
+      - name: Link a program against libsasl2.a
+        run: |
+          set -e
+          export PKG_CONFIG_PATH="$PWD/inst/lib/pkgconfig"
+          cat > t_static.c <<'EOF'
+          #include <stdio.h>
+          #include <sasl/sasl.h>
+          int main(void)
+          {
+              const char **m;
+              if (sasl_server_init(NULL, "t_static") != SASL_OK) return 1;
+              for (m = sasl_global_listmech(); m && *m; m++) printf("%s ", *m);
+              printf("\n");
+              sasl_server_done();
+              return 0;
+          }
+          EOF
+          cc $(pkg-config --cflags libsasl2) -o t_static t_static.c \
+             $(pkg-config --static --libs libsasl2)
+          if ldd ./t_static | grep -q libsasl2; then
+            echo "t_static is linked against a shared libsasl2"; exit 1
+          fi
+          mechs=" $(SASL_PLUGINDIR=/nonexistent ./t_static) "
+          echo "built-in mechanisms:$mechs"
+          for m in ANONYMOUS PLAIN SCRAM-SHA-256 GSSAPI; do
+            case "$mechs" in *" $m "*) ;; *) echo "missing $m"; exit 1 ;; esac
+          done

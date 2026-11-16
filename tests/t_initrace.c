@@ -6,6 +6,10 @@
  * fully initialized library: if one thread returns from sasl_*_init()
  * while another is still loading plugins, it finds no mechanisms.
  *
+ * The test runs twice: first with barriers, so each round's sasl_*_done()
+ * calls finish before the next round's sasl_*_init() calls start, then
+ * without, so threads initialize while another tears the library down.
+ *
  * Exit status: 0 on success, 1 on failure, 77 if built without threads.
  * The test uses the same thread API as the library: pthreads or Windows.
  */
@@ -88,6 +92,10 @@ static void thread_join(thread_t t)
 
 #define NTHREADS 16
 #define ROUNDS   20
+/* Few threads, so the library is often fully torn down while another
+   thread initializes it. */
+#define OVERLAP_THREADS 2
+#define OVERLAP_ROUNDS  500
 
 static const char *plugindir;
 static int failures;
@@ -101,9 +109,15 @@ static struct {
     unsigned generation;
 } barrier = { LOCK_INITIALIZER, COND_INITIALIZER, 0, 0 };
 
+/* Set for the second run, which skips the barriers. */
+static int overlap;
+static int nthreads = NTHREADS, rounds = ROUNDS;
+
 static void barrier_wait(void)
 {
     unsigned gen;
+
+    if (overlap) return;
 
     lock(&barrier.lock);
     gen = barrier.generation;
@@ -145,7 +159,7 @@ THREAD_FUNC(worker)
     int round, rc;
     (void)arg;
 
-    for (round = 0; round < ROUNDS; round++) {
+    for (round = 0; round < rounds; round++) {
         sasl_conn_t *conn = NULL;
         const char *list = NULL, *mech = NULL, *out = NULL;
         unsigned len = 0;
@@ -227,22 +241,31 @@ int main(void)
         return 1;
     }
 
-    for (i = 0; i < NTHREADS; i++) {
-        if (thread_start(&threads[i], worker) != 0) {
-            perror("thread_start");
+    for (overlap = 0; overlap <= 1; overlap++) {
+        if (overlap) {
+            nthreads = OVERLAP_THREADS;
+            rounds = OVERLAP_ROUNDS;
+        }
+        for (i = 0; i < nthreads; i++) {
+            if (thread_start(&threads[i], worker) != 0) {
+                perror("thread_start");
+                return 1;
+            }
+        }
+        for (i = 0; i < nthreads; i++)
+            thread_join(threads[i]);
+
+        if (failures) {
+            fprintf(stderr, "FAIL: %d failures in %d rounds of %d threads%s\n",
+                    failures, rounds, nthreads,
+                    overlap ? ", init overlapping done" : "");
             return 1;
         }
     }
-    for (i = 0; i < NTHREADS; i++)
-        thread_join(threads[i]);
 
-    if (failures) {
-        fprintf(stderr, "FAIL: %d failures in %d rounds of %d threads\n",
-                failures, ROUNDS, NTHREADS);
-        return 1;
-    }
-
-    printf("PASS: %d rounds of %d concurrent init/done\n", ROUNDS, NTHREADS);
+    printf("PASS: %d rounds of %d threads, then %d rounds of %d threads "
+           "overlapping init and done\n", ROUNDS, NTHREADS,
+           OVERLAP_ROUNDS, OVERLAP_THREADS);
     return 0;
 }
 

@@ -105,8 +105,7 @@ int sasl_client_done(void)
 	return result;
     }
 
-    /* sasl_common_done() frees the init lock itself */
-    _sasl_init_unlock();
+    /* sasl_common_done() releases the init lock */
     sasl_common_done();
 
     return SASL_OK;

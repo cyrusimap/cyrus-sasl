@@ -225,32 +225,34 @@ void sasl_set_mutex(sasl_mutex_alloc_t *n,
  */
 int _sasl_init_lock(void)
 {
-    if (_sasl_mutex_utils.alloc != &sasl_mutex_alloc) {
-	/* Mutex functions from sasl_set_mutex(), set up before any
-	   threads start. */
-	if (!free_mutex) {
-	    free_mutex = _sasl_mutex_utils.alloc();
-	    if (!free_mutex) return SASL_FAIL;
-	}
-	return sasl_MUTEX_LOCK(free_mutex) == SASL_OK ? SASL_OK : SASL_FAIL;
-    }
-
 #if defined(HAVE_PTHREAD)
-    if (pthread_mutex_lock(&static_mutex)) return SASL_FAIL;
-    free_mutex = &static_mutex;
-#elif defined(HAVE_NT_THREADS)
-    if (!static_mutex) {
-	HANDLE p = CreateMutex(NULL, 0, NULL);
-	if (InterlockedCompareExchangePointer((PVOID*)&static_mutex, (PVOID)p, NULL) != NULL)
-	    CloseHandle(p);
+    if (_sasl_mutex_utils.alloc == &sasl_mutex_alloc) {
+	if (pthread_mutex_lock(&static_mutex)) return SASL_FAIL;
+	free_mutex = &static_mutex;
+	return SASL_OK;
     }
-    if (!static_mutex || WaitForSingleObject(static_mutex, INFINITE) == WAIT_FAILED)
-	return SASL_FAIL;
-    free_mutex = static_mutex;
-#else
-    free_mutex = _sasl_mutex_utils.alloc();
+#elif defined(HAVE_NT_THREADS)
+    if (_sasl_mutex_utils.alloc == &sasl_mutex_alloc) {
+	if (!static_mutex) {
+	    HANDLE p = CreateMutex(NULL, 0, NULL);
+	    if (InterlockedCompareExchangePointer((PVOID*)&static_mutex, (PVOID)p, NULL) != NULL)
+		CloseHandle(p);
+	}
+	if (!static_mutex || WaitForSingleObject(static_mutex, INFINITE) == WAIT_FAILED)
+	    return SASL_FAIL;
+	free_mutex = static_mutex;
+	return SASL_OK;
+    }
 #endif
-    return SASL_OK;
+
+    /* Mutex functions from sasl_set_mutex(), or the defaults in a build
+       without thread support.  There is no lock to take before free_mutex
+       is set, so concurrent first callers can still race here. */
+    if (!free_mutex) {
+	free_mutex = _sasl_mutex_utils.alloc();
+	if (!free_mutex) return SASL_FAIL;
+    }
+    return sasl_MUTEX_LOCK(free_mutex) == SASL_OK ? SASL_OK : SASL_FAIL;
 }
 
 void _sasl_init_unlock(void)

@@ -217,65 +217,50 @@ void sasl_set_mutex(sasl_mutex_alloc_t *n,
     _sasl_mutex_utils.free=d;
 }
 
-void _sasl_mutex_init(void)
-{
-    if (_sasl_mutex_utils.alloc != &sasl_mutex_alloc) {
-	free_mutex = _sasl_mutex_utils.alloc();
-	return;
-    }
-
-#if defined(HAVE_PTHREAD)
-    free_mutex = &static_mutex;
-#elif defined(HAVE_NT_THREADS)
-    if (!static_mutex) {
-	HANDLE p = CreateMutex(NULL, 0, NULL);
-	if (InterlockedCompareExchangePointer((PVOID*)&static_mutex, (PVOID)p, NULL) != NULL)
-	    CloseHandle(p);
-    }
-    free_mutex = static_mutex;
-#else
-    free_mutex = _sasl_mutex_utils.alloc();
-#endif
-    return;
-}
-
 /*
- * Serialize library initialization and teardown.  sasl_server_init() and
- * sasl_client_init() hold this lock until they have finished (or undone)
- * loading plugins, so a concurrent caller can't see a half-initialized
- * library; the *_done() functions hold it while they change the refcounts.
+ * Take the library's init lock.  sasl_server_init() and sasl_client_init()
+ * hold it until they have finished (or undone) loading plugins, so a
+ * concurrent caller can't see a half-initialized library; the *_done()
+ * functions hold it while they change the refcounts, and the last one hands
+ * it to sasl_common_done(), which releases it once the library is torn down.
+ *
+ * free_mutex is only read or written with the lock held.  The default
+ * mutex exists before free_mutex points at it, so it is taken first.
  */
 int _sasl_init_lock(void)
 {
-#ifdef HAVE_PTHREAD
+#if defined(HAVE_PTHREAD)
     if (_sasl_mutex_utils.alloc == &sasl_mutex_alloc) {
-	/* The default mutex is static, so take it before touching
-	   free_mutex, which another caller may be setting too. */
 	if (pthread_mutex_lock(&static_mutex)) return SASL_FAIL;
 	free_mutex = &static_mutex;
 	return SASL_OK;
     }
+#elif defined(HAVE_NT_THREADS)
+    if (_sasl_mutex_utils.alloc == &sasl_mutex_alloc) {
+	if (!static_mutex) {
+	    HANDLE p = CreateMutex(NULL, 0, NULL);
+	    if (InterlockedCompareExchangePointer((PVOID*)&static_mutex, (PVOID)p, NULL) != NULL)
+		CloseHandle(p);
+	}
+	if (!static_mutex || WaitForSingleObject(static_mutex, INFINITE) == WAIT_FAILED)
+	    return SASL_FAIL;
+	free_mutex = static_mutex;
+	return SASL_OK;
+    }
 #endif
 
+    /* Mutex functions from sasl_set_mutex(), or the defaults in a build
+       without thread support.  There is no lock to take before free_mutex
+       is set, so concurrent first callers can still race here. */
     if (!free_mutex) {
-	_sasl_mutex_init();
-	if (!free_mutex) {
-	    return SASL_FAIL;
-	}
+	free_mutex = _sasl_mutex_utils.alloc();
+	if (!free_mutex) return SASL_FAIL;
     }
-
     return sasl_MUTEX_LOCK(free_mutex) == SASL_OK ? SASL_OK : SASL_FAIL;
 }
 
 void _sasl_init_unlock(void)
 {
-#ifdef HAVE_PTHREAD
-    if (_sasl_mutex_utils.alloc == &sasl_mutex_alloc) {
-	pthread_mutex_unlock(&static_mutex);
-	return;
-    }
-#endif
-
     if (free_mutex) {
 	sasl_MUTEX_UNLOCK(free_mutex);
     }
@@ -776,8 +761,11 @@ sasl_set_alloc(sasl_malloc_t *m,
   _sasl_allocation_utils.free=f;
 }
 
+/* Called with the init lock held, by the last *_done(); releases it. */
 void sasl_common_done(void)
 {
+    void *mutex = free_mutex;
+
     /* NOTE - the caller will need to reinitialize the values,
        if it is going to call sasl_client_init/sasl_server_init again. */
     if (default_plugin_path != NULL) {
@@ -792,24 +780,28 @@ void sasl_common_done(void)
     _sasl_canonuser_free();
     _sasl_done_with_plugins();
     
-    if (free_mutex) {
-#if defined(HAVE_PTHREAD)
-      /* The default mutex is static: destroying it would make the next
-         sasl_*_init() fail to lock it. */
-      if (free_mutex != &static_mutex)
-#elif defined(HAVE_NT_THREADS)
-      /* Likewise, and a concurrent sasl_*_init() may be waiting on it. */
-      if (free_mutex != static_mutex)
-#endif
-	  sasl_MUTEX_FREE(free_mutex);
-      free_mutex = NULL;
-    }
-    
     _sasl_free_utils(&sasl_global_utils);
     
     if (global_mech_list) {
 	sasl_FREE(global_mech_list);
 	global_mech_list = NULL;
+    }
+
+    /* Release the init lock last, once nothing is left to tear down.  Keep
+       the default mutex: the next sasl_*_init() locks it again, and a
+       concurrent one may already be waiting on it. */
+    if (mutex) {
+	free_mutex = NULL;
+	sasl_MUTEX_UNLOCK(mutex);
+	if (1
+#if defined(HAVE_PTHREAD)
+	    && mutex != &static_mutex
+#elif defined(HAVE_NT_THREADS)
+	    && mutex != static_mutex
+#endif
+	    ) {
+	    sasl_MUTEX_FREE(mutex);
+	}
     }
 }
 
@@ -831,11 +823,12 @@ void sasl_done(void)
     }
     
     done = !_sasl_server_cleanup_hook && !_sasl_client_cleanup_hook;
-    _sasl_init_unlock();
 
-    /* sasl_common_done() frees the init lock itself */
+    /* sasl_common_done() releases the init lock */
     if (done) {
 	sasl_common_done();
+    } else {
+	_sasl_init_unlock();
     }
 }
 

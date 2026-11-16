@@ -49,7 +49,7 @@ AM_CPPFLAGS=-DLIBSASL_EXPORTS=1 -I$(top_srcdir)/include -I$(top_srcdir)/plugins 
                -I$(top_builddir)/include -I$(top_srcdir)/sasldb -I$(top_srcdir)/common -DCONFIGDIR='"${configdir}"' -DPLUGINDIR='"${plugindir}"'
 PLUGIN_COMMON_OBJS = $(top_builddir)/common/libplugin_common.la
 
-EXTRA_DIST = windlopen.c dlopen.c staticopen.h NTMakefile
+EXTRA_DIST = windlopen.c dlopen.c staticopen.h NTMakefile libsasl2.map
 EXTRA_LIBRARIES = libsasl2.a
 noinst_LIBRARIES = @SASL_STATIC_LIB@
 libsasl2_a_SOURCES=
@@ -87,7 +87,7 @@ libsasl2_la_LDFLAGS += -Wl,--version-script=$(srcdir)/libsasl2.map
 endif
 
 
-libsasl2_la_LIBADD = $(SASL_DL_LIB) $(SASL_STATIC_LIBS) $(LIB_SOCKET) $(LIB_DOOR) $(PLUGIN_COMMON_OBJS) -lcrypto
+libsasl2_la_LIBADD = $(SASL_DL_LIB) $(LIB_SOCKET) $(LIB_DOOR) $(PLUGIN_COMMON_OBJS) -lcrypto
 if BUILD_LIBOBJ
 libsasl2_la_LIBADD += libobj.la
 endif
@@ -104,10 +104,14 @@ endif
 
 libsasl2.a: libsasl2.la $(SASL_STATIC_OBJS)
 	@echo adding static plugins and dependencies
-	$(AR) cru $@ $(SASL_STATIC_OBJS)
+	@# Add the static plugins to the archive libtool built and installs;
+	@# $@ itself is replaced by a link to it below.
+	$(AR) cru .libs/$@ $(SASL_STATIC_OBJS)
+	$(RANLIB) .libs/$@
+	@# Include configured dependencies before plugin .la files exist.
 	@for i in ./libsasl2.la ../common/libplugin_common.la ../sasldb/libsasldb.la ../plugins/lib*.la; do \
 	if test ! -f $$i; then continue; fi; . $$i; \
-	for j in $$dependency_libs foo; do \
+	for j in $$dependency_libs $(SASL_STATIC_LIBS) foo; do \
 	case $$j in foo) ;; \
 	-L*) for k in $$depdirs foo; do \
 	    if test $$k = $$j; then break; fi; done; \
@@ -116,8 +120,9 @@ libsasl2.a: libsasl2.la $(SASL_STATIC_OBJS)
 	    if test $$k = $$j; then break; fi; done; \
 	  if test $$k = foo; then deplibs="$$deplibs $$j"; fi ;; \
 	esac; done; dependency_libs=""; done; \
+	for i in libsasl2.la .libs/libsasl2.lai; do \
 	sed -e "/^dependency_libs=/s%=.*%='$${depdirs}$${deplibs}'%" \
-	libsasl2.la >TMP.$$ && mv TMP.$$ libsasl2.la
+	$$i >TMP.$$ && mv TMP.$$ $$i; done
 	rm -f $@
 	ln -s .libs/$@ $@
 

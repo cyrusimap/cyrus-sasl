@@ -376,6 +376,7 @@ if test "$scram" != no; then
   if test "$enable_static" = yes; then
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/scram.c"
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS scram.o"
+    SASL_STATIC_LIBS="$SASL_STATIC_LIBS $SCRAM_LIBS"
     AC_DEFINE(STATIC_SCRAM, [], [Link SCRAM Statically])
   fi
 
@@ -389,6 +390,9 @@ SASL_GSSAPI_CHK
 
 if test "$gssapi" != "no"; then
   AC_DEFINE(STATIC_GSSAPIV2,[],[Link GSSAPI Statically])
+  if test "$gs2" = "yes"; then
+    AC_DEFINE(STATIC_GS2,[],[Link GS2 Statically])
+  fi
   AC_DEFINE(HAVE_GSSAPI,[],[Include GSSAPI/Kerberos 5 Support])
 
   mutex_default="no"
@@ -552,6 +556,7 @@ if test "$opaque" != no; then
     if test "$enable_static" = yes; then
         SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/opaque.c \$(top_srcdir)/plugins/opaque_impl.c \$(top_srcdir)/plugins/kdf_hkdf_sha512.c"
         SASL_STATIC_OBJS="$SASL_STATIC_OBJS opaque.o opaque_impl.o kdf_hkdf_sha512.o"
+        SASL_STATIC_LIBS="$SASL_STATIC_LIBS $OPAQUE_LIBS"
         AC_DEFINE(STATIC_OPAQUE, [], [Link OPAQUE Statically])
     fi
   else
@@ -561,6 +566,7 @@ if test "$opaque" != no; then
     if test "$enable_static" = yes; then
         SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/opaque.c \$(top_srcdir)/plugins/kdf_hkdf_sha512.c"
         SASL_STATIC_OBJS="$SASL_STATIC_OBJS opaque.o kdf_hkdf_sha512.o"
+        SASL_STATIC_LIBS="$SASL_STATIC_LIBS $OPAQUE_LIBS"
         AC_DEFINE(STATIC_OPAQUE, [], [Link OPAQUE Statically])
     fi
   fi
@@ -873,6 +879,10 @@ case "$with_sqlite3" in
 esac
 AC_SUBST(LIB_SQLITE3)
 
+if test "$sql" != no -a "$enable_static" = yes; then
+  SASL_STATIC_LIBS="$SASL_STATIC_LIBS $LIB_MYSQL $LIB_PGSQL $LIB_SQLITE $LIB_SQLITE3"
+fi
+
 if test "$sql" = yes -a "$with_pgsql" = no -a "$with_mysql" = no -a "$with_sqlite" = no -a "$with_sqlite3" = no; then
     AC_MSG_ERROR([--enable-sql chosen but neither Postgres nor MySQL nor SQLite nor SQLite3 found])
 fi
@@ -926,6 +936,7 @@ if test "$ldapdb" != no; then
             if test "$enable_static" = yes; then
                 SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/ldapdb.c"
                 SASL_STATIC_OBJS="$SASL_STATIC_OBJS ldapdb.o"
+                SASL_STATIC_LIBS="$SASL_STATIC_LIBS $LIB_LDAP"
                 AC_DEFINE(STATIC_LDAPDB,[],[Link ldapdb plugin Statically])
             fi
         fi

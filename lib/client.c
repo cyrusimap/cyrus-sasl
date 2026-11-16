@@ -63,6 +63,10 @@ static cmech_list_t *cmechlist; /* global var which holds the list */
 static sasl_global_callbacks_t global_callbacks_client;
 static int _sasl_client_active = 0;
 
+/* See _sasl_atomic_load() in saslint.h. */
+static int client_active(void) { return _sasl_atomic_load(&_sasl_client_active); }
+static void set_client_active(int n) { _sasl_atomic_store(&_sasl_client_active, n); }
+
 static int init_mechlist()
 {
   cmechlist->utils=_sasl_alloc_utils(NULL, &global_callbacks_client);
@@ -115,13 +119,13 @@ static int client_done(void) {
     cmechanism_t *cm;
     cmechanism_t *cprevm;
 
-    if (!_sasl_client_active) {
+    if (!client_active()) {
 	return SASL_NOTINIT;
     } else {
-	_sasl_client_active--;
+	set_client_active(client_active() - 1);
     }
 
-    if(_sasl_client_active) {
+    if(client_active()) {
 	/* Don't de-init yet! Our refcount is nonzero. */
 	return SASL_CONTINUE;
     }
@@ -301,7 +305,7 @@ static int client_init(const sasl_callback_t *callbacks)
   if (cmechlist==NULL) return SASL_NOMEM;
 
   /* We need to call client_done if we fail now */
-  _sasl_client_active = 1;
+  set_client_active(1);
 
   /* load plugins */
   ret=init_mechlist();  
@@ -345,10 +349,10 @@ int sasl_client_init(const sasl_callback_t *callbacks)
   /* lock allocation type */
   _sasl_allocation_locked++;
 
-  if (_sasl_client_active) {
+  if (client_active()) {
       /* We're already active, just increase our refcount.  The first
          caller's callbacks stay in effect. */
-      _sasl_client_active++;
+      set_client_active(client_active() + 1);
       ret = SASL_OK;
   } else {
       ret = client_init(callbacks);
@@ -449,7 +453,7 @@ int sasl_client_new(const char *service,
   const char *mlist = NULL, *log_level;
   int plus = 0;
 
-  if (_sasl_client_active == 0) return SASL_NOTINIT;
+  if (client_active() == 0) return SASL_NOTINIT;
   
   /* Remember, serverFQDN, iplocalport and ipremoteport can be NULL and be valid! */
   if (!pconn || !service)
@@ -754,7 +758,7 @@ int sasl_client_start(sasl_conn_t *conn,
     sasl_cbinding_disp_t cur_cbindingdisp;
     sasl_cbinding_disp_t best_cbindingdisp = SASL_CB_DISP_NONE;
 
-    if (_sasl_client_active == 0) return SASL_NOTINIT;
+    if (client_active() == 0) return SASL_NOTINIT;
 
     if (!conn) return SASL_BADPARAM;
 
@@ -954,7 +958,7 @@ int sasl_client_step(sasl_conn_t *conn,
   sasl_client_conn_t *c_conn= (sasl_client_conn_t *) conn;
   int result;
 
-  if (_sasl_client_active == 0) return SASL_NOTINIT;
+  if (client_active() == 0) return SASL_NOTINIT;
   if (!conn) return SASL_BADPARAM;
 
   /* check parameters */
@@ -1037,7 +1041,7 @@ int _sasl_client_listmech(sasl_conn_t *conn,
     int flag;
     const char *mysep;
 
-    if (_sasl_client_active == 0) return SASL_NOTINIT;
+    if (client_active() == 0) return SASL_NOTINIT;
     if (!conn) return SASL_BADPARAM;
     if (conn->type != SASL_CONN_CLIENT) PARAMERROR(conn);
     
@@ -1143,7 +1147,7 @@ sasl_string_list_t *_sasl_client_mechs(void)
   cmechanism_t *listptr;
   sasl_string_list_t *retval = NULL, *next=NULL;
 
-  if(!_sasl_client_active) return NULL;
+  if(!client_active()) return NULL;
 
   /* make list */
   for (listptr = cmechlist->mech_list; listptr; listptr = listptr->next) {

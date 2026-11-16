@@ -1300,7 +1300,10 @@ gs2_make_message(context_t *text,
     if (ret != 0)
         return ret;
 
-    memcpy(*out + header_len, token->value, token->length);
+    /* An empty GSS-API token may have a NULL value, and memcpy() from a
+       NULL pointer is undefined even for zero bytes. */
+    if (token->length > 0)
+        memcpy(*out + header_len, token->value, token->length);
     *outlen = header_len + token->length;
 
     if (initialContextToken)

@@ -1,0 +1,55 @@
+name: macOS
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: macOS (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # Apple Silicon and Intel.
+        os: [macos-latest, macos-15-intel]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install packages
+        run: brew install autoconf automake libtool pkg-config openssl@3
+
+      - name: Configure
+        run: |
+          NOCONFIGURE=1 ./autogen.sh
+          ./configure --with-openssl="$(brew --prefix openssl@3)"
+
+      - name: Build
+        run: make -j"$(sysctl -n hw.ncpu)"
+
+      # make check is skipped on macOS (tests/Makefile.am), and the rest of
+      # the suite needs socket_wrapper and a KDC, which macOS doesn't have.
+      - name: Test
+        run: |
+          if [ ! -f tests/t_initrace.c ]; then
+            echo "No macOS tests on this branch"
+            exit 0
+          fi
+          make -C tests t_initrace
+          cd tests
+          T_PLUGINDIR="$PWD/../plugins/.libs" ./t_initrace
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ matrix.os }}
+          path: config.log
+          if-no-files-found: ignore

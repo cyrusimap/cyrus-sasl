@@ -13,7 +13,7 @@ import os
 
 import unittest
 
-from sasltest import (SANITIZED, SaslTestCase, Scram, b64, known_bug,
+from sasltest import (SaslTestCase, Scram, b64, known_bug,
                       parse_attrs, saslprep, scram_escape, spec, unb64)
 
 MECH = "SCRAM-SHA-256"
@@ -215,14 +215,19 @@ class ScramServer(SuccessDataMixin, SaslTestCase):
         p = self.peer()
         self.assertFailed(p.first("x,,n=alice,r=" + p.cnonce))
 
-    @known_bug("H1", "one-byte heap over-read parsing client-first",
-               only_if=SANITIZED)
     @spec("RFC 5802", "7", "ABNF", "authzid with no terminating client-first fields")
     def test_truncated_after_authzid(self):
-        # The over-read (finding H1) is only visible with --enable-sanitizers;
-        # in other builds the server rejects the message and the test passes.
+        # Regression test for a one-byte over-read (finding H1), visible
+        # only with --enable-sanitizers.
         p = self.peer()
         self.assertFailed(p.first("n,a=abcdef,"))
+
+    @spec("RFC 5802", "7", "ABNF", "GS2 header with no client-first fields")
+    def test_truncated_after_gs2_header(self):
+        # The same over-read through a header without an authzid.  The
+        # server rejects input under 10 bytes first, so use a p= header.
+        p = self.peer()
+        self.assertFailed(p.first("p=tls-unique,,"))
 
     @known_bug("H4", "a=, (empty authzid) is accepted as no authzid")
     @spec("RFC 5802", "7", "ABNF", "authzid = \"a=\" saslname, saslname = 1*(...)")

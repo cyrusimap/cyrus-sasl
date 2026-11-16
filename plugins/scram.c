@@ -700,9 +700,9 @@ scram_server_mech_step1(server_context_t *text,
     text->gs2_header[text->gs2_header_length - 1] = ',';
     text->gs2_header[text->gs2_header_length] = 0;
 
-
-
-    if (p[1] != '=') {
+    /* The GS2 header may end the input, leaving p on the terminating NUL;
+       check it before looking at p[1]. */
+    if (p[0] == '\0' || p[1] != '=') {
 	sparams->utils->seterror(sparams->utils->conn, 0,
                                  "Invalid %s input", scram_sasl_mech);
 	result = SASL_BADPROT;

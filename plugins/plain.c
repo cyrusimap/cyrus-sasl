@@ -149,6 +149,14 @@ static int plain_server_mech_step(void *conn_context __attribute__((unused)),
 	    return SASL_BADPROT;
 	}
     }
+
+    /* RFC 4616 section 2: if the password is empty, verification SHALL
+       fail.  Don't pass it to the verifier, which may accept an empty
+       stored password or treat it as an anonymous bind. */
+    if (password_len == 0) {
+	SETERROR(params->utils, "Empty password in the PLAIN plugin");
+	return SASL_BADAUTH;
+    }
     
     /* this kinda sucks. we need password to be null terminated
        but we can't assume there is an allocated byte at the end
@@ -317,7 +325,7 @@ static int plain_client_mech_new(void *glob_context __attribute__((unused)),
 static int plain_client_mech_step(void *conn_context,
 				  sasl_client_params_t *params,
 				  const char *serverin __attribute__((unused)),
-				  unsigned serverinlen __attribute__((unused)),
+				  unsigned serverinlen,
 				  sasl_interact_t **prompt_need,
 				  const char **clientout,
 				  unsigned *clientoutlen,
@@ -336,7 +344,12 @@ static int plain_client_mech_step(void *conn_context,
     *clientout = NULL;
     *clientoutlen = 0;
     
-    /* doesn't really matter how the server responds */
+    /* PLAIN is client-first: RFC 4422 section 5 requires the server's
+       challenge, if it sends one before the initial response, to be empty. */
+    if (serverinlen != 0) {
+	SETERROR( params->utils, "Non-empty challenge received from PLAIN server");
+	return SASL_BADPROT;
+    }
     
     /* check if sec layer strong enough */
     if (params->props.min_ssf > params->external_ssf) {

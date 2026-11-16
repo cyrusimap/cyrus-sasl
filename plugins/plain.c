@@ -130,6 +130,14 @@ static int plain_server_mech_step(void *conn_context __attribute__((unused)),
 		 "Got more data than we were expecting in the PLAIN plugin\n");
 	return SASL_BADPROT;
     }
+
+    /* RFC 4616 section 2: if the password is empty, verification SHALL
+       fail.  Don't pass it to the verifier, which may accept an empty
+       stored password or treat it as an anonymous bind. */
+    if (password_len == 0) {
+	SETERROR(params->utils, "Empty password in the PLAIN plugin");
+	return SASL_BADAUTH;
+    }
     
     /* this kinda sucks. we need password to be null terminated
        but we can't assume there is an allocated byte at the end

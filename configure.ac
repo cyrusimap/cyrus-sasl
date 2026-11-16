@@ -389,6 +389,9 @@ SASL_GSSAPI_CHK
 
 if test "$gssapi" != "no"; then
   AC_DEFINE(STATIC_GSSAPIV2,[],[Link GSSAPI Statically])
+  if test "$gs2" = "yes"; then
+    AC_DEFINE(STATIC_GS2,[],[Link GS2 Statically])
+  fi
   AC_DEFINE(HAVE_GSSAPI,[],[Include GSSAPI/Kerberos 5 Support])
 
   mutex_default="no"

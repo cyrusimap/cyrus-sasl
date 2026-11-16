@@ -1,3 +1,4 @@
+[![Linux](https://github.com/cyrusimap/cyrus-sasl/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/cyrusimap/cyrus-sasl/actions/workflows/ci.yml)
 [![Windows](https://github.com/cyrusimap/cyrus-sasl/actions/workflows/windows.yml/badge.svg?branch=master)](https://github.com/cyrusimap/cyrus-sasl/actions/workflows/windows.yml)
 [![macOS](https://github.com/cyrusimap/cyrus-sasl/actions/workflows/macos.yml/badge.svg?branch=master)](https://github.com/cyrusimap/cyrus-sasl/actions/workflows/macos.yml)
 

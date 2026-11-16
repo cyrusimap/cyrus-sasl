@@ -322,7 +322,7 @@ print_hash (const char * func, const char * hash, size_t hash_size)
 
 
 /* The result variable need to point to a buffer big enough for the [SHA-*] hash */
-static void
+static int
 Hi (const sasl_utils_t * utils,
     const EVP_MD *md,
     const char * str,
@@ -334,18 +334,23 @@ Hi (const sasl_utils_t * utils,
 {
     char * initial_key = NULL;
     unsigned int i;
-    char * temp_result;
+    char * temp_result = NULL;
     unsigned int hash_len = 0;
     size_t k, hash_size = EVP_MD_size(md);
+    int ret = SASL_FAIL;
 
     initial_key = utils->malloc(salt_len + 4);
+    temp_result = utils->malloc(hash_size);
+    if (initial_key == NULL || temp_result == NULL) {
+	ret = SASL_NOMEM;
+	goto cleanup;
+    }
+
     memcpy (initial_key, salt, salt_len);
     initial_key[salt_len] = 0;
     initial_key[salt_len+1] = 0;
     initial_key[salt_len+2] = 0;
     initial_key[salt_len+3] = 1;
-
-    temp_result = utils->malloc(hash_size);
 
     /* U1   := HMAC(str, salt || INT(1)) */
 
@@ -356,6 +361,7 @@ Hi (const sasl_utils_t * utils,
 	     (int)salt_len + 4,
              (unsigned char *)result,
 	     &hash_len) == NULL) {
+	goto cleanup;
     }
 
     memcpy(temp_result, result, hash_size);
@@ -372,6 +378,7 @@ Hi (const sasl_utils_t * utils,
 		 hash_size,
 		 (unsigned char *)temp_result,
 		 &hash_len) == NULL) {
+	    goto cleanup;
 	}
 
 	PRINT_HASH ("Hi() HMAC inside loop", temp_result, hash_size);
@@ -383,8 +390,12 @@ Hi (const sasl_utils_t * utils,
 	PRINT_HASH ("Hi() - accumulated result inside loop", result, hash_size);
     }
 
-    utils->free(initial_key);
-    utils->free(temp_result);
+    ret = SASL_OK;
+
+  cleanup:
+    if (initial_key) utils->free(initial_key);
+    if (temp_result) utils->free(temp_result);
+    return ret;
 }
 
 /**
@@ -400,8 +411,15 @@ scram_server_user_salt(const sasl_utils_t * utils,
 {
     size_t hash_size = EVP_MD_size(md);
     char * result = utils->malloc(hash_size);
-    Hi(utils, md, username, strlen(username), (const char *) g_salt_key, SALT_SIZE,
-        20 /* iterations */, result);
+
+    if (result == NULL) {
+	return NULL;
+    }
+    if (Hi(utils, md, username, strlen(username), (const char *) g_salt_key,
+           SALT_SIZE, 20 /* iterations */, result) != SASL_OK) {
+	utils->free(result);
+	return NULL;
+    }
     *p_salt_len = hash_size;
     return (unsigned char *) result;
 }
@@ -443,14 +461,18 @@ GenerateScramSecrets (const sasl_utils_t * utils,
     strncpy((char *)sec->data, password, password_len + 1);
 
     /* SaltedPassword  := Hi(password, salt) */
-    Hi (utils,
-        md,
-	(const char *) sec->data,
-	sec->len,
-	salt,
-	salt_len,
-	iteration_count,
-	SaltedPassword);
+    result = Hi (utils,
+                 md,
+                 (const char *) sec->data,
+                 sec->len,
+                 salt,
+                 salt_len,
+                 iteration_count,
+                 SaltedPassword);
+    if (result != SASL_OK) {
+	*error_text = "Hi() failed";
+	goto cleanup;
+    }
 
     /* ClientKey       := HMAC(SaltedPassword, "Client Key") */
     if (HMAC(md,
@@ -873,6 +895,11 @@ scram_server_mech_step1(server_context_t *text,
 	char * s_iteration_count;
 
 	text->salt = (char *) scram_server_user_salt(sparams->utils, text->md, text->authentication_id, &text->salt_len);
+	if (text->salt == NULL) {
+	    MEMERROR(sparams->utils);
+	    result = SASL_NOMEM;
+	    goto cleanup;
+	}
 
 	sparams->utils->getopt(sparams->utils->getopt_context,
 			       /* Different SCRAM hashes can have different strengh */
@@ -993,6 +1020,11 @@ scram_server_mech_step1(server_context_t *text,
 
 	    base64_salt_len = p_field - scram_hash;
 	    text->salt = (char *) sparams->utils->malloc(base64_salt_len);
+	    if (text->salt == NULL) {
+		MEMERROR(sparams->utils);
+		result = SASL_NOMEM;
+		break;
+	    }
 	    if (sparams->utils->decode64(scram_hash,
 					 (unsigned int)base64_salt_len,
 					 text->salt,
@@ -1001,6 +1033,8 @@ scram_server_mech_step1(server_context_t *text,
 		sparams->utils->seterror(sparams->utils->conn, 0,
                                          "Invalid base64 encoding of the salt in %s stored value",
                                          scram_sasl_mech);
+		sparams->utils->free(text->salt);
+		text->salt = NULL;
 		continue;
 	    }
 
@@ -1098,7 +1132,8 @@ scram_server_mech_step1(server_context_t *text,
 	sparams->utils->seterror(sparams->utils->conn,
 				 0,
 				 "Have neither type of secret");
-	return SASL_FAIL;
+	result = SASL_FAIL;
+	goto cleanup;
     }
     
     /* erase the plaintext password */
@@ -1295,6 +1330,11 @@ scram_server_mech_step2(server_context_t *text,
     /* We can calculate the exact length, but the decoded (binary) data
        is always shorter than its base64 version. */
     binary_channel_binding = (char *) sparams->utils->malloc(channel_binding_len + 1);
+    if (binary_channel_binding == NULL) {
+	MEMERROR(sparams->utils);
+	result = SASL_NOMEM;
+	goto cleanup;
+    }
 
     if (sparams->utils->decode64(channel_binding,
 				 (unsigned int)channel_binding_len,
@@ -2684,14 +2724,18 @@ scram_client_mech_step2(client_context_t *text,
     /* Calculate ClientProof */
 
     /* SaltedPassword  := Hi(password, salt) */
-    Hi (params->utils,
-        text->md,
-	(const char *) text->password->data,
-	text->password->len,
-	text->salt,
-	text->salt_len,
-	text->iteration_count,
-	text->SaltedPassword);
+    result = Hi (params->utils,
+                 text->md,
+                 (const char *) text->password->data,
+                 text->password->len,
+                 text->salt,
+                 text->salt_len,
+                 text->iteration_count,
+                 text->SaltedPassword);
+    if (result != SASL_OK) {
+	SETERROR(params->utils, "Hi() failed");
+	goto cleanup;
+    }
 
     PRINT_HASH ("SaltedPassword", text->SaltedPassword, hash_size);
 

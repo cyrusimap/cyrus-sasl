@@ -1704,6 +1704,19 @@ gssapi_server_mech_ssfreq(context_t *text,
     layerchoice = (int)(((char *)(output_token->value))[0]);
     if (!(layerchoice & (LAYER_INTEGRITY | LAYER_CONFIDENTIALITY)) &&
 	(text->qop & LAYER_NONE)) { /* no encryption */
+	const unsigned char *maxbuf = (const unsigned char *) output_token->value;
+
+	/* RFC 4752 section 3.2: the client maximum buffer must be 0 if no
+	   security layer was chosen */
+	if (maxbuf[1] || maxbuf[2] || maxbuf[3]) {
+	    SETERROR(text->utils,
+		     "protocol violation: client maximum buffer is not 0 with no security layer");
+	    GSS_LOCK_MUTEX_CTX(params->utils, text);
+	    gss_release_buffer(&min_stat, output_token);
+	    GSS_UNLOCK_MUTEX_CTX(params->utils, text);
+	    sasl_gss_free_context_contents(text);
+	    return SASL_FAIL;
+	}
 	oparams->encode = NULL;
 	oparams->decode = NULL;
 	oparams->mech_ssf = 0;
@@ -2430,6 +2443,21 @@ static int gssapi_client_mech_step(void *conn_context,
 
 	/* bit mask of server support */
 	serverhas = ((char *)output_token->value)[0];
+
+	/* RFC 4752 section 3.1: the server maximum buffer must be 0 if the
+	   server doesn't offer any security layer */
+	if (!(serverhas & (LAYER_INTEGRITY | LAYER_CONFIDENTIALITY)) &&
+	    (((unsigned char *) output_token->value)[1] ||
+	     ((unsigned char *) output_token->value)[2] ||
+	     ((unsigned char *) output_token->value)[3])) {
+	    SETERROR(text->utils,
+		     "protocol violation: server maximum buffer is not 0 with no security layer");
+	    GSS_LOCK_MUTEX_CTX(params->utils, text);
+	    gss_release_buffer(&min_stat, output_token);
+	    GSS_UNLOCK_MUTEX_CTX(params->utils, text);
+	    sasl_gss_free_context_contents(text);
+	    return SASL_FAIL;
+	}
 	
 	/* use the strongest layer available */
 	if ((text->qop & LAYER_CONFIDENTIALITY) &&

@@ -122,6 +122,14 @@ external_server_mech_step(void *conn_context __attribute__((unused)),
     }
     
     if (clientinlen) {		/* if we have a non-zero authorization id */
+	/* RFC 4422 appendix A.1: authz-id-string = *( UTF8-char-no-nul ) */
+	if (memchr(clientin, '\0', clientinlen) != NULL ||
+	    sparams->utils->utf8verify(clientin, clientinlen) != SASL_OK) {
+	    sasl_seterror(sparams->utils->conn, 0,
+			  "authorization identity isn't UTF-8 without NUL");
+	    return SASL_BADPROT;
+	}
+
 	/* The user's trying to authorize as someone they didn't
 	 * authenticate as */
 	result = sparams->canon_user(sparams->utils->conn,

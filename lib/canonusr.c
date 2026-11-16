@@ -388,14 +388,18 @@ static int _canonuser_internal(const sasl_utils_t *utils,
 	sconn = (sasl_server_conn_t *)utils->conn;
 
     /* Need to append realm if necessary (see sasl.h) */
-    if(sconn && sconn->user_realm && !strchr(user, '@')) {
+    /* user isn't NUL-terminated; the trimmed copy at begin_u is */
+    if(sconn && sconn->user_realm && !memchr(begin_u, '@', ulen)) {
 	u_apprealm = (unsigned) strlen(sconn->user_realm) + 1;
     }
     
     /* Now Copy */
     memcpy(out_user, begin_u, MIN(ulen, out_umax));
     if(sconn && u_apprealm) {
-	if(ulen >= out_umax) return SASL_BUFOVER;
+	if(ulen >= out_umax) {
+	    sasl_FREE(in_buf);
+	    return SASL_BUFOVER;
+	}
 	out_user[ulen] = '@';
 	memcpy(&(out_user[ulen+1]), sconn->user_realm,
 	       MIN(u_apprealm-1, out_umax-ulen-1));

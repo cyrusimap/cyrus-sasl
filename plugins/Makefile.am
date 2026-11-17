@@ -66,7 +66,7 @@ LIB_MYSQL = @LIB_MYSQL@
 if OPAQUE_INTERNAL
 OPAQUE_INTERNAL_IMPL_SRC = opaque_impl.c
 if INTERNAL_HKDF
-OPAQUE_INTERNAL_IMPL_SRC += kdf_hkdf_sha512.c
+OPAQUE_INTERNAL_IMPL_SRC += kdf_hkdf_sha512.c crypto_kdf_hkdf_sha512.h
 endif
 endif
 
@@ -97,7 +97,7 @@ libscram_la_SOURCES = scram.c scram_init.c
 libscram_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
 libscram_la_LIBADD = $(SCRAM_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS)
 
-libopaque_la_SOURCES = opaque.c opaque_init.c $(OPAQUE_INTERNAL_IMPL_SRC)
+libopaque_la_SOURCES = opaque.c opaque.h opaque_init.c $(OPAQUE_INTERNAL_IMPL_SRC)
 libopaque_la_DEPENDENCIES = $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS) $(CRYPTO_COMPAT_OBJS)
 libopaque_la_LIBADD = $(OPAQUE_LIBS) $(LIB_SOCKET) $(COMPAT_OBJS) $(PLUGIN_COMMON_OBJS) $(CRYPTO_COMPAT_OBJS)
 

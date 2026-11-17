@@ -26,6 +26,8 @@
  *   -r REALM         user realm             -s SERVICE   -h FQDN
  *   -S               the protocol carries additional data with success
  *                    (SASL_SUCCESS_DATA)
+ *   -X               the application needs a mechanism that allows proxying
+ *                    (SASL_NEED_PROXY)
  *
  * See COPYING file for License */
 
@@ -200,7 +202,7 @@ int main(int argc, char *argv[])
     /* Defaults: use only the in-memory store, verify through auxprop.
      * Later -o options take precedence because t_getopt returns the first
      * match, so user options are inserted ahead of these below. */
-    while ((c = getopt(argc, argv, "m:U:P:A:o:c:Cn:x:b:f:e:E:r:Ss:h:")) != EOF) {
+    while ((c = getopt(argc, argv, "m:U:P:A:o:c:Cn:x:b:f:e:E:r:Ss:h:X")) != EOF) {
         switch (c) {
         case 'm': mech = optarg; break;
         case 'U':
@@ -226,6 +228,7 @@ int main(int argc, char *argv[])
         case 'E': ext_ssf = (sasl_ssf_t) atoi(optarg); have_ext_ssf = 1; break;
         case 'r': realm = optarg; break;
         case 'S': conn_flags |= SASL_SUCCESS_DATA; break;
+        case 'X': conn_flags |= SASL_NEED_PROXY; break;
         case 's': service = optarg; break;
         case 'h': fqdn = optarg; break;
         default:

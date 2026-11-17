@@ -81,8 +81,12 @@
 /* if we've initialized the server sucessfully */
 static int _sasl_server_active = 0;
 
+/* See _sasl_atomic_load() in saslint.h. */
+static int server_active(void) { return _sasl_atomic_load(&_sasl_server_active); }
+static void set_server_active(int n) { _sasl_atomic_store(&_sasl_server_active, n); }
+
 /* For access by other modules */
-int _is_sasl_server_active(void) { return _sasl_server_active; }
+int _is_sasl_server_active(void) { return server_active(); }
 
 static int _sasl_checkpass(sasl_conn_t *conn, 
 			   const char *user, unsigned userlen,
@@ -134,7 +138,7 @@ int sasl_setpass(sasl_conn_t *conn,
     server_sasl_mechanism_t *m;
     char *current_mech;
      
-    if (!_sasl_server_active || !mechlist) return SASL_NOTINIT;
+    if (!server_active() || !mechlist) return SASL_NOTINIT;
 
     /* check params */
     if (!conn) return SASL_BADPARAM;
@@ -307,7 +311,7 @@ static void server_dispose(sasl_conn_t *pconn)
     context_list_t *cur, *cur_next;
 
     /* Just sanity check that sasl_server_done wasn't called yet */
-    if (_sasl_server_active != 0) {
+    if (server_active() != 0) {
 	if (s_conn->mech) {
 	    void (*mech_dispose)(void *conn_context, const sasl_utils_t *utils);
 
@@ -503,7 +507,12 @@ int sasl_server_done(void)
 {
     int result = SASL_CONTINUE;
 
+    if (_sasl_init_lock() != SASL_OK) {
+	return SASL_FAIL;
+    }
+
     if (_sasl_server_cleanup_hook == NULL && _sasl_client_cleanup_hook == NULL) {
+	_sasl_init_unlock();
 	return SASL_NOTINIT;
     }
 
@@ -514,14 +523,17 @@ int sasl_server_done(void)
 	    _sasl_server_idle_hook = NULL;
 	    _sasl_server_cleanup_hook = NULL;
 	} else {
+	    _sasl_init_unlock();
 	    return result;
 	}
     }
     
     if (_sasl_server_cleanup_hook || _sasl_client_cleanup_hook) {
+	_sasl_init_unlock();
 	return result;
     }
-    
+
+    /* sasl_common_done() releases the init lock */
     sasl_common_done();
 
     return SASL_OK;
@@ -531,12 +543,12 @@ static int server_done(void) {
   mechanism_t *m;
   mechanism_t *prevm;
 
-  if(_sasl_server_active == 0)
+  if(server_active() == 0)
       return SASL_NOTINIT;
   else
-      _sasl_server_active--;
+      set_server_active(server_active() - 1);
   
-  if(_sasl_server_active) {
+  if(server_active()) {
       /* Don't de-init yet! Our refcount is nonzero. */
       return SASL_CONTINUE;
   }
@@ -820,8 +832,9 @@ static int parse_mechlist_file(const char *mechlistfile)
  *  SASL_BADVERS   -- Mechanism version mismatch
  */
 
-int sasl_server_init(const sasl_callback_t *callbacks,
-		     const char *appname)
+/* Called with the init lock held, when the server side isn't active. */
+static int server_init(const sasl_callback_t *callbacks,
+		       const char *appname)
 {
     int ret;
     const sasl_callback_t *vf;
@@ -838,20 +851,6 @@ int sasl_server_init(const sasl_callback_t *callbacks,
 	{ NULL, NULL }
     };
 
-    /* lock allocation type */
-    _sasl_allocation_locked++;
-
-    /* we require the appname (if present) to be short enough to be a path */
-    if (appname != NULL && strlen(appname) >= PATH_MAX)
-	return SASL_BADPARAM;
-
-    if (_sasl_server_active) {
-	/* We're already active, just increase our refcount */
-	/* xxx do something with the callback structure? */
-	_sasl_server_active++;
-	return SASL_OK;
-    }
-    
     ret = _sasl_common_init(&global_callbacks);
     if (ret != SASL_OK)
 	return ret;
@@ -870,7 +869,7 @@ int sasl_server_init(const sasl_callback_t *callbacks,
     }
 
     /* If we fail now, we have to call server_done */
-    _sasl_server_active = 1;
+    set_server_active(1);
 
     /* allocate mechlist and set it to empty */
     mechlist = sasl_ALLOC(sizeof(mech_list_t));
@@ -940,6 +939,38 @@ int sasl_server_init(const sasl_callback_t *callbacks,
 	server_done();
     }
 
+    return ret;
+}
+
+int sasl_server_init(const sasl_callback_t *callbacks,
+		     const char *appname)
+{
+    int ret;
+
+    /* we require the appname (if present) to be short enough to be a path */
+    if (appname != NULL && strlen(appname) >= PATH_MAX)
+	return SASL_BADPARAM;
+
+    /* Hold the init lock until initialization has finished, so that a
+       concurrent caller waits for it instead of using a partly
+       initialized library. */
+    ret = _sasl_init_lock();
+    if (ret != SASL_OK)
+	return ret;
+
+    /* lock allocation type */
+    _sasl_allocation_locked++;
+
+    if (server_active()) {
+	/* We're already active, just increase our refcount.  The first
+	   caller's callbacks and appname stay in effect. */
+	set_server_active(server_active() + 1);
+	ret = SASL_OK;
+    } else {
+	ret = server_init(callbacks, appname);
+    }
+
+    _sasl_init_unlock();
     return ret;
 }
 
@@ -1032,7 +1063,7 @@ int sasl_server_new(const char *service,
   const char *mlist = NULL;
   int plus = 0;
 
-  if (_sasl_server_active==0) return SASL_NOTINIT;
+  if (server_active()==0) return SASL_NOTINIT;
   if (! pconn) return SASL_FAIL;
   if (! service) return SASL_FAIL;
 
@@ -1406,7 +1437,7 @@ int sasl_server_start(sasl_conn_t *conn,
     size_t mech_len;
     int plus = 0;
 
-    if (_sasl_server_active==0) return SASL_NOTINIT;
+    if (server_active()==0) return SASL_NOTINIT;
 
     /* check parameters */
     if(!conn) return SASL_BADPARAM;
@@ -1632,7 +1663,7 @@ static int server_step(sasl_conn_t *conn,
     sasl_server_conn_t *s_conn = (sasl_server_conn_t *) conn;  /* cast */
 
     /* check parameters */
-    if (_sasl_server_active==0) return SASL_NOTINIT;
+    if (server_active()==0) return SASL_NOTINIT;
     if (!conn) return SASL_BADPARAM;
     if ((clientin==NULL) && (clientinlen>0))
 	PARAMERROR(conn);
@@ -1771,7 +1802,7 @@ int _sasl_server_listmech(sasl_conn_t *conn,
   const char *mysep;
 
   /* if there hasn't been a sasl_sever_init() fail */
-  if (_sasl_server_active==0) return SASL_NOTINIT;
+  if (server_active()==0) return SASL_NOTINIT;
   if (!conn) return SASL_BADPARAM;
   if (conn->type != SASL_CONN_SERVER) PARAMERROR(conn);
   
@@ -1874,7 +1905,7 @@ sasl_string_list_t *_sasl_server_mechs(void)
   mechanism_t *listptr;
   sasl_string_list_t *retval = NULL, *next=NULL;
 
-  if(!_sasl_server_active) return NULL;
+  if(!server_active()) return NULL;
 
   /* make list */
   for (listptr = mechlist->mech_list; listptr; listptr = listptr->next) {
@@ -2002,7 +2033,7 @@ int sasl_checkpass(sasl_conn_t *conn,
 {
     int result;
     
-    if (_sasl_server_active==0) return SASL_NOTINIT;
+    if (server_active()==0) return SASL_NOTINIT;
     
     /* check if it's just a query if we are enabled */
     if (!user)
@@ -2058,7 +2089,7 @@ int sasl_user_exists(sasl_conn_t *conn,
     struct sasl_verify_password_s *v;
     
     /* check params */
-    if (_sasl_server_active==0) return SASL_NOTINIT;
+    if (server_active()==0) return SASL_NOTINIT;
     if (!conn) return SASL_BADPARAM;
     if (!user || conn->type != SASL_CONN_SERVER) 
 	PARAMERROR(conn);
@@ -2142,7 +2173,7 @@ int sasl_checkapop(sasl_conn_t *conn,
     size_t user_len;
     int result;
 
-    if (_sasl_server_active==0)
+    if (server_active()==0)
 	return SASL_NOTINIT;
 
     /* check if it's just a query if we are enabled */

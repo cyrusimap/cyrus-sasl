@@ -376,96 +376,11 @@ if test "$scram" != no; then
   if test "$enable_static" = yes; then
     SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/scram.c"
     SASL_STATIC_OBJS="$SASL_STATIC_OBJS scram.o"
+    SASL_STATIC_LIBS="$SASL_STATIC_LIBS $SCRAM_LIBS"
     AC_DEFINE(STATIC_SCRAM, [], [Link SCRAM Statically])
   fi
 
   AC_SUBST(SCRAM_LIBS)
-else
-  AC_MSG_RESULT(disabled)
-fi
-
-dnl OTP
-AC_ARG_ENABLE(otp, [  --enable-otp            enable OTP authentication [[yes]] ],
-  otp=$enableval,
-  otp=yes)
-
-AC_MSG_CHECKING(OTP)
-if test "$otp" != no; then
-  AC_MSG_RESULT(enabled)
-  OTP_LIBS="-lcrypto $LIB_RSAREF"
-
-  SASL_MECHS="$SASL_MECHS libotp.la"
-  if test "$enable_static" = yes; then
-    SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/otp.c"
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS otp.o"
-    AC_DEFINE(STATIC_OTP, [], [Link OTP Statically])
-  fi
-
-  dnl Test for OPIE
-  AC_ARG_WITH(opie, AS_HELP_STRING([--with-opie=PATH],[use OPIE (One Time Passwords in Everything) from PATH]))
-
-  case "$with_opie" in
-	""|yes) 
-		AC_CHECK_LIB(opie, opiechallenge, [
-			AC_CHECK_HEADER(opie.h, with_opie="yes",
-					with_opie="no")],
-			with_opie="no")
-		;;
-	*)
-		if test -d $with_opie; then
-		  CPPFLAGS="${CPPFLAGS} -I${with_opie}/include"
-		  LDFLAGS="${LDFLAGS} -L${with_opie}/lib"
-		else
-		  with_opie="no"
-		fi
-		;;
-  esac
-
-  AC_MSG_CHECKING(for OPIE)
-  AC_MSG_RESULT($with_opie)
-
-  if test "$with_opie" != no; then
-    AC_DEFINE(HAVE_OPIE,[],[Use OPIE for server-side OTP?])
-    OTP_LIBS="$OTP_LIBS -lopie"
-  fi
-
-  AC_SUBST(OTP_LIBS)
-
-else
-  AC_MSG_RESULT(disabled)
-fi
-
-dnl SRP
-AC_ARG_ENABLE(srp, [  --enable-srp            enable SRP authentication [[no]] ],
-  srp=$enableval,
-  srp=no)
-
-AC_MSG_CHECKING(SRP)
-if test "$srp" != no; then
-  AC_MSG_RESULT(enabled)
-  SRP_LIBS="-lcrypto $LIB_RSAREF"
-
-  SASL_MECHS="$SASL_MECHS libsrp.la"
-  if test "$enable_static" = yes; then
-    SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/srp.c"
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS srp.o"
-    AC_DEFINE(STATIC_SRP, [], [Link SRP Statically])
-  fi
-
-dnl srp_setpass support
-  AC_ARG_ENABLE(srp_setpass, [  --enable-srp-setpass    enable setting SRP secrets with saslpasswd [[no]]],
-      srp_setpass=$enableval,
-      srp_setpass=no)
-
-  AC_MSG_CHECKING(if we should enable setting SRP secrets with saslpasswd)
-  if test "$srp_setpass" != no; then
-    AC_MSG_RESULT(enabled)
-    AC_DEFINE(DO_SRP_SETPASS, [], [should we support setpass() for SRP?])
-  else
-    AC_MSG_RESULT(disabled)
-  fi
-
-  AC_SUBST(SRP_LIBS)
 else
   AC_MSG_RESULT(disabled)
 fi
@@ -475,6 +390,9 @@ SASL_GSSAPI_CHK
 
 if test "$gssapi" != "no"; then
   AC_DEFINE(STATIC_GSSAPIV2,[],[Link GSSAPI Statically])
+  if test "$gs2" = "yes"; then
+    AC_DEFINE(STATIC_GS2,[],[Link GS2 Statically])
+  fi
   AC_DEFINE(HAVE_GSSAPI,[],[Include GSSAPI/Kerberos 5 Support])
 
   mutex_default="no"
@@ -607,27 +525,6 @@ else
   AC_MSG_RESULT(disabled)
 fi
 
-dnl PASSDSS
-AC_ARG_ENABLE(passdss, [  --enable-passdss        enable PASSDSS authentication (experimental) [[no]] ],
-  passdss=$enableval,
-  passdss=no)
-
-AC_MSG_CHECKING(PASSDSS)
-if test "$passdss" != no; then
-  AC_MSG_RESULT(enabled)
-  PASSDSS_LIBS="-lcrypto $LIB_RSAREF"
-  AC_SUBST(PASSDSS_LIBS)
-
-  SASL_MECHS="$SASL_MECHS libpassdss.la"
-  if test "$enable_static" = yes; then
-    SASL_STATIC_OBJS="$SASL_STATIC_OBJS passdss.o"
-    SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/passdss.c"
-    AC_DEFINE(STATIC_PASSDSS,[],[Link PASSDSS Statically])
-  fi
-else
-  AC_MSG_RESULT(disabled)
-fi
-
 dnl OPAQUE
 AC_ARG_ENABLE(opaque, [  --enable-opaque            enable OPAQUE authentication [[yes]] ],
   opaque=$enableval,
@@ -659,6 +556,7 @@ if test "$opaque" != no; then
     if test "$enable_static" = yes; then
         SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/opaque.c \$(top_srcdir)/plugins/opaque_impl.c \$(top_srcdir)/plugins/kdf_hkdf_sha512.c"
         SASL_STATIC_OBJS="$SASL_STATIC_OBJS opaque.o opaque_impl.o kdf_hkdf_sha512.o"
+        SASL_STATIC_LIBS="$SASL_STATIC_LIBS $OPAQUE_LIBS"
         AC_DEFINE(STATIC_OPAQUE, [], [Link OPAQUE Statically])
     fi
   else
@@ -668,6 +566,7 @@ if test "$opaque" != no; then
     if test "$enable_static" = yes; then
         SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/opaque.c \$(top_srcdir)/plugins/kdf_hkdf_sha512.c"
         SASL_STATIC_OBJS="$SASL_STATIC_OBJS opaque.o kdf_hkdf_sha512.o"
+        SASL_STATIC_LIBS="$SASL_STATIC_LIBS $OPAQUE_LIBS"
         AC_DEFINE(STATIC_OPAQUE, [], [Link OPAQUE Statically])
     fi
   fi
@@ -980,6 +879,10 @@ case "$with_sqlite3" in
 esac
 AC_SUBST(LIB_SQLITE3)
 
+if test "$sql" != no -a "$enable_static" = yes; then
+  SASL_STATIC_LIBS="$SASL_STATIC_LIBS $LIB_MYSQL $LIB_PGSQL $LIB_SQLITE $LIB_SQLITE3"
+fi
+
 if test "$sql" = yes -a "$with_pgsql" = no -a "$with_mysql" = no -a "$with_sqlite" = no -a "$with_sqlite3" = no; then
     AC_MSG_ERROR([--enable-sql chosen but neither Postgres nor MySQL nor SQLite nor SQLite3 found])
 fi
@@ -1033,6 +936,7 @@ if test "$ldapdb" != no; then
             if test "$enable_static" = yes; then
                 SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/ldapdb.c"
                 SASL_STATIC_OBJS="$SASL_STATIC_OBJS ldapdb.o"
+                SASL_STATIC_LIBS="$SASL_STATIC_LIBS $LIB_LDAP"
                 AC_DEFINE(STATIC_LDAPDB,[],[Link ldapdb plugin Statically])
             fi
         fi
@@ -1066,7 +970,7 @@ AC_SUBST(configdir)
 building_for_macosx=no
 case "$host_os" in
         darwin*)
-AC_ARG_ENABLE(macos-framework, [  --disable-macos-framework       disable building and installing replacement SASL2 Framework for MacOS X-provided SASL Framework [[no]]],building_for_macosx=no,building_for_macosx=yes)
+AC_ARG_ENABLE(macos-framework, [  --disable-macos-framework       disable building and installing replacement SASL2 Framework for MacOS X-provided SASL Framework [[no]]],building_for_macosx=$enableval,building_for_macosx=yes)
         ;;
 esac
 AM_CONDITIONAL(MACOSX, test "$building_for_macosx" = yes)

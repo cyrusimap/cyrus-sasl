@@ -55,6 +55,9 @@
 #include "utils.h"
 #include "globals.h"
 #include <openssl/evp.h>
+#include <openssl/rand.h>
+#include <openssl/hmac.h>
+#include <openssl/crypto.h>
 
 /****************************************
  * module globals
@@ -65,6 +68,7 @@ static  struct bucket	*table = NULL;
 static  struct stats	*table_stats = NULL;
 static  unsigned int	table_size = 0;
 static  unsigned int	table_timeout = 0;
+static  unsigned char	hmac_key[CACHE_HMAC_DIGEST_LEN] = {0};
 
 /****************************************
  * flags               global from saslauthd-main.c
@@ -105,6 +109,19 @@ int cache_init(void) {
 
 	if (table_timeout == 0)
 		table_timeout = CACHE_DEFAULT_TIMEOUT;
+
+	/**************************************************************
+	 * Setup the HMAC key. This is in-memory only and randomised each
+	 * startup such that exfiltration of the mmap cache file will not
+	 * lead to an attacker able to steal cached password content. If
+	 * an attacker were able to read the memory of this process and
+	 * access the HMAC key, then the attacker can access plaintext
+	 * password material anyway.
+	 **************************************************************/
+	if (RAND_bytes(hmac_key, CACHE_HMAC_DIGEST_LEN) != 1) {
+		logger(L_ERR, L_FUNC, "unable to generate the cache HMAC key");
+		return -1;
+	}
 
 	if (flags & VERBOSE) {
 		logger(L_DEBUG, L_FUNC, "bucket size: %d bytes",
@@ -162,8 +179,7 @@ int cache_lookup(const char *user, const char *realm, const char *service, const
 	int			realm_length = 0;
 	int			service_length = 0;
 	int			hash_offset;
-	unsigned char		pwd_digest[16];
-	EVP_MD_CTX		*mdctx = EVP_MD_CTX_new();
+	unsigned char		pwd_digest[CACHE_HMAC_DIGEST_LEN];
 	time_t			epoch;
 	time_t			epoch_timeout;
 	struct bucket		*ref_bucket;
@@ -210,9 +226,12 @@ int cache_lookup(const char *user, const char *realm, const char *service, const
 
 	hash_offset = cache_pjwhash(userrealmserv);
 
-	EVP_DigestInit(mdctx, EVP_md5());
-	EVP_DigestUpdate(mdctx, password, strlen(password));
-	EVP_DigestFinal(mdctx, pwd_digest, NULL);
+	if (HMAC(EVP_sha256(), (const void *)&hmac_key, CACHE_HMAC_DIGEST_LEN,
+			(const unsigned char *)password, strlen(password),
+			pwd_digest, NULL) == NULL) {
+		logger(L_ERR, L_FUNC, "HMAC-SHA256 failed; credential cache bypassed");
+		return CACHE_FAIL;
+	}
 
 	/**************************************************************
 	 * Loop through the bucket chain to try and find a hit.
@@ -261,7 +280,7 @@ int cache_lookup(const char *user, const char *realm, const char *service, const
 
 	if (read_bucket != NULL) {
 
-		if (memcmp(pwd_digest, read_bucket->pwd_digest, 16) == 0) {
+		if (CRYPTO_memcmp(pwd_digest, read_bucket->pwd_digest, CACHE_HMAC_DIGEST_LEN) == 0) {
 
 			if (flags & VERBOSE)
 				logger(L_DEBUG, L_FUNC, debug, user, service, realm, "found with valid passwd");
@@ -295,7 +314,7 @@ int cache_lookup(const char *user, const char *realm, const char *service, const
 	strcpy(result->bucket.creds + result->bucket.realm_offt, realm);	
 	strcpy(result->bucket.creds + result->bucket.service_offt, service);	
 
-	memcpy(result->bucket.pwd_digest, pwd_digest, 16);
+	memcpy(result->bucket.pwd_digest, pwd_digest, CACHE_HMAC_DIGEST_LEN);
 	result->bucket.created = epoch;
 
 	cache_un_lock(hash_offset);

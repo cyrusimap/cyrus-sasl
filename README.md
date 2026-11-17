@@ -1,4 +1,6 @@
-[![Build Status:master](https://api.travis-ci.org/cyrusimap/cyrus-sasl.svg?branch=master)](https://travis-ci.org/cyrusimap/cyrus-sasl)
+[![Linux](https://github.com/cyrusimap/cyrus-sasl/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/cyrusimap/cyrus-sasl/actions/workflows/ci.yml)
+[![Windows](https://github.com/cyrusimap/cyrus-sasl/actions/workflows/windows.yml/badge.svg?branch=master)](https://github.com/cyrusimap/cyrus-sasl/actions/workflows/windows.yml)
+[![macOS](https://github.com/cyrusimap/cyrus-sasl/actions/workflows/macos.yml/badge.svg?branch=master)](https://github.com/cyrusimap/cyrus-sasl/actions/workflows/macos.yml)
 
 
 ## Cyrus SASL

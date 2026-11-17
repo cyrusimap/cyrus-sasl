@@ -153,7 +153,6 @@
     <ProjectReference Include="plugin_anonymous.vcxproj">
       <Project>{666d9377-c82c-4391-96bb-b9a5794fb9dd}</Project>
     </ProjectReference>
-    </ProjectReference>
     <ProjectReference Include="plugin_plain.vcxproj">
       <Project>{b8c5499f-bcb8-409c-8446-0d92de118020}</Project>
     </ProjectReference>

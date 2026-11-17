@@ -239,7 +239,6 @@ class ScramServer(SuccessDataMixin, SaslTestCase):
         p = self.peer()
         self.assertFailed(p.first("p=tls-unique,,"))
 
-    @known_bug("H4", "a=, (empty authzid) is accepted as no authzid")
     @spec("RFC 5802", "7", "ABNF", "authzid = \"a=\" saslname, saslname = 1*(...)")
     def test_empty_authzid_rejected(self):
         p = self.peer(gs2_header="n,a=,")
@@ -248,7 +247,6 @@ class ScramServer(SuccessDataMixin, SaslTestCase):
             r = p.final()
         self.assertFailed(r)
 
-    @known_bug("H4", "non-printable client nonce is accepted")
     @spec("RFC 5802", "7", "ABNF", "c-nonce = printable (%x21-2B / %x2D-7E)")
     def test_nonprintable_nonce_rejected(self):
         p = self.peer(cnonce="abc\x01def")
@@ -380,6 +378,17 @@ class ScramServerChannelBinding(SuccessDataMixin, SaslTestCase):
             r = p.final()
         self.assertFailed(r)
 
+    @spec("RFC 5802", "7", "ABNF", 'cb-name = 1*(ALPHA / DIGIT / "." / "-")')
+    def test_invalid_cb_name(self):
+        # The server has a binding with exactly this name, so only the
+        # syntax check can reject it.
+        server = self.server(MECH + "-PLUS", users=USERS, cbinding=("bad_name", CB_DATA))
+        p = ScramPeer(server, mech=MECH + "-PLUS", gs2_header="p=bad_name,,", cbind_data=CB_DATA)
+        r = p.first()
+        if r.cont:
+            r = p.final()
+        self.assertFailed(r)
+
     @spec("RFC 5802", "6", "MUST", "y is accepted when the server has no binding")
     def test_y_without_server_binding(self):
         p = ScramPeer(self.server(MECH, users=USERS), gs2_header="y,,")
@@ -444,9 +453,12 @@ class ScramVariants(SuccessDataMixin, SaslTestCase):
     def test_sha256(self):
         self.run_variant("SCRAM-SHA-256")
 
-    @spec("RFC 5802", "5", "INTEROP", "SCRAM-SHA-224 follows the RFC 5802 construction")
-    def test_sha224(self):
-        self.run_variant("SCRAM-SHA-224")
+    @spec("RFC 5802", "10", "MUST",
+          "SCRAM-SHA-224 isn't registered with IANA, and isn't offered")
+    def test_sha224_not_offered(self):
+        server = self.server(MECH, users=USERS)
+        self.assertNotIn("SCRAM-SHA-224", server.mechs)
+        self.assertNotIn("SCRAM-SHA-224-PLUS", server.mechs)
 
     @spec("RFC 5802", "5", "INTEROP", "SCRAM-SHA-384 follows the RFC 5802 construction")
     def test_sha384(self):
@@ -572,6 +584,11 @@ class ScramClient(ScramClientHelpers):
     def test_server_nonce_not_prefixed(self):
         c = self.start()
         self.assertFailed(self.server_first(c, nonce=new_nonce() + new_nonce()))
+
+    @spec("RFC 5802", "7", "ABNF", "s-nonce = printable")
+    def test_server_nonce_not_printable(self):
+        c = self.start()
+        self.assertFailed(self.server_first(c, nonce=self.cnonce + "abc\x01def"))
 
     @spec("RFC 5802", "5.1", "MUST", "client fails on a mandatory extension (m=)")
     def test_mandatory_extension(self):

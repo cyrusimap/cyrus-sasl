@@ -86,6 +86,40 @@
 /* maximum length of the iteration_counter (as a string). Assume it is 32bits */
 #define ITERATION_COUNTER_BUF_LEN   20
 
+/* RFC 5802 section 7: printable = %x21-2B / %x2D-7E (no comma); a
+   nonce is one or more of them. */
+static int
+scram_valid_nonce(const char *s, size_t len)
+{
+    size_t i;
+
+    if (len == 0) {
+	return 0;
+    }
+    for (i = 0; i < len; i++) {
+	if (s[i] < 0x21 || s[i] > 0x7e || s[i] == ',') {
+	    return 0;
+	}
+    }
+    return 1;
+}
+
+/* RFC 5802 section 7 (from RFC 5801): cb-name = 1*(ALPHA / DIGIT / "." / "-") */
+static int
+scram_valid_cb_name(const char *s)
+{
+    if (*s == '\0') {
+	return 0;
+    }
+    for (; *s; s++) {
+	if (!((*s >= 'A' && *s <= 'Z') || (*s >= 'a' && *s <= 'z') ||
+	      (*s >= '0' && *s <= '9') || *s == '.' || *s == '-')) {
+	    return 0;
+	}
+    }
+    return 1;
+}
+
 /*
  * Parse an iteration count strictly, per the RFC 5802 ABNF
  * (posit-number = %x31-39 *DIGIT): no sign, spaces or leading zeros,
@@ -158,9 +192,6 @@ scram_sasl_mech_name(size_t hash_size)
 
     case 32:
 	return "SCRAM-SHA-256";
-
-    case 28:
-	return "SCRAM-SHA-224";
 
     case 20:
 	return "SCRAM-SHA-1";
@@ -664,6 +695,14 @@ scram_server_mech_step1(server_context_t *text,
 	    }
 
 	    *p = '\0';
+	    if (!scram_valid_cb_name(text->cbindingname)) {
+		text->cbindingname = NULL;
+		sparams->utils->seterror(sparams->utils->conn, 0,
+                                         "Invalid channel binding name in %s input",
+                                         scram_sasl_mech);
+		result = SASL_BADPROT;
+		goto cleanup;
+	    }
 	    _plug_strdup(sparams->utils, text->cbindingname, &text->cbindingname, NULL);
 	    *p = ',';
 
@@ -705,6 +744,14 @@ scram_server_mech_step1(server_context_t *text,
 	if (p == NULL) {
 	    sparams->utils->seterror(sparams->utils->conn, 0,
                                      "At least nonce is expected in %s input",
+                                     scram_sasl_mech);
+	    result = SASL_BADPROT;
+	    goto cleanup;
+	}
+	if (p == authorization_id) {
+	    /* RFC 5802 section 7: saslname = 1*(...) */
+	    sparams->utils->seterror(sparams->utils->conn, 0,
+                                     "Empty authorization identity in %s input",
                                      scram_sasl_mech);
 	    result = SASL_BADPROT;
 	    goto cleanup;
@@ -823,6 +870,13 @@ scram_server_mech_step1(server_context_t *text,
 
     /* Generate server nonce, by appending some random stuff to the client nonce */
     client_nonce_len = strlen(nonce);
+    if (!scram_valid_nonce(nonce, client_nonce_len)) {
+	sparams->utils->seterror(sparams->utils->conn, 0,
+                                 "Invalid client nonce in %s input",
+                                 scram_sasl_mech);
+	result = SASL_BADPROT;
+	goto cleanup;
+    }
     text->nonce = sparams->utils->malloc (client_nonce_len + NONCE_SIZE + 1);
 
     if (text->nonce == NULL) {
@@ -2043,28 +2097,6 @@ static sasl_server_plug_t scram_server_plugins[] =
 	NULL,				/* mech avail */
 	NULL				/* spare */
     },
-    {
-	"SCRAM-SHA-224",		/* mech_name */
-	0,				/* max_ssf */
-	SASL_SET_HASH_STRENGTH_BITS(224) |
-	SASL_SEC_NOPLAINTEXT
-	| SASL_SEC_NOACTIVE
-	| SASL_SEC_NOANONYMOUS
-	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
-	SASL_FEAT_ALLOWS_PROXY
-        | SASL_FEAT_SUPPORTS_HTTP
-	| SASL_FEAT_CHANNEL_BINDING,	/* features */
-	"SHA224",			/* glob_context */
-	&scram_server_mech_new,		/* mech_new */
-	&scram_server_mech_step,	/* mech_step */
-	&scram_server_mech_dispose,	/* mech_dispose */
-	NULL,				/* mech_free */
-	&scram_setpass,			/* setpass */
-	NULL,				/* user_query */
-	NULL,				/* idle */
-	NULL,				/* mech avail */
-	NULL				/* spare */
-    },
 #endif
     {
 	"SCRAM-SHA-1",			/* mech_name */
@@ -2104,7 +2136,7 @@ int scram_server_plug_init(const sasl_utils_t *utils,
     *out_version = SASL_SERVER_PLUG_VERSION;
     *pluglist = scram_server_plugins;
 #ifdef HAVE_SHA512
-    *plugcount = 5;
+    *plugcount = 4;
 #else
     *plugcount = 1;
 #endif
@@ -2572,6 +2604,12 @@ scram_client_mech_step2(client_context_t *text,
     if (server_nonce_len <= NONCE_SIZE ||
 	strncmp(nonce, text->nonce, NONCE_SIZE) != 0) {
 	SETERROR(params->utils, "The nonce received from the server doesn't start from the nonce sent by the client");
+	result = SASL_BADPROT;
+	goto cleanup;
+    }
+
+    if (!scram_valid_nonce(nonce, server_nonce_len)) {
+	SETERROR(params->utils, "The nonce received from the server contains invalid characters");
 	result = SASL_BADPROT;
 	goto cleanup;
     }
@@ -3122,27 +3160,6 @@ static sasl_client_plug_t scram_client_plugins[] =
 	NULL,				/* spare */
 	NULL				/* spare */
     },
-    {
-	"SCRAM-SHA-224",		/* mech_name */
-	0,				/* max_ssf */
-	SASL_SET_HASH_STRENGTH_BITS(224) |
-	SASL_SEC_NOPLAINTEXT
-	| SASL_SEC_NOANONYMOUS
-	| SASL_SEC_NOACTIVE
-	| SASL_SEC_MUTUAL_AUTH,		/* security_flags */
-	SASL_FEAT_ALLOWS_PROXY
-        | SASL_FEAT_SUPPORTS_HTTP
-	| SASL_FEAT_CHANNEL_BINDING, 	/* features */
-	NULL,				/* required_prompts */
-	"SHA224",			/* glob_context */
-	&scram_client_mech_new,		/* mech_new */
-	&scram_client_mech_step,	/* mech_step */
-	&scram_client_mech_dispose,	/* mech_dispose */
-	NULL,				/* mech_free */
-	NULL,				/* idle */
-	NULL,				/* spare */
-	NULL				/* spare */
-    },
 #endif
     {
 	"SCRAM-SHA-1",			/* mech_name */
@@ -3181,7 +3198,7 @@ int scram_client_plug_init(const sasl_utils_t *utils,
     *out_version = SASL_CLIENT_PLUG_VERSION;
     *pluglist = scram_client_plugins;
 #ifdef HAVE_SHA512
-    *plugcount = 5;
+    *plugcount = 4;
 #else
     *plugcount = 1;
 #endif

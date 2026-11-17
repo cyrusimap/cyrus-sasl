@@ -26,6 +26,8 @@
  *                    clientout to sasl_client_start)
  *   -S               the protocol carries additional data with success
  *                    (SASL_SUCCESS_DATA)
+ *   -X               the application needs a mechanism that allows proxying
+ *                    (SASL_NEED_PROXY)
  *   -s SERVICE       -h FQDN
  *
  * See COPYING file for License */
@@ -96,7 +98,7 @@ int main(int argc, char *argv[])
     secprops.maxbufsize = 65536;
     memset(&cb, 0, sizeof(cb));
 
-    while ((c = getopt(argc, argv, "m:u:a:w:o:c:Cn:x:b:f:e:E:NSs:h:")) != EOF) {
+    while ((c = getopt(argc, argv, "m:u:a:w:o:c:Cn:x:b:f:e:E:NSs:h:X")) != EOF) {
         switch (c) {
         case 'm': mechlist = optarg; break;
         case 'u': authname = optarg; break;
@@ -113,6 +115,7 @@ int main(int argc, char *argv[])
         case 'E': ext_ssf = (sasl_ssf_t) atoi(optarg); have_ext_ssf = 1; break;
         case 'N': no_initial = 1; break;
         case 'S': conn_flags |= SASL_SUCCESS_DATA; break;
+        case 'X': conn_flags |= SASL_NEED_PROXY; break;
         case 's': service = optarg; break;
         case 'h': fqdn = optarg; break;
         default:

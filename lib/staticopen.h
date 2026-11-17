@@ -88,17 +88,17 @@ extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( scram );
 extern SPECIFIC_SERVER_PLUG_INIT_PROTO( gssapiv2 );
 extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( gssapiv2 );
 #endif
-#ifdef STATIC_OTP
-extern SPECIFIC_SERVER_PLUG_INIT_PROTO( otp );
-extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( otp );
+#ifdef STATIC_GS2
+extern SPECIFIC_SERVER_PLUG_INIT_PROTO( gs2 );
+extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( gs2 );
+#endif
+#ifdef STATIC_OPAQUE
+extern SPECIFIC_SERVER_PLUG_INIT_PROTO( opaque );
+extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( opaque );
 #endif
 #ifdef STATIC_PLAIN
 extern SPECIFIC_SERVER_PLUG_INIT_PROTO( plain );
 extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( plain );
-#endif
-#ifdef STATIC_SRP
-extern SPECIFIC_SERVER_PLUG_INIT_PROTO( srp );
-extern SPECIFIC_CLIENT_PLUG_INIT_PROTO( srp );
 #endif
 #ifdef STATIC_SASLDB
 extern SPECIFIC_AUXPROP_PLUG_INIT_PROTO( sasldb );
@@ -119,9 +119,13 @@ _sasl_plug_rec _sasl_static_plugins[] = {
 	SPECIFIC_SERVER_PLUG_INIT( gssapiv2, "GSSAPI" ),
 	SPECIFIC_CLIENT_PLUG_INIT( gssapiv2, "GSSAPI" ),
 #endif
-#ifdef STATIC_OTP
-	SPECIFIC_SERVER_PLUG_INIT( otp, "OTP" ),
-	SPECIFIC_CLIENT_PLUG_INIT( otp, "OTP" ),
+#ifdef STATIC_GS2
+	SPECIFIC_SERVER_PLUG_INIT( gs2, "GS2" ),
+	SPECIFIC_CLIENT_PLUG_INIT( gs2, "GS2" ),
+#endif
+#ifdef STATIC_OPAQUE
+	SPECIFIC_SERVER_PLUG_INIT( opaque, "OPAQUE" ),
+	SPECIFIC_CLIENT_PLUG_INIT( opaque, "OPAQUE" ),
 #endif
 #ifdef STATIC_PLAIN
 	SPECIFIC_SERVER_PLUG_INIT( plain, "PLAIN" ),
@@ -130,10 +134,6 @@ _sasl_plug_rec _sasl_static_plugins[] = {
 #ifdef STATIC_SCRAM
         SPECIFIC_SERVER_PLUG_INIT( scram, "SCRAM" ),
         SPECIFIC_CLIENT_PLUG_INIT( scram, "SCRAM" ),
-#endif
-#ifdef STATIC_SRP
-	SPECIFIC_SERVER_PLUG_INIT( srp, "SRP" ),
-	SPECIFIC_CLIENT_PLUG_INIT( srp, "SRP" ),
 #endif
 #ifdef STATIC_SASLDB
 	SPECIFIC_AUXPROP_PLUG_INIT( sasldb, "SASLDB" ),

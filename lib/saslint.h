@@ -336,6 +336,21 @@ extern struct sasl_verify_password_s _sasl_verify_password[];
 extern int _is_sasl_server_active(void);
 
 /*
+ * The client and server refcounts change only with the init lock held,
+ * but they're read without it, to check that the library is initialized,
+ * on every call.  Read and write them atomically.
+ */
+#if defined(_MSC_VER)
+#define _sasl_atomic_load(p) \
+    ((int)InterlockedCompareExchange((volatile LONG *)(p), 0, 0))
+#define _sasl_atomic_store(p, v) \
+    ((void)InterlockedExchange((volatile LONG *)(p), (LONG)(v)))
+#else
+#define _sasl_atomic_load(p)     __atomic_load_n((p), __ATOMIC_ACQUIRE)
+#define _sasl_atomic_store(p, v) __atomic_store_n((p), (v), __ATOMIC_RELEASE)
+#endif
+
+/*
  * Allocation and Mutex utility macros
  */
 #define sasl_ALLOC(__size__) (_sasl_allocation_utils.malloc((__size__)))
@@ -385,6 +400,8 @@ extern const sasl_callback_t *
 _sasl_find_verifyfile_callback(const sasl_callback_t *callbacks);
 
 extern int _sasl_common_init(sasl_global_callbacks_t *global_callbacks);
+extern int _sasl_init_lock(void);
+extern void _sasl_init_unlock(void);
 
 extern int _sasl_conn_init(sasl_conn_t *conn,
 			   const char *service,

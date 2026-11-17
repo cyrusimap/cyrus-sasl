@@ -13,7 +13,7 @@ import os
 
 import unittest
 
-from sasltest import (SANITIZED, SaslTestCase, Scram, b64, known_bug,
+from sasltest import (SaslTestCase, Scram, b64, known_bug,
                       parse_attrs, saslprep, scram_escape, spec, unb64)
 
 MECH = "SCRAM-SHA-256"
@@ -159,7 +159,6 @@ class ScramServer(SuccessDataMixin, SaslTestCase):
         p.first()
         self.assertGreaterEqual(p.iterations, 4096)
 
-    @known_bug("I3", "server announces the configured iteration count unchecked")
     @spec("RFC 5802", "7", "ABNF", 'iteration-count = "i=" posit-number')
     def test_iteration_count_never_zero(self):
         server = self.server(MECH, users=USERS,
@@ -167,6 +166,17 @@ class ScramServer(SuccessDataMixin, SaslTestCase):
         p = self.peer(server)
         p.first()
         self.assertGreater(p.iterations, 0)
+
+    @spec("RFC 7677", "4", "SHOULD",
+          "the server announces at least 4096, whatever is configured")
+    def test_configured_iteration_count_bounds(self):
+        # -1 used to wrap to 4294967295; 100 was announced as is.
+        for configured in ("-1", "100", "4294971392", "4096x"):
+            server = self.server(MECH, users=USERS,
+                                 opts={"scram_iteration_counter": configured})
+            p = self.peer(server)
+            p.first()
+            self.assertEqual(p.iterations, 4096, "configured %r" % configured)
 
     # --- authentication failures ---
 
@@ -215,16 +225,20 @@ class ScramServer(SuccessDataMixin, SaslTestCase):
         p = self.peer()
         self.assertFailed(p.first("x,,n=alice,r=" + p.cnonce))
 
-    @known_bug("H1", "one-byte heap over-read parsing client-first",
-               only_if=SANITIZED)
     @spec("RFC 5802", "7", "ABNF", "authzid with no terminating client-first fields")
     def test_truncated_after_authzid(self):
-        # The over-read (finding H1) is only visible with --enable-sanitizers;
-        # in other builds the server rejects the message and the test passes.
+        # Regression test for a one-byte over-read (finding H1), visible
+        # only with --enable-sanitizers.
         p = self.peer()
         self.assertFailed(p.first("n,a=abcdef,"))
 
-    @known_bug("H4", "a=, (empty authzid) is accepted as no authzid")
+    @spec("RFC 5802", "7", "ABNF", "GS2 header with no client-first fields")
+    def test_truncated_after_gs2_header(self):
+        # The same over-read through a header without an authzid.  The
+        # server rejects input under 10 bytes first, so use a p= header.
+        p = self.peer()
+        self.assertFailed(p.first("p=tls-unique,,"))
+
     @spec("RFC 5802", "7", "ABNF", "authzid = \"a=\" saslname, saslname = 1*(...)")
     def test_empty_authzid_rejected(self):
         p = self.peer(gs2_header="n,a=,")
@@ -233,7 +247,6 @@ class ScramServer(SuccessDataMixin, SaslTestCase):
             r = p.final()
         self.assertFailed(r)
 
-    @known_bug("H4", "non-printable client nonce is accepted")
     @spec("RFC 5802", "7", "ABNF", "c-nonce = printable (%x21-2B / %x2D-7E)")
     def test_nonprintable_nonce_rejected(self):
         p = self.peer(cnonce="abc\x01def")
@@ -365,6 +378,17 @@ class ScramServerChannelBinding(SuccessDataMixin, SaslTestCase):
             r = p.final()
         self.assertFailed(r)
 
+    @spec("RFC 5802", "7", "ABNF", 'cb-name = 1*(ALPHA / DIGIT / "." / "-")')
+    def test_invalid_cb_name(self):
+        # The server has a binding with exactly this name, so only the
+        # syntax check can reject it.
+        server = self.server(MECH + "-PLUS", users=USERS, cbinding=("bad_name", CB_DATA))
+        p = ScramPeer(server, mech=MECH + "-PLUS", gs2_header="p=bad_name,,", cbind_data=CB_DATA)
+        r = p.first()
+        if r.cont:
+            r = p.final()
+        self.assertFailed(r)
+
     @spec("RFC 5802", "6", "MUST", "y is accepted when the server has no binding")
     def test_y_without_server_binding(self):
         p = ScramPeer(self.server(MECH, users=USERS), gs2_header="y,,")
@@ -385,12 +409,17 @@ class ScramServerChannelBinding(SuccessDataMixin, SaslTestCase):
         p.first()
         self.assertFailed(p.final(channel_binding=b64(b"y,,")))
 
-    @known_bug("H2", "trailing cbind-data is accepted after n or y")
     @spec("RFC 5802", "7", "MUST", "cbind-data MUST be absent for y or n")
     def test_c_trailing_data_with_n(self):
         p = ScramPeer(self.server(MECH, users=USERS))
         p.first()
         self.assertFailed(p.final(channel_binding=b64(b"n,,JUNK")))
+
+    @spec("RFC 5802", "7", "MUST", "cbind-data MUST be absent for y or n")
+    def test_c_trailing_data_with_y(self):
+        p = ScramPeer(self.server(MECH, users=USERS), gs2_header="y,,")
+        p.first()
+        self.assertFailed(p.final(channel_binding=b64(b"y,,JUNK")))
 
     @known_bug("I6", "server ignores whether the -PLUS name was selected")
     @spec("RFC 5802", "6", "MUST",
@@ -424,9 +453,12 @@ class ScramVariants(SuccessDataMixin, SaslTestCase):
     def test_sha256(self):
         self.run_variant("SCRAM-SHA-256")
 
-    @spec("RFC 5802", "5", "INTEROP", "SCRAM-SHA-224 follows the RFC 5802 construction")
-    def test_sha224(self):
-        self.run_variant("SCRAM-SHA-224")
+    @spec("RFC 5802", "10", "MUST",
+          "SCRAM-SHA-224 isn't registered with IANA, and isn't offered")
+    def test_sha224_not_offered(self):
+        server = self.server(MECH, users=USERS)
+        self.assertNotIn("SCRAM-SHA-224", server.mechs)
+        self.assertNotIn("SCRAM-SHA-224-PLUS", server.mechs)
 
     @spec("RFC 5802", "5", "INTEROP", "SCRAM-SHA-384 follows the RFC 5802 construction")
     def test_sha384(self):
@@ -460,10 +492,12 @@ class ScramClientHelpers(SaslTestCase):
         return c
 
     def server_first(self, c, nonce=None, salt=b"saltsaltsalt", iterations=4096,
-                     extra=""):
+                     extra="", iterations_text=None):
         self.nonce = nonce if nonce is not None else self.cnonce + new_nonce()
         self.salt, self.iterations = salt, iterations
-        self.sfirst = "r=%s,s=%s,i=%d%s" % (self.nonce, b64(salt), iterations, extra)
+        self.sfirst = "r=%s,s=%s,i=%s%s" % (
+            self.nonce, b64(salt),
+            iterations_text if iterations_text is not None else str(iterations), extra)
         return c.step(self.sfirst.encode("utf-8"))
 
     def check_final(self, result, mech=MECH, cbind_data=b""):
@@ -551,6 +585,11 @@ class ScramClient(ScramClientHelpers):
         c = self.start()
         self.assertFailed(self.server_first(c, nonce=new_nonce() + new_nonce()))
 
+    @spec("RFC 5802", "7", "ABNF", "s-nonce = printable")
+    def test_server_nonce_not_printable(self):
+        c = self.start()
+        self.assertFailed(self.server_first(c, nonce=self.cnonce + "abc\x01def"))
+
     @spec("RFC 5802", "5.1", "MUST", "client fails on a mandatory extension (m=)")
     def test_mandatory_extension(self):
         c = self.start()
@@ -567,7 +606,6 @@ class ScramClient(ScramClientHelpers):
         scram, auth = self.check_final(r)
         self.assertOk(c.step(self.verifier(scram, auth).encode()))
 
-    @known_bug("I1", "off-by-one drops the last ServerSignature character")
     @spec("RFC 5802", "5.1", "MUST", "unknown optional extensions MUST be ignored")
     def test_server_final_extension_ignored(self):
         c = self.start()
@@ -575,7 +613,6 @@ class ScramClient(ScramClientHelpers):
         scram, auth = self.check_final(r)
         self.assertOk(c.step((self.verifier(scram, auth) + ",x=1").encode()))
 
-    @known_bug("I3", "client rejects iteration counts above 65536")
     @spec("RFC 5802", "5.1", "INTEROP", "client accepts a large iteration count")
     def test_large_iteration_count(self):
         c = self.start()
@@ -583,6 +620,16 @@ class ScramClient(ScramClientHelpers):
         self.assertContinue(r)
         scram, auth = self.check_final(r)
         self.assertOk(c.step(self.verifier(scram, auth).encode()))
+
+    @spec("RFC 5802", "7", "ABNF", 'iteration-count = "i=" posit-number')
+    def test_iteration_count_syntax(self):
+        # A sign, a leading zero, and a value that used to be truncated to
+        # 4096 (2**32 + 4096) on LP64.
+        for text in ("+4096", "04096", " 4096", "4294971392"):
+            c = self.start()
+            self.assertFailed(self.server_first(c, iterations_text=text),
+                              "client accepted i=%s" % text)
+            c.close()
 
     @spec("RFC 4422", "3.6", "MUST",
           "data after the exchange is complete is a protocol error")
@@ -738,10 +785,30 @@ class ScramStoredSecrets(SaslTestCase):
         self.assertEqual(p.iterations, self.ITERATIONS)
         self.assertEqual(r.out.decode(), p.expected_verifier())
 
+    @spec("RFC 5802", "5.1", "MUST",
+          "a stored secret below the recommended iteration count still works")
+    def test_stored_secret_low_iteration_count(self):
+        # Secrets stored before the 4096 minimum must keep working.
+        p, r = self.run_peer([self.secret(iterations=1000)])
+        self.assertOk(r)
+        self.assertEqual(p.iterations, 1000)
+
     @spec("RFC 5802", "5.1", "MUST", "a wrong password fails against a stored secret")
     def test_wrong_password(self):
         p, r = self.run_peer([self.secret()], password="wrong")
         self.assertError(r)
+
+    @spec("RFC 5802", "5.1", "MUST",
+          "a stored secret with a malformed salt is skipped for the next one")
+    def test_skips_malformed_salt(self):
+        # Exercises the path that leaked the skipped entry's salt (finding
+        # H6); LeakSanitizer doesn't reliably report that leak.
+        mech, rest = self.secret().split("$", 1)
+        count, rest = rest.split(":", 1)
+        bad = "%s$%s:!!!!$%s" % (mech, count, rest.split("$", 1)[1])
+        p, r = self.run_peer([bad, self.secret()])
+        self.assertOk(r)
+        self.assertEqual(p.salt, self.SALT)
 
     @spec("RFC 5802", "5.1", "MUST",
           "the secret for this mechanism is chosen among several")

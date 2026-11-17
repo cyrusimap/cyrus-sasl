@@ -67,11 +67,12 @@ int _sasldb_getdata(const sasl_utils_t *utils,
   int result = SASL_OK;
   char *key;
   size_t key_len;
-  DBM *db;
+  DBM *db = NULL;
   datum dkey, dvalue;
   void *cntxt;
   sasl_getopt_t *getopt;
-  char *path;
+  char *default_path = NULL;
+  const char *path;
 
   if (!utils) return SASL_BADPARAM;
   if (!authid || !propName || !realm || !out || !max_out) {
@@ -92,8 +93,9 @@ int _sasldb_getdata(const sasl_utils_t *utils,
       return result;
   }
 
-  result = _sasldb_getpath(utils, &path);
-  if (result) return result;
+  result = _sasldb_getpath(utils, &default_path);
+  if (result) goto cleanup;
+  path = default_path;
 
   if (utils->getcallback(conn, SASL_CB_GETOPT,
                         (sasl_callback_ft *)&getopt, &cntxt) == SASL_OK) {
@@ -103,7 +105,7 @@ int _sasldb_getdata(const sasl_utils_t *utils,
           path = p;
       }
   }
-  db = dbm_open(path, O_RDONLY, S_IRUSR | S_IWUSR);
+  db = dbm_open((char *)path, O_RDONLY, S_IRUSR | S_IWUSR);
   if (! db) {
       utils->seterror(cntxt, 0, "Could not open db `%s': %s",
 		      path, strerror(errno));
@@ -123,7 +125,8 @@ int _sasldb_getdata(const sasl_utils_t *utils,
 
   if((size_t)dvalue.dsize > max_out + 1) {
       utils->seterror(cntxt, 0, "buffer overflow");
-      return SASL_BUFOVER;
+      result = SASL_BUFOVER;
+      goto cleanup;
   }
 
   if(out_len) *out_len = dvalue.dsize;
@@ -137,7 +140,7 @@ int _sasldb_getdata(const sasl_utils_t *utils,
 #endif
 
  cleanup:
-  SASLDB_FREEPATH(utils, path);
+  SASLDB_FREEPATH(utils, default_path);
   utils->free(key);
   if(db)
     dbm_close(db);
@@ -159,7 +162,8 @@ int _sasldb_putdata(const sasl_utils_t *utils,
   datum dkey;
   void *cntxt;
   sasl_getopt_t *getopt;
-  char *path;
+  char *default_path = NULL;
+  const char *path;
 
   if (!utils) return SASL_BADPARAM;
 
@@ -177,8 +181,9 @@ int _sasldb_putdata(const sasl_utils_t *utils,
       return result;
   }
 
-  result = _sasldb_getpath(utils, &path);
-  if (result) return result;
+  result = _sasldb_getpath(utils, &default_path);
+  if (result) goto cleanup;
+  path = default_path;
 
   if (utils->getcallback(conn, SASL_CB_GETOPT,
 			 (sasl_callback_ft *)&getopt, &cntxt) == SASL_OK) {
@@ -189,7 +194,7 @@ int _sasldb_putdata(const sasl_utils_t *utils,
       }
   }
 
-  db = dbm_open(path,
+  db = dbm_open((char *)path,
 		O_RDWR | O_CREAT,
 		S_IRUSR | S_IWUSR);
   if (! db) {
@@ -227,7 +232,7 @@ int _sasldb_putdata(const sasl_utils_t *utils,
   dbm_close(db);
 
  cleanup:
-  SASLDB_FREEPATH(utils, path);
+  SASLDB_FREEPATH(utils, default_path);
   utils->free(key);
 
   return result;
@@ -242,7 +247,8 @@ int _sasldb_putdata(const sasl_utils_t *utils,
 int _sasl_check_db(const sasl_utils_t *utils,
 		   sasl_conn_t *conn)
 {
-    char *path;
+    char *default_path;
+    const char *path;
     void *cntxt;
     sasl_getopt_t *getopt;
     sasl_verifyfile_t *vf;
@@ -251,8 +257,9 @@ int _sasl_check_db(const sasl_utils_t *utils,
 
     if(!utils) return SASL_BADPARAM;
 
-    ret = _sasldb_getpath(utils, &path);
+    ret = _sasldb_getpath(utils, &default_path);
     if (ret) return ret;
+    path = default_path;
 
     if (utils->getcallback(conn, SASL_CB_GETOPT,
 			   (sasl_callback_ft *)&getopt, &cntxt) == SASL_OK) {
@@ -307,7 +314,7 @@ int _sasl_check_db(const sasl_utils_t *utils,
 			"Verifyfile failed");
     }
 cleanup:
-    SASLDB_FREEPATH(utils, path);
+    SASLDB_FREEPATH(utils, default_path);
     return ret;
 }
 
@@ -321,7 +328,8 @@ typedef struct ndbm_handle
 sasldb_handle _sasldb_getkeyhandle(const sasl_utils_t *utils,
 				   sasl_conn_t *conn) 
 {
-    char *path;
+    char *default_path;
+    const char *path;
     sasl_getopt_t *getopt;
     void *cntxt;
     DBM *db;
@@ -334,8 +342,9 @@ sasldb_handle _sasldb_getkeyhandle(const sasl_utils_t *utils,
 	return NULL;
     }
 
-    if (_sasldb_getpath(utils, &path))
+    if (_sasldb_getpath(utils, &default_path))
 	return NULL;
+    path = default_path;
 
     if (utils->getcallback(conn, SASL_CB_GETOPT,
 			   (sasl_callback_ft *)&getopt, &cntxt) == SASL_OK) {
@@ -346,7 +355,7 @@ sasldb_handle _sasldb_getkeyhandle(const sasl_utils_t *utils,
 	}
     }
 
-    db = dbm_open(path, O_RDONLY, S_IRUSR | S_IWUSR);
+    db = dbm_open((char *)path, O_RDONLY, S_IRUSR | S_IWUSR);
 
     if(!db) {
 	utils->seterror(conn, 0, "Could not open db `%s': %s",
@@ -364,7 +373,7 @@ sasldb_handle _sasldb_getkeyhandle(const sasl_utils_t *utils,
     }
 
 cleanup:
-    SASLDB_FREEPATH(utils, path);
+    SASLDB_FREEPATH(utils, default_path);
     return (sasldb_handle)handle;
 }
 

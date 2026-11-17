@@ -284,36 +284,6 @@ A SASL application must be able to read its keytab file.
 
 You may want to consult the :ref:`GSSAPI Tutorial <gssapi>`.
 
-The OTP mechanism
------------------
-
-The Cyrus SASL library also supports the One-Time-Password (OTP)
-mechanism.  This mechanism is similar to SCRAM
-and SRP in that is uses a shared secret and a challenge/response exchange.
-However, OTP is more secure than the other shared secret mechanisms in
-that the secret is used to generate a sequence of one-time (single
-use) passwords which prevents reply attacks, and that secret need
-not be stored on the system.  These one-time passwords are stored in the
-``/etc/sasldb2`` database.
-
-OTP via OPIE
-############
-
-For sites with an existing OTP infrastructure using OPIE, Cyrus SASL
-can be configured to use OPIE v2.4 instead of using its own database
-and server-side routines.
-
-OPIE should be configured with the ``--disable-user-locking``
-option if the SASL server application will not be running as "root".
-
-OPIE uses its own "opiekeys" database for storing the data necessary
-for generating the server challenges.  The location of the :option:`opiekeys`
-file is configurable in SASL; by default it is ``/etc/opiekeys``,
-but this is modifiable by the :option:`opiekeys` option.
-
-A SASL server application must be able to read and write the
-opiekeys file.
-
 Auxiliary Properties
 ====================
 
@@ -391,12 +361,6 @@ SASL_DBNAME
 Troubleshooting
 ===============
 
-Why doesn't OTP doesn't appear as an available mechanism?
-    If using OPIE, check that the ``opiekeys`` file is
-    readable by the user running the daemon.  For Cyrus imapd, it must
-    be readable by the Cyrus user.  By default, the library looks for the
-    opiekeys in ``/etc/opiekeys``, but it's configurable using the
-    :option:`opiekeys` option.
 Why doesn't SCRAM work with my old sasldb?
     Because sasldb now stores plaintext passwords only, the old
     sasldb is incompatible.
@@ -409,9 +373,8 @@ I'm having performance problems on each authentication, there is a noticeable sl
     To improve performance, you can change DEV_RANDOM in
     ``config.h`` to be ``/dev/urandom`` and recompile
     libsasl. ``/dev/urandom`` offers less secure random numbers but
-    should return immediately. The included mechanisms, besides OTP and
-    SRP, use random numbers only to generate nonces, so using
-    ``/dev/urandom`` is safe if you aren't using OTP or SRP.
+    should return immediately. The included mechanisms use random
+    numbers only to generate nonces, so using ``/dev/urandom`` is safe.
 
 
 I've converted the sasldb database to the new format. Why can't anybody authenticate?
@@ -437,5 +400,5 @@ It's not working and won't tell me why! Help!
     information.
 
 Is there a mailing list to discuss the Cyrus SASL library?
-    Check out our :ref:`contribution <contribute>` page for ways to get in touch
-    with us, including mailing lists and IRC.
+    Yes!  See the :ref:`support <sasl-support>` page for the mailing list and
+    how to report bugs.

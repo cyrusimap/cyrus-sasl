@@ -2931,8 +2931,6 @@ void notes(void)
     printf("NOTE:\n");
     printf("-For GSSAPI must be able to read srvtab (/etc/krb5.keytab)\n");
     printf("-For GSSAPI you must have non-expired tickets\n");
-    printf("-For OTP (w/OPIE) must be able to read/write opiekeys (/etc/opiekeys)\n");
-    printf("-For OTP you must have a non-expired secret\n");
     printf("-Must be able to read sasldb, which needs to be setup with a\n");
     printf(" username and a password (see top of testsuite.c)\n");
     printf("\n\n");

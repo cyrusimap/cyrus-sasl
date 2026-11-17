@@ -122,8 +122,29 @@ static int _sasl_make_plain_secret(const char *salt,
 				   const char *passwd, size_t passlen,
 				   sasl_secret_t **secret)
 {
-    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+    EVP_MD_CTX *ctx;
     unsigned sec_len = 16 + 1 + 16; /* salt + "\0" + hash */
+    unsigned char hash[EVP_MAX_MD_SIZE];
+    unsigned hash_len = 0;
+    int ok;
+
+    *secret = NULL;
+
+    ctx = EVP_MD_CTX_new();
+    if (ctx == NULL) {
+	return SASL_NOMEM;
+    }
+
+    ok = EVP_DigestInit_ex(ctx, EVP_md5(), NULL)
+	&& EVP_DigestUpdate(ctx, (const unsigned char *) salt, 16)
+	&& EVP_DigestUpdate(ctx, (const unsigned char *) "sasldb", 6)
+	&& EVP_DigestUpdate(ctx, (const unsigned char *) passwd, (unsigned int) passlen)
+	&& EVP_DigestFinal_ex(ctx, hash, &hash_len)
+	&& hash_len == 16;
+    EVP_MD_CTX_free(ctx);
+    if (!ok) {
+	return SASL_FAIL;
+    }
 
     *secret = (sasl_secret_t *) sasl_ALLOC(sizeof(sasl_secret_t) +
 					   sec_len * sizeof(char));
@@ -131,15 +152,11 @@ static int _sasl_make_plain_secret(const char *salt,
 	return SASL_NOMEM;
     }
 
-    EVP_DigestInit(ctx, EVP_md5());
-    EVP_DigestUpdate(ctx, (const unsigned char *) salt, 16);
-    EVP_DigestUpdate(ctx, (const unsigned char *) "sasldb", 6);
-    EVP_DigestUpdate(ctx, (const unsigned char *) passwd, (unsigned int) passlen);
     memcpy((*secret)->data, salt, 16);
     (*secret)->data[16] = '\0';
-    EVP_DigestFinal(ctx, (*secret)->data + 17, NULL);
+    memcpy((*secret)->data + 17, hash, 16);
     (*secret)->len = sec_len;
-    
+
     return SASL_OK;
 }
 

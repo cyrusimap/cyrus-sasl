@@ -258,6 +258,9 @@ if test "$gssapi" != no; then
   AC_MSG_RESULT([with implementation ${gss_impl}])
   AC_CHECK_LIB(resolv,res_search,GSSAPIBASE_LIBS="$GSSAPIBASE_LIBS -lresolv")
   SASL_MECHS="$SASL_MECHS libgssapiv2.la"
+  if test "$enable_static" = yes; then
+    SASL_STATIC_LIBS="$SASL_STATIC_LIBS $GSSAPIBASE_LIBS $GSSAPI_LIBS"
+  fi
   SASL_STATIC_OBJS="$SASL_STATIC_OBJS gssapi.o"
   SASL_STATIC_SRCS="$SASL_STATIC_SRCS \$(top_srcdir)/plugins/gssapi.c"
   if test "$rfc5587" = "yes" -a "$rfc5801" = "yes"; then

@@ -525,10 +525,18 @@ else
   AC_MSG_RESULT(disabled)
 fi
 
-dnl OPAQUE
-AC_ARG_ENABLE(opaque, [  --enable-opaque            enable OPAQUE authentication [[yes]] ],
-  opaque=$enableval,
-  opaque=yes)
+dnl OPAQUE: experimental, so it's only built when asked for
+AC_ARG_WITH(opaque, AS_HELP_STRING([--with-opaque],
+    [build the experimental OPAQUE mechanism, with libopaque or libsodium [no]]),
+  opaque=$withval,
+  opaque=no)
+
+dnl --enable-opaque used to turn it on, and was the default
+AC_ARG_ENABLE(opaque, [], [
+  AC_MSG_WARN([--enable-opaque is obsolete; use --with-opaque])
+  opaque=$enableval])
+
+test "$opaque" != no && opaque=yes
 
 if test "$opaque" = yes; then
   AC_CHECK_LIB(libopaque, opaque_CreateCredentialRequest, [AC_SUBST([LIB_OPAQUE], ["-lopaque"]) AC_DEFINE([HAVE_LIBOPAQUE], [1],[opaque library])],have_libopaque="no",-lopaque)
@@ -538,8 +546,7 @@ if test "$opaque" = yes; then
     AC_CHECK_LIB(sodium, crypto_kdf_hkdf_sha512_expand,need_internal_hkdf="no",need_internal_hkdf="yes",-lsodium)
 
     if test "$have_sodium" = no; then
-      AC_MSG_WARN(neither libopaque nor libsodium found -- OPAQUE will be disabled)
-      opaque=no
+      AC_MSG_ERROR([--with-opaque needs libopaque or libsodium, and neither was found])
     else
       opaque=internal
     fi

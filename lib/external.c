@@ -122,6 +122,14 @@ external_server_mech_step(void *conn_context __attribute__((unused)),
     }
     
     if (clientinlen) {		/* if we have a non-zero authorization id */
+	/* RFC 4422 appendix A.1: authz-id-string = *( UTF8-char-no-nul ) */
+	if (memchr(clientin, '\0', clientinlen) != NULL ||
+	    sparams->utils->utf8verify(clientin, clientinlen) != SASL_OK) {
+	    sasl_seterror(sparams->utils->conn, 0,
+			  "authorization identity isn't UTF-8 without NUL");
+	    return SASL_BADPROT;
+	}
+
 	/* The user's trying to authorize as someone they didn't
 	 * authenticate as */
 	result = sparams->canon_user(sparams->utils->conn,
@@ -305,12 +313,6 @@ external_client_mech_step(void *conn_context,
 	return SASL_INTERACT;
     }
     
-    *clientoutlen = user ? (unsigned) strlen(user) : 0;
-    
-    result = _buf_alloc(&text->out_buf, &text->out_buf_len, *clientoutlen + 1);
-    
-    if (result != SASL_OK) return result;
-    
     if (user && *user) {
 	result = params->canon_user(params->utils->conn,
 				    user, 0, SASL_CU_AUTHZID, oparams);
@@ -320,15 +322,23 @@ external_client_mech_step(void *conn_context,
 				    params->utils->conn->external.auth_id, 0,
 				    SASL_CU_AUTHID, oparams);
 	if (result != SASL_OK) return result;
-	
-	memcpy(text->out_buf, user, *clientoutlen);
+
+	/* Send the authzid as canonicalized, which is what oparams says
+	   we're acting as */
+	*clientoutlen = oparams->ulen;
     } else {
 	result = params->canon_user(params->utils->conn,
 				    params->utils->conn->external.auth_id, 0,
 				    SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
 	if (result != SASL_OK) return result;
+
+	*clientoutlen = 0;
     }
-    
+
+    result = _buf_alloc(&text->out_buf, &text->out_buf_len, *clientoutlen + 1);
+    if (result != SASL_OK) return result;
+
+    if (*clientoutlen) memcpy(text->out_buf, oparams->user, *clientoutlen);
     text->out_buf[*clientoutlen] = '\0';
     
     *clientout = text->out_buf;

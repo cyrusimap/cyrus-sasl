@@ -96,7 +96,8 @@ class GssapiServer(SaslTestCase):
         """A server and peer that completed authentication with `layer`."""
         peer = GssClientPeer(self.gss_server(**kw))
         peer.authenticate()
-        r = peer.choose(layer)
+        # RFC 4752 section 3.1: the maximum buffer MUST be 0 with no layer.
+        r = peer.choose(layer, maxbuf=0 if layer == LAYER_NONE else 0x10000)
         self.assertOk(r)
         return peer, r
 
@@ -131,10 +132,13 @@ class GssapiServer(SaslTestCase):
         self.assertEqual(offer.message[0], LAYER_NONE)
         self.assertEqual(offer.message[1:4], b"\0\0\0")
 
-    @known_bug("S5", "server accepts any GSS mechanism under the name GSSAPI")
-    @spec("RFC 4752", "3.2", "MUST",
-          "if the negotiated mechanism isn't Kerberos V5, authentication MUST be aborted")
+    @spec("RFC 4752", "3.2", "SHOULD",
+          "servers SHOULD use acceptor credentials for the Kerberos V5 mechanism")
     def test_spnego_token_rejected(self):
+        # A SPNEGO-wrapped context negotiates Kerberos, so the separate
+        # "mech_type must be Kerberos V5" check (MUST) doesn't catch it;
+        # Kerberos-only acceptor credentials do.  Testing that check needs
+        # a non-Kerberos GSS mechanism, such as gss-ntlmssp.
         peer = GssClientPeer(self.gss_server(), mech=SPNEGO)
         r = peer.authenticate()
         if not getattr(r, "failed", False):
@@ -150,7 +154,6 @@ class GssapiServer(SaslTestCase):
         peer.authenticate()
         self.assertFailed(peer.choose(LAYER_INTEGRITY))
 
-    @known_bug("H13", "server doesn't check the client's maximum buffer")
     @spec("RFC 4752", "3.2", "REQUIRED",
           "server verifies the client maximum buffer is 0 if no layer was chosen")
     def test_no_layer_with_nonzero_maxbuf(self):
@@ -324,7 +327,6 @@ class GssapiClient(SaslTestCase):
         peer.establish()
         self.assertFailed(peer.offer(0, raw=b"\x07\x01\x00\x00\x00"))
 
-    @known_bug("H13", "client doesn't check the server's maximum buffer")
     @spec("RFC 4752", "3.1", "REQUIRED",
           "client verifies the server maximum buffer is 0 if no layer is offered")
     def test_no_layer_with_nonzero_maxbuf(self):

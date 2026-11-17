@@ -142,10 +142,10 @@ resources to load a given plugin, even if that plugin is otherwise unused
 (even when it is disabled via the :option:`mech_list` option).
 
 As of this writing, modules that are enabled by default but may not
-be applicable to all systems include SCRAM, OTP,
+be applicable to all systems include SCRAM,
 GSSAPI, PLAIN, and ANONYMOUS.  These can be disabled with::
 
-    ``--disable-scram``, ``--disable-otp``,
+    ``--disable-scram``,
     ``--disable-gssapi``,
     ``--disable-plain``, and ``--disable-anon`` respectively.
 

@@ -15,7 +15,7 @@ except ImportError:
     raise unittest.SkipTest("Python gssapi module not installed")
 
 import krb5env
-from sasltest import SANITIZED, SaslTestCase, known_bug, spec
+from sasltest import SaslTestCase, known_bug, spec
 
 MECH = "GS2-KRB5"
 F = gssapi.RequirementFlag
@@ -23,11 +23,6 @@ KRB5_OID_TLV = bytes.fromhex("06092a864886f712010202")
 TARGET = "%s@%s" % (krb5env.SERVICE, krb5env.HOST)
 CB_NAME = "tls-exporter"
 CB_DATA = bytes(range(32))
-
-# The client passes GSS-API's empty output token (value NULL, length 0) to
-# memcpy, which is undefined behavior; UBSan stops the driver there.
-H30 = known_bug("H30", "client calls memcpy with a NULL source for an empty token",
-                only_if=SANITIZED)
 
 
 def der_length(n):
@@ -176,6 +171,18 @@ class Gs2Server(SaslTestCase):
         self.assertOk(r)
         self.assertIsNone(r.out, "server sent success data %r" % r.out)
 
+    @spec("RFC 4422", "3.4.1", "MUST",
+          "GS2 carries an authzid, so it's offered when proxying is required")
+    def test_offered_when_proxy_needed(self):
+        self.gs2_server()  # skips if GS2 isn't available at all
+        server = self.server(MECH, success_data=True, need_proxy=True,
+                             users={krb5env.USER: "unused"},
+                             proxies=[("user", "admin")])
+        self.assertIn(MECH, server.mechs)
+        r = Gs2ClientPeer(server, gs2_header=b"n,a=admin,").run()
+        self.assertOk(r)
+        self.assertEqual(r.user, b"admin")
+
     @spec("RFC 5801", "4", "MUST", "a= values are unescaped (=2C, =3D)")
     def test_authzid_escaping(self):
         server = self.gs2_server(proxies=[("user", "ad,m=in")])
@@ -266,7 +273,6 @@ class Gs2Client(SaslTestCase):
         self.assertContinue(c.first)
         return c
 
-    @H30
     @spec("RFC 5801", "4", "MUST",
           "initial message is the GS2 header plus the token without its RFC 2743 header")
     def test_valid_exchange(self):
@@ -276,7 +282,6 @@ class Gs2Client(SaslTestCase):
         self.assertTrue(peer.ctx.complete)
         self.assertOk(r)
 
-    @H30
     @spec("RFC 5801", "8", "MUST", "client requests mutual authentication")
     def test_mutual_requested(self):
         peer = Gs2ServerPeer(self.gs2_client())
@@ -291,14 +296,40 @@ class Gs2Client(SaslTestCase):
         peer.run()
         self.assertNotIn(F.out_of_sequence_detection, peer.ctx.actual_flags)
 
-    @H30
     @spec("RFC 5801", "4", "MUST", "a= carries the authorization identity")
     def test_authzid_in_header(self):
         peer = Gs2ServerPeer(self.gs2_client(authzid="ad,min"))
         peer.run()
         self.assertEqual(peer.gs2_header, b"n,a=ad=2Cmin,")
 
-    @H30
+    @spec("RFC 4422", "3.4.1", "MUST",
+          "GS2 carries an authzid, so the client uses it when proxying is required")
+    def test_selected_when_proxy_needed(self):
+        self.gs2_client()  # skips if GS2 isn't available at all
+        c = self.client(MECH, authname=krb5env.USER, authzid="admin",
+                        need_proxy=True)
+        self.assertContinue(c.first)
+        peer = Gs2ServerPeer(c)
+        peer.run()
+        self.assertEqual(peer.gs2_header, b"n,a=admin,")
+
+    @spec("RFC 5801", "4", "MUST",
+          "with an empty authentication name the default credential is used")
+    def test_default_credential(self):
+        peer = Gs2ServerPeer(self.gs2_client(authname=""))
+        r = peer.run()
+        self.assertOk(r)
+        self.assertEqual(peer.gs2_header, b"n,,")
+        self.assertEqual(str(peer.ctx.initiator_name).split("@")[0], krb5env.USER)
+
+    @spec("RFC 5801", "4", "MUST",
+          "a= carries the authorization identity with the default credential")
+    def test_default_credential_authzid(self):
+        peer = Gs2ServerPeer(self.gs2_client(authname="", authzid="admin"))
+        r = peer.run()
+        self.assertOk(r)
+        self.assertEqual(peer.gs2_header, b"n,a=admin,")
+
     @spec("RFC 5801", "5", "MUST",
           "client with channel binding picks -PLUS and binds the GS2 header and data")
     def test_selects_plus(self):

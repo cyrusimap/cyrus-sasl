@@ -77,19 +77,25 @@ class PlainServer(SaslTestCase):
     def test_empty_authcid(self):
         self.assertFailed(self.run_plain(plain("", "", "secret")))
 
-    @known_bug("S2", "empty password is passed to the verifier")
     @spec("RFC 4616", "2", "SHALL",
           "if preparation results in an empty string, verification SHALL fail")
     def test_empty_password(self):
         r = self.run_plain(plain("", "carol", ""), users={"carol": ""})
         self.assertFailed(r)
 
-    @known_bug("S1", "whitespace-only authzid is canonicalized to an empty identity")
     @spec("RFC 4422", "3.4.1", "MUST",
           "a non-empty authzid requests that exact identity")
     def test_whitespace_authzid(self):
         r = self.run_plain(plain(" ", "alice", "secret"))
         self.assertFailed(r, "authzid ' ' was accepted as %r" % r.user)
+
+    def test_authzid_leading_whitespace(self):
+        # Regression test for the canonicalization bug behind S1, which also
+        # rejected names whose leading-space count equals their trimmed
+        # length as "All-whitespace".  Surrounding whitespace is trimmed.
+        r = self.run_plain(plain("  ab", "ab", "secret"), users={"ab": "secret"})
+        self.assertOk(r)
+        self.assertEqual(r.user, b"ab")
 
     # --- message syntax ---
 
@@ -153,7 +159,6 @@ class PlainClient(SaslTestCase):
         self.assertOk(r)
         self.assertEqual(r.out, b"\0alice\0secret")
 
-    @known_bug("H22", "client ignores a non-empty first challenge")
     @spec("RFC 4422", "5", "MUST",
           "for a client-first mechanism, the first server challenge MUST be empty")
     def test_nonempty_challenge_rejected(self):

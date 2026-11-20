@@ -863,7 +863,10 @@ LIBSASL_API int sasl_getprop(sasl_conn_t *conn, int propnum,
  * is particularly useful for servers that respond to multiple names. */
 #define	SASL_GSS_LOCAL_NAME	20
 
-/* Channel binding information. Memory is managed by the caller. */
+/* Channel binding information. Memory is managed by the caller.
+ * The library doesn't choose a binding type: use "tls-exporter" (RFC 9266)
+ * over TLS 1.3 and "tls-unique" (RFC 5929) over TLS 1.2.  See "Channel
+ * Binding" in the concepts documentation. */
 typedef struct sasl_channel_binding {
     const char *name;
     int critical;

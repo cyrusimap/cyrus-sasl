@@ -77,6 +77,25 @@ SASL Library
 
    Path to saslauthd run directory (**including** the "/mux" named pipe)
 
+.. option:: saslprep [icu|ascii|raw]
+
+   How SCRAM prepares usernames and passwords, which RFC 5802 requires to
+   be SASLprep'd (RFC 4013). Applies to both clients and servers.
+
+   * ``icu``: full SASLprep using ICU. Input that SASLprep rejects
+     (invalid UTF-8, prohibited or unassigned characters) is refused.
+     Only available when built with ICU (``--with-icu``).
+   * ``ascii``: refuse non-ASCII and control characters, the alternative
+     RFC 5802 allows when SASLprep isn't available.
+   * ``raw``: use the octets as given, as earlier releases did. Not
+     conformant: a password that SASLprep changes won't match a peer
+     that prepares it.
+
+   Unless this is ``raw``, PLAIN also refuses messages that aren't valid
+   UTF-8.
+
+   Default: ``icu`` when built with ICU, otherwise ``raw``
+
 Auxiliary Property Plugin
 =========================
 

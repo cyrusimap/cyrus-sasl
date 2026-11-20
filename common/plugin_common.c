@@ -66,12 +66,17 @@
 #include <errno.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <string.h>
+#ifdef HAVE_STRINGS_H
+#include <strings.h>
+#endif
 
 #ifdef HAVE_INTTYPES_H
 #include <inttypes.h>
 #endif
 
 #include "plugin_common.h"
+#include "saslprep.h"
 
 /* translate IPv4 mapped IPv6 address to IPv4 address */
 static void sockaddr_unmapped(
@@ -918,3 +923,52 @@ unsigned int plug_sleep (unsigned int seconds)
     return 0;
 }
 #endif
+
+/*
+ * Look up the "saslprep" option.  Returns SASL_OK and the mode, or
+ * SASL_FAIL (logged) for an unknown value or "icu" without ICU support.
+ *
+ * Declared in saslprep.h but defined here rather than in saslprep.c:
+ * every plugin links plugin_common, but only those that prepare strings
+ * (SCRAM) link saslprep.c, and with it ICU.  PLAIN only needs the mode,
+ * so keeping this here spares it ICU.
+ */
+int _plug_saslprep_mode(const sasl_utils_t *utils, const char *plugin_name,
+			int *mode)
+{
+    const char *value = NULL;
+
+#ifdef HAVE_ICU
+    *mode = SASLPREP_ICU;
+#else
+    *mode = SASLPREP_RAW;
+#endif
+
+    if (utils->getopt) {
+	utils->getopt(utils->getopt_context, plugin_name, "saslprep",
+		      &value, NULL);
+    }
+    if (value == NULL || *value == '\0') {
+	return SASL_OK;
+    }
+
+    if (strcasecmp(value, "raw") == 0) {
+	*mode = SASLPREP_RAW;
+    } else if (strcasecmp(value, "ascii") == 0) {
+	*mode = SASLPREP_ASCII;
+    } else if (strcasecmp(value, "icu") == 0) {
+#ifdef HAVE_ICU
+	*mode = SASLPREP_ICU;
+#else
+	utils->log(utils->conn, SASL_LOG_ERR,
+		   "saslprep: \"icu\" requested, but built without ICU");
+	return SASL_FAIL;
+#endif
+    } else {
+	utils->log(utils->conn, SASL_LOG_ERR,
+		   "saslprep: unknown value \"%s\"", value);
+	return SASL_FAIL;
+    }
+
+    return SASL_OK;
+}

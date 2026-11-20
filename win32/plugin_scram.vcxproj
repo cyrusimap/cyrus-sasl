@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\plugins\scram.c" />
+    <ClCompile Include="..\common\saslprep.c" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="common.vcxproj">

@@ -28,19 +28,10 @@ class AnonymousServer(SaslTestCase):
         super().setUp()
         self.require_mech("ANONYMOUS")
 
-    def server(self, mech, **kw):
-        # The library looks up the identity "anonymous" in the password
-        # store and fails with SASL_NOUSER when it isn't there (see
-        # test_no_account_required), so give these protocol tests one.
-        kw.setdefault("users", {"anonymous": "unused"})
-        return super().server(mech, **kw)
-
-    @known_bug("H28", "ANONYMOUS fails with SASL_NOUSER unless the password "
-               "store has an 'anonymous' account")
     @spec("RFC 4505", "3", "INTEROP",
           "ANONYMOUS doesn't depend on a user account in the password store")
     def test_no_account_required(self):
-        r = super().server("ANONYMOUS", users={"alice": "secret"}).start(b"sirhc")
+        r = self.server("ANONYMOUS", users={"alice": "secret"}).start(b"sirhc")
         self.assertOk(r)
 
     @spec("RFC 4505", "2", "ABNF", "the trace message is optional")

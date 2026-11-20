@@ -33,7 +33,7 @@ SASL Library
    authentication.  When set to 'noplain', only non-plaintext secrets
    will be written.  *Note that the only mechanisms (as currently
    implemented) which don't use plaintext secrets are
-   OTP, SCRAM and SRP.*
+   OPAQUE and SCRAM.*
 
    Default: no
 
@@ -53,7 +53,7 @@ SASL Library
 .. option:: mech_list [<mechanism list>]
 
    Whitespace separated list of mechanisms to allow (e.g. 'plain
-   otp').  Used to restrict the mechanisms to a subset of the installed
+   scram').  Used to restrict the mechanisms to a subset of the installed
    plugins.
 
    Default: empty (use all available plugins)
@@ -252,21 +252,6 @@ stored.  The slapd.conf will need to map these usernames to LDAP DNs:
    sasl-regexp uid=(.*),cn=external,cn=auth
        ldap:///dc=example,dc=com??sub?(uid=$1)
 
-OTP
-===
-
-.. option:: opiekeys [<path>]
-
-   Location of the opiekeys file
-
-   Default: /etc/opiekeys
-
-.. option:: otp_mda [md4 | md5 | sha1]
-
-   (Without opie) Message digest algorithm for one-time passwords, used by sasl_setpass
-
-   Default: md5
-
 SASLDB
 ======
 
@@ -351,7 +336,7 @@ Notes on SQL
 
 The sql_insert and sql_update options are
 optional and are only needed if you wish to allow the SASL library
-(e.g., saslpasswd2) and plugins (e.g., OTP) to write properties to the
+(e.g., saslpasswd2) and plugins (e.g., SCRAM) to write properties to the
 SQL server.  If used, both statements MUST be provided so that
 properties can be added, changed and deleted.
 
@@ -416,15 +401,6 @@ Note that all substitutions do not have to be used. For instance,
 is a valid value for sql_select.
 
 
-
-SRP
-===
-
-.. option:: srp_mda [md5 | sha1 | rmd160]
-
-   Message digest algorithm for SRP calculations
-
-   Default: sha1
 
 Kerberos V4
 ===========

@@ -131,7 +131,7 @@ static const char *flag_subopts[] = {
   NULL
 };
 
-/* Whitespace separated list of mechanisms to allow (e.g. 'plain otp').
+/* Whitespace separated list of mechanisms to allow (e.g. 'plain scram').
    Used to restrict the mechanisms to a subset of the installed plugins.
    Default: NULL (i.e. all available) */
 #define SASL_OPT_MECH_LIST		    "mech_list"
@@ -209,7 +209,7 @@ plugview_sasl_getopt (
 )
 {
     if (strcasecmp (option, SASL_OPT_MECH_LIST) == 0) {
-        /* Whitespace separated list of mechanisms to allow (e.g. 'plain otp').
+        /* Whitespace separated list of mechanisms to allow (e.g. 'plain scram').
            Used to restrict the mechanisms to a subset of the installed plugins.
            Default: NULL (i.e. all available) */
         if (result != NULL) {

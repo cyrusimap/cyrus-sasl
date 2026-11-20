@@ -9,7 +9,7 @@ The authentication identity comes from outside SASL (for example a TLS
 client certificate); the drivers set it with SASL_AUTH_EXTERNAL.
 """
 
-from sasltest import SaslTestCase, known_bug, spec
+from sasltest import SaslTestCase, spec
 
 EXT_ID = "alice"
 
@@ -51,12 +51,31 @@ class ExternalServer(SaslTestCase):
 
     @spec("RFC 4422", "A.1", "ABNF", "authz-id-string = *( UTF8-char-no-nul )")
     def test_authzid_with_nul_rejected(self):
-        # Rejected only because the test's proxy policy compares lengths;
-        # see finding H23 for a policy that compares C strings.
+        # The test's proxy policy compares lengths, so it would reject this
+        # too; a policy comparing C strings would see "bob".  The mechanism
+        # must reject the message itself.
         r = self.ext_server(proxies=[("alice", "bob")]).start(b"bob\0junk")
         self.assertFailed(r)
+        self.assertEqual(r.name, "SASL_BADPROT", r.detail)
 
-    @known_bug("S1", "whitespace-only authzid is canonicalized to an empty identity")
+    @spec("RFC 4422", "A.1", "ABNF", "authz-id-string = *( UTF8-char-no-nul )")
+    def test_authzid_not_utf8_rejected(self):
+        # The proxy policy permits these exact bytes ("\udcff" is passed to
+        # the driver as the octet 0xff).
+        r = self.ext_server(proxies=[("alice", "bob\udcff")]).start(b"bob\xff")
+        self.assertFailed(r, "invalid UTF-8 authzid accepted as %r" % r.user)
+
+    @spec("RFC 4422", "A.1", "MUST",
+          "an authzid is canonicalized with the server's realm")
+    def test_authzid_with_realm(self):
+        # The library looked for "@" past the end of the authzid; the
+        # sanitizer build reports the over-read.
+        r = self.ext_server(realm="example.org",
+                            proxies=[("alice@example.org", "bob@example.org")]
+                            ).start(b"bob")
+        self.assertOk(r)
+        self.assertEqual(r.user, b"bob@example.org")
+
     @spec("RFC 4422", "3.4.1", "MUST",
           "a non-empty authzid requests that exact identity")
     def test_whitespace_authzid(self):
@@ -109,6 +128,13 @@ class ExternalClient(SaslTestCase):
         c = self.ext_client(authzid="bob")
         self.assertOk(c.first)
         self.assertEqual(c.first.out, b"bob")
+
+    @spec("RFC 4422", "A.1", "ABNF",
+          "the client sends the authzid it reports acting as")
+    def test_authzid_sent_canonicalized(self):
+        c = self.ext_client(authzid=" bob ")
+        self.assertOk(c.first)
+        self.assertEqual(c.first.out, c.first.user)
 
     @spec("RFC 4422", "A.1", "MUST",
           "there are no additional challenges; a non-empty challenge fails")

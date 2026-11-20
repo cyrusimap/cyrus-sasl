@@ -97,11 +97,9 @@ typedef int		    intptr_t;
 #define STATIC_ANONYMOUS 1
 /* #define STATIC_GSSAPIV2 1 */
 /* #undef STATIC_MYSQL */
-/* #define STATIC_OTP 1 */
 #define STATIC_PLAIN 1
 /* #define STATIC_SASLDB 1 */
 #define STATIC_SCRAM 1
-/* #define STATIC_SRP 1 */
 #endif
 
 /* ------------------------------------------------------------ */
@@ -136,6 +134,9 @@ typedef int		    intptr_t;
 
 /* we're not gcc */
 #define __attribute__(foo)
+
+/* Use Windows mutexes for the library's locks; without this they are no-ops */
+#define HAVE_NT_THREADS 1
 
 /* : Same as in tpipv6.h */
 #ifndef HAVE_SOCKLEN_T

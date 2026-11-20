@@ -82,6 +82,9 @@ anonymous_server_mech_new(void *glob_context __attribute__((unused)),
     return SASL_OK;
 }
 
+/* RFC 4505 section 2: token = 1*255TCHAR, up to 255 UTF-8 characters */
+#define MAX_TRACE_OCTETS (255 * 4)
+
 static int
 anonymous_server_mech_step(void *conn_context __attribute__((unused)),
 			   sasl_server_params_t *sparams,
@@ -92,6 +95,8 @@ anonymous_server_mech_step(void *conn_context __attribute__((unused)),
 			   sasl_out_params_t *oparams)
 {
     char *clientdata;
+    unsigned len, i, n;
+    int utf8;
     int result;
     
     if (!sparams
@@ -109,26 +114,42 @@ anonymous_server_mech_step(void *conn_context __attribute__((unused)),
 	return SASL_CONTINUE;
     }
     
-    /* We force a truncation 255 characters (specified by RFC 2245) */
-    if (clientinlen > 255) clientinlen = 255;
-    
-    /* NULL-terminate the clientin... */
-    clientdata = sparams->utils->malloc(clientinlen + 1);
+    /* Log at most the longest valid trace, without splitting a character */
+    len = clientinlen;
+    if (len > MAX_TRACE_OCTETS) {
+	len = MAX_TRACE_OCTETS;
+	while (len > 0 && ((unsigned char) clientin[len] & 0xC0) == 0x80) len--;
+    }
+    utf8 = sparams->utils->utf8verify(clientin, len) == SASL_OK;
+
+    /* The trace isn't authenticated and may contain anything: escape
+       control characters, the quotes it's logged in, and, if it isn't
+       valid UTF-8, every non-ASCII octet */
+    clientdata = sparams->utils->malloc(4 * len + 1);
     if (!clientdata) {
 	MEMERROR(sparams->utils);
 	return SASL_NOMEM;
     }
-    
-    strncpy(clientdata, clientin, clientinlen);
-    clientdata[clientinlen] = '\0';
-    
+
+    for (i = 0, n = 0; i < len; i++) {
+	unsigned char c = (unsigned char) clientin[i];
+
+	if (c < 0x20 || c == 0x7f || c == '"' || c == '\\' ||
+	    (c >= 0x80 && !utf8)) {
+	    snprintf(clientdata + n, 5, "\\x%02x", c);
+	    n += 4;
+	} else {
+	    clientdata[n++] = (char) c;
+	}
+    }
+    clientdata[n] = '\0';
+
     sparams->utils->log(sparams->utils->conn,
 			SASL_LOG_NOTE,
-			"ANONYMOUS login: \"%s\"",
-			clientdata);
-    
-    if (clientdata != clientin) 
-	sparams->utils->free(clientdata);
+			"ANONYMOUS login: \"%s\"%s",
+			clientdata, len < clientinlen ? " (truncated)" : "");
+
+    sparams->utils->free(clientdata);
     
     result = sparams->canon_user(sparams->utils->conn,
 				 anonymous_id, 0,
@@ -291,8 +312,11 @@ anonymous_client_mech_step(void *conn_context,
 	return SASL_INTERACT;
     }
     
-    if (!user || !*user) {
-	user = anonymous_id;
+    /* RFC 4505: the trace is optional, and identifying information should
+       only be sent with the user's permission.  Send the application's
+       trace as given, or none. */
+    if (!user) {
+	user = "";
     }
     userlen = strlen(user);
     
@@ -301,19 +325,15 @@ anonymous_client_mech_step(void *conn_context,
 				 SASL_CU_AUTHID | SASL_CU_AUTHZID, oparams);
     if (result != SASL_OK) return result;
     
-    *clientoutlen = (unsigned) (userlen + cparams->clen + 1);
-    
     result = _plug_buf_alloc(cparams->utils, &text->out_buf,
-			     &text->out_buf_len, *clientoutlen);
+			     &text->out_buf_len, (unsigned) userlen + 1);
     
     if (result != SASL_OK) return result;
     
-    strcpy(text->out_buf, user);
-    text->out_buf[userlen] = '@';
-    /* use memcpy() instead of strcpy() so we don't add the NUL */
-    memcpy(text->out_buf + userlen + 1, cparams->clientFQDN, cparams->clen);
+    memcpy(text->out_buf, user, userlen + 1);
     
     *clientout = text->out_buf;
+    *clientoutlen = (unsigned) userlen;
     
     /* set oparams */
     oparams->doneflag = 1;

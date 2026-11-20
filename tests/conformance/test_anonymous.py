@@ -62,6 +62,38 @@ class AnonymousServer(SaslTestCase):
         self.assertEqual(len(trace), 1020)
         self.assertOk(self.server("ANONYMOUS").start(trace))
 
+    def logged_trace(self, trace):
+        """Return the server's log line for an ANONYMOUS login."""
+        r = self.server("ANONYMOUS", opts={"log_level": "4"}).start(trace)
+        self.assertOk(r)
+        lines = [l for l in r.log.split(b"\n") if b"ANONYMOUS login" in l]
+        self.assertEqual(len(lines), 1, "log: %r" % r.log)
+        return lines[0], r.log
+
+    @spec("RFC 4505", "5", "SECURITY",
+          "falsifiable trace information can't forge log lines")
+    def test_trace_logged_escaped(self):
+        line, log = self.logged_trace(b"x\r\nFAKE LOG LINE \x1b[31m")
+        self.assertNotIn(b"\r", log)
+        self.assertNotIn(b"\x1b", log)
+        self.assertFalse(any(l.startswith(b"FAKE") for l in log.split(b"\n")),
+                         "log: %r" % log)
+        self.assertIn(b"FAKE LOG LINE", line)
+
+    @spec("RFC 4505", "2", "ABNF",
+          "a 255-character trace is logged whole, without splitting a character")
+    def test_trace_logged_whole(self):
+        trace = ("\U0001F600" * 255).encode("utf-8")
+        line, _ = self.logged_trace(trace)
+        self.assertTrue(trace in line, "logged %d octets of the %d-octet trace"
+                        % (len(line) - len(b'ANONYMOUS login: ""'), len(trace)))
+
+    @spec("RFC 4505", "5", "SECURITY", "a trace that isn't UTF-8 is logged escaped")
+    def test_trace_invalid_utf8_logged_escaped(self):
+        line, _ = self.logged_trace(b"bad\xff\xfeutf8")
+        self.assertNotIn(b"\xff", line)
+        line.decode("utf-8")
+
     @spec("RFC 4505", "3", "MUST",
           "trace information is not an identity; the client is not authorized as it")
     def test_trace_is_not_identity(self):
@@ -99,7 +131,6 @@ class AnonymousClient(SaslTestCase):
         super().setUp()
         self.require_mech("ANONYMOUS")
 
-    @known_bug("H18", "client always sends <user>@<hostname> as the trace")
     @spec("RFC 4505", "5", "SHOULD",
           "the client should offer the option of supplying no trace information")
     def test_no_trace_by_default(self):
@@ -107,7 +138,6 @@ class AnonymousClient(SaslTestCase):
         self.assertOk(c.first)
         self.assertEqual(c.first.out, b"")
 
-    @known_bug("H18", "client appends @<hostname> to an email trace")
     @spec("RFC 4505", "2", "ABNF", "message = [ email / token ]")
     def test_email_trace_sent_as_given(self):
         c = self.client("ANONYMOUS", authzid="sirhc@example.com")
@@ -115,6 +145,12 @@ class AnonymousClient(SaslTestCase):
         self.assertTrue(valid_trace(c.first.out),
                         "trace %r matches neither email nor token" % c.first.out)
         self.assertEqual(c.first.out, b"sirhc@example.com")
+
+    @spec("RFC 4505", "2", "ABNF", "message = [ email / token ]")
+    def test_token_trace_sent_as_given(self):
+        c = self.client("ANONYMOUS", authzid="sirhc")
+        self.assertOk(c.first)
+        self.assertEqual(c.first.out, b"sirhc")
 
     @spec("RFC 4422", "5", "MUST",
           "for a client-first mechanism, the first server challenge MUST be empty")

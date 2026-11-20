@@ -777,10 +777,24 @@ static int gs2_client_mech_step(void *conn_context,
 	}
     }
 
-    /* From GSSAPI plugin: apparently this is for some IMAP bug workaround */
+    /*
+     * Some applications get an initial response from sasl_client_start()
+     * but can't send it (IMAP without SASL-IR), and answer the server's
+     * empty challenge with a step instead.  Start over, and send a complete
+     * initial message: the GS2 header and the unframed initial token.
+     */
     if (serverinlen == 0 && text->gss_ctx != GSS_C_NO_CONTEXT) {
         gss_delete_sec_context(&min_stat, &text->gss_ctx, GSS_C_NO_BUFFER);
         text->gss_ctx = GSS_C_NO_CONTEXT;
+
+        /* gs2_make_header() sets these up again */
+        if (text->gss_cbindings.application_data.value != NULL) {
+            text->utils->free(text->gss_cbindings.application_data.value);
+            text->gss_cbindings.application_data.value = NULL;
+            text->gss_cbindings.application_data.length = 0;
+        }
+        text->gs2_flags = 0;
+        initialContextToken = 1;
     }
 
     input_token.value = (void *)serverin;

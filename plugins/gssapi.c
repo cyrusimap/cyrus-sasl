@@ -86,7 +86,6 @@
 #endif
 
 #include <errno.h>
-#include <assert.h>
 
 #ifdef GSS_USE_CCACHE_STORE
 #include <sys/stat.h>
@@ -1319,7 +1318,13 @@ gssapi_server_mech_authneg(context_t *text,
         return SASL_CONTINUE;
     }
 
-    assert(maj_stat == GSS_S_COMPLETE);
+    if (maj_stat != GSS_S_COMPLETE) {
+	/* Supplementary status bits (a replayed or out-of-sequence token,
+	   for example) mean the context can't be trusted */
+	sasl_gss_seterror(text->utils, maj_stat, min_stat);
+	sasl_gss_free_context_contents(text);
+	return SASL_BADAUTH;
+    }
 
     /* RFC 4752 section 3.2: the server SHOULD verify that the negotiated
        GSS-API mechanism is Kerberos V5; if it isn't, authentication MUST
@@ -1790,6 +1795,9 @@ gssapi_server_mech_ssfreq(context_t *text,
 				 oparams);
 
 	if (ret != SASL_OK) {
+	    GSS_LOCK_MUTEX_CTX(params->utils, text);
+	    gss_release_buffer(&min_stat, output_token);
+	    GSS_UNLOCK_MUTEX_CTX(params->utils, text);
 	    sasl_gss_free_context_contents(text);
 	    return ret;
 	}
@@ -1854,7 +1862,11 @@ gssapi_server_mech_step(void *conn_context,
     case SASL_GSSAPI_STATE_AUTHNEG:
 	ret = gssapi_server_mech_authneg(text, params, clientin, clientinlen,
 					 serverout, serveroutlen, oparams);
-	if (ret != SASL_CONTINUE || *serveroutlen) break;
+	/* Go on to the security layer offer only once the context is
+	   complete; an empty token from an incomplete context is sent
+	   as is */
+	if (ret != SASL_CONTINUE || *serveroutlen ||
+	    text->state != SASL_GSSAPI_STATE_SSFCAP) break;
 
 	/* Pretend that we just got an empty response from the client */
 	clientinlen = 0;
@@ -2259,7 +2271,11 @@ static int gssapi_client_mech_step(void *conn_context,
 					client_creds, /* GSS_C_NO_CREDENTIAL */
 					&text->gss_ctx,
 					text->server_name,
-					text->mech_type,
+					/* RFC 4752 section 3.1: GSSAPI uses
+					   Kerberos V5, not the default
+					   mechanism */
+					text->mech_type ? text->mech_type
+							: &gss_krb5_oid,
 					req_flags,
 					0,
 					bindings,
@@ -2447,10 +2463,13 @@ static int gssapi_client_mech_step(void *conn_context,
 	}
 
 	/* taken from kerberos.c */
-	if (secprops->min_ssf > (mech_ssf + external)) {
-	    return SASL_TOOWEAK;
-	} else if (secprops->min_ssf > secprops->max_ssf) {
-	    return SASL_BADPARAM;
+	if (secprops->min_ssf > (mech_ssf + external) ||
+	    secprops->min_ssf > secprops->max_ssf) {
+	    GSS_LOCK_MUTEX_CTX(params->utils, text);
+	    gss_release_buffer(&min_stat, output_token);
+	    GSS_UNLOCK_MUTEX_CTX(params->utils, text);
+	    return (secprops->min_ssf > (mech_ssf + external)) ?
+		SASL_TOOWEAK : SASL_BADPARAM;
 	}
 	
 	/* need bits of layer -- sasl_ssf_t is unsigned so be careful */
@@ -2530,6 +2549,9 @@ static int gssapi_client_mech_step(void *conn_context,
 	    mychoice = LAYER_NONE;
 	} else {
 	    /* there's no appropriate layering for us! */
+	    GSS_LOCK_MUTEX_CTX(params->utils, text);
+	    gss_release_buffer(&min_stat, output_token);
+	    GSS_UNLOCK_MUTEX_CTX(params->utils, text);
 	    sasl_gss_free_context_contents(text);
 	    return SASL_TOOWEAK;
 	}

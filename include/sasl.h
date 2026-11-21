@@ -473,10 +473,9 @@ typedef int sasl_verifyfile_t(void *context,
  * inputs:
  *  context     -- getconfpath context from the callback record
  * outputs:
- *  path        -- colon seperated path (allocated on the heap; the
- *                 library will free it using the sasl_free_t *
- *                 passed to sasl_set_callback, or the standard free()
- *                 library call).
+ *  path        -- configuration search path owned by the application.
+ *                 Keep the string valid until sasl_server_init() returns.
+ *                 The library does not free it.
  * returns:
  *  SASL_OK     -- no error
  *  SASL_FAIL   -- error

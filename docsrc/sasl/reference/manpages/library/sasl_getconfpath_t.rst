@@ -28,6 +28,11 @@ Description
     location  in the environment variable SASL_CONF_PATH (provided
     we are not SUID or SGID) or `/etc/sasl2` by default.
 
+On success, the callback sets ``*path`` to the configuration search path.
+The application owns the string and must keep it valid until
+:saslman:`sasl_server_init(3)` returns. SASL reads the string without
+freeing it. The callback may return a string with static storage duration.
+
 Return Value
 ============
 

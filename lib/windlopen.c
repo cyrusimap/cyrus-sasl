@@ -132,16 +132,15 @@ static int _tsasl_get_plugin(TCHAR *tfile,
     char *file;
     int retCode = SASL_OK;
 
-    if (sizeof(TCHAR) != sizeof(char)) {
-        file = _sasl_wchar_to_utf8(tfile);
-        if (!file) {
-            retCode = SASL_NOMEM;
-            goto cleanup;
-        }
+#ifdef UNICODE
+    file = _sasl_wchar_to_utf8(tfile);
+    if (!file) {
+        retCode = SASL_NOMEM;
+        goto cleanup;
     }
-    else {
-        file = (char*)tfile;
-    }
+#else
+    file = (char*)tfile;
+#endif
     retCode = ((sasl_verifyfile_t *)(verifyfile_cb->proc))
 		    (verifyfile_cb->context, file, SASL_VRFY_PLUGIN);
     if (retCode != SASL_OK)
@@ -167,9 +166,9 @@ static int _tsasl_get_plugin(TCHAR *tfile,
 
     *libraryptr = library;
 cleanup:
-    if (sizeof(TCHAR) != sizeof(char)) {
-        sasl_FREE(file);
-    }
+#ifdef UNICODE
+    sasl_FREE(file);
+#endif
     return retCode;
 }
 
@@ -177,20 +176,18 @@ int _sasl_get_plugin(const char *file,
     const sasl_callback_t *verifyfile_cb,
     void **libraryptr)
 {
-    if (sizeof(TCHAR) == sizeof(char)) {
-        return _tsasl_get_plugin((TCHAR*)file, verifyfile_cb, libraryptr);
-    }
-    else {
-        WCHAR *tfile = _sasl_utf8_to_wchar(file);
-        int ret = SASL_NOMEM;
+#ifdef UNICODE
+    WCHAR *tfile = _sasl_utf8_to_wchar(file);
+    int ret = SASL_NOMEM;
 
-        if (tfile) {
-            ret = _tsasl_get_plugin(tfile, verifyfile_cb, libraryptr);
-            sasl_FREE(tfile);
-        }
-
-        return ret;
+    if (tfile) {
+        ret = _tsasl_get_plugin(tfile, verifyfile_cb, libraryptr);
+        sasl_FREE(tfile);
     }
+    return ret;
+#else
+    return _tsasl_get_plugin((TCHAR*)file, verifyfile_cb, libraryptr);
+#endif
 }
 
 
@@ -277,13 +274,12 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
     if (result != SASL_OK) return result;
     if (!utf8path) return SASL_FAIL;
 
-    if (sizeof(TCHAR) == sizeof(char)) {
-        path = (TCHAR*)utf8path;
-    }
-    else {
-        path = _sasl_utf8_to_wchar(utf8path);
-        if (!path) return SASL_FAIL;
-    }
+#ifdef UNICODE
+    path = _sasl_utf8_to_wchar(utf8path);
+    if (!path) return SASL_FAIL;
+#else
+    path = (TCHAR*)utf8path;
+#endif
 
     if (_tcslen(path) >= PATH_MAX) { /* no you can't buffer overrun */
 	    retCode = SASL_FAIL;
@@ -367,14 +363,14 @@ int _sasl_load_plugins(const add_plugin_list_t *entrypoints,
         _tcscat (full_name, finddata.name);
 		
 /* cut off .dll suffix -- this only need be approximate */
-        if (sizeof(TCHAR) != sizeof(char)) {
-            if (WideCharToMultiByte(CP_UTF8, 0, finddata.name, -1, plugname, sizeof(plugname), NULL, NULL) == 0) { // in case of unicode use utf8
-                continue;
-            }
+#ifdef UNICODE
+        if (WideCharToMultiByte(CP_UTF8, 0, finddata.name, -1, plugname,
+                                sizeof(plugname), NULL, NULL) == 0) {
+            continue;
         }
-        else {
-            _tcscpy((TCHAR*)plugname, finddata.name); // w/o unicode local enconding is fine
-        }
+#else
+        _tcscpy((TCHAR*)plugname, finddata.name);
+#endif
 	    c = strchr(plugname, '.');
 	    if (c != NULL) *c = '\0';
 

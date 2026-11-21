@@ -46,6 +46,7 @@
 #include <sasl.h>
 #include <prop.h>
 #include <ctype.h>
+#include <limits.h>
 #include <stdio.h>
 #include "saslint.h"
 
@@ -95,6 +96,21 @@ static struct proppool *alloc_proppool(size_t size)
     ret->size = ret->unused = size;
 
     return ret;
+}
+
+/* Property pools may contain passwords and binary verifiers. */
+static void free_proppool(struct proppool *pool)
+{
+    char *data = pool->data;
+    size_t remaining = pool->size;
+
+    while (remaining) {
+        unsigned length = remaining > UINT_MAX ? UINT_MAX : (unsigned)remaining;
+        sasl_erasebuffer(data, length);
+        data += length;
+        remaining -= length;
+    }
+    sasl_FREE(pool);
 }
 
 /* Resize a proppool.  Invalidates the unused value for this pool */
@@ -221,7 +237,7 @@ void prop_dispose(struct propctx **ctx)
     while((*ctx)->mem_base) {
 	tmp = (*ctx)->mem_base;
 	(*ctx)->mem_base = tmp->next;
-	sasl_FREE(tmp);
+	free_proppool(tmp);
     }
     
     sasl_FREE(*ctx);
@@ -409,7 +425,7 @@ void prop_clear(struct propctx *ctx, int requests)
     while(ctx->mem_base) {
 	tmp = ctx->mem_base;
 	ctx->mem_base = tmp->next;
-	sasl_FREE(tmp);
+	free_proppool(tmp);
     }
     
     /* Update allocation-related metadata */

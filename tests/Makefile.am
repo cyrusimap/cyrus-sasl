@@ -42,7 +42,7 @@
 #
 ################################################################
 
-AM_CPPFLAGS=-I$(top_srcdir)/include -DPLUGINDIR='"$(abs_top_builddir)/plugins/.libs"'
+AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/common -DPLUGINDIR='"$(abs_top_builddir)/plugins/.libs"'
 
 COMMON_LDADD = ../lib/libsasl2.la $(GSSAPIBASE_LIBS) $(GSSAPI_LIBS) $(LIB_SOCKET)
 
@@ -77,7 +77,7 @@ t_cli_LDADD = $(COMMON_LDADD)
 t_initrace_SOURCES = t_initrace.c
 t_initrace_LDADD = $(COMMON_LDADD)
 
-check_PROGRAMS = \
+check_PROGRAMS = t_crypto \
 	t_gssapi_cli \
 	t_gssapi_srv \
 	t_srv \
@@ -85,9 +85,26 @@ check_PROGRAMS = \
 	t_initrace \
 	$(NULL)
 
+t_crypto_SOURCES = t_crypto.c
+t_crypto_LDADD = ../common/libsasl_crypto.la $(CRYPTO_LIBS) $(LIB_SOCKET)
+
+TESTS = t_crypto
+if HAVE_CNG
+check_PROGRAMS += t_cng
+TESTS += t_cng
+t_cng_SOURCES = t_cng.c
+t_cng_LDADD = ../common/libsasl_crypto.la $(CRYPTO_LIBS)
+endif
+if SCRAM
+check_PROGRAMS += t_scram
+TESTS += t_scram t_scram_global.sh
+t_scram_SOURCES = t_scram.c ../plugins/scram.c
+t_scram_LDADD = ../lib/libsasl2.la ../common/libplugin_common.la ../common/libsasl_crypto.la $(CRYPTO_LIBS) $(LIB_SOCKET)
+endif
+
 noinst_PROGRAMS = $(check_PROGRAMS)
 
-EXTRA_DIST = \
+EXTRA_DIST = t_scram_global.sh \
 	runtests.py \
 	conformance/README.md \
 	conformance/krb5env.py \
@@ -124,7 +141,7 @@ check-conformance: $(check_PROGRAMS)
 
 .PHONY: check-conformance
 
-check: check-conformance
+check-local: check-conformance
 if MACOSX
 # skip Mac OSX for now
 else

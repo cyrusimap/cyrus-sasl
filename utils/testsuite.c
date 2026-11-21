@@ -68,7 +68,10 @@
 #include <saslutil.h>
 #include <prop.h>
 
-#include <openssl/evp.h>
+#ifndef _WIN32
+#include <sys/uio.h>
+#endif
+#include "sasl_crypto.h"
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -2725,7 +2728,10 @@ void create_ids(void)
 #ifdef DO_SASL_CHECKAPOP
     int i;
     const char challenge[] = "<1896.697170952@cyrus.andrew.cmu.edu>";
-    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+    const sasl_crypto_t *crypto;
+    void *crypto_context;
+    struct iovec input[2];
+    int have_md5;
     unsigned char digest[16];
     char digeststr[33];
 #endif
@@ -2777,22 +2783,32 @@ void create_ids(void)
 
     /* Test sasl_checkapop */
 #ifdef DO_SASL_CHECKAPOP
-    EVP_DigestInit(ctx, EVP_md5());
-    EVP_DigestUpdate(ctx,(const unsigned char *)challenge,strlen(challenge));
-    EVP_DigestUpdate(ctx,(const unsigned char *)password,strlen(password));
-    EVP_DigestFinal(ctx, digest, NULL);
-                            
-    /* convert digest from binary to ASCII hex */
-    for (i = 0; i < 16; i++)
-      sprintf(digeststr + (i*2), "%02x", digest[i]);
+    result = _sasl_crypto_default(NULL, "MD5", &crypto, &crypto_context);
+    have_md5 = result != SASL_NOMECH;
+    if (!have_md5) {
+        printf("SKIP: checkapop requires a cryptographic test backend\n");
+    } else {
+        if (result != SASL_OK)
+            fatal("Unable to initialize checkapop crypto");
+        input[0].iov_base = (char *)challenge;
+        input[0].iov_len = strlen(challenge);
+        input[1].iov_base = (char *)password;
+        input[1].iov_len = strlen(password);
+        if (crypto->hash(crypto_context, input, 2, digest, sizeof(digest)) != SASL_OK)
+            fatal("Unable to compute checkapop digest");
 
-    sprintf(buf, "%s %s", username, digeststr);
-    
-    result = sasl_checkapop(saslconn,
-                            challenge, strlen(challenge),
-                            buf, strlen(buf));
-    if(result != SASL_OK)
-        fatal("Unable to checkapop password we just set");
+        /* convert digest from binary to ASCII hex */
+        for (i = 0; i < 16; i++)
+          sprintf(digeststr + (i*2), "%02x", digest[i]);
+
+        sprintf(buf, "%s %s", username, digeststr);
+
+        result = sasl_checkapop(saslconn,
+                                challenge, strlen(challenge),
+                                buf, strlen(buf));
+        if(result != SASL_OK)
+            fatal("Unable to checkapop password we just set");
+    }
     /* End checkapop test */
 #else /* Just check that checkapop is really turned off */
     if(sasl_checkapop(saslconn, NULL, 0, NULL, 0) == SASL_OK)
@@ -2817,13 +2833,15 @@ void create_ids(void)
 
 #ifdef DO_SASL_CHECKAPOP
     /* And checkapop... */
-    result = sasl_checkapop(saslconn,
-                            challenge, strlen(challenge), 
-                            buf, strlen(buf));
-    if (result == SASL_OK) {
-	printf("\n  WARNING: sasl_checkapop got SASL_OK after disableing\n");
-	printf("           This is generally ok, just an artifact of sasldb\n");
-	printf("           being an external verifier\n");
+    if (have_md5) {
+        result = sasl_checkapop(saslconn,
+                                challenge, strlen(challenge),
+                                buf, strlen(buf));
+        if (result == SASL_OK) {
+            printf("\n  WARNING: sasl_checkapop got SASL_OK after disableing\n");
+            printf("           This is generally ok, just an artifact of sasldb\n");
+            printf("           being an external verifier\n");
+        }
     }
 #endif
 

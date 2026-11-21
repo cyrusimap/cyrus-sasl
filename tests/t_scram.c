@@ -256,11 +256,10 @@ static int test_path(void *context, const char **path)
 
 static int test_confpath(void *context, char **path)
 {
+    /* The application keeps ownership of the configuration path. */
+    static char empty_path[] = "";
     (void)context;
-    *path = test_malloc(1);
-    if (*path == NULL)
-        return SASL_NOMEM;
-    **path = '\0';
+    *path = empty_path;
     return SASL_OK;
 }
 

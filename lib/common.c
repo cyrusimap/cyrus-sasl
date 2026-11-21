@@ -89,7 +89,7 @@ static const char *sasl_root_key = SASL_ROOT_KEY;
 static int _sasl_getpath(void *context __attribute__((unused)), const char **path);
 static int _sasl_getpath_simple(void *context __attribute__((unused)), const char **path);
 static int _sasl_getconfpath(void *context __attribute__((unused)), char ** path);
-static int _sasl_getconfpath_simple(void *context __attribute__((unused)), char **path);
+static int _sasl_getconfpath_simple(void *context __attribute__((unused)), const char **path);
 
 static int _sasl_get_default_path(void *context __attribute__((unused)),
 			    const char * reg_key_name,
@@ -1818,9 +1818,7 @@ _sasl_getconfpath(void *context __attribute__((unused)),
                                                        CONFIGDIR);
     }
     if (res == SASL_OK) {
-        /* The cached path belongs to the library. GETCONFPATH callers own
-         * the returned string, so hand them a separate allocation. */
-        res = _sasl_strdup(default_conf_path, path_dest, NULL);
+        *path_dest = default_conf_path;
     }
 
     return res;
@@ -1828,7 +1826,7 @@ _sasl_getconfpath(void *context __attribute__((unused)),
 
 static int
 _sasl_getconfpath_simple(void *context __attribute__((unused)),
-                         char **path)
+                         const char **path)
 {
     if (! path) {
         return SASL_BADPARAM;
@@ -1838,7 +1836,9 @@ _sasl_getconfpath_simple(void *context __attribute__((unused)),
         return SASL_FAIL;
     }
 
-    return _sasl_strdup(default_conf_path, path, NULL);
+    *path = default_conf_path;
+
+    return SASL_OK;
 }
 
 

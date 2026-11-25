@@ -488,8 +488,11 @@ void sasl_churn (sasl_rand_t *rpool, const char *data, unsigned len)
 	rpool->pool[lup % RPOOL_SIZE] ^= data[lup];
 }
 
+/* An indirect volatile call preserves the erase before a subsequent free. */
+static void *(*volatile erase_buffer)(void *, int, size_t) = memset;
+
 void sasl_erasebuffer(char *buf, unsigned len) {
-    memset(buf, 0, len);
+    erase_buffer(buf, 0, len);
 }
 
 /* Lowercase string in place */

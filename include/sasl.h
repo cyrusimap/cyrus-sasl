@@ -486,6 +486,46 @@ typedef int sasl_getconfpath_t(void *context,
 
 #define SASL_CB_GETCONFPATH  5
 
+/* Cryptographic operations supplied by an application. Algorithms are named
+ * "MD5", "SHA1", "SHA224", "SHA256", "SHA384", and "SHA512".
+ *
+ * Buffers belong to the caller and must not be retained. Each operation must
+ * write exactly outputlen bytes on success and return SASL_OK. Errors must
+ * return a SASL error code; they never select another cryptographic backend.
+ * hash() consumes the concatenation of the input vectors, without modifying
+ * them. Empty inputs are permitted. hmac() and pbkdf2() may be NULL when the
+ * application does not support those operations.
+ */
+#define SASL_CRYPTO_VERSION 1
+
+typedef struct sasl_crypto {
+    unsigned version;
+    int (*hash)(void *context, const struct iovec *input, unsigned count,
+                unsigned char *output, unsigned outputlen);
+    int (*hmac)(void *context, const unsigned char *key, size_t keylen,
+                const unsigned char *input, size_t inputlen,
+                unsigned char *output, unsigned outputlen);
+    int (*pbkdf2)(void *context, const unsigned char *password,
+                  size_t passwordlen, const unsigned char *salt,
+                  size_t saltlen, unsigned iterations,
+                  unsigned char *output, unsigned outputlen);
+} sasl_crypto_t;
+
+/* Select cryptographic operations for an algorithm on this connection.
+ * The returned table and context must remain valid until the connection is
+ * disposed. The table must not change during that lifetime. Contexts used by
+ * multiple connections must be safe for concurrent calls.
+ *
+ * The library uses its built-in backend only when this callback is absent.
+ * A registered callback must return SASL_OK and a supported operation table,
+ * or an error (SASL_NOMECH for an unsupported algorithm). It must not return
+ * SASL_INTERACT. Only mechanisms documented to use this callback are affected.
+ */
+typedef int sasl_getcrypto_t(void *context, const char *algorithm,
+                             const sasl_crypto_t **operations,
+                             void **crypto_context);
+#define SASL_CB_CRYPTO 6
+
 /* client/user interaction callbacks:
  */
 /* Simple prompt -- result must persist until next call to getsimple on

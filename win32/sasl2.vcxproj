@@ -137,7 +137,9 @@
     <ClCompile Include="..\lib\config.c" />
     <ClCompile Include="..\lib\external.c" />
     <ClCompile Include="..\lib\getsubopt.c" />
-    <ClCompile Include="..\lib\saslutil.c" />
+    <ClCompile Include="..\lib\saslutil.c">
+      <PreprocessorDefinitions>NEED_GETOPT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
     <ClCompile Include="..\lib\server.c" />
     <ClCompile Include="..\lib\seterror.c" />
     <ClCompile Include="..\lib\windlopen.c" />

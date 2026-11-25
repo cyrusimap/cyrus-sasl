@@ -225,12 +225,14 @@ class Gs2Server(SaslTestCase):
 class Gs2ServerPeer:
     """Plays the GS2 server against the library's client."""
 
-    def __init__(self, client, cb_data=b""):
+    def __init__(self, client, cb_data=b"", first=None):
         self.client = client
         self.cb_data = cb_data
+        # The client's initial message, if not the one from client_start.
+        self.first = first
 
     def run(self):
-        message = self.client.first.out
+        message = self.first if self.first is not None else self.client.first.out
         flag_end = message.index(b",")
         header_end = message.index(b",", flag_end + 1) + 1
         self.gs2_header = message[:header_end]
@@ -330,6 +332,21 @@ class Gs2Client(SaslTestCase):
         self.assertEqual(peer.gs2_header, ("p=%s,," % CB_NAME).encode())
         self.assertTrue(peer.ctx.complete)
         self.assertOk(r)
+
+    @spec("RFC 5801", "4", "MUST",
+          "a restarted exchange starts with a complete initial message")
+    def test_restart_after_empty_challenge(self):
+        # Some applications get an initial response from client_start but
+        # can't send it (IMAP without SASL-IR), so they answer the server's
+        # empty challenge with a step.  The client then starts over.
+        c = self.gs2_client()
+        r = c.step(b"")
+        self.assertContinue(r)
+        peer = Gs2ServerPeer(c, first=r.out)
+        result = peer.run()
+        self.assertEqual(peer.gs2_header, b"n,,")
+        self.assertTrue(peer.ctx.complete)
+        self.assertOk(result)
 
     @known_bug("S7", "client sends n instead of y when only one mechanism is listed")
     @spec("RFC 5801", "5", "MUST NOT",

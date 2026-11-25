@@ -236,6 +236,7 @@ typedef struct sasl_server_conn {
     context_list_t *mech_contexts;
     mechanism_t *mech_list; /* list of available mechanisms */
     int mech_length;        /* number of available mechanisms */
+    int plus;               /* client selected the -PLUS name */
 } sasl_server_conn_t;
 
 /* Client Conn Type Information */
@@ -265,6 +266,7 @@ typedef struct sasl_client_conn {
 
   cmechanism_t *mech_list; /* list of available mechanisms */
   int mech_length;	   /* number of available mechanisms */
+  char *plus_mech_name;	   /* "<mech>-PLUS" when binding the channel */
 } sasl_client_conn_t;
 
 typedef struct sasl_allocation_utils {

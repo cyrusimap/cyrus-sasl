@@ -55,7 +55,7 @@ saslANONYMOUS_out = saslANONYMOUS.dll saslANONYMOUS.exp saslANONYMOUS.lib
 saslPLAIN_objs = plain.obj plain_init.obj $(common_objs)
 saslPLAIN_out = saslPLAIN.dll saslPLAIN.exp saslPLAIN.lib
 
-saslSCRAM_objs = scram.obj scram_init.obj $(common_objs)
+saslSCRAM_objs = scram.obj scram_init.obj saslprep.obj $(common_objs)
 saslSCRAM_out = saslSCRAM.dll saslSCRAM.exp saslSCRAM.lib
 
 saslGSSAPI_objs = gssapi.obj gssapiv2_init.obj $(common_objs)

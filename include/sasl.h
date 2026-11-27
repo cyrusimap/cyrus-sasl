@@ -468,15 +468,15 @@ typedef int sasl_verifyfile_t(void *context,
 #define SASL_CB_VERIFYFILE  4
 
 /* getconfpath callback -- this allows applications to specify the
- * colon-separated path to search for config files (by default,
- * taken from the SASL_CONF_PATH environment variable).
+ * search path for config files (by default, taken from the
+ * SASL_CONF_PATH environment variable). Separate directories with ':'
+ * on Unix-like systems and ';' on Windows.
  * inputs:
  *  context     -- getconfpath context from the callback record
  * outputs:
- *  path        -- colon seperated path (allocated on the heap; the
- *                 library will free it using the sasl_free_t *
- *                 passed to sasl_set_callback, or the standard free()
- *                 library call).
+ *  path        -- configuration search path owned by the application.
+ *                 Keep the string valid until sasl_server_init() returns.
+ *                 The library does not free it.
  * returns:
  *  SASL_OK     -- no error
  *  SASL_FAIL   -- error
